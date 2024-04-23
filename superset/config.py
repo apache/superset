@@ -20,6 +20,7 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
+
 # mypy: ignore-errors
 # pylint: disable=too-many-lines
 from __future__ import annotations
@@ -37,6 +38,7 @@ from email.mime.multipart import MIMEMultipart
 from importlib.resources import files
 from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
 
+import click
 import pkg_resources
 from celery.schedules import crontab
 from flask import Blueprint
@@ -274,7 +276,7 @@ SCHEDULED_QUERIES: dict[str, Any] = {}
 # feature is on by default to make Superset secure by default, but you should
 # fine tune the limits to your needs. You can read more about the different
 # parameters here: https://flask-limiter.readthedocs.io/en/stable/configuration.html
-RATELIMIT_ENABLED = True
+RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") == "production"
 RATELIMIT_APPLICATION = "50 per second"
 AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
@@ -847,7 +849,7 @@ LOGGING_CONFIGURATOR = DefaultLoggingConfigurator()
 # Console Log Settings
 
 LOG_FORMAT = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
-LOG_LEVEL = "DEBUG"
+LOG_LEVEL = logging.INFO
 
 # ---------------------------------------------------
 # Enable Time Rotate Log Handler
@@ -855,7 +857,7 @@ LOG_LEVEL = "DEBUG"
 # LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 ENABLE_TIME_ROTATE = False
-TIME_ROTATE_LOG_LEVEL = "DEBUG"
+TIME_ROTATE_LOG_LEVEL = logging.INFO
 FILENAME = os.path.join(DATA_DIR, "superset.log")
 ROLLOVER = "midnight"
 INTERVAL = 1
@@ -1746,7 +1748,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
 
-        print(f"Loaded your LOCAL configuration at [{cfg_path}]")
+        click.secho(f"Loaded your LOCAL configuration at [{cfg_path}]", fg="cyan")
     except Exception:
         logger.exception(
             "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
@@ -1758,7 +1760,10 @@ elif importlib.util.find_spec("superset_config") and not is_test():
         import superset_config
         from superset_config import *  # noqa: F403, F401
 
-        print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
+        click.secho(
+            f"Loaded your LOCAL configuration at [{superset_config.__file__}]",
+            fg="cyan",
+        )
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
