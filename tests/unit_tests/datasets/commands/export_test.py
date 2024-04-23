@@ -59,6 +59,7 @@ def test_export(session: Session) -> None:
     ]
 
     sqla_table = SqlaTable(
+        id=10,
         table_name="my_table",
         columns=columns,
         metrics=metrics,
@@ -106,7 +107,7 @@ def test_export(session: Session) -> None:
 
     assert export == [
         (
-            "datasets/my_database/my_table.yaml",
+            "datasets/my_database/my_table_10.yaml",
             f"""table_name: my_table
 main_dttm_col: ds
 description: This is the description
