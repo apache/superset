@@ -380,11 +380,7 @@ export default typedMemo(function DataTable<D extends object>({
               ) : null}
             </div>
             {searchInput ? (
-              <div
-                className={
-                  renderTimeComparisonDropdown ? 'col-sm-5' : 'col-sm-6'
-                }
-              >
+              <div className="col-sm-6">
                 <GlobalFilter<D>
                   searchInput={
                     typeof searchInput === 'boolean' ? undefined : searchInput
@@ -396,7 +392,10 @@ export default typedMemo(function DataTable<D extends object>({
               </div>
             ) : null}
             {renderTimeComparisonDropdown ? (
-              <div className="col-sm-2" style={{ float: 'right' }}>
+              <div
+                className="col-sm-1"
+                style={{ float: 'right', marginTop: '6px' }}
+              >
                 {renderTimeComparisonDropdown()}
               </div>
             ) : null}
