@@ -41,19 +41,47 @@ const containerStyle = (theme: SupersetTheme) => css`
   }
 `;
 
+// DODO commented #32683019
+// const verticalStyle = (theme: SupersetTheme, width: number) => css`
+//   flex-direction: column;
+//   align-items: center;
+//   pointer-events: none;
+//   position: fixed;
+//   z-index: 100;
+//
+//   // filter bar width minus 1px for border
+//   width: ${width - 1}px;
+//   bottom: 0;
+//
+//   padding: ${theme.gridUnit * 4}px;
+//   padding-top: ${theme.gridUnit * 6}px;
+//
+//   background: linear-gradient(
+//     ${rgba(theme.colors.grayscale.light5, 0)},
+//     ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+//   );
+//
+//   & > button {
+//     pointer-events: auto;
+//   }
+//
+//   & > .filter-apply-button {
+//     margin-bottom: ${theme.gridUnit * 3}px;
+//   }
+// `;
+
+// DODO added #32683019
 const verticalStyle = (theme: SupersetTheme, width: number) => css`
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: space-between;
   align-items: center;
   pointer-events: none;
-  position: fixed;
-  z-index: 100;
 
   // filter bar width minus 1px for border
   width: ${width - 1}px;
   bottom: 0;
 
   padding: ${theme.gridUnit * 4}px;
-  padding-top: ${theme.gridUnit * 6}px;
 
   background: linear-gradient(
     ${rgba(theme.colors.grayscale.light5, 0)},
@@ -62,10 +90,6 @@ const verticalStyle = (theme: SupersetTheme, width: number) => css`
 
   & > button {
     pointer-events: auto;
-  }
-
-  & > .filter-apply-button {
-    margin-bottom: ${theme.gridUnit * 3}px;
   }
 `;
 
@@ -122,7 +146,8 @@ const ActionButtons = ({
         onClick={onApply}
         {...getFilterBarTestId('apply-button')}
       >
-        {isVertical ? t('Apply filters') : t('Apply')}
+        {/* {isVertical ? t('Apply filters') : t('Apply')} // DODO commented #32683019   */}
+        {t('Apply')} {/* // DODO added #32683019 */}
       </Button>
       <Button
         disabled={!isClearAllEnabled}
