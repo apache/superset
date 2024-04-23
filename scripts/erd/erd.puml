@@ -511,6 +511,16 @@ rectangle "Inherited from Flask App Builder (FAB)" #black {
         }
         }
 rectangle "Alerts & Reports" #black {
+        entity "ReportRecipients (report_recipient)" as report_recipient {
+            created_on: DATETIME
+            changed_on: DATETIME
+            id: INTEGER
+            type: VARCHAR(50)
+            recipient_config_json: TEXT
+            report_schedule_id: INTEGER
+            created_by_fk: INTEGER
+            changed_by_fk: INTEGER
+        }
         entity "ReportExecutionLog (report_execution_log)" as report_execution_log {
             id: INTEGER
             uuid: BINARY(16)
@@ -553,16 +563,6 @@ rectangle "Alerts & Reports" #black {
             force_screenshot: BOOLEAN
             custom_width: INTEGER
             custom_height: INTEGER
-            created_by_fk: INTEGER
-            changed_by_fk: INTEGER
-        }
-        entity "ReportRecipients (report_recipient)" as report_recipient {
-            created_on: DATETIME
-            changed_on: DATETIME
-            id: INTEGER
-            type: VARCHAR(50)
-            recipient_config_json: TEXT
-            report_schedule_id: INTEGER
             created_by_fk: INTEGER
             changed_by_fk: INTEGER
         }
@@ -666,11 +666,11 @@ rectangle "Alerts & Reports" #black {
 
     ab_role }|--|{ row_level_security_filters
 
+    report_recipient }|--|| report_schedule
+    report_recipient }|--|| ab_user
+
     report_execution_log }|--|| report_schedule
 
     report_schedule }|--|| dbs
     report_schedule }|--|{ ab_user
-    report_schedule ||--|{ report_recipient
-
-    report_recipient }|--|| ab_user
 @enduml
