@@ -1,21 +1,5 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
+
 import {
   AnnotationData,
   AnnotationOpacity,
@@ -72,6 +56,7 @@ import {
   StackControlsValue,
   TIMESERIES_CONSTANTS,
 } from '../constants';
+import { LabelPositionDoDo } from '../DodoExtensions/types';
 
 // based on weighted wiggle algorithm
 // source: https://ieeexplore.ieee.org/document/4658136
@@ -168,6 +153,7 @@ export function transformSeries(
     isHorizontal?: boolean;
     lineStyle?: LineStyleOption;
     queryIndex?: number;
+    valueAlign?: LabelPositionDoDo; // DODO added #10688314
   },
 ): SeriesOption | undefined {
   const { name } = series;
@@ -192,6 +178,7 @@ export function transformSeries(
     sliceId,
     isHorizontal = false,
     queryIndex = 0,
+    valueAlign, // DODO added #10688314
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -268,6 +255,7 @@ export function transformSeries(
     isConfidenceBand || (stack === StackControlsValue.Stream && area)
       ? { ...opts.lineStyle, opacity: OpacityEnum.Transparent }
       : { ...opts.lineStyle, opacity };
+
   return {
     ...series,
     queryIndex,
@@ -307,7 +295,8 @@ export function transformSeries(
     symbolSize: markerSize,
     label: {
       show: !!showValue,
-      position: isHorizontal ? 'right' : 'top',
+      // position: isHorizontal ? 'right' : 'top', // DODO commented #10688314
+      position: valueAlign ?? (isHorizontal ? 'right' : 'top'), // DODO added #10688314
       formatter: (params: any) => {
         const { value, dataIndex, seriesIndex, seriesName } = params;
         const numericValue = isHorizontal ? value[0] : value[1];

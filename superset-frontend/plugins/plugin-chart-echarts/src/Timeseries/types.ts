@@ -36,6 +36,7 @@ import {
   StackType,
   TitleFormData,
 } from '../types';
+import { LabelPositionDoDo } from '../DodoExtensions/types';
 
 export enum OrientationType {
   vertical = 'vertical',
@@ -89,6 +90,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   showExtraControls: boolean;
   percentageThreshold: number;
   orientation?: OrientationType;
+  valueAlign?: LabelPositionDoDo; // DODO added #10688314
 } & LegendFormData &
   TitleFormData;
 

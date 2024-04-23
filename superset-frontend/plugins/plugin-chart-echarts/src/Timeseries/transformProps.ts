@@ -95,6 +95,7 @@ import {
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getYAxisFormatter } from '../utils/getYAxisFormatter';
+import { LabelPositionDoDo } from '../DodoExtensions/types';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -173,6 +174,7 @@ export default function transformProps(
     yAxisTitleMargin,
     yAxisTitlePosition,
     zoomable,
+    valueAlign = LabelPositionDoDo.top, // DODO added #10688314
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const refs: Refs = {};
 
@@ -299,6 +301,7 @@ export default function transformProps(
         sliceId,
         isHorizontal,
         lineStyle,
+        valueAlign, // DODO added #10688314
       },
     );
     if (transformedSeries) {
