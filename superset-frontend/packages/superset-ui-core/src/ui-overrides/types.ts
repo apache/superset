@@ -177,8 +177,8 @@ interface AutocompleteItem {
   score: number;
   meta: string;
   label?: string;
-  docHTML?: string | undefined;
-  docText?: string | undefined;
+  docHTML?: string;
+  docText?: string;
 }
 
 export interface CustomAutocomplete extends AutocompleteItem {
@@ -208,7 +208,7 @@ export type Extensions = Partial<{
   'sqleditor.extension.form': React.ComponentType<SQLFormExtensionProps>;
   'sqleditor.extension.resultTable': React.ComponentType<SQLResultTableExtentionProps>;
   'dashboard.slice.header': React.ComponentType<SliceHeaderExtension>;
-  'sqleditor.extension.customAutocomplete': (args: CustomAutoCompleteArgs) => {
-    data?: CustomAutocomplete[];
-  };
+  'sqleditor.extension.customAutocomplete': (
+    args: CustomAutoCompleteArgs,
+  ) => CustomAutocomplete[];
 }>;

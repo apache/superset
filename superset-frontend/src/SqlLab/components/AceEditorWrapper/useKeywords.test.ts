@@ -333,9 +333,10 @@ test('Add custom keywords for autocomplete', () => {
     },
   ];
   const extensionsRegistry = getExtensionsRegistry();
-  extensionsRegistry.set('sqleditor.extension.customAutocomplete', () => ({
-    data: expected,
-  }));
+  extensionsRegistry.set(
+    'sqleditor.extension.customAutocomplete',
+    () => expected,
+  );
   const { result } = renderHook(
     () =>
       useKeywords({

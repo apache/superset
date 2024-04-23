@@ -57,17 +57,15 @@ const getHelperText = (value: string) =>
 
 const extensionsRegistry = getExtensionsRegistry();
 
-const useDefaultCustomKeywords = () => ({ data: undefined });
-
 export function useKeywords(
   { queryEditorId, dbId, schema }: Params,
   skip = false,
 ) {
-  const useCustomKeywords =
-    extensionsRegistry.get('sqleditor.extension.customAutocomplete') ??
-    useDefaultCustomKeywords;
+  const useCustomKeywords = extensionsRegistry.get(
+    'sqleditor.extension.customAutocomplete',
+  );
 
-  const { data: customKeywords } = useCustomKeywords({
+  const customKeywords = useCustomKeywords?.({
     queryEditorId: String(queryEditorId),
     dbId,
     schema,
