@@ -68,6 +68,5 @@ postgresql.svg
 snowflake.svg
 
 # docs-related
-docs/docs/.htaccess*
 erd.puml
 erd.svg

@@ -153,7 +153,7 @@ def introspect_models() -> dict[str, list[dict[str, Any]]]:
     for model in db.Model.registry.mappers:
         group_name = (
             TABLE_TO_GROUP_MAP.get(model.mapper.persist_selectable.name)
-            or "Other Models"
+            or "Uncategorized Models"
         )
         model_data = introspect_sqla_model(model, seen_models)
         data[group_name].append(model_data)
