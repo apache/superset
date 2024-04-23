@@ -22,6 +22,7 @@ import { useDispatch } from 'react-redux';
 import { css, styled, usePrevious, useTheme } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 
+import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
 import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
 import { FullSQLEditor as AceEditor } from 'src/components/AsyncAceEditor';
 import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutButton';
@@ -187,6 +188,10 @@ const AceEditorWrapper = ({
             // Use !important because Ace Editor applies extra CSS at the last second
             // when opening the autocomplete.
             width: ${theme.gridUnit * 130}px !important;
+          }
+
+          .ace_tooltip {
+            max-width: ${SQL_EDITOR_LEFTBAR_WIDTH}px;
           }
 
           .ace_scroller {
