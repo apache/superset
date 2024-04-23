@@ -39,6 +39,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+      - name: Compute Entity Relationship diagram (ERD)
+        run: python scripts/erd.py
       - name: yarn install
         run: |
           yarn install --check-cache
