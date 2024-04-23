@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { isEqual, isEmpty } from 'lodash';
-import { QueryFormData, styled, t, usePrevious } from '@superset-ui/core';
+import { QueryFormData, styled, t } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -97,7 +97,7 @@ export const alterForComparison = (
 };
 
 export const formatValueHandler = (
-  value: any,
+  value: DiffItemType,
   key: string,
   controlsMap: ControlMap,
 ): string | number => {
@@ -107,12 +107,15 @@ export const formatValueHandler = (
   if (value === null) {
     return 'null';
   }
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
   if (controlsMap[key]?.type === 'AdhocFilterControl' && Array.isArray(value)) {
     if (!value.length) {
       return '[]';
     }
     return value
-      .map((v: any) => {
+      .map((v: FilterItemType) => {
         const filterVal =
           v.comparator && v.comparator.constructor === Array
             ? `[${v.comparator.join(', ')}]`
@@ -125,20 +128,17 @@ export const formatValueHandler = (
     return `Min: ${value[0]}, Max: ${value[1]}`;
   }
   if (controlsMap[key]?.type === 'CollectionControl' && Array.isArray(value)) {
-    return value.map((v: any) => safeStringify(v)).join(', ');
+    return value.map((v: FilterItemType) => safeStringify(v)).join(', ');
   }
   if (
     controlsMap[key]?.type === 'MetricsControl' &&
     value.constructor === Array
   ) {
-    const formattedValue = value.map((v: any) => v?.label ?? v);
+    const formattedValue = value.map((v: FilterItemType) => v?.label ?? v);
     return formattedValue.length ? formattedValue.join(', ') : '[]';
   }
-  if (typeof value === 'boolean') {
-    return value ? 'true' : 'false';
-  }
   if (Array.isArray(value)) {
-    const formattedValue = value.map((v: any) => v?.label ?? v);
+    const formattedValue = value.map((v: FilterItemType) => v?.label ?? v);
     return formattedValue.length ? formattedValue.join(', ') : '[]';
   }
   if (typeof value === 'string' || typeof value === 'number') {
@@ -161,7 +161,6 @@ export const isEqualish = (val1: string, val2: string): boolean =>
   isEqual(alterForComparison(val1), alterForComparison(val2));
 
 const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
-  const prevProps = usePrevious(props);
   const [rows, setRows] = useState<RowType[]>([]);
   const [hasDiffs, setHasDiffs] = useState<boolean>(false);
 
@@ -194,25 +193,9 @@ const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
     ) as ControlMap;
     setRows(getRowsFromDiffs(diffs, controlsMap));
     setHasDiffs(!isEmpty(diffs));
-  }, [getDiffs, props]);
+  }, [getDiffs, props.origFormData?.viz_type]);
 
-  useEffect(() => {
-    const diffs = getDiffs();
-
-    const updateStateWithDiffs = () => {
-      if (isEqual(prevProps, props)) {
-        return;
-      }
-      setRows(prevRows =>
-        getRowsFromDiffs(diffs, prevRows as unknown as ControlMap),
-      );
-      setHasDiffs(!isEmpty(diffs));
-    };
-
-    updateStateWithDiffs();
-  }, [getDiffs, props, prevProps]);
-
-  const renderModalBody = useCallback(() => {
+  const modalBody = useMemo(() => {
     const columns = [
       {
         accessor: 'control',
@@ -241,7 +224,7 @@ const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
     );
   }, [rows]);
 
-  const renderTriggerNode = useCallback(
+  const triggerNode = useMemo(
     () => (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
         <StyledLabel className="label">{t('Altered')}</StyledLabel>
@@ -256,9 +239,9 @@ const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
 
   return (
     <ModalTrigger
-      triggerNode={renderTriggerNode()}
+      triggerNode={triggerNode}
       modalTitle={t('Chart changes')}
-      modalBody={renderModalBody()}
+      modalBody={modalBody}
       responsive
     />
   );
