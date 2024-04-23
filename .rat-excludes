@@ -69,5 +69,5 @@ snowflake.svg
 
 # docs-related
 docs/docs/.htaccess*
-erd.plantuml
+erd.puml
 erd.svg
