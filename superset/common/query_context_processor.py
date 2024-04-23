@@ -19,7 +19,7 @@ from __future__ import annotations
 import copy
 import logging
 import re
-from typing import Any, ClassVar, TYPE_CHECKING, TypedDict
+from typing import Any, cast, ClassVar, TYPE_CHECKING, TypedDict
 
 import numpy as np
 import pandas as pd
@@ -55,6 +55,7 @@ from superset.utils.core import (
     DateColumn,
     DTTM_ALIAS,
     error_msg_from_exception,
+    FilterOperator,
     get_base_axis_labels,
     get_column_names_from_columns,
     get_column_names_from_metrics,
@@ -355,7 +356,7 @@ class QueryContextProcessor:
                 axis=1,
             )
 
-    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
+    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements,too-many-branches
         self,
         df: pd.DataFrame,
         query_object: QueryObject,
@@ -379,18 +380,18 @@ class QueryContextProcessor:
         columns = df.columns
         time_grain = self.get_time_grain(query_object)
 
-        if not time_grain:
-            raise QueryObjectValidationError(
-                _("Time Grain must be specified when using Time Shift.")
-            )
-
         join_column_producer = config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
             time_grain
         )
         use_aggregated_join_column = (
             join_column_producer or time_grain in AGGREGATED_JOIN_GRAINS
         )
+
         if use_aggregated_join_column:
+            if not time_grain:
+                raise QueryObjectValidationError(
+                    _("Time Grain must be specified when using Time Shift.")
+                )
             self.add_aggregated_join_column(df, time_grain, join_column_producer)
             # skips the first column which is the temporal column
             # because we'll use the aggregated join columns instead
@@ -428,6 +429,28 @@ class QueryContextProcessor:
             query_object_clone.inner_to_dttm = outer_to_dttm
             query_object_clone.time_offsets = []
             query_object_clone.post_processing = []
+            # Get time offset index
+            index = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
+            # The comparison is not using a temporal column so we need to modify
+            # the temporal filter so we run the query with the correct time range
+            if not dataframe_utils.is_datetime_series(df.get(index)):
+                # Lets find the first temporal filter in the filters array and change
+                # its val to be the result of get_since_until with the offset
+                for flt in query_object_clone.filter:
+                    if flt.get(
+                        "op"
+                    ) == FilterOperator.TEMPORAL_RANGE.value and isinstance(
+                        flt.get("val"), str
+                    ):
+                        time_range = cast(str, flt.get("val"))
+                        (
+                            new_outer_from_dttm,
+                            new_outer_to_dttm,
+                        ) = get_since_until_from_time_range(
+                            time_range=time_range,
+                            time_shift=offset,
+                        )
+                        flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
             query_object_clone.filter = [
                 flt
                 for flt in query_object_clone.filter
@@ -488,21 +511,17 @@ class QueryContextProcessor:
                 offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
 
                 # 3. set time offset for index
-                index = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
-                if not dataframe_utils.is_datetime_series(offset_metrics_df.get(index)):
-                    raise QueryObjectValidationError(
-                        _(
-                            "A time column must be specified "
-                            "when using a Time Comparison."
-                        )
+                if dataframe_utils.is_datetime_series(offset_metrics_df.get(index)):
+                    # modifies temporal column using offset
+                    offset_metrics_df[index] = offset_metrics_df[index] - DateOffset(
+                        **normalize_time_delta(offset)
                     )
 
-                # modifies temporal column using offset
-                offset_metrics_df[index] = offset_metrics_df[index] - DateOffset(
-                    **normalize_time_delta(offset)
-                )
-
                 if use_aggregated_join_column:
+                    if not time_grain:
+                        raise QueryObjectValidationError(
+                            _("Time Grain must be specified when using Time Shift.")
+                        )
                     self.add_aggregated_join_column(
                         offset_metrics_df, time_grain, join_column_producer
                     )

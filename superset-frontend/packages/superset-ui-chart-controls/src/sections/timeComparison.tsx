@@ -16,16 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  ComparisonType,
-  ensureIsArray,
-  isAdhocColumn,
-  isPhysicalColumn,
-} from '@superset-ui/core';
+import { t, ComparisonType } from '@superset-ui/core';
 
 import { ControlPanelSectionConfig } from '../types';
-import { sharedControls } from '../shared-controls';
 
 export const timeComparisonControls: ControlPanelSectionConfig = {
   label: t('Time Comparison'),
@@ -63,35 +56,6 @@ export const timeComparisonControls: ControlPanelSectionConfig = {
               'in natural language (example:  24 hours, 7 days, ' +
               '52 weeks, 365 days). Free text is supported.',
           ),
-        },
-      },
-    ],
-    [
-      {
-        name: 'time_comparison_grain_sqla',
-        config: {
-          ...sharedControls.time_grain_sqla,
-          visibility: ({ controls }) => {
-            // So it doesn't collide with any existing time_grain_sqla control
-            const dttmLookup = Object.fromEntries(
-              ensureIsArray(controls?.groupby?.options).map(option => [
-                option.column_name,
-                option.is_dttm,
-              ]),
-            );
-
-            return !ensureIsArray(controls?.groupby.value)
-              .map(selection => {
-                if (isAdhocColumn(selection)) {
-                  return true;
-                }
-                if (isPhysicalColumn(selection)) {
-                  return !!dttmLookup[selection];
-                }
-                return false;
-              })
-              .some(Boolean);
-          },
         },
       },
     ],

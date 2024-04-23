@@ -82,11 +82,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
   return buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
+    const { extras = {} } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
     const timeOffsets = ensureIsArray(
       isTimeComparison(formData, baseQueryObject) ? formData.time_compare : [],
     );
-    const timeCompareGrainSqla = formData.time_comparison_grain_sqla;
+    let temporalColumAdded = false;
+    let temporalColum = null;
 
     if (queryMode === QueryMode.Aggregate) {
       metrics = metrics || [];
@@ -133,8 +135,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
       const temporalColumnsLookup = formData?.temporal_columns_lookup;
       // Filter out the column if needed and prepare the temporal column object
-      let temporalColumAdded = false;
-      let temporalColum = null;
 
       columns = columns.filter(col => {
         const shouldBeAdded =
@@ -160,19 +160,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       if (temporalColum) {
         columns = [temporalColum, ...columns];
       }
-
-      if (!temporalColumAdded && !isEmpty(timeOffsets)) {
-        columns = [
-          {
-            timeGrain: timeCompareGrainSqla || 'P1Y', // Group by year by default
-            columnType: 'BASE_AXIS',
-            sqlExpression: baseQueryObject.filters?.[0]?.col.toString() || '',
-            label: baseQueryObject.filters?.[0]?.col.toString() || '',
-            expressionType: 'SQL',
-          } as AdhocColumn,
-          ...columns,
-        ];
-      }
     }
 
     const moreProps: Partial<QueryObject> = {};
@@ -187,6 +174,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     let queryObject = {
       ...baseQueryObject,
       columns,
+      extras: !isEmpty(timeOffsets) && !temporalColum ? {} : extras,
       orderby,
       metrics,
       post_processing: postProcessing,
@@ -223,7 +211,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         columns: !isEmpty(timeOffsets)
           ? [
               {
-                timeGrain: timeCompareGrainSqla || 'P1Y', // Group by year by default
+                timeGrain: 'P1Y', // Group by year by default
                 columnType: 'BASE_AXIS',
                 sqlExpression:
                   baseQueryObject.filters?.[0]?.col.toString() || '',
