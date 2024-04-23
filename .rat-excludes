@@ -34,6 +34,7 @@ apache_superset.egg-info
 .*csv
 # Generated doc files
 env/*
+docs/.htaccess*
 .nojekyll
 _build/*
 _static/*
