@@ -56,6 +56,11 @@ from tests.integration_tests.constants import (
     GAMMA_SQLLAB_USERNAME,
     GAMMA_USERNAME,
 )
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa
+    load_birth_names_data,  # noqa
+)
+from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data  # noqa
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"
@@ -636,7 +641,7 @@ class TestSqlLab(SupersetTestCase):
             SELECT /*+ hint */ @value AS foo;
         """
         )
-        mock_db = mock.MagicMock()
+        mock.MagicMock()
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
@@ -740,7 +745,7 @@ class TestSqlLab(SupersetTestCase):
             SELECT /*+ hint */ @value AS foo;
         """
         )
-        mock_db = mock.MagicMock()
+        mock.MagicMock()
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()

@@ -27,9 +27,20 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
+from superset.security.guest_token import GuestTokenResourceType  # noqa: F401
+from superset.sql_parse import Table  # noqa: F401
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices_class_scope,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_dashboard_with_slices_class_scope,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
+)
 
 
 @patch.dict(

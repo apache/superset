@@ -80,7 +80,7 @@ def upgrade():
         try:
             upgrade_slice(slc)
         except Exception:
-            logging.exception(e)
+            logging.exception(e)  # noqa: F821
 
     session.commit()
     session.close()

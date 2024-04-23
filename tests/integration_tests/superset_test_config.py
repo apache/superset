@@ -16,11 +16,13 @@
 # under the License.
 # type: ignore
 import logging
+import os
 import math
 from copy import copy
 from datetime import timedelta
 
-from superset.config import *
+from superset.config import *  # noqa
+from superset.config import DATA_DIR, logger, FEATURE_FLAGS
 from tests.integration_tests.superset_test_custom_template_processors import (
     CustomPrestoTemplateProcessor,
 )

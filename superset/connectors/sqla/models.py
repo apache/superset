@@ -1286,7 +1286,7 @@ class SqlaTable(
 
     @property
     def dttm_cols(self) -> list[str]:
-        l = [c.column_name for c in self.columns if c.is_dttm]
+        l = [c.column_name for c in self.columns if c.is_dttm]  # noqa: E741
         if self.main_dttm_col and self.main_dttm_col not in l:
             l.append(self.main_dttm_col)
         return l

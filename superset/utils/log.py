@@ -35,7 +35,7 @@ from superset.extensions import stats_logger_manager
 from superset.utils.core import get_user_id, LoggerLevel, to_int
 
 if TYPE_CHECKING:
-    from superset.stats_logger import BaseStatsLogger
+    pass
 
 logger = logging.getLogger(__name__)
 

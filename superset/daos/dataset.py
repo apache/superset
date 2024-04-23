@@ -245,7 +245,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 [
                     {**properties, "table_id": model.id}
                     for properties in property_columns
-                    if not "id" in properties
+                    if "id" not in properties
                 ],
             )
 
@@ -297,7 +297,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             [
                 {**properties, "table_id": model.id}
                 for properties in property_metrics
-                if not "id" in properties
+                if "id" not in properties
             ],
         )
 

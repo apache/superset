@@ -26,7 +26,7 @@ from pytest_mock import MockerFixture
 from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 def test_get_parameters_from_uri() -> None:
@@ -238,7 +238,9 @@ def test_extract_errors_with_context() -> None:
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec as spec
 

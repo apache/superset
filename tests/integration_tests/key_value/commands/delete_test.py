@@ -26,7 +26,6 @@ from flask_appbuilder.security.sqla.models import User
 
 from superset.extensions import db
 from tests.integration_tests.key_value.commands.fixtures import (
-    admin,
     JSON_VALUE,
     RESOURCE,
 )

@@ -24,7 +24,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import tests.integration_tests.test_app
 import superset.viz as viz
 from superset import app
 from superset.constants import NULL_STRING
@@ -117,7 +116,6 @@ class TestBaseViz(SupersetTestCase):
         datasource.get_column = Mock(return_value=mock_dttm_col)
         mock_dttm_col.python_date_format = "epoch_ms"
         result = test_viz.get_df(query_obj)
-        import logging
 
         logger.info(result)
         pd.testing.assert_series_equal(

@@ -33,12 +33,21 @@ from tests.integration_tests.conftest import with_feature_flags
 from superset.charts.data.api import ChartDataRestApi
 from superset.models.sql_lab import Query
 from tests.integration_tests.base_tests import SupersetTestCase, test_client
+from tests.integration_tests.annotation_layers.fixtures import create_annotation_layers  # noqa: F401
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     GAMMA_NO_CSV_USERNAME,
     GAMMA_USERNAME,
 )
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
 from tests.integration_tests.test_app import app
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_with_slice,  # noqa: F401
+    load_energy_table_data,  # noqa: F401
+)
 import pytest
 from superset.models.slice import Slice
 
@@ -60,6 +69,8 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 
 from tests.common.query_context_generator import ANNOTATION_LAYERS
 from tests.integration_tests.fixtures.query_context import get_query_context
+
+from tests.integration_tests.test_app import app  # noqa: F811
 
 
 CHART_DATA_URI = "api/v1/chart/data"
@@ -1163,7 +1174,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         orig_run = ChartDataCommand.run
 
         def mock_run(self, **kwargs):
-            assert kwargs["force_cached"] == True
+            assert kwargs["force_cached"] == True  # noqa: E712
             # override force_cached to get result from DB
             return orig_run(self, force_cached=False)
 
@@ -1209,7 +1220,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         orig_run = ChartDataCommand.run
 
         def mock_run(self, **kwargs):
-            assert kwargs["force_cached"] == True
+            assert kwargs["force_cached"] == True  # noqa: E712
             # override force_cached to get result from DB
             return orig_run(self, force_cached=False)
 
@@ -1374,7 +1385,7 @@ def test_data_cache_default_timeout(
 
 
 def test_chart_cache_timeout(
-    load_energy_table_with_slice: list[Slice],
+    load_energy_table_with_slice: list[Slice],  # noqa: F811
     test_client,
     login_as_admin,
     physical_query_context,

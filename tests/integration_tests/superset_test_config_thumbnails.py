@@ -16,8 +16,10 @@
 # under the License.
 # type: ignore
 from copy import copy
+import os
 
-from superset.config import *
+from superset.config import *  # noqa
+from superset.config import DATA_DIR, logger
 
 SECRET_KEY = "dummy_secret_key_for_test_to_silence_warnings"
 AUTH_USER_REGISTRATION_ROLE = "alpha"

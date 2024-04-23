@@ -27,7 +27,6 @@ from superset.extensions import db
 from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.utils.core import override_user
 from tests.integration_tests.key_value.commands.fixtures import (
-    admin,
     JSON_CODEC,
     JSON_VALUE,
     PICKLE_CODEC,

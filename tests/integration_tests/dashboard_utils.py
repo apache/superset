@@ -19,7 +19,6 @@
 import json
 from typing import Optional
 
-from pandas import DataFrame
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable

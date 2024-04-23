@@ -23,10 +23,15 @@ import string
 import time
 import unittest.mock as mock
 from typing import Optional
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
 
 import pytest
 
-from flask import has_app_context
+import flask  # noqa: F401
+from flask import current_app, has_app_context  # noqa: F401
 
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus

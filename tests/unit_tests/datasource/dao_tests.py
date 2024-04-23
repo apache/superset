@@ -167,7 +167,6 @@ def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
 def test_get_datasource_w_str_param(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.datasource import DatasourceDAO
-    from superset.datasets.models import Dataset
     from superset.tables.models import Table
 
     assert isinstance(

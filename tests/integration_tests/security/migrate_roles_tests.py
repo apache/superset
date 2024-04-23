@@ -18,6 +18,7 @@
 
 import logging
 from contextlib import contextmanager
+from unittest.mock import patch  # noqa: F401
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role

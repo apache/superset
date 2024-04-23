@@ -25,6 +25,10 @@ from marshmallow import ValidationError
 from tests.integration_tests.test_app import app
 from superset.charts.schemas import ChartDataQueryContextSchema
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
 from tests.integration_tests.fixtures.query_context import get_query_context
 
 

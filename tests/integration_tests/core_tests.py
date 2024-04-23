@@ -56,6 +56,18 @@ from superset.utils.database import get_example_database
 from superset.views.database.views import DatabaseView
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa
+    load_birth_names_data,  # noqa
+)
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_data,  # noqa
+    load_energy_table_with_slice,  # noqa
+)
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,  # noqa
+    load_world_bank_data,  # noqa
+)
 from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
@@ -467,8 +479,8 @@ class TestCore(SupersetTestCase):
 
     def create_sample_csvfile(self, filename: str, content: list[str]) -> None:
         with open(filename, "w+") as test_file:
-            for l in content:
-                test_file.write(f"{l}\n")
+            for line in content:
+                test_file.write(f"{line}\n")
 
     def create_sample_excelfile(self, filename: str, content: dict[str, str]) -> None:
         pd.DataFrame(content).to_excel(filename)

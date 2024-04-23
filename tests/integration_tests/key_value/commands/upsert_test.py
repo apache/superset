@@ -25,10 +25,8 @@ from flask_appbuilder.security.sqla.models import User
 from superset.extensions import db
 from superset.utils.core import override_user
 from tests.integration_tests.key_value.commands.fixtures import (
-    admin,
     ID_KEY,
     JSON_CODEC,
-    key_value_entry,
     RESOURCE,
     UUID_KEY,
 )

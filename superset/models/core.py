@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long,too-many-lines
+
+# pylint: disable=too-many-lines
 """A collection of ORM sqlalchemy models for Superset"""
 
 from __future__ import annotations

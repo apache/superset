@@ -26,13 +26,15 @@ import io
 
 import pytest
 import prison
+from sqlalchemy.sql import func  # noqa: F401
 from unittest import mock
 
 from flask_appbuilder.security.sqla.models import Role
 from tests.integration_tests.test_app import app
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
-from superset.utils.database import get_example_database
+from superset.models.core import Database  # noqa: F401
+from superset.utils.database import get_example_database, get_main_database  # noqa: F401
 from superset.utils import core as utils
 from superset.models.sql_lab import Query
 
@@ -41,6 +43,8 @@ from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     GAMMA_SQLLAB_NO_DATA_USERNAME,
 )
+from tests.integration_tests.fixtures.birth_names_dashboard import load_birth_names_data  # noqa: F401
+from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data  # noqa: F401
 
 QUERIES_FIXTURE_COUNT = 10
 
@@ -62,7 +66,7 @@ class TestSqlLabApi(SupersetTestCase):
         assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
         result = data.get("result")
-        assert result["active_tab"] == None
+        assert result["active_tab"] == None  # noqa: E711
         assert result["tab_state_ids"] == []
         self.assertEqual(len(result["databases"]), 0)
 
@@ -91,7 +95,7 @@ class TestSqlLabApi(SupersetTestCase):
         assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
         result = data.get("result")
-        assert result["active_tab"] == None
+        assert result["active_tab"] == None  # noqa: E711
         assert result["tab_state_ids"] == []
 
     @pytest.mark.usefixtures("load_birth_names_data")
@@ -192,7 +196,7 @@ class TestSqlLabApi(SupersetTestCase):
             "unauth_user1",
             "password",
             "Dummy Role",
-            email="unauth_user1@superset.org",
+            email=f"unauth_user1@superset.org",  # noqa: F541
         )
         self.login(username="unauth_user1", password="password")
         rv = self.client.get("/api/v1/sqllab/")

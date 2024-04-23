@@ -23,7 +23,7 @@ from pytest_mock import MockFixture
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
-from superset.models.sql_lab import Query, SavedQuery, SqlTablesMixin
+from superset.models.sql_lab import Query, SavedQuery
 
 
 @pytest.mark.parametrize(

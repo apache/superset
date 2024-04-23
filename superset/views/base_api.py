@@ -247,7 +247,8 @@ class BaseSupersetApiMixin:
             self.timing_stats("time", key, time_delta)
 
 
-class BaseSupersetApi(BaseSupersetApiMixin, BaseApi): ...
+class BaseSupersetApi(BaseSupersetApiMixin, BaseApi):
+    pass
 
 
 class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):

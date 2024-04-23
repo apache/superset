@@ -44,7 +44,7 @@ from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
 )
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 def _assert_columns_equal(actual_cols, expected_cols) -> None:
@@ -304,7 +304,7 @@ def test_get_column_spec(
 def test_convert_dttm(
     target_type: str,
     expected_result: Optional[str],
-    dttm: datetime,
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 

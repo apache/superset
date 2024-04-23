@@ -32,18 +32,29 @@ from sqlalchemy.sql import func
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import cache_manager, db
+from superset.extensions import cache_manager, db, security_manager  # noqa: F401
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database  # noqa: F401
+from superset.viz import viz_types  # noqa: F401
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags  # noqa: F401
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
     GAMMA_USERNAME,
+)
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
 )
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
@@ -51,6 +62,14 @@ from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config,
     dataset_metadata_config,
+)
+from tests.integration_tests.fixtures.unicode_dashboard import (
+    load_unicode_dashboard_with_slice,  # noqa: F401
+    load_unicode_data,  # noqa: F401
+)
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from tests.integration_tests.test_app import app
@@ -133,7 +152,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     def create_chart_with_report(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
-            chart = self.insert_chart("chart_report", [admin.id], 1)
+            chart = self.insert_chart(f"chart_report", [admin.id], 1)  # noqa: F541
             report_schedule = ReportSchedule(
                 type=ReportScheduleType.REPORT,
                 name="report_with_chart",
@@ -743,7 +762,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         Chart API: Test update chart admin can clear owner list
         """
         chart_data = {"slice_name": "title1_changed", "owners": []}
-        admin = self.get_user("admin")
+        admin = self.get_user("admin")  # noqa: F841
         self.login(username="admin")
         uri = f"api/v1/chart/{self.chart.id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
@@ -922,7 +941,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "owners": [1000],
         }
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/chart/"
+        uri = f"api/v1/chart/"  # noqa: F541
         rv = self.client.post(uri, json=chart_data)
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
@@ -1013,7 +1032,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         Chart API: Test get charts
         """
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/chart/"
+        uri = f"api/v1/chart/"  # noqa: F541
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1901,7 +1920,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
             assert json.loads(
                 self.client.put(
-                    "/api/v1/chart/warm_up_cache",
+                    f"/api/v1/chart/warm_up_cache",  # noqa: F541
                     json={"chart_id": slc.id},
                 ).data
             ) == {
@@ -1928,7 +1947,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
             assert json.loads(
                 self.client.put(
-                    "/api/v1/chart/warm_up_cache",
+                    f"/api/v1/chart/warm_up_cache",  # noqa: F541
                     json={"chart_id": slc.id},
                 ).data
             ) == {

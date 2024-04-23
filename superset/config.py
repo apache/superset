@@ -563,7 +563,7 @@ IS_FEATURE_ENABLED_FUNC: Callable[[str, bool | None], bool] | None = None
 #
 # Takes as a parameter the common bootstrap payload before transformations.
 # Returns a dict containing data that should be added or overridden to the payload.
-COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[[dict[str, Any]], dict[str, Any]] = (
+COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[[dict[str, Any]], dict[str, Any]] = (  # noqa: E731
     lambda data: {}
 )  # default: empty dict
 
@@ -1080,7 +1080,7 @@ UPLOADED_CSV_HIVE_NAMESPACE: str | None = None
 # db configuration and a result of this function.
 
 # mypy doesn't catch that if case ensures list content being always str
-ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[[Database, models.User], list[str]] = (
+ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[[Database, models.User], list[str]] = (  # noqa: E731
     lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE]
     if UPLOADED_CSV_HIVE_NAMESPACE
     else []
@@ -1170,7 +1170,7 @@ BLUEPRINTS: list[Blueprint] = []
 #       lambda url, query: url if is_fresh(query) else None
 #   )
 # pylint: disable-next=unnecessary-lambda-assignment
-TRACKING_URL_TRANSFORMER = lambda url: url
+TRACKING_URL_TRANSFORMER = lambda url: url  # noqa: E731
 
 
 # customize the polling time of each engine
@@ -1572,7 +1572,7 @@ SSL_CERT_PATH: str | None = None
 # conventions and such. You can find examples in the tests.
 
 # pylint: disable-next=unnecessary-lambda-assignment
-SQLA_TABLE_MUTATOR = lambda table: table
+SQLA_TABLE_MUTATOR = lambda table: table  # noqa: E731
 
 
 # Global async query config options.

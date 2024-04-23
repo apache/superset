@@ -24,8 +24,10 @@ from datetime import datetime
 from freezegun import freeze_time
 from sqlalchemy.sql import func
 
+import tests.integration_tests.test_app  # noqa: F401
 from superset import db
 from superset.models.core import CssTemplate
+from superset.utils.database import get_example_database  # noqa: F401
 
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
@@ -73,7 +75,7 @@ class TestCssTemplateApi(SupersetTestCase):
         css_templates = db.session.query(CssTemplate).all()
 
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/css_template/"
+        uri = f"api/v1/css_template/"  # noqa: F541
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -167,7 +169,7 @@ class TestCssTemplateApi(SupersetTestCase):
         CssTemplate API: Test info
         """
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/css_template/_info"
+        uri = f"api/v1/css_template/_info"  # noqa: F541
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
 
@@ -242,7 +244,7 @@ class TestCssTemplateApi(SupersetTestCase):
         }
 
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/css_template/"
+        uri = f"api/v1/css_template/"  # noqa: F541
         rv = self.post_assert_metric(uri, post_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201

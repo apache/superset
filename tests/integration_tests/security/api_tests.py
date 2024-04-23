@@ -29,6 +29,10 @@ from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
 
 
 class TestSecurityCsrfApi(SupersetTestCase):
@@ -65,7 +69,7 @@ class TestSecurityCsrfApi(SupersetTestCase):
 
 
 class TestSecurityGuestTokenApi(SupersetTestCase):
-    uri = "api/v1/security/guest_token/"
+    uri = f"api/v1/security/guest_token/"  # noqa: F541
 
     def test_post_guest_token_unauthenticated(self):
         """

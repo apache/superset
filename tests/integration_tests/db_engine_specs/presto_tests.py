@@ -20,7 +20,7 @@ from unittest import mock, skipUnless
 
 import pandas as pd
 from flask.ctx import AppContext
-from sqlalchemy import types
+from sqlalchemy import types  # noqa: F401
 from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec

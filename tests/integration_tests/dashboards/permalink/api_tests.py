@@ -15,24 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections.abc import Iterator
-from unittest.mock import patch
 from uuid import uuid3
 
 import pytest
-from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm import Session
 
 from superset import db
-from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id
 from superset.models.dashboard import Dashboard
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
-from tests.integration_tests.test_app import app
 
 STATE = {
     "dataMask": {"FILTER_1": "foo"},

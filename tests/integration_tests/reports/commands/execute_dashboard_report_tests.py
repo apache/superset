@@ -24,7 +24,6 @@ from superset.commands.dashboard.permalink.create import CreateDashboardPermalin
 from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSourceFormat
-from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.reports.utils import create_dashboard_report
 
 

@@ -26,11 +26,10 @@ Create Date: 2023-12-28 16:03:31.691033
 revision = "e863403c0c50"
 down_revision = "214f580d09c9"
 
-from importlib import import_module
+from importlib import import_module  # noqa: E402
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.dialects import postgresql
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
 
 module = import_module("superset.migrations.versions.2016-01-13_20-24_8e80a26a31db_")
 

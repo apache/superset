@@ -60,7 +60,7 @@ def upgrade():
                 ["datasource_name"],
                 ["datasource_name"],
             )
-    except:
+    except:  # noqa: E722
         logging.warning("Could not find or drop constraint on `columns`")
 
 

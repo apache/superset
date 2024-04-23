@@ -171,7 +171,7 @@ def test_df_to_sql_if_exists_fail_with_schema(mock_g):
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3")
 def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
     config = app.config.copy()
-    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""
+    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""  # noqa: F722
     mock_upload_to_s3.return_value = "mock-location"
     mock_g.user = True
     mock_database = mock.MagicMock()
@@ -198,7 +198,7 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3")
 def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
     config = app.config.copy()
-    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""
+    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""  # noqa: F722
     mock_upload_to_s3.return_value = "mock-location"
     mock_g.user = True
     mock_database = mock.MagicMock()
@@ -285,7 +285,7 @@ def test_upload_to_s3_success(client):
 
     with app.app_context():
         location = upload_to_s3("filename", "prefix", Table("table"))
-        assert "s3a://bucket/prefix/table" == location
+        assert f"s3a://bucket/prefix/table" == location  # noqa: F541
 
     app.config = config
 

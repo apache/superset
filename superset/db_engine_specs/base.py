@@ -1034,7 +1034,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return indexes
 
     @classmethod
-    def get_extra_table_metadata(  # pylint: disable=unused-argument
+    def get_extra_table_metadata(
         cls,
         database: Database,
         table: Table,

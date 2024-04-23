@@ -17,7 +17,6 @@
 # isort:skip_file
 from datetime import datetime
 
-import tests.integration_tests.test_app
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.result_set import dedup, SupersetResultSet

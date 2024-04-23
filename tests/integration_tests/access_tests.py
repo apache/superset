@@ -23,10 +23,26 @@ from typing import Optional
 import pytest
 from flask.ctx import AppContext
 from pytest_mock import MockFixture
+from sqlalchemy import inspect  # noqa: F401
 
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
+)
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_with_slice,  # noqa: F401
+    load_energy_table_data,  # noqa: F401
+)
 from tests.integration_tests.test_app import app  # isort:skip
 from superset import db, security_manager
+from superset.connectors.sqla.models import SqlaTable  # noqa: F401
+from superset.models import core as models  # noqa: F401
 from superset.utils.core import get_user_id, get_username, override_user
+from superset.utils.database import get_example_database  # noqa: F401
 
 from tests.integration_tests.base_tests import SupersetTestCase
 

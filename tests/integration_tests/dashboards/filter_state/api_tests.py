@@ -15,24 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-from unittest.mock import patch
 
 import pytest
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm import Session
 
 from superset import db
-from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.commands.temporary_cache.entry import Entry
 from superset.extensions import cache_manager
 from superset.models.dashboard import Dashboard
 from superset.temporary_cache.utils import cache_key
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
-from tests.integration_tests.test_app import app
 
 KEY = "test-key"
 INITIAL_VALUE = json.dumps({"test": "initial value"})

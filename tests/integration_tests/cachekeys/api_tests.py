@@ -28,6 +28,10 @@ from tests.integration_tests.base_tests import (
     SupersetTestCase,
     post_assert_metric,
 )
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
 
 
 @pytest.fixture
@@ -53,7 +57,7 @@ def test_invalidate_existing_cache(invalidate):
     rv = invalidate({"datasource_uids": ["3__table"]})
 
     assert rv.status_code == 201
-    assert cache_manager.cache.get("cache_key") == None
+    assert cache_manager.cache.get("cache_key") == None  # noqa: E711
     assert (
         not db.session.query(CacheKey).filter(CacheKey.cache_key == "cache_key").first()
     )
