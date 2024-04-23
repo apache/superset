@@ -19,6 +19,7 @@ This module contains utilities to auto-generate an
 Entity-Relationship Diagram (ERD) from SQLAlchemy
 and onto a plantuml file.
 """
+import json
 import os
 from collections import defaultdict
 from collections.abc import Iterable
@@ -72,6 +73,12 @@ TABLE_TO_GROUP_MAP: dict[str, str] = {}
 for group, tables in GROUPINGS.items():
     for table in tables:
         TABLE_TO_GROUP_MAP[table] = group
+
+
+def sort_data_structure(data):  # type: ignore
+    sorted_json = json.dumps(data, sort_keys=True)
+    sorted_data = json.loads(sorted_json)
+    return sorted_data
 
 
 def introspect_sqla_model(mapper: Any, seen: set[str]) -> dict[str, Any]:
@@ -129,7 +136,7 @@ def introspect_sqla_model(mapper: Any, seen: set[str]) -> dict[str, Any]:
 
             relationship_info["squiggle"] = squiggle
             model_info["relationships"].append(relationship_info)
-    return model_info
+    return sort_data_structure(model_info)  # type: ignore
 
 
 def introspect_models() -> dict[str, list[dict[str, Any]]]:
