@@ -210,5 +210,5 @@ export type Extensions = Partial<{
   'dashboard.slice.header': React.ComponentType<SliceHeaderExtension>;
   'sqleditor.extension.customAutocomplete': (
     args: CustomAutoCompleteArgs,
-  ) => CustomAutocomplete[];
+  ) => CustomAutocomplete[] | undefined;
 }>;
