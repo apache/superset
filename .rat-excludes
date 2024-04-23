@@ -66,3 +66,7 @@ google-big-query.svg
 google-sheets.svg
 postgresql.svg
 snowflake.svg
+
+# docs-related
+erd.puml
+erd.svg
