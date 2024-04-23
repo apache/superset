@@ -17878,6 +17878,32 @@
         "tags": ["Current User"]
       }
     },
+    "/api/v1/sf_restapi/": {
+      "get": {
+        "description": "Returns the user object corresponding to the agent making the request, or returns a 401 error if the user is unauthenticated.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/UserResponseSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The current user"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "tags": ["Sourcefuse Rest API"]
+      }
+    },
     "/api/v1/me/roles/": {
       "get": {
         "description": "Returns the user roles corresponding to the agent making the request, or returns a 401 error if the user is unauthenticated.",

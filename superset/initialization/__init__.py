@@ -155,6 +155,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.row_level_security.api import RLSRestApi
         from superset.security.api import SecurityRestApi
         from superset.sqllab.api import SqlLabRestApi
+        from superset.sfrestapi.api import SFRestAPI
         from superset.tags.api import TagRestApi
         from superset.views.alerts import AlertView, ReportView
         from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
@@ -229,6 +230,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
+        appbuilder.add_api(SFRestAPI)
+        
         #
         # Setup regular views
         #
