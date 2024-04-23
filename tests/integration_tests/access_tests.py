@@ -16,32 +16,17 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 import unittest
 from typing import Optional
 
 import pytest
 from flask.ctx import AppContext
 from pytest_mock import MockFixture
-from sqlalchemy import inspect
 
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
-)
 from tests.integration_tests.test_app import app  # isort:skip
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable
-from superset.models import core as models
 from superset.utils.core import get_user_id, get_username, override_user
-from superset.utils.database import get_example_database
 
 from tests.integration_tests.base_tests import SupersetTestCase
 

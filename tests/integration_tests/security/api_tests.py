@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Tests for security api methods"""
+
 import json
 
 import jwt
@@ -28,10 +29,6 @@ from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 
 
 class TestSecurityCsrfApi(SupersetTestCase):
@@ -68,7 +65,7 @@ class TestSecurityCsrfApi(SupersetTestCase):
 
 
 class TestSecurityGuestTokenApi(SupersetTestCase):
-    uri = f"api/v1/security/guest_token/"
+    uri = "api/v1/security/guest_token/"
 
     def test_post_guest_token_unauthenticated(self):
         """

@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 import datetime
 import json
 import random
@@ -25,15 +26,13 @@ import io
 
 import pytest
 import prison
-from sqlalchemy.sql import func
 from unittest import mock
 
 from flask_appbuilder.security.sqla.models import Role
 from tests.integration_tests.test_app import app
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
-from superset.models.core import Database
-from superset.utils.database import get_example_database, get_main_database
+from superset.utils.database import get_example_database
 from superset.utils import core as utils
 from superset.models.sql_lab import Query
 
@@ -42,8 +41,6 @@ from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     GAMMA_SQLLAB_NO_DATA_USERNAME,
 )
-from tests.integration_tests.fixtures.birth_names_dashboard import load_birth_names_data
-from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data
 
 QUERIES_FIXTURE_COUNT = 10
 
@@ -195,7 +192,7 @@ class TestSqlLabApi(SupersetTestCase):
             "unauth_user1",
             "password",
             "Dummy Role",
-            email=f"unauth_user1@superset.org",
+            email="unauth_user1@superset.org",
         )
         self.login(username="unauth_user1", password="password")
         rv = self.client.get("/api/v1/sqllab/")

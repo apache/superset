@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 from datetime import datetime
 import json
 
@@ -43,10 +44,6 @@ from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 from tests.integration_tests.reports.utils import insert_report_schedule
 
 REPORTS_COUNT = 10
@@ -311,7 +308,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule API: Test info
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/report/_info"
+        uri = "api/v1/report/_info"
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
 
@@ -346,7 +343,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test get list report schedules
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/report/"
+        uri = "api/v1/report/"
         rv = self.get_assert_metric(uri, "get_list")
 
         expected_fields = [
@@ -425,7 +422,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test get list report schedules for different roles
         """
         self.login(username)
-        uri = f"api/v1/report/"
+        uri = "api/v1/report/"
         rv = self.get_assert_metric(uri, "get_list")
 
         assert rv.status_code == 200
@@ -437,7 +434,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test get list report schedules for regular gamma user
         """
         self.login(GAMMA_USERNAME)
-        uri = f"api/v1/report/"
+        uri = "api/v1/report/"
         rv = self.client.get(uri)
 
         assert rv.status_code == 403

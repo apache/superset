@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Fixtures for test_datasource.py"""
+
 from collections.abc import Generator
 from typing import Any
 
@@ -22,13 +23,10 @@ import pytest
 from sqlalchemy import Column, create_engine, Date, Integer, MetaData, String, Table
 from sqlalchemy.ext.declarative import declarative_base
 
-from superset.columns.models import Column as Sl_Column
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.extensions import db
 from superset.models.core import Database
-from superset.tables.models import Table as Sl_Table
 from superset.utils.core import get_example_default_schema
-from superset.utils.database import get_example_database
 from tests.integration_tests.test_app import app
 
 

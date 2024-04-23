@@ -20,6 +20,7 @@ Revision ID: e11ccdd12658
 Revises: 260bf0649a77
 Create Date: 2021-01-14 19:12:43.406230
 """
+
 # revision identifiers, used by Alembic.
 revision = "e11ccdd12658"
 down_revision = "260bf0649a77"

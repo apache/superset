@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
+
 import json
 import unittest
 from io import BytesIO
@@ -29,7 +30,6 @@ from sqlalchemy import inspect
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
-from superset import app
 from superset.commands.dataset.exceptions import DatasetCreateFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.daos.exceptions import (
@@ -37,7 +37,6 @@ from superset.daos.exceptions import (
     DAODeleteFailedError,
     DAOUpdateFailedError,
 )
-from superset.datasets.models import Dataset
 from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
@@ -45,19 +44,11 @@ from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import CTAS_SCHEMA_NAME, with_feature_flags
+from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
     GAMMA_USERNAME,
-)
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
 )
 from tests.integration_tests.fixtures.importexport import (
     database_config,
@@ -2267,7 +2258,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.get_fixture_virtual_datasets()[0]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/duplicate"
+        uri = "api/v1/dataset/duplicate"
         table_data = {"base_model_id": dataset.id, "table_name": "Dupe1"}
         rv = self.post_assert_metric(uri, table_data, "duplicate")
         assert rv.status_code == 201
@@ -2293,7 +2284,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.get_fixture_datasets()[0]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/duplicate"
+        uri = "api/v1/dataset/duplicate"
         table_data = {"base_model_id": dataset.id, "table_name": "Dupe2"}
         rv = self.post_assert_metric(uri, table_data, "duplicate")
         assert rv.status_code == 422
@@ -2307,7 +2298,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.get_fixture_virtual_datasets()[0]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/duplicate"
+        uri = "api/v1/dataset/duplicate"
         table_data = {
             "base_model_id": dataset.id,
             "table_name": "sql_virtual_dataset_2",
@@ -2321,7 +2312,7 @@ class TestDatasetApi(SupersetTestCase):
         """
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/duplicate"
+        uri = "api/v1/dataset/duplicate"
         table_data = {
             "base_model_id": -1,
             "table_name": "Dupe3",

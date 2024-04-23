@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 from datetime import datetime, timedelta
 from unittest import mock
 import json
@@ -26,7 +27,6 @@ import pytest
 import prison
 from sqlalchemy.sql import func
 
-import tests.integration_tests.test_app
 from superset import db, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database

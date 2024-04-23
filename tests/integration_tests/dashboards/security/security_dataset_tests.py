@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
+
 import json
 
 import prison
 import pytest
-from flask import escape
 
 from superset import app
 from superset.daos.dashboard import DashboardDAO
@@ -28,10 +28,6 @@ from tests.integration_tests.dashboards.base_case import DashboardTestCase
 from tests.integration_tests.dashboards.consts import *
 from tests.integration_tests.dashboards.dashboard_test_utils import *
 from tests.integration_tests.dashboards.superset_factory_util import *
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
-)
 
 
 class TestDashboardDatasetSecurity(DashboardTestCase):

@@ -16,21 +16,17 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset Celery worker"""
+
 import datetime
 import random
 import string
 import time
 import unittest.mock as mock
 from typing import Optional
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 
 import pytest
 
-import flask
-from flask import current_app, has_app_context
+from flask import has_app_context
 
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus

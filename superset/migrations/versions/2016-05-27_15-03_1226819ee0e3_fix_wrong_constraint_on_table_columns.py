@@ -21,6 +21,7 @@ Revises: 956a063c52b3
 Create Date: 2016-05-27 15:03:32.980343
 
 """
+
 import logging
 
 from alembic import op

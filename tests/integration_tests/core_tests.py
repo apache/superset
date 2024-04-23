@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
+
 import datetime
 import doctest
 import html
@@ -55,18 +56,6 @@ from superset.utils.database import get_example_database
 from superset.views.database.views import DatabaseView
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
 from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
@@ -97,8 +86,8 @@ class TestCore(SupersetTestCase):
     def insert_dashboard_created_by(self, username: str) -> Dashboard:
         user = self.get_user(username)
         dashboard = self.insert_dashboard(
-            f"create_title_test",
-            f"create_slug_test",
+            "create_title_test",
+            "create_slug_test",
             [user.id],
             created_by=user,
         )
@@ -176,7 +165,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
         self.login(ADMIN_USERNAME)
-        slice_name = f"Energy Sankey"
+        slice_name = "Energy Sankey"
         slice_id = self.get_slice(slice_name).id
         copy_name_prefix = "Test Sankey"
         copy_name = f"{copy_name_prefix}[save]{random.random()}"
@@ -1185,7 +1174,7 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         random_key = "random_key"
         mock_command.return_value = random_key
-        slice_name = f"Energy Sankey"
+        slice_name = "Energy Sankey"
         slice_id = self.get_slice(slice_name).id
         form_data = {"slice_id": slice_id, "viz_type": "line", "datasource": "1__table"}
         rv = self.client.get(

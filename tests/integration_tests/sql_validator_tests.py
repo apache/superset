@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Sql Lab"""
+
 import unittest
 from unittest.mock import MagicMock, patch
 

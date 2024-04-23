@@ -336,9 +336,8 @@ def copy_tables(session: Session) -> None:
             ]
         )
         # use an inner join to filter out only tables with valid database ids
-        .select_from(
-            sa.join(SqlaTable, Database, SqlaTable.database_id == Database.id)
-        ).where(is_physical_table),
+        .select_from(sa.join(SqlaTable, Database, SqlaTable.database_id == Database.id))
+        .where(is_physical_table),
     )
 
 

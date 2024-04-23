@@ -389,9 +389,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         # Add credentials if they are set on the SQLAlchemy dialect.
 
         if creds := engine.dialect.credentials_info:
-            to_gbq_kwargs[
-                "credentials"
-            ] = service_account.Credentials.from_service_account_info(creds)
+            to_gbq_kwargs["credentials"] = (
+                service_account.Credentials.from_service_account_info(creds)
+            )
 
         # Only pass through supported kwargs.
         supported_kwarg_keys = {"if_exists"}

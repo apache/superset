@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Sql Lab"""
+
 import json
 from datetime import datetime
 from textwrap import dedent
@@ -28,7 +29,6 @@ import prison
 
 from freezegun import freeze_time
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -45,7 +45,6 @@ from superset.sql_lab import (
 from superset.sql_parse import CtasMethod
 from superset.utils.core import (
     backend,
-    datetime_to_epoch,
 )
 from superset.utils.database import get_example_database, get_main_database
 
@@ -57,11 +56,6 @@ from tests.integration_tests.constants import (
     GAMMA_SQLLAB_USERNAME,
     GAMMA_USERNAME,
 )
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"
@@ -216,9 +210,7 @@ class TestSqlLab(SupersetTestCase):
                 data = engine.execute(
                     f"SELECT * FROM admin_database.{tmp_table_name}"
                 ).fetchall()
-                names_count = engine.execute(
-                    f"SELECT COUNT(*) FROM birth_names"
-                ).first()
+                names_count = engine.execute("SELECT COUNT(*) FROM birth_names").first()
                 self.assertEqual(
                     names_count[0], len(data)
                 )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True

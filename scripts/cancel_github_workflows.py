@@ -32,6 +32,7 @@ Example:
   # cancel all jobs of a PR, including the latest runs
   ./cancel_github_workflows.py 1024 --include-last
 """
+
 import os
 from collections.abc import Iterable, Iterator
 from typing import Any, Literal, Optional, Union

@@ -42,9 +42,7 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
 
             pdf[  # pylint: disable=unsupported-assignment-operation,useless-suppression
                 "ds"
-            ] = (
-                pdf.YEAR.map(str) + "-0" + pdf.MONTH.map(str) + "-0" + pdf.DAY.map(str)
-            )
+            ] = pdf.YEAR.map(str) + "-0" + pdf.MONTH.map(str) + "-0" + pdf.DAY.map(str)
             pdf.ds = pd.to_datetime(pdf.ds)
             pdf.drop(columns=["DAY", "MONTH", "YEAR"])
             pdf = pdf.join(airports, on="ORIGIN_AIRPORT", rsuffix="_ORIG")

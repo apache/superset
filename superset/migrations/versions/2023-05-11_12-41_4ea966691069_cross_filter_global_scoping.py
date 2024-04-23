@@ -81,9 +81,9 @@ def upgrade():
                     "excluded"
                 ] = excluded
                 if scope.get("rootPath") == ["ROOT_ID"] and excluded == [chart_id]:
-                    new_chart_configuration[chart_id]["crossFilters"][
-                        "scope"
-                    ] = "global"
+                    new_chart_configuration[chart_id]["crossFilters"]["scope"] = (
+                        "global"
+                    )
 
             json_metadata["chart_configuration"] = new_chart_configuration
 

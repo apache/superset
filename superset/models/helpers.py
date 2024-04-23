@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-many-lines
 """a collection of model-related helper classes and functions"""
+
 import builtins
 import dataclasses
 import json
@@ -201,7 +202,9 @@ class ImportExportMixin:
             if isinstance(u, UniqueConstraint)
         ]
         unique.extend(
-            {c.name} for c in cls.__table__.columns if c.unique  # type: ignore
+            {c.name}
+            for c in cls.__table__.columns
+            if c.unique  # type: ignore
         )
         return unique
 
@@ -556,7 +559,6 @@ class AuditMixinNullable(AuditMixin):
 
 
 class QueryResult:  # pylint: disable=too-few-public-methods
-
     """Object returned by the query interface"""
 
     def __init__(  # pylint: disable=too-many-arguments

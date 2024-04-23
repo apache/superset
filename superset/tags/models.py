@@ -130,7 +130,9 @@ class TaggedObject(Model, AuditMixinNullable):
 
 
 def get_tag(
-    name: str, session: orm.Session, type_: TagType  # pylint: disable=disallowed-name
+    name: str,
+    session: orm.Session,
+    type_: TagType,  # pylint: disable=disallowed-name
 ) -> Tag:
     tag_name = name.strip()
     tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()

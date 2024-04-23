@@ -38,10 +38,6 @@ from superset.utils.webdriver import WebDriverSelenium
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 from tests.integration_tests.test_app import app
 
 CHART_URL = "/api/v1/chart/"
@@ -237,14 +233,17 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get async dashboard screenshot as selenium user
         """
         self.login(ALPHA_USERNAME)
-        with patch.dict(
-            "superset.thumbnails.digest.current_app.config",
-            {
-                "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
-            },
-        ), patch(
-            "superset.thumbnails.digest._adjust_string_for_executor"
-        ) as mock_adjust_string:
+        with (
+            patch.dict(
+                "superset.thumbnails.digest.current_app.config",
+                {
+                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
+                },
+            ),
+            patch(
+                "superset.thumbnails.digest._adjust_string_for_executor"
+            ) as mock_adjust_string,
+        ):
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             assert self.digest_hash in thumbnail_url
@@ -262,14 +261,17 @@ class TestThumbnails(SupersetTestCase):
         """
         username = "alpha"
         self.login(username)
-        with patch.dict(
-            "superset.thumbnails.digest.current_app.config",
-            {
-                "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
-            },
-        ), patch(
-            "superset.thumbnails.digest._adjust_string_for_executor"
-        ) as mock_adjust_string:
+        with (
+            patch.dict(
+                "superset.thumbnails.digest.current_app.config",
+                {
+                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
+                },
+            ),
+            patch(
+                "superset.thumbnails.digest._adjust_string_for_executor"
+            ) as mock_adjust_string,
+        ):
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             assert self.digest_hash in thumbnail_url
@@ -309,14 +311,17 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get async chart screenshot as selenium user
         """
         self.login(ADMIN_USERNAME)
-        with patch.dict(
-            "superset.thumbnails.digest.current_app.config",
-            {
-                "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
-            },
-        ), patch(
-            "superset.thumbnails.digest._adjust_string_for_executor"
-        ) as mock_adjust_string:
+        with (
+            patch.dict(
+                "superset.thumbnails.digest.current_app.config",
+                {
+                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
+                },
+            ),
+            patch(
+                "superset.thumbnails.digest._adjust_string_for_executor"
+            ) as mock_adjust_string,
+        ):
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             assert self.digest_hash in thumbnail_url
@@ -334,14 +339,17 @@ class TestThumbnails(SupersetTestCase):
         """
         username = "alpha"
         self.login(username)
-        with patch.dict(
-            "superset.thumbnails.digest.current_app.config",
-            {
-                "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
-            },
-        ), patch(
-            "superset.thumbnails.digest._adjust_string_for_executor"
-        ) as mock_adjust_string:
+        with (
+            patch.dict(
+                "superset.thumbnails.digest.current_app.config",
+                {
+                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
+                },
+            ),
+            patch(
+                "superset.thumbnails.digest._adjust_string_for_executor"
+            ) as mock_adjust_string,
+        ):
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             assert self.digest_hash in thumbnail_url

@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset CSV upload"""
+
 import json
 import logging
 import os
@@ -29,7 +30,6 @@ import pytest
 
 import superset.utils.database
 from superset.sql_parse import Table
-from tests.integration_tests.conftest import ADMIN_SCHEMA_NAME
 from superset import db
 from superset import security_manager
 from superset.models.core import Database

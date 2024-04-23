@@ -79,9 +79,7 @@ def upload_stream_write(form_file_field: "FileStorage", path: str) -> None:
             file_description.write(chunk)
 
 
-class DatabaseView(
-    DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin
-):  # pylint: disable=too-many-ancestors
+class DatabaseView(DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Database)
 
     class_permission_name = "Database"

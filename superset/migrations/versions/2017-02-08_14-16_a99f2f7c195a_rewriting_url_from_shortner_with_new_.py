@@ -41,7 +41,7 @@ Base = declarative_base()
 def parse_querystring(qs):
     d = {}
     for k, v in parse.parse_qsl(qs):
-        if not k in d:
+        if k not in d:
             d[k] = v
         else:
             if isinstance(d[k], list):
@@ -52,7 +52,6 @@ def parse_querystring(qs):
 
 
 class Url(Base):
-
     """Used for the short url feature"""
 
     __tablename__ = "url"

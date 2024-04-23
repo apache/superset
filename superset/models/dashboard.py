@@ -272,9 +272,9 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
     def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
         # Verbose but efficient database enumeration of dashboard datasources.
-        slices_by_datasource: dict[
-            tuple[type[BaseDatasource], int], set[Slice]
-        ] = defaultdict(set)
+        slices_by_datasource: dict[tuple[type[BaseDatasource], int], set[Slice]] = (
+            defaultdict(set)
+        )
 
         for slc in self.slices:
             slices_by_datasource[(slc.cls_model, slc.datasource_id)].add(slc)

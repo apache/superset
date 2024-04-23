@@ -33,7 +33,6 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 
 
 class ImportChartsCommand(ImportModelsCommand):
-
     """Import charts"""
 
     dao = ChartDAO

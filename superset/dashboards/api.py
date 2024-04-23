@@ -102,7 +102,7 @@ logger = logging.getLogger(__name__)
 
 
 def with_dashboard(
-    f: Callable[[BaseSupersetModelRestApi, Dashboard], Response]
+    f: Callable[[BaseSupersetModelRestApi, Dashboard], Response],
 ) -> Callable[[BaseSupersetModelRestApi, str], Response]:
     """
     A decorator that looks up the dashboard by id or slug and passes it to the api.
@@ -1261,7 +1261,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @permission_name("set_embedded")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.delete_embedded",
         log_to_statsd=False,
     )
     @with_dashboard

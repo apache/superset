@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-""" Superset wrapper around pyarrow.Table.
-"""
+"""Superset wrapper around pyarrow.Table."""
+
 import datetime
 import json
 import logging

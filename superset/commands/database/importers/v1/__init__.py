@@ -30,7 +30,6 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 
 
 class ImportDatabasesCommand(ImportModelsCommand):
-
     """Import databases"""
 
     dao = DatabaseDAO

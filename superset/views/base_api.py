@@ -247,8 +247,7 @@ class BaseSupersetApiMixin:
             self.timing_stats("time", key, time_delta)
 
 
-class BaseSupersetApi(BaseSupersetApiMixin, BaseApi):
-    ...
+class BaseSupersetApi(BaseSupersetApiMixin, BaseApi): ...
 
 
 class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
@@ -347,11 +346,12 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         if self.apispec_parameter_schemas is None:  # type: ignore
             self.apispec_parameter_schemas = {}
         self.apispec_parameter_schemas["get_related_schema"] = get_related_schema
-        self.openapi_spec_component_schemas: tuple[
-            type[Schema], ...
-        ] = self.openapi_spec_component_schemas + (
-            RelatedResponseSchema,
-            DistincResponseSchema,
+        self.openapi_spec_component_schemas: tuple[type[Schema], ...] = (
+            self.openapi_spec_component_schemas
+            + (
+                RelatedResponseSchema,
+                DistincResponseSchema,
+            )
         )
 
     def _init_properties(self) -> None:

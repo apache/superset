@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
+
 import builtins
 import inspect
 import logging

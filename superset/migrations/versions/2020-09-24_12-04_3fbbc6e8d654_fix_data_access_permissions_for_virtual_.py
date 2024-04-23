@@ -106,7 +106,6 @@ sqlatable_user = Table(
 
 
 class Database(Base):  # pylint: disable=too-many-public-methods
-
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"

@@ -20,6 +20,7 @@
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
+
 from __future__ import annotations
 
 import copy
@@ -83,7 +84,6 @@ from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
-    from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.sqla.models import BaseDatasource
 
 config = app.config
@@ -105,7 +105,6 @@ METRIC_KEYS = [
 
 
 class BaseViz:  # pylint: disable=too-many-public-methods
-
     """All visualizations derive this base class"""
 
     viz_type: str | None = None
@@ -180,7 +179,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     @staticmethod
     @deprecated(deprecated_in="3.0")
     def handle_js_int_overflow(
-        data: dict[str, list[dict[str, Any]]]
+        data: dict[str, list[dict[str, Any]]],
     ) -> dict[str, list[dict[str, Any]]]:
         for record in data.get("records", {}):
             for k, v in list(record.items()):
@@ -701,7 +700,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
 
 class TimeTableViz(BaseViz):
-
     """A data table with rich time-series related columns"""
 
     viz_type = "time_table"
@@ -748,7 +746,6 @@ class TimeTableViz(BaseViz):
 
 
 class CalHeatmapViz(BaseViz):
-
     """Calendar heatmap."""
 
     viz_type = "cal_heatmap"
@@ -829,7 +826,6 @@ class CalHeatmapViz(BaseViz):
 
 
 class NVD3Viz(BaseViz):
-
     """Base class for all nvd3 vizs"""
 
     credits = '<a href="http://nvd3.org/">NVD3.org</a>'
@@ -839,7 +835,6 @@ class NVD3Viz(BaseViz):
 
 
 class BubbleViz(NVD3Viz):
-
     """Based on the NVD3 bubble chart"""
 
     viz_type = "bubble"
@@ -892,7 +887,6 @@ class BubbleViz(NVD3Viz):
 
 
 class BulletViz(NVD3Viz):
-
     """Based on the NVD3 bullet chart"""
 
     viz_type = "bullet"
@@ -924,7 +918,6 @@ class BulletViz(NVD3Viz):
 
 
 class NVD3TimeSeriesViz(NVD3Viz):
-
     """A rich line chart component with tons of options"""
 
     viz_type = "line"
@@ -1130,7 +1123,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
 
 class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
-
     """A bar chart where the x axis is time"""
 
     viz_type = "bar"
@@ -1139,7 +1131,6 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
 
 
 class NVD3TimePivotViz(NVD3TimeSeriesViz):
-
     """Time Series - Periodicity Pivot"""
 
     viz_type = "time_pivot"
@@ -1188,7 +1179,6 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
 
 
 class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
-
     """A line chart component where you can compare the % change over time"""
 
     viz_type = "compare"
@@ -1196,7 +1186,6 @@ class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
 
 
 class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
-
     """A rich stack area chart"""
 
     viz_type = "area"
@@ -1206,7 +1195,6 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
 
 
 class HistogramViz(BaseViz):
-
     """Histogram"""
 
     viz_type = "histogram"
@@ -1267,7 +1255,6 @@ class HistogramViz(BaseViz):
 
 
 class DistributionBarViz(BaseViz):
-
     """A good old bar chart"""
 
     viz_type = "dist_bar"
@@ -1355,7 +1342,6 @@ class DistributionBarViz(BaseViz):
 
 
 class SankeyViz(BaseViz):
-
     """A Sankey diagram that requires a parent-child dataset"""
 
     viz_type = "sankey"
@@ -1429,7 +1415,6 @@ class SankeyViz(BaseViz):
 
 
 class ChordViz(BaseViz):
-
     """A Chord diagram"""
 
     viz_type = "chord"
@@ -1470,7 +1455,6 @@ class ChordViz(BaseViz):
 
 
 class CountryMapViz(BaseViz):
-
     """A country centric"""
 
     viz_type = "country_map"
@@ -1507,7 +1491,6 @@ class CountryMapViz(BaseViz):
 
 
 class WorldMapViz(BaseViz):
-
     """A country centric world map"""
 
     viz_type = "world_map"
@@ -1571,7 +1554,6 @@ class WorldMapViz(BaseViz):
 
 
 class ParallelCoordinatesViz(BaseViz):
-
     """Interactive parallel coordinate implementation
 
     Uses this amazing javascript library
@@ -1606,7 +1588,6 @@ class ParallelCoordinatesViz(BaseViz):
 
 
 class HeatmapViz(BaseViz):
-
     """A nice heatmap visualization that support high density through canvas"""
 
     viz_type = "heatmap"
@@ -1666,7 +1647,6 @@ class HeatmapViz(BaseViz):
 
 
 class HorizonViz(NVD3TimeSeriesViz):
-
     """Horizon chart
 
     https://www.npmjs.com/package/d3-horizon-chart
@@ -1681,7 +1661,6 @@ class HorizonViz(NVD3TimeSeriesViz):
 
 
 class MapboxViz(BaseViz):
-
     """Rich maps made with Mapbox"""
 
     viz_type = "mapbox"
@@ -1829,7 +1808,6 @@ class MapboxViz(BaseViz):
 
 
 class DeckGLMultiLayer(BaseViz):
-
     """Pile on multiple DeckGL layers"""
 
     viz_type = "deck_multi"
@@ -1858,7 +1836,6 @@ class DeckGLMultiLayer(BaseViz):
 
 
 class BaseDeckGLViz(BaseViz):
-
     """Base class for deck.gl visualizations"""
 
     is_timeseries = False
@@ -2035,7 +2012,6 @@ class BaseDeckGLViz(BaseViz):
 
 
 class DeckScatterViz(BaseDeckGLViz):
-
     """deck.gl's ScatterLayer"""
 
     viz_type = "deck_scatter"
@@ -2089,7 +2065,6 @@ class DeckScatterViz(BaseDeckGLViz):
 
 
 class DeckScreengrid(BaseDeckGLViz):
-
     """deck.gl's ScreenGridLayer"""
 
     viz_type = "deck_screengrid"
@@ -2119,7 +2094,6 @@ class DeckScreengrid(BaseDeckGLViz):
 
 
 class DeckGrid(BaseDeckGLViz):
-
     """deck.gl's DeckLayer"""
 
     viz_type = "deck_grid"
@@ -2154,7 +2128,6 @@ def geohash_to_json(geohash_code: str) -> list[list[float]]:
 
 
 class DeckPathViz(BaseDeckGLViz):
-
     """deck.gl's PathLayer"""
 
     viz_type = "deck_path"
@@ -2205,7 +2178,6 @@ class DeckPathViz(BaseDeckGLViz):
 
 
 class DeckPolygon(DeckPathViz):
-
     """deck.gl's Polygon Layer"""
 
     viz_type = "deck_polygon"
@@ -2242,7 +2214,6 @@ class DeckPolygon(DeckPathViz):
 
 
 class DeckHex(BaseDeckGLViz):
-
     """deck.gl's DeckLayer"""
 
     viz_type = "deck_hex"
@@ -2265,7 +2236,6 @@ class DeckHex(BaseDeckGLViz):
 
 
 class DeckHeatmap(BaseDeckGLViz):
-
     """deck.gl's HeatmapLayer"""
 
     viz_type = "deck_heatmap"
@@ -2286,7 +2256,6 @@ class DeckHeatmap(BaseDeckGLViz):
 
 
 class DeckContour(BaseDeckGLViz):
-
     """deck.gl's ContourLayer"""
 
     viz_type = "deck_contour"
@@ -2307,7 +2276,6 @@ class DeckContour(BaseDeckGLViz):
 
 
 class DeckGeoJson(BaseDeckGLViz):
-
     """deck.gl's GeoJSONLayer"""
 
     viz_type = "deck_geojson"
@@ -2328,7 +2296,6 @@ class DeckGeoJson(BaseDeckGLViz):
 
 
 class DeckArc(BaseDeckGLViz):
-
     """deck.gl's Arc Layer"""
 
     viz_type = "deck_arc"
@@ -2363,7 +2330,6 @@ class DeckArc(BaseDeckGLViz):
 
 
 class EventFlowViz(BaseViz):
-
     """A visualization to explore patterns in event sequences"""
 
     viz_type = "event_flow"
@@ -2397,7 +2363,6 @@ class EventFlowViz(BaseViz):
 
 
 class PairedTTestViz(BaseViz):
-
     """A table displaying paired t-test values"""
 
     viz_type = "paired_ttest"
@@ -2503,7 +2468,6 @@ class RoseViz(NVD3TimeSeriesViz):
 
 
 class PartitionViz(NVD3TimeSeriesViz):
-
     """
     A hierarchical data visualization with support for time series.
     """
