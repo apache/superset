@@ -33,8 +33,9 @@ from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
-from superset.commands.database.csv_import import CSVImportCommand
-from superset.commands.database.excel_import import ExcelImportCommand
+from superset.commands.database.uploaders.base import UploadCommand
+from superset.commands.database.uploaders.csv_reader import CSVReader
+from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -829,7 +830,7 @@ def test_oauth2_error(
 
 
 @pytest.mark.parametrize(
-    "payload,cmd_called_with",
+    "payload,upload_called_with,reader_called_with",
     [
         (
             {
@@ -841,6 +842,10 @@ def test_oauth2_error(
                 1,
                 "table1",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "fail",
                     "delimiter": ",",
@@ -861,6 +866,10 @@ def test_oauth2_error(
                 1,
                 "table2",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "replace",
                     "column_dates": ["col1", "col2"],
@@ -879,7 +888,6 @@ def test_oauth2_error(
                 "columns_read": "col1,col2",
                 "day_first": True,
                 "rows_to_read": "1",
-                "overwrite_duplicates": True,
                 "skip_blank_lines": True,
                 "skip_initial_space": True,
                 "skip_rows": "10",
@@ -890,12 +898,15 @@ def test_oauth2_error(
                 1,
                 "table2",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "replace",
                     "columns_read": ["col1", "col2"],
                     "null_values": ["None", "N/A", "''"],
                     "day_first": True,
-                    "overwrite_duplicates": True,
                     "rows_to_read": 1,
                     "skip_blank_lines": True,
                     "skip_initial_space": True,
@@ -911,7 +922,8 @@ def test_oauth2_error(
 )
 def test_csv_upload(
     payload: dict[str, Any],
-    cmd_called_with: tuple[int, str, Any, dict[str, Any]],
+    upload_called_with: tuple[int, str, Any, dict[str, Any]],
+    reader_called_with: dict[str, Any],
     mocker: MockFixture,
     client: Any,
     full_api_access: None,
@@ -919,9 +931,11 @@ def test_csv_upload(
     """
     Test CSV Upload success.
     """
-    init_mock = mocker.patch.object(CSVImportCommand, "__init__")
+    init_mock = mocker.patch.object(UploadCommand, "__init__")
     init_mock.return_value = None
-    _ = mocker.patch.object(CSVImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
+    reader_mock = mocker.patch.object(CSVReader, "__init__")
+    reader_mock.return_value = None
     response = client.post(
         f"/api/v1/database/1/csv_upload/",
         data=payload,
@@ -929,7 +943,8 @@ def test_csv_upload(
     )
     assert response.status_code == 200
     assert response.json == {"message": "OK"}
-    init_mock.assert_called_with(*cmd_called_with)
+    init_mock.assert_called_with(*upload_called_with)
+    reader_mock.assert_called_with(*reader_called_with)
 
 
 @pytest.mark.parametrize(
@@ -1000,16 +1015,6 @@ def test_csv_upload(
                 "table_name": "table1",
                 "delimiter": ",",
                 "already_exists": "fail",
-                "overwrite_duplicates": "test1",
-            },
-            {"message": {"overwrite_duplicates": ["Not a valid boolean."]}},
-        ),
-        (
-            {
-                "file": (create_csv_file(), "out.csv"),
-                "table_name": "table1",
-                "delimiter": ",",
-                "already_exists": "fail",
                 "rows_to_read": 0,
             },
             {"message": {"rows_to_read": ["Must be greater than or equal to 1."]}},
@@ -1066,7 +1071,7 @@ def test_csv_upload_validation(
     """
     Test CSV Upload validation fails.
     """
-    _ = mocker.patch.object(CSVImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
 
     response = client.post(
         f"/api/v1/database/1/csv_upload/",
@@ -1085,7 +1090,7 @@ def test_csv_upload_file_size_validation(
     """
     Test CSV Upload validation fails.
     """
-    _ = mocker.patch.object(CSVImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
     current_app.config["CSV_UPLOAD_MAX_SIZE"] = 5
     response = client.post(
         f"/api/v1/database/1/csv_upload/",
@@ -1127,7 +1132,7 @@ def test_csv_upload_file_extension_invalid(
     """
     Test CSV Upload validation fails.
     """
-    _ = mocker.patch.object(CSVImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
     response = client.post(
         f"/api/v1/database/1/csv_upload/",
         data={
@@ -1163,7 +1168,7 @@ def test_csv_upload_file_extension_valid(
     """
     Test CSV Upload validation fails.
     """
-    _ = mocker.patch.object(CSVImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
     response = client.post(
         f"/api/v1/database/1/csv_upload/",
         data={
@@ -1177,7 +1182,7 @@ def test_csv_upload_file_extension_valid(
 
 
 @pytest.mark.parametrize(
-    "payload,cmd_called_with",
+    "payload,upload_called_with,reader_called_with",
     [
         (
             {
@@ -1188,6 +1193,10 @@ def test_csv_upload_file_extension_valid(
                 1,
                 "table1",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "fail",
                     "file": ANY,
@@ -1207,6 +1216,10 @@ def test_csv_upload_file_extension_valid(
                 1,
                 "table2",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "replace",
                     "column_dates": ["col1", "col2"],
@@ -1231,6 +1244,10 @@ def test_csv_upload_file_extension_valid(
                 1,
                 "table2",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "replace",
                     "columns_read": ["col1", "col2"],
@@ -1247,7 +1264,8 @@ def test_csv_upload_file_extension_valid(
 )
 def test_excel_upload(
     payload: dict[str, Any],
-    cmd_called_with: tuple[int, str, Any, dict[str, Any]],
+    upload_called_with: tuple[int, str, Any, dict[str, Any]],
+    reader_called_with: dict[str, Any],
     mocker: MockFixture,
     client: Any,
     full_api_access: None,
@@ -1255,9 +1273,11 @@ def test_excel_upload(
     """
     Test Excel Upload success.
     """
-    init_mock = mocker.patch.object(ExcelImportCommand, "__init__")
+    init_mock = mocker.patch.object(UploadCommand, "__init__")
     init_mock.return_value = None
-    _ = mocker.patch.object(ExcelImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
+    reader_mock = mocker.patch.object(ExcelReader, "__init__")
+    reader_mock.return_value = None
     response = client.post(
         f"/api/v1/database/1/excel_upload/",
         data=payload,
@@ -1265,7 +1285,8 @@ def test_excel_upload(
     )
     assert response.status_code == 200
     assert response.json == {"message": "OK"}
-    init_mock.assert_called_with(*cmd_called_with)
+    init_mock.assert_called_with(*upload_called_with)
+    reader_mock.assert_called_with(*reader_called_with)
 
 
 @pytest.mark.parametrize(
@@ -1347,7 +1368,7 @@ def test_excel_upload_validation(
     """
     Test Excel Upload validation fails.
     """
-    _ = mocker.patch.object(ExcelImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
 
     response = client.post(
         f"/api/v1/database/1/excel_upload/",
@@ -1382,7 +1403,7 @@ def test_excel_upload_file_extension_invalid(
     """
     Test Excel Upload file extension fails.
     """
-    _ = mocker.patch.object(ExcelImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
     response = client.post(
         f"/api/v1/database/1/excel_upload/",
         data={

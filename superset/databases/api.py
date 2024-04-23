@@ -34,9 +34,7 @@ from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import app, event_logger
 from superset.commands.database.create import CreateDatabaseCommand
-from superset.commands.database.csv_import import CSVImportCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
-from superset.commands.database.excel_import import ExcelImportCommand
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseCreateFailedError,
@@ -59,6 +57,9 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.commands.database.tables import TablesDatabaseCommand
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.commands.database.update import UpdateDatabaseCommand
+from superset.commands.database.uploaders.base import UploadCommand
+from superset.commands.database.uploaders.csv_reader import CSVReader
+from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.commands.database.validate import ValidateDatabaseParametersCommand
 from superset.commands.database.validate_sql import ValidateSQLCommand
 from superset.commands.importers.exceptions import (
@@ -1491,11 +1492,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
             parameters = CSVUploadPostSchema().load(request_form)
-            CSVImportCommand(
+            UploadCommand(
                 pk,
                 parameters["table_name"],
                 parameters["file"],
-                parameters,
+                parameters.get("schema"),
+                CSVReader(parameters),
             ).run()
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -1550,11 +1552,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
             parameters = ExcelUploadPostSchema().load(request_form)
-            ExcelImportCommand(
+            UploadCommand(
                 pk,
                 parameters["table_name"],
                 parameters["file"],
-                parameters,
+                parameters.get("schema"),
+                ExcelReader(parameters),
             ).run()
         except ValidationError as error:
             return self.response_400(message=error.messages)

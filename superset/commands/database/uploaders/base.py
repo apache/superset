@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 import logging
+from abc import abstractmethod
 from typing import Any, Optional, TypedDict
 
 import pandas as pd
@@ -27,6 +29,7 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseSchemaUploadNotAllowed,
     DatabaseUploadFailed,
+    DatabaseUploadNotSupported,
     DatabaseUploadSaveMetadataFailed,
 )
 from superset.connectors.sqla.models import SqlaTable
@@ -38,78 +41,43 @@ from superset.views.database.validators import schema_allows_file_upload
 
 logger = logging.getLogger(__name__)
 
-READ_EXCEL_CHUNK_SIZE = 1000
+READ_CHUNK_SIZE = 1000
 
 
-class ExcelImportOptions(TypedDict, total=False):
-    sheet_name: str
-    schema: str
+class ReaderOptions(TypedDict, total=False):
     already_exists: str
-    column_dates: list[str]
     column_labels: str
-    columns_read: list[str]
-    dataframe_index: str
-    decimal_character: str
-    header_row: int
     index_column: str
-    null_values: list[str]
-    rows_to_read: int
-    skip_rows: int
 
 
-class ExcelImportCommand(BaseCommand):
-    def __init__(
-        self,
-        model_id: int,
-        table_name: str,
-        file: Any,
-        options: ExcelImportOptions,
-    ) -> None:
-        self._model_id = model_id
-        self._model: Optional[Database] = None
-        self._table_name = table_name
-        self._schema = options.get("schema")
-        self._file = file
+class BaseDataReader:
+    """
+    Base class for reading data from a file and uploading it to a database
+    These child objects are used by the UploadCommand as a dependency injection
+    to read data from multiple file types (e.g. CSV, Excel, etc.)
+    """
+
+    def __init__(self, options: dict[str, Any]) -> None:
         self._options = options
 
-    def _read_excel(self) -> pd.DataFrame:
-        """
-        Read Excel file into a DataFrame
+    @abstractmethod
+    def file_to_dataframe(self, file: Any) -> pd.DataFrame:
+        ...
 
-        :return: pandas DataFrame
-        :throws DatabaseUploadFailed: if there is an error reading the CSV file
-        """
+    def read(
+        self, file: Any, database: Database, table_name: str, schema_name: Optional[str]
+    ) -> None:
+        self._dataframe_to_database(
+            self.file_to_dataframe(file), database, table_name, schema_name
+        )
 
-        kwargs = {
-            "header": self._options.get("header_row", 0),
-            "index_col": self._options.get("index_column"),
-            "io": self._file,
-            "keep_default_na": not self._options.get("null_values"),
-            "na_values": self._options.get("null_values")
-            if self._options.get("null_values")  # None if an empty list
-            else None,
-            "parse_dates": self._options.get("column_dates"),
-            "skiprows": self._options.get("skip_rows", 0),
-            "sheet_name": self._options.get("sheet_name", 0),
-            "nrows": self._options.get("rows_to_read"),
-        }
-        if self._options.get("columns_read"):
-            kwargs["usecols"] = self._options.get("columns_read")
-        try:
-            return pd.read_excel(**kwargs)
-        except (
-            pd.errors.ParserError,
-            pd.errors.EmptyDataError,
-            UnicodeDecodeError,
-            ValueError,
-        ) as ex:
-            raise DatabaseUploadFailed(
-                message=_("Parsing error: %(error)s", error=str(ex))
-            ) from ex
-        except Exception as ex:
-            raise DatabaseUploadFailed(_("Error reading Excel file")) from ex
-
-    def _dataframe_to_database(self, df: pd.DataFrame, database: Database) -> None:
+    def _dataframe_to_database(
+        self,
+        df: pd.DataFrame,
+        database: Database,
+        table_name: str,
+        schema_name: Optional[str],
+    ) -> None:
         """
         Upload DataFrame to database
 
@@ -117,13 +85,13 @@ class ExcelImportCommand(BaseCommand):
         :throws DatabaseUploadFailed: if there is an error uploading the DataFrame
         """
         try:
-            data_table = Table(table=self._table_name, schema=self._schema)
+            data_table = Table(table=table_name, schema=schema_name)
             database.db_engine_spec.df_to_sql(
                 database,
                 data_table,
                 df,
                 to_sql_kwargs={
-                    "chunksize": READ_EXCEL_CHUNK_SIZE,
+                    "chunksize": READ_CHUNK_SIZE,
                     "if_exists": self._options.get("already_exists", "fail"),
                     "index": self._options.get("index_column"),
                     "index_label": self._options.get("column_labels"),
@@ -140,13 +108,29 @@ class ExcelImportCommand(BaseCommand):
         except Exception as ex:
             raise DatabaseUploadFailed(exception=ex) from ex
 
+
+class UploadCommand(BaseCommand):
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        model_id: int,
+        table_name: str,
+        file: Any,
+        schema: Optional[str],
+        reader: BaseDataReader,
+    ) -> None:
+        self._model_id = model_id
+        self._model: Optional[Database] = None
+        self._table_name = table_name
+        self._schema = schema
+        self._file = file
+        self._reader = reader
+
     def run(self) -> None:
         self.validate()
         if not self._model:
             return
 
-        df = self._read_excel()
-        self._dataframe_to_database(df, self._model)
+        self._reader.read(self._file, self._model, self._table_name, self._schema)
 
         sqla_table = (
             db.session.query(SqlaTable)
@@ -181,3 +165,5 @@ class ExcelImportCommand(BaseCommand):
             raise DatabaseNotFoundError()
         if not schema_allows_file_upload(self._model, self._schema):
             raise DatabaseSchemaUploadNotAllowed()
+        if not self._model.db_engine_spec.supports_file_upload:
+            raise DatabaseUploadNotSupported()
