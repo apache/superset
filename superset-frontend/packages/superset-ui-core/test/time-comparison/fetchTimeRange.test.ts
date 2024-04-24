@@ -18,7 +18,7 @@
  */
 
 import fetchMock from 'fetch-mock';
-import { ComparisonTimeRangeType, fetchTimeRange } from '@superset-ui/core';
+import { fetchTimeRange } from '@superset-ui/core';
 import {
   buildTimeRangeString,
   formatTimeRange,

@@ -24,6 +24,7 @@ import moment from 'moment';
 import {
   BinaryAdhocFilter,
   css,
+  ensureIsArray,
   fetchTimeRange,
   SimpleAdhocFilter,
   t,
@@ -62,23 +63,27 @@ export const ComparisonRangeLabel = ({
   );
 
   useEffect(() => {
-    if (isEmpty(currentTimeRangeFilters) || (isEmpty(shifts) && !startDate)) {
+    const shiftsArray = ensureIsArray(shifts);
+    if (
+      isEmpty(currentTimeRangeFilters) ||
+      (isEmpty(shiftsArray) && !startDate)
+    ) {
       setLabels([]);
-    } else if (!isEmpty(shifts) || startDate) {
+    } else if (!isEmpty(shiftsArray) || startDate) {
       const promises = currentTimeRangeFilters.map(filter => {
         const startDateShift = moment(
           (filter as any).comparator.split(' : ')[0],
         ).diff(moment(startDate), 'days');
         const newShift = startDateShift
           ? [`${startDateShift} days ago`]
-          : shifts
-            ? shifts.slice(0, 1)
+          : shiftsArray
+            ? shiftsArray.slice(0, 1)
             : undefined;
 
         return fetchTimeRange(
           filter.comparator,
           filter.subject,
-          multi ? shifts : newShift,
+          multi ? shiftsArray : newShift,
         );
       });
       Promise.all(promises).then(res => {
