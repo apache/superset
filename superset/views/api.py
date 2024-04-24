@@ -41,10 +41,6 @@ if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
 
 
-get_relative_time_range_schema = {
-    "type": "object",
-    "properties": {"base_time_range": {"type": "string"}, "shift": {"type": "string"}},
-}
 get_time_range_schema = {
     "type": ["string", "array"],
     "items": {
