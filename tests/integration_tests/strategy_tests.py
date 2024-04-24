@@ -40,9 +40,14 @@ from superset.tasks.cache import (
 )
 from superset.utils.urls import get_url_host
 
-from .base_tests import SupersetTestCase
-from .dashboard_utils import create_dashboard, create_slice, create_table_metadata
-from .fixtures.unicode_dashboard import (
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.dashboard_utils import (
+    create_dashboard,
+    create_slice,
+    create_table_metadata,
+)
+from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_slice,
     load_unicode_data,
 )
@@ -70,7 +75,7 @@ class TestCacheWarmUp(SupersetTestCase):
     def test_top_n_dashboards_strategy(self):
         # create a top visited dashboard
         db.session.query(Log).delete()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         dash = self.get_dash_by_slug("births")
         for _ in range(10):
             self.client.get(f"/superset/dashboard/{dash.id}/")

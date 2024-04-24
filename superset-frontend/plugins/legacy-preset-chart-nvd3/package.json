@@ -32,7 +32,7 @@
     "@data-ui/xy-chart": "^0.0.84",
     "d3": "^3.5.17",
     "d3-tip": "^0.9.1",
-    "dompurify": "^2.0.6",
+    "dompurify": "^3.1.0",
     "fast-safe-stringify": "^2.1.1",
     "lodash": "^4.17.21",
     "moment": "^2.30.1",

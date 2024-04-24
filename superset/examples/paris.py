@@ -28,7 +28,7 @@ from .helpers import get_example_url, get_table_connector_registry
 def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) -> None:
     tbl_name = "paris_iris_mapping"
     database = database_utils.get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
         table_exists = database.has_table_by_name(tbl_name)
 

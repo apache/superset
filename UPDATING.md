@@ -24,13 +24,35 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [27505](https://github.com/apache/superset/pull/27505): We simplified the files under
+  `requirements/` folder. If you use these files for your builds you may want to double
+  check that your builds are not affected. `base.txt` should be the same as before, though
+  `development.txt` becomes a bigger set, incorporating the now defunct local,testing,integration, and docker
+- [27434](https://github.com/apache/superset/pull/27434/files): DO NOT USE our docker-compose.\*
+  files for production use cases! While we never really supported
+  or should have tried to support docker-compose for production use cases, we now actively
+  have taken a stance against supporting it. See the PR for details.
+- [24112](https://github.com/apache/superset/pull/24112): Python 3.10 is now the recommended python version to use, 3.9 still
+  supported but getting deprecated in the nearish future. CI/CD runs on py310 so you probably want to align. If you
+  use official dockers, upgrade should happen automatically.
+- [27697](https://github.com/apache/superset/pull/27697) [minor] flask-session bump leads to them
+  deprecating `SESSION_USE_SIGNER`, check your configs as this flag won't do anything moving
+  forward.
+- [27849](https://github.com/apache/superset/pull/27849/) More of an FYI, but we have a
+  new config `SLACK_ENABLE_AVATARS` (False by default) that works in conjunction with
+  set `SLACK_API_TOKEN` to fetch and serve Slack avatar links
+- [28134](https://github.com/apache/superset/pull/28134/) The default logging level was changed
+  from DEBUG to INFO - which is the normal/sane default logging level for most software.
+
+## 4.0.0
+
 - [27119](https://github.com/apache/superset/pull/27119): Updates various database columns to use the `MediumText` type, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
 
 - [26450](https://github.com/apache/superset/pull/26450): Deprecates the `KV_STORE` feature flag and its related assets such as the API endpoint and `keyvalue` table. The main dependency of this feature is the `SHARE_QUERIES_VIA_KV_STORE` feature flag which allows sharing SQL Lab queries without the necessity of saving the query. Our intention is to use the permalink feature to implement this use case before 5.0 and that's why we are deprecating the feature flag now.
 
 ### Breaking Changes
 
-- [27130](https://github.com/apache/superset/pull/27130): Fixes the DELETE `/database/{id}/ssh_tunnel/`` endpoint to now correctly accept a database ID as a parameter, rather than an SSH tunnel ID.
+- [27130](https://github.com/apache/superset/pull/27130): Fixes the DELETE `/database/{id}/ssh_tunnel/` endpoint to now correctly accept a database ID as a parameter, rather than an SSH tunnel ID.
 - [27117](https://github.com/apache/superset/pull/27117): Removes the following deprecated endpoints: `/superset/sqllab`, `/superset/sqllab/history`, `/sqllab/my_queries` use `/sqllab`, `/sqllab/history`, `/savedqueryview/list/?_flt_0_user={get_user_id()}` instead.
 - [26347](https://github.com/apache/superset/issues/26347): Removes the deprecated `VERSIONED_EXPORT` feature flag. The previous value of the feature flag was `True` and now the feature is permanently enabled.
 - [26328](https://github.com/apache/superset/issues/26328): Removes the deprecated Filter Box code and it's associated dependencies `react-select` and `array-move`. It also removes the `DeprecatedSelect` and `AsyncSelect` components that were exclusively used by filter boxes. Existing filter boxes will be automatically migrated to native filters.
@@ -53,7 +75,7 @@ assists people when migrating to a new version.
 
 ### Potential Downtime
 
-- [26416](https://github.com/apache/superset/pull/26416): adds 2 database indexes to report_execution_log and 1 to report_recipient to improve performance, this may cause downtime on large deployments.
+- [26416](https://github.com/apache/superset/pull/26416): Adds two database indexes to the `report_execution_log` table and one database index to the `report_recipient` to improve performance. Scheduled downtime may be required for large deployments.
 
 ## 3.1.0
 

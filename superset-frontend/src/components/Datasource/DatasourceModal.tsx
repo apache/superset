@@ -26,16 +26,16 @@ import {
   Metric,
   styled,
   SupersetClient,
+  getClientErrorObject,
   t,
+  SupersetError,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import { SupersetError } from 'src/components/ErrorMessage/types';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useSelector } from 'react-redux';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 

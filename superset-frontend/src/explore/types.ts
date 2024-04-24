@@ -68,6 +68,7 @@ export type Datasource = Dataset & {
   datasource?: string;
   schema?: string;
   is_sqllab_view?: boolean;
+  extra?: string;
 };
 
 export interface ExplorePageInitialData {

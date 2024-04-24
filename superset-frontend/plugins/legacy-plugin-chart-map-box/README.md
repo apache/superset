@@ -19,8 +19,8 @@ under the License.
 
 ## @superset-ui/legacy-plugin-chart-map-box
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-map-box.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/legacy-plugin-chart-map-box)
-[![David (path)](https://img.shields.io/david/apache-superset/superset-ui-plugins.svg?path=packages%2Fsuperset-ui-legacy-plugin-chart-map-box&style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins?path=packages/superset-ui-legacy-plugin-chart-map-box)
+[![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-map-box.svg?style=flat)](https://www.npmjs.com/package/@superset-ui/legacy-plugin-chart-map-box)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Flegacy-plugin-chart-map-box?style=flat)](https://libraries.io/npm/@superset-ui%2Flegacy-plugin-chart-map-box)
 
 This plugin provides MapBox for Superset.
 

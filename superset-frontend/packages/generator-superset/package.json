@@ -30,7 +30,7 @@
     "yosay": "^2.0.2"
   },
   "devDependencies": {
-    "fs-extra": "^10.0.0",
+    "fs-extra": "^11.2.0",
     "yeoman-assert": "^3.1.1",
     "yeoman-test": "^6.2.0"
   },

@@ -18,6 +18,7 @@ import pytest
 from flask_appbuilder.security.sqla.models import Role, User
 
 from superset import db, security_manager
+from tests.integration_tests.constants import GAMMA_SQLLAB_NO_DATA_USERNAME
 from tests.integration_tests.test_app import app
 
 
@@ -30,7 +31,7 @@ def create_gamma_sqllab_no_data():
         )
 
         security_manager.add_user(
-            "gamma_sqllab_no_data",
+            GAMMA_SQLLAB_NO_DATA_USERNAME,
             "gamma_sqllab_no_data",
             "gamma_sqllab_no_data",
             "gamma_sqllab_no_data@apache.org",
@@ -41,7 +42,7 @@ def create_gamma_sqllab_no_data():
         yield
         user = (
             db.session.query(User)
-            .filter(User.username == "gamma_sqllab_no_data")
+            .filter(User.username == GAMMA_SQLLAB_NO_DATA_USERNAME)
             .one_or_none()
         )
         db.session.delete(user)

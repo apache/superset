@@ -308,6 +308,7 @@ export default function transformProps(
         sliceId,
         isHorizontal,
         lineStyle,
+        timeCompare: array,
       },
     );
     if (transformedSeries) {

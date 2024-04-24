@@ -167,6 +167,8 @@ class Superset(BaseSupersetView):
                 "data": payload["df"].to_dict("records"),
                 "colnames": payload.get("colnames"),
                 "coltypes": payload.get("coltypes"),
+                "rowcount": payload.get("rowcount"),
+                "sql_rowcount": payload.get("sql_rowcount"),
             },
         )
 
@@ -204,7 +206,7 @@ class Superset(BaseSupersetView):
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=("GET",))
     @check_resource_permissions(check_explore_cache_perms)
-    @deprecated(eol_version="4.0.0")
+    @deprecated(eol_version="5.0.0")
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -257,7 +259,7 @@ class Superset(BaseSupersetView):
     )
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
-    @deprecated(eol_version="4.0.0")
+    @deprecated(eol_version="5.0.0")
     def explore_json(
         self, datasource_type: str | None = None, datasource_id: int | None = None
     ) -> FlaskResponse:
@@ -843,6 +845,8 @@ class Superset(BaseSupersetView):
         if url_params := state.get("urlParams"):
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
+        if original_params := request.query_string.decode():
+            url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
             url = f"{url}#{hash_}"
         return redirect(url)

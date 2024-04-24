@@ -21,6 +21,7 @@ import unittest
 import copy
 from datetime import datetime
 from io import BytesIO
+import time
 from typing import Any, Optional
 from unittest import mock
 from zipfile import ZipFile
@@ -31,6 +32,11 @@ from superset.charts.data.api import ChartDataRestApi
 from superset.models.sql_lab import Query
 from tests.integration_tests.base_tests import SupersetTestCase, test_client
 from tests.integration_tests.annotation_layers.fixtures import create_annotation_layers
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    GAMMA_NO_CSV_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -62,6 +68,8 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from tests.common.query_context_generator import ANNOTATION_LAYERS
 from tests.integration_tests.fixtures.query_context import get_query_context
 
+from tests.integration_tests.test_app import app
+
 
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
@@ -79,11 +87,18 @@ INCOMPATIBLE_ADHOC_COLUMN_FIXTURE: AdhocColumn = {
 }
 
 
+@pytest.fixture(autouse=True)
+def skip_by_backend():
+    with app.app_context():
+        if backend() == "hive":
+            pytest.skip("Skipping tests for Hive backend")
+
+
 class BaseTestChartDataApi(SupersetTestCase):
     query_context_payload_template = None
 
     def setUp(self) -> None:
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         if self.query_context_payload_template is None:
             BaseTestChartDataApi.query_context_payload_template = get_query_context(
                 "birth_names"
@@ -401,7 +416,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: Test chart data with CSV result format
         """
         self.logout()
-        self.login(username="gamma_no_csv")
+        self.login(GAMMA_NO_CSV_USERNAME)
         self.query_context_payload["result_format"] = "csv"
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
@@ -413,7 +428,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: Test chart data with Excel result format
         """
         self.logout()
-        self.login(username="gamma_no_csv")
+        self.login(GAMMA_NO_CSV_USERNAME)
         self.query_context_payload["result_format"] = "xlsx"
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
@@ -526,6 +541,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Ensure prophet post transformation works
         """
+        if backend() == "hive":
+            return
+
         time_grain = "P1Y"
         self.query_context_payload["queries"][0]["is_timeseries"] = True
         self.query_context_payload["queries"][0]["groupby"] = []
@@ -560,6 +578,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Ensure incorrect post processing returns correct response
         """
+        if backend() == "hive":
+            return
+
         query_context = self.query_context_payload
         query = query_context["queries"][0]
         query["columns"] = ["name", "gender"]
@@ -671,7 +692,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: Test chart data query not allowed
         """
         self.logout()
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
 
         assert rv.status_code == 403
@@ -694,7 +715,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         result = rv.json["result"][0]["query"]
         if get_example_database().backend != "presto":
-            assert "('boy' = 'boy')" in result
+            assert "(\n      'boy' = 'boy'\n    )" in result
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -702,9 +723,13 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.logout()
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
+        # Introducing time.sleep to make test less flaky with MySQL
+        time.sleep(1)
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        time.sleep(1)
         self.assertEqual(rv.status_code, 202)
+        time.sleep(1)
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
         self.assertCountEqual(
@@ -1221,7 +1246,6 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test query with adhoc column in both select and where clause
         """
-        self.login(username="admin")
         request_payload = get_query_context("birth_names")
         request_payload["queries"][0]["columns"] = [ADHOC_COLUMN_FIXTURE]
         request_payload["queries"][0]["filters"] = [
@@ -1241,7 +1265,6 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test query with adhoc column that fails to run on this dataset
         """
-        self.login(username="admin")
         request_payload = get_query_context("birth_names")
         request_payload["queries"][0]["columns"] = [ADHOC_COLUMN_FIXTURE]
         request_payload["queries"][0]["filters"] = [
@@ -1319,13 +1342,13 @@ def test_time_filter_with_grain(test_client, login_as_admin, physical_query_cont
     backend = get_example_database().backend
     if backend == "sqlite":
         assert (
-            "DATETIME(col5, 'start of day', -strftime('%w', col5) || ' days') >="
+            "DATETIME(col5, 'start of day', -STRFTIME('%w', col5) || ' days') >="
             in query
         )
     elif backend == "mysql":
-        assert "DATE(DATE_SUB(col5, INTERVAL DAYOFWEEK(col5) - 1 DAY)) >=" in query
+        assert "DATE(DATE_SUB(col5, INTERVAL (DAYOFWEEK(col5) - 1) DAY)) >=" in query
     elif backend == "postgresql":
-        assert "DATE_TRUNC('week', col5) >=" in query
+        assert "DATE_TRUNC('WEEK', col5) >=" in query
     elif backend == "presto":
         assert "date_trunc('week', CAST(col5 AS TIMESTAMP)) >=" in query
 

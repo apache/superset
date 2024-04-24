@@ -21,6 +21,7 @@ import { Input, Tooltip } from 'antd';
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import Icons from 'src/components/Icons';
+import Button from 'src/components/Button';
 import errorIcon from 'src/assets/images/icons/error.svg';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
@@ -109,6 +110,8 @@ const LabeledErrorBoundInput = ({
   id,
   className,
   visibilityToggle,
+  get_url,
+  description,
   ...props
 }: LabeledErrorBoundInputProps) => (
   <StyledFormGroup className={className}>
@@ -148,6 +151,21 @@ const LabeledErrorBoundInput = ({
         />
       ) : (
         <StyledInput {...props} {...validationMethods} />
+      )}
+      {get_url && description ? (
+        <Button
+          type="link"
+          htmlType="button"
+          buttonStyle="default"
+          onClick={() => {
+            window.open(get_url);
+            return true;
+          }}
+        >
+          Get {description}
+        </Button>
+      ) : (
+        <br />
       )}
     </FormItem>
   </StyledFormGroup>

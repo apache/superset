@@ -21,3 +21,4 @@ export * from './types';
 
 export { default as getComparisonInfo } from './getComparisonInfo';
 export { default as getComparisonFilters } from './getComparisonFilters';
+export { SEPARATOR, fetchTimeRange } from './fetchTimeRange';

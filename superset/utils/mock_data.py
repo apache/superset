@@ -184,7 +184,7 @@ def add_data(
     database = get_example_database()
     table_exists = database.has_table_by_name(table_name)
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         if columns is None:
             if not table_exists:
                 raise Exception(  # pylint: disable=broad-exception-raised

@@ -439,7 +439,7 @@ def load_supported_charts_dashboard() -> None:
     """Loading a dashboard featuring supported charts"""
 
     database = get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
 
         tbl_name = "birth_names"

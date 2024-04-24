@@ -529,6 +529,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         url: URL,
         impersonate_user: bool,
         username: str | None,
+        access_token: str | None,
     ) -> URL:
         if impersonate_user and username is not None:
             user = security_manager.find_user(username=username)
@@ -542,6 +543,58 @@ The method `get_url_for_impersonation` updates the SQLAlchemy URI before every q
 
 Alternatively, it's also possible to impersonate users by implementing the `update_impersonation_config`. This is a class method which modifies `connect_args` in place. You can use either method, and ideally they [should be consolidated in a single one](https://github.com/apache/superset/issues/24910).
 
+### OAuth2
+
+Support for authenticating to a database using personal OAuth2 access tokens was introduced in [SIP-85](https://github.com/apache/superset/issues/20300). The Google Sheets DB engine spec is the reference implementation.
+
+Note that this API is still experimental and evolving quickly, subject to breaking changes. Currently, to add support for OAuth2 to a DB engine spec, the following attributes are needed:
+
+```python
+class BaseEngineSpec:
+
+    supports_oauth2 = True
+    oauth2_exception = OAuth2RedirectError
+
+    oauth2_scope = " ".join([
+        "https://example.org/scope1",
+        "https://example.org/scope2",
+    ])
+    oauth2_authorization_request_uri = "https://example.org/authorize"
+    oauth2_token_request_uri = "https://example.org/token"
+```
+
+The `oauth2_exception` is an exception that is raised by `cursor.execute` when OAuth2 is needed. This will start the OAuth2 dance when `BaseEngineSpec.execute` is called, by returning the custom error `OAUTH2_REDIRECT` to the frontend. If the database driver doesn't have a specific exception, it might be necessary to overload the `execute` method in the DB engine spec, so that the `BaseEngineSpec.start_oauth2_dance` method gets called whenever OAuth2 is needed.
+
+The DB engine should implement logic in either `get_url_for_impersonation` or `update_impersonation_config` to update the connection with the personal access token. See the Google Sheets DB engine spec for a reference implementation.
+
+Currently OAuth2 needs to be configured at the DB engine spec level, ie, with one client for each DB engien spec. The configuration lives in `superset_config.py`:
+
+```python
+# superset_config.py
+DATABASE_OAUTH2_CLIENTS = {
+    "Google Sheets": {
+        "id": "XXX.apps.googleusercontent.com",
+        "secret": "GOCSPX-YYY",
+        "scope": " ".join(
+            [
+                "https://www.googleapis.com/auth/drive.readonly",
+                "https://www.googleapis.com/auth/spreadsheets",
+                "https://spreadsheets.google.com/feeds",
+            ],
+        ),
+        "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_request_uri": "https://oauth2.googleapis.com/token",
+    },
+}
+DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
+DATABASE_OAUTH2_REDIRECT_URI = "http://localhost:8088/api/v1/database/oauth2/"
+DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
+```
+
+When configuring a client only the ID and secret are required; the DB engine spec should have default values for the scope and endpoints. The `DATABASE_OAUTH2_REDIRECT_URI` attribute is optional, and defaults to `/api/v1/databases/oauth2/` in Superset.
+
+In the future we plan to support adding custom clients via the Superset UI, and being able to manually assign clients to specific databases.
+
 ### File upload
 
 When a DB engine spec supports file upload it declares so via the `supports_file_upload` class attribute. The base class implementation is very generic and should work for any database that has support for `CREATE TABLE`. It leverages Pandas and the [`df_to_sql`](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_sql.html) method.
@@ -550,7 +603,7 @@ For some databases the `df_to_sql` classmethod needs to be implemented. For exam
 
 ### Extra table metadata
 
-DB engine specs can return additional metadata associated with a table. This is done via the `extra_table_metadata` class method. Trino uses this to return information about the latest partition, for example, and Bigquery returns clustering information. This information is then surfaced in the SQL Lab UI, when browsing tables in the metadata explorer (on the left panel).
+DB engine specs can return additional metadata associated with a table. This is done via the `get_extra_table_metadata` class method. Trino uses this to return information about the latest partition, for example, and Bigquery returns clustering information. This information is then surfaced in the SQL Lab UI, when browsing tables in the metadata explorer (on the left panel).
 
 ### DB API exception mapping
 
@@ -615,7 +668,7 @@ SELECT * FROM my_table
 
 The table `my_table` should live in the `dev` schema. In order to do that, it's necessary to modify the SQLAlchemy URI before running the query. Since different databases have different ways of doing that, this functionality is implemented via the `adjust_engine_params` class method. The method receives the SQLAlchemy URI and `connect_args`, as well as the schema in which the query should run. It then returns a potentially modified URI and `connect_args` to ensure that the query runs in the specified schema.
 
-When a DB engine specs implements `adjust_engine_params` it should have the class attribute `supports_dynamic_schema` set to true. This is critical for security, since **it allows Superset to know to which schema any unqualified table names belong to**. For example, in the query above, if the database supports dynamic schema, Superset would check to see if the user running the query has access to `dev.my_table`. On the other hand, if the database doesn't support dynamic schema, Superset would sue the default database schema instead of `dev`.
+When a DB engine specs implements `adjust_engine_params` it should have the class attribute `supports_dynamic_schema` set to true. This is critical for security, since **it allows Superset to know to which schema any unqualified table names belong to**. For example, in the query above, if the database supports dynamic schema, Superset would check to see if the user running the query has access to `dev.my_table`. On the other hand, if the database doesn't support dynamic schema, Superset would use the default database schema instead of `dev`.
 
 Implementing this method is also important for usability. When the method is not implemented selecting the schema in SQL Lab has no effect on the schema in which the query runs, resulting in a confusing results when using unqualified table names.
 

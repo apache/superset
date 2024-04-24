@@ -27,7 +27,7 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
     """Loading random time series data from a zip file in the repo"""
     tbl_name = "flights"
     database = database_utils.get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
         table_exists = database.has_table_by_name(tbl_name)
 

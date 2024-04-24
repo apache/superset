@@ -41,7 +41,6 @@ const metadata = {
     t('Percentages'),
     t('Popular'),
     t('Report'),
-    t('Description'),
     t('Trend'),
   ],
   thumbnail,

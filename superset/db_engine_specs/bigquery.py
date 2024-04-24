@@ -320,10 +320,12 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return cls.normalize_indexes(inspector.get_indexes(table_name, schema))
 
     @classmethod
-    def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: Optional[str]
+    def get_extra_table_metadata(
+        cls,
+        database: "Database",
+        table: Table,
     ) -> dict[str, Any]:
-        indexes = database.get_indexes(table_name, schema_name)
+        indexes = database.get_indexes(table.table, table.schema)
         if not indexes:
             return {}
         partitions_columns = [
@@ -456,7 +458,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         In BigQuery, a catalog is called a "project".
         """
         engine: Engine
-        with database.get_sqla_engine_with_context() as engine:
+        with database.get_sqla_engine() as engine:
             client = cls._get_client(engine)
             projects = client.list_projects()
 

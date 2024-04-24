@@ -34,3 +34,8 @@ export const DEFAULT_FETCH_RETRY_OPTIONS: FetchRetryOptions = {
   retryDelay: 1000,
   retryOn: [503],
 };
+
+export const COMMON_ERR_MESSAGES = {
+  SESSION_TIMED_OUT:
+    'Your session timed out, please refresh your page and try again.',
+};

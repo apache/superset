@@ -18,52 +18,55 @@
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineConfig } from 'cypress';
+import eyesPlugin from '@applitools/eyes-cypress';
 
-export default defineConfig({
-  chromeWebSecurity: false,
-  defaultCommandTimeout: 8000,
-  numTestsKeptInMemory: 0,
-  experimentalFetchPolyfill: true,
-  requestTimeout: 10000,
-  video: false,
-  videoUploadOnPasses: false,
-  viewportWidth: 1280,
-  viewportHeight: 1024,
-  projectId: 'ukwxzo',
-  retries: {
-    runMode: 2,
-    openMode: 0,
-  },
-  e2e: {
-    // We've imported your old cypress plugins here.
-    // You may want to clean this up later by importing these.
-    setupNodeEvents(on, config) {
-      // ECONNRESET on Chrome/Chromium 117.0.5851.0 when using Cypress <12.15.0
-      // Check https://github.com/cypress-io/cypress/issues/27804 for context
-      // TODO: This workaround should be removed when upgrading Cypress
-      on('before:browser:launch', (browser, launchOptions) => {
-        if (browser.name === 'chrome' && browser.isHeadless) {
-          // eslint-disable-next-line no-param-reassign
-          launchOptions.args = launchOptions.args.map(arg => {
-            if (arg === '--headless') {
-              return '--headless=new';
-            }
-
-            return arg;
-          });
-
-          launchOptions.args.push(
-            ...['--disable-dev-shm-usage', '--disable-gpu'],
-          );
-        }
-        return launchOptions;
-      });
-
-      // eslint-disable-next-line global-require,import/extensions
-      return require('./cypress/plugins/index.js')(on, config);
+export default eyesPlugin(
+  defineConfig({
+    chromeWebSecurity: false,
+    defaultCommandTimeout: 8000,
+    numTestsKeptInMemory: 0,
+    experimentalFetchPolyfill: true,
+    requestTimeout: 10000,
+    video: false,
+    videoUploadOnPasses: false,
+    viewportWidth: 1280,
+    viewportHeight: 1024,
+    projectId: 'ukwxzo',
+    retries: {
+      runMode: 2,
+      openMode: 0,
     },
-    baseUrl: 'http://localhost:8088',
-    excludeSpecPattern: ['**/*.applitools.test.ts'],
-    specPattern: ['cypress/e2e/**/*.{js,jsx,ts,tsx}'],
-  },
-});
+    e2e: {
+      // We've imported your old cypress plugins here.
+      // You may want to clean this up later by importing these.
+      setupNodeEvents(on, config) {
+        // ECONNRESET on Chrome/Chromium 117.0.5851.0 when using Cypress <12.15.0
+        // Check https://github.com/cypress-io/cypress/issues/27804 for context
+        // TODO: This workaround should be removed when upgrading Cypress
+        on('before:browser:launch', (browser, launchOptions) => {
+          if (browser.name === 'chrome' && browser.isHeadless) {
+            // eslint-disable-next-line no-param-reassign
+            launchOptions.args = launchOptions.args.map(arg => {
+              if (arg === '--headless') {
+                return '--headless=new';
+              }
+
+              return arg;
+            });
+
+            launchOptions.args.push(
+              ...['--disable-dev-shm-usage', '--disable-gpu'],
+            );
+          }
+          return launchOptions;
+        });
+
+        // eslint-disable-next-line global-require,import/extensions
+        return require('./cypress/plugins/index.js')(on, config);
+      },
+      baseUrl: 'http://localhost:8088',
+      excludeSpecPattern: ['**/*.applitools.test.ts'],
+      specPattern: ['cypress/e2e/**/*.{js,jsx,ts,tsx}'],
+    },
+  }),
+);

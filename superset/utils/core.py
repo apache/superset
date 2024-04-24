@@ -60,11 +60,12 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app, g, Markup, request
+from flask import current_app, g, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
+from markupsafe import Markup
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
 from sqlalchemy import event, exc, inspect, select, Text
@@ -822,6 +823,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     config: dict[str, Any],
     files: list[str] | None = None,
     data: dict[str, str] | None = None,
+    pdf: dict[str, bytes] | None = None,
     images: dict[str, bytes] | None = None,
     dryrun: bool = False,
     cc: str | None = None,
@@ -876,6 +878,15 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
         msg.attach(
             MIMEApplication(
                 body, Content_Disposition=f"attachment; filename='{name}'", Name=name
+            )
+        )
+
+    for name, body_pdf in (pdf or {}).items():
+        msg.attach(
+            MIMEApplication(
+                body_pdf,
+                Content_Disposition=f"attachment; filename='{name}'",
+                Name=name,
             )
         )
 
@@ -1159,7 +1170,7 @@ def get_example_default_schema() -> str | None:
     Return the default schema of the examples database, if any.
     """
     database = get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         return inspect(engine).default_schema_name
 
 
@@ -1896,3 +1907,10 @@ def remove_extra_adhoc_filters(form_data: dict[str, Any]) -> None:
         form_data[key] = [
             filter_ for filter_ in value or [] if not filter_.get("isExtra")
         ]
+
+
+def to_int(v: Any, value_if_invalid: int = 0) -> int:
+    try:
+        return int(v)
+    except (ValueError, TypeError):
+        return value_if_invalid

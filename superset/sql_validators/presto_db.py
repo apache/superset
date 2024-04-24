@@ -20,7 +20,7 @@ import time
 from contextlib import closing
 from typing import Any, Optional
 
-from superset import app, security_manager
+from superset import app
 from superset.models.core import Database
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotation
@@ -54,12 +54,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         sql = parsed_query.stripped()
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
-        if sql_query_mutator := config["SQL_QUERY_MUTATOR"]:
-            sql = sql_query_mutator(
-                sql,
-                security_manager=security_manager,
-                database=database,
-            )
+        sql = database.mutate_sql_based_on_config(sql)
 
         # Transform the final statement to an explain call before sending it on
         # to presto to validate
@@ -73,7 +68,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         from pyhive.exc import DatabaseError
 
         try:
-            db_engine_spec.execute(cursor, sql)
+            db_engine_spec.execute(cursor, sql, database)
             polled = cursor.poll()
             while polled:
                 logger.info("polling presto for validation progress")
@@ -160,9 +155,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         logger.info("Validating %i statement(s)", len(statements))
         # todo(hughhh): update this to use new database.get_raw_connection()
         # this function keeps stalling CI
-        with database.get_sqla_engine_with_context(
-            schema, source=QuerySource.SQL_LAB
-        ) as engine:
+        with database.get_sqla_engine(schema, source=QuerySource.SQL_LAB) as engine:
             # Sharing a single connection and cursor across the
             # execution of all statements (if many)
             annotations: list[SQLValidationAnnotation] = []

@@ -17,13 +17,13 @@
  * under the License.
  */
 import moment, { Moment } from 'moment';
+import { SEPARATOR } from '@superset-ui/core';
 import {
   CustomRangeDecodeType,
   CustomRangeType,
   DateTimeGrainType,
   DateTimeModeType,
 } from 'src/explore/components/controls/DateFilterControl/types';
-import { SEPARATOR } from './dateFilterUtils';
 import { SEVEN_DAYS_AGO, MIDNIGHT, MOMENT_FORMAT } from './constants';
 
 /**
