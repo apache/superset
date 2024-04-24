@@ -18,6 +18,7 @@
  */
 import memoizeOne from 'memoize-one';
 import {
+  ComparisonType,
   CurrencyFormatter,
   DataRecord,
   ensureIsArray,
@@ -399,9 +400,12 @@ const transformProps = (
     time_compare,
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
+    comparison_type,
   } = formData;
   const isUsingTimeComparison =
-    !isEmpty(time_compare) && queryMode === QueryMode.Aggregate;
+    !isEmpty(time_compare) &&
+    queryMode === QueryMode.Aggregate &&
+    comparison_type === ComparisonType.Values;
 
   const calculateBasicStyle = (
     percentDifferenceNum: number,

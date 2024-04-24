@@ -24,7 +24,6 @@ import moment from 'moment';
 import {
   BinaryAdhocFilter,
   css,
-  ensureIsArray,
   fetchTimeRange,
   SimpleAdhocFilter,
   t,
