@@ -22,6 +22,7 @@ import { fetchTimeRange } from '@superset-ui/core';
 import {
   buildTimeRangeString,
   formatTimeRange,
+  formatTimeRangeComparison,
 } from '../../src/time-comparison/fetchTimeRange';
 
 afterEach(fetchMock.restore);
@@ -115,4 +116,55 @@ it('returns a formatted error message from response', async () => {
   expect(timeRange).toEqual({
     error: 'Network error',
   });
+});
+
+it('fetchTimeRange with shift', async () => {
+  fetchMock.getOnce(
+    "glob:*/api/v1/time_range/?q=!((timeRange:'Last+day'),(shift%3A'last%20month'%2CtimeRange%3A'Last%20day'))",
+    {
+      result: [
+        {
+          since: '2021-04-13T00:00:00',
+          until: '2021-04-14T00:00:00',
+          timeRange: 'Last day',
+          shift: null,
+        },
+        {
+          since: '2021-03-13T00:00:00',
+          until: '2021-03-14T00:00:00',
+          timeRange: 'Last day',
+          shift: 'last month',
+        },
+      ],
+    },
+  );
+
+  const timeRange = await fetchTimeRange('Last day', 'temporal_col', [
+    'last month',
+  ]);
+
+  expect(timeRange).toEqual({
+    value: [
+      'temporal_col: 2021-04-13 to 2021-04-14 vs\n  2021-03-13 to 2021-03-14',
+    ],
+  });
+});
+
+it('formatTimeRangeComparison', () => {
+  expect(
+    formatTimeRangeComparison(
+      '2021-04-13T00:00:00 : 2021-04-14T00:00:00',
+      '2021-03-13T00:00:00 : 2021-03-14T00:00:00',
+    ),
+  ).toEqual('col: 2021-04-13 to 2021-04-14 vs\n  2021-03-13 to 2021-03-14');
+
+  expect(
+    formatTimeRangeComparison(
+      '2021-04-13T00:00:00 : 2021-04-14T00:00:00',
+      '2021-03-13T00:00:00 : 2021-03-14T00:00:00',
+      'col_name',
+    ),
+  ).toEqual(
+    'col_name: 2021-04-13 to 2021-04-14 vs\n  2021-03-13 to 2021-03-14',
+  );
 });
