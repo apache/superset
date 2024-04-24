@@ -19,11 +19,19 @@
 
 import json
 import unittest
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
 
 import pytest
 from flask import g
 from sqlalchemy.orm.session import make_transient
 
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_with_slice,  # noqa: F401
+    load_energy_table_data,  # noqa: F401
+)
 from tests.integration_tests.test_app import app
 from superset.commands.dashboard.importers.v0 import decode_dashboards
 from superset import db, security_manager
@@ -38,6 +46,10 @@ from superset.utils.database import get_example_database
 
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
+)
 
 
 def delete_imports():
