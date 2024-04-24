@@ -95,6 +95,7 @@ import { SupersetPluginsChartCheckTable } from 'superset-plugin-chart-check-tabl
 import { SupersetPluginsChartTinyProgressBar } from 'superset-plugin-chart-tiny-progress-bar';
 import { SupersetPluginsChartViolin } from 'superset-plugin-chart-violin';
 import { SupersetPluginsChartRadar } from 'superset-plugin-chart-radar';
+import { SupersetPluginsChartTitleBar } from 'superset-plugin-chart-title-bar';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
 
@@ -212,6 +213,7 @@ export default class MainPreset extends Preset {
         }),
         new SupersetPluginsChartViolin().configure({ key: 'ext-violin' }),
         new SupersetPluginsChartRadar().configure({ key: 'ext-radar' }),
+        new SupersetPluginsChartTitleBar().configure({ key: 'ext-title-bar' }),
         ...experimentalplugins,
       ],
     });
