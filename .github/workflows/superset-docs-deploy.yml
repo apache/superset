@@ -58,8 +58,6 @@ jobs:
         run: |
           yarn build
       - name: deploy docs
-        working-directory: docs
-        if: github.ref == 'refs/heads/master'
         uses: ./.github/actions/github-action-push-to-another-repository
         env:
           API_TOKEN_GITHUB: ${{ secrets.SUPERSET_SITE_BUILD }}
