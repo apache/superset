@@ -60,6 +60,12 @@ repos:
       - id: prettier
         args: ["--ignore-path=./superset-frontend/.prettierignore"]
         files: "superset-frontend"
+  # blacklist unsafe functions like make_url (see #19526)
+  - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
+    rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
+    hooks:
+      - id: blacklist
+        args: ["--blacklisted-names=make_url", "--ignore=tests/"]
   - repo: https://github.com/norwoodj/helm-docs
     rev: v1.11.0
     hooks:
