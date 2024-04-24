@@ -224,7 +224,7 @@
     "superset-plugin-chart-timeline": "^1.0.4",
     "superset-plugin-chart-tiny-area": "^2.0.2",
     "superset-plugin-chart-tiny-progress-bar": "^1.0.4",
-    "superset-plugin-chart-title-bar": "^1.0.2",
+    "superset-plugin-chart-title-bar": "^1.0.3",
     "superset-plugin-chart-violin": "^1.0.0",
     "superset-plugins-chart-heatmap": "^1.0.3",
     "tinycolor2": "^1.4.2",
