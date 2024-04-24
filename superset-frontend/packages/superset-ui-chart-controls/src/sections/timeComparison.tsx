@@ -20,7 +20,9 @@ import { t, ComparisonType } from '@superset-ui/core';
 
 import { ControlPanelSectionConfig } from '../types';
 
-export const timeComparisonControls: ControlPanelSectionConfig = {
+export const timeComparisonControls: (
+  multi?: boolean,
+) => ControlPanelSectionConfig = (multi = true) => ({
   label: t('Time Comparison'),
   tabOverride: 'data',
   description: t(
@@ -35,7 +37,7 @@ export const timeComparisonControls: ControlPanelSectionConfig = {
         name: 'time_compare',
         config: {
           type: 'SelectControl',
-          multi: true,
+          multi,
           freeForm: true,
           label: t('Time shift'),
           choices: [
@@ -94,5 +96,14 @@ export const timeComparisonControls: ControlPanelSectionConfig = {
         },
       },
     ],
+    [
+      {
+        name: 'comparison_range_label',
+        config: {
+          type: 'ComparisonRangeLabel',
+          multi,
+        },
+      },
+    ],
   ],
-};
+});

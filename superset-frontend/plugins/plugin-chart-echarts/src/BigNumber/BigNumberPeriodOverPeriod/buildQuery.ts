@@ -20,6 +20,7 @@ import {
   buildQueryContext,
   QueryFormData,
   PostProcessingRule,
+  ensureIsArray,
 } from '@superset-ui/core';
 import {
   isTimeComparison,
@@ -47,7 +48,7 @@ export default function buildQuery(formData: QueryFormData) {
         groupby,
         post_processing: postProcessing,
         time_offsets: isTimeComparison(formData, baseQueryObject)
-          ? formData.time_compare
+          ? ensureIsArray(formData.time_compare)
           : [],
       },
     ];

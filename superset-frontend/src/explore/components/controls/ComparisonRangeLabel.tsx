@@ -109,7 +109,11 @@ export const ComparisonRangeLabel = ({
   );
 
   useEffect(() => {
-    if (isEmpty(currentTimeRangeFilters) || (isEmpty(shifts) && !startDate)) {
+    const shiftsArray = ensureIsArray(shifts);
+    if (
+      isEmpty(currentTimeRangeFilters) ||
+      (isEmpty(shiftsArray) && !startDate)
+    ) {
       setLabels([]);
     } else if (!isEmpty(shifts) || startDate) {
       const isCustom = shifts?.includes('custom');
@@ -140,7 +144,7 @@ export const ComparisonRangeLabel = ({
         return fetchTimeRange(
           filter.comparator,
           filter.subject,
-          ensureIsArray(newShifts),
+          multi ? shiftsArray : ensureIsArray(newShifts),
         );
       });
       Promise.all(promises).then(res => {

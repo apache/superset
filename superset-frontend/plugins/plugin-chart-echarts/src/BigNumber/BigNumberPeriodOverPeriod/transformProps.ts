@@ -23,6 +23,7 @@ import {
   getValueFormatter,
   getNumberFormatter,
   SimpleAdhocFilter,
+  ensureIsArray,
 } from '@superset-ui/core';
 import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
@@ -89,7 +90,7 @@ export default function transformProps(chartProps: ChartProps) {
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
   const metricName = getMetricLabel(metric);
-  const timeComparison = chartProps.rawFormData?.time_compare?.[0];
+  const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
     (adhoc_filter: SimpleAdhocFilter) =>

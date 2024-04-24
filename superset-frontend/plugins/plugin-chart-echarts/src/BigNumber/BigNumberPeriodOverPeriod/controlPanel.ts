@@ -108,21 +108,7 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
-    {
-      ...sections.timeComparisonControls,
-      controlSetRows: [
-        ...sections.timeComparisonControls.controlSetRows,
-        [
-          {
-            name: 'comparison_range_label',
-            config: {
-              type: 'ComparisonRangeLabel',
-              multi: false,
-            },
-          },
-        ],
-      ],
-    },
+    sections.timeComparisonControls(false),
   ],
   controlOverrides: {
     y_axis_format: {
