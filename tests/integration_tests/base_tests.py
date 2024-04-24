@@ -25,7 +25,7 @@ from typing import Any, Union, Optional
 from unittest.mock import Mock, patch, MagicMock
 
 import pandas as pd
-from flask import Response
+from flask import Response, g
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.engine.interfaces import Dialect
@@ -42,7 +42,7 @@ from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import get_example_default_schema, shortid
 from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
 
@@ -146,6 +146,72 @@ class SupersetTestCase(TestCase):
             user_to_create.roles.append(security_manager.find_role(chosen_user_role))
         db.session.commit()
         return user_to_create
+
+    @contextmanager
+    def temporary_user(
+        self,
+        clone_user=None,
+        username=None,
+        extra_roles=None,
+        extra_pvms=None,
+        login=False,
+    ):
+        """
+        Create a temporary user for testing and delete it after the test
+
+        with self.temporary_user(login=True, extra_roles=[Role(...)]) as user:
+            user.do_something()
+
+        # user is automatically logged out and deleted after the test
+        """
+        username = username or f"temp_user_{shortid()}"
+        temp_user = ab_models.User(username=username, email=f"{username}@temp.com")
+        if clone_user:
+            temp_user.roles = clone_user.roles
+            temp_user.first_name = clone_user.first_name
+            temp_user.last_name = clone_user.last_name
+        else:
+            temp_user.first_name = "temp"
+            temp_user.last_name = "temp"
+
+        if clone_user:
+            temp_user.roles = clone_user.roles
+
+        if extra_roles:
+            temp_user.roles.extend(extra_roles)
+
+        pvms = []
+        temp_role = None
+        if extra_pvms:
+            temp_role = ab_models.Role(name=f"tmp_role_{shortid()}")
+            for pvm in extra_pvms:
+                if isinstance(pvm, (tuple, list)):
+                    pvms.append(security_manager.find_permission_view_menu(*pvm))
+                else:
+                    pvms.append(pvm)
+            temp_role.permissions = pvms
+            temp_user.roles.append(temp_role)
+            db.session.add(temp_role)
+            db.session.commit()
+
+        # Add the temp user to the session and commit to apply changes for the test
+        db.session.add(temp_user)
+        db.session.commit()
+        previous_g_user = g.user
+        try:
+            if login:
+                self.login(username=temp_user.username)
+            g.user = temp_user
+            yield temp_user
+        finally:
+            # Revert changes after the test
+            if temp_role:
+                db.session.delete(temp_role)
+            if login:
+                self.logout()
+            db.session.delete(temp_user)
+            db.session.commit()
+            g.user = previous_g_user
 
     @staticmethod
     def create_user(

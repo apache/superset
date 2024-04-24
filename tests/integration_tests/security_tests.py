@@ -76,60 +76,6 @@ NEW_SECURITY_CONVERGE_VIEWS = (
 )
 
 
-from contextlib import contextmanager
-from superset.utils.core import shortid
-
-
-@contextmanager
-def temporary_user(clone_user=None, extra_roles=None, extra_pvms=None):
-    temp_username = f"temp_user_{shortid()}"
-    print(temp_username)
-    temp_user = User(username=temp_username, email=f"{temp_username}@temp.com")
-    if clone_user:
-        temp_user.roles = clone_user.roles
-        temp_user.first_name = clone_user.first_name
-        temp_user.last_name = clone_user.last_name
-    else:
-        temp_user.first_name = "temp"
-        temp_user.last_name = "temp"
-
-    if clone_user:
-        temp_user.roles = clone_user.roles
-
-    if extra_roles:
-        temp_user.roles.extend(extra_roles)
-
-    pvms = []
-    temp_role = None
-    if extra_pvms:
-        temp_role = Role(name=f"tmp_role_{shortid()}")
-        for pvm in extra_pvms:
-            if isinstance(pvm, (tuple, list)):
-                pvms.append(security_manager.find_permission_view_menu(*pvm))
-            else:
-                pvms.append(pvm)
-        temp_role.permissions = pvms
-        temp_user.roles.append(temp_role)
-        db.session.add(temp_role)
-        db.session.commit()
-
-    # Add the temp user to the session and commit to apply changes for the test
-    db.session.add(temp_user)
-    db.session.commit()
-    previous_g_user = g.user
-    try:
-        # Yield control to the with block
-        g.user = temp_user
-        yield temp_user
-    finally:
-        # Revert changes after the test
-        if temp_role:
-            db.session.delete(temp_role)
-        db.session.delete(temp_user)
-        db.session.commit()
-        g.user = previous_g_user
-
-
 def get_perm_tuples(role_name):
     perm_set = set()
     for perm in security_manager.find_role(role_name).permissions:
@@ -1951,7 +1897,7 @@ class TestSecurityManager(SupersetTestCase):
 
         all_db_pvm = ("all_database_access", "all_database_access")
 
-        with temporary_user(gamma_user, extra_pvms=[all_db_pvm]) as tmp_user:
+        with self.temporary_user(gamma_user, extra_pvms=[all_db_pvm]) as tmp_user:
             assert security_manager.can_access_all_databases()
             assert security_manager.can_access_datasource(self.get_datasource_mock())
 
