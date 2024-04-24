@@ -47,6 +47,7 @@ from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
+DEFAULT_PASSWORD = "general"
 test_client = app.test_client()
 
 
@@ -133,7 +134,7 @@ class SupersetTestCase(TestCase):
                 username,
                 f"{username}@superset.com",
                 security_manager.find_role("Gamma"),  # it needs a role
-                password="general",
+                password=DEFAULT_PASSWORD,
             )
             db.session.commit()
             user_to_create = security_manager.find_user(username)
@@ -165,14 +166,17 @@ class SupersetTestCase(TestCase):
         # user is automatically logged out and deleted after the test
         """
         username = username or f"temp_user_{shortid()}"
-        temp_user = ab_models.User(username=username, email=f"{username}@temp.com")
+        temp_user = ab_models.User(
+            username=username, email=f"{username}@temp.com", active=True
+        )
         if clone_user:
             temp_user.roles = clone_user.roles
             temp_user.first_name = clone_user.first_name
             temp_user.last_name = clone_user.last_name
+            temp_user.password = clone_user.password
         else:
-            temp_user.first_name = "temp"
-            temp_user.last_name = "temp"
+            temp_user.first_name = temp_user.last_name = username
+            password = DEFAULT_PASSWORD
 
         if clone_user:
             temp_user.roles = clone_user.roles
@@ -197,11 +201,13 @@ class SupersetTestCase(TestCase):
         # Add the temp user to the session and commit to apply changes for the test
         db.session.add(temp_user)
         db.session.commit()
-        previous_g_user = g.user
+        previous_g_user = g.user if hasattr(g, "user") else None
         try:
             if login:
-                self.login(username=temp_user.username)
-            g.user = temp_user
+                resp = self.login(username=temp_user.username)
+                print(resp)
+            else:
+                g.user = temp_user
             yield temp_user
         finally:
             # Revert changes after the test
@@ -266,7 +272,7 @@ class SupersetTestCase(TestCase):
         db.session.commit()
         return obj
 
-    def login(self, username, password="general"):
+    def login(self, username, password=DEFAULT_PASSWORD):
         return login(self.client, username, password)
 
     def get_slice(self, slice_name: str) -> Slice:
