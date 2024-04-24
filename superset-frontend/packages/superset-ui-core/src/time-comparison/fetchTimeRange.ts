@@ -63,7 +63,7 @@ export const fetchTimeRange = async (
 ) => {
   let query;
   let endpoint;
-  if (!isEmpty(shifts)) {
+  if (shifts && !isEmpty(shifts)) {
     const timeRanges = shifts?.map(shift => ({
       timeRange,
       shift,
