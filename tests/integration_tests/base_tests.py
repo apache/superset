@@ -249,8 +249,13 @@ class SupersetTestCase(TestCase):
         datasource.query = Mock(return_value=results)
         datasource.database = Mock()
         datasource.database.db_engine_spec = Mock()
+        datasource.database.perm = "mock_database_perm"
+        datasource.schema_perm = "mock_schema_perm"
+        datasource.perm = "mock_datasource_perm"
+        datasource.__class__ = SqlaTable
         datasource.database.db_engine_spec.mutate_expression_label = lambda x: x
         datasource.owners = MagicMock()
+        datasource.id = 99999
         return datasource
 
     def get_resp(
