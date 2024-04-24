@@ -30,6 +30,7 @@ import pytest
 
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role
+from superset.daos.datasource import DatasourceDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
@@ -50,6 +51,18 @@ from superset.utils.urls import get_url_host
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import GAMMA_USERNAME
 from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.fixtures.public_role import (
+    public_role_like_gamma,  # noqa: F401
+    public_role_like_test_role,  # noqa: F401
+)
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
+)
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
@@ -885,12 +898,12 @@ class TestRolePermission(SupersetTestCase):
             db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
         )
         self.assertEqual(changed_table1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
-        self.assertEqual(changed_table1.schema_perm, "[tmp_db2].[tmp_schema]")
+        self.assertEqual(changed_table1.schema_perm, f"[tmp_db2].[tmp_schema]")  # noqa: F541
 
         # Test Chart permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
         self.assertEqual(slice1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
-        self.assertEqual(slice1.schema_perm, "[tmp_db2].[tmp_schema]")
+        self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")  # noqa: F541
 
         # cleanup
         db.session.delete(slice1)
@@ -943,12 +956,12 @@ class TestRolePermission(SupersetTestCase):
             db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
         )
         self.assertEqual(changed_table1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
-        self.assertEqual(changed_table1.schema_perm, "[tmp_db1].[tmp_schema_changed]")
+        self.assertEqual(changed_table1.schema_perm, f"[tmp_db1].[tmp_schema_changed]")  # noqa: F541
 
         # Test Chart schema permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
         self.assertEqual(slice1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
-        self.assertEqual(slice1.schema_perm, "[tmp_db1].[tmp_schema_changed]")
+        self.assertEqual(slice1.schema_perm, f"[tmp_db1].[tmp_schema_changed]")  # noqa: F541
 
         # cleanup
         db.session.delete(slice1)
@@ -1056,12 +1069,12 @@ class TestRolePermission(SupersetTestCase):
         self.assertEqual(
             changed_table1.perm, f"[tmp_db2].[tmp_table1_changed](id:{table1.id})"
         )
-        self.assertEqual(changed_table1.schema_perm, "[tmp_db2].[tmp_schema]")
+        self.assertEqual(changed_table1.schema_perm, f"[tmp_db2].[tmp_schema]")  # noqa: F541
 
         # Test Chart permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
         self.assertEqual(slice1.perm, f"[tmp_db2].[tmp_table1_changed](id:{table1.id})")
-        self.assertEqual(slice1.schema_perm, "[tmp_db2].[tmp_schema]")
+        self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")  # noqa: F541
 
         # cleanup
         db.session.delete(slice1)
@@ -2082,7 +2095,7 @@ class TestGuestTokens(SupersetTestCase):
         now = time.time()
         user = {"username": "test_guest"}
         resources = [{"some": "resource"}]
-        get_url_host()
+        aud = get_url_host()  # noqa: F841
 
         claims = {
             "user": user,

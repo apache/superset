@@ -22,6 +22,7 @@ from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
 import pytest
+import yaml  # noqa: F401
 from freezegun import freeze_time
 
 import superset.cli.importexport

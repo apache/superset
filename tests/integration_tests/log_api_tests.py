@@ -30,12 +30,14 @@ from superset import db
 from superset.models.core import Log
 from superset.views.log.api import LogRestApi
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags  # noqa: F401
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
     GAMMA_USERNAME,
 )
 from tests.integration_tests.dashboard_utils import create_dashboard
+from tests.integration_tests.test_app import app  # noqa: F401
 
 EXPECTED_COLUMNS = [
     "action",
@@ -172,7 +174,7 @@ class TestLogApi(SupersetTestCase):
         log1 = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
         log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
 
-        uri = "api/v1/log/recent_activity/"
+        uri = f"api/v1/log/recent_activity/"  # noqa: F541
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))

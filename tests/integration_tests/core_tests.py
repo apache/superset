@@ -57,16 +57,16 @@ from superset.views.database.views import DatabaseView
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa
-    load_birth_names_data,  # noqa
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,  # noqa
-    load_energy_table_with_slice,  # noqa
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,  # noqa
-    load_world_bank_data,  # noqa
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.test_app import app
 
@@ -98,8 +98,8 @@ class TestCore(SupersetTestCase):
     def insert_dashboard_created_by(self, username: str) -> Dashboard:
         user = self.get_user(username)
         dashboard = self.insert_dashboard(
-            "create_title_test",
-            "create_slug_test",
+            f"create_title_test",  # noqa: F541
+            f"create_slug_test",  # noqa: F541
             [user.id],
             created_by=user,
         )
@@ -177,7 +177,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
         self.login(ADMIN_USERNAME)
-        slice_name = "Energy Sankey"
+        slice_name = f"Energy Sankey"  # noqa: F541
         slice_id = self.get_slice(slice_name).id
         copy_name_prefix = "Test Sankey"
         copy_name = f"{copy_name_prefix}[save]{random.random()}"
@@ -479,8 +479,8 @@ class TestCore(SupersetTestCase):
 
     def create_sample_csvfile(self, filename: str, content: list[str]) -> None:
         with open(filename, "w+") as test_file:
-            for line in content:
-                test_file.write(f"{line}\n")
+            for l in content:  # noqa: E741
+                test_file.write(f"{l}\n")
 
     def create_sample_excelfile(self, filename: str, content: dict[str, str]) -> None:
         pd.DataFrame(content).to_excel(filename)
@@ -1186,7 +1186,7 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         random_key = "random_key"
         mock_command.return_value = random_key
-        slice_name = "Energy Sankey"
+        slice_name = f"Energy Sankey"  # noqa: F541
         slice_id = self.get_slice(slice_name).id
         form_data = {"slice_id": slice_id, "viz_type": "line", "datasource": "1__table"}
         rv = self.client.get(

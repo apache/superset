@@ -20,14 +20,14 @@ import json
 
 import pytest
 
-from superset import app
+from superset import app, db  # noqa: F401
 from superset.common.db_query_status import QueryStatus
 from superset.extensions import cache_manager
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa
-    load_birth_names_data,  # noqa
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 
 
