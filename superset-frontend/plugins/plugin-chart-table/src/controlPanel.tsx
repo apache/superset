@@ -633,34 +633,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      ...sections.timeComparisonControls,
-      controlSetRows: [
-        [
-          {
-            ...(sections.timeComparisonControls.controlSetRows as any).find(
-              (row: any) => row[0].name === 'time_compare',
-            )[0],
-            config: {
-              ...(sections.timeComparisonControls.controlSetRows as any).find(
-                (row: any) => row[0].name === 'time_compare',
-              )[0].config,
-              multi: false,
-            },
-          },
-        ],
-        ...(sections.timeComparisonControls.controlSetRows as any).filter(
-          (row: any) => row[0].name !== 'time_compare',
-        ),
-        [
-          {
-            name: 'comparison_range_label',
-            config: {
-              type: 'ComparisonRangeLabel',
-              multi: false,
-            },
-          },
-        ],
-      ],
+      ...sections.timeComparisonControls(false),
       visibility: isAggMode,
     },
   ],
