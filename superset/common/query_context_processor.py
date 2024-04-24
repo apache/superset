@@ -62,6 +62,8 @@ from superset.utils.core import (
     get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
+    is_adhoc_metric,
+    is_adhoc_column,
     get_x_axis_label,
     normalize_dttm_col,
     TIME_COMPARISON,
@@ -180,6 +182,24 @@ class QueryContextProcessor:
             ]
             for col in cache.df.columns.values
         }
+        label_map.update({
+            unescape_separator(column_name): [
+                unescape_separator(col)
+                for col in re.split(r"(?<!\\),\s", query_obj.columns[idx]
+                if not is_adhoc_column(query_obj.columns[idx])
+                else query_obj.columns[idx]["sqlExpression"])
+            ]
+            for idx, column_name in enumerate(query_obj.column_names)
+        })
+        label_map.update({
+            unescape_separator(metric_name): [
+                unescape_separator(metric)
+                for metric in re.split(r"(?<!\\),\s", query_obj.metrics[idx]
+                if not is_adhoc_metric(query_obj.metrics[idx])
+                else query_obj.metrics[idx]["sqlExpression"])
+            ]
+            for idx, metric_name in enumerate(query_obj.metric_names) if query_obj
+        })
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
         return {

@@ -473,6 +473,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             metric
             for metric in data["metrics"]
             if metric["metric_name"] in metric_names
+                or metric["verbose_name"] in metric_names
         ]
 
         filtered_columns: list[Column] = []
