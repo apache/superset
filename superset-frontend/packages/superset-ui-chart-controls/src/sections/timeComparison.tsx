@@ -61,6 +61,15 @@ export const timeComparisonControls: ControlPanelSectionConfig = {
     ],
     [
       {
+        name: 'start_date_offset',
+        config: {
+          type: 'TimeOffsetControl',
+          label: t('shift start date'),
+        },
+      },
+    ],
+    [
+      {
         name: 'comparison_type',
         config: {
           type: 'SelectControl',

@@ -20,6 +20,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { isEmpty, isEqual } from 'lodash';
+import moment from 'moment';
 import {
   BinaryAdhocFilter,
   css,
@@ -57,24 +58,36 @@ export const ComparisonRangeLabel = ({
   const shifts = useSelector<RootState, string[]>(
     state => state.explore.form_data.time_compare,
   );
+  const startDate = useSelector<RootState, string>(
+    state => state.explore.form_data.start_date_offset,
+  );
 
   useEffect(() => {
-    if (isEmpty(currentTimeRangeFilters) || isEmpty(shifts)) {
+    if (isEmpty(currentTimeRangeFilters) || (isEmpty(shifts) && !startDate)) {
       setLabels([]);
-    } else if (!isEmpty(shifts)) {
-      const promises = currentTimeRangeFilters.map(filter =>
-        fetchTimeRange(
+    } else if (!isEmpty(shifts) || startDate) {
+      const promises = currentTimeRangeFilters.map(filter => {
+        const startDateShift = moment(
+          (filter as any).comparator.split(' : ')[0],
+        ).diff(moment(startDate), 'days');
+        const newshift = startDateShift
+          ? [`${startDateShift} days ago`]
+          : shifts
+            ? shifts.slice(0, 1)
+            : undefined;
+
+        return fetchTimeRange(
           filter.comparator,
           filter.subject,
-          multi ? shifts : ensureIsArray(shifts).slice(0, 1),
-        ),
-      );
+          multi ? shifts : newshift,
+        );
+      });
       Promise.all(promises).then(res => {
         // access the value property inside the res and set the labels with it in the state
         setLabels(res.map(r => r.value ?? ''));
       });
     }
-  }, [currentTimeRangeFilters, shifts]);
+  }, [currentTimeRangeFilters, shifts, startDate]);
 
   return labels.length ? (
     <>

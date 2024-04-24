@@ -569,6 +569,7 @@ const transformProps = (
     conditionalFormatting,
   );
 
+  const startDateOffset = chartProps.rawFormData?.start_date_offset;
   return {
     height,
     width,
@@ -602,6 +603,7 @@ const transformProps = (
     onContextMenu,
     isUsingTimeComparison,
     basicColorFormatters,
+    startDateOffset,
     basicColorColumnFormatters,
   };
 };

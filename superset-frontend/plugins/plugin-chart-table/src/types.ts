@@ -145,6 +145,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   isUsingTimeComparison?: boolean;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  startDateOffset?: string;
 }
 
 export enum ColorSchemeEnum {
