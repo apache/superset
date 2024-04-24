@@ -2088,8 +2088,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertNotEqual(result["uuid"], "")
         self.assertEqual(result["allowed_domains"], allowed_domains)
 
-        db.session.expire_all()
-
         # get returns value
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 200)
@@ -2110,8 +2108,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertNotEqual(result["uuid"], "")
         self.assertEqual(result["allowed_domains"], [])
 
-        db.session.expire_all()
-
         # get returns changed value
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 200)
@@ -2122,8 +2118,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         # delete succeeds
         resp = self.delete_assert_metric(uri, "delete_embedded")
         self.assertEqual(resp.status_code, 200)
-
-        db.session.expire_all()
 
         # get returns 404
         resp = self.get_assert_metric(uri, "get_embedded")

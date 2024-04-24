@@ -37,39 +37,36 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 class TestDashboardDatasetSecurity(DashboardTestCase):
     @pytest.fixture
     def load_dashboard(self):
-        with app.app_context():
-            table = (
-                db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
-            )
-            # get a slice from the allowed table
-            slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        table = db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
+        # get a slice from the allowed table
+        slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
 
-            self.grant_public_access_to_table(table)
+        self.grant_public_access_to_table(table)
 
-            pytest.hidden_dash_slug = f"hidden_dash_{random_slug()}"
-            pytest.published_dash_slug = f"published_dash_{random_slug()}"
+        pytest.hidden_dash_slug = f"hidden_dash_{random_slug()}"
+        pytest.published_dash_slug = f"published_dash_{random_slug()}"
 
-            # Create a published and hidden dashboard and add them to the database
-            published_dash = Dashboard()
-            published_dash.dashboard_title = "Published Dashboard"
-            published_dash.slug = pytest.published_dash_slug
-            published_dash.slices = [slice]
-            published_dash.published = True
+        # Create a published and hidden dashboard and add them to the database
+        published_dash = Dashboard()
+        published_dash.dashboard_title = "Published Dashboard"
+        published_dash.slug = pytest.published_dash_slug
+        published_dash.slices = [slice]
+        published_dash.published = True
 
-            hidden_dash = Dashboard()
-            hidden_dash.dashboard_title = "Hidden Dashboard"
-            hidden_dash.slug = pytest.hidden_dash_slug
-            hidden_dash.slices = [slice]
-            hidden_dash.published = False
+        hidden_dash = Dashboard()
+        hidden_dash.dashboard_title = "Hidden Dashboard"
+        hidden_dash.slug = pytest.hidden_dash_slug
+        hidden_dash.slices = [slice]
+        hidden_dash.published = False
 
-            db.session.add(published_dash)
-            db.session.add(hidden_dash)
-            yield db.session.commit()
+        db.session.add(published_dash)
+        db.session.add(hidden_dash)
+        yield db.session.commit()
 
-            self.revoke_public_access_to_table(table)
-            db.session.delete(published_dash)
-            db.session.delete(hidden_dash)
-            db.session.commit()
+        self.revoke_public_access_to_table(table)
+        db.session.delete(published_dash)
+        db.session.delete(hidden_dash)
+        db.session.commit()
 
     def test_dashboard_access__admin_can_access_all(self):
         # arrange

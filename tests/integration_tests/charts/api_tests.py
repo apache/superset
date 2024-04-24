@@ -23,6 +23,7 @@ from zipfile import is_zipfile, ZipFile
 import prison
 import pytest
 import yaml
+from flask.ctx import AppContext
 from flask_babel import lazy_gettext as _
 from parameterized import parameterized
 from sqlalchemy import and_
@@ -82,121 +83,115 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     resource_name = "chart"
 
     @pytest.fixture(autouse=True)
-    def clear_data_cache(self):
-        with app.app_context():
-            cache_manager.data_cache.clear()
-            yield
+    def clear_data_cache(self, app_context: AppContext):
+        cache_manager.data_cache.clear()
+        yield
 
     @pytest.fixture()
     def create_charts(self):
-        with self.create_app().app_context():
-            charts = []
-            admin = self.get_user("admin")
-            for cx in range(CHARTS_FIXTURE_COUNT - 1):
-                charts.append(self.insert_chart(f"name{cx}", [admin.id], 1))
-            fav_charts = []
-            for cx in range(round(CHARTS_FIXTURE_COUNT / 2)):
-                fav_star = FavStar(
-                    user_id=admin.id, class_name="slice", obj_id=charts[cx].id
-                )
-                db.session.add(fav_star)
-                db.session.commit()
-                fav_charts.append(fav_star)
-            yield charts
-
-            # rollback changes
-            for chart in charts:
-                db.session.delete(chart)
-            for fav_chart in fav_charts:
-                db.session.delete(fav_chart)
+        charts = []
+        admin = self.get_user("admin")
+        for cx in range(CHARTS_FIXTURE_COUNT - 1):
+            charts.append(self.insert_chart(f"name{cx}", [admin.id], 1))
+        fav_charts = []
+        for cx in range(round(CHARTS_FIXTURE_COUNT / 2)):
+            fav_star = FavStar(
+                user_id=admin.id, class_name="slice", obj_id=charts[cx].id
+            )
+            db.session.add(fav_star)
             db.session.commit()
+            fav_charts.append(fav_star)
+        yield charts
+
+        # rollback changes
+        for chart in charts:
+            db.session.delete(chart)
+        for fav_chart in fav_charts:
+            db.session.delete(fav_chart)
+        db.session.commit()
 
     @pytest.fixture()
     def create_charts_created_by_gamma(self):
-        with self.create_app().app_context():
-            charts = []
-            user = self.get_user("gamma")
-            for cx in range(CHARTS_FIXTURE_COUNT - 1):
-                charts.append(self.insert_chart(f"gamma{cx}", [user.id], 1))
-            yield charts
-            # rollback changes
-            for chart in charts:
-                db.session.delete(chart)
-            db.session.commit()
+        charts = []
+        user = self.get_user("gamma")
+        for cx in range(CHARTS_FIXTURE_COUNT - 1):
+            charts.append(self.insert_chart(f"gamma{cx}", [user.id], 1))
+        yield charts
+        # rollback changes
+        for chart in charts:
+            db.session.delete(chart)
+        db.session.commit()
 
     @pytest.fixture()
     def create_certified_charts(self):
-        with self.create_app().app_context():
-            certified_charts = []
-            admin = self.get_user("admin")
-            for cx in range(CHARTS_FIXTURE_COUNT):
-                certified_charts.append(
-                    self.insert_chart(
-                        f"certified{cx}",
-                        [admin.id],
-                        1,
-                        certified_by="John Doe",
-                        certification_details="Sample certification",
-                    )
+        certified_charts = []
+        admin = self.get_user("admin")
+        for cx in range(CHARTS_FIXTURE_COUNT):
+            certified_charts.append(
+                self.insert_chart(
+                    f"certified{cx}",
+                    [admin.id],
+                    1,
+                    certified_by="John Doe",
+                    certification_details="Sample certification",
                 )
+            )
 
-            yield certified_charts
+        yield certified_charts
 
-            # rollback changes
-            for chart in certified_charts:
-                db.session.delete(chart)
-            db.session.commit()
+        # rollback changes
+        for chart in certified_charts:
+            db.session.delete(chart)
+        db.session.commit()
 
     @pytest.fixture()
     def create_chart_with_report(self):
-        with self.create_app().app_context():
-            admin = self.get_user("admin")
-            chart = self.insert_chart(f"chart_report", [admin.id], 1)
-            report_schedule = ReportSchedule(
-                type=ReportScheduleType.REPORT,
-                name="report_with_chart",
-                crontab="* * * * *",
-                chart=chart,
-            )
-            db.session.commit()
+        admin = self.get_user("admin")
+        chart = self.insert_chart(f"chart_report", [admin.id], 1)
+        report_schedule = ReportSchedule(
+            type=ReportScheduleType.REPORT,
+            name="report_with_chart",
+            crontab="* * * * *",
+            chart=chart,
+        )
+        db.session.commit()
 
-            yield chart
+        yield chart
 
-            # rollback changes
-            db.session.delete(report_schedule)
-            db.session.delete(chart)
-            db.session.commit()
+        # rollback changes
+        db.session.delete(report_schedule)
+        db.session.delete(chart)
+        db.session.commit()
 
     @pytest.fixture()
     def add_dashboard_to_chart(self):
-        with self.create_app().app_context():
-            admin = self.get_user("admin")
+        admin = self.get_user("admin")
 
-            self.chart = self.insert_chart("My chart", [admin.id], 1)
+        self.chart = self.insert_chart("My chart", [admin.id], 1)
 
-            self.original_dashboard = Dashboard()
-            self.original_dashboard.dashboard_title = "Original Dashboard"
-            self.original_dashboard.slug = "slug"
-            self.original_dashboard.owners = [admin]
-            self.original_dashboard.slices = [self.chart]
-            self.original_dashboard.published = False
-            db.session.add(self.original_dashboard)
+        self.original_dashboard = Dashboard()
+        self.original_dashboard.dashboard_title = "Original Dashboard"
+        self.original_dashboard.slug = "slug"
+        self.original_dashboard.owners = [admin]
+        self.original_dashboard.slices = [self.chart]
+        self.original_dashboard.published = False
+        db.session.add(self.original_dashboard)
 
-            self.new_dashboard = Dashboard()
-            self.new_dashboard.dashboard_title = "New Dashboard"
-            self.new_dashboard.slug = "new_slug"
-            self.new_dashboard.owners = [admin]
-            self.new_dashboard.published = False
-            db.session.add(self.new_dashboard)
+        self.new_dashboard = Dashboard()
+        self.new_dashboard.dashboard_title = "New Dashboard"
+        self.new_dashboard.slug = "new_slug"
+        self.new_dashboard.owners = [admin]
+        self.new_dashboard.published = False
+        db.session.add(self.new_dashboard)
 
-            db.session.commit()
+        db.session.commit()
 
-            yield self.chart
+        yield self.chart
 
-            db.session.delete(self.original_dashboard)
-            db.session.delete(self.new_dashboard)
-            db.session.delete(self.chart)
-            db.session.commit()
+        db.session.delete(self.original_dashboard)
+        db.session.delete(self.new_dashboard)
+        db.session.delete(self.chart)
+        db.session.commit()
 
     def test_info_security_chart(self):
         """
@@ -1127,40 +1122,39 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
     @pytest.fixture()
     def load_energy_charts(self):
-        with app.app_context():
-            admin = self.get_user("admin")
-            energy_table = (
-                db.session.query(SqlaTable)
-                .filter_by(table_name="energy_usage")
-                .one_or_none()
-            )
-            energy_table_id = 1
-            if energy_table:
-                energy_table_id = energy_table.id
-            chart1 = self.insert_chart(
-                "foo_a", [admin.id], energy_table_id, description="ZY_bar"
-            )
-            chart2 = self.insert_chart(
-                "zy_foo", [admin.id], energy_table_id, description="desc1"
-            )
-            chart3 = self.insert_chart(
-                "foo_b", [admin.id], energy_table_id, description="desc1zy_"
-            )
-            chart4 = self.insert_chart(
-                "foo_c", [admin.id], energy_table_id, viz_type="viz_zy_"
-            )
-            chart5 = self.insert_chart(
-                "bar", [admin.id], energy_table_id, description="foo"
-            )
+        admin = self.get_user("admin")
+        energy_table = (
+            db.session.query(SqlaTable)
+            .filter_by(table_name="energy_usage")
+            .one_or_none()
+        )
+        energy_table_id = 1
+        if energy_table:
+            energy_table_id = energy_table.id
+        chart1 = self.insert_chart(
+            "foo_a", [admin.id], energy_table_id, description="ZY_bar"
+        )
+        chart2 = self.insert_chart(
+            "zy_foo", [admin.id], energy_table_id, description="desc1"
+        )
+        chart3 = self.insert_chart(
+            "foo_b", [admin.id], energy_table_id, description="desc1zy_"
+        )
+        chart4 = self.insert_chart(
+            "foo_c", [admin.id], energy_table_id, viz_type="viz_zy_"
+        )
+        chart5 = self.insert_chart(
+            "bar", [admin.id], energy_table_id, description="foo"
+        )
 
-            yield
-            # rollback changes
-            db.session.delete(chart1)
-            db.session.delete(chart2)
-            db.session.delete(chart3)
-            db.session.delete(chart4)
-            db.session.delete(chart5)
-            db.session.commit()
+        yield
+        # rollback changes
+        db.session.delete(chart1)
+        db.session.delete(chart2)
+        db.session.delete(chart3)
+        db.session.delete(chart4)
+        db.session.delete(chart5)
+        db.session.commit()
 
     @pytest.mark.usefixtures("load_energy_charts")
     def test_get_charts_custom_filter(self):
