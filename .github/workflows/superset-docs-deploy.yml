@@ -7,6 +7,8 @@ on:
     branches:
       - "master"
 
+  workflow_dispatch: {}
+
 jobs:
   config:
     runs-on: "ubuntu-latest"
@@ -26,9 +28,6 @@ jobs:
     if: needs.config.outputs.has-secrets
     name: Build & Deploy
     runs-on: "ubuntu-latest"
-    defaults:
-      run:
-        working-directory: docs
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
@@ -41,19 +40,28 @@ jobs:
           node-version: '18'
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+      - name: Install Graphviz
+        run: sudo apt-get install -y graphviz
       - name: Compute Entity Relationship diagram (ERD)
+        env:
+          SUPERSET_SECRET_KEY: not-a-secret
         run: |
-          python scripts/erd.py
+          python scripts/erd/erd.py
           curl -L http://sourceforge.net/projects/plantuml/files/1.2023.7/plantuml.1.2023.7.jar/download > ~/plantuml.jar
-          java -jar ~/plantuml.jar -v -tsvg -r -o "${{ github.workspace }}/docs/static/img/erd.svg" "${{ github.workspace }}/scripts/erd/erd.puml"
+          java -jar ~/plantuml.jar -v -tsvg -r -o "${{ github.workspace }}/docs/static/img/" "${{ github.workspace }}/scripts/erd/erd.puml"
       - name: yarn install
+        working-directory: docs
         run: |
           yarn install --check-cache
       - name: yarn build
+        working-directory: docs
         run: |
           yarn build
       - name: deploy docs
-        if: github.ref == 'refs/heads/master'
         uses: ./.github/actions/github-action-push-to-another-repository
         env:
           API_TOKEN_GITHUB: ${{ secrets.SUPERSET_SITE_BUILD }}
