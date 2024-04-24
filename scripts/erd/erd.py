@@ -19,6 +19,7 @@ This module contains utilities to auto-generate an
 Entity-Relationship Diagram (ERD) from SQLAlchemy
 and onto a plantuml file.
 """
+
 import json
 import os
 from collections import defaultdict
@@ -27,9 +28,8 @@ from typing import Any, Optional
 
 import click
 import jinja2
-from flask.cli import FlaskGroup, with_appcontext
 
-from superset import app, db
+from superset import db
 
 GROUPINGS: dict[str, Iterable[str]] = {
     "Core": [
