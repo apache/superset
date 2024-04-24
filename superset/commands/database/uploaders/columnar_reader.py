@@ -39,13 +39,14 @@ class ColumnarReaderOptions(ReaderOptions, total=False):
     columns_read: list[str]
 
 
-class ColumnarReader(BaseDataReader[ColumnarReaderOptions]):
+class ColumnarReader(BaseDataReader):
     def __init__(
         self,
         options: Optional[ColumnarReaderOptions] = None,
     ) -> None:
+        options = options or {}
         super().__init__(
-            options=options,
+            options=dict(options),
         )
 
     def _read_buffer_to_dataframe(self, buffer: Any) -> pd.DataFrame:
@@ -116,4 +117,11 @@ class ColumnarReader(BaseDataReader[ColumnarReaderOptions]):
         for file in self._yield_files(file):
             parquet_file = pq.ParquetFile(file)
             column_names.update(parquet_file.metadata.schema.names)
-        return {"column_names": list(column_names)}
+        return {
+            "items": [
+                {
+                    "column_names": list(column_names),
+                    "sheet_name": None,
+                }
+            ]
+        }

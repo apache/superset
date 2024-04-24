@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 import pandas as pd
 from flask_babel import lazy_gettext as _
@@ -47,8 +47,9 @@ class ExcelReader(BaseDataReader):
         self,
         options: Optional[ExcelReaderOptions] = None,
     ) -> None:
+        options = options or {}
         super().__init__(
-            options=options,
+            options=dict(options),
         )
 
     def file_to_dataframe(self, file: Any) -> pd.DataFrame:
@@ -94,17 +95,14 @@ class ExcelReader(BaseDataReader):
 
         sheet_names = excel_file.sheet_names
 
-        sheet_name = (
-            sheet_names[0]
-            if self._options["sheet_name"] is None
-            else self._options["sheet_name"]
-        )
-
-        df = excel_file.parse(sheet_name)
-        column_names = df.columns.tolist()
-
-        return {
-            "column_names": column_names,
-            "sheet_names": sheet_names,
-            "sheet_name": sheet_name,
-        }
+        result: FileMetadata = {"items": []}
+        for sheet in sheet_names:
+            df = excel_file.parse(sheet, nrows=2)
+            column_names = df.columns.tolist()
+            result["items"].append(
+                {
+                    "sheet_name": sheet,
+                    "column_names": column_names,
+                }
+            )
+        return result

@@ -155,6 +155,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "get_connection",
         "csv_upload",
         "excel_upload",
+        "excel_upload_metadata",
         "columnar_upload",
         "columnar_upload_metadata",
         "oauth2",

@@ -53,8 +53,9 @@ class CSVReader(BaseDataReader):
         self,
         options: Optional[CSVReaderOptions] = None,
     ) -> None:
+        options = options or {}
         super().__init__(
-            options=options,
+            options=dict(options),
         )
 
     def file_to_dataframe(self, file: Any) -> pd.DataFrame:
@@ -106,4 +107,4 @@ class CSVReader(BaseDataReader):
             raise DatabaseUploadFailed(_("Error reading CSV file")) from ex
 
     def file_metadata(self, file: Any) -> FileMetadata:
-        return {"column_names": []}
+        return {"items": []}

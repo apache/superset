@@ -40,7 +40,6 @@ import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import * as XLSX from 'xlsx';
 import {
   antdCollapseStyles,
   antDModalNoPaddingStyles,
@@ -130,6 +129,11 @@ interface UploadInfo {
   column_data_types: string;
 }
 
+interface SheetColumnNames {
+  sheet_name: string;
+  column_names: string[];
+}
+
 const defaultUploadInfo: UploadInfo = {
   table_name: '',
   schema: '',
@@ -202,9 +206,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [columns, setColumns] = React.useState<string[]>([]);
   const [sheetNames, setSheetNames] = React.useState<string[]>([]);
-  const [currentSheetName, setCurrentSheetName] = React.useState<
-    string | undefined
-  >();
+  const [sheetsColumnNames, setSheetsColumnNames] = React.useState<
+    SheetColumnNames[]
+  >([]);
   const [delimiter, setDelimiter] = useState<string>(',');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>();
@@ -224,6 +228,12 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     excel: `/api/v1/database/${databaseId}/excel_upload/`,
     columnar: `/api/v1/database/${databaseId}/columnar_upload/`,
   });
+
+  const typeToFileMetadataEndpoint = {
+    csv: '/api/v1/database/csv_upload_metadata/',
+    excel: '/api/v1/database/excel_upload_metadata/',
+    columnar: '/api/v1/database/columnar_upload_metadata/',
+  };
 
   const nullValuesOptions = [
     {
@@ -305,12 +315,12 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     setColumns([]);
     setCurrentSchema('');
     setCurrentDatabaseId(0);
-    setCurrentSheetName(undefined);
     setSheetNames([]);
     setIsLoading(false);
     setDelimiter(',');
     setPreviewUploadedFile(true);
     setFileLoading(false);
+    setSheetsColumnNames([]);
     form.resetFields();
   };
 
@@ -367,18 +377,41 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     formData.append('file', file);
     setFileLoading(true);
     return SupersetClient.post({
-      endpoint: 'api/v1/database/columnar_upload_metadata/',
+      endpoint: typeToFileMetadataEndpoint[type],
       body: formData,
       headers: { Accept: 'application/json' },
     })
       .then(response => {
-        const columns = response.json.result.column_names;
-        setColumns(columns);
+        const { items } = response.json.result;
+        if (items && type !== 'excel') {
+          setColumns(items[0].column_names);
+        } else {
+          const { allSheetNames, sheetColumnNamesMap } = items.reduce(
+            (
+              acc: {
+                allSheetNames: any[];
+                sheetColumnNamesMap: Record<string, string[]>;
+              },
+              item: { sheet_name: any; column_names: any },
+            ) => {
+              acc.allSheetNames.push(item.sheet_name);
+              acc.sheetColumnNamesMap[item.sheet_name] = item.column_names;
+              return acc;
+            },
+            { allSheetNames: [], sheetColumnNamesMap: {} },
+          );
+          setColumns(items[0].column_names);
+          setSheetNames(allSheetNames);
+          form.setFieldsValue({ sheet_name: allSheetNames[0] });
+          setSheetsColumnNames(sheetColumnNamesMap);
+        }
       })
       .catch(response =>
         getClientErrorObject(response).then(error => {
           addDangerToast(error.error || 'Error');
           setColumns([]);
+          form.setFieldsValue({ sheet_name: undefined });
+          setSheetNames([]);
         }),
       )
       .finally(() => {
@@ -444,13 +477,16 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     setFileList(fileList.filter(file => file.uid !== removedFile.uid));
     setColumns([]);
     setSheetNames([]);
-    setCurrentSheetName(undefined);
     form.setFieldsValue({ sheet_name: undefined });
     return false;
   };
 
   const onSheetNameChange = (value: string) => {
-    setCurrentSheetName(value);
+    if (sheetsColumnNames[value]) {
+      setColumns(sheetsColumnNames[value]);
+    } else {
+      setColumns([]);
+    }
   };
 
   const columnsToOptions = () =>
@@ -498,64 +534,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
   };
 
-  const processExcelColumns = (workbook: XLSX.WorkBook, sn: string[]) => {
-    if (!workbook) {
-      return;
-    }
-    let cSheetName = currentSheetName;
-    if (!currentSheetName) {
-      setCurrentSheetName(sn[0]);
-      cSheetName = sn[0];
-    }
-    cSheetName = cSheetName || sn[0];
-    form.setFieldsValue({ sheet_name: cSheetName });
-    const worksheet = workbook.Sheets[cSheetName];
-
-    const worksheetRef: string = worksheet['!ref'] ? worksheet['!ref'] : '';
-    const range = XLSX.utils.decode_range(worksheetRef);
-    const columnNames = Array.from({ length: range.e.c + 1 }, (_, i) => {
-      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: i });
-      return worksheet[cellAddress]?.v;
-    });
-    setColumns(columnNames);
-  };
-
-  const processExcelFile = async (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      setFileLoading(true);
-      const reader = new FileReader();
-      reader.readAsBinaryString(file);
-
-      reader.onload = event => {
-        if (!event.target && event.target == null) {
-          reader.onerror = () => {
-            reject(new Error('Failed to read file content'));
-          };
-          return;
-        }
-        // Read workbook
-        const workbook = XLSX.read(event.target.result, { type: 'binary' });
-        if (workbook == null) {
-          reject(new Error('Failed to process file content'));
-          addDangerToast('Failed to process file content');
-          setFileLoading(false);
-          return;
-        }
-        // Extract sheet names
-        const tmpSheetNames = workbook.SheetNames;
-        if (tmpSheetNames.length < 1) {
-          reject(new Error('Failed to read file content'));
-          addDangerToast('Failed to process file content');
-          setFileLoading(false);
-          return;
-        }
-        processExcelColumns(workbook, tmpSheetNames);
-        setSheetNames(workbook.SheetNames);
-        setFileLoading(false);
-        resolve('success');
-      };
-    });
-
   const onChangeFile = async (info: UploadChangeParam<any>) => {
     setFileList([
       {
@@ -568,13 +546,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
     if (type === 'csv') {
       await processCSVFile(info.file.originFileObj);
-    }
-    if (type === 'excel') {
-      setSheetNames([]);
-      setCurrentSheetName(undefined);
-      await processExcelFile(info.file.originFileObj);
-    }
-    if (type === 'columnar') {
+    } else {
       await loadFileMetadata(info.file.originFileObj);
     }
   };
@@ -591,21 +563,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       processCSVFile(fileList[0].originFileObj).then(r => r);
     }
   }, [delimiter]);
-
-  useEffect(() => {
-    (async () => {
-      if (
-        columns.length > 0 &&
-        fileList[0].originFileObj &&
-        fileList[0].originFileObj instanceof File
-      ) {
-        if (!previewUploadedFile) {
-          return;
-        }
-        await processExcelFile(fileList[0].originFileObj);
-      }
-    })();
-  }, [currentSheetName]);
 
   const validateUpload = (_: any, value: string) => {
     if (fileList.length === 0) {

@@ -49,11 +49,13 @@ class ReaderOptions(TypedDict, total=False):
     dataframe_index: bool
 
 
-class FileMetadata(TypedDict, total=False):
+class FileMetadataItem(TypedDict):
+    sheet_name: Optional[str]
     column_names: list[str]
-    # Excel specific
-    sheet_names: list[str]
-    sheet_name: str
+
+
+class FileMetadata(TypedDict, total=False):
+    items: list[FileMetadataItem]
 
 
 class BaseDataReader:

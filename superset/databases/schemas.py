@@ -1257,24 +1257,20 @@ class UploadFilePostSchema(Schema):
     )
 
 
+class UploadFileMetadataItemSchema(Schema):
+    sheet_name = fields.String(metadata={"description": "The name of the sheet"})
+    column_names = fields.List(
+        fields.String(),
+        metadata={"description": "A list of columns names in the sheet"},
+    )
+
+
 class UploadFileMetadata(Schema):
     """
     Schema for upload file metadata response.
     """
 
-    column_names = fields.List(
-        fields.String(),
-        metadata={
-            "description": "A list of columns names in the file",
-        },
-    )
-    sheet_name = fields.String()
-    sheet_names = fields.List(
-        fields.String(),
-        metadata={
-            "description": "A list of sheet names in the file",
-        },
-    )
+    items = fields.List(fields.Nested(UploadFileMetadataItemSchema))
 
 
 class OAuth2ProviderResponseSchema(Schema):
