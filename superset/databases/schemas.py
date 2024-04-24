@@ -20,7 +20,7 @@
 import inspect
 import json
 import os
-import re
+from pathlib import Path
 from typing import Any
 
 from flask import current_app
@@ -1010,19 +1010,13 @@ class DelimitedListField(fields.List):
 
 
 class BaseUploadPostSchema(Schema):
+    _extension_config_key = ""
     already_exists = fields.String(
         load_default="fail",
         validate=OneOf(choices=("fail", "replace", "append")),
         metadata={
             "description": "What to do if the table already "
             "exists accepts: fail, replace, append"
-        },
-    )
-    column_dates = DelimitedListField(
-        fields.String(),
-        metadata={
-            "description": "A list of column names that should be "
-            "parsed as dates. Example: date,timestamp"
         },
     )
     column_labels = fields.String(
@@ -1036,11 +1030,90 @@ class BaseUploadPostSchema(Schema):
         fields.String(),
         metadata={"description": "A List of the column names that should be read"},
     )
-    dataframe_index = fields.String(
+    dataframe_index = fields.Boolean(
+        metadata={"description": "Write dataframe index as a column."}
+    )
+    schema = fields.String(
+        metadata={"description": "The schema to upload the data file to."}
+    )
+    table_name = fields.String(
+        required=True,
+        validate=[Length(min=1, max=10000)],
+        allow_none=False,
+        metadata={"description": "The name of the table to be created/appended"},
+    )
+
+    @validates("file")
+    def validate_file_extension(self, file: FileStorage) -> None:
+        allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"].intersection(
+            current_app.config[self._extension_config_key]
+        )
+        file_suffix = Path(file.filename).suffix
+        if not file_suffix:
+            raise ValidationError([_("File extension is not allowed.")])
+        file_suffix = file_suffix[1:]  # remove the dot
+        if file_suffix not in allowed_extensions:
+            raise ValidationError([_("File extension is not allowed.")])
+
+
+class ColumnarUploadPostSchema(BaseUploadPostSchema):
+    """
+    Schema for Columnar Upload
+    """
+
+    _extension_config_key = "COLUMNAR_EXTENSIONS"
+
+    file = fields.Raw(
+        required=True,
         metadata={
-            "description": "Column to use as the row labels of the dataframe. "
-            "Leave empty if no index column"
+            "description": "The Columnar file to upload",
+            "type": "string",
+            "format": "binary",
+        },
+    )
+
+
+class CSVUploadPostSchema(BaseUploadPostSchema):
+    """
+    Schema for CSV Upload
+    """
+
+    _extension_config_key = "CSV_EXTENSIONS"
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The CSV file to upload",
+            "type": "string",
+            "format": "text/csv",
+        },
+    )
+    delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
+    column_data_types = fields.String(
+        metadata={
+            "description": "A dictionary with column names and "
+            "their data types if you need to change "
+            "the defaults. Example: {'user_id':'int'}. "
+            "Check Python Pandas library for supported data types"
         }
+    )
+    day_first = fields.Boolean(
+        metadata={
+            "description": "DD/MM format dates, international and European format"
+        }
+    )
+    skip_blank_lines = fields.Boolean(
+        metadata={"description": "Skip blank lines in the CSV file."}
+    )
+    skip_initial_space = fields.Boolean(
+        metadata={"description": "Skip spaces after delimiter."}
+    )
+    column_dates = DelimitedListField(
+        fields.String(),
+        metadata={
+            "description": "A list of column names that should be "
+            "parsed as dates. Example: date,timestamp"
+        },
     )
     decimal_character = fields.String(
         metadata={
@@ -1075,52 +1148,8 @@ class BaseUploadPostSchema(Schema):
         allow_none=True,
         validate=Range(min=1),
     )
-    schema = fields.String(
-        metadata={"description": "The schema to upload the data file to."}
-    )
-    table_name = fields.String(
-        required=True,
-        validate=[Length(min=1, max=10000)],
-        allow_none=False,
-        metadata={"description": "The name of the table to be created/appended"},
-    )
     skip_rows = fields.Integer(
         metadata={"description": "Number of rows to skip at start of file."}
-    )
-
-
-class CSVUploadPostSchema(BaseUploadPostSchema):
-    """
-    Schema for CSV Upload
-    """
-
-    file = fields.Raw(
-        required=True,
-        metadata={
-            "description": "The CSV file to upload",
-            "type": "string",
-            "format": "text/csv",
-        },
-    )
-    delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
-    column_data_types = fields.String(
-        metadata={
-            "description": "A dictionary with column names and "
-            "their data types if you need to change "
-            "the defaults. Example: {'user_id':'int'}. "
-            "Check Python Pandas library for supported data types"
-        }
-    )
-    day_first = fields.Boolean(
-        metadata={
-            "description": "DD/MM format dates, international and European format"
-        }
-    )
-    skip_blank_lines = fields.Boolean(
-        metadata={"description": "Skip blank lines in the CSV file."}
-    )
-    skip_initial_space = fields.Boolean(
-        metadata={"description": "Skip spaces after delimiter."}
     )
 
     @post_load
@@ -1146,23 +1175,13 @@ class CSVUploadPostSchema(BaseUploadPostSchema):
         ):
             raise ValidationError([_("File size exceeds the maximum allowed size.")])
 
-    @validates("file")
-    def validate_file_extension(self, file: FileStorage) -> None:
-        allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"].intersection(
-            current_app.config["CSV_EXTENSIONS"]
-        )
-        matches = re.match(r".+\.([^.]+)$", file.filename)
-        if not matches:
-            raise ValidationError([_("File extension is not allowed.")])
-        extension = matches.group(1)
-        if extension not in allowed_extensions:
-            raise ValidationError([_("File extension is not allowed.")])
-
 
 class ExcelUploadPostSchema(BaseUploadPostSchema):
     """
     Schema for Excel Upload
     """
+
+    _extension_config_key = "EXCEL_EXTENSIONS"
 
     file = fields.Raw(
         required=True,
@@ -1178,18 +1197,84 @@ class ExcelUploadPostSchema(BaseUploadPostSchema):
             "(default is the first sheet)."
         }
     )
+    column_dates = DelimitedListField(
+        fields.String(),
+        metadata={
+            "description": "A list of column names that should be "
+            "parsed as dates. Example: date,timestamp"
+        },
+    )
+    decimal_character = fields.String(
+        metadata={
+            "description": "Character to recognize as decimal point. Default is '.'"
+        }
+    )
+    header_row = fields.Integer(
+        metadata={
+            "description": "Row containing the headers to use as column names"
+            "(0 is first line of data). Leave empty if there is no header row."
+        }
+    )
+    index_column = fields.String(
+        metadata={
+            "description": "Column to use as the row labels of the dataframe. "
+            "Leave empty if no index column"
+        }
+    )
+    null_values = DelimitedListField(
+        fields.String(),
+        metadata={
+            "description": "A list of strings that should be treated as null. "
+            "Examples: '' for empty strings, 'None', 'N/A',"
+            "Warning: Hive database supports only a single value"
+        },
+    )
+    rows_to_read = fields.Integer(
+        metadata={
+            "description": "Number of rows to read from the file. "
+            "If None, reads all rows."
+        },
+        allow_none=True,
+        validate=Range(min=1),
+    )
+    skip_rows = fields.Integer(
+        metadata={"description": "Number of rows to skip at start of file."}
+    )
 
-    @validates("file")
-    def validate_file_extension(self, file: FileStorage) -> None:
-        allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"].intersection(
-            current_app.config["EXCEL_EXTENSIONS"]
-        )
-        matches = re.match(r".+\.([^.]+)$", file.filename)
-        if not matches:
-            raise ValidationError([_("File extension is not allowed.")])
-        extension = matches.group(1)
-        if extension not in allowed_extensions:
-            raise ValidationError([_("File extension is not allowed.")])
+
+class UploadFilePostSchema(Schema):
+    """
+    Schema for upload file request.
+    """
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The file to upload",
+            "type": "string",
+            "format": "binary",
+        },
+    )
+
+
+class UploadFileMetadata(Schema):
+    """
+    Schema for upload file metadata response.
+    """
+
+    column_names = fields.List(
+        fields.String(),
+        metadata={
+            "description": "A list of columns names in the file",
+        },
+    )
+    sheet_name = fields.String()
+    sheet_names = fields.List(
+        fields.String(),
+        metadata={
+            "description": "A list of sheet names in the file",
+        },
+    )
 
 
 class OAuth2ProviderResponseSchema(Schema):

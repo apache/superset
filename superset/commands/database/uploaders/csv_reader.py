@@ -15,13 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import pandas as pd
 from flask_babel import lazy_gettext as _
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
-from superset.commands.database.uploaders.base import BaseDataReader, ReaderOptions
+from superset.commands.database.uploaders.base import (
+    BaseDataReader,
+    FileMetadata,
+    ReaderOptions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +37,7 @@ class CSVReaderOptions(ReaderOptions, total=False):
     column_data_types: dict[str, str]
     column_dates: list[str]
     columns_read: list[str]
-    dataframe_index: str
+    index_column: str
     day_first: bool
     decimal_character: str
     header_row: int
@@ -47,10 +51,10 @@ class CSVReaderOptions(ReaderOptions, total=False):
 class CSVReader(BaseDataReader):
     def __init__(
         self,
-        options: CSVReaderOptions,
+        options: Optional[CSVReaderOptions] = None,
     ) -> None:
         super().__init__(
-            options=dict(options),
+            options=options,
         )
 
     def file_to_dataframe(self, file: Any) -> pd.DataFrame:
@@ -58,7 +62,7 @@ class CSVReader(BaseDataReader):
         Read CSV file into a DataFrame
 
         :return: pandas DataFrame
-        :throws DatabaseUploadFailed: if there is an error reading the CSV file
+        :throws DatabaseUploadFailed: if there is an error reading the file
         """
         try:
             return pd.concat(
@@ -100,3 +104,6 @@ class CSVReader(BaseDataReader):
             ) from ex
         except Exception as ex:
             raise DatabaseUploadFailed(_("Error reading CSV file")) from ex
+
+    def file_metadata(self, file: Any) -> FileMetadata:
+        return {"column_names": []}

@@ -15,13 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any
+from typing import Any, Optional, cast
 
 import pandas as pd
 from flask_babel import lazy_gettext as _
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
-from superset.commands.database.uploaders.base import BaseDataReader, ReaderOptions
+from superset.commands.database.uploaders.base import (
+    BaseDataReader,
+    FileMetadata,
+    ReaderOptions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +34,7 @@ class ExcelReaderOptions(ReaderOptions, total=False):
     sheet_name: str
     column_dates: list[str]
     columns_read: list[str]
-    dataframe_index: str
+    index_column: str
     decimal_character: str
     header_row: int
     null_values: list[str]
@@ -41,10 +45,10 @@ class ExcelReaderOptions(ReaderOptions, total=False):
 class ExcelReader(BaseDataReader):
     def __init__(
         self,
-        options: ExcelReaderOptions,
+        options: Optional[ExcelReaderOptions] = None,
     ) -> None:
         super().__init__(
-            options=dict(options),
+            options=options,
         )
 
     def file_to_dataframe(self, file: Any) -> pd.DataFrame:
@@ -52,7 +56,7 @@ class ExcelReader(BaseDataReader):
         Read Excel file into a DataFrame
 
         :return: pandas DataFrame
-        :throws DatabaseUploadFailed: if there is an error reading the CSV file
+        :throws DatabaseUploadFailed: if there is an error reading the file
         """
 
         kwargs = {
@@ -84,3 +88,23 @@ class ExcelReader(BaseDataReader):
             ) from ex
         except Exception as ex:
             raise DatabaseUploadFailed(_("Error reading Excel file")) from ex
+
+    def file_metadata(self, file: Any) -> FileMetadata:
+        excel_file = pd.ExcelFile(file)
+
+        sheet_names = excel_file.sheet_names
+
+        sheet_name = (
+            sheet_names[0]
+            if self._options["sheet_name"] is None
+            else self._options["sheet_name"]
+        )
+
+        df = excel_file.parse(sheet_name)
+        column_names = df.columns.tolist()
+
+        return {
+            "column_names": column_names,
+            "sheet_names": sheet_names,
+            "sheet_name": sheet_name,
+        }

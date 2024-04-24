@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 import logging
 from abc import abstractmethod
 from typing import Any, Optional, TypedDict
@@ -47,7 +46,14 @@ READ_CHUNK_SIZE = 1000
 class ReaderOptions(TypedDict, total=False):
     already_exists: str
     column_labels: str
-    index_column: str
+    dataframe_index: bool
+
+
+class FileMetadata(TypedDict, total=False):
+    column_names: list[str]
+    # Excel specific
+    sheet_names: list[str]
+    sheet_name: str
 
 
 class BaseDataReader:
@@ -57,11 +63,15 @@ class BaseDataReader:
     to read data from multiple file types (e.g. CSV, Excel, etc.)
     """
 
-    def __init__(self, options: dict[str, Any]) -> None:
-        self._options = options
+    def __init__(self, options: Optional[dict[str, Any]] = None) -> None:
+        self._options = options or {}
 
     @abstractmethod
     def file_to_dataframe(self, file: Any) -> pd.DataFrame:
+        ...
+
+    @abstractmethod
+    def file_metadata(self, file: Any) -> FileMetadata:
         ...
 
     def read(
@@ -93,7 +103,7 @@ class BaseDataReader:
                 to_sql_kwargs={
                     "chunksize": READ_CHUNK_SIZE,
                     "if_exists": self._options.get("already_exists", "fail"),
-                    "index": self._options.get("index_column"),
+                    "index": self._options.get("dataframe_index", False),
                     "index_label": self._options.get("column_labels"),
                 },
             )

@@ -196,7 +196,7 @@ const RightMenu = ({
         {
           label: t('Upload columnar file to database'),
           name: 'Upload a Columnar file',
-          url: '/columnartodatabaseview/form',
+          url: '#',
           perm: canUploadColumnar && showUploads,
           disable: isAdmin && !allowUploads,
         },
