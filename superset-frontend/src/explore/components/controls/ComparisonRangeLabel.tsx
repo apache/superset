@@ -66,13 +66,18 @@ export const ComparisonRangeLabel = ({
       setLabels([]);
     } else if (!isEmpty(shifts) || startDate) {
       const promises = currentTimeRangeFilters.map(filter => {
-        const startDateShift = moment(
-          (filter as any).comparator.split(' : ')[0],
-        ).diff(moment(startDate), 'days');
+        const startDateShift =
+          startDate &&
+          moment((filter as any).comparator.split(' : ')[0]).diff(
+            moment(startDate),
+            'days',
+          );
         const newshift = startDateShift
           ? [`${startDateShift} days ago`]
           : shifts
-            ? shifts.slice(0, 1)
+            ? Array.isArray(shifts)
+              ? shifts
+              : [shifts]
             : undefined;
 
         return fetchTimeRange(
