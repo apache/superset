@@ -1,7 +1,7 @@
 ---
 title: Frequently Asked Questions
 hide_title: true
-sidebar_position: 8
+sidebar_position: 9
 ---
 
 ## Frequently Asked Questions
@@ -59,7 +59,7 @@ We recommend reading the instructions in
 
 ### Can I upload and visualize CSV data?
 
-Absolutely! Read the instructions [here](/docs/creating-charts-dashboards/exploring-data) to learn
+Absolutely! Read the instructions [here](/docs/using-superset/exploring-data) to learn
 how to enable and use CSV upload.
 
 ### Why are my queries timing out?
@@ -146,7 +146,7 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db?check_same_thread
 ```
 
 You can read more about customizing Superset using the configuration file
-[here](/docs/installation/configuring-superset).
+[here](/docs/configuration/configuring-superset).
 
 ### What if the table schema changed?
 
@@ -267,7 +267,7 @@ Superset uses [Scarf](https://about.scarf.sh/) by default to collect basic telem
 We use the [Scarf Gateway](https://docs.scarf.sh/gateway/) to sit in front of container registries, the [scarf-js](https://about.scarf.sh/package-sdks) package to track `npm` installations, and a Scarf pixel to gather anonymous analytics on Superset page views.
 Scarf purges PII and provides aggregated statistics. Superset users can easily opt out of analytics in various ways documented [here](https://docs.scarf.sh/gateway/#do-not-track) and [here](https://docs.scarf.sh/package-analytics/#as-a-user-of-a-package-using-scarf-js-how-can-i-opt-out-of-analytics).
 Superset maintainers can also opt out of telemetry data collection by setting the `SCARF_ANALYTICS` environment variable to `false` in the Superset container (or anywhere Superset/webpack are run).
-Additional opt-out instructions for Docker users are available on the [Docker Installation](/docs/installation/installing-superset-using-docker-compose) page.
+Additional opt-out instructions for Docker users are available on the [Docker Installation](/docs/installation/docker-compose) page.
 
 ### Does Superset have an archive panel or trash bin from which a user can recover deleted assets?
 
