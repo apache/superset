@@ -1711,7 +1711,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         rv = self.get_assert_metric(uri, "export")
 
-        headers = f"attachment; filename=dashboard_export_20220101T000000.zip"  # noqa: F541
+        headers = "attachment; filename=dashboard_export_20220101T000000.zip"  # noqa: F541
         assert rv.status_code == 200
         assert rv.headers["Content-Disposition"] == headers
 
@@ -2020,7 +2020,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         API: Test get filter related roles
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/related/roles"  # noqa: F541
+        uri = "api/v1/dashboard/related/roles"  # noqa: F541
 
         rv = self.client.get(uri)
         assert rv.status_code == 200
@@ -2062,7 +2062,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "superset.views.filters.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
         ):
-            uri = f"api/v1/dashboard/related/roles"  # noqa: F541
+            uri = "api/v1/dashboard/related/roles"  # noqa: F541
             rv = self.client.get(uri)
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
@@ -2150,7 +2150,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertEqual(data["count"], len(expected_models))
 
     def test_gets_not_created_by_user_dashboards_filter(self):
-        dashboard = self.insert_dashboard(f"title", f"slug", [])  # noqa: F541
+        dashboard = self.insert_dashboard("title", "slug", [])  # noqa: F541
         expected_models = (
             db.session.query(Dashboard).filter(Dashboard.created_by_fk.is_(None)).all()
         )

@@ -4040,7 +4040,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_names = [db.database_name for db in dbs]
         expected_names.sort()
 
-        uri = f"api/v1/database/"  # noqa: F541
+        uri = "api/v1/database/"  # noqa: F541
         # Get the list of databases without filter in the config
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
@@ -4059,7 +4059,7 @@ class TestDatabaseApi(SupersetTestCase):
             "superset.views.filters.current_app.config",
             {"EXTRA_DYNAMIC_QUERY_FILTERS": {"databases": base_filter_mock}},
         ):
-            uri = f"api/v1/database/"  # noqa: F541
+            uri = "api/v1/database/"  # noqa: F541
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             # Only one database start with dyntest

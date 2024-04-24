@@ -84,7 +84,7 @@ class TestDatasource(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         database = get_example_database()
 
-        sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"  # noqa: F541
+        sql = "SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"  # noqa: F541
         if database.backend == "sqlite":
             pass
         elif database.backend in ["postgresql", "mysql"]:

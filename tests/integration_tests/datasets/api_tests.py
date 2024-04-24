@@ -2268,7 +2268,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.get_fixture_virtual_datasets()[0]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/duplicate"  # noqa: F541
+        uri = "api/v1/dataset/duplicate"  # noqa: F541
         table_data = {"base_model_id": dataset.id, "table_name": "Dupe1"}
         rv = self.post_assert_metric(uri, table_data, "duplicate")
         assert rv.status_code == 201
@@ -2294,7 +2294,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.get_fixture_datasets()[0]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/duplicate"  # noqa: F541
+        uri = "api/v1/dataset/duplicate"  # noqa: F541
         table_data = {"base_model_id": dataset.id, "table_name": "Dupe2"}
         rv = self.post_assert_metric(uri, table_data, "duplicate")
         assert rv.status_code == 422
@@ -2308,7 +2308,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.get_fixture_virtual_datasets()[0]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/duplicate"  # noqa: F541
+        uri = "api/v1/dataset/duplicate"  # noqa: F541
         table_data = {
             "base_model_id": dataset.id,
             "table_name": "sql_virtual_dataset_2",
@@ -2322,7 +2322,7 @@ class TestDatasetApi(SupersetTestCase):
         """
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/duplicate"  # noqa: F541
+        uri = "api/v1/dataset/duplicate"  # noqa: F541
         table_data = {
             "base_model_id": -1,
             "table_name": "Dupe3",

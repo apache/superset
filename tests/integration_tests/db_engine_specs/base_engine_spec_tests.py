@@ -333,8 +333,8 @@ def test_time_grain_denylist():
 
     with app.app_context():
         time_grain_functions = SqliteEngineSpec.get_time_grain_expressions()
-        assert not "PT1M" in time_grain_functions  # noqa: E713
-        assert not "SQLITE_NONEXISTENT_GRAIN" in time_grain_functions  # noqa: E713
+        assert "PT1M" not in time_grain_functions  # noqa: E713
+        assert "SQLITE_NONEXISTENT_GRAIN" not in time_grain_functions  # noqa: E713
 
     app.config = config
 

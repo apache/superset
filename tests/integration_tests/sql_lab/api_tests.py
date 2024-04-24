@@ -196,7 +196,7 @@ class TestSqlLabApi(SupersetTestCase):
             "unauth_user1",
             "password",
             "Dummy Role",
-            email=f"unauth_user1@superset.org",  # noqa: F541
+            email="unauth_user1@superset.org",  # noqa: F541
         )
         self.login(username="unauth_user1", password="password")
         rv = self.client.get("/api/v1/sqllab/")

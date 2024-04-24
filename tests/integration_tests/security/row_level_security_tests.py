@@ -608,7 +608,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
             "superset.views.filters.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
         ):
-            rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles")  # noqa: F541
+            rv = self.client.get("/api/v1/rowlevelsecurity/related/roles")  # noqa: F541
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
             response_roles = [result["text"] for result in response["result"]]

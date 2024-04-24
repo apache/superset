@@ -69,7 +69,7 @@ class TestSecurityCsrfApi(SupersetTestCase):
 
 
 class TestSecurityGuestTokenApi(SupersetTestCase):
-    uri = f"api/v1/security/guest_token/"  # noqa: F541
+    uri = "api/v1/security/guest_token/"  # noqa: F541
 
     def test_post_guest_token_unauthenticated(self):
         """

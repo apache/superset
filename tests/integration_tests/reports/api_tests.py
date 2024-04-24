@@ -312,7 +312,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule API: Test info
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/report/_info"  # noqa: F541
+        uri = "api/v1/report/_info"  # noqa: F541
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
 
@@ -347,7 +347,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test get list report schedules
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/report/"  # noqa: F541
+        uri = "api/v1/report/"  # noqa: F541
         rv = self.get_assert_metric(uri, "get_list")
 
         expected_fields = [
@@ -426,7 +426,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test get list report schedules for different roles
         """
         self.login(username)
-        uri = f"api/v1/report/"  # noqa: F541
+        uri = "api/v1/report/"  # noqa: F541
         rv = self.get_assert_metric(uri, "get_list")
 
         assert rv.status_code == 200
@@ -438,7 +438,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test get list report schedules for regular gamma user
         """
         self.login(GAMMA_USERNAME)
-        uri = f"api/v1/report/"  # noqa: F541
+        uri = "api/v1/report/"  # noqa: F541
         rv = self.client.get(uri)
 
         assert rv.status_code == 403

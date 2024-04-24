@@ -285,7 +285,7 @@ def test_upload_to_s3_success(client):
 
     with app.app_context():
         location = upload_to_s3("filename", "prefix", Table("table"))
-        assert f"s3a://bucket/prefix/table" == location  # noqa: F541
+        assert "s3a://bucket/prefix/table" == location  # noqa: F541
 
     app.config = config
 

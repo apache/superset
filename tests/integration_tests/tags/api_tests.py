@@ -480,7 +480,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     def test_add_tag_not_found(self):
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/tag/123/favorites/"  # noqa: F541
+        uri = "api/v1/tag/123/favorites/"  # noqa: F541
         rv = self.client.post(uri, follow_redirects=True)
 
         self.assertEqual(rv.status_code, 404)
@@ -488,7 +488,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     def test_delete_favorite_tag_not_found(self):
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/tag/123/favorites/"  # noqa: F541
+        uri = "api/v1/tag/123/favorites/"  # noqa: F541
         rv = self.client.delete(uri, follow_redirects=True)
 
         self.assertEqual(rv.status_code, 404)
@@ -498,7 +498,7 @@ class TestTagApi(SupersetTestCase):
     def test_add_tag_user_not_found(self, flask_g):
         self.login(ADMIN_USERNAME)
         flask_g.user = None
-        uri = f"api/v1/tag/123/favorites/"  # noqa: F541
+        uri = "api/v1/tag/123/favorites/"  # noqa: F541
         rv = self.client.post(uri, follow_redirects=True)
 
         self.assertEqual(rv.status_code, 422)
@@ -508,7 +508,7 @@ class TestTagApi(SupersetTestCase):
     def test_delete_favorite_tag_user_not_found(self, flask_g):
         self.login(ADMIN_USERNAME)
         flask_g.user = None
-        uri = f"api/v1/tag/123/favorites/"  # noqa: F541
+        uri = "api/v1/tag/123/favorites/"  # noqa: F541
         rv = self.client.delete(uri, follow_redirects=True)
 
         self.assertEqual(rv.status_code, 422)
@@ -516,7 +516,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_post_tag(self):
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/tag/"  # noqa: F541
+        uri = "api/v1/tag/"  # noqa: F541
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "World Bank's Data")
@@ -539,7 +539,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_post_tag_no_name_400(self):
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/tag/"  # noqa: F541
+        uri = "api/v1/tag/"  # noqa: F541
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "World Bank's Data")

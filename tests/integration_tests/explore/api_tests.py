@@ -98,7 +98,7 @@ def assert_slice(result, chart_id, dataset_id):
 
 
 def test_no_params_provided(test_client, login_as_admin):
-    resp = test_client.get(f"api/v1/explore/")  # noqa: F541
+    resp = test_client.get("api/v1/explore/")  # noqa: F541
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
@@ -176,7 +176,7 @@ def test_get_from_permalink(test_client, login_as_admin, chart_id, dataset):
         "datasource": f"{dataset.id}__{dataset.type}",
         **FORM_DATA,
     }
-    resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})  # noqa: F541
+    resp = test_client.post("api/v1/explore/permalink", json={"formData": form_data})  # noqa: F541
     data = json.loads(resp.data.decode("utf-8"))
     permalink_key = data["key"]
     resp = test_client.get(f"api/v1/explore/?permalink_key={permalink_key}")

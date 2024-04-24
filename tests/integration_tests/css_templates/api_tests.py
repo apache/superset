@@ -75,7 +75,7 @@ class TestCssTemplateApi(SupersetTestCase):
         css_templates = db.session.query(CssTemplate).all()
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/css_template/"  # noqa: F541
+        uri = "api/v1/css_template/"  # noqa: F541
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -169,7 +169,7 @@ class TestCssTemplateApi(SupersetTestCase):
         CssTemplate API: Test info
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/css_template/_info"  # noqa: F541
+        uri = "api/v1/css_template/_info"  # noqa: F541
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
 
@@ -244,7 +244,7 @@ class TestCssTemplateApi(SupersetTestCase):
         }
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/css_template/"  # noqa: F541
+        uri = "api/v1/css_template/"  # noqa: F541
         rv = self.post_assert_metric(uri, post_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201

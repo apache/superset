@@ -67,6 +67,6 @@ def test_get_embedded_dashboard_referrer_not_allowed(client: FlaskClient[Any]): 
     EMBEDDED_SUPERSET=True,
 )
 def test_get_embedded_dashboard_non_found(client: FlaskClient[Any]):  # noqa: F811
-    uri = f"embedded/bad-uuid"  # noqa: F541
+    uri = "embedded/bad-uuid"  # noqa: F541
     response = client.get(uri)
     assert response.status_code == 404

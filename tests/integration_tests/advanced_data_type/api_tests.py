@@ -77,7 +77,7 @@ def test_types_type_request(test_client, login_as_admin):
     """
     Advanced Data Type API: Test to see if the API call returns all the valid advanced data types
     """
-    uri = f"api/v1/advanced_data_type/types"  # noqa: F541
+    uri = "api/v1/advanced_data_type/types"  # noqa: F541
     response_value = test_client.get(uri)
     data = json.loads(response_value.data.decode("utf-8"))
     assert response_value.status_code == 200
