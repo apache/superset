@@ -1493,19 +1493,19 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert "until" in data["result"][0]
         assert "timeRange" in data["result"][0]
 
-    def test_get_relative_time_range(self):
-        """
-        Chart API: Test get shifted time range from human readable string
-        """
-        self.login(username="admin")
-        humanize_time_range = "100 years ago : now"
-        shift = InstantTimeComparison.YEAR
-
-        uri = f'api/v1/relative_time_range/?q={prison.dumps({ "base_time_range": humanize_time_range, "shift": shift })}'
+        humanize_time_range = [
+            {"timeRange": "2021-01-01 : 2022-02-01", "shift": "1 year ago"},
+            {"timeRange": "2022-01-01 : 2023-02-01", "shift": "2 year ago"},
+        ]
+        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(len(data["result"][0]), 4)
+        assert rv.status_code == 200
+        assert len(data["result"]) == 2
+        assert "since" in data["result"][0]
+        assert "until" in data["result"][0]
+        assert "timeRange" in data["result"][0]
+        assert "shift" in data["result"][0]
 
     def test_query_form_data(self):
         """

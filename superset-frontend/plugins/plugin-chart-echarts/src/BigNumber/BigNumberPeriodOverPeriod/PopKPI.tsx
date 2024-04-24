@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import React, { useEffect, useMemo, useState } from 'react';
+import { isEmpty } from 'lodash';
+import moment from 'moment';
+import { css, fetchTimeRange, styled, t, useTheme } from '@superset-ui/core';
 import { Tooltip } from '@superset-ui/chart-controls';
 import {
   ColorSchemeEnum,
@@ -69,7 +71,9 @@ export default function PopKPI(props: PopKPIProps) {
     comparisonColorEnabled,
     comparisonColorScheme,
     percentDifferenceNumber,
-    comparatorText,
+    currentTimeRangeFilter,
+    startDateOffset,
+    shift,
   } = props;
 
   const theme = useTheme();
@@ -90,6 +94,29 @@ export default function PopKPI(props: PopKPIProps) {
     text-align: center;
     margin-bottom: ${theme.gridUnit * 4}px;
   `;
+
+  const [comparisonRange, setComparisonRange] = useState<string>('');
+
+  useEffect(() => {
+    if (!currentTimeRangeFilter || (!shift && !startDateOffset)) {
+      setComparisonRange('');
+    } else if (!isEmpty(shift) || startDateOffset) {
+      const startDateShift = moment(
+        (currentTimeRangeFilter as any).comparator.split(' : ')[0],
+      ).diff(moment(startDateOffset), 'days');
+      const newshift = startDateShift ? `${startDateShift} days ago` : shift;
+      const promise: any = fetchTimeRange(
+        (currentTimeRangeFilter as any).comparator,
+        currentTimeRangeFilter.subject,
+        newshift ? [newshift] : [],
+      );
+      Promise.resolve(promise).then((res: any) => {
+        const response: string[] = res.value;
+        const firstRange: string = response.flat()[0];
+        setComparisonRange(firstRange.split('vs\n')[1].trim());
+      });
+    }
+  }, [currentTimeRangeFilter, shift, startDateOffset]);
 
   const getArrowIndicatorColor = () => {
     if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
@@ -139,10 +166,15 @@ export default function PopKPI(props: PopKPIProps) {
       textColor: txtColor,
     };
   }, [
-    theme,
-    comparisonColorScheme,
+    defaultBackgroundColor,
+    defaultTextColor,
     comparisonColorEnabled,
     percentDifferenceNumber,
+    comparisonColorScheme,
+    theme.colors.success.light2,
+    theme.colors.success.base,
+    theme.colors.error.light2,
+    theme.colors.error.base,
   ]);
 
   const SYMBOLS_WITH_VALUES = useMemo(
@@ -150,7 +182,7 @@ export default function PopKPI(props: PopKPIProps) {
       {
         symbol: '#',
         value: prevNumber,
-        tooltipText: t('Data for %s', comparatorText),
+        tooltipText: t('Data for %s', comparisonRange || 'previous range'),
       },
       {
         symbol: '△',
@@ -164,7 +196,7 @@ export default function PopKPI(props: PopKPIProps) {
       },
     ],
     [
-      comparatorText,
+      comparisonRange,
       prevNumber,
       valueDifference,
       percentDifferenceFormattedString,

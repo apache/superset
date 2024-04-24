@@ -19,16 +19,18 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { isEqual } from 'lodash';
+import { isEmpty, isEqual } from 'lodash';
+import moment from 'moment';
 import {
   BinaryAdhocFilter,
-  ComparisonTimeRangeType,
   css,
+  fetchTimeRange,
   SimpleAdhocFilter,
   t,
-  fetchTimeRange,
 } from '@superset-ui/core';
-import ControlHeader from 'src/explore/components/ControlHeader';
+import ControlHeader, {
+  ControlHeaderProps,
+} from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
 
 const isTimeRangeEqual = (
@@ -36,7 +38,13 @@ const isTimeRangeEqual = (
   right: BinaryAdhocFilter[],
 ) => isEqual(left, right);
 
-export const ComparisonRangeLabel = () => {
+type ComparisonRangeLabelProps = ControlHeaderProps & {
+  multi?: boolean;
+};
+
+export const ComparisonRangeLabel = ({
+  multi = true,
+}: ComparisonRangeLabelProps) => {
   const [labels, setLabels] = useState<string[]>([]);
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
@@ -46,56 +54,52 @@ export const ComparisonRangeLabel = () => {
       ),
     isTimeRangeEqual,
   );
-  const customTimeRangeComparisonFilters = useSelector<
-    RootState,
-    BinaryAdhocFilter[]
-  >(
-    state =>
-      state.explore.form_data.adhoc_custom.filter(
-        (adhoc_filter: SimpleAdhocFilter) =>
-          adhoc_filter.operator === 'TEMPORAL_RANGE',
-      ),
-    isTimeRangeEqual,
+  const shifts = useSelector<RootState, string[]>(
+    state => state.explore.form_data.time_compare,
   );
-  const shift = useSelector<RootState, ComparisonTimeRangeType>(
-    state => state.explore.form_data.time_comparison,
+  const startDate = useSelector<RootState, string>(
+    state => state.explore.form_data.start_date_offset,
   );
 
   useEffect(() => {
-    if (shift === ComparisonTimeRangeType.Custom) {
-      const promises = customTimeRangeComparisonFilters.map(filter =>
-        fetchTimeRange(filter.comparator, filter.subject),
-      );
-      Promise.all(promises).then(res => {
-        setLabels(res.map(r => r.value ?? ''));
-      });
-    }
-  }, [customTimeRangeComparisonFilters, shift]);
+    if (isEmpty(currentTimeRangeFilters) || (isEmpty(shifts) && !startDate)) {
+      setLabels([]);
+    } else if (!isEmpty(shifts) || startDate) {
+      const promises = currentTimeRangeFilters.map(filter => {
+        const startDateShift = moment(
+          (filter as any).comparator.split(' : ')[0],
+        ).diff(moment(startDate), 'days');
+        const newShift = startDateShift
+          ? [`${startDateShift} days ago`]
+          : shifts
+            ? shifts.slice(0, 1)
+            : undefined;
 
-  useEffect(() => {
-    if (shift !== ComparisonTimeRangeType.Custom) {
-      const promises = currentTimeRangeFilters.map(filter =>
-        fetchTimeRange(filter.comparator, filter.subject, shift),
-      );
+        return fetchTimeRange(
+          filter.comparator,
+          filter.subject,
+          multi ? shifts : newShift,
+        );
+      });
       Promise.all(promises).then(res => {
+        // access the value property inside the res and set the labels with it in the state
         setLabels(res.map(r => r.value ?? ''));
       });
     }
-  }, [currentTimeRangeFilters, shift]);
+  }, [currentTimeRangeFilters, multi, shifts, startDate]);
 
   return labels.length ? (
     <>
       <ControlHeader label={t('Actual range for comparison')} />
-      {labels.map((label, index) => (
+      {labels.flat().map(label => (
         <div
           css={theme => css`
             font-size: ${theme.typography.sizes.m}px;
             color: ${theme.colors.grayscale.dark1};
           `}
-          key={index}
+          key={label}
         >
           {label}
-          {index < labels.length - 1 ? ',' : ''}
         </div>
       ))}
     </>

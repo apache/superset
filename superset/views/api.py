@@ -115,42 +115,19 @@ class Api(BaseSupersetView):
 
             rv = []
             for time_range in time_ranges:
-                since, until = get_since_until(time_range["timeRange"])
+                since, until = get_since_until(
+                    time_range=time_range["timeRange"],
+                    time_shift=time_range.get("shift"),
+                )
                 rv.append(
                     {
                         "since": since.isoformat() if since else "",
                         "until": until.isoformat() if until else "",
                         "timeRange": time_range["timeRange"],
+                        "shift": time_range.get("shift"),
                     }
                 )
             return self.json_response({"result": rv})
-        except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
-            error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
-            return self.json_response(error_msg, 400)
-
-    @api
-    @handle_api_exception
-    @has_access_api
-    @rison(get_relative_time_range_schema)
-    @expose("/v1/relative_time_range/", methods=("GET",))
-    def relative_time_range(self, **kwargs: Any) -> FlaskResponse:
-        """Get actual time range shifted by InstantTimeComparison value from
-        human-readable string or datetime expression.
-        Accepted values for shift - constants.py::InstantTimeComparison"""
-        base_time_range, shift = kwargs["rison"].values()
-        try:
-            since, until = get_since_until(
-                time_range=base_time_range, instant_time_comparison_range=shift
-            )
-            result = [
-                {
-                    "since": since.isoformat() if since else "",
-                    "until": until.isoformat() if until else "",
-                    "baseTimeRange": base_time_range,
-                    "shift": shift,
-                }
-            ]
-            return self.json_response({"result": result})
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
             return self.json_response(error_msg, 400)
