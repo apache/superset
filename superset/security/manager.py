@@ -403,14 +403,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return self.can_access("all_query_access", "all_query_access")
 
-    def can_access_all_databases(self) -> bool:
-        """
-        Return True if the user can access all the databases, False otherwise.
-
-        :returns: Whether the user can access all the databases
-        """
-        return self.can_access("all_database_access", "all_database_access")
-
     def can_access_all_datasources(self) -> bool:
         """
         Return True if the user can access all the datasources, False otherwise.
@@ -421,6 +413,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return self.can_access_all_databases() or self.can_access(
             "all_datasource_access", "all_datasource_access"
         )
+
+    def can_access_all_databases(self) -> bool:
+        """
+        Return True if the user can access all the databases, False otherwise.
+
+        :returns: Whether the user can access all the databases
+        """
+        return self.can_access("all_database_access", "all_database_access")
 
     def can_access_database(self, database: "Database") -> bool:
         """

@@ -1302,7 +1302,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         def count_charts():
             uri = "api/v1/chart/"
             rv = self.client.get(uri, "get_list")
-            print(rv.data)
             self.assertEqual(rv.status_code, 200)
             data = rv.get_json()
             return data["count"]
@@ -1310,18 +1309,12 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         with self.temporary_user(gamma_user, login=True) as user:
             self.assertEqual(count_charts(), 0)
 
-        all_db_pvm = ("all_database_access", "all_database_access")
-        with self.temporary_user(
-            gamma_user, extra_pvms=[all_db_pvm], login=True
-        ) as user:
-            self.login(username=user.username)
+        perm = ("all_database_access", "all_database_access")
+        with self.temporary_user(gamma_user, extra_pvms=[perm], login=True) as user:
             assert count_charts() > 0
 
-        all_db_pvm = ("all_datasource_access", "all_datasource_access")
-        with self.temporary_user(
-            gamma_user, extra_pvms=[all_db_pvm], login=True
-        ) as user:
-            self.login(username=user.username)
+        perm = ("all_datasource_access", "all_datasource_access")
+        with self.temporary_user(gamma_user, extra_pvms=[perm], login=True) as user:
             assert count_charts() > 0
 
         # Back to normal
