@@ -18,7 +18,11 @@
  */
 import rison from 'rison';
 import { isEmpty } from 'lodash';
-import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import {
+  SupersetClient,
+  getClientErrorObject,
+  ensureIsArray,
+} from '@superset-ui/core';
 
 export const SEPARATOR = ' : ';
 
@@ -64,11 +68,11 @@ export const fetchTimeRange = async (
   let query;
   let endpoint;
   if (!isEmpty(shifts)) {
-    const timeRanges = shifts?.map(shift => ({
+    const timeRanges = ensureIsArray(shifts).map(shift => ({
       timeRange,
       shift,
     }));
-    query = rison.encode_uri([{ timeRange }, ...(timeRanges || [])]);
+    query = rison.encode_uri([{ timeRange }, ...timeRanges]);
     endpoint = `/api/v1/time_range/?q=${query}`;
   } else {
     query = rison.encode_uri(timeRange);

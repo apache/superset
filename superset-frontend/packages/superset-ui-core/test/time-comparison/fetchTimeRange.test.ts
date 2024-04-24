@@ -22,6 +22,7 @@ import { fetchTimeRange } from '@superset-ui/core';
 import {
   buildTimeRangeString,
   formatTimeRange,
+  formatTimeRangeComparison,
 } from '../../src/time-comparison/fetchTimeRange';
 
 afterEach(fetchMock.restore);
@@ -147,4 +148,23 @@ it('fetchTimeRange with shift', async () => {
       'temporal_col: 2021-04-13 to 2021-04-14 vs\n  2021-03-13 to 2021-03-14',
     ],
   });
+});
+
+it('formatTimeRangeComparison', () => {
+  expect(
+    formatTimeRangeComparison(
+      '2021-04-13T00:00:00 : 2021-04-14T00:00:00',
+      '2021-03-13T00:00:00 : 2021-03-14T00:00:00',
+    ),
+  ).toEqual('col: 2021-04-13 to 2021-04-14 vs\n  2021-03-13 to 2021-03-14');
+
+  expect(
+    formatTimeRangeComparison(
+      '2021-04-13T00:00:00 : 2021-04-14T00:00:00',
+      '2021-03-13T00:00:00 : 2021-03-14T00:00:00',
+      'col_name',
+    ),
+  ).toEqual(
+    'col_name: 2021-04-13 to 2021-04-14 vs\n  2021-03-13 to 2021-03-14',
+  );
 });
