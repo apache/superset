@@ -20,6 +20,7 @@ import json
 
 import prison
 import pytest
+from flask import escape  # noqa: F401
 
 from superset import app
 from superset.daos.dashboard import DashboardDAO
@@ -28,6 +29,10 @@ from tests.integration_tests.dashboards.base_case import DashboardTestCase
 from tests.integration_tests.dashboards.consts import *  # noqa: F403
 from tests.integration_tests.dashboards.dashboard_test_utils import *  # noqa: F403
 from tests.integration_tests.dashboards.superset_factory_util import *  # noqa: F403
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
+)
 
 
 class TestDashboardDatasetSecurity(DashboardTestCase):
