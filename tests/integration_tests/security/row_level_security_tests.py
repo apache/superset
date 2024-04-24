@@ -472,7 +472,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
             "roles": [roles[1].id],
         }
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
-        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
+        status_code, _data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
 
         self.assertEqual(status_code, 201)
 

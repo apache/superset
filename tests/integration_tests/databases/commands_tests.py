@@ -386,7 +386,6 @@ class TestExportDatabasesCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         example_db = get_example_database()
-        db_uuid = example_db.uuid  # noqa: F841
 
         command = ExportDatabasesCommand([example_db.id], export_related=False)
         contents = dict(command.run())

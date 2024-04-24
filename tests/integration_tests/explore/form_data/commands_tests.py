@@ -326,7 +326,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         delete_command = DeleteFormDataCommand(delete_args)
         response = delete_command.run()
 
-        assert response == True  # noqa: E712
+        assert response is True  # noqa: E712
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("create_dataset", "create_slice", "create_query")
@@ -343,4 +343,4 @@ class TestCreateFormDataCommand(SupersetTestCase):
         delete_command = DeleteFormDataCommand(delete_args)
         response = delete_command.run()
 
-        assert response == False  # noqa: E712
+        assert response is False  # noqa: E712

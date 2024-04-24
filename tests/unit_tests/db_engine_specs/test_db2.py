@@ -59,7 +59,7 @@ def test_get_table_comment_empty(mocker: MockerFixture):
     mock_inspector.get_table_comment.return_value = {}
 
     assert (
-        Db2EngineSpec.get_table_comment(mock_inspector, "my_table", "my_schema") == None  # noqa: E711
+        Db2EngineSpec.get_table_comment(mock_inspector, "my_table", "my_schema") is None  # noqa: E711
     )
 
 

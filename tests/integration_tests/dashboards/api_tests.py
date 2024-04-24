@@ -189,8 +189,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     def test_get_dashboard_datasets_as_guest(self, is_guest_user, has_guest_access):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/world_health/datasets"
-        is_guest_user = True  # noqa: F841
-        has_guest_access = True  # noqa: F841
         response = self.get_assert_metric(uri, "get_datasets")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data.decode("utf-8"))

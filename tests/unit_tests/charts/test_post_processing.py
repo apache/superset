@@ -1390,7 +1390,7 @@ def test_apply_post_process_without_result_format():
     with pytest.raises(Exception) as ex:
         apply_post_process(result, form_data)
 
-    assert ex.match("Result format foo not supported") == True  # noqa: E712
+    assert ex.match("Result format foo not supported") is True  # noqa: E712
 
 
 def test_apply_post_process_json_format():

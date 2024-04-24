@@ -244,7 +244,7 @@ def test_dataset_has_access(mocker: MockFixture) -> None:
             datasource_id=1,
             datasource_type=DatasourceType.TABLE,
         )
-        == True
+        is True
     )
 
 
@@ -262,7 +262,7 @@ def test_query_has_access(mocker: MockFixture) -> None:
             datasource_id=1,
             datasource_type=DatasourceType.QUERY,
         )
-        == True
+        is True
     )
 
 

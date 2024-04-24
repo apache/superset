@@ -916,9 +916,9 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test create report schedule with unsaved chart
         """
         self.login(ADMIN_USERNAME)
-        chart = db.session.query(Slice).first()  # noqa: F841
-        dashboard = db.session.query(Dashboard).first()  # noqa: F841
-        example_db = get_example_database()  # noqa: F841
+        db.session.query(Slice).first()  # noqa: F841
+        db.session.query(Dashboard).first()  # noqa: F841
+        get_example_database()  # noqa: F841
 
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
@@ -945,9 +945,9 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test create report schedule with no dashboard id
         """
         self.login(ADMIN_USERNAME)
-        chart = db.session.query(Slice).first()  # noqa: F841
-        dashboard = db.session.query(Dashboard).first()  # noqa: F841
-        example_db = get_example_database()  # noqa: F841
+        db.session.query(Slice).first()  # noqa: F841
+        db.session.query(Dashboard).first()  # noqa: F841
+        get_example_database()  # noqa: F841
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
             "name": "name3",
@@ -973,8 +973,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         chart = db.session.query(Slice).first()
-        dashboard = db.session.query(Dashboard).first()  # noqa: F841
-        example_db = get_example_database()  # noqa: F841
+        db.session.query(Dashboard).first()  # noqa: F841
+        get_example_database()  # noqa: F841
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
             "name": "name4",
@@ -1030,9 +1030,9 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test create multiple reports with the same creation method
         """
         self.login(ADMIN_USERNAME)
-        chart = db.session.query(Slice).first()  # noqa: F841
+        db.session.query(Slice).first()  # noqa: F841
         dashboard = db.session.query(Dashboard).first()
-        example_db = get_example_database()  # noqa: F841
+        get_example_database()  # noqa: F841
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
             "name": "name4",
@@ -1476,7 +1476,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "description": "Updated description",
         }
         uri = f"api/v1/report/{existing_report.id}"
-        rv = self.put_assert_metric(uri, report_schedule_data, "put")  # noqa: F841
+        self.put_assert_metric(uri, report_schedule_data, "put")  # noqa: F841
         updated_report = (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.name == "name1")
@@ -1499,7 +1499,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "owners": [],
         }
         uri = f"api/v1/report/{existing_report.id}"
-        rv = self.put_assert_metric(uri, report_schedule_data, "put")  # noqa: F841
+        self.put_assert_metric(uri, report_schedule_data, "put")  # noqa: F841
         updated_report = (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.name == "name1")
@@ -1526,7 +1526,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "owners": [],
         }
         uri = f"api/v1/report/{existing_report.id}"
-        rv = self.put_assert_metric(uri, report_update_data, "put")
+        self.put_assert_metric(uri, report_update_data, "put")
         updated_report = (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.name == "name1")
@@ -1539,7 +1539,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "owners": [gamma.id],
         }
         uri = f"api/v1/report/{updated_report.id}"
-        rv = self.put_assert_metric(uri, report_update_data, "put")  # noqa: F841
+        self.put_assert_metric(uri, report_update_data, "put")  # noqa: F841
         updated_report = (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.name == "name1")

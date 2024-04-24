@@ -43,7 +43,7 @@ def test_get_by_id_found(mock_db_session):
     mock_query.filter_by.return_value.one.return_value = mock_user
 
     # Execute
-    result = UserDAO.get_by_id(user_id)  # noqa: F841
+    UserDAO.get_by_id(user_id)  # noqa: F841
 
     # Assert
     mock_db_session.query.assert_called_with(User)

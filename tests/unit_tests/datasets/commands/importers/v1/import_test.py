@@ -418,7 +418,7 @@ def test_import_dataset_extra_empty_string(
     dataset_config["database_id"] = database.id
     sqla_table = import_dataset(dataset_config)
 
-    assert sqla_table.extra == None  # noqa: E711
+    assert sqla_table.extra is None  # noqa: E711
 
 
 @patch("superset.commands.dataset.importers.v1.utils.request")

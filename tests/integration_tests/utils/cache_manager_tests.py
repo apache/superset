@@ -46,4 +46,4 @@ class UtilsCacheManagerTests(SupersetTestCase):
         }
 
     def test_get_explore_form_data_cache_invalid_key(self):
-        assert cache_manager.explore_form_data_cache.get("foo") == None  # noqa: E711
+        assert cache_manager.explore_form_data_cache.get("foo") is None  # noqa: E711

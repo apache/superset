@@ -48,7 +48,7 @@ def session_with_data(session: Session):
         TableColumn(column_name="a", type="INTEGER"),
     ]
 
-    sqla_table = SqlaTable(  # noqa: F841
+    SqlaTable(  # noqa: F841
         table_name="my_sqla_table",
         columns=columns,
         metrics=[],
@@ -63,7 +63,7 @@ def session_with_data(session: Session):
         published=True,
     )
 
-    saved_query = SavedQuery(  # noqa: F841
+    SavedQuery(  # noqa: F841
         label="test_query", database=database, sql="select * from foo"
     )
 
@@ -95,7 +95,7 @@ def test_update_command_success(session_with_data: Session, mocker: MockFixture)
     ]
 
     tag_to_update = TagDAO.find_by_name("test_name")
-    changed_model = UpdateTagCommand(  # noqa: F841
+    UpdateTagCommand(  # noqa: F841
         tag_to_update.id,
         {
             "name": "new_name",

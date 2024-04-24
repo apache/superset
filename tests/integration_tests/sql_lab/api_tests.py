@@ -66,7 +66,7 @@ class TestSqlLabApi(SupersetTestCase):
         assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
         result = data.get("result")
-        assert result["active_tab"] == None  # noqa: E711
+        assert result["active_tab"] is None  # noqa: E711
         assert result["tab_state_ids"] == []
         self.assertEqual(len(result["databases"]), 0)
 
@@ -95,7 +95,7 @@ class TestSqlLabApi(SupersetTestCase):
         assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
         result = data.get("result")
-        assert result["active_tab"] == None  # noqa: E711
+        assert result["active_tab"] is None  # noqa: E711
         assert result["tab_state_ids"] == []
 
     @pytest.mark.usefixtures("load_birth_names_data")

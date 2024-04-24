@@ -57,7 +57,7 @@ def test_invalidate_existing_cache(invalidate):
     rv = invalidate({"datasource_uids": ["3__table"]})
 
     assert rv.status_code == 201
-    assert cache_manager.cache.get("cache_key") == None  # noqa: E711
+    assert cache_manager.cache.get("cache_key") is None  # noqa: E711
     assert (
         not db.session.query(CacheKey).filter(CacheKey.cache_key == "cache_key").first()
     )

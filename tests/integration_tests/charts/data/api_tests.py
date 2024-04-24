@@ -1174,7 +1174,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         orig_run = ChartDataCommand.run
 
         def mock_run(self, **kwargs):
-            assert kwargs["force_cached"] == True  # noqa: E712
+            assert kwargs["force_cached"] is True  # noqa: E712
             # override force_cached to get result from DB
             return orig_run(self, force_cached=False)
 
@@ -1220,7 +1220,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         orig_run = ChartDataCommand.run
 
         def mock_run(self, **kwargs):
-            assert kwargs["force_cached"] == True  # noqa: E712
+            assert kwargs["force_cached"] is True  # noqa: E712
             # override force_cached to get result from DB
             return orig_run(self, force_cached=False)
 

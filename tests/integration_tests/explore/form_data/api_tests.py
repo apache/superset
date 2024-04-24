@@ -36,21 +36,21 @@ UPDATED_FORM_DATA = json.dumps({"test": "updated value"})
 
 @pytest.fixture
 def chart_id(load_world_bank_dashboard_with_slices) -> int:
-    with app.app_context() as ctx:  # noqa: F841
+    with app.app_context():  # noqa: F841
         chart = db.session.query(Slice).filter_by(slice_name="World's Population").one()
         return chart.id
 
 
 @pytest.fixture
 def admin_id() -> int:
-    with app.app_context() as ctx:  # noqa: F841
+    with app.app_context():  # noqa: F841
         admin = db.session.query(User).filter_by(username="admin").one()
         return admin.id
 
 
 @pytest.fixture
 def datasource() -> int:
-    with app.app_context() as ctx:  # noqa: F841
+    with app.app_context():  # noqa: F841
         dataset = (
             db.session.query(SqlaTable)
             .filter_by(table_name="wb_health_population")

@@ -43,7 +43,7 @@ def session_with_data(session: Session):
 
     database = Database(database_name="my_database", sqlalchemy_uri="postgresql://")
 
-    columns = [  # noqa: F841
+    [  # noqa: F841
         TableColumn(column_name="a", type="INTEGER"),
     ]
 

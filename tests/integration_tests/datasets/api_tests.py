@@ -962,7 +962,7 @@ class TestDatasetApi(SupersetTestCase):
         """
 
         # Add default dataset
-        main_db = get_main_database()  # noqa: F841
+        get_main_database()  # noqa: F841
         dataset = self.insert_default_dataset()
         prev_col_len = len(dataset.columns)
 
@@ -1531,7 +1531,7 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}/column/{column_id}"
         rv = self.client.delete(uri)
         assert rv.status_code == 200
-        assert db.session.query(TableColumn).get(column_id) == None  # noqa: E711
+        assert db.session.query(TableColumn).get(column_id) is None  # noqa: E711
 
     @pytest.mark.usefixtures("create_datasets")
     def test_delete_dataset_column_not_found(self):
@@ -1603,7 +1603,7 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}/metric/{test_metric.id}"
         rv = self.client.delete(uri)
         assert rv.status_code == 200
-        assert db.session.query(SqlMetric).get(test_metric.id) == None  # noqa: E711
+        assert db.session.query(SqlMetric).get(test_metric.id) is None  # noqa: E711
 
     @pytest.mark.usefixtures("create_datasets")
     def test_delete_dataset_metric_not_found(self):

@@ -528,7 +528,7 @@ class TestTagApi(SupersetTestCase):
         )
 
         self.assertEqual(rv.status_code, 201)
-        user_id = self.get_user(username="admin").get_id()  # noqa: F841
+        self.get_user(username="admin").get_id()  # noqa: F841
         tag = (
             db.session.query(Tag)
             .filter(Tag.name == "my_tag", Tag.type == TagType.custom)

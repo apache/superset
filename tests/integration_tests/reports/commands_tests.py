@@ -1398,7 +1398,7 @@ def test_alert_limit_is_applied(
             create_alert_email_chart.database.db_engine_spec,
             "fetch_data",
             return_value=None,
-        ) as fetch_data_mock:  # noqa: F841
+        ):  # noqa: F841
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_alert_email_chart.id, datetime.utcnow()
             ).run()
@@ -1594,7 +1594,7 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
                 TEST_ID, create_alert_email_chart.id, datetime.utcnow()
             ).run()
 
-    notification_targets = get_target_from_report_schedule(create_alert_email_chart)  # noqa: F841
+    get_target_from_report_schedule(create_alert_email_chart)  # noqa: F841
     # Assert the email smtp address, asserts a notification was sent with the error
     assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 
@@ -1661,7 +1661,7 @@ def test_soft_timeout_csv(
             TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(  # noqa: F841
+    get_target_from_report_schedule(  # noqa: F841
         create_report_email_chart_with_csv
     )
     # Assert the email smtp address, asserts a notification was sent with the error
@@ -1701,7 +1701,7 @@ def test_generate_no_csv(
             TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(  # noqa: F841
+    get_target_from_report_schedule(  # noqa: F841
         create_report_email_chart_with_csv
     )
     # Assert the email smtp address, asserts a notification was sent with the error
@@ -1732,7 +1732,7 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
             TEST_ID, create_report_email_chart.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(create_report_email_chart)  # noqa: F841
+    get_target_from_report_schedule(create_report_email_chart)  # noqa: F841
     # Assert the email smtp address, asserts a notification was sent with the error
     assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 

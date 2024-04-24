@@ -762,7 +762,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         Chart API: Test update chart admin can clear owner list
         """
         chart_data = {"slice_name": "title1_changed", "owners": []}
-        admin = self.get_user("admin")  # noqa: F841
+        self.get_user("admin")  # noqa: F841
         self.login(username="admin")
         uri = f"api/v1/chart/{self.chart.id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
