@@ -44,6 +44,8 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '21'
+      - name: Install Graphviz
+        run: sudo apt-get install -y graphviz
       - name: Compute Entity Relationship diagram (ERD)
         env:
           SUPERSET_SECRET_KEY: not-a-secret
