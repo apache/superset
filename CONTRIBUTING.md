@@ -424,7 +424,7 @@ Should you decide that reverting is desirable, it is the responsibility of the C
 - **Provide concise reproduction steps:** Ensure that the issue can be clearly understood and duplicated by the original author of the PR.
 - **Put the revert through code review:** The revert must be approved by another committer.
 
-## Setup Local Environment for Development
+## Setup Local Environment for Development (Depricated use docker compose https://superset.apache.org/docs/installation/docker-compose#option-1---for-an-interactive-development-environment)
 
 First, [fork the repository on GitHub](https://help.github.com/articles/about-forks/), then clone it. You can clone the main repository directly, but you won't be able to send pull requests.
 
