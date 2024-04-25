@@ -205,7 +205,11 @@ class HiveEngineSpec(PrestoEngineSpec):
             if table_exists:
                 raise SupersetException("Table already exists")
         elif to_sql_kwargs["if_exists"] == "replace":
-            with cls.get_engine(database) as engine:
+            with cls.get_engine(
+                database,
+                catalog=table.catalog,
+                schema=table.schema,
+            ) as engine:
                 engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
 
         def _get_hive_type(dtype: np.dtype[Any]) -> str:
@@ -227,7 +231,11 @@ class HiveEngineSpec(PrestoEngineSpec):
         ) as file:
             pq.write_table(pa.Table.from_pandas(df), where=file.name)
 
-            with cls.get_engine(database) as engine:
+            with cls.get_engine(
+                database,
+                catalog=table.catalog,
+                schema=table.schema,
+            ) as engine:
                 engine.execute(
                     text(
                         f"""
@@ -410,24 +418,24 @@ class HiveEngineSpec(PrestoEngineSpec):
     def get_columns(
         cls,
         inspector: Inspector,
-        table_name: str,
-        schema: str | None,
+        table: Table,
         options: dict[str, Any] | None = None,
     ) -> list[ResultSetColumnType]:
-        return BaseEngineSpec.get_columns(inspector, table_name, schema, options)
+        return BaseEngineSpec.get_columns(inspector, table, options)
 
     @classmethod
-    def where_latest_partition(  # pylint: disable=too-many-arguments
+    def where_latest_partition(
         cls,
-        table_name: str,
-        schema: str | None,
         database: Database,
+        table: Table,
         query: Select,
         columns: list[ResultSetColumnType] | None = None,
     ) -> Select | None:
         try:
             col_names, values = cls.latest_partition(
-                table_name, schema, database, show_first=True
+                database,
+                table,
+                show_first=True,
             )
         except Exception:  # pylint: disable=broad-except
             # table is not partitioned
@@ -447,7 +455,10 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def latest_sub_partition(  # type: ignore
-        cls, table_name: str, schema: str | None, database: Database, **kwargs: Any
+        cls,
+        database: Database,
+        table: Table,
+        **kwargs: Any,
     ) -> str:
         # TODO(bogdan): implement`
         pass
@@ -465,24 +476,24 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def _partition_query(  # pylint: disable=too-many-arguments
         cls,
-        table_name: str,
-        schema: str | None,
+        table: Table,
         indexes: list[dict[str, Any]],
         database: Database,
         limit: int = 0,
         order_by: list[tuple[str, bool]] | None = None,
         filters: dict[Any, Any] | None = None,
     ) -> str:
-        full_table_name = f"{schema}.{table_name}" if schema else table_name
+        full_table_name = (
+            f"{table.schema}.{table.table}" if table.schema else table.table
+        )
         return f"SHOW PARTITIONS {full_table_name}"
 
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments
         cls,
         database: Database,
-        table_name: str,
+        table: Table,
         engine: Engine,
-        schema: str | None = None,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -491,9 +502,8 @@ class HiveEngineSpec(PrestoEngineSpec):
     ) -> str:
         return super(PrestoEngineSpec, cls).select_star(
             database,
-            table_name,
+            table,
             engine,
-            schema,
             limit,
             show_cols,
             indent,

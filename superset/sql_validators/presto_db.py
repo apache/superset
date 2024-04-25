@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 import logging
 import time
 from contextlib import closing
-from typing import Any, Optional
+from typing import Any
 
 from superset import app
 from superset.models.core import Database
@@ -47,7 +49,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         statement: str,
         database: Database,
         cursor: Any,
-    ) -> Optional[SQLValidationAnnotation]:
+    ) -> SQLValidationAnnotation | None:
         # pylint: disable=too-many-locals
         db_engine_spec = database.db_engine_spec
         parsed_query = ParsedQuery(statement, engine=db_engine_spec.engine)
@@ -140,7 +142,11 @@ class PrestoDBSQLValidator(BaseSQLValidator):
 
     @classmethod
     def validate(
-        cls, sql: str, schema: Optional[str], database: Database
+        cls,
+        sql: str,
+        catalog: str | None,
+        schema: str | None,
+        database: Database,
     ) -> list[SQLValidationAnnotation]:
         """
         Presto supports query-validation queries by running them with a
@@ -155,7 +161,11 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         logger.info("Validating %i statement(s)", len(statements))
         # todo(hughhh): update this to use new database.get_raw_connection()
         # this function keeps stalling CI
-        with database.get_sqla_engine(schema, source=QuerySource.SQL_LAB) as engine:
+        with database.get_sqla_engine(
+            catalog=catalog,
+            schema=schema,
+            source=QuerySource.SQL_LAB,
+        ) as engine:
             # Sharing a single connection and cursor across the
             # execution of all statements (if many)
             annotations: list[SQLValidationAnnotation] = []

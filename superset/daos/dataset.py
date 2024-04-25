@@ -30,6 +30,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.core import DatasourceType
 from superset.views.base import DatasourceFilter
 
@@ -72,25 +73,26 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
     @staticmethod
     def validate_table_exists(
-        database: Database, table_name: str, schema: str | None
+        database: Database,
+        table: Table,
     ) -> bool:
         try:
-            database.get_table(table_name, schema=schema)
+            database.get_table(table)
             return True
         except SQLAlchemyError as ex:  # pragma: no cover
-            logger.warning("Got an error %s validating table: %s", str(ex), table_name)
+            logger.warning("Got an error %s validating table: %s", str(ex), table)
             return False
 
     @staticmethod
     def validate_uniqueness(
         database_id: int,
-        schema: str | None,
-        name: str,
+        table: Table,
         dataset_id: int | None = None,
     ) -> bool:
         dataset_query = db.session.query(SqlaTable).filter(
-            SqlaTable.table_name == name,
-            SqlaTable.schema == schema,
+            SqlaTable.table_name == table.table,
+            SqlaTable.schema == table.schema,
+            SqlaTable.catalog == table.catalog,
             SqlaTable.database_id == database_id,
         )
 
@@ -103,14 +105,14 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     @staticmethod
     def validate_update_uniqueness(
         database_id: int,
-        schema: str | None,
+        table: Table,
         dataset_id: int,
-        name: str,
     ) -> bool:
         dataset_query = db.session.query(SqlaTable).filter(
-            SqlaTable.table_name == name,
+            SqlaTable.table_name == table.table,
             SqlaTable.database_id == database_id,
-            SqlaTable.schema == schema,
+            SqlaTable.schema == table.schema,
+            SqlaTable.catalog == table.catalog,
             SqlaTable.id != dataset_id,
         )
         return not db.session.query(dataset_query.exists()).scalar()

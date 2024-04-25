@@ -142,7 +142,10 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         database: Database,
         table: Table,
     ) -> dict[str, Any]:
-        with database.get_raw_connection(schema=table.schema) as conn:
+        with database.get_raw_connection(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as conn:
             cursor = conn.cursor()
             cursor.execute(f'SELECT GET_METADATA("{table.table}")')
             results = cursor.fetchone()[0]
@@ -395,7 +398,11 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 pass
 
         # get the Google session from the Shillelagh adapter
-        with cls.get_engine(database) as engine:
+        with cls.get_engine(
+            database,
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as engine:
             with engine.connect() as conn:
                 # any GSheets URL will work to get a working session
                 adapter = get_adapter_for_table_name(

@@ -165,8 +165,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             BigQueryEngineSpec.get_indexes(
                 database,
                 inspector,
-                table_name,
-                schema,
+                Table(table_name, schema),
             )
             == []
         )
@@ -184,8 +183,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         assert BigQueryEngineSpec.get_indexes(
             database,
             inspector,
-            table_name,
-            schema,
+            Table(table_name, schema),
         ) == [
             {
                 "name": "partition",
@@ -207,8 +205,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         assert BigQueryEngineSpec.get_indexes(
             database,
             inspector,
-            table_name,
-            schema,
+            Table(table_name, schema),
         ) == [
             {
                 "name": "partition",

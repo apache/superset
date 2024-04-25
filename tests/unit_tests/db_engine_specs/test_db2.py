@@ -18,6 +18,8 @@
 import pytest  # noqa: F401
 from pytest_mock import MockerFixture
 
+from superset.sql_parse import Table
+
 
 def test_epoch_to_dttm() -> None:
     """
@@ -43,7 +45,7 @@ def test_get_table_comment(mocker: MockerFixture):
     }
 
     assert (
-        Db2EngineSpec.get_table_comment(mock_inspector, "my_table", "my_schema")
+        Db2EngineSpec.get_table_comment(mock_inspector, Table("my_table", "my_schema"))
         == "This is a table comment"
     )
 
@@ -59,7 +61,8 @@ def test_get_table_comment_empty(mocker: MockerFixture):
     mock_inspector.get_table_comment.return_value = {}
 
     assert (
-        Db2EngineSpec.get_table_comment(mock_inspector, "my_table", "my_schema") is None  # noqa: E711
+        Db2EngineSpec.get_table_comment(mock_inspector, Table("my_table", "my_schema"))
+        is None
     )
 
 

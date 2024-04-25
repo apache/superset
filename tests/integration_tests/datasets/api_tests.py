@@ -773,14 +773,14 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 422
 
     @patch("superset.models.core.Database.get_columns")
-    @patch("superset.models.core.Database.has_table_by_name")
-    @patch("superset.models.core.Database.has_view_by_name")
+    @patch("superset.models.core.Database.has_table")
+    @patch("superset.models.core.Database.has_view")
     @patch("superset.models.core.Database.get_table")
     def test_create_dataset_validate_view_exists(
         self,
         mock_get_table,
-        mock_has_table_by_name,
-        mock_has_view_by_name,
+        mock_has_table,
+        mock_has_view,
         mock_get_columns,
     ):
         """
@@ -796,13 +796,12 @@ class TestDatasetApi(SupersetTestCase):
             }
         ]
 
-        mock_has_table_by_name.return_value = False
-        mock_has_view_by_name.return_value = True
+        mock_has_table.return_value = False
+        mock_has_view.return_value = True
         mock_get_table.return_value = None
 
         example_db = get_example_database()
         with example_db.get_sqla_engine() as engine:
-            engine = engine
             dialect = engine.dialect
 
             with patch.object(

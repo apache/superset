@@ -49,7 +49,7 @@ from sqlalchemy import (
     Integer,
     or_,
     String,
-    Table,
+    Table as DBTable,
     Text,
     update,
 )
@@ -108,7 +108,7 @@ from superset.models.helpers import (
     validate_adhoc_subquery,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import ParsedQuery, sanitize_clause
+from superset.sql_parse import ParsedQuery, sanitize_clause, Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -329,7 +329,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "edit_url": self.url,
             "id": self.id,
             "uid": self.uid,
-            "schema": self.schema,
+            "schema": self.schema or None,
             "name": self.name,
             "type": self.type,
             "connection": self.connection,
@@ -383,7 +383,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "datasource_name": self.datasource_name,
             "table_name": self.datasource_name,
             "type": self.type,
-            "schema": self.schema,
+            "schema": self.schema or None,
             "offset": self.offset,
             "cache_timeout": self.cache_timeout,
             "params": self.params,
@@ -1065,7 +1065,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         return {s: getattr(self, s) for s in attrs}
 
 
-sqlatable_user = Table(
+sqlatable_user = DBTable(
     "sqlatable_user",
     metadata,
     Column("id", Integer, primary_key=True),
@@ -1143,6 +1143,7 @@ class SqlaTable(
         foreign_keys=[database_id],
     )
     schema = Column(String(255))
+    catalog = Column(String(256), nullable=True, default=None)
     sql = Column(MediumText())
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
@@ -1262,7 +1263,7 @@ class SqlaTable(
 
     def get_schema_perm(self) -> str | None:
         """Returns schema permission if present, database one otherwise."""
-        return security_manager.get_schema_perm(self.database, self.schema)
+        return security_manager.get_schema_perm(self.database, self.schema or None)
 
     def get_perm(self) -> str:
         """
@@ -1319,8 +1320,7 @@ class SqlaTable(
             return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
             database=self.database,
-            table_name=self.table_name,
-            schema_name=self.schema,
+            table=Table(self.table_name, self.schema or None, self.catalog),
             normalize_columns=self.normalize_columns,
         )
 
@@ -1336,7 +1336,9 @@ class SqlaTable(
         # show_cols and latest_partition set to false to avoid
         # the expensive cost of inspecting the DB
         return self.database.select_star(
-            self.table_name, schema=self.schema, show_cols=False, latest_partition=False
+            Table(self.table_name, self.schema or None, self.catalog),
+            show_cols=False,
+            latest_partition=False,
         )
 
     @property
@@ -1523,7 +1525,12 @@ class SqlaTable(
                     tbl, _ = self.get_from_clause(template_processor)
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
-                    col_desc = get_columns_description(self.database, self.schema, sql)
+                    col_desc = get_columns_description(
+                        self.database,
+                        self.catalog,
+                        self.schema or None,
+                        sql,
+                    )
                     if not col_desc:
                         raise SupersetGenericDBErrorException("Column not found")
                     is_dttm = col_desc[0]["is_dttm"]  # type: ignore
@@ -1728,7 +1735,9 @@ class SqlaTable(
             return df
 
         try:
-            df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
+            df = self.database.get_df(
+                sql, self.schema or None, mutator=assign_column_label
+            )
         except (SupersetErrorException, SupersetErrorsException) as ex:
             # SupersetError(s) exception should not be captured; instead, they should
             # bubble up to the Flask error handler so they are returned as proper SIP-40
@@ -1762,7 +1771,13 @@ class SqlaTable(
         )
 
     def get_sqla_table_object(self) -> Table:
-        return self.database.get_table(self.table_name, schema=self.schema)
+        return self.database.get_table(
+            Table(
+                self.table_name,
+                self.schema or None,
+                self.catalog,
+            )
+        )
 
     def fetch_metadata(self, commit: bool = True) -> MetadataResult:
         """
@@ -1774,7 +1789,13 @@ class SqlaTable(
         new_columns = self.external_metadata()
         metrics = [
             SqlMetric(**metric)
-            for metric in self.database.get_metrics(self.table_name, self.schema)
+            for metric in self.database.get_metrics(
+                Table(
+                    self.table_name,
+                    self.schema or None,
+                    self.catalog,
+                )
+            )
         ]
         any_date_col = None
         db_engine_spec = self.db_engine_spec
@@ -2021,7 +2042,7 @@ sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 sa.event.listen(SqlMetric, "after_update", SqlaTable.update_column)
 sa.event.listen(TableColumn, "after_update", SqlaTable.update_column)
 
-RLSFilterRoles = Table(
+RLSFilterRoles = DBTable(
     "rls_filter_roles",
     metadata,
     Column("id", Integer, primary_key=True),
@@ -2029,7 +2050,7 @@ RLSFilterRoles = Table(
     Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
 )
 
-RLSFilterTables = Table(
+RLSFilterTables = DBTable(
     "rls_filter_tables",
     metadata,
     Column("id", Integer, primary_key=True),

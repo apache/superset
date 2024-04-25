@@ -82,7 +82,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         row = mock.Mock()
         row.Column, row.Type, row.Null = column
         inspector.bind.execute.return_value.fetchall = mock.Mock(return_value=[row])
-        results = PrestoEngineSpec.get_columns(inspector, "", "")
+        results = PrestoEngineSpec.get_columns(inspector, Table("", ""))
         self.assertEqual(len(expected_results), len(results))
         for expected_result, result in zip(expected_results, results):
             self.assertEqual(expected_result[0], result["column_name"])
@@ -573,7 +573,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         db.get_df = mock.Mock(return_value=df)
         columns = [{"name": "ds"}, {"name": "hour"}]
         result = PrestoEngineSpec.where_latest_partition(
-            "test_table", "test_schema", db, select(), columns
+            db,
+            Table("test_table", "test_schema"),
+            select(),
+            columns,
         )
         query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
         self.assertEqual("SELECT  \nWHERE ds = '01-01-19' AND hour = 1", query_result)
@@ -802,7 +805,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             return_value=["a", "b"]
         )
         table_name = "table_name"
-        result = PrestoEngineSpec._show_columns(inspector, table_name, None)
+        result = PrestoEngineSpec._show_columns(inspector, Table(table_name))
         assert result == ["a", "b"]
         inspector.bind.execute.assert_called_once_with(
             f'SHOW COLUMNS FROM "{table_name}"'
@@ -818,7 +821,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         )
         table_name = "table_name"
         schema = "schema"
-        result = PrestoEngineSpec._show_columns(inspector, table_name, schema)
+        result = PrestoEngineSpec._show_columns(inspector, Table(table_name, schema))
         assert result == ["a", "b"]
         inspector.bind.execute.assert_called_once_with(
             f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
@@ -846,9 +849,16 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             {"col1": "val1"},
             {"col2": "val2"},
         ]
-        PrestoEngineSpec.select_star(database, table_name, engine, cols=cols)
+        PrestoEngineSpec.select_star(database, Table(table_name), engine, cols=cols)
         mock_select_star.assert_called_once_with(
-            database, table_name, engine, None, 100, False, True, True, cols
+            database,
+            Table(table_name),
+            engine,
+            100,
+            False,
+            True,
+            True,
+            cols,
         )
 
     @mock.patch("superset.db_engine_specs.presto.is_feature_enabled")
@@ -869,13 +879,16 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             {"column_name": ".val2."},
         ]
         PrestoEngineSpec.select_star(
-            database, table_name, engine, show_cols=True, cols=cols
+            database,
+            Table(table_name),
+            engine,
+            show_cols=True,
+            cols=cols,
         )
         mock_select_star.assert_called_once_with(
             database,
-            table_name,
+            Table(table_name),
             engine,
-            None,
             100,
             True,
             True,
@@ -1172,7 +1185,7 @@ def test_get_catalog_names(app_context: AppContext) -> None:
     if database.backend != "presto":
         return
 
-    with database.get_inspector_with_context() as inspector:
+    with database.get_inspector() as inspector:
         assert PrestoEngineSpec.get_catalog_names(database, inspector) == [
             "jmx",
             "memory",

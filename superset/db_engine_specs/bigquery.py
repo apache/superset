@@ -14,13 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 import contextlib
 import json
 import re
 import urllib
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING, TypedDict
+from typing import Any, TYPE_CHECKING, TypedDict
 
 import pandas as pd
 from apispec import APISpec
@@ -220,8 +223,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         sqla_type = cls.get_sqla_column_type(target_type)
         if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
@@ -234,9 +237,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return None
 
     @classmethod
-    def fetch_data(
-        cls, cursor: Any, limit: Optional[int] = None
-    ) -> list[tuple[Any, ...]]:
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         data = super().fetch_data(cursor, limit)
         # Support type BigQuery Row, introduced here PR #4071
         # google.cloud.bigquery.table.Row
@@ -302,30 +303,28 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     @classmethod
     def get_indexes(
         cls,
-        database: "Database",
+        database: Database,
         inspector: Inspector,
-        table_name: str,
-        schema: Optional[str],
+        table: Table,
     ) -> list[dict[str, Any]]:
         """
         Get the indexes associated with the specified schema/table.
 
         :param database: The database to inspect
         :param inspector: The SQLAlchemy inspector
-        :param table_name: The table to inspect
-        :param schema: The schema to inspect
+        :param table: The table instance to inspect
         :returns: The indexes
         """
 
-        return cls.normalize_indexes(inspector.get_indexes(table_name, schema))
+        return cls.normalize_indexes(inspector.get_indexes(table.table, table.schema))
 
     @classmethod
     def get_extra_table_metadata(
         cls,
-        database: "Database",
+        database: Database,
         table: Table,
     ) -> dict[str, Any]:
-        indexes = database.get_indexes(table.table, table.schema)
+        indexes = database.get_indexes(table)
         if not indexes:
             return {}
         partitions_columns = [
@@ -354,7 +353,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     @classmethod
     def df_to_sql(
         cls,
-        database: "Database",
+        database: Database,
         table: Table,
         df: pd.DataFrame,
         to_sql_kwargs: dict[str, Any],
@@ -380,7 +379,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             raise SupersetException("The table schema must be defined")
 
         to_gbq_kwargs = {}
-        with cls.get_engine(database) as engine:
+        with cls.get_engine(
+            database,
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as engine:
             to_gbq_kwargs = {
                 "destination_table": str(table),
                 "project_id": engine.url.host,
@@ -403,7 +406,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         pandas_gbq.to_gbq(df, **to_gbq_kwargs)
 
     @classmethod
-    def _get_client(cls, engine: Engine) -> Any:
+    def _get_client(cls, engine: Engine) -> bigquery.Client:
         """
         Return the BigQuery client associated with an engine.
         """
@@ -418,17 +421,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return bigquery.Client(credentials=credentials)
 
     @classmethod
-    def estimate_query_cost(
+    def estimate_query_cost(  # pylint: disable=too-many-arguments
         cls,
-        database: "Database",
+        database: Database,
+        catalog: str | None,
         schema: str,
         sql: str,
-        source: Optional[utils.QuerySource] = None,
+        source: utils.QuerySource | None = None,
     ) -> list[dict[str, Any]]:
         """
         Estimate the cost of a multiple statement SQL query.
 
         :param database: Database instance
+        :param catalog: Database project
         :param schema: Database schema
         :param sql: SQL query with possibly multiple statements
         :param source: Source of the query (eg, "sql_lab")
@@ -439,17 +444,25 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
         parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
         statements = parsed_query.get_statements()
-        costs = []
-        for statement in statements:
-            processed_statement = cls.process_statement(statement, database)
 
-            costs.append(cls.estimate_statement_cost(processed_statement, database))
-        return costs
+        with cls.get_engine(
+            database,
+            catalog=catalog,
+            schema=schema,
+        ) as engine:
+            client = cls._get_client(engine)
+            return [
+                cls.custom_estimate_statement_cost(
+                    cls.process_statement(statement, database),
+                    client,
+                )
+                for statement in statements
+            ]
 
     @classmethod
     def get_catalog_names(
         cls,
-        database: "Database",
+        database: Database,
         inspector: Inspector,
     ) -> list[str]:
         """
@@ -469,14 +482,16 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return True
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> dict[str, Any]:
-        with cls.get_engine(cursor) as engine:
-            client = cls._get_client(engine)
-            job_config = bigquery.QueryJobConfig(dry_run=True)
-            query_job = client.query(
-                statement,
-                job_config=job_config,
-            )  # Make an API request.
+    def custom_estimate_statement_cost(
+        cls,
+        statement: str,
+        client: bigquery.Client,
+    ) -> dict[str, Any]:
+        """
+        Custom version that receives a client instead of a cursor.
+        """
+        job_config = bigquery.QueryJobConfig(dry_run=True)
+        query_job = client.query(statement, job_config=job_config)
 
         # Format Bytes.
         # TODO: Humanize in case more db engine specs need to be added,
@@ -514,7 +529,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     def build_sqlalchemy_uri(
         cls,
         parameters: BigQueryParametersType,
-        encrypted_extra: Optional[dict[str, Any]] = None,
+        encrypted_extra: dict[str, Any] | None = None,
     ) -> str:
         query = parameters.get("query", {})
         query_params = urllib.parse.urlencode(query)
@@ -536,7 +551,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     def get_parameters_from_uri(
         cls,
         uri: str,
-        encrypted_extra: Optional[dict[str, Any]] = None,
+        encrypted_extra: dict[str, Any] | None = None,
     ) -> Any:
         value = make_url_safe(uri)
 
@@ -549,7 +564,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         raise ValidationError("Invalid service credentials")
 
     @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: Optional[str]) -> Optional[str]:
+    def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
         if encrypted_extra is None:
             return encrypted_extra
 
@@ -563,9 +578,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return json.dumps(config)
 
     @classmethod
-    def unmask_encrypted_extra(
-        cls, old: Optional[str], new: Optional[str]
-    ) -> Optional[str]:
+    def unmask_encrypted_extra(cls, old: str | None, new: str | None) -> str | None:
         """
         Reuse ``private_key`` if available and unchanged.
         """
@@ -628,15 +641,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments
         cls,
-        database: "Database",
-        table_name: str,
+        database: Database,
+        table: Table,
         engine: Engine,
-        schema: Optional[str] = None,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: Optional[list[ResultSetColumnType]] = None,
+        cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """
         Remove array structures from `SELECT *`.
@@ -690,9 +702,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
         return super().select_star(
             database,
-            table_name,
+            table,
             engine,
-            schema,
             limit,
             show_cols,
             indent,

@@ -121,7 +121,7 @@ def drop_table_if_exists(table_name: str, table_type: CtasMethod) -> None:
 def quote_f(value: Optional[str]):
     if not value:
         return value
-    with get_example_database().get_inspector_with_context() as inspector:
+    with get_example_database().get_inspector() as inspector:
         return inspector.engine.dialect.identifier_preparer.quote_identifier(value)
 
 

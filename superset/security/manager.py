@@ -1922,6 +1922,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         table: Optional["Table"] = None,
         viz: Optional["BaseViz"] = None,
         sql: Optional[str] = None,
+        catalog: Optional[str] = None,  # pylint: disable=unused-argument
         schema: Optional[str] = None,
     ) -> None:
         """
@@ -1934,6 +1935,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param table: The Superset table (requires database)
         :param viz: The visualization
         :param sql: The SQL string (requires database)
+        :param catalog: Optional catalog name
         :param schema: Optional schema name
         :raises SupersetSecurityException: If the user cannot access the resource
         """

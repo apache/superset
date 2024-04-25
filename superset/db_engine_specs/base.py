@@ -61,7 +61,7 @@ from sqlparse.tokens import CTE
 
 from superset import sql_parse
 from superset.constants import TimeGrain as TimeGrainConstants
-from superset.databases.utils import make_url_safe
+from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.sql_parse import ParsedQuery, SQLScript, Table
@@ -80,6 +80,7 @@ from superset.utils.oauth2 import encode_oauth2_state
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
+    from superset.databases.schemas import TableMetadataResponse
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -638,11 +639,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return driver in cls.drivers
 
     @classmethod
-    def get_default_schema(cls, database: Database) -> str | None:
+    def get_default_schema(cls, database: Database, catalog: str | None) -> str | None:
         """
         Return the default schema in a given database.
         """
-        with database.get_inspector_with_context() as inspector:
+        with database.get_inspector(catalog=catalog) as inspector:
             return inspector.default_schema_name
 
     @classmethod
@@ -697,7 +698,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return schema
 
         # return the default schema of the database
-        return cls.get_default_schema(database)
+        return cls.get_default_schema(database, query.catalog)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -760,18 +761,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_engine(
         cls,
         database: Database,
+        catalog: str | None = None,
         schema: str | None = None,
         source: utils.QuerySource | None = None,
     ) -> ContextManager[Engine]:
         """
         Return an engine context manager.
 
-            >>> with DBEngineSpec.get_engine(database, schema, source) as engine:
+            >>> with DBEngineSpec.get_engine(database, catalog, schema, source) as engine:
             ...     connection = engine.connect()
             ...     connection.execute(sql)
 
         """
-        return database.get_sqla_engine(schema=schema, source=source)
+        return database.get_sqla_engine(catalog=catalog, schema=schema, source=source)
 
     @classmethod
     def get_timestamp_expr(
@@ -1034,6 +1036,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return indexes
 
     @classmethod
+    def get_table_metadata(
+        cls,
+        database: Database,
+        table: Table,
+    ) -> TableMetadataResponse:
+        """
+        Returns basic table metadata
+
+        :param database: Database instance
+        :param table: A Table instance
+        :return: Basic table metadata
+        """
+        return get_table_metadata(database, table)
+
+    @classmethod
     def get_extra_table_metadata(
         cls,
         database: Database,
@@ -1236,7 +1253,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # Only add schema when it is preset and non-empty.
             to_sql_kwargs["schema"] = table.schema
 
-        with cls.get_engine(database) as engine:
+        with cls.get_engine(
+            database,
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as engine:
             if engine.dialect.supports_multivalues_insert:
                 to_sql_kwargs["method"] = "multi"
 
@@ -1471,36 +1492,34 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,  # pylint: disable=unused-argument
         inspector: Inspector,
-        table_name: str,
-        schema: str | None,
+        table: Table,
     ) -> list[dict[str, Any]]:
         """
         Get the indexes associated with the specified schema/table.
 
         :param database: The database to inspect
         :param inspector: The SQLAlchemy inspector
-        :param table_name: The table to inspect
-        :param schema: The schema to inspect
+        :param table: The table instance to inspect
         :returns: The indexes
         """
 
-        return inspector.get_indexes(table_name, schema)
+        return inspector.get_indexes(table.table, table.schema)
 
     @classmethod
     def get_table_comment(
-        cls, inspector: Inspector, table_name: str, schema: str | None
+        cls,
+        inspector: Inspector,
+        table: Table,
     ) -> str | None:
         """
         Get comment of table from a given schema and table
-
         :param inspector: SqlAlchemy Inspector instance
-        :param table_name: Table name
-        :param schema: Schema name. If omitted, uses default schema for database
+        :param table: Table instance
         :return: comment of table
         """
         comment = None
         try:
-            comment = inspector.get_table_comment(table_name, schema)
+            comment = inspector.get_table_comment(table.table, table.schema)
             comment = comment.get("text") if isinstance(comment, dict) else None
         except NotImplementedError:
             # It's expected that some dialects don't implement the comment method
@@ -1514,22 +1533,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_columns(  # pylint: disable=unused-argument
         cls,
         inspector: Inspector,
-        table_name: str,
-        schema: str | None,
+        table: Table,
         options: dict[str, Any] | None = None,
     ) -> list[ResultSetColumnType]:
         """
-        Get all columns from a given schema and table
+        Get all columns from a given schema and table.
+
+        The inspector will be bound to a catalog, if one was specified.
 
         :param inspector: SqlAlchemy Inspector instance
-        :param table_name: Table name
-        :param schema: Schema name. If omitted, uses default schema for database
+        :param table: Table instance
         :param options: Extra options to customise the display of columns in
                         some databases
         :return: All columns in table
         """
         return convert_inspector_columns(
-            cast(list[SQLAColumnType], inspector.get_columns(table_name, schema))
+            cast(
+                list[SQLAColumnType],
+                inspector.get_columns(table.table, table.schema),
+            )
         )
 
     @classmethod
@@ -1537,8 +1559,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         inspector: Inspector,
-        table_name: str,
-        schema: str | None,
+        table: Table,
     ) -> list[MetricType]:
         """
         Get all metrics from a given schema and table.
@@ -1553,19 +1574,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
-    def where_latest_partition(  # pylint: disable=too-many-arguments,unused-argument
+    def where_latest_partition(  # pylint: disable=unused-argument
         cls,
-        table_name: str,
-        schema: str | None,
         database: Database,
+        table: Table,
         query: Select,
         columns: list[ResultSetColumnType] | None = None,
     ) -> Select | None:
         """
         Add a where clause to a query to reference only the most recent partition
 
-        :param table_name: Table name
-        :param schema: Schema name
+        :param table: Table instance
         :param database: Database instance
         :param query: SqlAlchemy query
         :param columns: List of TableColumns
@@ -1588,9 +1607,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def select_star(  # pylint: disable=too-many-arguments,too-many-locals
         cls,
         database: Database,
-        table_name: str,
+        table: Table,
         engine: Engine,
-        schema: str | None = None,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -1603,9 +1621,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         WARNING: expects only unquoted table and schema names.
 
         :param database: Database instance
-        :param table_name: Table name, unquoted
+        :param table: Table instance
         :param engine: SqlAlchemy Engine instance
-        :param schema: Schema, unquoted
         :param limit: limit to impose on query
         :param show_cols: Show columns in query; otherwise use "*"
         :param indent: Add indentation to query
@@ -1617,16 +1634,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         fields: str | list[Any] = "*"
         cols = cols or []
         if (show_cols or latest_partition) and not cols:
-            cols = database.get_columns(table_name, schema)
+            cols = database.get_columns(table)
 
         if show_cols:
             fields = cls._get_fields(cols)
+
         quote = engine.dialect.identifier_preparer.quote
         quote_schema = engine.dialect.identifier_preparer.quote_schema
-        if schema:
-            full_table_name = quote_schema(schema) + "." + quote(table_name)
-        else:
-            full_table_name = quote(table_name)
+        full_table_name = (
+            quote_schema(table.schema) + "." + quote(table.table)
+            if table.schema
+            else quote(table.table)
+        )
 
         qry = select(fields).select_from(text(full_table_name))
 
@@ -1634,7 +1653,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             qry = qry.limit(limit)
         if latest_partition:
             partition_query = cls.where_latest_partition(
-                table_name, schema, database, qry, columns=cols
+                database,
+                table,
+                qry,
+                columns=cols,
             )
             if partition_query is not None:
                 qry = partition_query
@@ -1685,9 +1707,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return database.mutate_sql_based_on_config(sql, is_split=True)
 
     @classmethod
-    def estimate_query_cost(
+    def estimate_query_cost(  # pylint: disable=too-many-arguments
         cls,
         database: Database,
+        catalog: str | None,
         schema: str,
         sql: str,
         source: utils.QuerySource | None = None,
@@ -1709,14 +1732,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
         statements = parsed_query.get_statements()
 
-        costs = []
-        with database.get_raw_connection(schema=schema, source=source) as conn:
+        with database.get_raw_connection(
+            catalog=catalog,
+            schema=schema,
+            source=source,
+        ) as conn:
             cursor = conn.cursor()
-            for statement in statements:
-                processed_statement = cls.process_statement(statement, database)
-                costs.append(cls.estimate_statement_cost(processed_statement, cursor))
-
-        return costs
+            return [
+                cls.estimate_statement_cost(
+                    cls.process_statement(statement, database),
+                    cursor,
+                )
+                for statement in statements
+            ]
 
     @classmethod
     def get_url_for_impersonation(

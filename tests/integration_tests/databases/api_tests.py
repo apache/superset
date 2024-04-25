@@ -2031,7 +2031,7 @@ class TestDatabaseApi(SupersetTestCase):
         if database.backend == "postgresql":
             response = json.loads(rv.data.decode("utf-8"))
             schemas = [
-                s[0] for s in database.get_all_table_names_in_schema(schema_name)
+                s[0] for s in database.get_all_table_names_in_schema(None, schema_name)
             ]
             self.assertEqual(response["count"], len(schemas))
             for option in response["result"]:

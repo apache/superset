@@ -132,9 +132,7 @@ class BaseTestChartDataApi(SupersetTestCase):
 
     def quote_name(self, name: str):
         if get_main_database().backend in {"presto", "hive"}:
-            with (
-                get_example_database().get_inspector_with_context() as inspector
-            ):  # E: Ne
+            with get_example_database().get_inspector() as inspector:  # E: Ne
                 return inspector.engine.dialect.identifier_preparer.quote_identifier(
                     name
                 )

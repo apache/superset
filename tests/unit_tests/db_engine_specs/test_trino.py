@@ -311,15 +311,15 @@ def test_convert_dttm(
     assert_convert_dttm(TrinoEngineSpec, target_type, expected_result, dttm)
 
 
-def test_get_extra_table_metadata() -> None:
+def test_get_extra_table_metadata(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    db_mock = Mock()
+    db_mock = mocker.MagicMock()
     db_mock.get_indexes = Mock(
         return_value=[{"column_names": ["ds", "hour"], "name": "partition"}]
     )
     db_mock.get_extra = Mock(return_value={})
-    db_mock.has_view_by_name = Mock(return_value=None)
+    db_mock.has_view = Mock(return_value=None)
     db_mock.get_df = Mock(return_value=pd.DataFrame({"ds": ["01-01-19"], "hour": [1]}))
     result = TrinoEngineSpec.get_extra_table_metadata(
         db_mock,
@@ -442,7 +442,7 @@ def test_get_columns(mocker: MockerFixture):
     mock_inspector = mocker.MagicMock()
     mock_inspector.get_columns.return_value = sqla_columns
 
-    actual = TrinoEngineSpec.get_columns(mock_inspector, "table", "schema")
+    actual = TrinoEngineSpec.get_columns(mock_inspector, Table("table", "schema"))
     expected = [
         ResultSetColumnType(
             name="field1", column_name="field1", type=field1_type, is_dttm=False
@@ -475,7 +475,9 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
     mock_inspector.get_columns.return_value = sqla_columns
 
     actual = TrinoEngineSpec.get_columns(
-        mock_inspector, "table", "schema", {"expand_rows": True}
+        mock_inspector,
+        Table("table", "schema"),
+        {"expand_rows": True},
     )
     expected = [
         ResultSetColumnType(
@@ -538,7 +540,9 @@ def test_get_indexes_no_table():
         side_effect=NoSuchTableError("The specified table does not exist.")
     )
     result = TrinoEngineSpec.get_indexes(
-        db_mock, inspector_mock, "test_table", "test_schema"
+        db_mock,
+        inspector_mock,
+        Table("test_table", "test_schema"),
     )
     assert result == []
 
