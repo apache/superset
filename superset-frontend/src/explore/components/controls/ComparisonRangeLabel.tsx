@@ -24,6 +24,7 @@ import moment, { Moment } from 'moment';
 import {
   BinaryAdhocFilter,
   css,
+  ensureIsArray,
   fetchTimeRange,
   SimpleAdhocFilter,
   t,
@@ -103,7 +104,6 @@ export const ComparisonRangeLabel = ({
   const shifts = useSelector<RootState, string[]>(
     state => state.explore.form_data.time_compare,
   );
-  console.log('lily shifts', shifts);
   const startDate = useSelector<RootState, string>(
     state => state.explore.form_data.start_date_offset,
   );
@@ -137,7 +137,11 @@ export const ComparisonRangeLabel = ({
           newShifts = [`${inInheritShift} days ago`];
         }
 
-        return fetchTimeRange(filter.comparator, filter.subject, newShifts);
+        return fetchTimeRange(
+          filter.comparator,
+          filter.subject,
+          ensureIsArray(newShifts),
+        );
       });
       Promise.all(promises).then(res => {
         // access the value property inside the res and set the labels with it in the state

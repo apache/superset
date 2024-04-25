@@ -64,12 +64,10 @@ export const fetchTimeRange = async (
   let query;
   let endpoint;
   if (shifts && !isEmpty(shifts)) {
-    const timeRanges = (Array.isArray(shifts) ? shifts : [shifts])?.map(
-      shift => ({
-        timeRange,
-        shift,
-      }),
-    );
+    const timeRanges = shifts?.map(shift => ({
+      timeRange,
+      shift,
+    }));
     query = rison.encode_uri([{ timeRange }, ...timeRanges]);
     endpoint = `/api/v1/time_range/?q=${query}`;
   } else {
