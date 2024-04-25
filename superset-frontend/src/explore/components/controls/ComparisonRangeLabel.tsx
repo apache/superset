@@ -20,13 +20,13 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { isEmpty, isEqual } from 'lodash';
-import moment, { Moment } from 'moment';
 import {
   BinaryAdhocFilter,
   css,
   ensureIsArray,
   fetchTimeRange,
   SimpleAdhocFilter,
+  getTimeOffset,
   t,
 } from '@superset-ui/core';
 import ControlHeader, {
@@ -41,52 +41,6 @@ const isTimeRangeEqual = (
 
 type ComparisonRangeLabelProps = ControlHeaderProps & {
   multi?: boolean;
-};
-
-const dttmToMoment = (dttm: string): Moment => {
-  if (dttm === 'now') {
-    return moment().utc().startOf('second');
-  }
-  if (dttm === 'today' || dttm === 'No filter') {
-    return moment().utc().startOf('day');
-  }
-  if (dttm === 'Last week') {
-    return moment().utc().startOf('day').subtract(7, 'day');
-  }
-  if (dttm === 'Last month') {
-    return moment().utc().startOf('day').subtract(1, 'month');
-  }
-  if (dttm === 'Last quarter') {
-    return moment().utc().startOf('day').subtract(1, 'quarter');
-  }
-  if (dttm === 'Last year') {
-    return moment().utc().startOf('day').subtract(1, 'year');
-  }
-  if (dttm === 'previous calendar week') {
-    return moment().utc().subtract(1, 'weeks').startOf('isoWeek');
-  }
-  if (dttm === 'previous calendar month') {
-    return moment().utc().subtract(1, 'months').startOf('month');
-  }
-  if (dttm === 'previous calendar year') {
-    return moment().utc().subtract(1, 'years').startOf('year');
-  }
-  if (dttm.includes('ago')) {
-    const parts = dttm.split(' ');
-    const amount = parseInt(parts[0], 10);
-    const unit = parts[1] as
-      | 'day'
-      | 'week'
-      | 'month'
-      | 'year'
-      | 'days'
-      | 'weeks'
-      | 'months'
-      | 'years';
-    return moment().utc().subtract(amount, unit);
-  }
-
-  return moment(dttm);
 };
 
 export const ComparisonRangeLabel = ({
@@ -112,30 +66,8 @@ export const ComparisonRangeLabel = ({
     if (isEmpty(currentTimeRangeFilters) || (isEmpty(shifts) && !startDate)) {
       setLabels([]);
     } else if (!isEmpty(shifts) || startDate) {
-      const isCustom = shifts?.includes('custom');
-      const isInherit = shifts?.includes('inherit');
       const promises = currentTimeRangeFilters.map(filter => {
-        const customStartDate = isCustom && startDate;
-        const customShift =
-          customStartDate &&
-          moment(dttmToMoment((filter as any).comparator.split(' : ')[0])).diff(
-            moment(customStartDate),
-            'days',
-          ) + 1;
-
-        const inInheritShift =
-          isInherit &&
-          moment(dttmToMoment((filter as any).comparator.split(' : ')[0])).diff(
-            moment(dttmToMoment((filter as any).comparator.split(' : ')[1])),
-            'days',
-          ) + 1;
-        let newShifts = shifts;
-        if (isCustom) {
-          newShifts = [`${customShift} days ago`];
-        }
-        if (isInherit) {
-          newShifts = [`${inInheritShift} days ago`];
-        }
+        const newShifts = getTimeOffset(filter, shifts, startDate);
 
         return fetchTimeRange(
           filter.comparator,

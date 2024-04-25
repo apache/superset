@@ -34,6 +34,8 @@ import {
   t,
   TimeFormats,
   TimeFormatter,
+  SimpleAdhocFilter,
+  getTimeOffset,
 } from '@superset-ui/core';
 import {
   ColorFormatters,
@@ -454,16 +456,16 @@ const transformProps = (
       relevantColumns.forEach(origCol => {
         if (
           (origCol.isMetric || origCol.isPercentMetric) &&
-          !origCol.key.includes(ensureIsArray(time_compare)[0]) &&
+          !origCol.key.includes(ensureIsArray(timeOffsets)[0]) &&
           origCol.isNumeric
         ) {
           const originalValue = originalItem[origCol.key] || 0;
           const comparisonValue = origCol.isMetric
             ? originalItem?.[
-                `${origCol.key}__${ensureIsArray(time_compare)[0]}`
+                `${origCol.key}__${ensureIsArray(timeOffsets)[0]}`
               ] || 0
             : originalItem[
-                `%${origCol.key.slice(1)}__${ensureIsArray(time_compare)[0]}`
+                `%${origCol.key.slice(1)}__${ensureIsArray(timeOffsets)[0]}`
               ] || 0;
           const { percentDifferenceNum } = calculateDifferences(
             originalValue as number,
@@ -520,8 +522,17 @@ const transformProps = (
   };
 
   const timeGrain = extractTimegrain(formData);
+  const TimeRangeFilters =
+    chartProps.rawFormData?.adhoc_filters?.filter(
+      (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
+    ) || [];
+  const timeOffsets = getTimeOffset(
+    TimeRangeFilters[0],
+    formData.time_compare,
+    formData.start_date_offset,
+  );
   const comparisonSuffix = isUsingTimeComparison
-    ? ensureIsArray(time_compare)[0]
+    ? ensureIsArray(timeOffsets)[0]
     : '';
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);

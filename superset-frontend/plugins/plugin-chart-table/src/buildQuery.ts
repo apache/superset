@@ -21,10 +21,12 @@ import {
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
+  getTimeOffset,
   isPhysicalColumn,
   QueryMode,
   QueryObject,
   removeDuplicates,
+  SimpleAdhocFilter,
 } from '@superset-ui/core';
 import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
 import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
@@ -84,9 +86,21 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
+    const TimeRangeFilters =
+      formData.adhoc_filters?.filter(
+        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
+      ) || [];
+
     const timeOffsets = ensureIsArray(
-      isTimeComparison(formData, baseQueryObject) ? formData.time_compare : [],
+      isTimeComparison(formData, baseQueryObject)
+        ? getTimeOffset(
+            TimeRangeFilters[0],
+            formData.time_compare,
+            formData.start_date_offset,
+          )
+        : [],
     );
+
     let temporalColumAdded = false;
     let temporalColum = null;
 
