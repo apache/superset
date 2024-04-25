@@ -35,6 +35,7 @@ import colombia from './countries/colombia.geojson';
 import costa_rica from './countries/costa_rica.geojson';
 import cuba from './countries/cuba.geojson';
 import cyprus from './countries/cyprus.geojson';
+import czech_republic from './countries/czech_republic.geojson';
 import denmark from './countries/denmark.geojson';
 import dominican_republic from './countries/dominican_republic.geojson';
 import ecuador from './countries/ecuador.geojson';
@@ -134,6 +135,7 @@ export const countries = {
   costa_rica,
   cuba,
   cyprus,
+  czech_republic,
   denmark,
   dominican_republic,
   ecuador,
