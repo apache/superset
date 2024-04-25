@@ -36,15 +36,6 @@ export default function buildQuery(formData: QueryFormData) {
     return [
       {
         ...baseQueryObject,
-        columns: [
-          {
-            timeGrain: 'P1Y', // Group by year by default
-            columnType: 'BASE_AXIS',
-            sqlExpression: baseQueryObject.filters?.[0]?.col.toString() || '',
-            label: baseQueryObject.filters?.[0]?.col.toString() || '',
-            expressionType: 'SQL',
-          },
-        ],
         groupby,
         post_processing: postProcessing,
         time_offsets: isTimeComparison(formData, baseQueryObject)
