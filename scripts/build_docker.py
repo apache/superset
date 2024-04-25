@@ -82,7 +82,7 @@ def is_latest_release(release: str) -> bool:
     return "SKIP_TAG::false" in output
 
 
-def make_docker_tag(l: list[str]) -> str:
+def make_docker_tag(l: list[str]) -> str:  # noqa: E741
     return f"{REPO}:" + "-".join([o for o in l if o])
 
 
@@ -140,7 +140,7 @@ def get_docker_command(
     build_context_ref: str,
     force_latest: bool = False,
 ) -> str:
-    tag = ""
+    tag = ""  # noqa: F841
     build_target = ""
     py_ver = BASE_PY_IMAGE
     docker_context = "."
@@ -284,7 +284,7 @@ def main(
         script = script + docker_build_command
         if verbose:
             run_cmd("cat Dockerfile")
-        stdout = run_cmd(script)
+        stdout = run_cmd(script)  # noqa: F841
     else:
         print("Dry Run - Docker Build Command:")
         print(docker_build_command)

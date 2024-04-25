@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
+
 import json
 import logging
 import re
@@ -857,9 +858,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         pvms = self.get_session.query(PermissionView).filter(
             or_(
                 PermissionView.permission  # pylint: disable=singleton-comparison
-                == None,
+                == None,  # noqa: E711
                 PermissionView.view_menu  # pylint: disable=singleton-comparison
-                == None,
+                == None,  # noqa: E711
             )
         )
         self.get_session.commit()

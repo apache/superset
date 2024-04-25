@@ -50,8 +50,6 @@ from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from pyhive.hive import Cursor
-    from TCLIService.ttypes import TFetchOrientation
 
     from superset.models.core import Database
 
@@ -392,7 +390,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                     # Wait for job id before logging things out
                     # this allows for prefixing all log lines and becoming
                     # searchable in something like Kibana
-                    for l in log_lines[last_log_line:]:
+                    for l in log_lines[last_log_line:]:  # noqa: E741
                         logger.info("Query %s: [%s] %s", str(query_id), str(job_id), l)
                     last_log_line = len(log_lines)
                 if needs_commit:

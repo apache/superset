@@ -72,7 +72,6 @@ from superset import db, feature_flag_manager, security_manager, sql_parse
 
 # pylint: disable=abstract-method
 class SupersetAPSWDialect(APSWDialect):
-
     """
     A SQLAlchemy dialect for an internal Superset engine.
 
@@ -187,7 +186,6 @@ class FallbackField(Field[Any, str]):
 
 # pylint: disable=too-many-instance-attributes
 class SupersetShillelaghAdapter(Adapter):
-
     """
     A Shillelagh adapter for Superset tables.
 

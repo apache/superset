@@ -272,9 +272,9 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
     def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
         # Verbose but efficient database enumeration of dashboard datasources.
-        slices_by_datasource: dict[
-            tuple[type[BaseDatasource], int], set[Slice]
-        ] = defaultdict(set)
+        slices_by_datasource: dict[tuple[type[BaseDatasource], int], set[Slice]] = (
+            defaultdict(set)
+        )
 
         for slc in self.slices:
             slices_by_datasource[(slc.cls_model, slc.datasource_id)].add(slc)
@@ -426,6 +426,6 @@ def id_or_slug_filter(id_or_slug: int | str) -> BinaryExpression:
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
 
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
-    update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()
+    update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()  # noqa: E731
     sqla.event.listen(Dashboard, "after_insert", update_thumbnail)
     sqla.event.listen(Dashboard, "after_update", update_thumbnail)

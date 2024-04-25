@@ -40,9 +40,9 @@ class CustomEncFieldAdapter(AbstractEncryptedFieldAdapter):
 
 class EncryptedFieldTest(SupersetTestCase):
     def setUp(self) -> None:
-        self.app.config[
-            "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
-        ] = SQLAlchemyUtilsAdapter
+        self.app.config["SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"] = (
+            SQLAlchemyUtilsAdapter
+        )
         encrypted_field_factory.init_app(self.app)
 
         super().setUp()
@@ -53,9 +53,9 @@ class EncryptedFieldTest(SupersetTestCase):
         self.assertEqual(self.app.config["SECRET_KEY"], field.key)
 
     def test_custom_adapter(self):
-        self.app.config[
-            "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
-        ] = CustomEncFieldAdapter
+        self.app.config["SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"] = (
+            CustomEncFieldAdapter
+        )
         encrypted_field_factory.init_app(self.app)
         field = encrypted_field_factory.create(String(1024))
         self.assertTrue(isinstance(field, StringEncryptedType))

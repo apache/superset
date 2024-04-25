@@ -146,7 +146,7 @@ def setup_sample_data() -> Any:
 
 
 def drop_from_schema(engine: Engine, schema_name: str):
-    schemas = engine.execute(f"SHOW SCHEMAS").fetchall()
+    schemas = engine.execute(f"SHOW SCHEMAS").fetchall()  # noqa: F541
     if schema_name not in [s[0] for s in schemas]:
         # schema doesn't exist
         return

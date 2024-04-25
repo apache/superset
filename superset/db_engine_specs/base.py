@@ -130,9 +130,7 @@ builtin_time_grains: dict[str | None, str] = {
 }
 
 
-class TimestampExpression(
-    ColumnClause
-):  # pylint: disable=abstract-method, too-many-ancestors
+class TimestampExpression(ColumnClause):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be used to render native column elements respecting
         engine-specific quoting rules as part of a string-based expression.
@@ -575,7 +573,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_allows_alias_in_select(
-        cls, database: Database  # pylint: disable=unused-argument
+        cls,
+        database: Database,  # pylint: disable=unused-argument
     ) -> bool:
         """
         Method for dynamic `allows_alias_in_select`.
@@ -1035,7 +1034,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return indexes
 
     @classmethod
-    def get_extra_table_metadata(  # pylint: disable=unused-argument
+    def get_extra_table_metadata(
         cls,
         database: Database,
         table: Table,

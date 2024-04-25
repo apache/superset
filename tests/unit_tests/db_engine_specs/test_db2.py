@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import pytest
+import pytest  # noqa: F401
 from pytest_mock import MockerFixture
 
 
@@ -59,7 +59,7 @@ def test_get_table_comment_empty(mocker: MockerFixture):
     mock_inspector.get_table_comment.return_value = {}
 
     assert (
-        Db2EngineSpec.get_table_comment(mock_inspector, "my_table", "my_schema") == None
+        Db2EngineSpec.get_table_comment(mock_inspector, "my_table", "my_schema") is None  # noqa: E711
     )
 
 

@@ -22,28 +22,28 @@ import json
 import os
 import re
 from typing import Any, Optional
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch  # noqa: F401
 
 from superset.commands.database.exceptions import DatabaseInvalidError
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 
 import numpy as np
 import pandas as pd
 import pytest
-from flask import Flask, g
+from flask import Flask, g  # noqa: F401
 import marshmallow
-from sqlalchemy.exc import ArgumentError
+from sqlalchemy.exc import ArgumentError  # noqa: F401
 
-import tests.integration_tests.test_app
+import tests.integration_tests.test_app  # noqa: F401
 from superset import app, db, security_manager
 from superset.constants import NO_TIME_RANGE
-from superset.exceptions import CertificateException, SupersetException
+from superset.exceptions import CertificateException, SupersetException  # noqa: F401
 from superset.models.core import Database, Log
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
+from superset.models.dashboard import Dashboard  # noqa: F401
+from superset.models.slice import Slice  # noqa: F401
 from superset.utils.core import (
     base_json_conv,
     cast_to_num,
@@ -74,12 +74,12 @@ from superset.utils.core import (
 from superset.utils.database import get_or_create_db
 from superset.utils import schema
 from superset.utils.hashing import md5_sha_from_str
-from superset.views.utils import build_extra_filters, get_form_data
+from superset.views.utils import build_extra_filters, get_form_data  # noqa: F401
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 from .fixtures.certificates import ssl_certificate
@@ -901,7 +901,7 @@ class TestUtils(SupersetTestCase):
         dashboard_id = 1
 
         assert slc.viz is not None
-        resp = self.get_json_resp(
+        resp = self.get_json_resp(  # noqa: F841
             f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/"
             + f'?form_data={{"slice_id": {slc.id}}}&dashboard_id={dashboard_id}',
             {"form_data": json.dumps(slc.viz.form_data)},

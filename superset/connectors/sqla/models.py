@@ -175,9 +175,7 @@ class DatasourceKind(StrEnum):
     PHYSICAL = "physical"
 
 
-class BaseDatasource(
-    AuditMixinNullable, ImportExportMixin
-):  # pylint: disable=too-many-public-methods
+class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
     """A common interface to objects that are queryable
     (tables and datasources)"""
 
@@ -669,7 +667,8 @@ class BaseDatasource(
         )
 
     def get_extra_cache_keys(
-        self, query_obj: QueryObjectDict  # pylint: disable=unused-argument
+        self,
+        query_obj: QueryObjectDict,  # pylint: disable=unused-argument
     ) -> list[Hashable]:
         """If a datasource needs to provide additional keys for calculation of
         cache keys, those can be provided via this method
@@ -757,7 +756,6 @@ class AnnotationDatasource(BaseDatasource):
 
 
 class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
-
     """ORM object for table columns, each table can have multiple columns"""
 
     __tablename__ = "table_columns"
@@ -971,7 +969,6 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
 
 class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
-
     """ORM object for metrics, each table can have multiple metrics"""
 
     __tablename__ = "sql_metrics"
@@ -1289,7 +1286,7 @@ class SqlaTable(
 
     @property
     def dttm_cols(self) -> list[str]:
-        l = [c.column_name for c in self.columns if c.is_dttm]
+        l = [c.column_name for c in self.columns if c.is_dttm]  # noqa: E741
         if self.main_dttm_col and self.main_dttm_col not in l:
             l.append(self.main_dttm_col)
         return l

@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-many-lines
 """a collection of model-related helper classes and functions"""
+
 import builtins
 import dataclasses
 import json
@@ -200,9 +201,7 @@ class ImportExportMixin:
             for u in cls.__table_args__  # type: ignore
             if isinstance(u, UniqueConstraint)
         ]
-        unique.extend(
-            {c.name} for c in cls.__table__.columns if c.unique  # type: ignore
-        )
+        unique.extend({c.name} for c in cls.__table__.columns if c.unique)  # type: ignore
         return unique
 
     @classmethod
@@ -210,7 +209,7 @@ class ImportExportMixin:
         """Get a mapping of foreign name to the local name of foreign keys"""
         parent_rel = cls.__mapper__.relationships.get(cls.export_parent)
         if parent_rel:
-            return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}
+            return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}  # noqa: E741
         return {}
 
     @classmethod
@@ -556,7 +555,6 @@ class AuditMixinNullable(AuditMixin):
 
 
 class QueryResult:  # pylint: disable=too-few-public-methods
-
     """Object returned by the query interface"""
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -1246,7 +1244,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def adhoc_column_to_sqla(
         self,
-        col: "AdhocColumn",  # type: ignore
+        col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
@@ -1325,7 +1323,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         )
 
-        l = []
+        l = []  # noqa: E741
         if start_dttm:
             l.append(
                 col

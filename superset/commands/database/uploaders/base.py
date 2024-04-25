@@ -61,8 +61,7 @@ class BaseDataReader:
         self._options = options
 
     @abstractmethod
-    def file_to_dataframe(self, file: Any) -> pd.DataFrame:
-        ...
+    def file_to_dataframe(self, file: Any) -> pd.DataFrame: ...
 
     def read(
         self, file: Any, database: Database, table_name: str, schema_name: Optional[str]

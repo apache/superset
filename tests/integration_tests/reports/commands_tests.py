@@ -79,12 +79,12 @@ from superset.reports.notifications.exceptions import (
 from superset.tasks.types import ExecutorType
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices_module_scope,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices_module_scope,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.reports.utils import (
     cleanup_report_schedule,
@@ -1398,7 +1398,7 @@ def test_alert_limit_is_applied(
             create_alert_email_chart.database.db_engine_spec,
             "fetch_data",
             return_value=None,
-        ) as fetch_data_mock:
+        ):  # noqa: F841
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_alert_email_chart.id, datetime.utcnow()
             ).run()
@@ -1443,7 +1443,7 @@ def test_email_dashboard_report_fails_uncaught_exception(
     and logs with uncaught exception
     """
     # setup screenshot mock
-    from smtplib import SMTPException
+    from smtplib import SMTPException  # noqa: F401
 
     screenshot_mock.return_value = SCREENSHOT_FILE
     email_mock.side_effect = Exception("Uncaught exception")
@@ -1594,7 +1594,7 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
                 TEST_ID, create_alert_email_chart.id, datetime.utcnow()
             ).run()
 
-    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+    get_target_from_report_schedule(create_alert_email_chart)  # noqa: F841
     # Assert the email smtp address, asserts a notification was sent with the error
     assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 
@@ -1661,7 +1661,7 @@ def test_soft_timeout_csv(
             TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(
+    get_target_from_report_schedule(  # noqa: F841
         create_report_email_chart_with_csv
     )
     # Assert the email smtp address, asserts a notification was sent with the error
@@ -1701,7 +1701,7 @@ def test_generate_no_csv(
             TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(
+    get_target_from_report_schedule(  # noqa: F841
         create_report_email_chart_with_csv
     )
     # Assert the email smtp address, asserts a notification was sent with the error
@@ -1722,9 +1722,9 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
     """
     ExecuteReport Command: Test soft timeout on screenshot
     """
-    from celery.exceptions import SoftTimeLimitExceeded
+    from celery.exceptions import SoftTimeLimitExceeded  # noqa: F401
 
-    from superset.commands.report.exceptions import AlertQueryTimeout
+    from superset.commands.report.exceptions import AlertQueryTimeout  # noqa: F401
 
     screenshot_mock.side_effect = Exception("Unexpected error")
     with pytest.raises(ReportScheduleScreenshotFailedError):
@@ -1732,7 +1732,7 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
             TEST_ID, create_report_email_chart.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(create_report_email_chart)
+    get_target_from_report_schedule(create_report_email_chart)  # noqa: F841
     # Assert the email smtp address, asserts a notification was sent with the error
     assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 

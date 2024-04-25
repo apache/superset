@@ -31,18 +31,14 @@ def test_0_progress():
     log = """
         17/02/07 18:26:27 INFO log.PerfLogger: <PERFLOG method=compile from=org.apache.hadoop.hive.ql.Driver>
         17/02/07 18:26:27 INFO log.PerfLogger: <PERFLOG method=parse from=org.apache.hadoop.hive.ql.Driver>
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 0
 
 
 def test_number_of_jobs_progress():
     log = """
         17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 0
 
 
@@ -50,9 +46,7 @@ def test_job_1_launched_progress():
     log = """
         17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
         17/02/07 19:15:55 INFO ql.Driver: Launching Job 1 out of 2
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 0
 
 
@@ -61,9 +55,7 @@ def test_job_1_launched_stage_1():
         17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
         17/02/07 19:15:55 INFO ql.Driver: Launching Job 1 out of 2
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 0
 
 
@@ -73,9 +65,7 @@ def test_job_1_launched_stage_1_map_40_progress():  # pylint: disable=invalid-na
         17/02/07 19:15:55 INFO ql.Driver: Launching Job 1 out of 2
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 40%,  reduce = 0%
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 10
 
 
@@ -86,9 +76,7 @@ def test_job_1_launched_stage_1_map_80_reduce_40_progress():  # pylint: disable=
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 40%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 80%,  reduce = 40%
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 30
 
 
@@ -101,9 +89,7 @@ def test_job_1_launched_stage_2_stages_progress():  # pylint: disable=invalid-na
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 80%,  reduce = 40%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-2 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 100%,  reduce = 0%
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 12
 
 
@@ -115,9 +101,7 @@ def test_job_2_launched_stage_2_stages_progress():  # pylint: disable=invalid-na
         17/02/07 19:15:55 INFO ql.Driver: Launching Job 2 out of 2
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 40%,  reduce = 0%
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 60
 
 
@@ -187,7 +171,7 @@ def test_df_to_sql_if_exists_fail_with_schema(mock_g):
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3")
 def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
     config = app.config.copy()
-    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""
+    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""  # noqa: F722
     mock_upload_to_s3.return_value = "mock-location"
     mock_g.user = True
     mock_database = mock.MagicMock()
@@ -214,7 +198,7 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3")
 def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
     config = app.config.copy()
-    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""
+    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""  # noqa: F722
     mock_upload_to_s3.return_value = "mock-location"
     mock_g.user = True
     mock_database = mock.MagicMock()
@@ -301,7 +285,7 @@ def test_upload_to_s3_success(client):
 
     with app.app_context():
         location = upload_to_s3("filename", "prefix", Table("table"))
-        assert f"s3a://bucket/prefix/table" == location
+        assert "s3a://bucket/prefix/table" == location  # noqa: F541
 
     app.config = config
 

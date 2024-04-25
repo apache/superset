@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 import json
 from io import BytesIO
 from time import sleep
@@ -30,7 +31,7 @@ import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
-from superset import app, db, security_manager
+from superset import app, db, security_manager  # noqa: F401
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -39,7 +40,7 @@ from superset.utils.core import backend, override_user
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.conftest import with_feature_flags  # noqa: F401
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -56,12 +57,12 @@ from tests.integration_tests.fixtures.importexport import (
 )
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 DASHBOARDS_FIXTURE_COUNT = 10
@@ -148,7 +149,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         with self.create_app().app_context():
             admin = self.get_user("admin")
             dashboard = self.insert_dashboard(
-                f"dashboard_report", "dashboard_report", [admin.id]
+                "dashboard_report",
+                "dashboard_report",
+                [admin.id],  # noqa: F541
             )
             report_schedule = ReportSchedule(
                 type=ReportScheduleType.REPORT,
@@ -186,8 +189,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     def test_get_dashboard_datasets_as_guest(self, is_guest_user, has_guest_access):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/world_health/datasets"
-        is_guest_user = True
-        has_guest_access = True
         response = self.get_assert_metric(uri, "get_datasets")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data.decode("utf-8"))
@@ -1708,7 +1709,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         rv = self.get_assert_metric(uri, "export")
 
-        headers = f"attachment; filename=dashboard_export_20220101T000000.zip"
+        headers = "attachment; filename=dashboard_export_20220101T000000.zip"  # noqa: F541
         assert rv.status_code == 200
         assert rv.headers["Content-Disposition"] == headers
 
@@ -2017,7 +2018,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         API: Test get filter related roles
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/related/roles"
+        uri = "api/v1/dashboard/related/roles"  # noqa: F541
 
         rv = self.client.get(uri)
         assert rv.status_code == 200
@@ -2059,7 +2060,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "superset.views.filters.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
         ):
-            uri = f"api/v1/dashboard/related/roles"
+            uri = "api/v1/dashboard/related/roles"  # noqa: F541
             rv = self.client.get(uri)
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
@@ -2147,7 +2148,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertEqual(data["count"], len(expected_models))
 
     def test_gets_not_created_by_user_dashboards_filter(self):
-        dashboard = self.insert_dashboard(f"title", f"slug", [])
+        dashboard = self.insert_dashboard("title", "slug", [])  # noqa: F541
         expected_models = (
             db.session.query(Dashboard).filter(Dashboard.created_by_fk.is_(None)).all()
         )

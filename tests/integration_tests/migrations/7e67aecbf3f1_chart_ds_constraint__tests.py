@@ -53,4 +53,4 @@ def test_upgrade():
 def test_upgrade_bad_json():
     slc = Slice(datasource_type="query", params=json.dumps(sample_params))
 
-    assert None == upgrade_slice(slc)
+    assert None is upgrade_slice(slc)  # noqa: E711

@@ -21,13 +21,14 @@ Revises: f2672aa8350a
 Create Date: 2020-08-12 00:24:39.617899
 
 """
+
 import json
 import logging
 import uuid
 from collections import defaultdict
 
 from alembic import op
-from sqlalchemy import and_, Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 

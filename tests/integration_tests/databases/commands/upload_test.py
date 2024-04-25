@@ -26,7 +26,6 @@ from superset import db, security_manager
 from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseSchemaUploadNotAllowed,
-    DatabaseUploadFailed,
     DatabaseUploadNotSupported,
 )
 from superset.commands.database.uploaders.base import UploadCommand

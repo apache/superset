@@ -24,7 +24,7 @@ from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
-from superset import db, security_manager
+from superset import security_manager
 from superset.commands.dashboard.importers.v1.utils import import_dashboard
 from superset.commands.exceptions import ImportFailedError
 from superset.models.dashboard import Dashboard

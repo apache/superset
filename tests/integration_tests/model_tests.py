@@ -21,21 +21,21 @@ import unittest
 from unittest import mock
 
 from superset import security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable  # noqa: F401
 from superset.exceptions import SupersetException
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 
 import pytest
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.types import DateTime
+from sqlalchemy.types import DateTime  # noqa: F401
 
-import tests.integration_tests.test_app
+import tests.integration_tests.test_app  # noqa: F401
 from superset import app, db as metadata_db
-from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.postgres import PostgresEngineSpec  # noqa: F401
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
@@ -43,8 +43,8 @@ from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
 from .fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
+    load_energy_table_with_slice,  # noqa: F401
+    load_energy_table_data,  # noqa: F401
 )
 
 

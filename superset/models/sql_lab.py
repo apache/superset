@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
+
 import builtins
 import inspect
 import logging
@@ -349,7 +350,7 @@ class Query(
 
     def adhoc_column_to_sqla(
         self,
-        col: "AdhocColumn",  # type: ignore
+        col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:

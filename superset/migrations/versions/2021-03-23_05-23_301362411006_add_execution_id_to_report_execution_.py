@@ -26,9 +26,9 @@ Create Date: 2021-03-23 05:23:15.641856
 revision = "301362411006"
 down_revision = "989bbe479899"
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy_utils import UUIDType
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy_utils import UUIDType  # noqa: E402
 
 
 def upgrade():

@@ -22,7 +22,6 @@ from flask.ctx import AppContext
 
 from superset import db
 from superset.models.annotations import Annotation, AnnotationLayer
-from tests.integration_tests.test_app import app
 
 ANNOTATION_LAYERS_COUNT = 10
 ANNOTATIONS_COUNT = 5

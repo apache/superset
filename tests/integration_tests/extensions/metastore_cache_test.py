@@ -65,7 +65,7 @@ def test_caching_flow(app_context: AppContext, cache: SupersetMetastoreCache) ->
     assert cache.get(SECOND_KEY) == SECOND_VALUE
     assert cache.add(FIRST_KEY, FIRST_KEY_UPDATED_VALUE) is False
     assert cache.get(FIRST_KEY) == FIRST_KEY_INITIAL_VALUE
-    assert cache.set(FIRST_KEY, FIRST_KEY_UPDATED_VALUE) == True
+    assert cache.set(FIRST_KEY, FIRST_KEY_UPDATED_VALUE) is True  # noqa: E712
     assert cache.get(FIRST_KEY) == FIRST_KEY_UPDATED_VALUE
     cache.delete(FIRST_KEY)
     assert cache.has(FIRST_KEY) is False

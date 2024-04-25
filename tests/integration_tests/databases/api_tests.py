@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 import dataclasses
 import json
 from collections import defaultdict
@@ -30,15 +31,15 @@ import yaml
 
 from unittest.mock import Mock
 
-from sqlalchemy.engine.url import make_url
+from sqlalchemy.engine.url import make_url  # noqa: F401
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
-from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelDatabasePortError
+from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelDatabasePortError  # noqa: F401
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.ssh_tunnel.models import SSHTunnel
-from superset.databases.utils import make_url_safe
+from superset.databases.utils import make_url_safe  # noqa: F401
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.db_engine_specs.redshift import RedshiftEngineSpec
@@ -52,16 +53,16 @@ from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
+    load_energy_table_with_slice,  # noqa: F401
+    load_energy_table_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.importexport import (
     database_config,
@@ -75,8 +76,8 @@ from tests.integration_tests.fixtures.importexport import (
     database_with_ssh_tunnel_config_private_pass_only,
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
-    load_unicode_dashboard_with_position,
-    load_unicode_data,
+    load_unicode_dashboard_with_position,  # noqa: F401
+    load_unicode_data,  # noqa: F401
 )
 from tests.integration_tests.test_app import app
 
@@ -2496,9 +2497,9 @@ class TestDatabaseApi(SupersetTestCase):
         uri = "api/v1/database/import/"
 
         masked_database_config = database_config.copy()
-        masked_database_config[
-            "sqlalchemy_uri"
-        ] = "postgresql://username:XXXXXXXXXX@host:12345/db"
+        masked_database_config["sqlalchemy_uri"] = (
+            "postgresql://username:XXXXXXXXXX@host:12345/db"
+        )
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
@@ -2553,9 +2554,9 @@ class TestDatabaseApi(SupersetTestCase):
         uri = "api/v1/database/import/"
 
         masked_database_config = database_config.copy()
-        masked_database_config[
-            "sqlalchemy_uri"
-        ] = "vertica+vertica_python://hackathon:XXXXXXXXXX@host:5433/dbname?ssl=1"
+        masked_database_config["sqlalchemy_uri"] = (
+            "vertica+vertica_python://hackathon:XXXXXXXXXX@host:5433/dbname?ssl=1"
+        )
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
@@ -4039,7 +4040,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_names = [db.database_name for db in dbs]
         expected_names.sort()
 
-        uri = f"api/v1/database/"
+        uri = "api/v1/database/"  # noqa: F541
         # Get the list of databases without filter in the config
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
@@ -4058,7 +4059,7 @@ class TestDatabaseApi(SupersetTestCase):
             "superset.views.filters.current_app.config",
             {"EXTRA_DYNAMIC_QUERY_FILTERS": {"databases": base_filter_mock}},
         ):
-            uri = f"api/v1/database/"
+            uri = "api/v1/database/"  # noqa: F541
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             # Only one database start with dyntest
