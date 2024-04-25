@@ -217,10 +217,11 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
     _function_names: list[str] = []
 
     sqlalchemy_uri_placeholder = (
-        "databend://user:password@host[:port][/dbname][?secure=value&=value...]"
+        "databend://user:password@host[:port][/dbname][?sslmode=value&=value...]"
     )
     parameters_schema = DatabendParametersSchema()
-    encryption_parameters = {"secure": "true"}
+    encryption_parameters = {"sslmode": "require"}
+    encryption_disable_parameters = {"sslmode": "disable"}
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -258,10 +259,12 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
         cls, parameters: BasicParametersType, *_args: dict[str, str] | None
     ) -> str:
         url_params = parameters.copy()
+        query = parameters.get("query", {}).copy()
         if url_params.get("encryption"):
-            query = parameters.get("query", {}).copy()
             query.update(cls.encryption_parameters)
-            url_params["query"] = query
+        else:
+            query.update(cls.encryption_disable_parameters)
+        url_params["query"] = query
         if not url_params.get("database"):
             url_params["database"] = "__default__"
         url_params.pop("encryption", None)
@@ -273,7 +276,10 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
     ) -> BasicParametersType:
         url = make_url_safe(uri)
         query = url.query
-        if "secure" in query:
+        if "sslmode" in query:
+            encryption = url.query.get("sslmode") == "require"
+            query.pop("sslmode")
+        elif "secure" in query:
             encryption = url.query.get("secure") == "true"
             query.pop("secure")
         else:
