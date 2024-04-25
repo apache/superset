@@ -44,6 +44,7 @@ def connector_registry() -> Mock:
     mock.get_datasource().verbose_map = {"sum__num": "SUM", "unused": "UNUSED"}
     return mock
 
+
 def apply_max_row_limit(limit: int, max_limit: Optional[int] = None) -> int:
     if max_limit is None:
         max_limit = create_app_config()["SQL_MAX_ROW"]
@@ -66,9 +67,11 @@ def query_object_factory(
 def raw_query_context() -> dict[str, Any]:
     return QueryContextGenerator().generate("birth_names")
 
+
 @fixture
 def metric_label_raw_query_context() -> dict[str, Any]:
     return QueryContextGenerator().generate("birth_names:metric_labels")
+
 
 class TestQueryObjectFactory:
     def test_query_context_limit_and_offset_defaults(
@@ -117,9 +120,15 @@ class TestQueryObjectFactory:
         query_object_factory: QueryObjectFactory,
         raw_query_context: dict[str, Any],
     ):
-        raw_query_context["queries"][0]["metrics"] = [{"label": "sum__num"}, {"label": "num_girls"}, {"label": "num_boys"}]
+        raw_query_context["queries"][0]["metrics"] = [
+            {"label": "sum__num"},
+            {"label": "num_girls"},
+            {"label": "num_boys"},
+        ]
         raw_query_object = raw_query_context["queries"][0]
         query_object = query_object_factory.create(
-            raw_query_context["result_type"], datasource=raw_query_context["datasource"], **raw_query_object
+            raw_query_context["result_type"], 
+            datasource=raw_query_context["datasource"], 
+            **raw_query_object
         )
         assert query_object.metric_names == ["SUM", "num_girls", "num_boys"]
