@@ -64,6 +64,20 @@ const dttmToMoment = (dttm: string): Moment => {
   if (dttm === 'previous calendar year') {
     return moment().utc().subtract(1, 'years').startOf('year');
   }
+  if (dttm.includes('ago')) {
+    const parts = dttm.split(' ');
+    const amount = parseInt(parts[0], 10);
+    const unit = parts[1] as
+      | 'day'
+      | 'week'
+      | 'month'
+      | 'year'
+      | 'days'
+      | 'weeks'
+      | 'months'
+      | 'years';
+    return moment().utc().subtract(amount, unit);
+  }
 
   return moment(dttm);
 };
@@ -84,11 +98,10 @@ export default function TimeOffsetControls({
       ),
     isTimeRangeEqual,
   );
+
   const startDate = currentTimeRangeFilters[0]?.comparator.split(' : ')[0];
 
-  const formatedDate = startDate
-    ? dttmToMoment(startDate)
-    : dttmToMoment('now');
+  const formatedDate = dttmToMoment(startDate);
   const disabledDate: RangePickerProps['disabledDate'] = current =>
     current && current >= formatedDate;
 
@@ -106,6 +119,7 @@ export default function TimeOffsetControls({
           startDate ? moment(formatedDate).subtract(1, 'day') : undefined
         }
         disabledDate={disabledDate}
+        defaultValue={formatedDate}
       />
     </div>
   );

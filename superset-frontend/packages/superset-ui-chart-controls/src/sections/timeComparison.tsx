@@ -49,6 +49,8 @@ export const timeComparisonControls: ControlPanelSectionConfig = {
             ['2 years ago', t('2 years ago')],
             ['156 weeks ago', t('156 weeks ago')],
             ['3 years ago', t('3 years ago')],
+            ['custom', t('Custom')],
+            ['inherit', t('Inherit')],
           ],
           description: t(
             'Overlay one or more timeseries from a ' +
@@ -65,6 +67,8 @@ export const timeComparisonControls: ControlPanelSectionConfig = {
         config: {
           type: 'TimeOffsetControl',
           label: t('shift start date'),
+          visibility: ({ controls }) =>
+            controls?.time_compare.value === 'custom',
         },
       },
     ],
