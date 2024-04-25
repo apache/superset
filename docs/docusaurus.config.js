@@ -120,8 +120,12 @@ const config = {
             from: '/docs/roadmap',
           },
           {
-            to: '/docs/contributing/contributing-page',
+            to: '/docs/contributing/',
             from: '/docs/contributing/contribution-guidelines',
+          },
+          {
+            to: '/docs/contributing/',
+            from: '/docs/contributing/contribution-page',
           },
           {
             to: '/docs/databases/yugabytedb',
