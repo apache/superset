@@ -18,15 +18,24 @@
  */
 
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { ThemeProvider, supersetTheme } from '../../../src/style';
 import NoResultsComponent from '../../../src/chart/components/NoResultsComponent';
 
-test('renders the no results error', () => {
-  const { getByText } = render(<NoResultsComponent height="400" width="300" />);
+const renderNoResultsComponent = () =>
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <NoResultsComponent height="400" width="300" />
+    </ThemeProvider>,
+  );
 
-  expect(getByText(/No Results/)).toBeInTheDocument();
+test('renders the no results error', () => {
+  renderNoResultsComponent();
+
+  expect(screen.getByText(/No Results/)).toBeInTheDocument();
   expect(
-    getByText(
+    screen.getByText(
       'No results were returned for this query. If you expected results to be returned, ensure any filters are configured properly and the datasource contains data for the selected time range.',
     ),
   ).toBeInTheDocument();
