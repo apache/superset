@@ -20,7 +20,11 @@
 export { default as ChartClient } from './clients/ChartClient';
 export { default as ChartMetadata } from './models/ChartMetadata';
 export { default as ChartPlugin } from './models/ChartPlugin';
-export { default as ChartProps, ChartPropsConfig } from './models/ChartProps';
+export { default as ChartProps } from './models/ChartProps';
+/* reexporting this interface as a type solves the dev-server
+ * warning the named export does not exist. See https://github.com/webpack/webpack/issues/7378#issuecomment-492641148
+ */
+export type { ChartPropsConfig } from './models/ChartProps';
 
 export { default as createLoadableRenderer } from './components/createLoadableRenderer';
 export { default as reactify } from './components/reactify';
