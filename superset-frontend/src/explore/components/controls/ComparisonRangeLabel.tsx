@@ -20,7 +20,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { isEmpty, isEqual } from 'lodash';
-import moment from 'moment';
+import moment, { Moment } from 'moment';
 import {
   BinaryAdhocFilter,
   css,
@@ -42,6 +42,52 @@ type ComparisonRangeLabelProps = ControlHeaderProps & {
   multi?: boolean;
 };
 
+const dttmToMoment = (dttm: string): Moment => {
+  if (dttm === 'now') {
+    return moment().utc().startOf('second');
+  }
+  if (dttm === 'today' || dttm === 'No filter') {
+    return moment().utc().startOf('day');
+  }
+  if (dttm === 'Last week') {
+    return moment().utc().startOf('day').subtract(7, 'day');
+  }
+  if (dttm === 'Last month') {
+    return moment().utc().startOf('day').subtract(1, 'month');
+  }
+  if (dttm === 'Last quarter') {
+    return moment().utc().startOf('day').subtract(1, 'quarter');
+  }
+  if (dttm === 'Last year') {
+    return moment().utc().startOf('day').subtract(1, 'year');
+  }
+  if (dttm === 'previous calendar week') {
+    return moment().utc().subtract(1, 'weeks').startOf('isoWeek');
+  }
+  if (dttm === 'previous calendar month') {
+    return moment().utc().subtract(1, 'months').startOf('month');
+  }
+  if (dttm === 'previous calendar year') {
+    return moment().utc().subtract(1, 'years').startOf('year');
+  }
+  if (dttm.includes('ago')) {
+    const parts = dttm.split(' ');
+    const amount = parseInt(parts[0], 10);
+    const unit = parts[1] as
+      | 'day'
+      | 'week'
+      | 'month'
+      | 'year'
+      | 'days'
+      | 'weeks'
+      | 'months'
+      | 'years';
+    return moment().utc().subtract(amount, unit);
+  }
+
+  return moment(dttm);
+};
+
 export const ComparisonRangeLabel = ({
   multi = true,
 }: ComparisonRangeLabelProps) => {
@@ -57,6 +103,7 @@ export const ComparisonRangeLabel = ({
   const shifts = useSelector<RootState, string[]>(
     state => state.explore.form_data.time_compare,
   );
+  console.log('lily shifts', shifts);
   const startDate = useSelector<RootState, string>(
     state => state.explore.form_data.start_date_offset,
   );
@@ -65,26 +112,32 @@ export const ComparisonRangeLabel = ({
     if (isEmpty(currentTimeRangeFilters) || (isEmpty(shifts) && !startDate)) {
       setLabels([]);
     } else if (!isEmpty(shifts) || startDate) {
+      const isCustom = shifts?.includes('custom');
+      const isInherit = shifts?.includes('inherit');
       const promises = currentTimeRangeFilters.map(filter => {
-        const startDateShift =
-          startDate &&
-          moment((filter as any).comparator.split(' : ')[0]).diff(
-            moment(startDate),
+        const customStartDate = isCustom && startDate;
+        const customShift =
+          customStartDate &&
+          moment(dttmToMoment((filter as any).comparator.split(' : ')[0])).diff(
+            moment(customStartDate),
             'days',
-          );
-        const newshift = startDateShift
-          ? [`${startDateShift} days ago`]
-          : shifts
-            ? Array.isArray(shifts)
-              ? shifts
-              : [shifts]
-            : undefined;
+          ) + 1;
 
-        return fetchTimeRange(
-          filter.comparator,
-          filter.subject,
-          multi ? shifts : newshift,
-        );
+        const inInheritShift =
+          isInherit &&
+          moment(dttmToMoment((filter as any).comparator.split(' : ')[0])).diff(
+            moment(dttmToMoment((filter as any).comparator.split(' : ')[1])),
+            'days',
+          ) + 1;
+        let newShifts = shifts;
+        if (isCustom) {
+          newShifts = [`${customShift} days ago`];
+        }
+        if (isInherit) {
+          newShifts = [`${inInheritShift} days ago`];
+        }
+
+        return fetchTimeRange(filter.comparator, filter.subject, newShifts);
       });
       Promise.all(promises).then(res => {
         // access the value property inside the res and set the labels with it in the state
