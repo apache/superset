@@ -193,10 +193,13 @@ class QueryContextProcessor:
         })
         label_map.update({
             unescape_separator(metric_name): [
-                unescape_separator(metric)
+                unescape_separator(metric) 
                 for metric in re.split(r"(?<!\\),\s", query_obj.metrics[idx]
                 if not is_adhoc_metric(query_obj.metrics[idx])
-                else query_obj.metrics[idx]["sqlExpression"])
+                else
+                    query_obj.metrics[idx]["sqlExpression"]
+                    if query_obj.metrics[idx]["expressionType"] == "SQL"
+                    else metric_name)
             ]
             for idx, metric_name in enumerate(query_obj.metric_names) if query_obj
         })

@@ -24,7 +24,7 @@ from superset.utils.core import AnnotationType, DTTM_ALIAS
 query_birth_names = {
     "extras": {"where": "", "time_grain_sqla": "P1D"},
     "columns": ["name"],
-    "metrics": [{"label": "sum__num"}],
+    "metrics": [{"label": "sum__num"}, {"label": "num_girls"}, {"label": "num_boys"}],
     "orderby": [("sum__num", False)],
     "row_limit": 100,
     "granularity": "ds",
