@@ -11,9 +11,7 @@ This page describes how to install Superset using the `apache-superset` package 
 
 ### OS Dependencies
 
-Superset stores database connection information in its metadata database. For that purpose, we use
-the cryptography Python library to encrypt connection passwords. Unfortunately, this library has OS
-level dependencies.
+Superset uses the `cryptography` Python library to encrypt database connection passwords. This library requires the installation of OS-level dependencies.
 
 **Debian and Ubuntu**
 
@@ -100,24 +98,18 @@ We highly recommend installing Superset inside of a virtual environment. Python 
 pip install virtualenv
 ```
 
-You can create and activate a virtual environment using:
-
+First create a directory for Superset:
 ```
-# virtualenv is shipped in Python 3.6+ as venv instead of pyvenv.
-# See https://docs.python.org/3.6/library/venv.html
-python3 -m venv venv
-. venv/bin/activate
+mkdir superset
 ```
 
-Or with pyenv-virtualenv:
-
+Then create and activate a virtual environment there:
 ```
-# Here we name the virtual env 'superset'
-pyenv virtualenv superset
-pyenv activate superset
+python3 -m venv superset
+. superset/bin/activate
 ```
 
-Once you activated your virtual environment, all of the Python packages you install or uninstall
+While your virtual environment is activated, all of the Python packages you install or uninstall
 will be confined to this environment. You can exit the environment by running `deactivate` on the
 command line.
 
@@ -129,21 +121,33 @@ First, start by installing `apache-superset`:
 pip install apache-superset
 ```
 
-Then, you need to initialize the database:
+Superset configurations are stored in a file.  One of these configurations, a `SECRET_KEY`, is required for the application to start. Create your config file:
+```
+touch superset/superset_config.py
+```
+And make this file findable by adding its path as an environment variable:
+```
+export SUPERSET_CONFIG_PATH=superset/superset_config.py
+```
+You'll need a strong `SECRET_KEY` value here.  Running the command `openssl rand -base64 42` in your terminal will give you such a string.
+Add this to the `superset_config.py` file:
+```
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+```
+You could also tell Superset where to store its metadata - that is, what charts, dashboards, etc. have been created.  By default, this is a SQLite database at the filepath `~/.superset/superset.db`.
+
+For a production instance, you would change this to point to say, a PostgreSQL database that gets backed up.  You change this by specifying a new value in `superset_config.py` for the variable `SQLALCHEMY_DATABASE_URI`.
+
+Now initialize the database:
 
 ```
 superset db upgrade
 ```
 
-:::tip
-Note that some configuration is mandatory for production instances of Superset. In particular, Superset will not start without a user-specified value of SECRET_KEY. Please see [Configuring Superset](/docs/configuration/configuring-superset).
-:::
-
 Finish installing by running through the following commands:
 
 ```
 # Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
-export FLASK_APP=superset
 superset fab create-admin
 
 # Load some data to play with
@@ -158,3 +162,5 @@ superset run -p 8088 --with-threads --reload --debugger
 
 If everything worked, you should be able to navigate to `hostname:port` in your browser (e.g.
 locally by default at `localhost:8088`) and login using the username and password you created.
+
+Next see [Configuring Superset](/docs/configuration/configuring-superset) and further set up your instance.
