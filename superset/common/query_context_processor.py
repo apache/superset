@@ -543,12 +543,19 @@ class QueryContextProcessor:
         if offset_dfs:
             # iterate on offset_dfs, left join each with df
             for offset_df in offset_dfs:
-                df = dataframe_utils.left_join_df(
-                    left_df=df,
-                    right_df=offset_df,
-                    join_keys=join_keys,
-                    rsuffix=R_SUFFIX,
-                )
+                if join_keys:
+                    df = dataframe_utils.left_join_df(
+                        left_df=df,
+                        right_df=offset_df,
+                        join_keys=join_keys,
+                        rsuffix=R_SUFFIX,
+                    )
+                else:
+                    df = dataframe_utils.full_outer_join_df(
+                        left_df=df,
+                        right_df=offset_df,
+                        rsuffix=R_SUFFIX,
+                    )
 
         # removes columns used for join
         df.drop(

@@ -208,18 +208,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     ) {
       extraQueries.push({
         ...queryObject,
-        columns: !isEmpty(timeOffsets)
-          ? [
-              {
-                timeGrain: 'P1Y', // Group by year by default
-                columnType: 'BASE_AXIS',
-                sqlExpression:
-                  baseQueryObject.filters?.[0]?.col.toString() || '',
-                label: baseQueryObject.filters?.[0]?.col.toString() || '',
-                expressionType: 'SQL',
-              } as AdhocColumn,
-            ]
-          : [],
+        columns: [],
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
