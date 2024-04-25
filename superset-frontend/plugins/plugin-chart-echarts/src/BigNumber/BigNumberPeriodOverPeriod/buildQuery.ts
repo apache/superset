@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
-  const { cols: groupby, time_grain_sqla } = formData;
+  const { cols: groupby } = formData;
 
   const queryContextA = buildQueryContext(formData, baseQueryObject => {
     const postProcessing: PostProcessingRule[] = [];
@@ -38,7 +38,7 @@ export default function buildQuery(formData: QueryFormData) {
         ...baseQueryObject,
         columns: [
           {
-            timeGrain: time_grain_sqla || 'P1Y', // Group by year by default
+            timeGrain: 'P1Y', // Group by year by default
             columnType: 'BASE_AXIS',
             sqlExpression: baseQueryObject.filters?.[0]?.col.toString() || '',
             label: baseQueryObject.filters?.[0]?.col.toString() || '',

@@ -74,7 +74,6 @@ export const timeComparisonControls: (
         },
       },
     ],
-    ['time_grain_sqla'],
     [
       {
         name: 'comparison_type',
