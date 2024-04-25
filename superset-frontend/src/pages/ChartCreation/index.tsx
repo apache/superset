@@ -20,8 +20,6 @@ import React, { ReactNode } from 'react';
 import rison from 'rison';
 import querystring from 'query-string';
 import {
-  isFeatureEnabled,
-  FeatureFlag,
   isDefined,
   JsonResponse,
   styled,
@@ -29,7 +27,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { URL_PARAMS } from 'src/constants';
+import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { AsyncSelect, Steps } from 'src/components';
@@ -62,14 +60,9 @@ const ESTIMATED_NAV_HEIGHT = 56;
 const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
 
 const bootstrapData = getBootstrapData();
-const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
-
-if (
-  isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-  !denyList.includes('filter_box')
-) {
-  denyList.push('filter_box');
-}
+const denyList: string[] = (
+  bootstrapData.common.conf.VIZ_TYPE_DENYLIST || []
+).concat(Object.values(FilterPlugins));
 
 const StyledContainer = styled.div`
   ${({ theme }) => `

@@ -19,7 +19,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from flask import g
+from flask import g  # noqa: F401
 
 from superset import db, security_manager
 from superset.commands.chart.create import CreateChartCommand
@@ -38,12 +38,12 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
 )
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
@@ -75,7 +75,7 @@ class TestExportChartsCommand(SupersetTestCase):
         assert expected == list(contents.keys())
 
         metadata = yaml.safe_load(
-            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]
+            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]()
         )
 
         assert metadata == {
@@ -133,7 +133,7 @@ class TestExportChartsCommand(SupersetTestCase):
         contents = dict(command.run())
 
         metadata = yaml.safe_load(
-            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]
+            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]()
         )
         assert list(metadata.keys()) == [
             "slice_name",
@@ -171,9 +171,9 @@ class TestExportChartsCommand(SupersetTestCase):
 
 
 class TestImportChartsCommand(SupersetTestCase):
-    @patch("superset.commands.chart.importers.v1.utils.g")
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
-    def test_import_v1_chart(self, sm_g, utils_g):
+    def test_import_v1_chart(self, sm_g, utils_g) -> None:
         """Test that we can import a chart"""
         admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
@@ -190,8 +190,9 @@ class TestImportChartsCommand(SupersetTestCase):
         )
         dataset = chart.datasource
         assert json.loads(chart.params) == {
+            "annotation_layers": [],
             "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
-            "datasource": dataset.uid,
+            "datasource": dataset.uid if dataset else None,
             "js_columns": ["color"],
             "js_data_mutator": "data => data.map(d => ({\\n    ...d,\\n    color: colors.hexToRGB(d.extraProps.color)\\n}));",
             "js_onclick_href": "",
@@ -227,7 +228,8 @@ class TestImportChartsCommand(SupersetTestCase):
         dataset = (
             db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
         )
-        assert dataset.table_name == "imported_dataset"
+        table_name = dataset.table_name if dataset else None
+        assert table_name == "imported_dataset"
         assert chart.table == dataset
 
         database = (
@@ -412,7 +414,7 @@ class TestChartWarmUpCacheCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache(self):
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         result = ChartWarmUpCacheCommand(slc.id, None, None).run()
         self.assertEqual(
             result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}

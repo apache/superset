@@ -59,6 +59,17 @@ function TagList(props: TagListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const { userId } = user;
 
+  const initialFilters = useMemo(
+    () => [
+      {
+        id: 'type',
+        operator: 'custom_tag',
+        value: true,
+      },
+    ],
+    [],
+  );
+
   const {
     state: {
       loading,
@@ -70,7 +81,14 @@ function TagList(props: TagListProps) {
     fetchData,
     toggleBulkSelect,
     refreshData,
-  } = useListViewResource<Tag>('tag', t('tag'), addDangerToast);
+  } = useListViewResource<Tag>(
+    'tag',
+    t('tag'),
+    addDangerToast,
+    undefined,
+    undefined,
+    initialFilters,
+  );
 
   const [showTagModal, setShowTagModal] = useState<boolean>(false);
   const [tagToEdit, setTagToEdit] = useState<Tag | null>(null);
@@ -228,7 +246,7 @@ function TagList(props: TagListProps) {
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -241,14 +259,14 @@ function TagList(props: TagListProps) {
         Header: t('Name'),
         id: 'name',
         input: 'search',
-        operator: FilterOperator.contains,
+        operator: FilterOperator.Contains,
       },
       {
         Header: t('Modified by'),
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'tag',
@@ -367,10 +385,10 @@ function TagList(props: TagListProps) {
                 showThumbnails={
                   userKey
                     ? userKey.thumbnails
-                    : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+                    : isFeatureEnabled(FeatureFlag.Thumbnails)
                 }
                 defaultViewMode={
-                  isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
+                  isFeatureEnabled(FeatureFlag.ListviewsDefaultCardView)
                     ? 'card'
                     : 'table'
                 }

@@ -209,11 +209,11 @@ export function Menu({
     return () => window.removeEventListener('resize', windowResize);
   }, []);
 
-  enum paths {
-    EXPLORE = '/explore',
-    DASHBOARD = '/dashboard',
-    CHART = '/chart',
-    DATASETS = '/tablemodelview',
+  enum Paths {
+    Explore = '/explore',
+    Dashboard = '/dashboard',
+    Chart = '/chart',
+    Datasets = '/tablemodelview',
   }
 
   const defaultTabSelection: string[] = [];
@@ -222,13 +222,13 @@ export function Menu({
   useEffect(() => {
     const path = location.pathname;
     switch (true) {
-      case path.startsWith(paths.DASHBOARD):
+      case path.startsWith(Paths.Dashboard):
         setActiveTabs(['Dashboards']);
         break;
-      case path.startsWith(paths.CHART) || path.startsWith(paths.EXPLORE):
+      case path.startsWith(Paths.Chart) || path.startsWith(Paths.Explore):
         setActiveTabs(['Charts']);
         break;
-      case path.startsWith(paths.DATASETS):
+      case path.startsWith(Paths.Datasets):
         setActiveTabs(['Datasets']);
         break;
       default:
@@ -306,11 +306,15 @@ export function Menu({
             arrowPointAtCenter
           >
             {isFrontendRoute(window.location.pathname) ? (
-              <GenericLink className="navbar-brand" to={brand.path}>
+              <GenericLink
+                className="navbar-brand"
+                to={brand.path}
+                tabIndex={-1}
+              >
                 <img src={brand.icon} alt={brand.alt} />
               </GenericLink>
             ) : (
-              <a className="navbar-brand" href={brand.path}>
+              <a className="navbar-brand" href={brand.path} tabIndex={-1}>
                 <img src={brand.icon} alt={brand.alt} />
               </a>
             )}

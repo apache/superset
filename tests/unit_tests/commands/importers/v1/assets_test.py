@@ -35,14 +35,14 @@ def test_import_new_assets(mocker: MockFixture, session: Session) -> None:
     """
     Test that all new assets are imported correctly.
     """
-    from superset import security_manager
+    from superset import db, security_manager
     from superset.commands.importers.v1.assets import ImportAssetsCommand
     from superset.models.dashboard import dashboard_slices
     from superset.models.slice import Slice
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
     configs = {
         **copy.deepcopy(databases_config),
@@ -53,11 +53,11 @@ def test_import_new_assets(mocker: MockFixture, session: Session) -> None:
     expected_number_of_dashboards = len(dashboards_config_1)
     expected_number_of_charts = len(charts_config_1)
 
-    ImportAssetsCommand._import(session, configs)
-    dashboard_ids = session.scalars(
+    ImportAssetsCommand._import(configs)
+    dashboard_ids = db.session.scalars(
         select(dashboard_slices.c.dashboard_id).distinct()
     ).all()
-    chart_ids = session.scalars(select(dashboard_slices.c.slice_id)).all()
+    chart_ids = db.session.scalars(select(dashboard_slices.c.slice_id)).all()
 
     assert len(chart_ids) == expected_number_of_charts
     assert len(dashboard_ids) == expected_number_of_dashboards
@@ -67,14 +67,14 @@ def test_import_adds_dashboard_charts(mocker: MockFixture, session: Session) -> 
     """
     Test that existing dashboards are updated with new charts.
     """
-    from superset import security_manager
+    from superset import db, security_manager
     from superset.commands.importers.v1.assets import ImportAssetsCommand
     from superset.models.dashboard import dashboard_slices
     from superset.models.slice import Slice
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
     base_configs = {
         **copy.deepcopy(databases_config),
@@ -91,12 +91,12 @@ def test_import_adds_dashboard_charts(mocker: MockFixture, session: Session) -> 
     expected_number_of_dashboards = len(dashboards_config_1)
     expected_number_of_charts = len(charts_config_1)
 
-    ImportAssetsCommand._import(session, base_configs)
-    ImportAssetsCommand._import(session, new_configs)
-    dashboard_ids = session.scalars(
+    ImportAssetsCommand._import(base_configs)
+    ImportAssetsCommand._import(new_configs)
+    dashboard_ids = db.session.scalars(
         select(dashboard_slices.c.dashboard_id).distinct()
     ).all()
-    chart_ids = session.scalars(select(dashboard_slices.c.slice_id)).all()
+    chart_ids = db.session.scalars(select(dashboard_slices.c.slice_id)).all()
 
     assert len(chart_ids) == expected_number_of_charts
     assert len(dashboard_ids) == expected_number_of_dashboards
@@ -106,14 +106,14 @@ def test_import_removes_dashboard_charts(mocker: MockFixture, session: Session) 
     """
     Test that existing dashboards are updated without old charts.
     """
-    from superset import security_manager
+    from superset import db, security_manager
     from superset.commands.importers.v1.assets import ImportAssetsCommand
     from superset.models.dashboard import dashboard_slices
     from superset.models.slice import Slice
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
     base_configs = {
         **copy.deepcopy(databases_config),
@@ -130,12 +130,12 @@ def test_import_removes_dashboard_charts(mocker: MockFixture, session: Session) 
     expected_number_of_dashboards = len(dashboards_config_2)
     expected_number_of_charts = len(charts_config_2)
 
-    ImportAssetsCommand._import(session, base_configs)
-    ImportAssetsCommand._import(session, new_configs)
-    dashboard_ids = session.scalars(
+    ImportAssetsCommand._import(base_configs)
+    ImportAssetsCommand._import(new_configs)
+    dashboard_ids = db.session.scalars(
         select(dashboard_slices.c.dashboard_id).distinct()
     ).all()
-    chart_ids = session.scalars(select(dashboard_slices.c.slice_id)).all()
+    chart_ids = db.session.scalars(select(dashboard_slices.c.slice_id)).all()
 
     assert len(chart_ids) == expected_number_of_charts
     assert len(dashboard_ids) == expected_number_of_dashboards

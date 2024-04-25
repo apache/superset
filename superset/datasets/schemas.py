@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-import re
+from datetime import datetime
 from typing import Any
 
+from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
@@ -43,26 +44,25 @@ openapi_spec_methods_override = {
 }
 
 
-def validate_python_date_format(value: str) -> None:
-    regex = re.compile(
-        r"""
-        ^(
-            epoch_s|epoch_ms|
-            (?P<date>%Y([-/]%m([-/]%d)?)?)([\sT](?P<time>%H(:%M(:%S(\.%f)?)?)?))?
-        )$
-        """,
-        re.VERBOSE,
-    )
-    match = regex.match(value or "")
-    if not match:
-        raise ValidationError([_("Invalid date/timestamp format")])
+def validate_python_date_format(dt_format: str) -> bool:
+    if dt_format in ("epoch_s", "epoch_ms"):
+        return True
+    try:
+        dt_str = datetime.now().strftime(dt_format)
+        isoparse(dt_str)
+    except ValueError as ex:
+        raise ValidationError([_("Invalid date/timestamp format")]) from ex
+    return True
 
 
 class DatasetColumnsPutSchema(Schema):
     id = fields.Integer(required=False)
     column_name = fields.String(required=True, validate=Length(1, 255))
     type = fields.String(allow_none=True)
-    advanced_data_type = fields.String(allow_none=True, validate=Length(1, 255))
+    advanced_data_type = fields.String(
+        allow_none=True,
+        validate=Length(1, 255),
+    )
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)

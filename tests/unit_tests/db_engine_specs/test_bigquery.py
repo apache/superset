@@ -29,7 +29,7 @@ from sqlalchemy_bigquery import BigQueryDialect
 
 from superset.superset_typing import ResultSetColumnType
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 def test_get_fields() -> None:
@@ -148,7 +148,7 @@ def test_select_star(mocker: MockFixture) -> None:
     # mock the database so we can compile the query
     database = mocker.MagicMock()
     database.compile_sqla_query = lambda query: str(
-        query.compile(dialect=BigQueryDialect())
+        query.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
     )
 
     engine = mocker.MagicMock()
@@ -167,9 +167,10 @@ def test_select_star(mocker: MockFixture) -> None:
     )
     assert (
         sql
-        == """SELECT `trailer` AS `trailer`
+        == """SELECT
+  `trailer` AS `trailer`
 FROM `my_table`
-LIMIT :param_1"""
+LIMIT 100"""
     )
 
 
@@ -322,7 +323,9 @@ def test_parse_error_raises_exception() -> None:
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
     """
     DB Eng Specs (bigquery): Test conversion to date time

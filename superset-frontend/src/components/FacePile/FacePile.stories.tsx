@@ -17,13 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { withKnobs, number } from '@storybook/addon-knobs';
 import FacePile from '.';
 
 export default {
   title: 'FacePile',
   component: FacePile,
-  decorators: [withKnobs],
+  argTypes: {
+    maxCount: { control: 'number', defaultValue: 4 },
+  },
 };
 
 const firstNames = [
@@ -55,6 +56,6 @@ const users = [...new Array(10)].map((_, i) => ({
   id: i,
 }));
 
-export const SupersetFacePile = () => (
-  <FacePile users={users} maxCount={number('maxCount', 4)} />
+export const SupersetFacePile = ({ maxCount }: { maxCount: number }) => (
+  <FacePile users={users} maxCount={maxCount} />
 );

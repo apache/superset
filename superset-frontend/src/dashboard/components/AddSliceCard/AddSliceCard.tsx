@@ -186,7 +186,7 @@ const AddSliceCard: React.FC<{
   thumbnailUrl,
   visType,
 }) => {
-  const showThumbnails = isFeatureEnabled(FeatureFlag.THUMBNAILS);
+  const showThumbnails = isFeatureEnabled(FeatureFlag.Thumbnails);
   const [sliceAddedBadge, setSliceAddedBadge] = useState<HTMLDivElement>();
   const { mountedPluginMetadata } = usePluginContext();
   const vizName = useMemo(

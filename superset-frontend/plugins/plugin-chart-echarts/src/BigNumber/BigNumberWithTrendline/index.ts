@@ -41,11 +41,10 @@ const metadata = {
     t('Percentages'),
     t('Popular'),
     t('Report'),
-    t('Description'),
     t('Trend'),
   ],
   thumbnail,
-  behaviors: [Behavior.DRILL_TO_DETAIL],
+  behaviors: [Behavior.DrillToDetail],
 };
 
 export default class BigNumberWithTrendlineChartPlugin extends EchartsChartPlugin<

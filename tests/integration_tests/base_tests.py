@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 from datetime import datetime
 import imp
 import json
@@ -29,7 +30,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import dialect
 
@@ -105,6 +106,9 @@ class SupersetTestCase(TestCase):
     }
 
     maxDiff = -1
+
+    def tearDown(self):
+        self.logout()
 
     def create_app(self):
         return app
@@ -187,25 +191,20 @@ class SupersetTestCase(TestCase):
         except ImportError:
             return False
 
-    def get_or_create(self, cls, criteria, session, **kwargs):
-        obj = session.query(cls).filter_by(**criteria).first()
+    def get_or_create(self, cls, criteria, **kwargs):
+        obj = db.session.query(cls).filter_by(**criteria).first()
         if not obj:
             obj = cls(**criteria)
         obj.__dict__.update(**kwargs)
-        session.add(obj)
-        session.commit()
+        db.session.add(obj)
+        db.session.commit()
         return obj
 
-    def login(self, username="admin", password="general"):
+    def login(self, username, password="general"):
         return login(self.client, username, password)
 
-    def get_slice(
-        self, slice_name: str, session: Session, expunge_from_session: bool = True
-    ) -> Slice:
-        slc = session.query(Slice).filter_by(slice_name=slice_name).one()
-        if expunge_from_session:
-            session.expunge_all()
-        return slc
+    def get_slice(self, slice_name: str) -> Slice:
+        return db.session.query(Slice).filter_by(slice_name=slice_name).one()
 
     @staticmethod
     def get_table(
@@ -316,7 +315,7 @@ class SupersetTestCase(TestCase):
     ):
         if username:
             self.logout()
-            self.login(username=username)
+            self.login(username)
         dbid = SupersetTestCase.get_database_by_name(database_name).id
         json_payload = {
             "database_id": dbid,
@@ -337,12 +336,13 @@ class SupersetTestCase(TestCase):
         resp = self.get_json_resp(
             "/api/v1/sqllab/execute/", raise_on_error=False, json_=json_payload
         )
+        if username:
+            self.logout()
         if raise_on_error and "error" in resp:
             raise Exception("run_sql failed")
         return resp
 
     def create_fake_db(self):
-        self.login(username="admin")
         database_name = FAKE_DB_NAME
         db_id = 100
         extra = """{
@@ -353,7 +353,6 @@ class SupersetTestCase(TestCase):
         return self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
-            session=db.session,
             sqlalchemy_uri="sqlite:///:memory:",
             id=db_id,
             extra=extra,
@@ -369,13 +368,11 @@ class SupersetTestCase(TestCase):
             db.session.delete(database)
 
     def create_fake_db_for_macros(self):
-        self.login(username="admin")
         database_name = "db_for_macros_testing"
         db_id = 200
         database = self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
-            session=db.session,
             sqlalchemy_uri="db_for_macros_testing://user@host:8080/hive",
             id=db_id,
         )
@@ -398,8 +395,7 @@ class SupersetTestCase(TestCase):
             db.session.commit()
 
     def get_dash_by_slug(self, dash_slug):
-        sesh = db.session()
-        return sesh.query(Dashboard).filter_by(slug=dash_slug).first()
+        return db.session.query(Dashboard).filter_by(slug=dash_slug).first()
 
     def get_assert_metric(self, uri: str, func_name: str) -> Response:
         """
@@ -522,11 +518,10 @@ class SupersetTestCase(TestCase):
 @contextmanager
 def db_insert_temp_object(obj: DeclarativeMeta):
     """Insert a temporary object in database; delete when done."""
-    session = db.session
     try:
-        session.add(obj)
-        session.commit()
+        db.session.add(obj)
+        db.session.commit()
         yield obj
     finally:
-        session.delete(obj)
-        session.commit()
+        db.session.delete(obj)
+        db.session.commit()

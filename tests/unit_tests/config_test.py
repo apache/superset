@@ -23,6 +23,8 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+from superset import db
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
@@ -81,7 +83,7 @@ def test_table(session: Session) -> "SqlaTable":
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.core import Database
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     columns = [
@@ -211,7 +213,6 @@ def test_python_date_format_by_column_name(
         "dttm_columns": {
             "id": {"python_date_format": "epoch_ms"},
             "dttm": {"python_date_format": "epoch_s"},
-            "duration_ms": {"python_date_format": "invalid"},
         },
     }
     mocker.patch(
@@ -228,7 +229,6 @@ def test_python_date_format_by_column_name(
         return_value=[
             {"column_name": "id", "type": "INTEGER", "is_dttm": False},
             {"column_name": "dttm", "type": "INTEGER", "is_dttm": False},
-            {"column_name": "duration_ms", "type": "INTEGER", "is_dttm": False},
         ],
     )
 
@@ -241,12 +241,6 @@ def test_python_date_format_by_column_name(
     dttm_col = [c for c in test_table.columns if c.column_name == "dttm"][0]
     assert dttm_col.is_dttm
     assert dttm_col.python_date_format == "epoch_s"
-
-    duration_ms_col = [c for c in test_table.columns if c.column_name == "duration_ms"][
-        0
-    ]
-    assert duration_ms_col.is_dttm
-    assert duration_ms_col.python_date_format == "invalid"
 
 
 def test_expression_by_column_name(

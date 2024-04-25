@@ -39,10 +39,9 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import Row as ResultRow
 from sqlalchemy.engine.url import URL
-from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import cache_manager, is_feature_enabled
+from superset import cache_manager, db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -67,6 +66,7 @@ from superset.utils.core import GenericDataType
 if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
+    from superset.sql_parse import Table
 
     with contextlib.suppress(ImportError):  # pyhive may not be installed
         from pyhive.presto import Cursor
@@ -447,14 +447,14 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         limit_clause = f"LIMIT {limit}" if limit else ""
         order_by_clause = ""
         if order_by:
-            l = []
+            l = []  # noqa: E741
             for field, desc in order_by:
                 l.append(field + " DESC" if desc else "")
             order_by_clause = "ORDER BY " + ", ".join(l)
 
         where_clause = ""
         if filters:
-            l = []
+            l = []  # noqa: E741
             for field, value in filters.items():
                 l.append(f"{field} = '{value}'")
             where_clause = "WHERE " + " AND ".join(l)
@@ -718,6 +718,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
+        access_token: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -725,6 +726,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         :param connect_args: config to be updated
         :param uri: URI string
         :param username: Effective username
+        :param access_token: Personal access token for OAuth2
         :return: None
         """
         url = make_url_safe(uri)
@@ -1223,14 +1225,20 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return all_columns, data, expanded_columns
 
     @classmethod
-    def extra_table_metadata(
-        cls, database: Database, table_name: str, schema_name: str | None
+    def get_extra_table_metadata(
+        cls,
+        database: Database,
+        table: Table,
     ) -> dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table_name, schema_name):
+        if indexes := database.get_indexes(table.table, table.schema):
             col_names, latest_parts = cls.latest_partition(
-                table_name, schema_name, database, show_first=True, indexes=indexes
+                table.table,
+                table.schema,
+                database,
+                show_first=True,
+                indexes=indexes,
             )
 
             if not latest_parts:
@@ -1240,8 +1248,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 "cols": sorted(indexes[0].get("column_names", [])),
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": cls._partition_query(
-                    table_name=table_name,
-                    schema=schema_name,
+                    table_name=table.table,
+                    schema=table.schema,
                     indexes=indexes,
                     database=database,
                 ),
@@ -1249,7 +1257,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
         # flake8 is not matching `Optional[str]` to `Any` for some reason...
         metadata["view"] = cast(
-            Any, cls.get_create_view(database, schema_name, table_name)
+            Any,
+            cls.get_create_view(database, table.schema, table.table),
         )
 
         return metadata
@@ -1272,7 +1281,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             cursor = conn.cursor()
             sql = f"SHOW CREATE VIEW {schema}.{table}"
             try:
-                cls.execute(cursor, sql)
+                cls.execute(cursor, sql, database)
                 rows = cls.fetch_data(cursor, 1)
 
                 return rows[0][0]
@@ -1288,11 +1297,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return None
 
     @classmethod
-    def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Cursor, query: Query) -> None:
         """Updates progress information"""
         if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
-            session.commit()
+            db.session.commit()
 
         query_id = query.id
         poll_interval = query.database.connect_args.get(
@@ -1308,7 +1317,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             # Update the object and wait for the kill signal.
             stats = polled.get("stats", {})
 
-            query = session.query(type(query)).filter_by(id=query_id).one()
+            query = db.session.query(type(query)).filter_by(id=query_id).one()
             if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
                 cursor.cancel()
                 break
@@ -1330,9 +1339,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                         completed_splits,
                         total_splits,
                     )
-                    if progress > query.progress:
-                        query.progress = progress
-                    session.commit()
+                    query.progress = max(query.progress, progress)
+                    db.session.commit()
             time.sleep(poll_interval)
             logger.info("Query %i: Polling the cursor for progress", query_id)
             polled = cursor.poll()

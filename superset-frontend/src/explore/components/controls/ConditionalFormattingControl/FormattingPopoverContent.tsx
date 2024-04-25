@@ -18,16 +18,16 @@
  */
 import React from 'react';
 import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
+import {
+  Comparator,
+  MultipleValueComparators,
+} from '@superset-ui/chart-controls';
 import { Form, FormItem, FormProps } from 'src/components/Form';
 import Select from 'src/components/Select/Select';
 import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
 import Button from 'src/components/Button';
-import {
-  COMPARATOR,
-  ConditionalFormattingConfig,
-  MULTIPLE_VALUE_COMPARATORS,
-} from './types';
+import { ConditionalFormattingConfig } from './types';
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
@@ -48,17 +48,17 @@ const colorSchemeOptions = (theme: SupersetTheme) => [
 ];
 
 const operatorOptions = [
-  { value: COMPARATOR.NONE, label: t('None') },
-  { value: COMPARATOR.GREATER_THAN, label: '>' },
-  { value: COMPARATOR.LESS_THAN, label: '<' },
-  { value: COMPARATOR.GREATER_OR_EQUAL, label: '≥' },
-  { value: COMPARATOR.LESS_OR_EQUAL, label: '≤' },
-  { value: COMPARATOR.EQUAL, label: '=' },
-  { value: COMPARATOR.NOT_EQUAL, label: '≠' },
-  { value: COMPARATOR.BETWEEN, label: '< x <' },
-  { value: COMPARATOR.BETWEEN_OR_EQUAL, label: '≤ x ≤' },
-  { value: COMPARATOR.BETWEEN_OR_LEFT_EQUAL, label: '≤ x <' },
-  { value: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL, label: '< x ≤' },
+  { value: Comparator.None, label: t('None') },
+  { value: Comparator.GreaterThan, label: '>' },
+  { value: Comparator.LessThan, label: '<' },
+  { value: Comparator.GreaterOrEqual, label: '≥' },
+  { value: Comparator.LessOrEqual, label: '≤' },
+  { value: Comparator.Equal, label: '=' },
+  { value: Comparator.NotEqual, label: '≠' },
+  { value: Comparator.Between, label: '< x <' },
+  { value: Comparator.BetweenOrEqual, label: '≤ x ≤' },
+  { value: Comparator.BetweenOrLeftEqual, label: '≤ x <' },
+  { value: Comparator.BetweenOrRightEqual, label: '< x ≤' },
 ];
 
 const targetValueValidator =
@@ -88,11 +88,11 @@ const targetValueRightValidator = targetValueValidator(
   t('This value should be greater than the left target value'),
 );
 
-const isOperatorMultiValue = (operator?: COMPARATOR) =>
-  operator && MULTIPLE_VALUE_COMPARATORS.includes(operator);
+const isOperatorMultiValue = (operator?: Comparator) =>
+  operator && MultipleValueComparators.includes(operator);
 
-const isOperatorNone = (operator?: COMPARATOR) =>
-  !operator || operator === COMPARATOR.NONE;
+const isOperatorNone = (operator?: Comparator) =>
+  !operator || operator === Comparator.None;
 
 const rulesRequired = [{ required: true, message: t('Required') }];
 

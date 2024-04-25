@@ -52,7 +52,7 @@ try:
     from google.oauth2 import service_account
 
     dependencies_installed = True
-except ModuleNotFoundError:
+except ImportError:
     dependencies_installed = False
 
 try:
@@ -320,10 +320,12 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return cls.normalize_indexes(inspector.get_indexes(table_name, schema))
 
     @classmethod
-    def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: Optional[str]
+    def get_extra_table_metadata(
+        cls,
+        database: "Database",
+        table: Table,
     ) -> dict[str, Any]:
-        indexes = database.get_indexes(table_name, schema_name)
+        indexes = database.get_indexes(table.table, table.schema)
         if not indexes:
             return {}
         partitions_columns = [
@@ -387,9 +389,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         # Add credentials if they are set on the SQLAlchemy dialect.
 
         if creds := engine.dialect.credentials_info:
-            to_gbq_kwargs[
-                "credentials"
-            ] = service_account.Credentials.from_service_account_info(creds)
+            to_gbq_kwargs["credentials"] = (
+                service_account.Credentials.from_service_account_info(creds)
+            )
 
         # Only pass through supported kwargs.
         supported_kwarg_keys = {"if_exists"}
@@ -435,7 +437,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         if not cls.get_allow_cost_estimate(extra):
             raise SupersetException("Database does not support cost estimation")
 
-        parsed_query = sql_parse.ParsedQuery(sql)
+        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
         statements = parsed_query.get_statements()
         costs = []
         for statement in statements:
@@ -456,7 +458,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         In BigQuery, a catalog is called a "project".
         """
         engine: Engine
-        with database.get_sqla_engine_with_context() as engine:
+        with database.get_sqla_engine() as engine:
             client = cls._get_client(engine)
             projects = client.list_projects()
 

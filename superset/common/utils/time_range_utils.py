@@ -39,6 +39,9 @@ def get_since_until_from_time_range(
         ),
         time_range=time_range,
         time_shift=time_shift,
+        instant_time_comparison_range=(extras or {}).get(
+            "instant_time_comparison_range"
+        ),
     )
 
 

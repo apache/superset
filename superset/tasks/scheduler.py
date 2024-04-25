@@ -29,7 +29,6 @@ from superset.daos.report import ReportScheduleDAO
 from superset.extensions import celery_app
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.cron_util import cron_schedule_window
-from superset.utils.celery import session_scope
 from superset.utils.core import LoggerLevel
 from superset.utils.log import get_logger_from_status
 
@@ -46,35 +45,32 @@ def scheduler() -> None:
 
     if not is_feature_enabled("ALERT_REPORTS"):
         return
-    with session_scope(nullpool=True) as session:
-        active_schedules = ReportScheduleDAO.find_active(session)
-        triggered_at = (
-            datetime.fromisoformat(scheduler.request.expires)
-            - app.config["CELERY_BEAT_SCHEDULER_EXPIRES"]
-            if scheduler.request.expires
-            else datetime.utcnow()
-        )
-        for active_schedule in active_schedules:
-            for schedule in cron_schedule_window(
-                triggered_at, active_schedule.crontab, active_schedule.timezone
+    active_schedules = ReportScheduleDAO.find_active()
+    triggered_at = (
+        datetime.fromisoformat(scheduler.request.expires)
+        - app.config["CELERY_BEAT_SCHEDULER_EXPIRES"]
+        if scheduler.request.expires
+        else datetime.utcnow()
+    )
+    for active_schedule in active_schedules:
+        for schedule in cron_schedule_window(
+            triggered_at, active_schedule.crontab, active_schedule.timezone
+        ):
+            logger.info("Scheduling alert %s eta: %s", active_schedule.name, schedule)
+            async_options = {"eta": schedule}
+            if (
+                active_schedule.working_timeout is not None
+                and app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"]
             ):
-                logger.info(
-                    "Scheduling alert %s eta: %s", active_schedule.name, schedule
+                async_options["time_limit"] = (
+                    active_schedule.working_timeout
+                    + app.config["ALERT_REPORTS_WORKING_TIME_OUT_LAG"]
                 )
-                async_options = {"eta": schedule}
-                if (
-                    active_schedule.working_timeout is not None
-                    and app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"]
-                ):
-                    async_options["time_limit"] = (
-                        active_schedule.working_timeout
-                        + app.config["ALERT_REPORTS_WORKING_TIME_OUT_LAG"]
-                    )
-                    async_options["soft_time_limit"] = (
-                        active_schedule.working_timeout
-                        + app.config["ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG"]
-                    )
-                execute.apply_async((active_schedule.id,), **async_options)
+                async_options["soft_time_limit"] = (
+                    active_schedule.working_timeout
+                    + app.config["ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG"]
+                )
+            execute.apply_async((active_schedule.id,), **async_options)
 
 
 @celery_app.task(name="reports.execute", bind=True)

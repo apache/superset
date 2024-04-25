@@ -18,8 +18,6 @@
  */
 /* eslint-disable camelcase */
 import {
-  ADD_FILTER,
-  REMOVE_FILTER,
   CHANGE_FILTER,
   UPDATE_DASHBOARD_FILTERS_SCOPE,
 } from 'src/dashboard/actions/dashboardFilters';
@@ -27,10 +25,7 @@ import dashboardFiltersReducer, {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
 } from 'src/dashboard/reducers/dashboardFilters';
 import * as activeDashboardFilters from 'src/dashboard/util/activeDashboardFilters';
-import {
-  emptyFilters,
-  dashboardFilters,
-} from 'spec/fixtures/mockDashboardFilters';
+import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import {
   sliceEntitiesForDashboard,
   filterId,
@@ -43,35 +38,6 @@ describe('dashboardFilters reducer', () => {
   const component = filterComponent;
   const directPathToFilter = (component.parents || []).slice();
   directPathToFilter.push(component.id);
-
-  it('should add a new filter if it does not exist', () => {
-    expect(
-      dashboardFiltersReducer(emptyFilters, {
-        type: ADD_FILTER,
-        chartId: filterId,
-        component,
-        form_data,
-      }),
-    ).toEqual({
-      [filterId]: {
-        chartId: filterId,
-        componentId: component.id,
-        directPathToFilter,
-        filterName: component.meta.sliceName,
-        isDateFilter: false,
-        isInstantFilter: !!form_data.instant_filtering,
-        columns: {
-          [column]: undefined,
-        },
-        labels: {
-          [column]: column,
-        },
-        scopes: {
-          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
-        },
-      },
-    });
-  });
 
   it('should overwrite a filter if merge is false', () => {
     expect(
@@ -137,15 +103,6 @@ describe('dashboardFilters reducer', () => {
         },
       },
     });
-  });
-
-  it('should remove the filter if values are empty', () => {
-    expect(
-      dashboardFiltersReducer(dashboardFilters, {
-        type: REMOVE_FILTER,
-        chartId: filterId,
-      }),
-    ).toEqual({});
   });
 
   it('should buildActiveFilters on UPDATE_DASHBOARD_FILTERS_SCOPE', () => {

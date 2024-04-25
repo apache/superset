@@ -22,8 +22,8 @@ from typing import Union
 
 import backoff
 import pandas as pd
+from flask import g
 from flask_babel import gettext as __
-from slack_sdk import WebClient
 from slack_sdk.errors import (
     BotUserAccessError,
     SlackApiError,
@@ -35,7 +35,6 @@ from slack_sdk.errors import (
     SlackTokenRotationError,
 )
 
-from superset import app
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import (
@@ -46,6 +45,7 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.utils.core import get_email_address_list
 from superset.utils.decorators import statsd_gauge
+from superset.utils.slack import get_slack_client
 
 logger = logging.getLogger(__name__)
 
@@ -160,26 +160,27 @@ Error: %(text)s
 
         return self._message_template(table)
 
-    def _get_inline_files(self) -> Sequence[Union[str, IOBase, bytes]]:
+    def _get_inline_files(
+        self,
+    ) -> tuple[Union[str, None], Sequence[Union[str, IOBase, bytes]]]:
         if self._content.csv:
-            return [self._content.csv]
+            return ("csv", [self._content.csv])
         if self._content.screenshots:
-            return self._content.screenshots
-        return []
+            return ("png", self._content.screenshots)
+        if self._content.pdf:
+            return ("pdf", [self._content.pdf])
+        return (None, [])
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     @statsd_gauge("reports.slack.send")
     def send(self) -> None:
-        files = self._get_inline_files()
+        file_type, files = self._get_inline_files()
         title = self._content.name
         channel = self._get_channel()
         body = self._get_body()
-        file_type = "csv" if self._content.csv else "png"
+        global_logs_context = getattr(g, "logs_context", {}) or {}
         try:
-            token = app.config["SLACK_API_TOKEN"]
-            if callable(token):
-                token = token()
-            client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
+            client = get_slack_client()
             # files_upload returns SlackResponse as we run it in sync mode.
             if files:
                 for file in files:
@@ -192,7 +193,12 @@ Error: %(text)s
                     )
             else:
                 client.chat_postMessage(channel=channel, text=body)
-            logger.info("Report sent to slack")
+            logger.info(
+                "Report sent to slack",
+                extra={
+                    "execution_id": global_logs_context.get("execution_id"),
+                },
+            )
         except (
             BotUserAccessError,
             SlackRequestError,

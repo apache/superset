@@ -50,6 +50,8 @@ describe('SamplesPane', () => {
         ],
         colnames: ['__timestamp', 'genre'],
         coltypes: [2, 1],
+        rowcount: 2,
+        sql_rowcount: 2,
       },
     },
   );

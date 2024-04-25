@@ -46,9 +46,9 @@ export default class EchartsBoxPlotChartPlugin extends EchartsChartPlugin<
       loadChart: () => import('./EchartsBoxPlot'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Distribution'),
         credits: ['https://echarts.apache.org'],

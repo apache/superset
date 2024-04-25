@@ -26,12 +26,12 @@ import {
   makeApi,
   SharedLabelColorSource,
   t,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
@@ -75,9 +75,7 @@ const getDashboardPageContext = (pageId?: string | null) => {
   if (!pageId) {
     return null;
   }
-  return (
-    getItem(LocalStorageKeys.dashboard__explore_context, {})[pageId] || null
-  );
+  return getItem(LocalStorageKeys.DashboardExploreContext, {})[pageId] || null;
 };
 
 const getDashboardContextFormData = () => {
@@ -153,7 +151,7 @@ export default function ExplorePage() {
           isExploreInitialized.current = true;
         });
     }
-    getSharedLabelColor().source = SharedLabelColorSource.explore;
+    getSharedLabelColor().source = SharedLabelColorSource.Explore;
   }, [dispatch, location]);
 
   if (!isLoaded) {

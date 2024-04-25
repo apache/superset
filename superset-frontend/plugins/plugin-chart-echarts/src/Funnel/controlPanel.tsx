@@ -26,7 +26,6 @@ import {
   D3_FORMAT_OPTIONS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   getStandardizedControls,
-  sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import {
@@ -44,7 +43,6 @@ funnelLegendSection.splice(2, 1);
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -84,11 +82,14 @@ const config: ControlPanelConfig = {
                 'Display percents in the label and tooltip as the percent of the total value, from the first step of the funnel, or from the previous step in the funnel.',
               ),
               choices: [
-                [PercentCalcType.FIRST_STEP, t('Calculate from first step')],
-                [PercentCalcType.PREV_STEP, t('Calculate from previous step')],
-                [PercentCalcType.TOTAL, t('Percent of total')],
+                [PercentCalcType.FirstStep, t('Calculate from first step')],
+                [
+                  PercentCalcType.PreviousStep,
+                  t('Calculate from previous step'),
+                ],
+                [PercentCalcType.Total, t('Percent of total')],
               ],
-              default: PercentCalcType.FIRST_STEP,
+              default: PercentCalcType.FirstStep,
               renderTrigger: true,
             },
           },
@@ -123,6 +124,10 @@ const config: ControlPanelConfig = {
                 [
                   EchartsFunnelLabelTypeType.KeyValuePercent,
                   t('Category, Value and Percentage'),
+                ],
+                [
+                  EchartsFunnelLabelTypeType.ValuePercent,
+                  t('Value and Percentage'),
                 ],
               ],
               description: t('What should be shown as the label'),

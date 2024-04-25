@@ -113,7 +113,7 @@ getChartMetadataRegistry().registerValue(
     name: 'fake pie',
     thumbnail: '.png',
     useLegacyApi: false,
-    behaviors: [Behavior.DRILL_BY],
+    behaviors: [Behavior.DrillBy],
   }),
 );
 
@@ -131,9 +131,9 @@ test('render disabled menu item for unsupported chart', async () => {
   );
 });
 
-test('render disabled menu item for supported chart, no filters', async () => {
+test('render enabled menu item for supported chart, no filters', async () => {
   renderMenu({ drillByConfig: { filters: [], groupbyFieldName: 'groupby' } });
-  await expectDrillByDisabled('Drill by is not available for this data point');
+  await expectDrillByEnabled();
 });
 
 test('render disabled menu item for supported chart, no columns', async () => {

@@ -109,7 +109,6 @@ export interface NavBarProps {
   user_info_url: string;
   user_login_url: string;
   user_logout_url: string;
-  user_profile_url: string | null;
   locale: string;
 }
 
@@ -119,6 +118,7 @@ export interface MenuObjectChildProps {
   icon?: string;
   index?: number;
   url?: string;
+  onClick?: () => void;
   isFrontendRoute?: boolean;
   perm?: string | boolean;
   view?: string;
@@ -161,6 +161,7 @@ export interface BootstrapData {
   embedded?: {
     dashboard_id: string;
   };
+  requested_query?: JsonObject;
 }
 
 export function isUser(user: any): user is User {

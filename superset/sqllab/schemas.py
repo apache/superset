@@ -44,6 +44,7 @@ class EstimateQueryCostSchema(Schema):
 
 class FormatQueryPayloadSchema(Schema):
     sql = fields.String(required=True)
+    engine = fields.String(required=False, allow_none=True)
 
 
 class ExecutePayloadSchema(Schema):
@@ -66,7 +67,7 @@ class ExecutePayloadSchema(Schema):
 class QueryResultSchema(Schema):
     changed_on = fields.DateTime()
     dbId = fields.Integer()
-    db = fields.String()  # pylint: disable=invalid-name
+    db = fields.String()  # pylint: disable=disallowed-name
     endDttm = fields.Float()
     errorMessage = fields.String(allow_none=True)
     executedSql = fields.String()

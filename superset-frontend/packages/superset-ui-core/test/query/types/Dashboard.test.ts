@@ -35,7 +35,7 @@ const filter: Filter = {
   filterType: 'filter_type',
   targets: [{}],
   controlValues: {},
-  type: NativeFilterType.NATIVE_FILTER,
+  type: NativeFilterType.NativeFilter,
   description: 'Filter description.',
 };
 
@@ -46,7 +46,7 @@ const filterWithDataMask: FilterWithDataMask = {
 
 const filterDivider: Divider = {
   id: 'divider_id',
-  type: NativeFilterType.DIVIDER,
+  type: NativeFilterType.Divider,
   title: 'Divider title',
   description: 'Divider description.',
 };

@@ -28,8 +28,6 @@ from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from superset.models.sql_lab import Query
-    from superset.sqllab.sql_json_executer import SqlResults
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 
@@ -60,7 +58,6 @@ class ExecutionContextConvertor:
                 ),
                 default=utils.pessimistic_json_iso_dttm_ser,
                 ignore_nan=True,
-                encoding=None,
             )
 
         return json.dumps(

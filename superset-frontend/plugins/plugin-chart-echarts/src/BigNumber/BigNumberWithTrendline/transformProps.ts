@@ -185,8 +185,8 @@ export default function transformProps(
   );
 
   const headerFormatter =
-    metricColtype === GenericDataType.TEMPORAL ||
-    metricColtype === GenericDataType.STRING ||
+    metricColtype === GenericDataType.Temporal ||
+    metricColtype === GenericDataType.String ||
     forceTimestampFormatting
       ? formatTime
       : numberFormatter;

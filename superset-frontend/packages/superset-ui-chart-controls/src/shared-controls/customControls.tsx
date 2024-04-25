@@ -20,9 +20,9 @@
 import {
   ContributionType,
   ensureIsArray,
+  GenericDataType,
   getColumnLabel,
   getMetricLabel,
-  isDefined,
   QueryFormColumn,
   QueryFormMetric,
   t,
@@ -38,6 +38,7 @@ import {
   DEFAULT_XAXIS_SORT_SERIES_DATA,
   SORT_SERIES_CHOICES,
 } from '../constants';
+import { checkColumnType } from '../utils/checkColumnType';
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -54,18 +55,29 @@ export const contributionModeControl = {
   },
 };
 
-function isTemporal(controls: ControlStateMapping): boolean {
-  return !(
-    isDefined(controls?.x_axis?.value) &&
-    !isTemporalColumn(
+function isForcedCategorical(controls: ControlStateMapping): boolean {
+  return (
+    checkColumnType(
       getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
       controls?.datasource?.datasource,
+      [GenericDataType.Numeric],
+    ) && !!controls?.xAxisForceCategorical?.value
+  );
+}
+
+function isSortable(controls: ControlStateMapping): boolean {
+  return (
+    isForcedCategorical(controls) ||
+    checkColumnType(
+      getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+      controls?.datasource?.datasource,
+      [GenericDataType.String, GenericDataType.Boolean],
     )
   );
 }
 
 const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
-  !isTemporal(controls) &&
+  isSortable(controls) &&
   ensureIsArray(controls?.groupby?.value).length === 0 &&
   ensureIsArray(controls?.metrics?.value).length === 1;
 
@@ -74,7 +86,7 @@ const xAxisMultiSortVisibility = ({
 }: {
   controls: ControlStateMapping;
 }) =>
-  !isTemporal(controls) &&
+  isSortable(controls) &&
   (!!ensureIsArray(controls?.groupby?.value).length ||
     ensureIsArray(controls?.metrics?.value).length > 1);
 
@@ -141,7 +153,29 @@ export const xAxisSortAscControl = {
         : t('X-Axis Sort Ascending'),
     default: true,
     description: t('Whether to sort ascending or descending on the base Axis.'),
-    visibility: xAxisSortVisibility,
+    visibility: ({ controls }: { controls: ControlStateMapping }) =>
+      controls?.x_axis_sort?.value !== undefined &&
+      xAxisSortVisibility({ controls }),
+  },
+};
+
+export const xAxisForceCategoricalControl = {
+  name: 'xAxisForceCategorical',
+  config: {
+    type: 'CheckboxControl',
+    label: () => t('Force categorical'),
+    default: false,
+    description: t('Treat values as categorical.'),
+    initialValue: (control: ControlState, state: ControlPanelState | null) =>
+      state?.form_data?.x_axis_sort !== undefined || control.value,
+    renderTrigger: true,
+    visibility: ({ controls }: { controls: ControlStateMapping }) =>
+      checkColumnType(
+        getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+        controls?.datasource?.datasource,
+        [GenericDataType.Numeric],
+      ),
+    shouldMapStateToProps: () => true,
   },
 };
 
@@ -173,6 +207,8 @@ export const xAxisSortSeriesAscendingControl = {
     default: DEFAULT_XAXIS_SORT_SERIES_DATA.sort_series_ascending,
     description: t('Whether to sort ascending or descending on the base Axis.'),
     renderTrigger: true,
-    visibility: xAxisMultiSortVisibility,
+    visibility: ({ controls }: { controls: ControlStateMapping }) =>
+      controls?.x_axis_sort_series?.value !== undefined &&
+      xAxisMultiSortVisibility({ controls }),
   },
 };

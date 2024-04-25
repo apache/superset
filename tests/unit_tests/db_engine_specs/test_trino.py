@@ -24,18 +24,27 @@ from unittest.mock import Mock, patch
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
+from requests.exceptions import ConnectionError as RequestsConnectionError
 from sqlalchemy import types
+from trino.exceptions import TrinoExternalError, TrinoInternalError, TrinoUserError
 from trino.sqlalchemy import datatype
 
 import superset.config
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPIDatabaseError,
+    SupersetDBAPIOperationalError,
+    SupersetDBAPIProgrammingError,
+)
+from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
 )
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 def _assert_columns_equal(actual_cols, expected_cols) -> None:
@@ -295,14 +304,14 @@ def test_get_column_spec(
 def test_convert_dttm(
     target_type: str,
     expected_result: Optional[str],
-    dttm: datetime,
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
     assert_convert_dttm(TrinoEngineSpec, target_type, expected_result, dttm)
 
 
-def test_extra_table_metadata() -> None:
+def test_get_extra_table_metadata() -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
     db_mock = Mock()
@@ -312,7 +321,10 @@ def test_extra_table_metadata() -> None:
     db_mock.get_extra = Mock(return_value={})
     db_mock.has_view_by_name = Mock(return_value=None)
     db_mock.get_df = Mock(return_value=pd.DataFrame({"ds": ["01-01-19"], "hour": [1]}))
-    result = TrinoEngineSpec.extra_table_metadata(db_mock, "test_table", "test_schema")
+    result = TrinoEngineSpec.get_extra_table_metadata(
+        db_mock,
+        Table("test_table", "test_schema"),
+    )
     assert result["partitions"]["cols"] == ["ds", "hour"]
     assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
 
@@ -352,9 +364,8 @@ def test_prepare_cancel_query(
     from superset.db_engine_specs.trino import TrinoEngineSpec
     from superset.models.sql_lab import Query
 
-    session_mock = mocker.MagicMock()
     query = Query(extra_json=json.dumps(initial_extra))
-    TrinoEngineSpec.prepare_cancel_query(query=query, session=session_mock)
+    TrinoEngineSpec.prepare_cancel_query(query=query)
     assert query.extra == final_extra
 
 
@@ -374,14 +385,13 @@ def test_handle_cursor_early_cancel(
 
     cursor_mock = engine_mock.return_value.__enter__.return_value
     cursor_mock.query_id = query_id
-    session_mock = mocker.MagicMock()
 
     query = Query()
 
     if cancel_early:
-        TrinoEngineSpec.prepare_cancel_query(query=query, session=session_mock)
+        TrinoEngineSpec.prepare_cancel_query(query=query)
 
-    TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query, session=session_mock)
+    TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
 
     if cancel_early:
         assert cancel_query_mock.call_args[1]["cancel_query_id"] == query_id
@@ -399,7 +409,6 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
     mock_cursor.query_id = None
 
     mock_query = mocker.MagicMock()
-    mock_session = mocker.MagicMock()
 
     def _mock_execute(*args, **kwargs):
         mock_cursor.query_id = query_id
@@ -410,7 +419,6 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
         cursor=mock_cursor,
         sql="SELECT 1 FROM foo",
         query=mock_query,
-        session=mock_session,
     )
 
     mock_query.set_extra_json_key.assert_called_once_with(
@@ -517,3 +525,30 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
     ]
 
     _assert_columns_equal(actual, expected)
+
+
+def test_get_indexes_no_table():
+    from sqlalchemy.exc import NoSuchTableError
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = Mock()
+    inspector_mock = Mock()
+    inspector_mock.get_indexes = Mock(
+        side_effect=NoSuchTableError("The specified table does not exist.")
+    )
+    result = TrinoEngineSpec.get_indexes(
+        db_mock, inspector_mock, "test_table", "test_schema"
+    )
+    assert result == []
+
+
+def test_get_dbapi_exception_mapping():
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mapping = TrinoEngineSpec.get_dbapi_exception_mapping()
+    assert mapping.get(TrinoUserError) == SupersetDBAPIProgrammingError
+    assert mapping.get(TrinoInternalError) == SupersetDBAPIDatabaseError
+    assert mapping.get(TrinoExternalError) == SupersetDBAPIOperationalError
+    assert mapping.get(RequestsConnectionError) == SupersetDBAPIConnectionError
+    assert mapping.get(Exception) is None

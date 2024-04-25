@@ -27,7 +27,7 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
     """Loading random time series data from a zip file in the repo"""
     tbl_name = "flights"
     database = database_utils.get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
         table_exists = database.has_table_by_name(tbl_name)
 
@@ -42,9 +42,7 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
 
             pdf[  # pylint: disable=unsupported-assignment-operation,useless-suppression
                 "ds"
-            ] = (
-                pdf.YEAR.map(str) + "-0" + pdf.MONTH.map(str) + "-0" + pdf.DAY.map(str)
-            )
+            ] = pdf.YEAR.map(str) + "-0" + pdf.MONTH.map(str) + "-0" + pdf.DAY.map(str)
             pdf.ds = pd.to_datetime(pdf.ds)
             pdf.drop(columns=["DAY", "MONTH", "YEAR"])
             pdf = pdf.join(airports, on="ORIGIN_AIRPORT", rsuffix="_ORIG")

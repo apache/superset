@@ -18,6 +18,7 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.png';
 import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
@@ -29,6 +30,7 @@ const metadata = new ChartMetadata({
   ),
   name: t('deck.gl Arc'),
   thumbnail,
+  exampleGallery: [{ url: example }],
   useLegacyApi: true,
   tags: [t('deckGL'), t('Geo'), t('3D'), t('Relational'), t('Web')],
 });

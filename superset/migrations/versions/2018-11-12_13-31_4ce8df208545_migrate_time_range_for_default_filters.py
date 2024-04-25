@@ -100,9 +100,9 @@ def upgrade():
                         # just abandon __from and __to
                         if "__time_range" not in val:
                             val.append("__time_range")
-                    json_metadata[
-                        "filter_immune_slice_fields"
-                    ] = filter_immune_slice_fields
+                    json_metadata["filter_immune_slice_fields"] = (
+                        filter_immune_slice_fields
+                    )
                     has_update = True
 
             if has_update:

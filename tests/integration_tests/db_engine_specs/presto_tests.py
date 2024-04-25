@@ -20,12 +20,12 @@ from unittest import mock, skipUnless
 
 import pandas as pd
 from flask.ctx import AppContext
-from sqlalchemy import types
+from sqlalchemy import types  # noqa: F401
 from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import ParsedQuery, Table
 from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
@@ -549,14 +549,19 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(actual_data, expected_data)
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
-    def test_presto_extra_table_metadata(self):
-        db = mock.Mock()
-        db.get_indexes = mock.Mock(return_value=[{"column_names": ["ds", "hour"]}])
-        db.get_extra = mock.Mock(return_value={})
+    def test_presto_get_extra_table_metadata(self):
+        database = mock.Mock()
+        database.get_indexes = mock.Mock(
+            return_value=[{"column_names": ["ds", "hour"]}]
+        )
+        database.get_extra = mock.Mock(return_value={})
         df = pd.DataFrame({"ds": ["01-01-19"], "hour": [1]})
-        db.get_df = mock.Mock(return_value=df)
+        database.get_df = mock.Mock(return_value=df)
         PrestoEngineSpec.get_create_view = mock.Mock(return_value=None)
-        result = PrestoEngineSpec.extra_table_metadata(db, "test_table", "test_schema")
+        result = PrestoEngineSpec.get_extra_table_metadata(
+            database,
+            Table("test_table", "test_schema"),
+        )
         assert result["partitions"]["cols"] == ["ds", "hour"]
         assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
 

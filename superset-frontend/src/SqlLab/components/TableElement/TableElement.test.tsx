@@ -43,12 +43,13 @@ jest.mock('src/components/IconTooltip', () => ({
 jest.mock(
   'src/SqlLab/components/ColumnElement',
   () =>
-    ({ column }: { column: Column }) =>
-      <div data-test="mock-column-element">{column.name}</div>,
+    ({ column }: { column: Column }) => (
+      <div data-test="mock-column-element">{column.name}</div>
+    ),
 );
 const getTableMetadataEndpoint = 'glob:**/api/v1/database/*/table/*/*/';
 const getExtraTableMetadataEndpoint =
-  'glob:**/api/v1/database/*/table_extra/*/*/';
+  'glob:**/api/v1/database/*/table_metadata/extra/*';
 const updateTableSchemaEndpoint = 'glob:*/tableschemaview/*/expanded';
 
 beforeEach(() => {
@@ -142,7 +143,7 @@ test('removes the table', async () => {
   const isFeatureEnabledMock = jest
     .spyOn(uiCore, 'isFeatureEnabled')
     .mockImplementation(
-      featureFlag => featureFlag === FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
+      featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
     );
   const { getAllByTestId, getByText } = render(
     <TableElement {...mockedProps} />,

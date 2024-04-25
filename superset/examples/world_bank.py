@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
+
 import json
 import os
 
@@ -48,7 +49,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
     database = superset.utils.database.get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
         table_exists = database.has_table_by_name(tbl_name)
 
@@ -266,13 +267,13 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         ),
         Slice(
             slice_name="Rural Breakdown",
-            viz_type="sunburst",
+            viz_type="sunburst_v2",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="sunburst",
-                groupby=["region", "country_name"],
+                viz_type="sunburst_v2",
+                columns=["region", "country_name"],
                 since="2011-01-01",
                 until="2011-01-02",
                 metric=metric,

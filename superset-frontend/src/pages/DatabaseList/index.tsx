@@ -17,8 +17,6 @@
  * under the License.
  */
 import {
-  isFeatureEnabled,
-  FeatureFlag,
   getExtensionsRegistry,
   styled,
   SupersetClient,
@@ -51,6 +49,7 @@ import { ExtensionConfigs } from 'src/features/home/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
+import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { DatabaseObject } from 'src/features/databases/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
@@ -137,6 +136,11 @@ function DatabaseList({
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
+  const [csvUploadDataModalOpen, setCsvUploadDataModalOpen] =
+    useState<boolean>(false);
+  const [excelUploadDataModalOpen, setExcelUploadDataModalOpen] =
+    useState<boolean>(false);
+
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const isAdmin = isUserAdmin(fullUser);
   const showUploads = allowUploads || isAdmin;
@@ -193,7 +197,7 @@ function DatabaseList({
         }
 
         // Delete user-selected db from local storage
-        setItem(LocalStorageKeys.db, null);
+        setItem(LocalStorageKeys.Database, null);
 
         // Close delete modal
         setDatabaseCurrentlyDeleting(null);
@@ -216,8 +220,7 @@ function DatabaseList({
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport =
-    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const canExport = hasPerm('can_export');
 
   const { canUploadCSV, canUploadColumnar, canUploadExcel } = uploadUserPerms(
     roles,
@@ -236,8 +239,21 @@ function DatabaseList({
         {
           label: t('Upload CSV'),
           name: 'Upload CSV file',
-          url: '/csvtodatabaseview/form',
+          url: '#',
+          onClick: () => {
+            setCsvUploadDataModalOpen(true);
+          },
           perm: canUploadCSV && showUploads,
+          disable: isDisabled,
+        },
+        {
+          label: t('Upload Excel'),
+          name: 'Upload Excel file',
+          url: '#',
+          onClick: () => {
+            setExcelUploadDataModalOpen(true);
+          },
+          perm: canUploadExcel && showUploads,
           disable: isDisabled,
         },
         {
@@ -245,13 +261,6 @@ function DatabaseList({
           name: 'Upload columnar file',
           url: '/columnartodatabaseview/form',
           perm: canUploadColumnar && showUploads,
-          disable: isDisabled,
-        },
-        {
-          label: t('Upload Excel file'),
-          name: 'Upload Excel file',
-          url: '/exceltodatabaseview/form',
-          perm: canUploadExcel && showUploads,
           disable: isDisabled,
         },
       ],
@@ -376,7 +385,7 @@ function DatabaseList({
       },
       {
         accessor: 'allow_file_upload',
-        Header: t('CSV upload'),
+        Header: t('File upload'),
         Cell: ({
           row: {
             original: { allow_file_upload: allowFileUpload },
@@ -477,7 +486,7 @@ function DatabaseList({
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -491,14 +500,14 @@ function DatabaseList({
         key: 'search',
         id: 'database_name',
         input: 'search',
-        operator: FilterOperator.contains,
+        operator: FilterOperator.Contains,
       },
       {
         Header: t('Expose in SQL Lab'),
         key: 'expose_in_sql_lab',
         id: 'expose_in_sqllab',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: [
           { label: t('Yes'), value: true },
@@ -518,7 +527,7 @@ function DatabaseList({
         key: 'allow_run_async',
         id: 'allow_run_async',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: [
           { label: t('Yes'), value: true },
@@ -530,7 +539,7 @@ function DatabaseList({
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'database',
@@ -559,6 +568,25 @@ function DatabaseList({
         onDatabaseAdd={() => {
           refreshData();
         }}
+      />
+      <UploadDataModal
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onHide={() => {
+          setCsvUploadDataModalOpen(false);
+        }}
+        show={csvUploadDataModalOpen}
+        allowedExtensions={CSV_EXTENSIONS}
+      />
+      <UploadDataModal
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onHide={() => {
+          setExcelUploadDataModalOpen(false);
+        }}
+        show={excelUploadDataModalOpen}
+        allowedExtensions={EXCEL_EXTENSIONS}
+        type="excel"
       />
       {databaseCurrentlyDeleting && (
         <DeleteModal

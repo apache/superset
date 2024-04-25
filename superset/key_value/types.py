@@ -49,6 +49,7 @@ class KeyValueResource(StrEnum):
     DASHBOARD_PERMALINK = "dashboard_permalink"
     EXPLORE_PERMALINK = "explore_permalink"
     METASTORE_CACHE = "superset_metastore_cache"
+    LOCK = "lock"
 
 
 class SharedKey(StrEnum):
@@ -58,12 +59,10 @@ class SharedKey(StrEnum):
 
 class KeyValueCodec(ABC):
     @abstractmethod
-    def encode(self, value: Any) -> bytes:
-        ...
+    def encode(self, value: Any) -> bytes: ...
 
     @abstractmethod
-    def decode(self, value: bytes) -> Any:
-        ...
+    def decode(self, value: bytes) -> Any: ...
 
 
 class JsonKeyValueCodec(KeyValueCodec):

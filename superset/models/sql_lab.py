@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
+
 import builtins
 import inspect
 import logging
@@ -25,11 +26,13 @@ from typing import Any, Optional, TYPE_CHECKING
 
 import simplejson as json
 import sqlalchemy as sqla
-from flask import current_app, Markup
+from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import gettext as __
 from humanize import naturaltime
+from jinja2.exceptions import TemplateError
+from markupsafe import Markup
 from sqlalchemy import (
     Boolean,
     Column,
@@ -46,6 +49,7 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
 
 from superset import security_manager
+from superset.exceptions import SupersetSecurityException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -53,9 +57,9 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
-from superset.sql_parse import CtasMethod, ParsedQuery, Table
+from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import get_column_name, QueryStatus, user_label
+from superset.utils.core import get_column_name, MediumText, QueryStatus, user_label
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -65,8 +69,25 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class SqlTablesMixin:  # pylint: disable=too-few-public-methods
+    @property
+    def sql_tables(self) -> list[Table]:
+        try:
+            return list(
+                extract_tables_from_jinja_sql(
+                    self.sql,  # type: ignore
+                    self.database,  # type: ignore
+                )
+            )
+        except (SupersetSecurityException, TemplateError):
+            return []
+
+
 class Query(
-    ExtraJSONMixin, ExploreMixin, Model
+    SqlTablesMixin,
+    ExtraJSONMixin,
+    ExploreMixin,
+    Model,
 ):  # pylint: disable=abstract-method,too-many-public-methods
     """ORM model for SQL query
 
@@ -88,11 +109,11 @@ class Query(
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
     schema = Column(String(256))
-    sql = Column(Text)
+    sql = Column(MediumText())
     # Query to retrieve the results,
     # used only in case of select_as_cta_used is true.
-    select_sql = Column(Text)
-    executed_sql = Column(Text)
+    select_sql = Column(MediumText())
+    executed_sql = Column(MediumText())
     # Could be configured in the superset config.
     limit = Column(Integer)
     limiting_factor = Column(
@@ -180,10 +201,6 @@ class Query(
     @property
     def username(self) -> str:
         return self.user.username
-
-    @property
-    def sql_tables(self) -> list[Table]:
-        return list(ParsedQuery(self.sql).tables)
 
     @property
     def columns(self) -> list["TableColumn"]:
@@ -333,7 +350,7 @@ class Query(
 
     def adhoc_column_to_sqla(
         self,
-        col: "AdhocColumn",  # type: ignore
+        col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
@@ -355,7 +372,13 @@ class Query(
         return self.make_sqla_column_compatible(sqla_column, label)
 
 
-class SavedQuery(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
+class SavedQuery(
+    SqlTablesMixin,
+    AuditMixinNullable,
+    ExtraJSONMixin,
+    ImportExportMixin,
+    Model,
+):
     """ORM model for SQL query"""
 
     __tablename__ = "saved_query"
@@ -365,7 +388,7 @@ class SavedQuery(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     schema = Column(String(128))
     label = Column(String(256))
     description = Column(Text)
-    sql = Column(Text)
+    sql = Column(MediumText())
     template_parameters = Column(Text)
     user = relationship(
         security_manager.user_model,
@@ -426,10 +449,6 @@ class SavedQuery(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
         return f"/sqllab?savedQueryId={self.id}"
 
     @property
-    def sql_tables(self) -> list[Table]:
-        return list(ParsedQuery(self.sql).tables)
-
-    @property
     def last_run_humanized(self) -> str:
         return naturaltime(datetime.now() - self.changed_on)
 
@@ -465,7 +484,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     )
 
     # the query in the textarea, and results (if any)
-    sql = Column(Text)
+    sql = Column(MediumText())
     query_limit = Column(Integer)
 
     # latest query that was run

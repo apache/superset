@@ -26,12 +26,18 @@ import simplejson as json
 from flask import current_app
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.orm import Session
+from sqlalchemy.exc import NoSuchTableError
 
+from superset import db
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPIDatabaseError,
+    SupersetDBAPIOperationalError,
+    SupersetDBAPIProgrammingError,
+)
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.superset_typing import ResultSetColumnType
@@ -39,6 +45,7 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.sql_parse import Table
 
     with contextlib.suppress(ImportError):  # trino may not be installed
         from trino.dbapi import Cursor
@@ -52,18 +59,17 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     allows_alias_to_source_column = False
 
     @classmethod
-    def extra_table_metadata(
+    def get_extra_table_metadata(
         cls,
         database: Database,
-        table_name: str,
-        schema_name: str | None,
+        table: Table,
     ) -> dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table_name, schema_name):
+        if indexes := database.get_indexes(table.table, table.schema):
             col_names, latest_parts = cls.latest_partition(
-                table_name,
-                schema_name,
+                table.table,
+                table.schema,
                 database,
                 show_first=True,
                 indexes=indexes,
@@ -85,17 +91,18 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 ),
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": cls._partition_query(
-                    table_name=table_name,
-                    schema=schema_name,
+                    table_name=table.table,
+                    schema=table.schema,
                     indexes=indexes,
                     database=database,
                 ),
             }
 
-        if database.has_view_by_name(table_name, schema_name):
+        if database.has_view_by_name(table.table, table.schema):
             with database.get_inspector_with_context() as inspector:
                 metadata["view"] = inspector.get_view_definition(
-                    table_name, schema_name
+                    table.table,
+                    table.schema,
                 )
 
         return metadata
@@ -106,6 +113,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
+        access_token: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -113,6 +121,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param connect_args: config to be updated
         :param uri: URI string
         :param username: Effective username
+        :param access_token: Personal access token for OAuth2
         :return: None
         """
         url = make_url_safe(uri)
@@ -126,7 +135,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def get_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: str | None
+        cls,
+        url: URL,
+        impersonate_user: bool,
+        username: str | None,
+        access_token: str | None,
     ) -> URL:
         """
         Return a modified URL with the username set.
@@ -154,7 +167,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return None
 
     @classmethod
-    def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Cursor, query: Query) -> None:
         """
         Handle a trino client cursor.
 
@@ -171,7 +184,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
 
-        session.commit()
+        db.session.commit()
 
         # if query cancelation was requested prior to the handle_cursor call, but
         # the query was still executed, trigger the actual query cancelation now
@@ -182,11 +195,14 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 cancel_query_id=cancel_query_id,
             )
 
-        super().handle_cursor(cursor=cursor, query=query, session=session)
+        super().handle_cursor(cursor=cursor, query=query)
 
     @classmethod
     def execute_with_cursor(
-        cls, cursor: Cursor, sql: str, query: Query, session: Session
+        cls,
+        cursor: Cursor,
+        sql: str,
+        query: Query,
     ) -> None:
         """
         Trigger execution of a query and handle the resulting cursor.
@@ -206,7 +222,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             logger.debug("Query %d: Running query: %s", query_id, sql)
 
             try:
-                cls.execute(cursor, sql)
+                cls.execute(cursor, sql, query.database)
             except Exception as ex:  # pylint: disable=broad-except
                 results["error"] = ex
             finally:
@@ -224,7 +240,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             time.sleep(0.1)
 
         logger.debug("Query %d: Handling cursor", query_id)
-        cls.handle_cursor(cursor, query, session)
+        cls.handle_cursor(cursor, query)
 
         # Block until the query completes; same behaviour as the client itself
         logger.debug("Query %d: Waiting for query to complete", query_id)
@@ -236,10 +252,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             raise err
 
     @classmethod
-    def prepare_cancel_query(cls, query: Query, session: Session) -> None:
+    def prepare_cancel_query(cls, query: Query) -> None:
         if QUERY_CANCEL_KEY not in query.extra:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            session.commit()
+            db.session.commit()
 
     @classmethod
     def cancel_query(cls, cursor: Cursor, query: Query, cancel_query_id: str) -> bool:
@@ -329,10 +345,27 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-outside-toplevel
         from requests import exceptions as requests_exceptions
+        from trino import exceptions as trino_exceptions
 
-        return {
+        static_mapping: dict[type[Exception], type[Exception]] = {
             requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
         }
+
+        class _CustomMapping(dict[type[Exception], type[Exception]]):
+            def get(  # type: ignore[override]
+                self, item: type[Exception], default: type[Exception] | None = None
+            ) -> type[Exception] | None:
+                if static := static_mapping.get(item):
+                    return static
+                if issubclass(item, trino_exceptions.InternalError):
+                    return SupersetDBAPIDatabaseError
+                if issubclass(item, trino_exceptions.OperationalError):
+                    return SupersetDBAPIOperationalError
+                if issubclass(item, trino_exceptions.ProgrammingError):
+                    return SupersetDBAPIProgrammingError
+                return default
+
+        return _CustomMapping()
 
     @classmethod
     def _expand_columns(cls, col: ResultSetColumnType) -> list[ResultSetColumnType]:
@@ -395,3 +428,27 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             return base_cols
 
         return [col for base_col in base_cols for col in cls._expand_columns(base_col)]
+
+    @classmethod
+    def get_indexes(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        table_name: str,
+        schema: str | None,
+    ) -> list[dict[str, Any]]:
+        """
+        Get the indexes associated with the specified schema/table.
+
+        Trino dialect raises NoSuchTableError in get_indexes if table is empty.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param table_name: The table to inspect
+        :param schema: The schema to inspect
+        :returns: The indexes
+        """
+        try:
+            return super().get_indexes(database, inspector, table_name, schema)
+        except NoSuchTableError:
+            return []

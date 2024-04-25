@@ -34,9 +34,9 @@ from sqlalchemy import Column, text, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
+from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -50,8 +50,6 @@ from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from pyhive.hive import Cursor
-    from TCLIService.ttypes import TFetchOrientation
 
     from superset.models.core import Database
 
@@ -334,7 +332,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def handle_cursor(  # pylint: disable=too-many-locals
-        cls, cursor: Any, query: Query, session: Session
+        cls, cursor: Any, query: Query
     ) -> None:
         """Updates progress information"""
         # pylint: disable=import-outside-toplevel
@@ -353,8 +351,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             # Queries don't terminate when user clicks the STOP button on SQL LAB.
             # Refresh session so that the `query.status` modified in stop_query in
             # views/core.py is reflected here.
-            session.refresh(query)
-            query = session.query(type(query)).filter_by(id=query_id).one()
+            db.session.refresh(query)
+            query = db.session.query(type(query)).filter_by(id=query_id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
                 break
@@ -392,11 +390,11 @@ class HiveEngineSpec(PrestoEngineSpec):
                     # Wait for job id before logging things out
                     # this allows for prefixing all log lines and becoming
                     # searchable in something like Kibana
-                    for l in log_lines[last_log_line:]:
+                    for l in log_lines[last_log_line:]:  # noqa: E741
                         logger.info("Query %s: [%s] %s", str(query_id), str(job_id), l)
                     last_log_line = len(log_lines)
                 if needs_commit:
-                    session.commit()
+                    db.session.commit()
             if sleep_interval := current_app.config.get("HIVE_POLL_INTERVAL"):
                 logger.warning(
                     "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL_SECONDS instead"
@@ -505,7 +503,11 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def get_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: str | None
+        cls,
+        url: URL,
+        impersonate_user: bool,
+        username: str | None,
+        access_token: str | None,
     ) -> URL:
         """
         Return a modified URL with the username set.
@@ -524,6 +526,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
+        access_token: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -547,7 +550,10 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @staticmethod
     def execute(  # type: ignore
-        cursor, query: str, async_: bool = False
+        cursor,
+        query: str,
+        database: Database,
+        async_: bool = False,
     ):  # pylint: disable=arguments-differ
         kwargs = {"async": async_}
         cursor.execute(query, **kwargs)

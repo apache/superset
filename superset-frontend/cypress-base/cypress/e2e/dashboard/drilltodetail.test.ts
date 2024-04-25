@@ -46,16 +46,17 @@ function openModalFromMenu(chartType: string) {
 function openModalFromChartContext(targetMenuItem: string) {
   interceptSamples();
 
-  cy.wait(500);
   if (targetMenuItem.startsWith('Drill to detail by')) {
     cy.get('.ant-dropdown')
       .not('.ant-dropdown-hidden')
+      .should('be.visible')
       .first()
       .find("[role='menu'] [role='menuitem'] [title='Drill to detail by']")
       .trigger('mouseover');
-    cy.wait(500);
     cy.get('[data-test="drill-to-detail-by-submenu"]')
+      .should('be.visible')
       .not('.ant-dropdown-menu-hidden [data-test="drill-to-detail-by-submenu"]')
+      .should('be.visible')
       .find('[role="menuitem"]')
       .contains(new RegExp(`^${targetMenuItem}$`))
       .first()
@@ -249,9 +250,13 @@ describe('Drill to detail modal', () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
+        // focus on table first to trigger browser scroll
+        cy.get("[data-test-viz-type='table']").contains('boy').rightclick();
+
+        cy.wait(500);
         cy.get("[data-test-viz-type='table']")
-          .scrollIntoView()
           .contains('boy')
+          .scrollIntoView()
           .rightclick();
 
         openModalFromChartContext('Drill to detail by boy');
@@ -260,6 +265,9 @@ describe('Drill to detail modal', () => {
 
         closeModal();
 
+        // focus on table first to trigger browser scroll
+        cy.get("[data-test-viz-type='table']").contains('girl').rightclick();
+        cy.wait(500);
         cy.get("[data-test-viz-type='table']")
           .scrollIntoView()
           .contains('girl')
@@ -332,13 +340,13 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Time-Series Line Chart', () => {
+    describe('Line Chart', () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_timeseries_line');
       });
     });
 
-    describe('Time-series Bar Chart', () => {
+    describe('Bar Chart', () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -372,13 +380,13 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Time-Series Area Chart', () => {
+    describe('Area Chart', () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_area');
       });
     });
 
-    describe('Time-Series Scatter Chart', () => {
+    describe('Scatter Chart', () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_timeseries_scatter');
       });
@@ -416,8 +424,8 @@ describe('Drill to detail modal', () => {
         });
         cy.get("[data-test-viz-type='world_map'] svg").then($canvas => {
           cy.wrap($canvas).scrollIntoView().rightclick(200, 140);
-          openModalFromChartContext('Drill to detail by SVK');
-          cy.getBySel('filter-val').should('contain', 'SVK');
+          openModalFromChartContext('Drill to detail by SRB');
+          cy.getBySel('filter-val').should('contain', 'SRB');
         });
       });
     });
@@ -509,19 +517,19 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Time-Series Generic Chart', () => {
+    describe('Generic Chart', () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_timeseries');
       });
     });
 
-    describe('Time-Series Smooth Chart', () => {
+    describe('Smooth Chart', () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_timeseries_smooth');
       });
     });
 
-    describe('Time-Series Step Line Chart', () => {
+    describe('Step Line Chart', () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_timeseries_step');
       });

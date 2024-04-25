@@ -77,6 +77,7 @@ disable=
     cyclic-import,  # re-enable once this no longer raises false positives
     missing-docstring,
     duplicate-code,
+    line-too-long,
     unspecified-encoding,
     too-many-instance-attributes  # re-enable once this no longer raises false positives
 
@@ -108,7 +109,7 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 good-names=_,df,ex,f,i,id,j,k,l,o,pk,Run,ts,v,x,y
 
 # Bad variable names which should always be refused, separated by a comma
-bad-names=fd,foo,bar,baz,toto,tutu,tata
+bad-names=bar,baz,db,fd,foo,sesh,session,tata,toto,tutu
 
 # Colon-delimited sets of names that determine each other's naming style when
 # the name regexes allow several styles.
@@ -171,7 +172,7 @@ max-nested-blocks=5
 [FORMAT]
 
 # Maximum number of characters on a single line.
-max-line-length=90
+max-line-length=100
 
 # Regexp for a line that is allowed to be longer than the limit.
 ignore-long-lines=^\s*(# )?<?https?://\S+>?$

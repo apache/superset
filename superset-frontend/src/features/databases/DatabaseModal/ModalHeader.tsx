@@ -149,8 +149,7 @@ const ModalHeader = ({
             target="_blank"
             rel="noopener noreferrer"
           >
-            {t('connecting to %(dbModelName)s.', { dbModelName: dbModel.name })}
-            .
+            {t('connecting to %(dbModelName)s', { dbModelName: dbModel.name })}.
           </a>
         </p>
       </StyledFormHeader>

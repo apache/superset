@@ -24,11 +24,7 @@ import {
   t,
   isAdhocColumn,
 } from '@superset-ui/core';
-import {
-  ColumnMeta,
-  isColumnMeta,
-  withDndFallback,
-} from '@superset-ui/chart-controls';
+import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
@@ -37,7 +33,6 @@ import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/t
 import { DndItemType } from 'src/explore/components/DndItemType';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
-import SelectControl from '../SelectControl';
 
 export type DndColumnSelectProps = DndControlProps<QueryFormColumn> & {
   options: ColumnMeta[];
@@ -216,9 +211,4 @@ function DndColumnSelect(props: DndColumnSelectProps) {
   );
 }
 
-const DndColumnSelectWithFallback = withDndFallback(
-  DndColumnSelect,
-  SelectControl,
-);
-
-export { DndColumnSelectWithFallback as DndColumnSelect };
+export { DndColumnSelect };

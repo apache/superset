@@ -92,7 +92,6 @@ def get_table_metadata(
         "selectStar": database.select_star(
             table_name,
             schema=schema_name,
-            show_cols=True,
             indent=True,
             cols=columns,
             latest_partition=True,

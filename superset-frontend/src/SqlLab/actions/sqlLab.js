@@ -23,9 +23,10 @@ import {
   SupersetClient,
   t,
   isFeatureEnabled,
+  COMMON_ERR_MESSAGES,
+  getClientErrorObject,
 } from '@superset-ui/core';
-import invert from 'lodash/invert';
-import mapKeys from 'lodash/mapKeys';
+import { invert, mapKeys } from 'lodash';
 
 import { now } from 'src/utils/dates';
 import {
@@ -34,8 +35,6 @@ import {
   addSuccessToast as addSuccessToastAction,
   addWarningToast as addWarningToastAction,
 } from 'src/components/MessageToasts/actions';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { logEvent } from 'src/logger/actions';
@@ -60,6 +59,8 @@ export const QUERY_EDITOR_SET_SCHEMA = 'QUERY_EDITOR_SET_SCHEMA';
 export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
+export const QUERY_EDITOR_SET_CURSOR_POSITION =
+  'QUERY_EDITOR_SET_CURSOR_POSITION';
 export const QUERY_EDITOR_SET_QUERY_LIMIT = 'QUERY_EDITOR_SET_QUERY_LIMIT';
 export const QUERY_EDITOR_SET_TEMPLATE_PARAMS =
   'QUERY_EDITOR_SET_TEMPLATE_PARAMS';
@@ -107,8 +108,8 @@ export const addDangerToast = addDangerToastAction;
 export const addWarningToast = addWarningToastAction;
 
 export const CtasEnum = {
-  TABLE: 'TABLE',
-  VIEW: 'VIEW',
+  Table: 'TABLE',
+  View: 'VIEW',
 };
 const ERR_MSG_CANT_LOAD_QUERY = t("The query couldn't be loaded");
 
@@ -476,6 +477,7 @@ export function migrateQueryEditorFromLocalStorage(
         const newQueryEditor = {
           ...queryEditor,
           id: json.id.toString(),
+          inLocalStorage: false,
         };
         dispatch({
           type: MIGRATE_QUERY_EDITOR,
@@ -511,7 +513,7 @@ export function migrateQueryEditorFromLocalStorage(
 
 export function addQueryEditor(queryEditor) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.post({
           endpoint: '/tabstateview/',
           postPayload: { queryEditor },
@@ -560,7 +562,7 @@ export function addNewQueryEditor() {
       ...(unsavedQueryEditor.id === activeQueryEditor?.id &&
         unsavedQueryEditor),
     };
-    const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const warning = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? ''
       : t(
           '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
@@ -611,7 +613,7 @@ export function cloneQueryToNewTab(query, autorun) {
 
 export function setActiveQueryEditor(queryEditor) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.post({
           endpoint: encodeURI(`/tabstateview/${queryEditor.id}/activate`),
         })
@@ -674,7 +676,7 @@ export function setTables(tableSchemas) {
 export function switchQueryEditor(queryEditor, displayLimit) {
   return function (dispatch) {
     if (
-      isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
+      isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
       queryEditor &&
       !queryEditor.loaded
     ) {
@@ -733,7 +735,7 @@ export function toggleLeftBar(queryEditor) {
 
 export function removeQueryEditor(queryEditor) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.delete({
           endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
         })
@@ -741,15 +743,18 @@ export function removeQueryEditor(queryEditor) {
 
     return sync
       .then(() => dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor }))
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'An error occurred while removing tab. Please contact your administrator.',
+      .catch(({ status }) => {
+        if (status !== 404) {
+          return dispatch(
+            addDangerToast(
+              t(
+                'An error occurred while removing tab. Please contact your administrator.',
+              ),
             ),
-          ),
-        ),
-      );
+          );
+        }
+        return dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor });
+      });
   };
 }
 
@@ -766,7 +771,7 @@ export function removeAllOtherQueryEditors(queryEditor) {
 
 export function removeQuery(query) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.delete({
           endpoint: encodeURI(
             `/tabstateview/${query.sqlEditorId}/query/${query.id}`,
@@ -841,7 +846,7 @@ export function saveQuery(query, clientId) {
 
 export const addSavedQueryToTabState =
   (queryEditor, savedQuery) => dispatch => {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.put({
           endpoint: `/tabstateview/${queryEditor.id}`,
           postPayload: { saved_query_id: savedQuery.remoteId },
@@ -882,12 +887,16 @@ export function queryEditorSetSql(queryEditor, sql, queryId) {
   return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql, queryId };
 }
 
+export function queryEditorSetCursorPosition(queryEditor, position) {
+  return { type: QUERY_EDITOR_SET_CURSOR_POSITION, queryEditor, position };
+}
+
 export function queryEditorSetAndSaveSql(targetQueryEditor, sql, queryId) {
   return function (dispatch, getState) {
     const queryEditor = getUpToDateQuery(getState(), targetQueryEditor);
     // saved query and set tab state use this action
     dispatch(queryEditorSetSql(queryEditor, sql, queryId));
-    if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
+    if (isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)) {
       return SupersetClient.put({
         endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
         postPayload: { sql, latest_query_id: queryId },
@@ -912,6 +921,7 @@ export function formatQuery(queryEditor) {
     const { sql } = getUpToDateQuery(getState(), queryEditor);
     return SupersetClient.post({
       endpoint: `/api/v1/sqllab/format_sql/`,
+      // TODO (betodealmeida): pass engine as a parameter for better formatting
       body: JSON.stringify({ sql }),
       headers: { 'Content-Type': 'application/json' },
     }).then(({ json }) => {
@@ -1010,7 +1020,7 @@ export function runTablePreviewQuery(newTable) {
 
 export function syncTable(table, tableMetadata) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.post({
           endpoint: encodeURI('/tableschemaview/'),
           postPayload: { table: { ...tableMetadata, ...table } },
@@ -1069,7 +1079,7 @@ export function reFetchQueryResults(query) {
 
 export function expandTable(table) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.post({
           endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
           postPayload: { expanded: true },
@@ -1093,7 +1103,7 @@ export function expandTable(table) {
 
 export function collapseTable(table) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.post({
           endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
           postPayload: { expanded: false },
@@ -1118,12 +1128,14 @@ export function collapseTable(table) {
 export function removeTables(tables) {
   return function (dispatch) {
     const tablesToRemove = tables?.filter(Boolean) ?? [];
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? Promise.all(
           tablesToRemove.map(table =>
-            SupersetClient.delete({
-              endpoint: encodeURI(`/tableschemaview/${table.id}`),
-            }),
+            table.initialized
+              ? SupersetClient.delete({
+                  endpoint: encodeURI(`/tableschemaview/${table.id}`),
+                })
+              : Promise.resolve(),
           ),
         )
       : Promise.resolve();

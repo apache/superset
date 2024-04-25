@@ -73,7 +73,7 @@ export const createDataTablesPaneProps = (sliceId: number) =>
     chartStatus: 'rendered' as ChartStatus,
     onCollapseChange: jest.fn(),
     actions: exploreActions,
-  } as DataTablesPaneProps);
+  }) as DataTablesPaneProps;
 
 export const createSamplesPaneProps = ({
   datasourceId,
@@ -90,7 +90,7 @@ export const createSamplesPaneProps = ({
     queryForce,
     isVisible: true,
     actions: exploreActions,
-  } as SamplesPaneProps);
+  }) as SamplesPaneProps;
 
 export const createResultsPaneOnDashboardProps = ({
   sliceId,
@@ -116,4 +116,4 @@ export const createResultsPaneOnDashboardProps = ({
     isVisible: true,
     actions: exploreActions,
     errorMessage,
-  } as ResultsPaneProps);
+  }) as ResultsPaneProps;

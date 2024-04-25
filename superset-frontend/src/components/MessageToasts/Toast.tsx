@@ -79,13 +79,13 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
   let className = 'toast--success';
   let icon = <Icons.CircleCheckSolid css={theme => StyledIcon(theme)} />;
 
-  if (toast.toastType === ToastType.WARNING) {
+  if (toast.toastType === ToastType.Warning) {
     icon = <Icons.WarningSolid css={StyledIcon} />;
     className = 'toast--warning';
-  } else if (toast.toastType === ToastType.DANGER) {
+  } else if (toast.toastType === ToastType.Danger) {
     icon = <Icons.ErrorSolid css={StyledIcon} />;
     className = 'toast--danger';
-  } else if (toast.toastType === ToastType.INFO) {
+  } else if (toast.toastType === ToastType.Info) {
     icon = <Icons.InfoSolid css={StyledIcon} />;
     className = 'toast--info';
   }

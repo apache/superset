@@ -336,7 +336,7 @@ describe('Registry', () => {
         it('warns when overwrite', () => {
           const restoreConsole = mockConsole();
           const registry = new Registry({
-            overwritePolicy: OverwritePolicy.WARN,
+            overwritePolicy: OverwritePolicy.Warn,
           });
           registry.registerValue('a', 'testValue');
           expect(() => registry.registerValue('a', 'testValue2')).not.toThrow();
@@ -349,7 +349,7 @@ describe('Registry', () => {
         it('warns when overwrite', () => {
           const restoreConsole = mockConsole();
           const registry = new Registry({
-            overwritePolicy: OverwritePolicy.WARN,
+            overwritePolicy: OverwritePolicy.Warn,
           });
           registry.registerLoader('a', () => 'testValue');
           expect(() =>
@@ -365,7 +365,7 @@ describe('Registry', () => {
       describe('.registerValue(key, value)', () => {
         it('throws error when overwrite', () => {
           const registry = new Registry({
-            overwritePolicy: OverwritePolicy.PROHIBIT,
+            overwritePolicy: OverwritePolicy.Prohibit,
           });
           registry.registerValue('a', 'testValue');
           expect(() => registry.registerValue('a', 'testValue2')).toThrow();
@@ -374,7 +374,7 @@ describe('Registry', () => {
       describe('.registerLoader(key, loader)', () => {
         it('warns when overwrite', () => {
           const registry = new Registry({
-            overwritePolicy: OverwritePolicy.PROHIBIT,
+            overwritePolicy: OverwritePolicy.Prohibit,
           });
           registry.registerLoader('a', () => 'testValue');
           expect(() =>

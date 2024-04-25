@@ -24,7 +24,7 @@ from sqlalchemy import and_, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
-from superset import conf, is_feature_enabled
+from superset import conf
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 
@@ -84,8 +84,7 @@ class MigrateViz:
 
             rv_data[key] = value
 
-        if is_feature_enabled("GENERIC_CHART_AXES"):
-            self._migrate_temporal_filter(rv_data)
+        self._migrate_temporal_filter(rv_data)
 
         self.data = rv_data
 

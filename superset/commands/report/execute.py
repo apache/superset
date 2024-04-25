@@ -22,9 +22,8 @@ from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
-from sqlalchemy.orm import Session
 
-from superset import app, security_manager
+from superset import app, db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.exceptions import CommandException
@@ -68,9 +67,10 @@ from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.tasks.utils import get_executor
-from superset.utils.celery import session_scope
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
+from superset.utils.decorators import logs_context
+from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 
@@ -81,14 +81,13 @@ class BaseReportState:
     current_states: list[ReportState] = []
     initial: bool = False
 
+    @logs_context()
     def __init__(
         self,
-        session: Session,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
         execution_id: UUID,
     ) -> None:
-        self._session = session
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
         self._start_dttm = datetime.utcnow()
@@ -121,7 +120,7 @@ class BaseReportState:
 
         self._report_schedule.last_state = state
         self._report_schedule.last_eval_dttm = datetime.utcnow()
-        self._session.commit()
+        db.session.commit()
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -138,8 +137,8 @@ class BaseReportState:
             report_schedule=self._report_schedule,
             uuid=self._execution_id,
         )
-        self._session.add(log)
-        self._session.commit()
+        db.session.add(log)
+        db.session.commit()
 
     def _get_url(
         self,
@@ -239,6 +238,16 @@ class BaseReportState:
         if not image:
             raise ReportScheduleScreenshotFailedError()
         return [image]
+
+    def _get_pdf(self) -> bytes:
+        """
+        Get chart or dashboard pdf
+        :raises: ReportSchedulePdfFailedError
+        """
+        screenshots = self._get_screenshots()
+        pdf = build_pdf_from_screenshots(screenshots)
+
+        return pdf
 
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
@@ -344,22 +353,27 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         csv_data = None
+        screenshot_data = []
+        pdf_data = None
         embedded_data = None
         error_text = None
-        screenshot_data = []
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
         ):
-            if self._report_schedule.report_format == ReportDataFormat.VISUALIZATION:
+            if self._report_schedule.report_format == ReportDataFormat.PNG:
                 screenshot_data = self._get_screenshots()
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
+            elif self._report_schedule.report_format == ReportDataFormat.PDF:
+                pdf_data = self._get_pdf()
+                if not pdf_data:
+                    error_text = "Unexpected missing pdf"
             elif (
                 self._report_schedule.chart
-                and self._report_schedule.report_format == ReportDataFormat.DATA
+                and self._report_schedule.report_format == ReportDataFormat.CSV
             ):
                 csv_data = self._get_csv_data()
                 if not csv_data:
@@ -392,6 +406,7 @@ class BaseReportState:
             name=name,
             url=url,
             screenshots=screenshot_data,
+            pdf=pdf_data,
             description=self._report_schedule.description,
             csv=csv_data,
             embedded_data=embedded_data,
@@ -483,9 +498,7 @@ class BaseReportState:
         """
         Checks if an alert is in it's grace period
         """
-        last_success = ReportScheduleDAO.find_last_success_log(
-            self._report_schedule, session=self._session
-        )
+        last_success = ReportScheduleDAO.find_last_success_log(self._report_schedule)
         return (
             last_success is not None
             and self._report_schedule.grace_period
@@ -499,7 +512,7 @@ class BaseReportState:
         Checks if an alert/report on error is in it's notification grace period
         """
         last_success = ReportScheduleDAO.find_last_error_notification(
-            self._report_schedule, session=self._session
+            self._report_schedule
         )
         if not last_success:
             return False
@@ -516,7 +529,7 @@ class BaseReportState:
         Checks if an alert is in a working timeout
         """
         last_working = ReportScheduleDAO.find_last_entered_working_log(
-            self._report_schedule, session=self._session
+            self._report_schedule
         )
         if not last_working:
             return False
@@ -666,12 +679,10 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
 
     def __init__(
         self,
-        session: Session,
         task_uuid: UUID,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
     ):
-        self._session = session
         self._execution_id = task_uuid
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
@@ -682,7 +693,6 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                 self._report_schedule.last_state in state_cls.current_states
             ):
                 state_cls(
-                    self._session,
                     self._report_schedule,
                     self._scheduled_dttm,
                     self._execution_id,
@@ -706,31 +716,30 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self._execution_id = UUID(task_id)
 
     def run(self) -> None:
-        with session_scope(nullpool=True) as session:
-            try:
-                self.validate(session=session)
-                if not self._model:
-                    raise ReportScheduleExecuteUnexpectedError()
-                _, username = get_executor(
-                    executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
-                    model=self._model,
+        try:
+            self.validate()
+            if not self._model:
+                raise ReportScheduleExecuteUnexpectedError()
+            _, username = get_executor(
+                executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+                model=self._model,
+            )
+            user = security_manager.find_user(username)
+            with override_user(user):
+                logger.info(
+                    "Running report schedule %s as user %s",
+                    self._execution_id,
+                    username,
                 )
-                user = security_manager.find_user(username)
-                with override_user(user):
-                    logger.info(
-                        "Running report schedule %s as user %s",
-                        self._execution_id,
-                        username,
-                    )
-                    ReportScheduleStateMachine(
-                        session, self._execution_id, self._model, self._scheduled_dttm
-                    ).run()
-            except CommandException as ex:
-                raise ex
-            except Exception as ex:
-                raise ReportScheduleUnexpectedError(str(ex)) from ex
+                ReportScheduleStateMachine(
+                    self._execution_id, self._model, self._scheduled_dttm
+                ).run()
+        except CommandException as ex:
+            raise ex
+        except Exception as ex:
+            raise ReportScheduleUnexpectedError(str(ex)) from ex
 
-    def validate(self, session: Session = None) -> None:
+    def validate(self) -> None:
         # Validate/populate model exists
         logger.info(
             "session is validated: id %s, executionid: %s",
@@ -738,7 +747,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             self._execution_id,
         )
         self._model = (
-            session.query(ReportSchedule).filter_by(id=self._model_id).one_or_none()
+            db.session.query(ReportSchedule).filter_by(id=self._model_id).one_or_none()
         )
         if not self._model:
             raise ReportScheduleNotFoundError()

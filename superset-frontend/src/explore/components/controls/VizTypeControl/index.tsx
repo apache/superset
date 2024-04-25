@@ -23,13 +23,12 @@ import {
   getChartMetadataRegistry,
   styled,
   SupersetTheme,
-  isFeatureEnabled,
-  FeatureFlag,
 } from '@superset-ui/core';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
 import { noOp } from 'src/utils/common';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { FilterPlugins } from 'src/constants';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from './VizTypeGallery';
@@ -45,15 +44,10 @@ interface VizTypeControlProps {
 }
 
 const bootstrapData = getBootstrapData();
-const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
+const denyList: string[] = (
+  bootstrapData.common.conf.VIZ_TYPE_DENYLIST || []
+).concat(Object.values(FilterPlugins));
 const metadataRegistry = getChartMetadataRegistry();
-
-if (
-  isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-  !denyList.includes('filter_box')
-) {
-  denyList.push('filter_box');
-}
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 

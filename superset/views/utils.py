@@ -19,7 +19,6 @@ import logging
 from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, DefaultDict, Optional, Union
-from urllib import parse
 
 import msgpack
 import pyarrow as pa
@@ -31,7 +30,6 @@ from flask_babel import _
 from sqlalchemy.exc import NoResultFound
 from werkzeug.wrappers.response import Response
 
-import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
 from superset.daos.datasource import DatasourceDAO
@@ -110,7 +108,7 @@ def get_permissions(
 
     data_permissions = defaultdict(set)
     roles_permissions = security_manager.get_user_roles_permissions(user)
-    for _, permissions in roles_permissions.items():
+    for _, permissions in roles_permissions.items():  # noqa: F402
         for permission in permissions:
             if permission[0] in ("datasource_access", "database_access"):
                 data_permissions[permission[0]].add(permission[1])
@@ -129,7 +127,6 @@ def get_viz(
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
     datasource = DatasourceDAO.get_datasource(
-        db.session,
         DatasourceType(datasource_type),
         datasource_id,
     )
@@ -146,7 +143,7 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
         return {}
 
 
-def get_form_data(  # pylint: disable=too-many-locals
+def get_form_data(
     slice_id: Optional[int] = None,
     use_slice_data: bool = False,
     initial_form_data: Optional[dict[str, Any]] = None,
@@ -154,10 +151,12 @@ def get_form_data(  # pylint: disable=too-many-locals
     form_data: dict[str, Any] = initial_form_data or {}
 
     if has_request_context():
+        json_data = request.get_json(cache=True) if request.is_json else {}
+
         # chart data API requests are JSON
-        request_json_data = (
-            request.json["queries"][0]
-            if request.is_json and "queries" in request.json
+        first_query = (
+            json_data["queries"][0]
+            if "queries" in json_data and json_data["queries"]
             else None
         )
 
@@ -165,8 +164,8 @@ def get_form_data(  # pylint: disable=too-many-locals
 
         request_form_data = request.form.get("form_data")
         request_args_data = request.args.get("form_data")
-        if request_json_data:
-            form_data.update(request_json_data)
+        if first_query:
+            form_data.update(first_query)
         if request_form_data:
             parsed_form_data = loads_request_json(request_form_data)
             # some chart data api requests are form_data
@@ -185,19 +184,6 @@ def get_form_data(  # pylint: disable=too-many-locals
         # chart data API requests are JSON
         json_data = form_data["queries"][0] if "queries" in form_data else {}
         form_data.update(json_data)
-
-    if has_request_context():
-        url_id = request.args.get("r")
-        if url_id:
-            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
-            if saved_url:
-                url_str = parse.unquote_plus(
-                    saved_url.url.split("?")[1][10:], encoding="utf-8"
-                )
-                url_form_data = loads_request_json(url_str)
-                # allow form_date in request override saved url
-                url_form_data.update(form_data)
-                form_data = url_form_data
 
     form_data = {k: v for k, v in form_data.items() if k not in REJECTED_FORM_DATA_KEYS}
 
@@ -312,8 +298,7 @@ CONTAINER_TYPES = ["COLUMN", "GRID", "TABS", "TAB", "ROW"]
 def get_dashboard_extra_filters(
     slice_id: int, dashboard_id: int
 ) -> list[dict[str, Any]]:
-    session = db.session()
-    dashboard = session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
 
     # is chart in this dashboard?
     if (

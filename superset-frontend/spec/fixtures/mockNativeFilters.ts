@@ -24,7 +24,6 @@ import {
 } from '@superset-ui/core';
 
 export const nativeFilters: NativeFiltersState = {
-  filterSets: {},
   filters: {
     'NATIVE_FILTER-e7Q8zKixx': {
       id: 'NATIVE_FILTER-e7Q8zKixx',
@@ -53,7 +52,7 @@ export const nativeFilters: NativeFiltersState = {
         enableEmptyFilter: false,
         inverseSelection: false,
       },
-      type: NativeFilterType.NATIVE_FILTER,
+      type: NativeFilterType.NativeFilter,
       description: '',
       chartsInScope: [18],
     },
@@ -84,7 +83,7 @@ export const nativeFilters: NativeFiltersState = {
         enableEmptyFilter: false,
         inverseSelection: false,
       },
-      type: NativeFilterType.NATIVE_FILTER,
+      type: NativeFilterType.NativeFilter,
       description: '2 letter code',
       chartsInScope: [18],
     },

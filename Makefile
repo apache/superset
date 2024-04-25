@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-# Python version installed; we need 3.9-3.11
-PYTHON=`command -v python3.11 || command -v python3.10 || command -v python3.9`
+# Python version installed; we need 3.10-3.11
+PYTHON=`command -v python3.11 || command -v python3.10`
 
 .PHONY: install superset venv pre-commit
 
@@ -24,7 +24,7 @@ install: superset pre-commit
 
 superset:
 	# Install external dependencies
-	pip install -r requirements/local.txt
+	pip install -r requirements/development.txt
 
 	# Install Superset in editable (development) mode
 	pip install -e .
@@ -53,7 +53,7 @@ update: update-py update-js
 
 update-py:
 	# Install external dependencies
-	pip install -r requirements/local.txt
+	pip install -r requirements/development.txt
 
 	# Install Superset in editable (development) mode
 	pip install -e .
@@ -70,7 +70,7 @@ update-js:
 
 venv:
 	# Create a virtual environment and activate it (recommended)
-	if ! [ -x "${PYTHON}" ]; then echo "You need Python 3.9, 3.10 or 3.11 installed"; exit 1; fi
+	if ! [ -x "${PYTHON}" ]; then echo "You need Python 3.10 or 3.11 installed"; exit 1; fi
 	test -d venv || ${PYTHON} -m venv venv # setup a python3 virtualenv
 	. venv/bin/activate
 
@@ -79,7 +79,7 @@ activate:
 
 pre-commit:
 	# setup pre commit dependencies
-	pip3 install -r requirements/integration.txt
+	pip3 install -r requirements/development.txt
 	pre-commit install
 
 format: py-format js-format

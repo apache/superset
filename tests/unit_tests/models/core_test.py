@@ -220,7 +220,7 @@ def test_get_prequeries(mocker: MockFixture) -> None:
     """
     mocker.patch.object(
         Database,
-        "get_sqla_engine_with_context",
+        "get_sqla_engine",
     )
     db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
     db_engine_spec.get_prequeries.return_value = ["set a=1", "set b=2"]

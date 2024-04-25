@@ -1,0 +1,40 @@
+name: 'Setup supersetbot'
+description: 'Sets up supersetbot npm lib from the repo or npm'
+inputs:
+  from-npm:
+    description: 'Install from npm instead of local setup'
+    required: false
+    default: 'true' # Defaults to using the local setup
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Setup Node Env
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install supersetbot from npm
+      if: ${{ inputs.from-npm == 'true' }}
+      shell: bash
+      run: npm install -g supersetbot
+
+    - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+      if: ${{ inputs.from-npm == 'false' }}
+      uses: actions/checkout@v4
+      with:
+        repository: apache-superset/supersetbot
+        path: supersetbot
+
+    - name: Setup supersetbot from repo
+      if: ${{ inputs.from-npm == 'false' }}
+      shell: bash
+      working-directory: supersetbot
+      run: |
+        # simple trick to install globally with dependencies
+        npm pack
+        npm install -g ./supersetbot*.tgz
+
+    - name: echo supersetbot version
+      shell: bash
+      run: supersetbot version

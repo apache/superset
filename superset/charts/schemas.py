@@ -990,6 +990,14 @@ class ChartDataExtrasSchema(Schema):
         ),
         allow_none=True,
     )
+    instant_time_comparison_range = fields.String(
+        metadata={
+            "description": "This is only set using the new time comparison controls "
+            "that is made available in some plugins behind the experimental "
+            "feature flag."
+        },
+        allow_none=True,
+    )
 
 
 class AnnotationLayerSchema(Schema):

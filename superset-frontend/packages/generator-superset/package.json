@@ -25,13 +25,13 @@
   ],
   "dependencies": {
     "chalk": "^4.0.0",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.21",
     "yeoman-generator": "^5.7.0",
     "yosay": "^2.0.2"
   },
   "devDependencies": {
-    "fs-extra": "^10.0.0",
-    "yeoman-assert": "^3.1.0",
+    "fs-extra": "^11.2.0",
+    "yeoman-assert": "^3.1.1",
     "yeoman-test": "^6.2.0"
   },
   "engines": {

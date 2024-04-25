@@ -36,7 +36,7 @@ from superset.reports.models import (
     ReportState,
 )
 from superset.utils.core import override_user
-from tests.integration_tests.test_app import app
+from tests.integration_tests.test_app import app  # noqa: F401
 from tests.integration_tests.utils import read_fixture
 
 TEST_ID = str(uuid4())
@@ -158,7 +158,7 @@ def create_report_notification(
         validator_type=validator_type,
         validator_config_json=validator_config_json,
         grace_period=grace_period,
-        report_format=report_format or ReportDataFormat.VISUALIZATION,
+        report_format=report_format or ReportDataFormat.PNG,
         extra=extra,
         force_screenshot=force_screenshot,
     )
@@ -185,7 +185,7 @@ def create_dashboard_report(dashboard, extra, **kwargs):
         extra={
             "dashboard": extra,
         },
-        **kwargs
+        **kwargs,
     )
     error = None
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isEqual from 'lodash/isEqual';
+import { isEqual } from 'lodash';
 import {
   AdhocFilter,
   ensureIsArray,

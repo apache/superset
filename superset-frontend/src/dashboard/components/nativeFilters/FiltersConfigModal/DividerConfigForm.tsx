@@ -56,7 +56,7 @@ const DividerConfigForm: React.FC<Props> = ({ componentId, divider }) => (
     <FormItem
       hidden
       name={['filters', componentId, 'type']}
-      initialValue={NativeFilterType.DIVIDER}
+      initialValue={NativeFilterType.Divider}
     />
   </Container>
 );
