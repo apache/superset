@@ -17,7 +17,6 @@
 import pytest
 
 from superset.utils.core import form_data_to_adhoc, simple_filter_to_adhoc
-from tests.integration_tests.test_app import app
 
 
 def test_simple_filter_to_adhoc_generates_deterministic_values():

@@ -25,7 +25,6 @@ from superset.migrations.shared.security_converge import (
     PermissionView,
     ViewMenu,
 )
-from tests.integration_tests.test_app import app
 
 migration_module = import_module(
     "superset.migrations.versions."

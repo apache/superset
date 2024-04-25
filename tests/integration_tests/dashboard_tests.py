@@ -25,7 +25,6 @@ import pytest
 from flask import Response, escape, url_for
 from sqlalchemy import func
 
-from tests.integration_tests.test_app import app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard

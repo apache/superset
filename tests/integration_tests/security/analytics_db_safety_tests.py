@@ -21,7 +21,6 @@ from sqlalchemy.engine.url import make_url
 
 from superset.exceptions import SupersetSecurityException
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
-from tests.integration_tests.test_app import app
 
 
 @pytest.mark.parametrize(

@@ -20,7 +20,6 @@ from flask_appbuilder.security.sqla.models import Role, User
 
 from superset import db, security_manager
 from tests.integration_tests.constants import GAMMA_SQLLAB_NO_DATA_USERNAME
-from tests.integration_tests.test_app import app
 
 
 @pytest.fixture()
