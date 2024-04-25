@@ -1517,7 +1517,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.excel_upload_metadata",
+        action=(
+            lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+            ".excel_upload_metadata"
+        ),
         log_to_statsd=False,
     )
     @requires_form_data
@@ -1527,7 +1530,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ---
         post:
           summary: Upload an Excel file and returns file metadata
-          parameters:
           requestBody:
             required: true
             content:
@@ -1626,7 +1628,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.columnar_upload_metadata",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        ".columnar_upload_metadata",
         log_to_statsd=False,
     )
     @requires_form_data
@@ -1636,7 +1639,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ---
         post:
           summary: Upload a Columnar file and returns file metadata
-          parameters:
           requestBody:
             required: true
             content:

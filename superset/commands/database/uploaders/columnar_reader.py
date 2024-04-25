@@ -96,8 +96,8 @@ class ColumnarReader(BaseDataReader):
                     for filename in zip_file.namelist():
                         with zip_file.open(filename) as file_in_zip:
                             yield BytesIO(file_in_zip.read())
-            except BadZipfile:
-                raise DatabaseUploadFailed(_("Not a valid ZIP file"))
+            except BadZipfile as ex:
+                raise DatabaseUploadFailed(_("Not a valid ZIP file")) from ex
         else:
             yield file
 
@@ -114,9 +114,11 @@ class ColumnarReader(BaseDataReader):
 
     def file_metadata(self, file: Any) -> FileMetadata:
         column_names = set()
-        for file in self._yield_files(file):
-            parquet_file = pq.ParquetFile(file)
-            column_names.update(parquet_file.metadata.schema.names)
+        for file_item in self._yield_files(file):
+            parquet_file = pq.ParquetFile(file_item)
+            column_names.update(
+                parquet_file.metadata.schema.names
+            )  # pylint: disable=no-member
         return {
             "items": [
                 {
