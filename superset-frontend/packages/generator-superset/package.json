@@ -27,7 +27,7 @@
     "chalk": "^4.0.0",
     "lodash": "^4.17.21",
     "yeoman-generator": "^5.7.0",
-    "yosay": "^2.0.2"
+    "yosay": "^3.0.0"
   },
   "devDependencies": {
     "fs-extra": "^11.2.0",
