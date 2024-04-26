@@ -21,6 +21,7 @@ from typing import Any, Optional, TypedDict
 import pandas as pd
 from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.datastructures import FileStorage
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -69,14 +70,17 @@ class BaseDataReader:
         self._options = options or {}
 
     @abstractmethod
-    def file_to_dataframe(self, file: Any) -> pd.DataFrame: ...
+    def file_to_dataframe(self, file: FileStorage) -> pd.DataFrame: ...
 
     @abstractmethod
-    def file_metadata(self, file: Any) -> FileMetadata:
-        ...
+    def file_metadata(self, file: FileStorage) -> FileMetadata: ...
 
     def read(
-        self, file: Any, database: Database, table_name: str, schema_name: Optional[str]
+        self,
+        file: FileStorage,
+        database: Database,
+        table_name: str,
+        schema_name: Optional[str],
     ) -> None:
         self._dataframe_to_database(
             self.file_to_dataframe(file), database, table_name, schema_name

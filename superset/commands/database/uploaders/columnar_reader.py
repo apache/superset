@@ -18,12 +18,13 @@ import logging
 from collections.abc import Generator
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Optional
+from typing import IO, Optional, Any
 from zipfile import BadZipfile, is_zipfile, ZipFile
 
 import pandas as pd
 import pyarrow.parquet as pq
 from flask_babel import lazy_gettext as _
+from werkzeug.datastructures import FileStorage
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
 from superset.commands.database.uploaders.base import (
@@ -49,8 +50,8 @@ class ColumnarReader(BaseDataReader):
             options=dict(options),
         )
 
-    def _read_buffer_to_dataframe(self, buffer: Any) -> pd.DataFrame:
-        kwargs = {
+    def _read_buffer_to_dataframe(self, buffer: IO[bytes]) -> pd.DataFrame:
+        kwargs: dict[str, Any] = {
             "path": buffer,
         }
         if self._options.get("columns_read"):
@@ -70,7 +71,7 @@ class ColumnarReader(BaseDataReader):
             raise DatabaseUploadFailed(_("Error reading Columnar file")) from ex
 
     @staticmethod
-    def _yield_files(file: Any) -> Generator[BytesIO, None, None]:
+    def _yield_files(file: FileStorage) -> Generator[IO[bytes], None, None]:
         """
         Yields files from the provided file. If the file is a zip file, it yields each
         file within the zip file. If it's a single file, it yields the file itself.
@@ -83,10 +84,10 @@ class ColumnarReader(BaseDataReader):
             raise DatabaseUploadFailed(_("Unexpected no file extension found"))
         file_suffix = file_suffix[1:]  # remove the dot
         if file_suffix == "zip":
-            if not is_zipfile(file):
+            if not is_zipfile(file.stream):
                 raise DatabaseUploadFailed(_("Not a valid ZIP file"))
             try:
-                with ZipFile(file) as zip_file:
+                with ZipFile(file.stream) as zip_file:
                     # check if all file types are of the same extension
                     file_suffixes = {Path(name).suffix for name in zip_file.namelist()}
                     if len(file_suffixes) > 1:
@@ -101,7 +102,7 @@ class ColumnarReader(BaseDataReader):
         else:
             yield file
 
-    def file_to_dataframe(self, file: Any) -> pd.DataFrame:
+    def file_to_dataframe(self, file: FileStorage) -> pd.DataFrame:
         """
         Read Columnar file into a DataFrame
 
@@ -112,13 +113,11 @@ class ColumnarReader(BaseDataReader):
             self._read_buffer_to_dataframe(buffer) for buffer in self._yield_files(file)
         )
 
-    def file_metadata(self, file: Any) -> FileMetadata:
+    def file_metadata(self, file: FileStorage) -> FileMetadata:
         column_names = set()
         for file_item in self._yield_files(file):
             parquet_file = pq.ParquetFile(file_item)
-            column_names.update(
-                parquet_file.metadata.schema.names
-            )  # pylint: disable=no-member
+            column_names.update(parquet_file.metadata.schema.names)  # pylint: disable=no-member
         return {
             "items": [
                 {

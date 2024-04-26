@@ -1448,6 +1448,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 200
         assert set(data["permissions"]) == {
             "can_read",
+            "can_columnar_upload",
             "can_csv_upload",
             "can_excel_upload",
             "can_write",
