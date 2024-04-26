@@ -19,7 +19,12 @@
 import React, { ReactNode } from 'react';
 import { isEqual } from 'lodash';
 import moment, { Moment } from 'moment';
-import { BinaryAdhocFilter, SimpleAdhocFilter, css } from '@superset-ui/core';
+import {
+  parseDttmToMoment,
+  BinaryAdhocFilter,
+  SimpleAdhocFilter,
+  css,
+} from '@superset-ui/core';
 import { DatePicker } from 'antd';
 import { RangePickerProps } from 'antd/lib/date-picker';
 import { useSelector } from 'react-redux';
@@ -36,51 +41,7 @@ export interface TimeOffsetControlsProps {
   onChange: (datetime: string) => void;
 }
 const MOMENT_FORMAT = 'YYYY-MM-DD';
-const dttmToMoment = (dttm: string): Moment => {
-  if (dttm === 'now') {
-    return moment().utc().startOf('second');
-  }
-  if (dttm === 'today' || dttm === 'No filter') {
-    return moment().utc().startOf('day');
-  }
-  if (dttm === 'last week') {
-    return moment().utc().startOf('day').subtract(7, 'day');
-  }
-  if (dttm === 'last month') {
-    return moment().utc().startOf('day').subtract(1, 'month');
-  }
-  if (dttm === 'last quarter') {
-    return moment().utc().startOf('day').subtract(1, 'quarter');
-  }
-  if (dttm === 'last year') {
-    return moment().utc().startOf('day').subtract(1, 'year');
-  }
-  if (dttm === 'previous calendar week') {
-    return moment().utc().subtract(1, 'weeks').startOf('isoWeek');
-  }
-  if (dttm === 'previous calendar month') {
-    return moment().utc().subtract(1, 'months').startOf('month');
-  }
-  if (dttm === 'previous calendar year') {
-    return moment().utc().subtract(1, 'years').startOf('year');
-  }
-  if (dttm.includes('ago')) {
-    const parts = dttm.split(' ');
-    const amount = parseInt(parts[0], 10);
-    const unit = parts[1] as
-      | 'day'
-      | 'week'
-      | 'month'
-      | 'year'
-      | 'days'
-      | 'weeks'
-      | 'months'
-      | 'years';
-    return moment().utc().subtract(amount, unit);
-  }
 
-  return moment(dttm);
-};
 const isTimeRangeEqual = (
   left: BinaryAdhocFilter[],
   right: BinaryAdhocFilter[],
@@ -101,7 +62,7 @@ export default function TimeOffsetControls({
 
   const startDate = currentTimeRangeFilters[0]?.comparator.split(' : ')[0];
 
-  const formatedDate = dttmToMoment(startDate);
+  const formatedDate = parseDttmToMoment(startDate);
   const disabledDate: RangePickerProps['disabledDate'] = current =>
     current && current >= formatedDate;
 

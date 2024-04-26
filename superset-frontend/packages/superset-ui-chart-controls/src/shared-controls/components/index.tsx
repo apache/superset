@@ -27,5 +27,3 @@ export * from './RadioButtonControl';
 export default {
   RadioButtonControl,
 };
-
-export { RadioButtonControl };
