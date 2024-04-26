@@ -100,9 +100,12 @@ export default function PopKPI(props: PopKPIProps) {
         newShift || [],
       );
       Promise.resolve(promise).then((res: any) => {
-        const response: string[] = res.value;
+        const response: string[] = ensureIsArray(res.value);
         const firstRange: string = response.flat()[0];
-        setComparisonRange(firstRange.split('vs\n')[1].trim());
+        const rangeText = firstRange.split('vs\n');
+        setComparisonRange(
+          rangeText.length > 1 ? rangeText[1].trim() : rangeText[0],
+        );
       });
     }
   }, [currentTimeRangeFilter, shift, startDateOffset]);

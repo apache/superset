@@ -24,6 +24,7 @@ import {
   getNumberFormatter,
   SimpleAdhocFilter,
   ensureIsArray,
+  getTimeOffset,
 } from '@superset-ui/core';
 import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
@@ -96,11 +97,27 @@ export default function transformProps(chartProps: ChartProps) {
     (adhoc_filter: SimpleAdhocFilter) =>
       adhoc_filter.operator === 'TEMPORAL_RANGE',
   )?.[0];
+  const isCustomOrInherit =
+    timeComparison === 'custom' || timeComparison === 'inherit';
+  let dataOffset: string[] = [];
+  if (isCustomOrInherit) {
+    dataOffset = getTimeOffset(
+      currentTimeRangeFilter,
+      ensureIsArray(timeComparison),
+      startDateOffset || '',
+    );
+  }
 
   const { value1, value2 } = data.reduce(
     (acc: { value1: number; value2: number }, curr: { [x: string]: any }) => {
       Object.keys(curr).forEach(key => {
-        if (key.includes(`${metricName}__${timeComparison}`)) {
+        if (
+          key.includes(
+            `${metricName}__${
+              !isCustomOrInherit ? timeComparison : dataOffset[0]
+            }`,
+          )
+        ) {
           acc.value2 += curr[key];
         } else if (key.includes(metricName)) {
           acc.value1 += curr[key];
