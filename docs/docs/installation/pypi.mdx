@@ -129,11 +129,12 @@ And make this file findable by adding its path as an environment variable:
 ```
 export SUPERSET_CONFIG_PATH=superset/superset_config.py
 ```
-You'll need a strong `SECRET_KEY` value here.  Running the command `openssl rand -base64 42` in your terminal will give you such a string.
-Add this to the `superset_config.py` file:
+You'll need a strong `SECRET_KEY` value here. Generate such a key and write it to your config file with:
 ```
-SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+echo "SECRET_KEY='$(openssl rand -base64 42)'" | tee -a superset/superset_config.py
 ```
+Do not lose this key. Consider maintaining a secure backup of your `superset_config.py` file.
+
 You could also tell Superset where to store its metadata - that is, what charts, dashboards, etc. have been created.  By default, this is a SQLite database at the filepath `~/.superset/superset.db`.
 
 For a production instance, you would change this to point to say, a PostgreSQL database that gets backed up.  You change this by specifying a new value in `superset_config.py` for the variable `SQLALCHEMY_DATABASE_URI`.
