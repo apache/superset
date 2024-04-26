@@ -243,18 +243,15 @@ class Column extends React.PureComponent {
                 {editMode && (
                   <Droppable
                     component={columnComponent}
-                    parentComponent={parentComponent}
+                    parentComponent={columnComponent}
                     {...(columnItems.length === 0
                       ? {
-                          component: columnComponent,
-                          parentComponent,
                           dropToChild: true,
                         }
                       : {
-                          component: columnItems,
-                          parentComponent: columnComponent,
+                          component: columnItems[0],
                         })}
-                    depth={depth + 1}
+                    depth={depth}
                     index={0}
                     orientation="column"
                     onDrop={handleComponentDrop}
@@ -291,7 +288,7 @@ class Column extends React.PureComponent {
                         <Droppable
                           component={columnItems}
                           parentComponent={columnComponent}
-                          depth={depth + 1}
+                          depth={depth}
                           index={itemIndex + 1}
                           orientation="column"
                           onDrop={handleComponentDrop}
