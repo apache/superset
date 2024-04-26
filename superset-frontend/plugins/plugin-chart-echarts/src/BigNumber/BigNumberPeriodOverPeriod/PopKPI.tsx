@@ -17,10 +17,17 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { css, fetchTimeRange, styled, t, useTheme } from '@superset-ui/core';
+import {
+  css,
+  ensureIsArray,
+  fetchTimeRange,
+  getTimeOffset,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { Tooltip } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
-import moment from 'moment';
 import {
   ColorSchemeEnum,
   PopKPIComparisonSymbolStyleProps,
@@ -82,14 +89,15 @@ export default function PopKPI(props: PopKPIProps) {
     if (!currentTimeRangeFilter || (!shift && !startDateOffset)) {
       setComparisonRange('');
     } else if (!isEmpty(shift) || startDateOffset) {
-      const startDateShift = moment(
-        (currentTimeRangeFilter as any).comparator.split(' : ')[0],
-      ).diff(moment(startDateOffset), 'days');
-      const newshift = startDateShift ? `${startDateShift} days ago` : shift;
+      const newShift = getTimeOffset(
+        currentTimeRangeFilter,
+        ensureIsArray(shift),
+        startDateOffset || '',
+      );
       const promise: any = fetchTimeRange(
         (currentTimeRangeFilter as any).comparator,
         currentTimeRangeFilter.subject,
-        newshift ? [newshift] : [],
+        newShift || [],
       );
       Promise.resolve(promise).then((res: any) => {
         const response: string[] = res.value;
