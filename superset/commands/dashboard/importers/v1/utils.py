@@ -57,6 +57,24 @@ def build_uuid_to_id_map(position: dict[str, Any]) -> dict[str, int]:
     }
 
 
+def __fix_charts_references_in_scope(
+    configuration: dict[str, Any], charts_map: dict[int, int]
+) -> dict[str, Any]:
+    configuration_scope = configuration.get("scope", {})
+    if isinstance(configuration_scope, dict):  # means is not "global"
+        if scope_excluded := configuration_scope.get("excluded", []):
+            configuration_scope["excluded"] = [
+                charts_map[old_id] for old_id in scope_excluded if old_id in charts_map
+            ]
+
+    if charts_in_scope := configuration.get("chartsInScope", []):
+        configuration["chartsInScope"] = [
+            charts_map[old_id] for old_id in charts_in_scope if old_id in charts_map
+        ]
+
+    return configuration
+
+
 def update_id_refs(  # pylint: disable=too-many-locals
     config: dict[str, Any],
     chart_ids: dict[str, int],
@@ -134,17 +152,28 @@ def update_id_refs(  # pylint: disable=too-many-locals
             if dataset_uuid:
                 target["datasetId"] = dataset_info[dataset_uuid]["datasource_id"]
 
-        scope_excluded = native_filter.get("scope", {}).get("excluded", [])
-        if scope_excluded:
-            native_filter["scope"]["excluded"] = [
-                id_map[old_id] for old_id in scope_excluded if old_id in id_map
-            ]
+        __fix_charts_references_in_scope(native_filter, id_map)
 
-        charts_in_scope = native_filter.get("chartsInScope", [])
-        if charts_in_scope:
-            native_filter["chartsInScope"] = [
-                id_map[old_id] for old_id in charts_in_scope if old_id in id_map
-            ]
+    # fix global chart configuration
+    global_chart_configuration = fixed.get("metadata", {}).get(
+        "global_chart_configuration", {}
+    )
+    __fix_charts_references_in_scope(global_chart_configuration, id_map)
+
+    # fix chart configuration
+    chart_configuration = fixed.get("metadata", {}).get("chart_configuration", {})
+    for (
+        chart_configuration_key,
+        chart_configuration_value,
+    ) in chart_configuration.copy().items():
+        if new_chart_configuration_key := id_map.get(int(chart_configuration_key)):
+            chart_configuration_value["id"] = new_chart_configuration_key
+            __fix_charts_references_in_scope(
+                chart_configuration_value["crossFilters"], id_map
+            )
+            chart_configuration[str(new_chart_configuration_key)] = (
+                chart_configuration.pop(chart_configuration_key)
+            )
 
     return fixed
 

@@ -82,7 +82,7 @@ def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
     }
 
 
-def test_update_native_filter_config_scope_excluded():
+def test_update_charts_reference():
     from superset.commands.dashboard.importers.v1.utils import update_id_refs
 
     config = {
@@ -97,12 +97,61 @@ def test_update_native_filter_config_scope_excluded():
                 "meta": {"chartId": 102, "uuid": "uuid2"},
                 "type": "CHART",
             },
+            "CHART3": {
+                "id": "CHART3",
+                "meta": {"chartId": 103, "uuid": "uuid3"},
+                "type": "CHART",
+            },
+            "CHART4": {
+                "id": "CHART4",
+                "meta": {"chartId": 104, "uuid": "uuid4"},
+                "type": "CHART",
+            },
         },
         "metadata": {
-            "native_filter_configuration": [{"scope": {"excluded": [101, 102, 103]}}],
+            "chart_configuration": {
+                "101": {
+                    "id": 101,
+                    "crossFilters": {
+                        "chartsInScope": [102, 103],
+                        "scope": {"excluded": [101, 110]},
+                    },
+                },
+                "102": {
+                    "id": 102,
+                    "crossFilters": {
+                        "chartsInScope": [],
+                        "scope": {"excluded": [101, 102, 103, 110]},
+                    },
+                },
+                "103": {
+                    "id": 103,
+                    "crossFilters": {
+                        "chartsInScope": [110],
+                        "scope": {"excluded": [101, 102, 103]},
+                    },
+                },
+                "104": {
+                    "id": 104,
+                    "crossFilters": {
+                        "chartsInScope": [110],
+                        "scope": "global",
+                    },
+                },
+            },
+            "global_chart_configuration": {
+                "chartsInScope": [101, 103, 110],
+                "scope": {"excluded": [102, 110]},
+            },
+            "native_filter_configuration": [
+                {
+                    "chartsInScope": [101, 102, 103, 110],
+                    "scope": {"excluded": [101, 102, 103, 110]},
+                }
+            ],
         },
     }
-    chart_ids = {"uuid1": 1, "uuid2": 2}
+    chart_ids = {"uuid1": 1, "uuid2": 2, "uuid3": 3, "uuid4": 4}
     dataset_info: dict[str, dict[str, Any]] = {}  # not used
 
     fixed = update_id_refs(config, chart_ids, dataset_info)
@@ -118,47 +167,54 @@ def test_update_native_filter_config_scope_excluded():
                 "meta": {"chartId": 2, "uuid": "uuid2"},
                 "type": "CHART",
             },
-        },
-        "metadata": {"native_filter_configuration": [{"scope": {"excluded": [1, 2]}}]},
-    }
-
-
-def test_update_native_filter_charts_in_scope():
-    from superset.commands.dashboard.importers.v1.utils import update_id_refs
-
-    config = {
-        "position": {
-            "CHART1": {
-                "id": "CHART1",
-                "meta": {"chartId": 101, "uuid": "uuid1"},
+            "CHART3": {
+                "id": "CHART3",
+                "meta": {"chartId": 3, "uuid": "uuid3"},
                 "type": "CHART",
             },
-            "CHART2": {
-                "id": "CHART2",
-                "meta": {"chartId": 102, "uuid": "uuid2"},
+            "CHART4": {
+                "id": "CHART4",
+                "meta": {"chartId": 4, "uuid": "uuid4"},
                 "type": "CHART",
             },
         },
         "metadata": {
-            "native_filter_configuration": [{"chartsInScope": [101, 102, 103]}],
-        },
-    }
-    chart_ids = {"uuid1": 1, "uuid2": 2}
-    dataset_info: dict[str, dict[str, Any]] = {}  # not used
-
-    fixed = update_id_refs(config, chart_ids, dataset_info)
-    assert fixed == {
-        "position": {
-            "CHART1": {
-                "id": "CHART1",
-                "meta": {"chartId": 1, "uuid": "uuid1"},
-                "type": "CHART",
+            "chart_configuration": {
+                "1": {
+                    "id": 1,
+                    "crossFilters": {
+                        "chartsInScope": [2, 3],
+                        "scope": {"excluded": [1]},
+                    },
+                },
+                "2": {
+                    "id": 2,
+                    "crossFilters": {
+                        "chartsInScope": [],
+                        "scope": {"excluded": [1, 2, 3]},
+                    },
+                },
+                "3": {
+                    "id": 3,
+                    "crossFilters": {
+                        "chartsInScope": [],
+                        "scope": {"excluded": [1, 2, 3]},
+                    },
+                },
+                "4": {
+                    "id": 4,
+                    "crossFilters": {
+                        "chartsInScope": [],
+                        "scope": "global",
+                    },
+                },
             },
-            "CHART2": {
-                "id": "CHART2",
-                "meta": {"chartId": 2, "uuid": "uuid2"},
-                "type": "CHART",
+            "global_chart_configuration": {
+                "chartsInScope": [1, 3],
+                "scope": {"excluded": [2]},
             },
+            "native_filter_configuration": [
+                {"chartsInScope": [1, 2, 3], "scope": {"excluded": [1, 2, 3]}}
+            ],
         },
-        "metadata": {"native_filter_configuration": [{"chartsInScope": [1, 2]}]},
     }
