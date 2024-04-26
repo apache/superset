@@ -216,10 +216,9 @@ const config = {
   stats: 'minimal',
   /*
    * Suppressing warning about missing export in @data-ui's internal structure.
-   * Originating from @data-ui, it's due to an internal implementation detail.
-   * It's non-critical, so we suppress it to avoid cluttering build output.
-   * See:
-   * https://github.com/williaster/data-ui/issues/208#issuecomment-946966712
+   * It's from @data-ui due to an internal implementation detail. Since it's
+   * non-critical, we suppress it to avoid cluttering build output.
+   * See: https://github.com/williaster/data-ui/issues/208#issuecomment-946966712
    */
   ignoreWarnings: [
     {
