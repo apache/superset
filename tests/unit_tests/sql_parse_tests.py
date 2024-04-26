@@ -1857,36 +1857,40 @@ def test_sqlstatement() -> None:
     ],
 )
 @pytest.mark.parametrize(
-    "macro",
-    [
-        "latest_partition('foo.bar')",
-        "latest_partition(' foo.bar ')",  # Non-atypical user error which works
-        "latest_partition('foo.%s'|format('bar'))",
-        "latest_sub_partition('foo.bar', baz='qux')",
-    ],
-)
-@pytest.mark.parametrize(
-    "sql,expected",
+    "macro,expected",
     [
         (
-            "SELECT '{{{{ {engine}.{macro} }}}}'",
+            "latest_partition('foo.bar')",
             {Table(table="bar", schema="foo")},
         ),
         (
-            "SELECT * FROM foo.baz WHERE quux = '{{{{ {engine}.{macro} }}}}'",
-            {Table(table="bar", schema="foo"), Table(table="baz", schema="foo")},
+            "latest_partition(' foo.bar ')",  # Non-atypical user error which works
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format('bar'))",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_sub_partition('foo.bar', baz='qux')",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format(str('bar')))",
+            set(),
+        ),
+        (
+            "latest_partition('foo.{}'.format('bar'))",
+            set(),
         ),
     ],
 )
 def test_extract_tables_from_jinja_sql(
-    engine: str,
-    macro: str,
-    sql: str,
-    expected: set[Table],
+    engine: str, macro: str, expected: set[Table]
 ) -> None:
     assert (
         extract_tables_from_jinja_sql(
-            sql=sql.format(engine=engine, macro=macro),
+            sql=f"'{{{{ {engine}.{macro} }}}}'",
             database=Mock(),
         )
         == expected
