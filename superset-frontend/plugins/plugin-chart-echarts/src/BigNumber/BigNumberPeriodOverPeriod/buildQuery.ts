@@ -21,6 +21,8 @@ import {
   QueryFormData,
   PostProcessingRule,
   ensureIsArray,
+  SimpleAdhocFilter,
+  getTimeOffset,
 } from '@superset-ui/core';
 import {
   isTimeComparison,
@@ -33,13 +35,27 @@ export default function buildQuery(formData: QueryFormData) {
   const queryContextA = buildQueryContext(formData, baseQueryObject => {
     const postProcessing: PostProcessingRule[] = [];
     postProcessing.push(timeCompareOperator(formData, baseQueryObject));
+    const TimeRangeFilters =
+      formData.adhoc_filters?.filter(
+        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
+      ) || [];
+
+    const timeOffsets = ensureIsArray(
+      isTimeComparison(formData, baseQueryObject)
+        ? getTimeOffset(
+            TimeRangeFilters[0],
+            formData.time_compare,
+            formData.start_date_offset,
+          )
+        : [],
+    );
     return [
       {
         ...baseQueryObject,
         groupby,
         post_processing: postProcessing,
         time_offsets: isTimeComparison(formData, baseQueryObject)
-          ? ensureIsArray(formData.time_compare)
+          ? ensureIsArray(timeOffsets)
           : [],
       },
     ];

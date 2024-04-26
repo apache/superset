@@ -21,4 +21,5 @@ export * from './types';
 
 export { default as getComparisonInfo } from './getComparisonInfo';
 export { default as getComparisonFilters } from './getComparisonFilters';
+export { parseDttmToMoment, getTimeOffset } from './getTimeOffset';
 export { SEPARATOR, fetchTimeRange } from './fetchTimeRange';
