@@ -101,6 +101,7 @@ export const timeComparisonControls: (
         config: {
           type: 'ComparisonRangeLabel',
           multi,
+          visibility: ({ controls }) => Boolean(controls?.time_compare.value),
         },
       },
     ],
