@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, t } from '@superset-ui/core';
+import { styled, css, t } from '@superset-ui/core';
 
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import EditableTitle from 'src/components/EditableTitle';
@@ -84,6 +84,15 @@ const TabTitleContainer = styled.div`
       isHighlighted && `box-shadow: 0 0 ${gridUnit}px ${colors.primary.light1};`
     }
   `}
+`;
+
+const TabDropIndicator = styled.div`
+  &.drop-indicator {
+    display: inline;
+    width: 5px;
+    margin-left: 4px;
+    border-radius: 4px;
+  }
 `;
 
 const renderDraggableContent = dropProps =>
@@ -285,7 +294,7 @@ class Tab extends PureComponent {
         {({ dropIndicatorProps, dragSourceRef }) => (
           <TabTitleContainer
             isHighlighted={isHighlighted}
-            className="dragdroppable-tab"
+            className="dragdroppable-tab empty-droptarget"
             ref={dragSourceRef}
           >
             <EditableTitle
@@ -305,7 +314,9 @@ class Tab extends PureComponent {
               />
             )}
 
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
+            {dropIndicatorProps && (
+              <TabDropIndicator className={dropIndicatorProps.className} />
+            )}
           </TabTitleContainer>
         )}
       </DragDroppable>
