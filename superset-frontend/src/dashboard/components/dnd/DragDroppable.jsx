@@ -155,16 +155,19 @@ export class UnwrappedDragDroppable extends PureComponent {
       isDraggingOver,
       style,
       editMode,
+      // dropIndicatorStyles,
     } = this.props;
 
     const { dropIndicator } = this.state;
     const dropIndicatorProps =
-      isDraggingOver && dropIndicator && !disableDragDrop
+      // isDraggingOver && dropIndicator && !disableDragDrop
+      dropIndicator && !disableDragDrop
         ? {
             className: cx(
               'drop-indicator',
               dropIndicator === DROP_FORBIDDEN && 'drop-indicator--forbidden',
             ),
+            // css: !!dropIndicatorStyles && dropIndicatorStyles,
           }
         : null;
 
