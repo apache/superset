@@ -27,7 +27,7 @@ from zipfile import is_zipfile, ZipFile
 
 from deprecation import deprecated
 from flask import make_response, render_template, request, Response, send_file
-from flask_appbuilder.api import expose, permission_name, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
@@ -155,6 +155,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "schemas_access_for_file_upload",
         "get_connection",
         "csv_upload",
+        "csv_upload_metadata",
         "excel_upload",
         "excel_upload_metadata",
         "columnar_upload",
@@ -1534,6 +1535,56 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command.run()
         return self.response(200, message="OK")
 
+    @expose("/csv_upload_metadata/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=(
+            lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+            ".csv_upload_metadata"
+        ),
+        log_to_statsd=False,
+    )
+    @requires_form_data
+    def csv_upload_metadata(self) -> Response:
+        """Upload an CSV file and returns file metadata.
+        ---
+        post:
+          summary: Upload an CSV file and returns file metadata
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  $ref: '#/components/schemas/UploadFilePostSchema'
+          responses:
+            200:
+              description: Columnar upload response
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/UploadFileMetadata'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            request_form = request.form.to_dict()
+            request_form["file"] = request.files.get("file")
+            parameters = UploadFilePostSchema().load(request_form)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        metadata = CSVReader(parameters).file_metadata(parameters["file"])
+        return self.response(200, result=UploadFileMetadata().dump(metadata))
+
     @expose("/<int:pk>/csv_upload/", methods=("POST",))
     @protect()
     @statsd_metrics
@@ -1605,7 +1656,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_form_data
-    @permission_name("excel_upload")
     def excel_upload_metadata(self) -> Response:
         """Upload an Excel file and returns file metadata.
         ---
@@ -1714,7 +1764,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_form_data
-    @permission_name("columnar_upload")
     def columnar_upload_metadata(self) -> Response:
         """Upload a Columnar file and returns file metadata.
         ---
@@ -1758,7 +1807,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.columnar_upload",
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.columnar_upload",
         log_to_statsd=False,
     )
     @requires_form_data

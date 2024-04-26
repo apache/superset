@@ -167,6 +167,9 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "delete_object": "write",
     "copy_dash": "write",
     "get_connection": "write",
+    "excel_upload_metadata": "excel_upload",
+    "columnar_upload_metadata": "columnar_upload",
+    "csv_upload_metadata": "csv_upload",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

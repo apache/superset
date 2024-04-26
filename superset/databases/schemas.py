@@ -23,7 +23,6 @@ import inspect
 import json
 import os
 from pathlib import Path
-import re
 from typing import Any, TypedDict
 
 from flask import current_app
@@ -1300,6 +1299,13 @@ class UploadFilePostSchema(Schema):
             "type": "string",
             "format": "binary",
         },
+    )
+    delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
+    header_row = fields.Integer(
+        metadata={
+            "description": "Row containing the headers to use as column names"
+            "(0 is first line of data). Leave empty if there is no header row."
+        }
     )
 
 

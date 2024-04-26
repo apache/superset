@@ -29,6 +29,8 @@ from superset.commands.database.uploaders.base import (
 
 logger = logging.getLogger(__name__)
 
+ROWS_TO_READ_METADATA = 2
+
 
 class ExcelReaderOptions(ReaderOptions, total=False):
     sheet_name: str
@@ -97,7 +99,7 @@ class ExcelReader(BaseDataReader):
 
         result: FileMetadata = {"items": []}
         for sheet in sheet_names:
-            df = excel_file.parse(sheet, nrows=2)
+            df = excel_file.parse(sheet, nrows=ROWS_TO_READ_METADATA)
             column_names = df.columns.tolist()
             result["items"].append(
                 {

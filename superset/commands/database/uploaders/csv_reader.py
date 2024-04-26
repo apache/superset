@@ -30,6 +30,7 @@ from superset.commands.database.uploaders.base import (
 logger = logging.getLogger(__name__)
 
 READ_CSV_CHUNK_SIZE = 1000
+ROWS_TO_READ_METADATA = 2
 
 
 class CSVReaderOptions(ReaderOptions, total=False):
@@ -107,4 +108,23 @@ class CSVReader(BaseDataReader):
             raise DatabaseUploadFailed(_("Error reading CSV file")) from ex
 
     def file_metadata(self, file: Any) -> FileMetadata:
-        return {"items": []}
+        """
+        Get metadata from a CSV file
+
+        :return: FileMetadata
+        :throws DatabaseUploadFailed: if there is an error reading the file
+        """
+        df = pd.read_csv(
+            filepath_or_buffer=file,
+            nrows=ROWS_TO_READ_METADATA,
+            header=self._options.get("header_row", 0),
+            sep=self._options.get("delimiter", ","),
+        )
+        return {
+            "items": [
+                {
+                    "column_names": df.columns.tolist(),
+                    "sheet_name": None,
+                }
+            ]
+        }

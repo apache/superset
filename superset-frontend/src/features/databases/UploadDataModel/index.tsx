@@ -159,7 +159,11 @@ const defaultUploadInfo: UploadInfo = {
 // Allowed extensions to accept for file upload, users can always override this
 // by selecting all file extensions on the OS file picker. Also ".txt" will
 // allow all files to be selected.
-const READ_HEADER_SIZE = 10000;
+const allowedExtensionsToAccept = {
+  csv: '.csv, .tsv',
+  excel: '.xls, .xlsx',
+  columnar: '.parquet, .zip',
+};
 
 export const validateUploadFileExtension = (
   file: UploadFile<any>,
@@ -214,12 +218,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [currentSchema, setCurrentSchema] = useState<string | undefined>();
   const [previewUploadedFile, setPreviewUploadedFile] = useState<boolean>(true);
   const [fileLoading, setFileLoading] = useState<boolean>(false);
-
-  const allowedExtensionsToAccept = {
-    csv: '.csv, .tsv',
-    excel: '.xls, .xlsx',
-    columnar: '.parquet, .zip',
-  };
 
   const createTypeToEndpointMap = (
     databaseId: number,
@@ -373,8 +371,12 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   );
 
   const loadFileMetadata = (file: File) => {
+    const fields = form.getFieldsValue();
+    const mergedValues = { ...defaultUploadInfo, ...fields };
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('delimiter', mergedValues.delimiter);
+    formData.append('header_row', mergedValues.header_row);
     setFileLoading(true);
     return SupersetClient.post({
       endpoint: typeToFileMetadataEndpoint[type],
@@ -501,39 +503,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       label: sheetName,
     }));
 
-  const readFileContent = (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = event => {
-        if (event.target) {
-          const text = event.target.result as string;
-          resolve(text);
-        } else {
-          reject(new Error('Failed to read file content'));
-        }
-      };
-      reader.onerror = () => {
-        reject(new Error('Failed to read file content'));
-      };
-      reader.readAsText(file.slice(0, READ_HEADER_SIZE));
-    });
-
-  const processCSVFile = async (file: File) => {
-    try {
-      setFileLoading(true);
-      const text = await readFileContent(file);
-      const firstLine = text.split('\n')[0].trim();
-      const firstRow = firstLine
-        .split(delimiter)
-        .map(column => column.replace(/^"(.*)"$/, '$1'));
-      setColumns(firstRow);
-      setFileLoading(false);
-    } catch (error) {
-      addDangerToast('Failed to process file content');
-      setFileLoading(false);
-    }
-  };
-
   const onChangeFile = async (info: UploadChangeParam<any>) => {
     setFileList([
       {
@@ -544,11 +513,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     if (!previewUploadedFile) {
       return;
     }
-    if (type === 'csv') {
-      await processCSVFile(info.file.originFileObj);
-    } else {
-      await loadFileMetadata(info.file.originFileObj);
-    }
+    await loadFileMetadata(info.file.originFileObj);
   };
 
   useEffect(() => {
@@ -560,7 +525,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       if (!previewUploadedFile) {
         return;
       }
-      processCSVFile(fileList[0].originFileObj).then(r => r);
+      loadFileMetadata(fileList[0].originFileObj).then(r => r);
     }
   }, [delimiter]);
 
