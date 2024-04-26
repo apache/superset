@@ -214,6 +214,19 @@ const config = {
   },
   output,
   stats: 'minimal',
+  /*
+   * Suppressing warning about missing export in @data-ui's internal structure.
+   * Originating from @data-ui, it's due to an internal implementation detail.
+   * It's non-critical, so we suppress it to avoid cluttering build output.
+   * See:
+   * https://github.com/williaster/data-ui/issues/208#issuecomment-946966712
+   */
+  ignoreWarnings: [
+    {
+      message:
+        /export 'withTooltipPropTypes' \(imported as 'vxTooltipPropTypes'\) was not found/,
+    },
+  ],
   performance: {
     assetFilter(assetFilename) {
       // don't throw size limit warning on geojson and font files
