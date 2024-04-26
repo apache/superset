@@ -17,7 +17,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from superset.commands.utils import compute_owner_list, populate_owner_list, User
 

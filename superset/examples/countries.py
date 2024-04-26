@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """This module contains data related to countries and is used for geo mapping"""
+
 # pylint: disable=too-many-lines
 from typing import Any, Optional
 
@@ -2054,7 +2055,7 @@ countries: list[dict[str, Any]] = [
         "area": 603500,
         "cioc": "UKR",
         "cca2": "UA",
-        "capital": "Kiev",
+        "capital": "Kyiv",
         "lat": 49,
         "lng": 32,
         "cca3": "UKR",

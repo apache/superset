@@ -21,7 +21,6 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
-from sqlalchemy import CheckConstraint, Column, Integer, MetaData, Table
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
@@ -314,7 +313,6 @@ def test_generic_constraint_name_not_found():
     table_name = "my_table"
     columns = {"column1", "column2"}
     referenced_table_name = "other_table"
-    constraint_name = "my_constraint"
 
     # Create a mock table object with the same structure but no matching constraint
     table_mock = MagicMock()

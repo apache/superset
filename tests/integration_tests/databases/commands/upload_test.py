@@ -20,12 +20,12 @@ from __future__ import annotations
 import json
 
 import pytest
+from flask.ctx import AppContext
 
 from superset import db, security_manager
 from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseSchemaUploadNotAllowed,
-    DatabaseUploadFailed,
     DatabaseUploadNotSupported,
 )
 from superset.commands.database.uploaders.base import UploadCommand
@@ -73,7 +73,7 @@ def _setup_csv_upload(allowed_schemas: list[str] | None = None):
     yield
 
     upload_db = get_upload_db()
-    with upload_db.get_sqla_engine_with_context() as engine:
+    with upload_db.get_sqla_engine() as engine:
         engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}")
         engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_SCHEMA}")
     db.session.delete(upload_db)
@@ -84,16 +84,14 @@ def get_upload_db():
     return db.session.query(Database).filter_by(database_name=CSV_UPLOAD_DATABASE).one()
 
 
-@pytest.fixture(scope="function")
-def setup_csv_upload_with_context():
-    with app.app_context():
-        yield from _setup_csv_upload()
+@pytest.fixture()
+def setup_csv_upload_with_context(app_context: AppContext):
+    yield from _setup_csv_upload()
 
 
-@pytest.fixture(scope="function")
-def setup_csv_upload_with_context_schema():
-    with app.app_context():
-        yield from _setup_csv_upload(["public"])
+@pytest.fixture()
+def setup_csv_upload_with_context_schema(app_context: AppContext):
+    yield from _setup_csv_upload(["public"])
 
 
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
@@ -109,7 +107,7 @@ def test_csv_upload_with_nulls():
             None,
             CSVReader({"null_values": ["N/A", "None"]}),
         ).run()
-    with upload_database.get_sqla_engine_with_context() as engine:
+    with upload_database.get_sqla_engine() as engine:
         data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
         assert data == [
             ("name1", None, "city1", "1-1-1980"),

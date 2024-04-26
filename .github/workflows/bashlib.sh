@@ -223,7 +223,7 @@ cypress-run-applitools() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  $cypress --spec "cypress/e2e/*/**/*.applitools.test.ts" --browser "$browser" --headless --config ignoreTestFiles="[]"
+  $cypress --spec "cypress/e2e/*/**/*.applitools.test.ts" --browser "$browser" --headless
 
   codecov -c -F "cypress" || true
 

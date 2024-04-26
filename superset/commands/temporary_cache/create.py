@@ -41,5 +41,4 @@ class CreateTemporaryCacheCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def create(self, cmd_params: CommandParameters) -> str:
-        ...
+    def create(self, cmd_params: CommandParameters) -> str: ...

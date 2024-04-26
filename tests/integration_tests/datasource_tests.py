@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
+
 import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -26,18 +27,18 @@ import pytest
 from superset import app, db
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn  # noqa: F401
 from superset.constants import CacheRegion
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
-from superset.utils.core import backend, get_example_default_schema
-from superset.utils.database import get_example_database, get_main_database
+from superset.utils.core import backend, get_example_default_schema  # noqa: F401
+from superset.utils.database import get_example_database, get_main_database  # noqa: F401
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.datasource import get_datasource_post
 
@@ -83,7 +84,7 @@ class TestDatasource(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         database = get_example_database()
 
-        sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"
+        sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"  # noqa: F541
         if database.backend == "sqlite":
             pass
         elif database.backend in ["postgresql", "mysql"]:

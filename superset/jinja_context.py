@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Defines the templating context for SQL Lab"""
+
 import json
 import re
 from datetime import datetime

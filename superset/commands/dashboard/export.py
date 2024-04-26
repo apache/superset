@@ -154,9 +154,10 @@ class ExportDashboardsCommand(ExportModelsCommand):
     def _export(
         model: Dashboard, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
-        yield ExportDashboardsCommand._file_name(
-            model
-        ), lambda: ExportDashboardsCommand._file_content(model)
+        yield (
+            ExportDashboardsCommand._file_name(model),
+            lambda: ExportDashboardsCommand._file_content(model),
+        )
 
         if export_related:
             chart_ids = [chart.id for chart in model.slices]

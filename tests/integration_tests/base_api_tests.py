@@ -19,19 +19,19 @@ import json
 from unittest.mock import patch
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 import pytest
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 import prison
 
-import tests.integration_tests.test_app
+import tests.integration_tests.test_app  # noqa: F401
 from superset import db, security_manager
 from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
-from superset.views.base_api import BaseSupersetModelRestApi, requires_json
+from superset.views.base_api import BaseSupersetModelRestApi, requires_json  # noqa: F401
 
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_config

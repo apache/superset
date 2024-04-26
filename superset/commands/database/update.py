@@ -18,7 +18,6 @@ import logging
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled
@@ -69,11 +68,11 @@ class UpdateDatabaseCommand(BaseCommand):
         old_database_name = self._model.database_name
 
         # unmask ``encrypted_extra``
-        self._properties[
-            "encrypted_extra"
-        ] = self._model.db_engine_spec.unmask_encrypted_extra(
-            self._model.encrypted_extra,
-            self._properties.pop("masked_encrypted_extra", "{}"),
+        self._properties["encrypted_extra"] = (
+            self._model.db_engine_spec.unmask_encrypted_extra(
+                self._model.encrypted_extra,
+                self._properties.pop("masked_encrypted_extra", "{}"),
+            )
         )
 
         try:

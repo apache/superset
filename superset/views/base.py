@@ -239,7 +239,7 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
 
 
 def handle_api_exception(
-    f: Callable[..., FlaskResponse]
+    f: Callable[..., FlaskResponse],
 ) -> Callable[..., FlaskResponse]:
     """
     A decorator to catch superset exceptions. Use it after the @api decorator above

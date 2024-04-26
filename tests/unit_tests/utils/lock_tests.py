@@ -26,7 +26,7 @@ from pytest_mock import MockerFixture
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.key_value.types import KeyValueResource
-from superset.utils.lock import KeyValueDistributedLock, serialize
+from superset.utils.lock import KeyValueDistributedLock
 
 
 def test_KeyValueDistributedLock_happy_path(mocker: MockerFixture) -> None:

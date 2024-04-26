@@ -24,29 +24,29 @@ from flask import g
 import json
 import prison
 
-from superset import db, security_manager, app
+from superset import db, security_manager, app  # noqa: F401
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.security.guest_token import (
     GuestTokenResourceType,
     GuestUser,
 )
-from flask_babel import lazy_gettext as _
+from flask_babel import lazy_gettext as _  # noqa: F401
 from flask_appbuilder.models.sqla import filters
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_config
+from tests.integration_tests.conftest import with_config  # noqa: F401
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
+    load_energy_table_with_slice,  # noqa: F401
+    load_energy_table_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
-    UNICODE_TBL_NAME,
-    load_unicode_dashboard_with_slice,
-    load_unicode_data,
+    UNICODE_TBL_NAME,  # noqa: F401
+    load_unicode_dashboard_with_slice,  # noqa: F401
+    load_unicode_data,  # noqa: F401
 )
 
 
@@ -472,7 +472,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
             "roles": [roles[1].id],
         }
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
-        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+        status_code, _data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
 
         self.assertEqual(status_code, 201)
 
@@ -608,7 +608,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
             "superset.views.filters.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
         ):
-            rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles")
+            rv = self.client.get("/api/v1/rowlevelsecurity/related/roles")  # noqa: F541
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
             response_roles = [result["text"] for result in response["result"]]

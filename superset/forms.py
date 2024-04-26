@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
+
 import json
 from typing import Any, Optional
 

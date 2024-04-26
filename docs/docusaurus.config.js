@@ -52,7 +52,7 @@ const config = {
         toExtensions: ['exe', 'zip'],
         redirects: [
           {
-            to: '/docs/installation/installing-superset-using-docker-compose',
+            to: '/docs/installation/docker-compose',
             from: '/installation.html',
           },
           {
@@ -60,11 +60,11 @@ const config = {
             from: '/tutorials.html',
           },
           {
-            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
+            to: '/docs/using-superset/creating-your-first-dashboard',
             from: '/admintutorial.html',
           },
           {
-            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
+            to: '/docs/using-superset/creating-your-first-dashboard',
             from: '/usertutorial.html',
           },
           {
@@ -72,7 +72,7 @@ const config = {
             from: '/security.html',
           },
           {
-            to: '/docs/installation/sql-templating',
+            to: '/docs/configuration/sql-templating',
             from: '/sqllab.html',
           },
           {
@@ -84,11 +84,11 @@ const config = {
             from: '/druid.html',
           },
           {
-            to: '/docs/miscellaneous/country-map-tools',
+            to: '/docs/configuration/country-map-tools',
             from: '/misc.html',
           },
           {
-            to: '/docs/miscellaneous/country-map-tools',
+            to: '/docs/configuration/country-map-tools',
             from: '/visualization.html',
           },
           {
@@ -100,11 +100,11 @@ const config = {
             from: '/faq.html',
           },
           {
-            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
+            to: '/docs/using-superset/creating-your-first-dashboard',
             from: '/tutorial.html',
           },
           {
-            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
+            to: '/docs/using-superset/creating-your-first-dashboard',
             from: '/docs/creating-charts-dashboards/first-dashboard',
           },
           {
@@ -112,7 +112,7 @@ const config = {
             from: '/docs/rest-api',
           },
           {
-            to: '/docs/installation/alerts-reports',
+            to: '/docs/configuration/alerts-reports',
             from: '/docs/installation/email-reports',
           },
           {
@@ -253,6 +253,11 @@ const config = {
       prism: {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
+      },
+      docs: {
+        sidebar: {
+          hideable: true,
+        }
       },
     }),
   scripts: [

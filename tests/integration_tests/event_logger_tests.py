@@ -21,7 +21,7 @@ from datetime import timedelta
 from typing import Any, Optional
 from unittest.mock import patch
 
-from flask import current_app
+from flask import current_app  # noqa: F401
 from freezegun import freeze_time
 
 from superset import security_manager
@@ -231,4 +231,4 @@ class TestEventLogger(unittest.TestCase):
                 payload_override={"engine": "sqlite"},
             )
 
-        assert logger.records[0]["user_id"] == None
+        assert logger.records[0]["user_id"] == None  # noqa: E711

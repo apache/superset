@@ -36,7 +36,7 @@ from superset.reports.models import (
     ReportState,
 )
 from superset.utils.core import override_user
-from tests.integration_tests.test_app import app
+from tests.integration_tests.test_app import app  # noqa: F401
 from tests.integration_tests.utils import read_fixture
 
 TEST_ID = str(uuid4())

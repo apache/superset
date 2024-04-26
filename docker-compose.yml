@@ -120,6 +120,10 @@ services:
       - ./superset-websocket:/home/superset-websocket
       - /home/superset-websocket/node_modules
       - /home/superset-websocket/dist
+
+      # Mounting a config file that contains a dummy secret required to boot up.
+      # do no not use this docker-compose in production
+      - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
     environment:
       - PORT=8080
       - REDIS_HOST=redis

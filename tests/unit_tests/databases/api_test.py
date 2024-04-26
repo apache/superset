@@ -571,7 +571,6 @@ def test_apply_dynamic_database_filter(
     with app.app_context():
         from superset.daos.database import DatabaseDAO
         from superset.databases.api import DatabaseRestApi
-        from superset.databases.ssh_tunnel.models import SSHTunnel
         from superset.models.core import Database
 
         DatabaseRestApi.datamodel.session = session
@@ -937,7 +936,7 @@ def test_csv_upload(
     reader_mock = mocker.patch.object(CSVReader, "__init__")
     reader_mock.return_value = None
     response = client.post(
-        f"/api/v1/database/1/csv_upload/",
+        "/api/v1/database/1/csv_upload/",
         data=payload,
         content_type="multipart/form-data",
     )
@@ -1074,7 +1073,7 @@ def test_csv_upload_validation(
     _ = mocker.patch.object(UploadCommand, "run")
 
     response = client.post(
-        f"/api/v1/database/1/csv_upload/",
+        "/api/v1/database/1/csv_upload/",
         data=payload,
         content_type="multipart/form-data",
     )
@@ -1093,7 +1092,7 @@ def test_csv_upload_file_size_validation(
     _ = mocker.patch.object(UploadCommand, "run")
     current_app.config["CSV_UPLOAD_MAX_SIZE"] = 5
     response = client.post(
-        f"/api/v1/database/1/csv_upload/",
+        "/api/v1/database/1/csv_upload/",
         data={
             "file": (create_csv_file(), "out.csv"),
             "table_name": "table1",
@@ -1134,7 +1133,7 @@ def test_csv_upload_file_extension_invalid(
     """
     _ = mocker.patch.object(UploadCommand, "run")
     response = client.post(
-        f"/api/v1/database/1/csv_upload/",
+        "/api/v1/database/1/csv_upload/",
         data={
             "file": (create_csv_file(), filename),
             "table_name": "table1",
@@ -1170,7 +1169,7 @@ def test_csv_upload_file_extension_valid(
     """
     _ = mocker.patch.object(UploadCommand, "run")
     response = client.post(
-        f"/api/v1/database/1/csv_upload/",
+        "/api/v1/database/1/csv_upload/",
         data={
             "file": (create_csv_file(), filename),
             "table_name": "table1",
@@ -1279,7 +1278,7 @@ def test_excel_upload(
     reader_mock = mocker.patch.object(ExcelReader, "__init__")
     reader_mock.return_value = None
     response = client.post(
-        f"/api/v1/database/1/excel_upload/",
+        "/api/v1/database/1/excel_upload/",
         data=payload,
         content_type="multipart/form-data",
     )
@@ -1371,7 +1370,7 @@ def test_excel_upload_validation(
     _ = mocker.patch.object(UploadCommand, "run")
 
     response = client.post(
-        f"/api/v1/database/1/excel_upload/",
+        "/api/v1/database/1/excel_upload/",
         data=payload,
         content_type="multipart/form-data",
     )
@@ -1405,7 +1404,7 @@ def test_excel_upload_file_extension_invalid(
     """
     _ = mocker.patch.object(UploadCommand, "run")
     response = client.post(
-        f"/api/v1/database/1/excel_upload/",
+        "/api/v1/database/1/excel_upload/",
         data={
             "file": (create_excel_file(), filename),
             "table_name": "table1",
@@ -1414,6 +1413,170 @@ def test_excel_upload_file_extension_invalid(
     )
     assert response.status_code == 400
     assert response.json == {"message": {"file": ["File extension is not allowed."]}}
+
+
+def test_table_metadata_happy_path(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.json == {"hello": "world"}
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t"),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t&schema=s")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", "s"),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t&catalog=c")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", None, "c"),
+    )
+
+    response = client.get(
+        "/api/v1/database/1/table_metadata/?name=t&schema=s&catalog=c"
+    )
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", "s", "c"),
+    )
+
+
+def test_table_metadata_no_table(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when no table name is passed.
+    """
+    database = mocker.MagicMock()
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+
+    response = client.get("/api/v1/database/1/table_metadata/?schema=s&catalog=c")
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "An error happened when validating the request",
+                "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                "level": "error",
+                "extra": {
+                    "messages": {"name": ["Missing data for required field."]},
+                    "issue_codes": [
+                        {
+                            "code": 1020,
+                            "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                        }
+                    ],
+                },
+            }
+        ]
+    }
+
+
+def test_table_metadata_slashes(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint with names that have slashes.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    client.get("/api/v1/database/1/table_metadata/?name=foo/bar")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("foo/bar"),
+    )
+
+
+def test_table_metadata_invalid_database(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when the database is invalid.
+    """
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=None)
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.status_code == 404
+    assert response.json == {
+        "errors": [
+            {
+                "message": "No such database",
+                "error_type": "DATABASE_NOT_FOUND_ERROR",
+                "level": "error",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1011,
+                            "message": "Issue 1011 - Superset encountered an unexpected error.",
+                        },
+                        {
+                            "code": 1036,
+                            "message": "Issue 1036 - The database was deleted.",
+                        },
+                    ]
+                },
+            }
+        ]
+    }
+
+
+def test_table_metadata_unauthorized(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when the user is unauthorized.
+    """
+    database = mocker.MagicMock()
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                message="You don't have access to the table",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.status_code == 404
+    assert response.json == {
+        "errors": [
+            {
+                "message": "No such table",
+                "error_type": "TABLE_NOT_FOUND_ERROR",
+                "level": "error",
+                "extra": None,
+            }
+        ]
+    }
 
 
 def test_table_extra_metadata_happy_path(
