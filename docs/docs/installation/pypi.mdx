@@ -139,16 +139,19 @@ Do not lose this key. Consider maintaining a secure backup of your `superset_con
 
 You could also tell Superset where to store its metadata - that is, what charts, dashboards, etc. have been created.  By default, this is a SQLite database at the filepath `~/.superset/superset.db`.
 
-For a production instance, you would change this to point to say, a PostgreSQL database that gets backed up.  You change this by specifying a new value in `superset_config.py` for the variable `SQLALCHEMY_DATABASE_URI`.
+In a production setup, you would change this to point to say, a PostgreSQL database that gets backed up.  You change this by specifying a new value in `superset_config.py` for the variable `SQLALCHEMY_DATABASE_URI`.
+
+Set an environment variable so that `superset` commands will work in the terminal. As above, this is temporary, and can be set to persist by adding it to your `~/.profile`.
+```
+export FLASK_APP=superset
+```
 
 Now initialize the database:
-
 ```
 superset db upgrade
 ```
 
 Finish installing by running through the following commands:
-
 ```
 # Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
 superset fab create-admin
