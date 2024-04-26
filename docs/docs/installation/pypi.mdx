@@ -129,7 +129,9 @@ And make this file findable by adding its path as an environment variable:
 ```
 export SUPERSET_CONFIG_PATH=superset/superset_config.py
 ```
-You'll need a strong `SECRET_KEY` value here. Generate such a key and write it to your config file with:
+Note that this stores the path in the environment only temporarily.  If you wish for this to persist through reboots, permanently set this environment variable by [adding it to your `~/.profile` file](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables).
+
+Superset won't start without being given a `SECRET_KEY` that it will use for encryption. Generate a strong key and write it to your config file:
 ```
 echo "SECRET_KEY='$(openssl rand -base64 42)'" | tee -a superset/superset_config.py
 ```
