@@ -256,7 +256,7 @@ const ResultSet = ({
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
         ...{
-          all_columns: results.columns.map(column => column.column_name),
+          all_columns: results.columns.map(column => column.name),
         },
       });
       const url = mountExploreUrl(null, {
@@ -578,7 +578,7 @@ const ResultSet = ({
     }
     if (data && data.length > 0) {
       const expandedColumns = results.expanded_columns
-        ? results.expanded_columns.map(col => col.column_name)
+        ? results.expanded_columns.map(col => col.name)
         : [];
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
@@ -627,7 +627,7 @@ const ResultSet = ({
           <ResultTable
             data={data}
             queryId={query.id}
-            orderedColumnKeys={results.columns.map(col => col.column_name)}
+            orderedColumnKeys={results.columns.map(col => col.name)}
             height={rowsHeight}
             filterText={searchText}
             expandedColumns={expandedColumns}
