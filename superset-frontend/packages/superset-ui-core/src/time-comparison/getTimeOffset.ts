@@ -16,53 +16,77 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import moment, { Moment } from 'moment';
 import { ensureIsArray } from '../utils';
 
-export const parseDttmToMoment = (dttm: string): Moment => {
-  if (dttm === 'now') {
-    return moment().utc().startOf('second');
-  }
-  if (dttm === 'today' || dttm === 'No filter') {
-    return moment().utc().startOf('day');
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+export const parseDttmToDate = (dttm: string): Date => {
+  const now = new Date();
+  now.setUTCHours(0, 0, 0, 0);
+
+  if (dttm === 'now' || dttm === 'today' || dttm === 'No filter') {
+    return now;
   }
   if (dttm === 'Last week') {
-    return moment().utc().startOf('day').subtract(7, 'day');
+    now.setUTCDate(now.getUTCDate() - 7);
+    return now;
   }
   if (dttm === 'Last month') {
-    return moment().utc().startOf('day').subtract(1, 'month');
+    now.setUTCMonth(now.getUTCMonth() - 1);
+    now.setUTCDate(1);
+    return now;
   }
   if (dttm === 'Last quarter') {
-    return moment().utc().startOf('day').subtract(1, 'quarter');
+    now.setUTCMonth(now.getUTCMonth() - 3);
+    now.setUTCDate(1);
+    return now;
   }
   if (dttm === 'Last year') {
-    return moment().utc().startOf('day').subtract(1, 'year');
+    now.setUTCFullYear(now.getUTCFullYear() - 1);
+    now.setUTCDate(1);
+    return now;
   }
   if (dttm === 'previous calendar week') {
-    return moment().utc().subtract(1, 'weeks').startOf('isoWeek');
+    now.setUTCDate(now.getUTCDate() - (now.getUTCDay() || 7));
+    return now;
   }
   if (dttm === 'previous calendar month') {
-    return moment().utc().subtract(1, 'months').startOf('month');
+    now.setUTCMonth(now.getUTCMonth() - 1, 1);
+    return now;
   }
   if (dttm === 'previous calendar year') {
-    return moment().utc().subtract(1, 'years').startOf('year');
+    now.setUTCFullYear(now.getUTCFullYear() - 1, 0, 1);
+    return now;
   }
   if (dttm.includes('ago')) {
     const parts = dttm.split(' ');
     const amount = parseInt(parts[0], 10);
-    const unit = parts[1] as
-      | 'day'
-      | 'week'
-      | 'month'
-      | 'year'
-      | 'days'
-      | 'weeks'
-      | 'months'
-      | 'years';
-    return moment().utc().subtract(amount, unit);
+    const unit = parts[1];
+    switch (unit) {
+      case 'day':
+      case 'days':
+        now.setUTCDate(now.getUTCDate() - amount);
+        break;
+      case 'week':
+      case 'weeks':
+        now.setUTCDate(now.getUTCDate() - amount * 7);
+        break;
+      case 'month':
+      case 'months':
+        now.setUTCMonth(now.getUTCMonth() - amount);
+        break;
+      case 'year':
+      case 'years':
+        now.setUTCFullYear(now.getUTCFullYear() - amount);
+        break;
+      default:
+        throw new Error('Unsupported time unit');
+    }
+    now.setUTCHours(0, 0, 0, 0);
+    return now;
   }
-
-  return moment(dttm);
+  const parsed = new Date(dttm);
+  parsed.setUTCHours(0, 0, 0, 0);
+  return parsed;
 };
 
 export const getTimeOffset = (
@@ -72,24 +96,20 @@ export const getTimeOffset = (
 ): string[] => {
   const isCustom = shifts?.includes('custom');
   const isInherit = shifts?.includes('inherit');
+  const customStartDate = isCustom && parseDttmToDate(startDate).getTime();
+  const filterStartDate = parseDttmToDate(
+    timeRangeFilter.comparator.split(' : ')[0],
+  ).getTime();
+  const filterEndDate = parseDttmToDate(
+    timeRangeFilter.comparator.split(' : ')[1],
+  ).getTime();
 
-  const customStartDate = isCustom && startDate;
   const customShift =
     customStartDate &&
-    moment(
-      parseDttmToMoment((timeRangeFilter as any).comparator.split(' : ')[0]),
-    ).diff(moment(customStartDate), 'days');
-
+    Math.ceil((filterStartDate - customStartDate) / DAY_IN_MS);
   const inInheritShift =
-    isInherit &&
-    moment(
-      parseDttmToMoment((timeRangeFilter as any).comparator.split(' : ')[1]),
-    ).diff(
-      moment(
-        parseDttmToMoment((timeRangeFilter as any).comparator.split(' : ')[0]),
-      ),
-      'days',
-    );
+    isInherit && Math.ceil((filterEndDate - filterStartDate) / DAY_IN_MS);
+
   let newShifts = shifts;
   if (isCustom) {
     newShifts = [`${customShift} days ago`];

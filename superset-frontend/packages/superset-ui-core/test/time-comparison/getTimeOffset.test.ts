@@ -16,70 +16,87 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getTimeOffset, parseDttmToMoment } from '@superset-ui/core';
-import moment from 'moment';
+import { getTimeOffset, parseDttmToDate } from '@superset-ui/core';
 
-describe('parseDttmToMoment', () => {
+describe('parseDttmToDate', () => {
   it('should handle "now"', () => {
-    const now = parseDttmToMoment('now');
-    expect(now.utc().format()).toEqual(
-      moment().utc().startOf('second').format(),
-    );
+    const now = parseDttmToDate('now');
+    const expected = new Date();
+    expected.setUTCHours(0, 0, 0, 0);
+    expect(expected).toEqual(now);
   });
 
   it('should handle "today" and "No filter"', () => {
-    const today = parseDttmToMoment('today');
-    const noFilter = parseDttmToMoment('No filter');
-    const expected = moment().utc().startOf('day').format();
-    expect(today.format()).toEqual(expected);
-    expect(noFilter.format()).toEqual(expected);
+    const today = parseDttmToDate('today');
+    const noFilter = parseDttmToDate('No filter');
+    const expected = new Date();
+    expected.setUTCHours(0, 0, 0, 0);
+    expect(today).toEqual(expected);
+    expect(noFilter).toEqual(expected);
   });
 
   it('should handle relative time strings', () => {
-    const lastWeek = parseDttmToMoment('Last week');
-    const lastMonth = parseDttmToMoment('Last month');
-    const lastQuarter = parseDttmToMoment('Last quarter');
-    const lastYear = parseDttmToMoment('Last year');
-    expect(lastWeek.format()).toEqual(
-      moment().utc().startOf('day').subtract(7, 'days').format(),
-    );
-    expect(lastMonth.format()).toEqual(
-      moment().utc().startOf('day').subtract(1, 'months').format(),
-    );
-    expect(lastQuarter.format()).toEqual(
-      moment().utc().startOf('day').subtract(1, 'quarters').format(),
-    );
-    expect(lastYear.format()).toEqual(
-      moment().utc().startOf('day').subtract(1, 'years').format(),
-    );
+    const lastWeek = parseDttmToDate('Last week');
+    const lastMonth = parseDttmToDate('Last month');
+    const lastQuarter = parseDttmToDate('Last quarter');
+    const lastYear = parseDttmToDate('Last year');
+    let now = new Date();
+    now.setUTCHours(0, 0, 0, 0);
+    now.setUTCDate(now.getUTCDate() - 7);
+    expect(lastWeek).toEqual(now);
+
+    now = new Date();
+    now.setUTCHours(0, 0, 0, 0);
+    now.setUTCMonth(now.getUTCMonth() - 1);
+    now.setUTCDate(1);
+    expect(lastMonth).toEqual(now);
+
+    now = new Date();
+    now.setUTCHours(0, 0, 0, 0);
+    now.setUTCMonth(now.getUTCMonth() - 3);
+    now.setUTCDate(1);
+    expect(lastQuarter).toEqual(now);
+
+    now = new Date();
+    now.setUTCHours(0, 0, 0, 0);
+    now.setUTCFullYear(now.getUTCFullYear() - 1);
+    now.setUTCDate(1);
+    expect(lastYear).toEqual(now);
   });
 
   it('should handle previous calendar units', () => {
-    const previousWeek = parseDttmToMoment('previous calendar week');
-    const previousMonth = parseDttmToMoment('previous calendar month');
-    const previousYear = parseDttmToMoment('previous calendar year');
-    expect(previousWeek.format()).toEqual(
-      moment().utc().subtract(1, 'weeks').startOf('isoWeek').format(),
-    );
-    expect(previousMonth.format()).toEqual(
-      moment().utc().subtract(1, 'months').startOf('month').format(),
-    );
-    expect(previousYear.format()).toEqual(
-      moment().utc().subtract(1, 'years').startOf('year').format(),
-    );
+    const previousWeek = parseDttmToDate('previous calendar week');
+    const previousMonth = parseDttmToDate('previous calendar month');
+    const previousYear = parseDttmToDate('previous calendar year');
+    let now = new Date();
+    now.setUTCDate(now.getUTCDate() - (now.getUTCDay() || 7));
+    now.setUTCHours(0, 0, 0, 0);
+    expect(previousWeek).toEqual(now);
+
+    now = new Date();
+    now.setUTCMonth(now.getUTCMonth() - 1, 1);
+    now.setUTCHours(0, 0, 0, 0);
+    expect(previousMonth).toEqual(now);
+
+    now = new Date();
+    now.setUTCFullYear(now.getUTCFullYear() - 1, 0, 1);
+    now.setUTCHours(0, 0, 0, 0);
+    expect(previousYear).toEqual(now);
   });
 
   it('should handle dynamic "ago" times', () => {
-    const fiveDaysAgo = parseDttmToMoment('5 days ago');
-    expect(fiveDaysAgo.format()).toEqual(
-      moment().utc().subtract(5, 'days').format(),
-    );
+    const fiveDaysAgo = parseDttmToDate('5 days ago');
+    const now = new Date();
+    now.setUTCHours(0, 0, 0, 0);
+    now.setUTCDate(now.getUTCDate() - 5);
+    expect(fiveDaysAgo).toEqual(now);
   });
 
   it('should parse valid moment strings', () => {
-    const specificDate = '2023-01-01';
-    const parsedDate = parseDttmToMoment(specificDate);
-    expect(parsedDate.format()).toEqual(moment(specificDate).format());
+    const specificDate = new Date('2023-01-01');
+    specificDate.setUTCHours(0, 0, 0, 0);
+    const parsedDate = parseDttmToDate('2023-01-01');
+    expect(parsedDate).toEqual(specificDate);
   });
 });
 
