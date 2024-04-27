@@ -5,6 +5,8 @@ sidebar_position: 10
 version: 1
 ---
 
+import countriesData from '../../data/countries.json';
+
 ## The Country Map Visualization
 
 The Country Map visualization allows you to plot lightweight choropleth maps of
@@ -21,102 +23,11 @@ The current list of countries can be found in the src
 
 The Country Maps visualization already ships with the maps for the following countries:
 
--  Afghanistan
--  Albania
--  Algeria
--  Argentina
--  Australia
--  Austria
--  Belgium
--  Bolivia
--  Brazil
--  Bulgaria
--  Burundi
--  Canada
--  Chile
--  China
--  Colombia
--  Costa Rica
--  Cuba
--  Cyprus
--  Denmark
--  Dominican Republic
--  Ecuador
--  Egypt
--  El_salvador
--  Estonia
--  Ethiopia
--  France
--  France Regions
--  Finland
--  Germany
--  Guatemala
--  Haiti
--  Honduras
--  Iceland
--  India
--  Indonesia
--  Iran
--  Italy
--  Italy Regions
--  Japan
--  Jordan
--  Kazakhstan
--  Kenya
--  Korea
--  Kuwait
--  Kyrgyzstan
--  Latvia
--  Liechtenstein
--  Lithuania
--  Malaysia
--  Mexico
--  Morocco
--  Myanmar
--  Netherlands
--  Nicaragua
--  Nigeria
--  Norway
--  Oman
--  Pakistan
--  Panama
--  Papua New Guinea
--  Paraguay
--  Peru
--  Philippines
--  Portugal
--  Poland
--  Puerto_rico
--  Qatar
--  Russia
--  Rwanda
--  Saint Barthelemy
--  Saint Martin
--  Saudi Arabia
--  Singapore
--  Slovenia
--  Spain
--  Sri Lanka
--  Sweden
--  Switzerland
--  Syria
--  Tajikistan
--  Tanzania
--  Thailand
--  Timorleste
--  Turkey
--  Turkey Regions
--  Turkmenistan
--  Uganda
--  Uk
--  Ukraine
--  United Arab Emirates
--  Uruguay
--  USA
--  Uzbekistan
--  Venezuela
--  Vietnam
--  Zambia
+<ul style={{columns: 3}}>
+{countriesData.countries.map((country, index) => (
+  <li key={index}>{country}</li>
+))}
+</ul>
 
 ## Adding a New Country
 
