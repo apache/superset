@@ -65,31 +65,63 @@ describe('parseDttmToDate', () => {
   });
 
   it('should handle previous calendar units', () => {
-    const previousWeek = parseDttmToDate('previous calendar week');
-    const previousMonth = parseDttmToDate('previous calendar month');
-    const previousYear = parseDttmToDate('previous calendar year');
     let now = new Date();
-    now.setUTCDate(now.getUTCDate() - (now.getUTCDay() || 7));
     now.setUTCHours(0, 0, 0, 0);
+    now.setUTCDate(now.getUTCDate() - now.getUTCDay());
+    const previousWeek = parseDttmToDate('previous calendar week');
     expect(previousWeek).toEqual(now);
 
     now = new Date();
     now.setUTCMonth(now.getUTCMonth() - 1, 1);
     now.setUTCHours(0, 0, 0, 0);
+    const previousMonth = parseDttmToDate('previous calendar month');
     expect(previousMonth).toEqual(now);
 
     now = new Date();
     now.setUTCFullYear(now.getUTCFullYear() - 1, 0, 1);
     now.setUTCHours(0, 0, 0, 0);
+    const previousYear = parseDttmToDate('previous calendar year');
     expect(previousYear).toEqual(now);
   });
 
   it('should handle dynamic "ago" times', () => {
     const fiveDaysAgo = parseDttmToDate('5 days ago');
-    const now = new Date();
+    const fiveDayAgo = parseDttmToDate('5 day ago');
+    let now = new Date();
     now.setUTCHours(0, 0, 0, 0);
     now.setUTCDate(now.getUTCDate() - 5);
     expect(fiveDaysAgo).toEqual(now);
+    expect(fiveDayAgo).toEqual(now);
+
+    const weeksAgo = parseDttmToDate('7 weeks ago');
+    const weekAgo = parseDttmToDate('7 week ago');
+    now = new Date();
+    now.setUTCHours(0, 0, 0, 0);
+    now.setUTCDate(now.getUTCDate() - 7 * 7);
+    expect(weeksAgo).toEqual(now);
+    expect(weekAgo).toEqual(now);
+
+    const fiveMonthsAgo = parseDttmToDate('5 months ago');
+    const fiveMonthAgo = parseDttmToDate('5 month ago');
+    now = new Date();
+    now.setUTCHours(0, 0, 0, 0);
+    now.setUTCMonth(now.getUTCMonth() - 5);
+    expect(fiveMonthsAgo).toEqual(now);
+    expect(fiveMonthAgo).toEqual(now);
+
+    const fiveYearsAgo = parseDttmToDate('5 years ago');
+    const fiveYearAgo = parseDttmToDate('5 year ago');
+    now = new Date();
+    now.setUTCHours(0, 0, 0, 0);
+    now.setUTCFullYear(now.getUTCFullYear() - 5);
+    expect(fiveYearsAgo).toEqual(now);
+    expect(fiveYearAgo).toEqual(now);
+
+    // default case
+    const fiveHoursAgo = parseDttmToDate('5 hours ago');
+    now = new Date();
+    now.setUTCHours(0, 0, 0, 0);
+    expect(fiveHoursAgo).toEqual(now);
   });
 
   it('should parse valid moment strings', () => {
