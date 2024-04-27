@@ -1140,7 +1140,7 @@ def test_csv_upload_file_extension_invalid(
     response = client.post(
         "/api/v1/database/1/csv_upload/",
         data={
-            "file": (create_csv_file(), filename),
+            "file": create_csv_file(filename=filename),
             "table_name": "table1",
             "delimiter": ",",
         },
@@ -1176,7 +1176,7 @@ def test_csv_upload_file_extension_valid(
     response = client.post(
         "/api/v1/database/1/csv_upload/",
         data={
-            "file": (create_csv_file(), filename),
+            "file": create_csv_file(filename=filename),
             "table_name": "table1",
             "delimiter": ",",
         },
@@ -1411,7 +1411,7 @@ def test_excel_upload_file_extension_invalid(
     response = client.post(
         "/api/v1/database/1/excel_upload/",
         data={
-            "file": (create_excel_file(), filename),
+            "file": create_excel_file(filename=filename),
             "table_name": "table1",
         },
         content_type="multipart/form-data",
@@ -1619,7 +1619,7 @@ def test_columnar_upload_file_extension_invalid(
     response = client.post(
         "/api/v1/database/1/columnar_upload/",
         data={
-            "file": (create_columnar_file(), filename),
+            "file": create_columnar_file(filename=filename),
             "table_name": "table1",
         },
         content_type="multipart/form-data",

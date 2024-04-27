@@ -32,7 +32,9 @@ def dttm() -> datetime:
     return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
 
 
-def create_csv_file(data: list[list[str]] | None = None, delimiter=",") -> FileStorage:
+def create_csv_file(
+    data: list[list[str]] | None = None, delimiter=",", filename="test.csv"
+) -> FileStorage:
     data = (
         [
             ["Name", "Age", "City"],
@@ -48,22 +50,26 @@ def create_csv_file(data: list[list[str]] | None = None, delimiter=",") -> FileS
         writer.writerow(row)
     output.seek(0)
     buffer = BytesIO(output.getvalue().encode("utf-8"))
-    return FileStorage(stream=buffer, filename="test.csv")
+    return FileStorage(stream=buffer, filename=filename)
 
 
-def create_excel_file(data: dict[str, list[Any]] | None = None) -> FileStorage:
+def create_excel_file(
+    data: dict[str, list[Any]] | None = None, filename="test.xls"
+) -> FileStorage:
     data = {"Name": ["John"], "Age": [30], "City": ["New York"]} if not data else data
     buffer = BytesIO()
     df = pd.DataFrame(data)
     df.to_excel(buffer, index=False)
     buffer.seek(0)
-    return FileStorage(stream=buffer, filename="test.xls")
+    return FileStorage(stream=buffer, filename=filename)
 
 
-def create_columnar_file(data: dict[str, list[Any]] | None = None) -> FileStorage:
+def create_columnar_file(
+    data: dict[str, list[Any]] | None = None, filename="test.parquet"
+) -> FileStorage:
     data = {"Name": ["John"], "Age": [30], "City": ["New York"]} if not data else data
     buffer = BytesIO()
     df = pd.DataFrame(data)
     df.to_parquet(buffer, index=False)
     buffer.seek(0)
-    return FileStorage(stream=buffer, filename="test.parquet")
+    return FileStorage(stream=buffer, filename=filename)
