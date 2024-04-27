@@ -20,6 +20,7 @@ jobs:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0 # Fetch all history
           persist-credentials: false
           submodules: recursive
       - name: Check npm lock file version
