@@ -74,14 +74,9 @@ class UpdateDatabaseCommand(BaseCommand):
                 commit=False,
             )
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
-
-            try:
-                self._handle_ssh_tunnel(database)
-            except SSHTunnelError:
-                raise
-            except Exception as ex:
-                raise DatabaseUpdateFailedError() from ex
-
+            self._handle_ssh_tunnel(database)
+        except SSHTunnelError:
+            raise
         except (DAOUpdateFailedError, DAOCreateFailedError) as ex:
             raise DatabaseUpdateFailedError() from ex
 
