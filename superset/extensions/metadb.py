@@ -112,7 +112,7 @@ class SupersetAPSWDialect(APSWDialect):
                     "superset": {
                         "prefix": None,
                         "allowed_dbs": self.allowed_dbs,
-                    }
+                    },
                 },
                 "safe": True,
                 "isolation_level": self.isolation_level,

@@ -88,6 +88,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
     from superset.databases.schemas import TableMetadataResponse
     from superset.models.core import Database
+    from superset.models.helpers import ExploreMixin
     from superset.models.sql_lab import Query
 
 
@@ -143,7 +144,9 @@ builtin_time_grains: dict[str | None, str] = {
 }
 
 
-class TimestampExpression(ColumnClause):  # pylint: disable=abstract-method, too-many-ancestors
+class TimestampExpression(
+    ColumnClause
+):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be used to render native column elements respecting
         engine-specific quoting rules as part of a string-based expression.
@@ -184,6 +187,15 @@ class MetricType(TypedDict, total=False):
     currency: str | None
     warning_text: str | None
     extra: str | None
+
+
+class ValidColumnsType(TypedDict):
+    """
+    Type for valid columns returned by `get_valid_columns`.
+    """
+
+    columns: set[str]
+    metrics: set[str]
 
 
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
@@ -384,9 +396,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     max_column_name_length: int | None = None
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
-    custom_errors: dict[
-        Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
-    ] = {}
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = (
+        {}
+    )
 
     # List of JSON path to fields in `encrypted_extra` that should be masked when the
     # database is edited. By default everything is masked.
@@ -435,6 +447,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    # This attribute is used for semantic layers, where only certain combinations of
+    # metrics and dimensions are valid for given datasource. For traditional databases
+    # this should be set to false.
+    supports_dynamic_columns = False
 
     @classmethod
     def get_rls_method(cls) -> RLSMethod:
@@ -1502,6 +1519,31 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
+    def get_valid_columns(
+        cls,
+        database: Database,
+        datasource: ExploreMixin,
+        columns: set[str],
+        metrics: set[str],
+    ) -> ValidColumnsType:
+        """
+        Given a selection of columns/metrics from a datasource, return related columns.
+
+        This is a method used for semantic layers, where tables can have columns and
+        metrics that cannot be computed together. When the user selects a given metric
+        it allows the UI to filter the remaining metrics and dimensions so that only
+        valid combinations are possible.
+
+        The method should only be called when ``supports_dynamic_columns`` is set to
+        true. The default method in the base class ignores the selected columns and
+        metrics, and simply returns everything, for reference.
+        """
+        return {
+            "columns": {column.column_name for column in datasource.columns},
+            "metrics": {metric.metric_name for metric in datasource.metrics},
+        }
+
+    @classmethod
     def where_latest_partition(  # pylint: disable=unused-argument
         cls,
         database: Database,
@@ -2148,6 +2190,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_file_upload": cls.supports_file_upload,
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
+            "supports_dynamic_columns": cls.supports_dynamic_columns,
             "supports_oauth2": cls.supports_oauth2,
         }
 

@@ -30,7 +30,9 @@ with open(PACKAGE_JSON) as package_file:
 
 def get_git_sha() -> str:
     try:
-        output = subprocess.check_output(["git", "rev-parse", "HEAD"])  # noqa: S603, S607
+        output = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"]
+        )  # noqa: S603, S607
         return output.decode().strip()
     except Exception:  # pylint: disable=broad-except
         return ""
@@ -65,9 +67,11 @@ setup(
             "postgres.psycopg2 = sqlalchemy.dialects.postgresql:dialect",
             "postgres = sqlalchemy.dialects.postgresql:dialect",
             "superset = superset.extensions.metadb:SupersetAPSWDialect",
+            "metricflow = superset.extensions.metricflow:MetricFlowDialect",
         ],
         "shillelagh.adapter": [
-            "superset=superset.extensions.metadb:SupersetShillelaghAdapter"
+            "superset = superset.extensions.metadb:SupersetShillelaghAdapter",
+            "supersetmetricflowapi = superset.extensions.metricflow:SupersetMetricFlowAPI",
         ],
     },
     download_url="https://www.apache.org/dist/superset/" + version_string,
