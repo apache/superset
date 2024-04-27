@@ -639,9 +639,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return driver in cls.drivers
 
     @classmethod
+    def get_default_catalog(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> str | None:
+        """
+        Return the default catalog for a given database.
+        """
+        return None
+
+    @classmethod
     def get_default_schema(cls, database: Database, catalog: str | None) -> str | None:
         """
-        Return the default schema in a given database.
+        Return the default schema for a catalog in a given database.
         """
         with database.get_inspector(catalog=catalog) as inspector:
             return inspector.default_schema_name
@@ -1412,24 +1422,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         inspector: Inspector,
-    ) -> list[str]:
+    ) -> set[str]:
         """
         Get all catalogs from database.
 
         This needs to be implemented per database, since SQLAlchemy doesn't offer an
         abstraction.
         """
-        return []
+        return set()
 
     @classmethod
-    def get_schema_names(cls, inspector: Inspector) -> list[str]:
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
         """
         Get all schemas from database
 
         :param inspector: SqlAlchemy inspector
         :return: All schemas in the database
         """
-        return sorted(inspector.get_schema_names())
+        return set(inspector.get_schema_names())
 
     @classmethod
     def get_table_names(  # pylint: disable=unused-argument

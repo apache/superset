@@ -211,11 +211,29 @@ class DatabaseMixin:
             utils.parse_ssl_cert(database.server_cert)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         security_manager.add_permission_view_menu("database_access", database.perm)
-        # adding a new database we always want to force refresh schema list
-        for schema in database.get_all_schema_names():
-            security_manager.add_permission_view_menu(
-                "schema_access", security_manager.get_schema_perm(database, schema)
-            )
+
+        # add catalog/schema permissions
+        if database.db_engine_spec.supports_catalog:
+            catalogs = database.get_all_catalog_names()
+            for catalog in catalogs:
+                security_manager.add_permission_view_menu(
+                    "catalog_access",
+                    security_manager.get_catalog_perm(database.database_name, catalog),
+                )
+        else:
+            # add a dummy catalog for DBs that don't support them
+            catalogs = [None]
+
+        for catalog in catalogs:
+            for schema in database.get_all_schema_names(catalog=catalog):
+                security_manager.add_permission_view_menu(
+                    "schema_access",
+                    security_manager.get_schema_perm(
+                        database.database_name,
+                        catalog,
+                        schema,
+                    ),
+                )
 
     def pre_add(self, database: Database) -> None:
         self._pre_add_update(database)

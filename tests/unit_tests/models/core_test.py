@@ -229,3 +229,63 @@ def test_get_prequeries(mocker: MockFixture) -> None:
         conn.cursor().execute.assert_has_calls(
             [mocker.call("set a=1"), mocker.call("set b=2")]
         )
+
+
+def test_catalog_cache() -> None:
+    """
+    Test the catalog cache.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        extra=json.dumps({"metadata_cache_timeout": {"catalog_cache_timeout": 10}}),
+    )
+
+    assert database.catalog_cache_enabled
+    assert database.catalog_cache_timeout == 10
+
+
+def test_get_default_catalog() -> None:
+    """
+    Test the `get_default_catalog` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    assert database.get_default_catalog() == "examples"
+
+
+def test_get_default_schema(mocker: MockFixture) -> None:
+    """
+    Test the `get_default_schema` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    with get_inspector() as inspector:
+        inspector.default_schema_name = "public"
+
+    assert database.get_default_schema("examples") == "public"
+    get_inspector.assert_called_with(catalog="examples")
+
+
+def test_get_all_catalog_names(mocker: MockFixture) -> None:
+    """
+    Test the `get_all_catalog_names` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    with get_inspector() as inspector:
+        inspector.bind.execute.return_value = [("examples",), ("other",)]
+
+    assert database.get_all_catalog_names(force=True) == {"examples", "other"}
+    get_inspector.assert_called_with(ssh_tunnel=None)

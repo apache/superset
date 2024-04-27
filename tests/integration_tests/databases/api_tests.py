@@ -36,7 +36,6 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
-from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelDatabasePortError  # noqa: F401
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe  # noqa: F401
@@ -684,15 +683,15 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch(
-        "superset.models.core.Database.get_all_schema_names",
-    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
     @mock.patch("superset.commands.database.create.is_feature_enabled")
     def test_cascade_delete_ssh_tunnel(
         self,
-        mock_test_connection_database_command_run,
-        mock_get_all_schema_names,
         mock_create_is_feature_enabled,
+        mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_test_connection_database_command_run,
     ):
         """
         Database API: SSH Tunnel gets deleted if Database gets deleted
@@ -1987,13 +1986,13 @@ class TestDatabaseApi(SupersetTestCase):
 
         rv = self.client.get(f"api/v1/database/{database.id}/schemas/")
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(schemas, response["result"])
+        self.assertEqual(schemas, set(response["result"]))
 
         rv = self.client.get(
             f"api/v1/database/{database.id}/schemas/?q={prison.dumps({'force': True})}"
         )
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(schemas, response["result"])
+        self.assertEqual(schemas, set(response["result"]))
 
     def test_database_schemas_not_found(self):
         """

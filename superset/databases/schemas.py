@@ -57,6 +57,14 @@ from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
     "type": "object",
+    "properties": {
+        "force": {"type": "boolean"},
+        "catalog": {"type": "string"},
+    },
+}
+
+database_catalogs_query_schema = {
+    "type": "object",
     "properties": {"force": {"type": "boolean"}},
 }
 
@@ -65,6 +73,7 @@ database_tables_query_schema = {
     "properties": {
         "force": {"type": "boolean"},
         "schema_name": {"type": "string"},
+        "catalog_name": {"type": "string"},
     },
     "required": ["schema_name"],
 }
@@ -709,6 +718,12 @@ class SelectStarResponseSchema(Schema):
 class SchemasResponseSchema(Schema):
     result = fields.List(
         fields.String(metadata={"description": "A database schema name"})
+    )
+
+
+class CatalogsResponseSchema(Schema):
+    result = fields.List(
+        fields.String(metadata={"description": "A database catalog name"})
     )
 
 

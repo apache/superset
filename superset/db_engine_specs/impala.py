@@ -74,13 +74,12 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def get_schema_names(cls, inspector: Inspector) -> list[str]:
-        schemas = [
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
+        return {
             row[0]
             for row in inspector.engine.execute("SHOW SCHEMAS")
             if not row[0].startswith("_")
-        ]
-        return schemas
+        }
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:

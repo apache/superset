@@ -101,8 +101,6 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     engine = ""
     engine_name = "PostgreSQL"
 
-    supports_catalog = True
-
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
@@ -199,7 +197,10 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_aliases = {"postgres"}
+
     supports_dynamic_schema = True
+    supports_catalog = True
+    supports_dynamic_catalog = True
 
     default_driver = "psycopg2"
     sqlalchemy_uri_placeholder = (
@@ -297,6 +298,29 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return super().get_default_schema_for_query(database, query)
 
     @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Set the catalog (database).
+        """
+        if catalog:
+            uri = uri.set(database=catalog)
+
+        return uri, connect_args
+
+    @classmethod
+    def get_default_catalog(cls, database: Database) -> str | None:
+        """
+        Return the default catalog for a given database.
+        """
+        return database.url_object.database
+
+    @classmethod
     def get_prequeries(
         cls,
         catalog: str | None = None,
@@ -346,13 +370,13 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         cls,
         database: Database,
         inspector: Inspector,
-    ) -> list[str]:
+    ) -> set[str]:
         """
         Return all catalogs.
 
         In Postgres, a catalog is called a "database".
         """
-        return sorted(
+        return {
             catalog
             for (catalog,) in inspector.bind.execute(
                 """
@@ -360,7 +384,7 @@ SELECT datname FROM pg_database
 WHERE datistemplate = false;
             """
             )
-        )
+        }
 
     @classmethod
     def get_table_names(
