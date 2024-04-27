@@ -86,8 +86,8 @@ const sidebars = {
     },
     {
       type: 'doc',
-      label: 'Frequently Asked Questions',
-      id: 'frequently-asked-questions',
+      label: 'FAQ',
+      id: 'faq',
     },
     {
       type: 'doc',
