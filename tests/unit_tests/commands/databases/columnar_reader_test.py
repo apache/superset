@@ -157,7 +157,7 @@ def test_excel_reader_wrong_columns_to_read():
     )
 
 
-def test_excel_reader_invalid_file():
+def test_columnar_reader_invalid_file():
     from werkzeug.datastructures import FileStorage
 
     excel_reader = ColumnarReader(
