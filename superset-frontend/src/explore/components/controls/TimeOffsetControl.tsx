@@ -20,7 +20,7 @@ import React, { ReactNode } from 'react';
 import { isEqual } from 'lodash';
 import moment, { Moment } from 'moment';
 import {
-  parseDttmToMoment,
+  parseDttmToDate,
   BinaryAdhocFilter,
   SimpleAdhocFilter,
   css,
@@ -62,9 +62,9 @@ export default function TimeOffsetControls({
 
   const startDate = currentTimeRangeFilters[0]?.comparator.split(' : ')[0];
 
-  const formatedDate = parseDttmToMoment(startDate);
+  const formatedDate = moment(parseDttmToDate(startDate));
   const disabledDate: RangePickerProps['disabledDate'] = current =>
-    current && current >= formatedDate;
+    current && current > formatedDate;
 
   return (
     <div>
