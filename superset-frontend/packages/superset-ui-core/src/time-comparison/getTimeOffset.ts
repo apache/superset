@@ -46,7 +46,7 @@ export const parseDttmToDate = (dttm: string): Date => {
     return now;
   }
   if (dttm === 'previous calendar week') {
-    now.setUTCDate(now.getUTCDate() - (now.getUTCDay() || 7));
+    now.setUTCDate(now.getUTCDate() - now.getUTCDay());
     return now;
   }
   if (dttm === 'previous calendar month') {
@@ -61,6 +61,7 @@ export const parseDttmToDate = (dttm: string): Date => {
     const parts = dttm.split(' ');
     const amount = parseInt(parts[0], 10);
     const unit = parts[1];
+
     switch (unit) {
       case 'day':
       case 'days':
@@ -79,9 +80,8 @@ export const parseDttmToDate = (dttm: string): Date => {
         now.setUTCFullYear(now.getUTCFullYear() - amount);
         break;
       default:
-        throw new Error('Unsupported time unit');
+        break;
     }
-    now.setUTCHours(0, 0, 0, 0);
     return now;
   }
   const parsed = new Date(dttm);
