@@ -160,7 +160,7 @@ const config = {
             from: '/docs/contributing/creating-viz-plugins/',
           },
           {
-            to: '/docs/installation/kubernetes/',
+            to: '/docs/installation/kubernetes',
             from: '/docs/installation/',
           },
         ],
