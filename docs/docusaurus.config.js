@@ -135,6 +135,34 @@ const config = {
             to: '/docs/faq',
             from: '/docs/frequently-asked-questions',
           },
+          {
+            to: '/docs/installation/kubernetes',
+            from: '/docs/installation/running-on-kubernetes/',
+          },
+          {
+            to: '/docs/contributing/howtos',
+            from: '/docs/contributing/testing-locally/',
+          },
+          {
+            to: '/docs/using-superset/creating-your-first-dashboard',
+            from: '/docs/creating-charts-dashboards/creating-your-first-dashboard/',
+          },
+          {
+            to: '/docs/using-superset/creating-your-first-dashboard',
+            from: '/docs/creating-charts-dashboards/exploring-data/',
+          },
+          {
+            to: '/docs/quickstart',
+            from: '/docs/installation/installing-superset-using-docker-compose/',
+          },
+          {
+            to: '/docs/contributing/howtos',
+            from: '/docs/contributing/creating-viz-plugins/',
+          },
+          {
+            to: '/docs/installation/kubernetes/',
+            from: '/docs/installation/',
+          },
         ],
       },
     ],
