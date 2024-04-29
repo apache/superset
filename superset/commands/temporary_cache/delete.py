@@ -41,5 +41,4 @@ class DeleteTemporaryCacheCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def delete(self, cmd_params: CommandParameters) -> bool:
-        ...
+    def delete(self, cmd_params: CommandParameters) -> bool: ...

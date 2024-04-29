@@ -134,6 +134,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "schemas": "read",
     "select_star": "read",
     "table_metadata": "read",
+    "table_metadata_deprecated": "read",
     "table_extra_metadata": "read",
     "table_extra_metadata_deprecated": "read",
     "test_connection": "write",

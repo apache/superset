@@ -46,7 +46,7 @@
     "antd": "4.10.3",
     "bootstrap": "^3.4.1",
     "core-js": "3.8.3",
-    "gh-pages": "^3.0.0",
+    "gh-pages": "^5.0.0",
     "jquery": "^3.7.1",
     "memoize-one": "^6.0.0",
     "react": "^16.13.1",

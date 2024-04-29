@@ -18,7 +18,6 @@ import uuid
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-from flask import g
 
 
 @patch("superset.reports.notifications.slack.g")

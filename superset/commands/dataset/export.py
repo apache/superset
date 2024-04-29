@@ -85,9 +85,10 @@ class ExportDatasetsCommand(ExportModelsCommand):
     def _export(
         model: SqlaTable, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
-        yield ExportDatasetsCommand._file_name(
-            model
-        ), lambda: ExportDatasetsCommand._file_content(model)
+        yield (
+            ExportDatasetsCommand._file_name(model),
+            lambda: ExportDatasetsCommand._file_content(model),
+        )
 
         # include database as well
         if export_related:

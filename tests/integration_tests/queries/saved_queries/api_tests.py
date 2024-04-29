@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 import json
 from datetime import datetime
 from io import BytesIO
@@ -28,7 +29,6 @@ import prison
 from freezegun import freeze_time
 from sqlalchemy.sql import func, and_
 
-import tests.integration_tests.test_app
 from superset import db
 from superset.models.core import Database
 from superset.models.core import FavStar
@@ -134,7 +134,7 @@ class TestSavedQueryApi(SupersetTestCase):
         )
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/saved_query/"
+        uri = "api/v1/saved_query/"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -166,7 +166,7 @@ class TestSavedQueryApi(SupersetTestCase):
         )
 
         self.login(user.username)
-        uri = f"api/v1/saved_query/"
+        uri = "api/v1/saved_query/"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -453,7 +453,7 @@ class TestSavedQueryApi(SupersetTestCase):
             ],
         }
 
-        uri = f"api/v1/saved_query/related/database"
+        uri = "api/v1/saved_query/related/database"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -464,7 +464,7 @@ class TestSavedQueryApi(SupersetTestCase):
         SavedQuery API: Test related user not found
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/saved_query/related/user"
+        uri = "api/v1/saved_query/related/user"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -479,7 +479,7 @@ class TestSavedQueryApi(SupersetTestCase):
         )
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/saved_query/distinct/schema"
+        uri = "api/v1/saved_query/distinct/schema"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -497,7 +497,7 @@ class TestSavedQueryApi(SupersetTestCase):
         SavedQuery API: Test related user not allowed
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/saved_query/wrong"
+        uri = "api/v1/saved_query/wrong"
         rv = self.client.get(uri)
         assert rv.status_code == 405
 
@@ -554,7 +554,7 @@ class TestSavedQueryApi(SupersetTestCase):
         """
         Saved Query API: Test create
         """
-        admin = self.get_user("admin")
+        self.get_user("admin")  # noqa: F841
         example_db = get_example_database()
 
         post_data = {
@@ -566,7 +566,7 @@ class TestSavedQueryApi(SupersetTestCase):
         }
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/saved_query/"
+        uri = "api/v1/saved_query/"
         rv = self.client.post(uri, json=post_data)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201

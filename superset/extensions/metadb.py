@@ -72,7 +72,6 @@ from superset import db, feature_flag_manager, security_manager, sql_parse
 
 # pylint: disable=abstract-method
 class SupersetAPSWDialect(APSWDialect):
-
     """
     A SQLAlchemy dialect for an internal Superset engine.
 
@@ -187,7 +186,6 @@ class FallbackField(Field[Any, str]):
 
 # pylint: disable=too-many-instance-attributes
 class SupersetShillelaghAdapter(Adapter):
-
     """
     A Shillelagh adapter for Superset tables.
 
@@ -273,6 +271,8 @@ class SupersetShillelaghAdapter(Adapter):
         self.catalog = parts.pop(-1) if parts else None
 
         if self.catalog:
+            # TODO (betodealmeida): when SIP-95 is implemented we should check to see if
+            # the database has multi-catalog enabled, and if so, give access.
             raise NotImplementedError("Catalogs are not currently supported")
 
         # If the table has a single integer primary key we use that as the row ID in order
@@ -316,7 +316,8 @@ class SupersetShillelaghAdapter(Adapter):
         # store this callable for later whenever we need an engine
         self.engine_context = partial(
             database.get_sqla_engine,
-            self.schema,
+            catalog=self.catalog,
+            schema=self.schema,
         )
 
         # fetch column names and types

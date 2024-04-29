@@ -112,7 +112,6 @@ class ImportAssetsCommand(BaseCommand):
             if file_name.startswith("charts/"):
                 dataset_dict = dataset_info[config["dataset_uuid"]]
                 config.update(dataset_dict)
-                # pylint: disable=line-too-long
                 dataset_uid = f"{dataset_dict['datasource_id']}__{dataset_dict['datasource_type']}"
                 config["params"].update({"datasource": dataset_uid})
                 if "query_context" in config:

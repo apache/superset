@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-""" Superset wrapper around pyarrow.Table.
-"""
+"""Superset wrapper around pyarrow.Table."""
+
 import datetime
 import json
 import logging
@@ -34,7 +34,7 @@ from superset.utils.core import GenericDataType
 logger = logging.getLogger(__name__)
 
 
-def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list[str]:
+def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list[str]:  # noqa: E741
     """De-duplicates a list of string by suffixing a counter
 
     Always returns the same number of entries as provided, and always returns

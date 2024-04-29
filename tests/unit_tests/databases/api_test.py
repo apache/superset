@@ -33,8 +33,9 @@ from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
-from superset.commands.database.csv_import import CSVImportCommand
-from superset.commands.database.excel_import import ExcelImportCommand
+from superset.commands.database.uploaders.base import UploadCommand
+from superset.commands.database.uploaders.csv_reader import CSVReader
+from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -570,7 +571,6 @@ def test_apply_dynamic_database_filter(
     with app.app_context():
         from superset.daos.database import DatabaseDAO
         from superset.databases.api import DatabaseRestApi
-        from superset.databases.ssh_tunnel.models import SSHTunnel
         from superset.models.core import Database
 
         DatabaseRestApi.datamodel.session = session
@@ -829,7 +829,7 @@ def test_oauth2_error(
 
 
 @pytest.mark.parametrize(
-    "payload,cmd_called_with",
+    "payload,upload_called_with,reader_called_with",
     [
         (
             {
@@ -841,6 +841,10 @@ def test_oauth2_error(
                 1,
                 "table1",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "fail",
                     "delimiter": ",",
@@ -861,6 +865,10 @@ def test_oauth2_error(
                 1,
                 "table2",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "replace",
                     "column_dates": ["col1", "col2"],
@@ -879,7 +887,6 @@ def test_oauth2_error(
                 "columns_read": "col1,col2",
                 "day_first": True,
                 "rows_to_read": "1",
-                "overwrite_duplicates": True,
                 "skip_blank_lines": True,
                 "skip_initial_space": True,
                 "skip_rows": "10",
@@ -890,12 +897,15 @@ def test_oauth2_error(
                 1,
                 "table2",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "replace",
                     "columns_read": ["col1", "col2"],
                     "null_values": ["None", "N/A", "''"],
                     "day_first": True,
-                    "overwrite_duplicates": True,
                     "rows_to_read": 1,
                     "skip_blank_lines": True,
                     "skip_initial_space": True,
@@ -911,7 +921,8 @@ def test_oauth2_error(
 )
 def test_csv_upload(
     payload: dict[str, Any],
-    cmd_called_with: tuple[int, str, Any, dict[str, Any]],
+    upload_called_with: tuple[int, str, Any, dict[str, Any]],
+    reader_called_with: dict[str, Any],
     mocker: MockFixture,
     client: Any,
     full_api_access: None,
@@ -919,17 +930,20 @@ def test_csv_upload(
     """
     Test CSV Upload success.
     """
-    init_mock = mocker.patch.object(CSVImportCommand, "__init__")
+    init_mock = mocker.patch.object(UploadCommand, "__init__")
     init_mock.return_value = None
-    _ = mocker.patch.object(CSVImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
+    reader_mock = mocker.patch.object(CSVReader, "__init__")
+    reader_mock.return_value = None
     response = client.post(
-        f"/api/v1/database/1/csv_upload/",
+        "/api/v1/database/1/csv_upload/",
         data=payload,
         content_type="multipart/form-data",
     )
     assert response.status_code == 200
     assert response.json == {"message": "OK"}
-    init_mock.assert_called_with(*cmd_called_with)
+    init_mock.assert_called_with(*upload_called_with)
+    reader_mock.assert_called_with(*reader_called_with)
 
 
 @pytest.mark.parametrize(
@@ -1000,16 +1014,6 @@ def test_csv_upload(
                 "table_name": "table1",
                 "delimiter": ",",
                 "already_exists": "fail",
-                "overwrite_duplicates": "test1",
-            },
-            {"message": {"overwrite_duplicates": ["Not a valid boolean."]}},
-        ),
-        (
-            {
-                "file": (create_csv_file(), "out.csv"),
-                "table_name": "table1",
-                "delimiter": ",",
-                "already_exists": "fail",
                 "rows_to_read": 0,
             },
             {"message": {"rows_to_read": ["Must be greater than or equal to 1."]}},
@@ -1066,10 +1070,10 @@ def test_csv_upload_validation(
     """
     Test CSV Upload validation fails.
     """
-    _ = mocker.patch.object(CSVImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
 
     response = client.post(
-        f"/api/v1/database/1/csv_upload/",
+        "/api/v1/database/1/csv_upload/",
         data=payload,
         content_type="multipart/form-data",
     )
@@ -1085,10 +1089,10 @@ def test_csv_upload_file_size_validation(
     """
     Test CSV Upload validation fails.
     """
-    _ = mocker.patch.object(CSVImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
     current_app.config["CSV_UPLOAD_MAX_SIZE"] = 5
     response = client.post(
-        f"/api/v1/database/1/csv_upload/",
+        "/api/v1/database/1/csv_upload/",
         data={
             "file": (create_csv_file(), "out.csv"),
             "table_name": "table1",
@@ -1127,9 +1131,9 @@ def test_csv_upload_file_extension_invalid(
     """
     Test CSV Upload validation fails.
     """
-    _ = mocker.patch.object(CSVImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
     response = client.post(
-        f"/api/v1/database/1/csv_upload/",
+        "/api/v1/database/1/csv_upload/",
         data={
             "file": (create_csv_file(), filename),
             "table_name": "table1",
@@ -1163,9 +1167,9 @@ def test_csv_upload_file_extension_valid(
     """
     Test CSV Upload validation fails.
     """
-    _ = mocker.patch.object(CSVImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
     response = client.post(
-        f"/api/v1/database/1/csv_upload/",
+        "/api/v1/database/1/csv_upload/",
         data={
             "file": (create_csv_file(), filename),
             "table_name": "table1",
@@ -1177,7 +1181,7 @@ def test_csv_upload_file_extension_valid(
 
 
 @pytest.mark.parametrize(
-    "payload,cmd_called_with",
+    "payload,upload_called_with,reader_called_with",
     [
         (
             {
@@ -1188,6 +1192,10 @@ def test_csv_upload_file_extension_valid(
                 1,
                 "table1",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "fail",
                     "file": ANY,
@@ -1207,6 +1215,10 @@ def test_csv_upload_file_extension_valid(
                 1,
                 "table2",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "replace",
                     "column_dates": ["col1", "col2"],
@@ -1231,6 +1243,10 @@ def test_csv_upload_file_extension_valid(
                 1,
                 "table2",
                 ANY,
+                None,
+                ANY,
+            ),
+            (
                 {
                     "already_exists": "replace",
                     "columns_read": ["col1", "col2"],
@@ -1247,7 +1263,8 @@ def test_csv_upload_file_extension_valid(
 )
 def test_excel_upload(
     payload: dict[str, Any],
-    cmd_called_with: tuple[int, str, Any, dict[str, Any]],
+    upload_called_with: tuple[int, str, Any, dict[str, Any]],
+    reader_called_with: dict[str, Any],
     mocker: MockFixture,
     client: Any,
     full_api_access: None,
@@ -1255,17 +1272,20 @@ def test_excel_upload(
     """
     Test Excel Upload success.
     """
-    init_mock = mocker.patch.object(ExcelImportCommand, "__init__")
+    init_mock = mocker.patch.object(UploadCommand, "__init__")
     init_mock.return_value = None
-    _ = mocker.patch.object(ExcelImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
+    reader_mock = mocker.patch.object(ExcelReader, "__init__")
+    reader_mock.return_value = None
     response = client.post(
-        f"/api/v1/database/1/excel_upload/",
+        "/api/v1/database/1/excel_upload/",
         data=payload,
         content_type="multipart/form-data",
     )
     assert response.status_code == 200
     assert response.json == {"message": "OK"}
-    init_mock.assert_called_with(*cmd_called_with)
+    init_mock.assert_called_with(*upload_called_with)
+    reader_mock.assert_called_with(*reader_called_with)
 
 
 @pytest.mark.parametrize(
@@ -1347,10 +1367,10 @@ def test_excel_upload_validation(
     """
     Test Excel Upload validation fails.
     """
-    _ = mocker.patch.object(ExcelImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
 
     response = client.post(
-        f"/api/v1/database/1/excel_upload/",
+        "/api/v1/database/1/excel_upload/",
         data=payload,
         content_type="multipart/form-data",
     )
@@ -1382,9 +1402,9 @@ def test_excel_upload_file_extension_invalid(
     """
     Test Excel Upload file extension fails.
     """
-    _ = mocker.patch.object(ExcelImportCommand, "run")
+    _ = mocker.patch.object(UploadCommand, "run")
     response = client.post(
-        f"/api/v1/database/1/excel_upload/",
+        "/api/v1/database/1/excel_upload/",
         data={
             "file": (create_excel_file(), filename),
             "table_name": "table1",
@@ -1393,6 +1413,170 @@ def test_excel_upload_file_extension_invalid(
     )
     assert response.status_code == 400
     assert response.json == {"message": {"file": ["File extension is not allowed."]}}
+
+
+def test_table_metadata_happy_path(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.json == {"hello": "world"}
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t"),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t&schema=s")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", "s"),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t&catalog=c")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", None, "c"),
+    )
+
+    response = client.get(
+        "/api/v1/database/1/table_metadata/?name=t&schema=s&catalog=c"
+    )
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", "s", "c"),
+    )
+
+
+def test_table_metadata_no_table(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when no table name is passed.
+    """
+    database = mocker.MagicMock()
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+
+    response = client.get("/api/v1/database/1/table_metadata/?schema=s&catalog=c")
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "An error happened when validating the request",
+                "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                "level": "error",
+                "extra": {
+                    "messages": {"name": ["Missing data for required field."]},
+                    "issue_codes": [
+                        {
+                            "code": 1020,
+                            "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                        }
+                    ],
+                },
+            }
+        ]
+    }
+
+
+def test_table_metadata_slashes(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint with names that have slashes.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    client.get("/api/v1/database/1/table_metadata/?name=foo/bar")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("foo/bar"),
+    )
+
+
+def test_table_metadata_invalid_database(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when the database is invalid.
+    """
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=None)
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.status_code == 404
+    assert response.json == {
+        "errors": [
+            {
+                "message": "No such database",
+                "error_type": "DATABASE_NOT_FOUND_ERROR",
+                "level": "error",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1011,
+                            "message": "Issue 1011 - Superset encountered an unexpected error.",
+                        },
+                        {
+                            "code": 1036,
+                            "message": "Issue 1036 - The database was deleted.",
+                        },
+                    ]
+                },
+            }
+        ]
+    }
+
+
+def test_table_metadata_unauthorized(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when the user is unauthorized.
+    """
+    database = mocker.MagicMock()
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                message="You don't have access to the table",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.status_code == 404
+    assert response.json == {
+        "errors": [
+            {
+                "message": "No such table",
+                "error_type": "TABLE_NOT_FOUND_ERROR",
+                "level": "error",
+                "extra": None,
+            }
+        ]
+    }
 
 
 def test_table_extra_metadata_happy_path(

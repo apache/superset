@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 from datetime import datetime
 import imp
 import json
@@ -29,7 +30,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import dialect
 

@@ -17,7 +17,6 @@
 
 
 import pytest
-from sqlalchemy.orm.session import Session
 
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
@@ -52,7 +51,6 @@ def test_create_ssh_tunnel_command() -> None:
 
 def test_create_ssh_tunnel_command_invalid_params() -> None:
     from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
-    from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
     database = Database(
@@ -80,7 +78,6 @@ def test_create_ssh_tunnel_command_invalid_params() -> None:
 
 def test_create_ssh_tunnel_command_no_port() -> None:
     from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
-    from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
     database = Database(

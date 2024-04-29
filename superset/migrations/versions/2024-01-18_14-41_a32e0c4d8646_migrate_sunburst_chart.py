@@ -26,10 +26,10 @@ Create Date: 2023-12-22 14:41:43.638321
 revision = "a32e0c4d8646"
 down_revision = "59a1450b3c10"
 
-from alembic import op
+from alembic import op  # noqa: E402
 
-from superset import db
-from superset.migrations.shared.migrate_viz import MigrateSunburst
+from superset import db  # noqa: E402
+from superset.migrations.shared.migrate_viz import MigrateSunburst  # noqa: E402
 
 
 def upgrade():

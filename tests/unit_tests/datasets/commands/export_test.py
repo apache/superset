@@ -92,9 +92,7 @@ def test_export(session: Session) -> None:
     export = [
         (file[0], file[1]())
         for file in list(
-            ExportDatasetsCommand._export(
-                sqla_table
-            )  # pylint: disable=protected-access
+            ExportDatasetsCommand._export(sqla_table)  # pylint: disable=protected-access
         )
     ]
 

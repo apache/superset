@@ -51,6 +51,7 @@ class TablesDatabaseCommand(BaseCommand):
                 datasource_names=sorted(
                     DatasourceName(*datasource_name)
                     for datasource_name in self._model.get_all_table_names_in_schema(
+                        catalog=None,
                         schema=self._schema_name,
                         force=self._force,
                         cache=self._model.table_cache_enabled,
@@ -65,6 +66,7 @@ class TablesDatabaseCommand(BaseCommand):
                 datasource_names=sorted(
                     DatasourceName(*datasource_name)
                     for datasource_name in self._model.get_all_view_names_in_schema(
+                        catalog=None,
                         schema=self._schema_name,
                         force=self._force,
                         cache=self._model.table_cache_enabled,

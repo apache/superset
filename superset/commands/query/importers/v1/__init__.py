@@ -18,13 +18,13 @@
 from typing import Any
 
 from marshmallow import Schema
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.commands.query.exceptions import SavedQueryImportError
 from superset.commands.query.importers.v1.utils import import_saved_query
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable  # noqa: F401
 from superset.daos.query import SavedQueryDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
