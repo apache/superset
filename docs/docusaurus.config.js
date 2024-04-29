@@ -135,6 +135,54 @@ const config = {
             to: '/docs/faq',
             from: '/docs/frequently-asked-questions',
           },
+          {
+            to: '/docs/installation/kubernetes',
+            from: '/docs/installation/running-on-kubernetes/',
+          },
+          {
+            to: '/docs/contributing/howtos',
+            from: '/docs/contributing/testing-locally/',
+          },
+          {
+            to: '/docs/using-superset/creating-your-first-dashboard',
+            from: '/docs/creating-charts-dashboards/creating-your-first-dashboard/',
+          },
+          {
+            to: '/docs/using-superset/creating-your-first-dashboard',
+            from: '/docs/creating-charts-dashboards/exploring-data/',
+          },
+          {
+            to: '/docs/installation/docker-compose',
+            from: '/docs/installation/installing-superset-using-docker-compose/',
+          },
+          {
+            to: '/docs/contributing/howtos',
+            from: '/docs/contributing/creating-viz-plugins/',
+          },
+          {
+            to: '/docs/installation/kubernetes',
+            from: '/docs/installation/',
+          },
+          {
+            to: '/docs/installation/pypi',
+            from: '/docs/installation/installing-superset-from-pypi/',
+          },
+          {
+            to: '/docs/configuration/configuring-superset',
+            from: '/docs/installation/configuring-superset/',
+          },
+          {
+            to: '/docs/configuration/cache',
+            from: '/docs/installation/cache/',
+          },
+          {
+            to: '/docs/configuration/async-queries-celery',
+            from: '/docs/installation/async-queries-celery/',
+          },
+          {
+            to: '/docs/configuration/event-logging',
+            from: '/docs/installation/event-logging/',
+          },
         ],
       },
     ],
