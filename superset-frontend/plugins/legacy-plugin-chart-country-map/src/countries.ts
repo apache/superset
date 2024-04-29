@@ -18,6 +18,7 @@
  */
 
 import afghanistan from './countries/afghanistan.geojson';
+import aland from './countries/aland.geojson';
 import albania from './countries/albania.geojson';
 import algeria from './countries/algeria.geojson';
 import american_samoa from './countries/american_samoa.geojson';
@@ -25,12 +26,14 @@ import andorra from './countries/andorra.geojson';
 import angola from './countries/angola.geojson';
 import anguilla from './countries/anguilla.geojson';
 import antarctica from './countries/antarctica.geojson';
+import antigua_and_barbuda from './countries/antigua_and_barbuda.geojson';
 import argentina from './countries/argentina.geojson';
 import armenia from './countries/armenia.geojson';
 import aruba from './countries/aruba.geojson';
 import australia from './countries/australia.geojson';
 import austria from './countries/austria.geojson';
 import azerbaijan from './countries/azerbaijan.geojson';
+import the_bahamas from './countries/the_bahamas.geojson';
 import bahrain from './countries/bahrain.geojson';
 import bangladesh from './countries/bangladesh.geojson';
 import barbados from './countries/barbados.geojson';
@@ -49,6 +52,7 @@ import british_indian_ocean_territory from './countries/british_indian_ocean_ter
 import bulgaria from './countries/bulgaria.geojson';
 import burkina_faso from './countries/burkina_faso.geojson';
 import burundi from './countries/burundi.geojson';
+import cape_verde from './countries/cape_verde.geojson';
 import cambodia from './countries/cambodia.geojson';
 import cameroon from './countries/cameroon.geojson';
 import canada from './countries/canada.geojson';
@@ -103,6 +107,7 @@ import iceland from './countries/iceland.geojson';
 import india from './countries/india.geojson';
 import indonesia from './countries/indonesia.geojson';
 import iran from './countries/iran.geojson';
+import israel from './countries/israel.geojson';
 import italy from './countries/italy.geojson';
 import japan from './countries/japan.geojson';
 import jordan from './countries/jordan.geojson';
@@ -111,6 +116,7 @@ import kenya from './countries/kenya.geojson';
 import korea from './countries/korea.geojson';
 import kuwait from './countries/kuwait.geojson';
 import kyrgyzstan from './countries/kyrgyzstan.geojson';
+import laos from './countries/laos.geojson';
 import latvia from './countries/latvia.geojson';
 import lebanon from './countries/lebanon.geojson';
 import lesotho from './countries/lesotho.geojson';
@@ -213,8 +219,11 @@ import uruguay from './countries/uruguay.geojson';
 import usa from './countries/usa.geojson';
 import uzbekistan from './countries/uzbekistan.geojson';
 import vanuatu from './countries/vanuatu.geojson';
+import vatican from './countries/vatican.geojson';
 import venezuela from './countries/venezuela.geojson';
 import vietnam from './countries/vietnam.geojson';
+import british_virgin_islands from './countries/british_virgin_islands.geojson';
+import united_states_virgin_islands from './countries/united_states_virgin_islands.geojson';
 import wallis_and_futuna from './countries/wallis_and_futuna.geojson';
 import yemen from './countries/yemen.geojson';
 import zambia from './countries/zambia.geojson';
@@ -222,6 +231,7 @@ import zimbabwe from './countries/zimbabwe.geojson';
 
 export const countries = {
   afghanistan,
+  aland,
   albania,
   algeria,
   american_samoa,
@@ -229,12 +239,14 @@ export const countries = {
   angola,
   anguilla,
   antarctica,
+  antigua_and_barbuda,
   argentina,
   armenia,
   aruba,
   australia,
   austria,
   azerbaijan,
+  the_bahamas,
   bahrain,
   bangladesh,
   barbados,
@@ -253,6 +265,7 @@ export const countries = {
   bulgaria,
   burkina_faso,
   burundi,
+  cape_verde,
   cambodia,
   cameroon,
   canada,
@@ -307,6 +320,7 @@ export const countries = {
   india,
   indonesia,
   iran,
+  israel,
   italy,
   japan,
   jordan,
@@ -315,6 +329,7 @@ export const countries = {
   korea,
   kuwait,
   kyrgyzstan,
+  laos,
   latvia,
   lebanon,
   lesotho,
@@ -417,8 +432,11 @@ export const countries = {
   usa,
   uzbekistan,
   vanuatu,
+  vatican,
   venezuela,
   vietnam,
+  british_virgin_islands,
+  united_states_virgin_islands,
   wallis_and_futuna,
   yemen,
   zambia,
