@@ -309,11 +309,9 @@ test('If there is a DB with allow_file_upload set as True the option should be e
   userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
   userEvent.hover(dataMenu);
+  expect(await screen.findByText('Upload CSV to database')).toBeInTheDocument();
   expect(
-    (await screen.findByText('Upload CSV to database')),
-  ).toBeInTheDocument();
-  expect(
-    (await screen.findByText('Upload Excel to database')),
+    await screen.findByText('Upload Excel to database'),
   ).toBeInTheDocument();
 });
 
