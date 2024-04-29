@@ -152,7 +152,7 @@ const config = {
             from: '/docs/creating-charts-dashboards/exploring-data/',
           },
           {
-            to: '/docs/quickstart',
+            to: '/docs/installation/docker-compose',
             from: '/docs/installation/installing-superset-using-docker-compose/',
           },
           {
