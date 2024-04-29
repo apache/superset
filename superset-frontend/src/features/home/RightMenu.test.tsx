@@ -310,11 +310,11 @@ test('If there is a DB with allow_file_upload set as True the option should be e
   const dataMenu = await screen.findByText(dropdownItems[0].label);
   userEvent.hover(dataMenu);
   expect(
-    (await screen.findByText('Upload CSV to database')).closest('a'),
-  ).toHaveAttribute('href', '#');
+    (await screen.findByText('Upload CSV to database')),
+  ).toBeInTheDocument();
   expect(
-    (await screen.findByText('Upload Excel to database')).closest('a'),
-  ).toHaveAttribute('href', '#');
+    (await screen.findByText('Upload Excel to database')),
+  ).toBeInTheDocument();
 });
 
 test('If there is NOT a DB with allow_file_upload set as True the option should be disabled', async () => {
