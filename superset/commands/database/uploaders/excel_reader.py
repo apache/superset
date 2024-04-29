@@ -15,10 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 import pandas as pd
 from flask_babel import lazy_gettext as _
+from werkzeug.datastructures import FileStorage
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
 from superset.commands.database.uploaders.base import (
@@ -54,7 +55,7 @@ class ExcelReader(BaseDataReader):
             options=dict(options),
         )
 
-    def file_to_dataframe(self, file: Any) -> pd.DataFrame:
+    def file_to_dataframe(self, file: FileStorage) -> pd.DataFrame:
         """
         Read Excel file into a DataFrame
 
@@ -65,7 +66,7 @@ class ExcelReader(BaseDataReader):
         kwargs = {
             "header": self._options.get("header_row", 0),
             "index_col": self._options.get("index_column"),
-            "io": file,
+            "io": file.stream,
             "keep_default_na": not self._options.get("null_values"),
             "decimal": self._options.get("decimal_character", "."),
             "na_values": self._options.get("null_values")
@@ -92,8 +93,13 @@ class ExcelReader(BaseDataReader):
         except Exception as ex:
             raise DatabaseUploadFailed(_("Error reading Excel file")) from ex
 
-    def file_metadata(self, file: Any) -> FileMetadata:
-        excel_file = pd.ExcelFile(file)
+    def file_metadata(self, file: FileStorage) -> FileMetadata:
+        try:
+            excel_file = pd.ExcelFile(file)
+        except (ValueError, AssertionError) as ex:
+            raise DatabaseUploadFailed(
+                message=_("Excel file format cannot be determined")
+            ) from ex
 
         sheet_names = excel_file.sheet_names
 

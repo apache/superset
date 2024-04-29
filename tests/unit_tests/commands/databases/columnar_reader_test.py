@@ -16,9 +16,12 @@
 # under the License.
 import io
 from typing import Any
+import tempfile
+from zipfile import ZipFile
 
 import numpy as np
 import pytest
+from werkzeug.datastructures import FileStorage
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
 from superset.commands.database.uploaders.columnar_reader import (
@@ -133,11 +136,11 @@ def test_columnar_reader_file_to_dataframe(
 
 
 def test_excel_reader_wrong_columns_to_read():
-    excel_reader = ColumnarReader(
+    reader = ColumnarReader(
         options=ColumnarReaderOptions(columns_read=["xpto"]),
     )
     with pytest.raises(DatabaseUploadFailed) as ex:
-        excel_reader.file_to_dataframe(create_columnar_file(COLUMNAR_DATA))
+        reader.file_to_dataframe(create_columnar_file(COLUMNAR_DATA))
     assert (
         str(ex.value)
         == (
@@ -158,14 +161,94 @@ def test_excel_reader_wrong_columns_to_read():
 
 
 def test_columnar_reader_invalid_file():
-    from werkzeug.datastructures import FileStorage
-
-    excel_reader = ColumnarReader(
+    reader = ColumnarReader(
         options=ColumnarReaderOptions(),
     )
     with pytest.raises(DatabaseUploadFailed) as ex:
-        excel_reader.file_to_dataframe(FileStorage(io.BytesIO(b"c1"), "test.parquet"))
+        reader.file_to_dataframe(FileStorage(io.BytesIO(b"c1"), "test.parquet"))
     assert str(ex.value) == (
         "Parsing error: Could not open Parquet input source '<Buffer>': Parquet file "
         "size is 2 bytes, smaller than the minimum file footer (8 bytes)"
+    )
+
+
+def test_columnar_reader_zip():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    file1 = create_columnar_file(COLUMNAR_DATA, "test1.parquet")
+    file2 = create_columnar_file(COLUMNAR_DATA, "test2.parquet")
+
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_file1:
+        tmp_file1.write(file1.read())
+        tmp_file1.seek(0)
+
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_file2:
+        tmp_file2.write(file2.read())
+        tmp_file2.seek(0)
+
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_zip:
+        with ZipFile(tmp_zip, "w") as zip_file:
+            zip_file.write(tmp_file1.name, "test1.parquet")
+            zip_file.write(tmp_file2.name, "test2.parquet")
+        tmp_zip.seek(0)  # Reset file pointer to beginning
+        df = reader.file_to_dataframe(FileStorage(tmp_zip, "test.zip"))
+    assert df.columns.tolist() == ["Name", "Age", "City", "Birth"]
+    assert df.values.tolist() == [
+        ["name1", 30, "city1", "1990-02-01"],
+        ["name2", 25, "city2", "1995-02-01"],
+        ["name3", 20, "city3", "2000-02-01"],
+        ["name1", 30, "city1", "1990-02-01"],
+        ["name2", 25, "city2", "1995-02-01"],
+        ["name3", 20, "city3", "2000-02-01"],
+    ]
+
+
+def test_columnar_reader_bad_parquet_in_zip():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_zip:
+        with ZipFile(tmp_zip, "w") as zip_file:
+            zip_file.writestr("test1.parquet", b"bad parquet file")
+            zip_file.writestr("test2.parquet", b"bad parquet file")
+        tmp_zip.seek(0)  # Reset file pointer to beginning
+        with pytest.raises(DatabaseUploadFailed) as ex:
+            reader.file_to_dataframe(FileStorage(tmp_zip, "test.zip"))
+        assert str(ex.value) == (
+            "Parsing error: Could not open Parquet input source '<Buffer>': "
+            "Parquet magic bytes not found in footer. "
+            "Either the file is corrupted or this is not a parquet file."
+        )
+
+
+def test_columnar_reader_bad_zip():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        reader.file_to_dataframe(FileStorage(io.BytesIO(b"bad zip file"), "test.zip"))
+    assert str(ex.value) == "Not a valid ZIP file"
+
+
+def test_columnar_reader_metadata():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    file = create_columnar_file(COLUMNAR_DATA)
+    metadata = reader.file_metadata(file)
+    column_names = sorted(metadata["items"][0]["column_names"])
+    assert column_names == ["Age", "Birth", "City", "Name"]
+    assert metadata["items"][0]["sheet_name"] is None
+
+
+def test_columnar_reader_metadata_invalid_file():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        reader.file_metadata(FileStorage(io.BytesIO(b"c1"), "test.parquet"))
+    assert str(ex.value) == (
+        "Parsing error: Parquet file size is 2 bytes, "
+        "smaller than the minimum file footer (8 bytes)"
     )

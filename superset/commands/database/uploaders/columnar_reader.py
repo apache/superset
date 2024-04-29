@@ -23,6 +23,7 @@ from zipfile import BadZipfile, is_zipfile, ZipFile
 
 import pandas as pd
 import pyarrow.parquet as pq
+from pyarrow.lib import ArrowException
 from flask_babel import lazy_gettext as _
 from werkzeug.datastructures import FileStorage
 
@@ -115,9 +116,14 @@ class ColumnarReader(BaseDataReader):
 
     def file_metadata(self, file: FileStorage) -> FileMetadata:
         column_names = set()
-        for file_item in self._yield_files(file):
-            parquet_file = pq.ParquetFile(file_item)
-            column_names.update(parquet_file.metadata.schema.names)  # pylint: disable=no-member
+        try:
+            for file_item in self._yield_files(file):
+                parquet_file = pq.ParquetFile(file_item)
+                column_names.update(parquet_file.metadata.schema.names)  # pylint: disable=no-member
+        except ArrowException as ex:
+            raise DatabaseUploadFailed(
+                message=_("Parsing error: %(error)s", error=str(ex))
+            ) from ex
         return {
             "items": [
                 {
