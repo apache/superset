@@ -46,7 +46,10 @@ from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import CTAS_SCHEMA_NAME, with_feature_flags  # noqa: F401
+from tests.integration_tests.conftest import (  # noqa: F401
+    CTAS_SCHEMA_NAME,
+    with_feature_flags,
+)
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,

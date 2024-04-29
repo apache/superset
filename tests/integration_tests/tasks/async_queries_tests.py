@@ -32,7 +32,9 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.query_context import get_query_context
-from tests.integration_tests.fixtures.tags import with_tagging_system_feature  # noqa: F401
+from tests.integration_tests.fixtures.tags import (
+    with_tagging_system_feature,  # noqa: F401
+)
 from tests.integration_tests.test_app import app
 
 
