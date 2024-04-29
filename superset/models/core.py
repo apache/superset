@@ -664,10 +664,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
 
-            # pylint: disable=protected-access
-            if engine.dialect.identifier_preparer._double_percents:  # noqa
-                sql = sql.replace("%%", "%")
-
         return sql
 
     def select_star(  # pylint: disable=too-many-arguments
