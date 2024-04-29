@@ -163,6 +163,26 @@ const config = {
             to: '/docs/installation/kubernetes',
             from: '/docs/installation/',
           },
+          {
+            to: '/docs/installation/pypi',
+            from: '/docs/installation/installing-superset-from-pypi/',
+          },
+          {
+            to: '/docs/configuration/configuring-superset',
+            from: '/docs/installation/configuring-superset/',
+          },
+          {
+            to: '/docs/configuration/cache',
+            from: '/docs/installation/cache/',
+          },
+          {
+            to: '/docs/configuration/async-queries-celery',
+            from: '/docs/installation/async-queries-celery/',
+          },
+          {
+            to: '/docs/configuration/event-logging',
+            from: '/docs/installation/event-logging/',
+          },
         ],
       },
     ],
