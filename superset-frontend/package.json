@@ -157,7 +157,7 @@
     "moment-timezone": "^0.5.44",
     "mousetrap": "^1.6.5",
     "mustache": "^2.2.1",
-    "polished": "^3.7.2",
+    "polished": "^4.3.1",
     "prop-types": "^15.7.2",
     "query-string": "^6.13.7",
     "re-resizable": "^6.9.11",
