@@ -543,7 +543,9 @@ class QueryContextProcessor:
         if offset_dfs:
             # iterate on offset_dfs, left join each with df
             for offset_df in offset_dfs:
-                if join_keys:
+                if join_keys and not time_grain:
+                    # only do a left join if textual dimensions are the only
+                    # thing we care about
                     df = dataframe_utils.left_join_df(
                         left_df=df,
                         right_df=offset_df,
@@ -551,9 +553,12 @@ class QueryContextProcessor:
                         rsuffix=R_SUFFIX,
                     )
                 else:
+                    # If a temporal dimension is used, we must use full outer join to
+                    # ensure that data is not lost if not present in both dataframes
                     df = dataframe_utils.full_outer_join_df(
                         left_df=df,
                         right_df=offset_df,
+                        join_keys=join_keys,
                         rsuffix=R_SUFFIX,
                     )
 
