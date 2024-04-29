@@ -507,8 +507,8 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> Any:
         return base_json_conv(obj)
     except TypeError as ex:
         if pessimistic:
+            logger.error("Failed to serialize %s", obj)
             return f"Unserializable [{type(obj)}]"
-
         raise ex
 
 
