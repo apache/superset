@@ -146,8 +146,9 @@ class SupersetResultSet:
                     ValueError,
                     TypeError,  # this is super hackey,
                     # https://issues.apache.org/jira/browse/ARROW-7855
-                ):
+                ) as ex:
                     # attempt serialization of values as strings
+                    logger.exception('failed to convert data to pyarrow Table %s',str(ex))
                     stringified_arr = stringify_values(array[column])
                     pa_data.append(pa.array(stringified_arr.tolist()))
 
