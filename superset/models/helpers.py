@@ -1381,6 +1381,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sql = self._apply_cte(sql, cte)
             sql = self.database.mutate_sql_based_on_config(sql)
 
+            # pylint: disable=protected-access
+            if engine.dialect.identifier_preparer._double_percents:
+                sql = sql.replace("%%", "%")
+
             df = pd.read_sql_query(sql=sql, con=engine)
             # replace NaN with None to ensure it can be serialized to JSON
             df = df.replace({np.nan: None})
