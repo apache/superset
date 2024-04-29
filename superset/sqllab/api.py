@@ -340,13 +340,15 @@ class SqlLabRestApi(BaseSupersetApi):
         key = params.get("key")
         rows = params.get("rows")
         result = SqlExecutionResultsCommand(key=key, rows=rows).run()
+
+        payload = json.dumps(
+            result,
+            default=utils.pessimistic_json_iso_dttm_ser,
+            ignore_nan=True,
+        )
         # return the result without special encoding
         return json_success(
-            json.dumps(
-                result,
-                default=utils.json_iso_dttm_ser,
-                ignore_nan=True,
-            ),
+            payload,
             200,
         )
 
