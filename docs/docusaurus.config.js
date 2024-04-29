@@ -92,11 +92,11 @@ const config = {
             from: '/visualization.html',
           },
           {
-            to: '/docs/frequently-asked-questions',
+            to: '/docs/faq',
             from: '/videos.html',
           },
           {
-            to: '/docs/frequently-asked-questions',
+            to: '/docs/faq',
             from: '/faq.html',
           },
           {
@@ -120,12 +120,20 @@ const config = {
             from: '/docs/roadmap',
           },
           {
-            to: '/docs/contributing/contributing-page',
+            to: '/docs/contributing/',
             from: '/docs/contributing/contribution-guidelines',
+          },
+          {
+            to: '/docs/contributing/',
+            from: '/docs/contributing/contribution-page',
           },
           {
             to: '/docs/databases/yugabytedb',
             from: '/docs/databases/yugabyte/',
+          },
+          {
+            to: '/docs/faq',
+            from: '/docs/frequently-asked-questions',
           },
         ],
       },
@@ -182,7 +190,7 @@ const config = {
               },
               {
                 label: 'FAQ',
-                to: '/docs/frequently-asked-questions',
+                to: '/docs/faq',
               },
             ],
           },
