@@ -341,16 +341,14 @@ class SqlLabRestApi(BaseSupersetApi):
         rows = params.get("rows")
         result = SqlExecutionResultsCommand(key=key, rows=rows).run()
 
+        # Using pessimistic json serialization since some database drivers can return
+        # unserializeable types at times
         payload = json.dumps(
             result,
             default=utils.pessimistic_json_iso_dttm_ser,
             ignore_nan=True,
         )
-        # return the result without special encoding
-        return json_success(
-            payload,
-            200,
-        )
+        return json_success(payload, 200)
 
     @expose("/execute/", methods=("POST",))
     @protect()
