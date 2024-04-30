@@ -1832,7 +1832,6 @@ else
     say "$url/upload/v4?$queryNoToken"
     # shellcheck disable=SC2086,2090
     res=$(curl $curl_s -X POST $cacert \
-          --retry 1 --retry-delay 1 --connect-timeout 1 \
           -H 'X-Reduced-Redundancy: false' \
           -H 'X-Content-Type: application/x-gzip' \
           -H 'Content-Length: 0' \
@@ -1878,7 +1877,6 @@ else
   # shellcheck disable=SC2086,2090
   res=$(curl -X POST $cacert \
         --data-binary @"$upload_file.gz" \
-        --retry 5 --retry-delay 2 --connect-timeout 2 \
         -H 'Content-Type: text/plain' \
         -H 'Content-Encoding: gzip' \
         -H 'X-Content-Encoding: gzip' \
