@@ -44,6 +44,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 2 # codecov needs 2 to get a read on the SHA
           submodules: recursive
       - name: Check for file changes
         id: check
