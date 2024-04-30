@@ -82,3 +82,5 @@ jobs:
         if: steps.check.outputs.frontend
         working-directory: ./superset-frontend
         run: ../.github/workflows/codecov.sh -c -F javascript
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

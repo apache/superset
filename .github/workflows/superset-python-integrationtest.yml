@@ -173,5 +173,7 @@ jobs:
           ./scripts/python_tests.sh
       - name: Upload code coverage
         if: steps.check.outputs.python
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
           bash .github/workflows/codecov.sh -c -F python -F sqlite
