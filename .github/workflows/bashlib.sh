@@ -117,12 +117,6 @@ testdata() {
   say "::endgroup::"
 }
 
-codecov() {
-  say "::group::Upload code coverage"
-  bash ".github/workflows/codecov.sh" "$@"
-  say "::endgroup::"
-}
-
 cypress-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
 
@@ -191,11 +185,6 @@ cypress-run-all() {
 
   cypress-run "sqllab/*" "Backend persist"
 
-  # Upload code coverage separately so each page can have separate flags
-  # -c will clean existing coverage reports, -F means add flags
-  # || true to prevent CI failure on codecov upload
-  codecov -c -F "cypress" || true
-
   say "::group::Flask log for backend persist"
   cat "$flasklog"
   say "::endgroup::"
@@ -224,8 +213,6 @@ cypress-run-applitools() {
   local flaskProcessId=$!
 
   $cypress --spec "cypress/e2e/*/**/*.applitools.test.ts" --browser "$browser" --headless
-
-  codecov -c -F "cypress" || true
 
   say "::group::Flask log for default run"
   cat "$flasklog"

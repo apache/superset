@@ -20,7 +20,6 @@ jobs:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history
           persist-credentials: false
           submodules: recursive
       - name: Check npm lock file version
@@ -79,8 +78,8 @@ jobs:
         working-directory: ./superset-frontend/packages/generator-superset
         run: npx jest
       - name: Upload code coverage
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: ../.github/workflows/codecov.sh -c -F javascript
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: codecov/codecov-action@v4
+        with:
+          flags: javascript
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
