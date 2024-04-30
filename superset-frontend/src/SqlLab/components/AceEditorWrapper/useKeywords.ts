@@ -18,7 +18,7 @@
  */
 import { useEffect, useMemo, useRef } from 'react';
 import { useSelector, useDispatch, shallowEqual, useStore } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { getExtensionsRegistry, t } from '@superset-ui/core';
 
 import { Editor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
@@ -55,10 +55,21 @@ const getHelperText = (value: string) =>
     docText: value,
   };
 
+const extensionsRegistry = getExtensionsRegistry();
+
 export function useKeywords(
   { queryEditorId, dbId, schema }: Params,
   skip = false,
 ) {
+  const useCustomKeywords = extensionsRegistry.get(
+    'sqleditor.extension.customAutocomplete',
+  );
+
+  const customKeywords = useCustomKeywords?.({
+    queryEditorId: String(queryEditorId),
+    dbId,
+    schema,
+  });
   const dispatch = useDispatch();
   const hasFetchedKeywords = useRef(false);
   // skipFetch is used to prevent re-evaluating memoized keywords
@@ -207,8 +218,15 @@ export function useKeywords(
         .concat(schemaKeywords)
         .concat(tableKeywords)
         .concat(functionKeywords)
-        .concat(sqlKeywords),
-    [schemaKeywords, tableKeywords, columnKeywords, functionKeywords],
+        .concat(sqlKeywords)
+        .concat(customKeywords ?? []),
+    [
+      schemaKeywords,
+      tableKeywords,
+      columnKeywords,
+      functionKeywords,
+      customKeywords,
+    ],
   );
 
   hasFetchedKeywords.current = !skip;

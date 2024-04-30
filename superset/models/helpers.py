@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-many-lines
 """a collection of model-related helper classes and functions"""
+
 import builtins
 import dataclasses
 import json
@@ -36,13 +37,14 @@ import pytz
 import sqlalchemy as sa
 import sqlparse
 import yaml
-from flask import escape, g, Markup
+from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
+from markupsafe import escape, Markup
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
@@ -64,6 +66,7 @@ from superset.exceptions import (
     ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
@@ -73,6 +76,8 @@ from superset.sql_parse import (
     insert_rls_in_predicate,
     ParsedQuery,
     sanitize_clause,
+    SQLScript,
+    SQLStatement,
 )
 from superset.superset_typing import (
     AdhocMetric,
@@ -89,6 +94,7 @@ from superset.utils.core import (
     get_column_name,
     get_user_id,
     is_adhoc_column,
+    MediumText,
     remove_duplicates,
 )
 from superset.utils.dates import datetime_to_epoch
@@ -195,9 +201,7 @@ class ImportExportMixin:
             for u in cls.__table_args__  # type: ignore
             if isinstance(u, UniqueConstraint)
         ]
-        unique.extend(
-            {c.name} for c in cls.__table__.columns if c.unique  # type: ignore
-        )
+        unique.extend({c.name} for c in cls.__table__.columns if c.unique)  # type: ignore
         return unique
 
     @classmethod
@@ -205,7 +209,7 @@ class ImportExportMixin:
         """Get a mapping of foreign name to the local name of foreign keys"""
         parent_rel = cls.__mapper__.relationships.get(cls.export_parent)
         if parent_rel:
-            return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}
+            return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}  # noqa: E741
         return {}
 
     @classmethod
@@ -551,7 +555,6 @@ class AuditMixinNullable(AuditMixin):
 
 
 class QueryResult:  # pylint: disable=too-few-public-methods
-
     """Object returned by the query interface"""
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -579,12 +582,13 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.errors = errors or []
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+        self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
 class ExtraJSONMixin:
     """Mixin to add an `extra` column (JSON) and utility methods"""
 
-    extra_json = sa.Column(sa.Text, default="{}")
+    extra_json = sa.Column(MediumText(), default="{}")
 
     @property
     def extra(self) -> dict[str, Any]:
@@ -874,18 +878,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         sqla_col.key = label_expected
         return sqla_col
 
-    def mutate_query_from_config(self, sql: str) -> str:
-        """Apply config's SQL_QUERY_MUTATOR
-
-        Typically adds comments to the query with context"""
-        if sql_query_mutator := config["SQL_QUERY_MUTATOR"]:
-            sql = sql_query_mutator(
-                sql,
-                security_manager=security_manager,
-                database=self.database,
-            )
-        return sql
-
     @staticmethod
     def _apply_cte(sql: str, cte: Optional[str]) -> str:
         """
@@ -900,14 +892,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return sql
 
     def get_query_str_extended(
-        self, query_obj: QueryObjectDict, mutate: bool = True
+        self,
+        query_obj: QueryObjectDict,
+        mutate: bool = True,
     ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
-        sql = sqlparse.format(sql, reindent=True)
+        try:
+            sql = SQLStatement(sql, engine=self.db_engine_spec.engine).format()
+        except SupersetParseError:
+            logger.warning("Unable to parse SQL to format it, passing it as-is")
+
         if mutate:
-            sql = self.mutate_query_from_config(sql)
+            sql = self.database.mutate_sql_based_on_config(sql)
         return QueryStringExtended(
             applied_template_filters=sqlaq.applied_template_filters,
             applied_filter_columns=sqlaq.applied_filter_columns,
@@ -1053,7 +1051,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
 
     def get_rendered_sql(
-        self, template_processor: Optional[BaseTemplateProcessor] = None
+        self,
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> str:
         """
         Render sql with template engine (Jinja).
@@ -1070,13 +1069,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=ex.message,
                     )
                 ) from ex
-        sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
-        if not sql:
-            raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
-        if len(sqlparse.split(sql)) > 1:
+
+        script = SQLScript(sql.strip("\t\r\n; "), engine=self.db_engine_spec.engine)
+        if len(script.statements) > 1:
             raise QueryObjectValidationError(
                 _("Virtual dataset query cannot consist of multiple statements")
             )
+
+        sql = script.statements[0].format(comments=False)
+        if not sql:
+            raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         return sql
 
     def text(self, clause: str) -> TextClause:
@@ -1242,7 +1244,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def adhoc_column_to_sqla(
         self,
-        col: "AdhocColumn",  # type: ignore
+        col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
@@ -1321,7 +1323,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         )
 
-        l = []
+        l = []  # noqa: E741
         if start_dttm:
             l.append(
                 col
@@ -1374,10 +1376,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
 
-        with self.database.get_sqla_engine_with_context() as engine:
+        with self.database.get_sqla_engine() as engine:
             sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
             sql = self._apply_cte(sql, cte)
-            sql = self.mutate_query_from_config(sql)
+            sql = self.database.mutate_sql_based_on_config(sql)
 
             df = pd.read_sql_query(sql=sql, con=engine)
             # replace NaN with None to ensure it can be serialized to JSON
@@ -1976,7 +1978,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
             ):
-                with self.database.get_sqla_engine_with_context() as engine:
+                with self.database.get_sqla_engine() as engine:
                     quote = engine.dialect.identifier_preparer.quote
                     col = literal_column(quote(col.name))
             direction = sa.asc if ascending else sa.desc

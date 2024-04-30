@@ -219,7 +219,7 @@ export default function transformProps(
     getMetricLabel,
   );
 
-  const isMultiSeries = groupby.length || metrics.length > 1;
+  const isMultiSeries = groupby?.length || metrics?.length > 1;
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -297,7 +297,7 @@ export default function transformProps(
           : getCustomFormatter(
               customFormatters,
               metrics,
-              labelMap[seriesName]?.[0],
+              labelMap?.[seriesName]?.[0],
             ) ?? defaultFormatter,
         showValue,
         onlyTotal,
@@ -308,6 +308,7 @@ export default function transformProps(
         sliceId,
         isHorizontal,
         lineStyle,
+        timeCompare: array,
       },
     );
     if (transformedSeries) {
@@ -575,7 +576,6 @@ export default function transformProps(
       right: TIMESERIES_CONSTANTS.toolboxRight,
       feature: {
         dataZoom: {
-          yAxisIndex: false,
           title: {
             zoom: t('zoom area'),
             back: t('restore zoom'),
@@ -590,6 +590,7 @@ export default function transformProps(
             start: TIMESERIES_CONSTANTS.dataZoomStart,
             end: TIMESERIES_CONSTANTS.dataZoomEnd,
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
+            yAxisIndex: isHorizontal ? 0 : undefined,
           },
         ]
       : [],

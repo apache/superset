@@ -167,7 +167,7 @@ export default function DatabaseSelector({
         });
         const endpoint = `/api/v1/database/?q=${queryParams}`;
         return SupersetClient.get({ endpoint }).then(({ json }) => {
-          const { result } = json;
+          const { result, count } = json;
           if (getDbList) {
             getDbList(result);
           }
@@ -189,7 +189,7 @@ export default function DatabaseSelector({
 
           return {
             data: options,
-            totalCount: options.length,
+            totalCount: count ?? options.length,
           };
         });
       },

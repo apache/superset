@@ -28,7 +28,9 @@ import EditableTitle from 'src/components/EditableTitle';
 import { setEditMode } from 'src/dashboard/actions/dashboardState';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import DragDroppable, {
+  Droppable,
+} from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
 
 export const RENDER_TAB = 'RENDER_TAB';
@@ -83,15 +85,8 @@ const TabTitleContainer = styled.div`
   `}
 `;
 
-const renderDraggableContentBottom = dropProps =>
-  dropProps.dropIndicatorProps && (
-    <div className="drop-indicator drop-indicator--bottom" />
-  );
-
-const renderDraggableContentTop = dropProps =>
-  dropProps.dropIndicatorProps && (
-    <div className="drop-indicator drop-indicator--top" />
-  );
+const renderDraggableContent = dropProps =>
+  dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />;
 
 class Tab extends React.PureComponent {
   constructor(props) {
@@ -147,7 +142,6 @@ class Tab extends React.PureComponent {
   renderTabContent() {
     const {
       component: tabComponent,
-      parentComponent: tabParentComponent,
       depth,
       availableColumnCount,
       columnWidth,
@@ -166,21 +160,25 @@ class Tab extends React.PureComponent {
       <div className="dashboard-component-tabs-content">
         {/* Make top of tab droppable */}
         {editMode && (
-          <DragDroppable
+          <Droppable
             component={tabComponent}
-            parentComponent={tabParentComponent}
             orientation="column"
             index={0}
             depth={depth}
-            onDrop={this.handleTopDropTargetDrop}
+            onDrop={
+              tabComponent.children.length === 0
+                ? this.handleTopDropTargetDrop
+                : this.handleDrop
+            }
             editMode
             className={classNames({
               'empty-droptarget': true,
               'empty-droptarget--full': tabComponent.children.length === 0,
             })}
+            dropToChild={tabComponent.children.length === 0}
           >
-            {renderDraggableContentTop}
-          </DragDroppable>
+            {renderDraggableContent}
+          </Droppable>
         )}
         {shouldDisplayEmptyState && (
           <EmptyStateMedium
@@ -220,39 +218,38 @@ class Tab extends React.PureComponent {
           />
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
-          <DashboardComponent
-            key={componentId}
-            id={componentId}
-            parentId={tabComponent.id}
-            depth={depth} // see isValidChild.js for why tabs don't increment child depth
-            index={componentIndex}
-            onDrop={this.handleDrop}
-            onHover={this.handleOnHover}
-            availableColumnCount={availableColumnCount}
-            columnWidth={columnWidth}
-            onResizeStart={onResizeStart}
-            onResize={onResize}
-            onResizeStop={onResizeStop}
-            isComponentVisible={isComponentVisible}
-            onChangeTab={this.handleChangeTab}
-          />
+          <React.Fragment key={componentId}>
+            <DashboardComponent
+              id={componentId}
+              parentId={tabComponent.id}
+              depth={depth} // see isValidChild.js for why tabs don't increment child depth
+              index={componentIndex}
+              onDrop={this.handleDrop}
+              onHover={this.handleOnHover}
+              availableColumnCount={availableColumnCount}
+              columnWidth={columnWidth}
+              onResizeStart={onResizeStart}
+              onResize={onResize}
+              onResizeStop={onResizeStop}
+              isComponentVisible={isComponentVisible}
+              onChangeTab={this.handleChangeTab}
+            />
+            {/* Make bottom of tab droppable */}
+            {editMode && (
+              <Droppable
+                component={tabComponent}
+                orientation="column"
+                index={componentIndex + 1}
+                depth={depth}
+                onDrop={this.handleDrop}
+                editMode
+                className="empty-droptarget"
+              >
+                {renderDraggableContent}
+              </Droppable>
+            )}
+          </React.Fragment>
         ))}
-        {/* Make bottom of tab droppable */}
-        {editMode && tabComponent.children.length > 0 && (
-          <DragDroppable
-            component={tabComponent}
-            parentComponent={tabParentComponent}
-            orientation="column"
-            index={tabComponent.children.length}
-            depth={depth}
-            onDrop={this.handleDrop}
-            onHover={this.handleOnHover}
-            editMode
-            className="empty-droptarget"
-          >
-            {renderDraggableContentBottom}
-          </DragDroppable>
-        )}
       </div>
     );
   }

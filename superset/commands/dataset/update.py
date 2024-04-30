@@ -41,6 +41,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DAOUpdateFailedError
 from superset.exceptions import SupersetSecurityException
+from superset.sql_parse import Table
 
 logger = logging.getLogger(__name__)
 
@@ -90,9 +91,8 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         # Validate uniqueness
         if not DatasetDAO.validate_update_uniqueness(
             self._model.database_id,
-            self._model.schema,
+            Table(table_name, self._model.schema, self._model.catalog),
             self._model_id,
-            table_name,
         ):
             exceptions.append(DatasetExistsValidationError(table_name))
         # Validate/Populate database not allowed to change
@@ -100,7 +100,10 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             exceptions.append(DatabaseChangeValidationError())
         # Validate/Populate owner
         try:
-            owners = self.populate_owners(owner_ids)
+            owners = self.compute_owners(
+                self._model.owners,
+                owner_ids,
+            )
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

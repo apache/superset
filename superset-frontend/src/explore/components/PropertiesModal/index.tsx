@@ -29,9 +29,9 @@ import {
   styled,
   isFeatureEnabled,
   FeatureFlag,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tags/utils';
 import {

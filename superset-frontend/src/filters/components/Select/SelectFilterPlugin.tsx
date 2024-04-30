@@ -189,7 +189,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleBlur = useCallback(() => {
     unsetFocusedFilter();
-  }, [unsetFocusedFilter]);
+    onSearch('');
+  }, [onSearch, unsetFocusedFilter]);
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
@@ -293,7 +294,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       >
         <Select
           allowClear
-          allowNewOptions
+          allowNewOptions={!searchAllOptions}
           allowSelectAll={!searchAllOptions}
           // @ts-ignore
           value={filterState.value || []}
@@ -307,6 +308,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}
           placeholder={placeholderText}
+          onClear={() => onSearch('')}
           onSearch={onSearch}
           onBlur={handleBlur}
           onFocus={setFocusedFilter}

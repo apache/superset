@@ -20,7 +20,7 @@ import React, { FunctionComponent, useState } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
-import { NotificationMethodOption } from '../types';
+import { NotificationMethodOption, NotificationSetting } from '../types';
 import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
@@ -35,10 +35,6 @@ const StyledNotificationMethod = styled.div`
   .inline-container {
     margin-bottom: 10px;
 
-    .input-container {
-      margin-left: 10px;
-    }
-
     > div {
       margin: 0;
     }
@@ -49,12 +45,6 @@ const StyledNotificationMethod = styled.div`
     }
   }
 `;
-
-type NotificationSetting = {
-  method?: NotificationMethodOption;
-  recipients: string;
-  options: NotificationMethodOption[];
-};
 
 interface NotificationMethodProps {
   setting?: NotificationSetting | null;
@@ -119,6 +109,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     <StyledNotificationMethod>
       <div className="inline-container">
         <StyledInputContainer>
+          <div className="control-label">{t('Notification Method')}</div>
           <div className="input-container">
             <Select
               ariaLabel={t('Delivery method')}
@@ -133,25 +124,29 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               )}
               value={method}
             />
+            {index !== 0 && !!onRemove ? (
+              <span
+                role="button"
+                tabIndex={0}
+                className="delete-button"
+                onClick={() => onRemove(index)}
+              >
+                <Icons.Trash iconColor={theme.colors.grayscale.base} />
+              </span>
+            ) : null}
           </div>
         </StyledInputContainer>
-        {method !== undefined && !!onRemove ? (
-          <span
-            role="button"
-            tabIndex={0}
-            className="delete-button"
-            onClick={() => onRemove(index)}
-          >
-            <Icons.Trash iconColor={theme.colors.grayscale.base} />
-          </span>
-        ) : null}
       </div>
       {method !== undefined ? (
         <StyledInputContainer>
-          <div className="control-label">{t(method)}</div>
+          <div className="control-label">
+            {t('%s recipients', method)}
+            <span className="required">*</span>
+          </div>
           <div className="input-container">
             <textarea
               name="recipients"
+              data-test="recipients"
               value={recipientValue}
               onChange={onRecipientsChange}
             />

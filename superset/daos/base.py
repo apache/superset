@@ -49,7 +49,7 @@ class BaseDAO(Generic[T]):
     """
     id_column_name = "id"
 
-    def __init_subclass__(cls) -> None:  # pylint: disable=arguments-differ
+    def __init_subclass__(cls) -> None:
         cls.model_cls = get_args(
             cls.__orig_bases__[0]  # type: ignore  # pylint: disable=no-member
         )[0]

@@ -2,16 +2,12 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "master" ]
-    paths:
-      - 'superset/**'
+    branches: ["master", "[0-9].[0-9]"]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ "master" ]
-    paths:
-      - 'superset/**'
+    branches: ["master"]
   schedule:
-    - cron: '0 4 * * *'
+    - cron: "0 4 * * *"
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -30,12 +26,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'python', 'javascript' ]
+        language: ["python", "javascript"]
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
@@ -50,6 +52,7 @@ jobs:
           # queries: security-extended,security-and-quality
 
       - name: Perform CodeQL Analysis
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{matrix.language}}"

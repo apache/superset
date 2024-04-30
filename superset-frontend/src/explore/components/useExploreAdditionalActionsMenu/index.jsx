@@ -310,7 +310,7 @@ export const useExploreAdditionalActionsMenu = (
             </Menu.Item>
           )}
           <Menu.SubMenu
-            title={t('Dashboards added to')}
+            title={t('On dashboards')}
             key={MENU_KEYS.DASHBOARDS_ADDED_TO}
           >
             <DashboardsSubMenu

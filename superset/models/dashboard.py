@@ -32,7 +32,6 @@ from sqlalchemy import (
     Column,
     ForeignKey,
     Integer,
-    MetaData,
     String,
     Table,
     Text,
@@ -137,7 +136,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     dashboard_title = Column(String(500))
     position_json = Column(utils.MediumText())
     description = Column(Text)
-    css = Column(Text)
+    css = Column(utils.MediumText())
     certified_by = Column(Text)
     certification_details = Column(Text)
     json_metadata = Column(utils.MediumText())
@@ -215,13 +214,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         return [slc.chart for slc in self.slices]
 
     @property
-    def sqla_metadata(self) -> None:
-        # pylint: disable=no-member
-        with self.get_sqla_engine_with_context() as engine:
-            meta = MetaData(bind=engine)
-            meta.reflect()
-
-    @property
     def status(self) -> utils.DashboardStatus:
         if self.published:
             return utils.DashboardStatus.PUBLISHED
@@ -272,9 +264,9 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
     def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
         # Verbose but efficient database enumeration of dashboard datasources.
-        slices_by_datasource: dict[
-            tuple[type[BaseDatasource], int], set[Slice]
-        ] = defaultdict(set)
+        slices_by_datasource: dict[tuple[type[BaseDatasource], int], set[Slice]] = (
+            defaultdict(set)
+        )
 
         for slc in self.slices:
             slices_by_datasource[(slc.cls_model, slc.datasource_id)].add(slc)
@@ -365,8 +357,11 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
             copied_dashboard.alter_params(remote_id=dashboard_id)
             copied_dashboards.append(copied_dashboard)
 
+        datasource_id_list = list(datasource_ids)
+        datasource_id_list.sort()
+
         eager_datasources = []
-        for datasource_id, _ in datasource_ids:
+        for datasource_id, _ in datasource_id_list:
             eager_datasource = SqlaTable.get_eager_sqlatable_datasource(datasource_id)
             copied_datasource = eager_datasource.copy()
             copied_datasource.alter_params(
@@ -423,6 +418,6 @@ def id_or_slug_filter(id_or_slug: int | str) -> BinaryExpression:
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
 
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
-    update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()
+    update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()  # noqa: E731
     sqla.event.listen(Dashboard, "after_insert", update_thumbnail)
     sqla.event.listen(Dashboard, "after_update", update_thumbnail)

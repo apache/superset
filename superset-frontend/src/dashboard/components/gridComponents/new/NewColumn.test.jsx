@@ -27,8 +27,9 @@ import { COLUMN_TYPE } from 'src/dashboard/util/componentTypes';
 jest.mock(
   'src/dashboard/components/gridComponents/new/DraggableNewComponent',
   () =>
-    ({ type, id }) =>
-      <div data-test="mock-draggable-new-component">{`${type}:${id}`}</div>,
+    ({ type, id }) => (
+      <div data-test="mock-draggable-new-component">{`${type}:${id}`}</div>
+    ),
 );
 
 function setup() {

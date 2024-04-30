@@ -175,7 +175,7 @@ export class Switchboard {
   /**
    * Defines a method that can be "called" from the other side by sending an event.
    */
-  defineMethod<A extends {} = any, R = any>(
+  defineMethod<A extends {}, R = any>(
     methodName: string,
     executor: Method<A, R>,
   ) {

@@ -26,7 +26,7 @@ class SupersetErrorType(StrEnum):
     """
     Types of errors that can exist within Superset.
 
-    Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
+    Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
     """
 
     # Frontend errors
@@ -67,10 +67,13 @@ class SupersetErrorType(StrEnum):
     USER_ACTIVITY_SECURITY_ACCESS_ERROR = "USER_ACTIVITY_SECURITY_ACCESS_ERROR"
     DASHBOARD_SECURITY_ACCESS_ERROR = "DASHBOARD_SECURITY_ACCESS_ERROR"
     CHART_SECURITY_ACCESS_ERROR = "CHART_SECURITY_ACCESS_ERROR"
+    OAUTH2_REDIRECT = "OAUTH2_REDIRECT"
+    OAUTH2_REDIRECT_ERROR = "OAUTH2_REDIRECT_ERROR"
 
     # Other errors
     BACKEND_TIMEOUT_ERROR = "BACKEND_TIMEOUT_ERROR"
     DATABASE_NOT_FOUND_ERROR = "DATABASE_NOT_FOUND_ERROR"
+    TABLE_NOT_FOUND_ERROR = "TABLE_NOT_FOUND_ERROR"
 
     # Sql Lab errors
     MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
@@ -83,6 +86,7 @@ class SupersetErrorType(StrEnum):
     RESULTS_BACKEND_ERROR = "RESULTS_BACKEND_ERROR"
     ASYNC_WORKERS_ERROR = "ASYNC_WORKERS_ERROR"
     ADHOC_SUBQUERY_NOT_ALLOWED_ERROR = "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR"
+    INVALID_SQL_ERROR = "INVALID_SQL_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -176,6 +180,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR: [1020],
     SupersetErrorType.INVALID_CTAS_QUERY_ERROR: [1023],
     SupersetErrorType.INVALID_CVAS_QUERY_ERROR: [1024, 1025],
+    SupersetErrorType.INVALID_SQL_ERROR: [1003],
     SupersetErrorType.SQLLAB_TIMEOUT_ERROR: [1026, 1027],
     SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR: [1029],
     SupersetErrorType.SYNTAX_ERROR: [1030],
@@ -192,7 +197,7 @@ class ErrorLevel(StrEnum):
     """
     Levels of errors that can exist within Superset.
 
-    Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
+    Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
     """
 
     INFO = "info"

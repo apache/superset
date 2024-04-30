@@ -33,12 +33,11 @@ import dateutil.parser
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
-import sqlparse
-from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from jinja2.exceptions import TemplateError
+from markupsafe import escape, Markup
 from sqlalchemy import (
     and_,
     Boolean,
@@ -50,7 +49,7 @@ from sqlalchemy import (
     Integer,
     or_,
     String,
-    Table,
+    Table as DBTable,
     Text,
     update,
 )
@@ -88,6 +87,8 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetErrorException,
+    SupersetErrorsException,
     SupersetGenericDBErrorException,
     SupersetSecurityException,
 )
@@ -104,11 +105,10 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
-    QueryStringExtended,
     validate_adhoc_subquery,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import ParsedQuery, sanitize_clause
+from superset.sql_parse import ParsedQuery, sanitize_clause, Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -175,9 +175,7 @@ class DatasourceKind(StrEnum):
     PHYSICAL = "physical"
 
 
-class BaseDatasource(
-    AuditMixinNullable, ImportExportMixin
-):  # pylint: disable=too-many-public-methods
+class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
     """A common interface to objects that are queryable
     (tables and datasources)"""
 
@@ -331,7 +329,7 @@ class BaseDatasource(
             "edit_url": self.url,
             "id": self.id,
             "uid": self.uid,
-            "schema": self.schema,
+            "schema": self.schema or None,
             "name": self.name,
             "type": self.type,
             "connection": self.connection,
@@ -385,7 +383,7 @@ class BaseDatasource(
             "datasource_name": self.datasource_name,
             "table_name": self.datasource_name,
             "type": self.type,
-            "schema": self.schema,
+            "schema": self.schema or None,
             "offset": self.offset,
             "cache_timeout": self.cache_timeout,
             "params": self.params,
@@ -669,7 +667,8 @@ class BaseDatasource(
         )
 
     def get_extra_cache_keys(
-        self, query_obj: QueryObjectDict  # pylint: disable=unused-argument
+        self,
+        query_obj: QueryObjectDict,  # pylint: disable=unused-argument
     ) -> list[Hashable]:
         """If a datasource needs to provide additional keys for calculation of
         cache keys, those can be provided via this method
@@ -757,7 +756,6 @@ class AnnotationDatasource(BaseDatasource):
 
 
 class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
-
     """ORM object for table columns, each table can have multiple columns"""
 
     __tablename__ = "table_columns"
@@ -971,7 +969,6 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
 
 class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
-
     """ORM object for metrics, each table can have multiple metrics"""
 
     __tablename__ = "sql_metrics"
@@ -1068,7 +1065,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         return {s: getattr(self, s) for s in attrs}
 
 
-sqlatable_user = Table(
+sqlatable_user = DBTable(
     "sqlatable_user",
     metadata,
     Column("id", Integer, primary_key=True),
@@ -1099,7 +1096,9 @@ def _process_sql_expression(
 
 
 class SqlaTable(
-    Model, BaseDatasource, ExploreMixin
+    Model,
+    BaseDatasource,
+    ExploreMixin,
 ):  # pylint: disable=too-many-public-methods
     """An ORM object for SqlAlchemy table references"""
 
@@ -1144,6 +1143,7 @@ class SqlaTable(
         foreign_keys=[database_id],
     )
     schema = Column(String(255))
+    catalog = Column(String(256), nullable=True, default=None)
     sql = Column(MediumText())
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
@@ -1263,7 +1263,7 @@ class SqlaTable(
 
     def get_schema_perm(self) -> str | None:
         """Returns schema permission if present, database one otherwise."""
-        return security_manager.get_schema_perm(self.database, self.schema)
+        return security_manager.get_schema_perm(self.database, self.schema or None)
 
     def get_perm(self) -> str:
         """
@@ -1287,7 +1287,7 @@ class SqlaTable(
 
     @property
     def dttm_cols(self) -> list[str]:
-        l = [c.column_name for c in self.columns if c.is_dttm]
+        l = [c.column_name for c in self.columns if c.is_dttm]  # noqa: E741
         if self.main_dttm_col and self.main_dttm_col not in l:
             l.append(self.main_dttm_col)
         return l
@@ -1320,8 +1320,7 @@ class SqlaTable(
             return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
             database=self.database,
-            table_name=self.table_name,
-            schema_name=self.schema,
+            table=Table(self.table_name, self.schema or None, self.catalog),
             normalize_columns=self.normalize_columns,
         )
 
@@ -1337,7 +1336,9 @@ class SqlaTable(
         # show_cols and latest_partition set to false to avoid
         # the expensive cost of inspecting the DB
         return self.database.select_star(
-            self.table_name, schema=self.schema, show_cols=False, latest_partition=False
+            Table(self.table_name, self.schema or None, self.catalog),
+            show_cols=False,
+            latest_partition=False,
         )
 
     @property
@@ -1396,42 +1397,8 @@ class SqlaTable(
                 )
             ) from ex
 
-    def mutate_query_from_config(self, sql: str) -> str:
-        """Apply config's SQL_QUERY_MUTATOR
-
-        Typically adds comments to the query with context"""
-        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
-        mutate_after_split = config["MUTATE_AFTER_SPLIT"]
-        if sql_query_mutator and not mutate_after_split:
-            sql = sql_query_mutator(
-                sql,
-                security_manager=security_manager,
-                database=self.database,
-            )
-        return sql
-
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         return get_template_processor(table=self, database=self.database, **kwargs)
-
-    def get_query_str_extended(
-        self,
-        query_obj: QueryObjectDict,
-        mutate: bool = True,
-    ) -> QueryStringExtended:
-        sqlaq = self.get_sqla_query(**query_obj)
-        sql = self.database.compile_sqla_query(sqlaq.sqla_query)
-        sql = self._apply_cte(sql, sqlaq.cte)
-        sql = sqlparse.format(sql, reindent=True)
-        if mutate:
-            sql = self.mutate_query_from_config(sql)
-        return QueryStringExtended(
-            applied_template_filters=sqlaq.applied_template_filters,
-            applied_filter_columns=sqlaq.applied_filter_columns,
-            rejected_filter_columns=sqlaq.rejected_filter_columns,
-            labels_expected=sqlaq.labels_expected,
-            prequeries=sqlaq.prequeries,
-            sql=sql,
-        )
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         query_str_ext = self.get_query_str_extended(query_obj)
@@ -1473,33 +1440,6 @@ class SqlaTable(
         )
 
         return from_clause, cte
-
-    def get_rendered_sql(
-        self, template_processor: BaseTemplateProcessor | None = None
-    ) -> str:
-        """
-        Render sql with template engine (Jinja).
-        """
-
-        sql = self.sql
-        if template_processor:
-            try:
-                sql = template_processor.process_template(sql)
-            except TemplateError as ex:
-                raise QueryObjectValidationError(
-                    _(
-                        "Error while rendering virtual dataset query: %(msg)s",
-                        msg=ex.message,
-                    )
-                ) from ex
-        sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
-        if not sql:
-            raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
-        if len(sqlparse.split(sql)) > 1:
-            raise QueryObjectValidationError(
-                _("Virtual dataset query cannot consist of multiple statements")
-            )
-        return sql
 
     def adhoc_metric_to_sqla(
         self,
@@ -1585,7 +1525,12 @@ class SqlaTable(
                     tbl, _ = self.get_from_clause(template_processor)
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
-                    col_desc = get_columns_description(self.database, self.schema, sql)
+                    col_desc = get_columns_description(
+                        self.database,
+                        self.catalog,
+                        self.schema or None,
+                        sql,
+                    )
                     if not col_desc:
                         raise SupersetGenericDBErrorException("Column not found")
                     is_dttm = col_desc[0]["is_dttm"]  # type: ignore
@@ -1790,8 +1735,18 @@ class SqlaTable(
             return df
 
         try:
-            df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
+            df = self.database.get_df(
+                sql, self.schema or None, mutator=assign_column_label
+            )
+        except (SupersetErrorException, SupersetErrorsException) as ex:
+            # SupersetError(s) exception should not be captured; instead, they should
+            # bubble up to the Flask error handler so they are returned as proper SIP-40
+            # errors. This is particularly important for database OAuth2, see SIP-85.
+            raise ex
         except Exception as ex:  # pylint: disable=broad-except
+            # TODO (betodealmeida): review exception handling while querying the external
+            # database. Ideally we'd expect and handle external database error, but
+            # everything else / the default should be to let things bubble up.
             df = pd.DataFrame()
             status = QueryStatus.FAILED
             logger.warning(
@@ -1816,7 +1771,13 @@ class SqlaTable(
         )
 
     def get_sqla_table_object(self) -> Table:
-        return self.database.get_table(self.table_name, schema=self.schema)
+        return self.database.get_table(
+            Table(
+                self.table_name,
+                self.schema or None,
+                self.catalog,
+            )
+        )
 
     def fetch_metadata(self, commit: bool = True) -> MetadataResult:
         """
@@ -1828,7 +1789,13 @@ class SqlaTable(
         new_columns = self.external_metadata()
         metrics = [
             SqlMetric(**metric)
-            for metric in self.database.get_metrics(self.table_name, self.schema)
+            for metric in self.database.get_metrics(
+                Table(
+                    self.table_name,
+                    self.schema or None,
+                    self.catalog,
+                )
+            )
         ]
         any_date_col = None
         db_engine_spec = self.db_engine_spec
@@ -2075,7 +2042,7 @@ sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 sa.event.listen(SqlMetric, "after_update", SqlaTable.update_column)
 sa.event.listen(TableColumn, "after_update", SqlaTable.update_column)
 
-RLSFilterRoles = Table(
+RLSFilterRoles = DBTable(
     "rls_filter_roles",
     metadata,
     Column("id", Integer, primary_key=True),
@@ -2083,7 +2050,7 @@ RLSFilterRoles = Table(
     Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
 )
 
-RLSFilterTables = Table(
+RLSFilterTables = DBTable(
     "rls_filter_tables",
     metadata,
     Column("id", Integer, primary_key=True),
@@ -2102,7 +2069,10 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
     name = Column(String(255), unique=True, nullable=False)
     description = Column(Text)
     filter_type = Column(
-        Enum(*[filter_type.value for filter_type in utils.RowLevelSecurityFilterType])
+        Enum(
+            *[filter_type.value for filter_type in utils.RowLevelSecurityFilterType],
+            name="filter_type_enum",
+        ),
     )
     group_key = Column(String(255), nullable=True)
     roles = relationship(
@@ -2116,4 +2086,4 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         secondary=RLSFilterTables,
         backref="row_level_security_filters",
     )
-    clause = Column(Text, nullable=False)
+    clause = Column(MediumText(), nullable=False)

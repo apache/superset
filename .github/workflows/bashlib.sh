@@ -31,20 +31,6 @@ say() {
   fi
 }
 
-# default command to run when the `run` input is empty
-default-setup-command() {
-  apt-get-install
-  pip-upgrade
-}
-
-apt-get-install() {
-  say "::group::apt-get install dependencies"
-  sudo apt-get update && sudo apt-get install --yes \
-    libsasl2-dev \
-    libldap2-dev
-  say "::endgroup::"
-}
-
 pip-upgrade() {
   say "::group::Upgrade pip"
   pip install --upgrade pip
@@ -103,6 +89,8 @@ EOF
 setup-mysql() {
   say "::group::Initialize database"
   mysql -h 127.0.0.1 -P 13306 -u root --password=root <<-EOF
+    SET GLOBAL transaction_isolation='READ-COMMITTED';
+    SET GLOBAL TRANSACTION ISOLATION LEVEL READ COMMITTED;
     DROP DATABASE IF EXISTS superset;
     CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
     DROP DATABASE IF EXISTS sqllab_test_db;
@@ -235,7 +223,7 @@ cypress-run-applitools() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  $cypress --spec "cypress/e2e/*/**/*.applitools.test.ts" --browser "$browser" --headless --config ignoreTestFiles="[]"
+  $cypress --spec "cypress/e2e/*/**/*.applitools.test.ts" --browser "$browser" --headless
 
   codecov -c -F "cypress" || true
 

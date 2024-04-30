@@ -29,7 +29,7 @@ import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../../constants';
 const EXTRA_HEIGHT_RESULTS = 8; // we need extra height in RESULTS tab. because the height from props was calculated based on PREVIEW tab.
 
 type Props = {
-  latestQueryId: string;
+  latestQueryId?: string;
   height: number;
   displayLimit: number;
   defaultQueryLimit: number;

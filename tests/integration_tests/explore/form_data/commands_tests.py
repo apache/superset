@@ -20,7 +20,7 @@ from unittest.mock import patch
 
 import pytest
 
-from superset import app, db, security, security_manager
+from superset import app, db, security_manager
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.explore.form_data.create import CreateFormDataCommand
 from superset.commands.explore.form_data.delete import DeleteFormDataCommand
@@ -326,7 +326,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         delete_command = DeleteFormDataCommand(delete_args)
         response = delete_command.run()
 
-        assert response == True
+        assert response is True  # noqa: E712
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("create_dataset", "create_slice", "create_query")
@@ -343,4 +343,4 @@ class TestCreateFormDataCommand(SupersetTestCase):
         delete_command = DeleteFormDataCommand(delete_args)
         response = delete_command.run()
 
-        assert response == False
+        assert response is False  # noqa: E712

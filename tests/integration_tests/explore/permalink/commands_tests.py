@@ -19,13 +19,10 @@ from unittest.mock import patch
 
 import pytest
 
-from superset import app, db, security, security_manager
-from superset.commands.exceptions import DatasourceTypeInvalidError
-from superset.commands.explore.form_data.parameters import CommandParameters
+from superset import app, db, security_manager
 from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.connectors.sqla.models import SqlaTable
-from superset.key_value.utils import decode_permalink_id
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils.core import DatasourceType, get_example_default_schema

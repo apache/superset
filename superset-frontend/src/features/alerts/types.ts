@@ -43,6 +43,12 @@ export type DatabaseObject = {
 
 export type NotificationMethodOption = 'Email' | 'Slack';
 
+export type NotificationSetting = {
+  method?: NotificationMethodOption;
+  recipients: string;
+  options: NotificationMethodOption[];
+};
+
 export type Recipient = {
   recipient_config_json: {
     target: string;
@@ -122,4 +128,22 @@ export interface AlertsReportsConfig {
   ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT: number;
   ALERT_REPORTS_DEFAULT_RETENTION: number;
   ALERT_REPORTS_DEFAULT_CRON_VALUE: string;
+}
+
+export type SectionValidationObject = {
+  hasErrors: boolean;
+  errors: string[];
+  name: string;
+};
+
+export interface ValidationObject {
+  [key: string]: SectionValidationObject;
+}
+
+export enum Sections {
+  General = 'generalSection',
+  Content = 'contentSection',
+  Alert = 'alertConditionSection',
+  Schedule = 'scheduleSection',
+  Notification = 'notificationSection',
 }

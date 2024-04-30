@@ -234,16 +234,19 @@ export default function transformProps(
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')
     : currencyFormat?.symbol
-    ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
-    : getNumberFormatter(yAxisFormat);
+      ? new CurrencyFormatter({
+          d3Format: yAxisFormat,
+          currency: currencyFormat,
+        })
+      : getNumberFormatter(yAxisFormat);
   const formatterSecondary = contributionMode
     ? getNumberFormatter(',.0%')
     : currencyFormatSecondary?.symbol
-    ? new CurrencyFormatter({
-        d3Format: yAxisFormatSecondary,
-        currency: currencyFormatSecondary,
-      })
-    : getNumberFormatter(yAxisFormatSecondary);
+      ? new CurrencyFormatter({
+          d3Format: yAxisFormatSecondary,
+          currency: currencyFormatSecondary,
+        })
+      : getNumberFormatter(yAxisFormatSecondary);
   const customFormatters = buildCustomFormatters(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,
@@ -369,7 +372,7 @@ export default function transformProps(
       customFormatters,
       formatter,
       metrics,
-      labelMap[seriesName]?.[0],
+      labelMap?.[seriesName]?.[0],
       !!contributionMode,
     );
 
@@ -407,14 +410,15 @@ export default function transformProps(
 
   rawSeriesB.forEach(entry => {
     const entryName = String(entry.name || '');
-    const seriesName = `${inverted[entryName] || entryName} (1)`;
-    const colorScaleKey = getOriginalSeries(seriesName, array);
+    const seriesEntry = inverted[entryName] || entryName;
+    const seriesName = `${seriesEntry} (1)`;
+    const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
     const seriesFormatter = getFormatter(
       customFormattersSecondary,
       formatterSecondary,
       metricsB,
-      labelMapB[seriesName]?.[0],
+      labelMapB?.[seriesName]?.[0],
       !!contributionMode,
     );
 
