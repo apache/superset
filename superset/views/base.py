@@ -286,6 +286,7 @@ def handle_api_exception(
 @current_app.before_request
 def check_sess_token():
     token = request.headers.get("jwt-payload")
+    print("request==========", request.__dict__)
     if token and isinstance(token, str):
         token = json.loads(token)
         doc_id = token.get("doc-id", "")
