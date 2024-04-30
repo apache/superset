@@ -18,6 +18,7 @@
 from sqlalchemy.orm.session import Session
 
 from superset.daos.dataset import DatasetDAO
+from superset.sql_parse import Table
 
 
 def test_validate_update_uniqueness(session: Session) -> None:
@@ -54,9 +55,8 @@ def test_validate_update_uniqueness(session: Session) -> None:
     assert (
         DatasetDAO.validate_update_uniqueness(
             database_id=database.id,
-            schema=dataset1.schema,
+            table=Table(dataset1.table_name, dataset1.schema),
             dataset_id=dataset1.id,
-            name=dataset1.table_name,
         )
         is True
     )
@@ -65,9 +65,8 @@ def test_validate_update_uniqueness(session: Session) -> None:
     assert (
         DatasetDAO.validate_update_uniqueness(
             database_id=database.id,
-            schema=dataset2.schema,
+            table=Table(dataset1.table_name, dataset2.schema),
             dataset_id=dataset1.id,
-            name=dataset1.table_name,
         )
         is False
     )
@@ -76,9 +75,8 @@ def test_validate_update_uniqueness(session: Session) -> None:
     assert (
         DatasetDAO.validate_update_uniqueness(
             database_id=database.id,
-            schema=None,
+            table=Table(dataset1.table_name),
             dataset_id=dataset1.id,
-            name=dataset1.table_name,
         )
         is True
     )

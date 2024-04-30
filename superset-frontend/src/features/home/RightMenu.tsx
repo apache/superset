@@ -189,7 +189,7 @@ const RightMenu = ({
         {
           label: t('Upload CSV to database'),
           name: 'Upload a CSV',
-          url: '/csvtodatabaseview/form',
+          url: '#',
           perm: canUploadCSV && showUploads,
           disable: isAdmin && !allowUploads,
         },
@@ -201,9 +201,9 @@ const RightMenu = ({
           disable: isAdmin && !allowUploads,
         },
         {
-          label: t('Upload Excel file to database'),
+          label: t('Upload Excel to database'),
           name: 'Upload Excel',
-          url: '/exceltodatabaseview/form',
+          url: '#',
           perm: canUploadExcel && showUploads,
           disable: isAdmin && !allowUploads,
         },

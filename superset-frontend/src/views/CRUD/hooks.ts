@@ -18,7 +18,13 @@
  */
 import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
-import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
+import {
+  makeApi,
+  SupersetClient,
+  t,
+  JsonObject,
+  getClientErrorObject,
+} from '@superset-ui/core';
 
 import {
   createErrorHandler,
@@ -33,9 +39,9 @@ import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import SupersetText from 'src/utils/textUtils';
-import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
+import { DatabaseObject } from 'src/features/databases/types';
+import { FavoriteStatus, ImportResourceName } from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -691,7 +697,7 @@ export const getDatabaseDocumentationLinks = () =>
   SupersetText.DB_CONNECTION_DOC_LINKS;
 
 export const testDatabaseConnection = (
-  connection: DatabaseObject,
+  connection: Partial<DatabaseObject>,
   handleErrorMsg: (errorMsg: string) => void,
   addSuccessToast: (arg0: string) => void,
 ) => {
@@ -745,7 +751,7 @@ export function useDatabaseValidation() {
   const getValidation = useCallback(
     (database: Partial<DatabaseObject> | null, onCreate = false) => {
       if (database?.parameters?.ssh) {
-        // when ssh tunnel is enabled we don't want to render any validation errors
+        // TODO: /validate_parameters/ and related utils should support ssh tunnel
         setValidationErrors(null);
         return [];
       }

@@ -38,6 +38,7 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
     database = query.database
     database.allow_dml = False
     database.apply_limit_to_sql.return_value = "SELECT 42 AS answer LIMIT 2"
+    database.mutate_sql_based_on_config.return_value = "SELECT 42 AS answer LIMIT 2"
     db_engine_spec = database.db_engine_spec
     db_engine_spec.is_select_query.return_value = True
     db_engine_spec.fetch_data.return_value = [(42,)]
@@ -55,7 +56,9 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
 
     database.apply_limit_to_sql.assert_called_with("SELECT 42 AS answer", 2, force=True)
     db_engine_spec.execute_with_cursor.assert_called_with(
-        cursor, "SELECT 42 AS answer LIMIT 2", query
+        cursor,
+        "SELECT 42 AS answer LIMIT 2",
+        query,
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
@@ -69,15 +72,16 @@ def test_execute_sql_statement_with_rls(
     from superset.sql_lab import execute_sql_statement
 
     sql_statement = "SELECT * FROM sales"
+    sql_statement_with_rls = f"{sql_statement} WHERE organization_id=42"
+    sql_statement_with_rls_and_limit = f"{sql_statement_with_rls} LIMIT 101"
 
     query = mocker.MagicMock()
     query.limit = 100
     query.select_as_cta_used = False
     database = query.database
     database.allow_dml = False
-    database.apply_limit_to_sql.return_value = (
-        "SELECT * FROM sales WHERE organization_id=42 LIMIT 101"
-    )
+    database.apply_limit_to_sql.return_value = sql_statement_with_rls_and_limit
+    database.mutate_sql_based_on_config.return_value = sql_statement_with_rls_and_limit
     db_engine_spec = database.db_engine_spec
     db_engine_spec.is_select_query.return_value = True
     db_engine_spec.fetch_data.return_value = [(42,)]
@@ -104,7 +108,9 @@ def test_execute_sql_statement_with_rls(
         force=True,
     )
     db_engine_spec.execute_with_cursor.assert_called_with(
-        cursor, "SELECT * FROM sales WHERE organization_id=42 LIMIT 101", query
+        cursor,
+        "SELECT * FROM sales WHERE organization_id=42 LIMIT 101",
+        query,
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 

@@ -136,7 +136,12 @@ export default function getInitialState({
       });
   }
 
-  const queries = { ...queries_ };
+  const queries = {
+    ...queries_,
+    ...(activeTab?.latest_query && {
+      [activeTab.latest_query.id]: activeTab.latest_query,
+    }),
+  };
 
   /**
    * If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user

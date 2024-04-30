@@ -25,13 +25,11 @@ import {
   SharedLabelColor,
   SharedLabelColorSource,
 } from '@superset-ui/core';
-import { getAnalogousColors } from '../../src/color/utils';
 
-jest.mock('../../src/color/utils', () => ({
-  getAnalogousColors: jest
-    .fn()
-    .mockImplementation(() => ['red', 'green', 'blue']),
-}));
+const actual = jest.requireActual('../../src/color/utils');
+const getAnalogousColorsSpy = jest
+  .spyOn(actual, 'getAnalogousColors')
+  .mockImplementation(() => ['red', 'green', 'blue']);
 
 describe('SharedLabelColor', () => {
   beforeAll(() => {
@@ -155,7 +153,7 @@ describe('SharedLabelColor', () => {
       sharedLabelColor.updateColorMap('', 'testColors');
       const colorMap = sharedLabelColor.getColorMap();
       expect(Object.fromEntries(colorMap)).not.toEqual({});
-      expect(getAnalogousColors).not.toBeCalled();
+      expect(getAnalogousColorsSpy).not.toBeCalled();
     });
 
     it('should use analagous colors', () => {
@@ -170,7 +168,7 @@ describe('SharedLabelColor', () => {
       sharedLabelColor.updateColorMap('', 'testColors');
       const colorMap = sharedLabelColor.getColorMap();
       expect(Object.fromEntries(colorMap)).not.toEqual({});
-      expect(getAnalogousColors).toBeCalled();
+      expect(getAnalogousColorsSpy).toBeCalled();
     });
   });
 

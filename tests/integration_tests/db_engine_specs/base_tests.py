@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 
-from tests.integration_tests.test_app import app
+from tests.integration_tests.test_app import app  # noqa: F401
 from tests.integration_tests.base_tests import SupersetTestCase
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.models.core import Database

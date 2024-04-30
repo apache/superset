@@ -42,9 +42,7 @@ from superset.views.base import (
 from superset.views.dashboard.mixin import DashboardMixin
 
 
-class DashboardModelView(
-    DashboardMixin, SupersetModelView, DeleteMixin
-):  # pylint: disable=too-many-ancestors
+class DashboardModelView(DashboardMixin, SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(DashboardModel)
     # TODO disable api_read and api_delete (used by cypress)

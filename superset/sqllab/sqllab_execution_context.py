@@ -142,7 +142,6 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self._sql_result = sql_result
 
     def create_query(self) -> Query:
-        # pylint: disable=line-too-long
         start_time = now_as_float()
         if self.select_as_cta:
             return Query(

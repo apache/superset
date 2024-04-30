@@ -23,10 +23,9 @@ from typing import Any, Callable, Optional, Union
 from uuid import uuid4
 
 from alembic import op
-from sqlalchemy import engine_from_config, inspect
+from sqlalchemy import inspect
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
-from sqlalchemy.engine import reflection
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import Query, Session
 
@@ -106,7 +105,7 @@ def paginated_update(
     result = session.execute(query)
 
     if print_page_progress is None or print_page_progress is True:
-        print_page_progress = lambda processed, total: print(
+        print_page_progress = lambda processed, total: print(  # noqa: E731
             f"    {processed}/{total}", end="\r"
         )
 

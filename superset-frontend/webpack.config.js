@@ -214,6 +214,19 @@ const config = {
   },
   output,
   stats: 'minimal',
+  /*
+   Silence warning for missing export in @data-ui's internal structure. This
+   issue arises from an internal implementation detail of @data-ui. As it's
+   non-critical, we suppress it to prevent unnecessary clutter in the build
+   output. For more context, refer to:
+   https://github.com/williaster/data-ui/issues/208#issuecomment-946966712
+   */
+  ignoreWarnings: [
+    {
+      message:
+        /export 'withTooltipPropTypes' \(imported as 'vxTooltipPropTypes'\) was not found/,
+    },
+  ],
   performance: {
     assetFilter(assetFilename) {
       // don't throw size limit warning on geojson and font files
@@ -288,6 +301,12 @@ const config = {
       // TODO: remove Handlebars alias once Handlebars NPM package has been updated to
       // correctly support webpack import (https://github.com/handlebars-lang/handlebars.js/issues/953)
       handlebars: 'handlebars/dist/handlebars.js',
+      /*
+      Temporary workaround to prevent Webpack from resolving moment locale
+      files, which are unnecessary for this project and causing build warnings.
+      This prevents "Module not found" errors for moment locale files.
+      */
+      'moment/min/moment-with-locales': false,
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
@@ -403,7 +422,7 @@ const config = {
         },
         type: 'asset',
         generator: {
-          filename: '[name].[contenthash:8].[ext]',
+          filename: '[name].[contenthash:8][ext]',
         },
       },
       {
@@ -431,7 +450,7 @@ const config = {
         test: /\.(jpg|gif)$/,
         type: 'asset/resource',
         generator: {
-          filename: '[name].[contenthash:8].[ext]',
+          filename: '[name].[contenthash:8][ext]',
         },
       },
       /* for font-awesome */

@@ -17,8 +17,6 @@
 
 from typing import Any
 
-import pytest
-
 
 def test_explore_datasource_not_found(client: Any, full_api_access: None) -> None:
     # validating the payload for a dataset that doesn't exist

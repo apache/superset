@@ -17,11 +17,14 @@
  * under the License.
  */
 import {
+  AdhocFilter,
   ComparisonTimeRangeType,
+  SimpleAdhocFilter,
   t,
   validateTimeComparisonRangeValues,
 } from '@superset-ui/core';
 import {
+  ColumnMeta,
   ControlPanelConfig,
   ControlPanelState,
   ControlState,
@@ -29,6 +32,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import { ColorSchemeEnum } from './types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -76,16 +80,29 @@ const config: ControlPanelConfig = {
               mapStateToProps: (
                 state: ControlPanelState,
                 controlState: ControlState,
-              ) => ({
-                ...(sharedControls.adhoc_filters.mapStateToProps?.(
-                  state,
-                  controlState,
-                ) || {}),
-                externalValidationErrors: validateTimeComparisonRangeValues(
-                  state.controls?.time_comparison?.value,
-                  controlState.value,
-                ),
-              }),
+              ) => {
+                const originalMapStateToPropsRes =
+                  sharedControls.adhoc_filters.mapStateToProps?.(
+                    state,
+                    controlState,
+                  ) || {};
+                const columns = originalMapStateToPropsRes.columns.filter(
+                  (col: ColumnMeta) =>
+                    col.is_dttm &&
+                    (state.controls.adhoc_filters.value as AdhocFilter[]).some(
+                      (val: SimpleAdhocFilter) =>
+                        val.subject === col.column_name,
+                    ),
+                );
+                return {
+                  ...originalMapStateToPropsRes,
+                  columns,
+                  externalValidationErrors: validateTimeComparisonRangeValues(
+                    state.controls?.time_comparison?.value,
+                    controlState.value,
+                  ),
+                };
+              },
             },
           },
         ],
@@ -102,13 +119,28 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['y_axis_format'],
+        [
+          {
+            name: 'percentDifferenceFormat',
+            config: {
+              ...sharedControls.y_axis_format,
+              label: t('Percent Difference format'),
+            },
+          },
+        ],
         ['currency_format'],
-        [headerFontSize],
+        [
+          {
+            ...headerFontSize,
+            config: { ...headerFontSize.config, default: 0.2 },
+          },
+        ],
         [
           {
             ...subheaderFontSize,
             config: {
               ...subheaderFontSize.config,
+              default: 0.125,
               label: t('Comparison font size'),
             },
           },
@@ -125,12 +157,36 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'comparison_color_scheme',
+            config: {
+              type: 'SelectControl',
+              label: t('color scheme for comparison'),
+              default: ColorSchemeEnum.Green,
+              renderTrigger: true,
+              choices: [
+                [ColorSchemeEnum.Green, 'Green for increase, red for decrease'],
+                [ColorSchemeEnum.Red, 'Red for increase, green for decrease'],
+              ],
+              visibility: ({ controls }) =>
+                controls?.comparison_color_enabled?.value === true,
+              description: t(
+                'Adds color to the chart symbols based on the positive or ' +
+                  'negative change from the comparison value.',
+              ),
+            },
+          },
+        ],
       ],
     },
   ],
   controlOverrides: {
     y_axis_format: {
       label: t('Number format'),
+    },
+    adhoc_filters: {
+      rerender: ['adhoc_custom'],
     },
   },
   formDataOverrides: formData => ({

@@ -284,6 +284,9 @@ const SqlEditor: React.FC<Props> = ({
   const [autocompleteEnabled, setAutocompleteEnabled] = useState(
     getItem(LocalStorageKeys.SqllabIsAutocompleteEnabled, true),
   );
+  const [renderHTMLEnabled, setRenderHTMLEnabled] = useState(
+    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, false),
+  );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
   const [showEmptyState, setShowEmptyState] = useState(false);
@@ -607,6 +610,11 @@ const SqlEditor: React.FC<Props> = ({
     setAutocompleteEnabled(!autocompleteEnabled);
   };
 
+  const handleToggleRenderHTMLEnabled = () => {
+    setItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, !renderHTMLEnabled);
+    setRenderHTMLEnabled(!renderHTMLEnabled);
+  };
+
   const createTableAs = () => {
     startQuery(true, CtasEnum.Table);
     setShowCreateAsModal(false);
@@ -631,6 +639,14 @@ const SqlEditor: React.FC<Props> = ({
       : t('You must run the query successfully first');
     return (
       <Menu css={{ width: theme.gridUnit * 50 }}>
+        <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
+          {' '}
+          <span>{t('Render HTML')}</span>{' '}
+          <AntdSwitch
+            checked={renderHTMLEnabled}
+            onChange={handleToggleRenderHTMLEnabled}
+          />{' '}
+        </Menu.Item>
         <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
           {' '}
           <span>{t('Autocomplete')}</span>{' '}

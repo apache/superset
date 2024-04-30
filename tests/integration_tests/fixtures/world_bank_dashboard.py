@@ -50,7 +50,7 @@ def load_world_bank_data():
             "country_name": String(255),
             "region": String(255),
         }
-        with database.get_sqla_engine_with_context() as engine:
+        with database.get_sqla_engine() as engine:
             _get_dataframe(database).to_sql(
                 WB_HEALTH_POPULATION,
                 engine,
@@ -64,7 +64,7 @@ def load_world_bank_data():
 
     yield
     with app.app_context():
-        with get_example_database().get_sqla_engine_with_context() as engine:
+        with get_example_database().get_sqla_engine() as engine:
             engine.execute("DROP TABLE IF EXISTS wb_health_population")
 
 
@@ -93,13 +93,12 @@ def load_world_bank_dashboard_with_slices_class_scope(load_world_bank_data):
 
 
 def create_dashboard_for_loaded_data():
-    with app.app_context():
-        table = create_table_metadata(WB_HEALTH_POPULATION, get_example_database())
-        slices = _create_world_bank_slices(table)
-        dash = _create_world_bank_dashboard(table)
-        slices_ids_to_delete = [slice.id for slice in slices]
-        dash_id_to_delete = dash.id
-        return dash_id_to_delete, slices_ids_to_delete
+    table = create_table_metadata(WB_HEALTH_POPULATION, get_example_database())
+    slices = _create_world_bank_slices(table)
+    dash = _create_world_bank_dashboard(table)
+    slices_ids_to_delete = [slice.id for slice in slices]
+    dash_id_to_delete = dash.id
+    return dash_id_to_delete, slices_ids_to_delete
 
 
 def _create_world_bank_slices(table: SqlaTable) -> list[Slice]:
