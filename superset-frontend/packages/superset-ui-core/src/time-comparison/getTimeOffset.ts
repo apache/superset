@@ -57,7 +57,7 @@ export const parseDttmToDate = (dttm: string): Date => {
     now.setUTCFullYear(now.getUTCFullYear() - 1, 0, 1);
     return now;
   }
-  if (dttm.includes('ago')) {
+  if (dttm?.includes('ago')) {
     const parts = dttm.split(' ');
     const amount = parseInt(parts[0], 10);
     const unit = parts[1];

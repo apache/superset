@@ -22,7 +22,11 @@ import { ControlPanelSectionConfig } from '../types';
 
 export const timeComparisonControls: (
   multi?: boolean,
-) => ControlPanelSectionConfig = (multi = true) => ({
+  show_calculation_type?: boolean,
+) => ControlPanelSectionConfig = (
+  multi = true,
+  show_calculation_type = true,
+) => ({
   label: t('Time Comparison'),
   tabOverride: 'data',
   description: t(
@@ -92,6 +96,7 @@ export const timeComparisonControls: (
               'difference between the main time series and each time shift; ' +
               'as the percentage change; or as the ratio between series and time shifts.',
           ),
+          visibility: () => Boolean(show_calculation_type),
         },
       },
     ],
