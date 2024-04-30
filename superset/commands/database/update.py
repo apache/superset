@@ -14,15 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 import logging
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import is_feature_enabled
+from superset import is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
+    DatabaseConnectionFailedError,
     DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
@@ -36,7 +40,9 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 )
 from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
 from superset.daos.database import DatabaseDAO
+from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DAOCreateFailedError, DAOUpdateFailedError
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
 from superset.models.core import Database
 
@@ -67,6 +73,10 @@ class UpdateDatabaseCommand(BaseCommand):
             )
         )
 
+        # if the database name changed we need to update any existing permissions,
+        # since they're name based
+        original_database_name = self._model.database_name
+
         try:
             database = DatabaseDAO.update(
                 self._model,
@@ -74,24 +84,26 @@ class UpdateDatabaseCommand(BaseCommand):
                 commit=False,
             )
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
-            self._handle_ssh_tunnel(database)
-        except SSHTunnelError:
-            raise
+            ssh_tunnel = self._handle_ssh_tunnel(database)
+            self._refresh_schemas(database, original_database_name, ssh_tunnel)
+        except SSHTunnelError as ex:
+            # allow exception to bubble for debugbing information
+            raise ex
         except (DAOUpdateFailedError, DAOCreateFailedError) as ex:
             raise DatabaseUpdateFailedError() from ex
 
         return database
 
-    def _handle_ssh_tunnel(self, database: Database) -> None:
+    def _handle_ssh_tunnel(self, database: Database) -> SSHTunnel | None:
         """
         Delete, create, or update an SSH tunnel.
         """
+        if "ssh_tunnel" not in self._properties:
+            return None
+
         if not is_feature_enabled("SSH_TUNNELING"):
             db.session.rollback()
             raise SSHTunnelingNotEnabledError()
-
-        if "ssh_tunnel" not in self._properties:
-            return
 
         current_ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
         ssh_tunnel_properties = self._properties["ssh_tunnel"]
@@ -99,16 +111,68 @@ class UpdateDatabaseCommand(BaseCommand):
         if ssh_tunnel_properties is None:
             if current_ssh_tunnel:
                 DeleteSSHTunnelCommand(current_ssh_tunnel.id).run()
-            return
+            return None
 
         if current_ssh_tunnel is None:
-            CreateSSHTunnelCommand(database, ssh_tunnel_properties).run()
-            return
+            return CreateSSHTunnelCommand(database, ssh_tunnel_properties).run()
 
-        UpdateSSHTunnelCommand(
+        return UpdateSSHTunnelCommand(
             current_ssh_tunnel.id,
             ssh_tunnel_properties,
         ).run()
+
+    def _refresh_schemas(
+        self,
+        database: Database,
+        original_database_name: str,
+        ssh_tunnel: Optional[SSHTunnel],
+    ) -> None:
+        """
+        Add permissions for any new schemas.
+        """
+        try:
+            schemas = database.get_all_schema_names(ssh_tunnel=ssh_tunnel)
+        except Exception as ex:
+            db.session.rollback()
+            raise DatabaseConnectionFailedError() from ex
+
+        for schema in schemas:
+            original_vm = security_manager.get_schema_perm(
+                original_database_name,
+                schema,
+            )
+            existing_pvm = security_manager.find_permission_view_menu(
+                "schema_access",
+                original_vm,
+            )
+            if not existing_pvm:
+                # new schema
+                security_manager.add_permission_view_menu(
+                    "schema_access",
+                    security_manager.get_schema_perm(database.database_name, schema),
+                )
+                continue
+
+            if original_database_name == database.database_name:
+                continue
+
+            # rename existing schema permission
+            existing_pvm.view_menu.name = security_manager.get_schema_perm(
+                database.database_name,
+                schema,
+            )
+
+            # rename permissions on datasets and charts
+            for dataset in DatabaseDAO.get_datasets(
+                database.id,
+                catalog=None,
+                schema=schema,
+            ):
+                dataset.schema_perm = existing_pvm.view_menu.name
+                for chart in DatasetDAO.get_related_objects(dataset.id)["charts"]:
+                    chart.schema_perm = existing_pvm.view_menu.name
+
+        db.session.commit()
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

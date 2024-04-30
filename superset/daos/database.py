@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -130,6 +131,31 @@ class DatabaseDAO(BaseDAO[Database]):
             "dashboards": dashboards,
             "sqllab_tab_states": sqllab_tab_states,
         }
+
+    @classmethod
+    def get_datasets(
+        cls,
+        database_id: int,
+        catalog: str | None,
+        schema: str | None,
+    ) -> list[SqlaTable]:
+        """
+        Return all datasets, optionally filtered by catalog/schema.
+
+        :param database_id: The database ID
+        :param catalog: The catalog name
+        :param schema: The schema name
+        :return: A list of SqlaTable objects
+        """
+        return (
+            db.session.query(SqlaTable)
+            .filter(
+                SqlaTable.database_id == database_id,
+                SqlaTable.catalog == catalog,
+                SqlaTable.schema == schema,
+            )
+            .all()
+        )
 
     @classmethod
     def get_ssh_tunnel(cls, database_id: int) -> SSHTunnel | None:
