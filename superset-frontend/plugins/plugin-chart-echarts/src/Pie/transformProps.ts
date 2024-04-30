@@ -326,7 +326,6 @@ export default function transformProps(
         });
         return tooltipHtml(
           [[metricLabel, formattedValue, formattedPercent]],
-          ['left', 'right', 'right'],
           name,
         );
       },

@@ -80,7 +80,7 @@ function formatTooltip({
     ]);
   }
   rows.push([TOTAL_MARK, defaultFormatter(series.data.totalSum)]);
-  return tooltipHtml(rows, ['left', 'right'], title);
+  return tooltipHtml(rows, title);
 }
 
 function transformer({

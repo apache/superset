@@ -288,11 +288,7 @@ export default function transformProps(
     ...getDefaultTooltip(refs),
     formatter: (params: CallbackDataParams) => {
       const { name, value } = params;
-      return tooltipHtml(
-        [[metricLabel, formatValue(value as number)]],
-        ['left', 'right'],
-        name,
-      );
+      return tooltipHtml([[metricLabel, formatValue(value as number)]], name);
     },
   };
 

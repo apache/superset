@@ -152,7 +152,7 @@ export function formatTooltip({
       compareValuePercentage,
     ]);
   }
-  return tooltipHtml(rows, ['left', 'right'], title);
+  return tooltipHtml(rows, title);
 }
 
 export default function transformProps(

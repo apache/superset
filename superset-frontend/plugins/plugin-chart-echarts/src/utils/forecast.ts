@@ -17,12 +17,7 @@
  * under the License.
  */
 import { isNumber } from 'lodash';
-import {
-  DataRecord,
-  DataRecordValue,
-  DTTM_ALIAS,
-  ValueFormatter,
-} from '@superset-ui/core';
+import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
 import { OptionName } from 'echarts/types/src/util/types';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 import {
@@ -112,8 +107,9 @@ export const formatForecastTooltipSeries = ({
       value += `ŷ = ${formatter(forecastTrend)}`;
     }
     if (forecastLower && forecastUpper) {
+      if (value) value += ' ';
       // the lower bound needs to be added to the upper bound
-      value += ` (${formatter(forecastLower)}, ${formatter(
+      value += `(${formatter(forecastLower)}, ${formatter(
         forecastLower + forecastUpper,
       )})`;
     }

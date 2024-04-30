@@ -317,11 +317,7 @@ export default function transformProps(
           getKeyByValue(nodes, Number(params.data.target)),
         );
         const title = `${source} > ${target}`;
-        return tooltipHtml(
-          [[metricLabel, `${params.value}`]],
-          ['left', 'right'],
-          title,
-        );
+        return tooltipHtml([[metricLabel, `${params.value}`]], title);
       },
     },
     legend: {

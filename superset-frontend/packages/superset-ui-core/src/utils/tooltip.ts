@@ -24,11 +24,8 @@ const TRUNCATION_STYLE = `
   text-overflow: ellipsis;
 `;
 
-// TODO Check if there's any column alignment different than ['left', 'right', 'right']
-// TODO: Remove colored border from all chart types?
 export function tooltipHtml(
   data: string[][],
-  columnAlignments: ('left' | 'right' | 'middle')[],
   title?: string,
   focusedRow?: number,
 ) {
@@ -43,12 +40,11 @@ export function tooltipHtml(
           ${data
             .map((row, i) => {
               const rowStyle =
-                i === focusedRow ? 'font-weight: 700;' : 'opacity: 0.7;';
+                i === focusedRow ? 'font-weight: 700;' : 'opacity: 0.8;';
               let padding = 0;
               const cells = row.map((cell, j) => {
-                // TODO: Maybe make the font a little darker
                 const cellStyle = `
-                  text-align: ${columnAlignments[j]};
+                  text-align: ${j > 0 ? 'right' : 'left'};
                   padding-left: ${padding}px;
                   ${TRUNCATION_STYLE}
                 `;

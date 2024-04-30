@@ -70,7 +70,6 @@ export function formatTooltip(
       [yAxisLabel, yAxisFormatter(params.data[1])],
       [sizeLabel, tooltipSizeFormatter(params.data[2])],
     ],
-    ['left', 'right'],
     title,
   );
 }

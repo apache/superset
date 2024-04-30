@@ -49,7 +49,7 @@ export function formatTooltip({
     .map(pathInfo => pathInfo?.name || '')
     .filter(path => path !== '');
   const row = value ? [metricLabel, String(value)] : [];
-  return tooltipHtml([row], ['left', 'right'], treePath.join(' ▸ '));
+  return tooltipHtml([row], treePath.join(' ▸ '));
 }
 
 export default function transformProps(

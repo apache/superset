@@ -239,7 +239,6 @@ export default function transformProps(
                     : headerFormatter.format(params[0].data[1]),
                 ],
               ],
-              ['left', 'right'],
               formatTime(params[0].data[0]),
             ),
         },

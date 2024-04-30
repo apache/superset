@@ -579,7 +579,6 @@ export default function transformProps(
         }
         return tooltipHtml(
           rows,
-          ['left', 'right', 'right'],
           tooltipFormatter(xValue),
           keys.findIndex(key => key === focusedSeries),
         );

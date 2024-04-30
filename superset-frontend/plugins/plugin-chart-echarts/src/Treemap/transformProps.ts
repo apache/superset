@@ -101,7 +101,7 @@ export function formatTooltip({
   if (formattedPercent) {
     row.push(formattedPercent);
   }
-  return tooltipHtml([row], ['left', 'right', 'right'], treePath.join(' ▸ '));
+  return tooltipHtml([row], treePath.join(' ▸ '));
 }
 
 export default function transformProps(

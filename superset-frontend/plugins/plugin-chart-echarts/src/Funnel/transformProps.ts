@@ -283,7 +283,7 @@ export default function transformProps(
         if (enumName.includes('Percent')) {
           row.push(formattedPercent);
         }
-        return tooltipHtml([row], ['left', 'right', 'right'], title);
+        return tooltipHtml([row], title);
       },
     },
     legend: {

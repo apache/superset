@@ -195,7 +195,7 @@ export default function transformProps(
         if (showPercentage) {
           row.push(`${percentFormatter(percentage)} (${suffix})`);
         }
-        return tooltipHtml([row], ['left', 'right', 'right'], title);
+        return tooltipHtml([row], title);
       },
     },
     visualMap: {
