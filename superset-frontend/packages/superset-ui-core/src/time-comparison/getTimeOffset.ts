@@ -98,10 +98,10 @@ export const getTimeOffset = (
   const isInherit = shifts?.includes('inherit');
   const customStartDate = isCustom && parseDttmToDate(startDate).getTime();
   const filterStartDate = parseDttmToDate(
-    timeRangeFilter.comparator.split(' : ')[0],
+    timeRangeFilter?.comparator.split(' : ')[0],
   ).getTime();
   const filterEndDate = parseDttmToDate(
-    timeRangeFilter.comparator.split(' : ')[1],
+    timeRangeFilter?.comparator.split(' : ')[1],
   ).getTime();
 
   const customShift =
