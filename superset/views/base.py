@@ -286,7 +286,8 @@ def handle_api_exception(
 @current_app.before_request
 def check_sess_token():
     token = request.headers.get("jwt-payload")
-    print("request==========", request.__dict__)
+    referrer = request.headers.get("Referer")
+    print("referrer ==========", referrer)
     if token and isinstance(token, str):
         token = json.loads(token)
         doc_id = token.get("doc-id", "")
@@ -298,8 +299,8 @@ def check_sess_token():
             if session_user_id:
                 session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
                 session_user_username = session_user.username
-
-        if b_id and b_id != "10000" and b_id != "73701655395436":
+        if referrer and 'analytics-business' in referrer and b_id:
+        # if b_id and b_id != "10000" and b_id != "73701655395436":
             token_user_username = b_id + '@dummyanalytics.com'
         else:
             token_user_username = doc_id+'@dummyanalytics.com'
