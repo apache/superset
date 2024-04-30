@@ -1377,9 +1377,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
 
         with self.database.get_sqla_engine() as engine:
-            sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
+            sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
             sql = self._apply_cte(sql, cte)
             sql = self.database.mutate_sql_based_on_config(sql)
+
+            # pylint: disable=protected-access
+            if engine.dialect.identifier_preparer._double_percents:
+                sql = sql.replace("%%", "%")
 
             df = pd.read_sql_query(sql=sql, con=engine)
             # replace NaN with None to ensure it can be serialized to JSON
