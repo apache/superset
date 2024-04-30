@@ -46,7 +46,7 @@ READ_CHUNK_SIZE = 1000
 
 class ReaderOptions(TypedDict, total=False):
     already_exists: str
-    column_labels: str
+    index_label: str
     dataframe_index: bool
 
 
@@ -101,16 +101,20 @@ class BaseDataReader:
         """
         try:
             data_table = Table(table=table_name, schema=schema_name)
+            to_sql_kwargs = {
+                "chunksize": READ_CHUNK_SIZE,
+                "if_exists": self._options.get("already_exists", "fail"),
+                "index": self._options.get("dataframe_index", False),
+            }
+            if self._options.get("index_label") and self._options.get(
+                "dataframe_index"
+            ):
+                to_sql_kwargs["index_label"] = self._options.get("index_label")
             database.db_engine_spec.df_to_sql(
                 database,
                 data_table,
                 df,
-                to_sql_kwargs={
-                    "chunksize": READ_CHUNK_SIZE,
-                    "if_exists": self._options.get("already_exists", "fail"),
-                    "index": self._options.get("dataframe_index", False),
-                    "index_label": self._options.get("column_labels"),
-                },
+                to_sql_kwargs=to_sql_kwargs,
             )
         except ValueError as ex:
             raise DatabaseUploadFailed(

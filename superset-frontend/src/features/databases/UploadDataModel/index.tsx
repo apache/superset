@@ -124,7 +124,7 @@ interface UploadInfo {
   column_dates: Array<string>;
   index_column: string | null;
   dataframe_index: boolean;
-  column_labels: string;
+  index_label: string;
   columns_read: Array<string>;
   column_data_types: string;
 }
@@ -151,7 +151,7 @@ const defaultUploadInfo: UploadInfo = {
   column_dates: [],
   index_column: null,
   dataframe_index: false,
-  column_labels: '',
+  index_label: '',
   columns_read: [],
   column_data_types: '',
 };
@@ -216,6 +216,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [delimiter, setDelimiter] = useState<string>(',');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>();
+  const [currentDataframeIndex, setCurrentDataframeIndex] =
+    useState<boolean>(false);
   const [previewUploadedFile, setPreviewUploadedFile] = useState<boolean>(true);
   const [fileLoading, setFileLoading] = useState<boolean>(false);
 
@@ -431,8 +433,16 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const appendFormData = (formData: FormData, data: Record<string, any>) => {
     const allFieldsNotInType = getAllFieldsNotInType();
     Object.entries(data).forEach(([key, value]) => {
-      if (!(allFieldsNotInType.includes(key) || NonNullFields.includes(key))) {
+      console.log(key, value);
+      if (
+        !(
+          allFieldsNotInType.includes(key) ||
+          (NonNullFields.includes(key) &&
+            (value === undefined || value === null))
+        )
+      ) {
         formData.append(key, value);
+        console.log(key, value);
       }
     });
   };
@@ -874,42 +884,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
             }
             key="3"
           >
-            {isFieldATypeSpecificField('index_column', type) && (
-              <Row>
-                <Col span={24}>
-                  <StyledFormItemWithTip
-                    label={t('Index Column')}
-                    tip={t(
-                      'Column to use as the row labels of the dataframe. Leave empty if no index column',
-                    )}
-                    name="index_column"
-                  >
-                    <Select
-                      ariaLabel={t('Choose index column')}
-                      options={columns.map(column => ({
-                        value: column,
-                        label: column,
-                      }))}
-                      allowClear
-                      allowNewOptions
-                    />
-                  </StyledFormItemWithTip>
-                </Col>
-              </Row>
-            )}
-            <Row>
-              <Col span={24}>
-                <StyledFormItemWithTip
-                  label={t('Column Label(s)')}
-                  tip={t(
-                    'Column label for index column(s). If None is given and Dataframe Index is checked, Index Names are used',
-                  )}
-                  name="column_labels"
-                >
-                  <Input aria-label={t('Column labels')} type="text" />
-                </StyledFormItemWithTip>
-              </Col>
-            </Row>
             <Row>
               <Col span={24}>
                 <StyledFormItem
@@ -948,12 +922,52 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
               <Col span={24}>
                 <StyledFormItem name="dataframe_index">
                   <SwitchContainer
-                    label={t('Write dataframe index as a column')}
+                    label={t('Create dataframe index')}
                     dataTest="dataFrameIndex"
+                    onChange={setCurrentDataframeIndex}
                   />
                 </StyledFormItem>
               </Col>
             </Row>
+            {currentDataframeIndex &&
+              isFieldATypeSpecificField('index_column', type) && (
+                <Row>
+                  <Col span={24}>
+                    <StyledFormItemWithTip
+                      label={t('Index Column')}
+                      tip={t(
+                        'Column to use as the index of the dataframe. If None is given, Index label is used.',
+                      )}
+                      name="index_column"
+                    >
+                      <Select
+                        ariaLabel={t('Choose index column')}
+                        options={columns.map(column => ({
+                          value: column,
+                          label: column,
+                        }))}
+                        allowClear
+                        allowNewOptions
+                      />
+                    </StyledFormItemWithTip>
+                  </Col>
+                </Row>
+              )}
+            {currentDataframeIndex && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItemWithTip
+                    label={t('Index Label')}
+                    tip={t(
+                      "Label for the index column. Don't use an existing column name.",
+                    )}
+                    name="index_label"
+                  >
+                    <Input aria-label={t('Index label')} type="text" />
+                  </StyledFormItemWithTip>
+                </Col>
+              </Row>
+            )}
           </Collapse.Panel>
           {isFieldATypeSpecificField('header_row', type) &&
             isFieldATypeSpecificField('rows_to_read', type) &&

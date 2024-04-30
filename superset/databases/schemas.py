@@ -1064,12 +1064,8 @@ class BaseUploadPostSchema(Schema):
             "exists accepts: fail, replace, append"
         },
     )
-    column_labels = fields.String(
-        metadata={
-            "description": "Column label for index column(s). "
-            "If None is given and Dataframe"
-            "Index is checked, Index Names are used"
-        }
+    index_label = fields.String(
+        metadata={"description": "Index label for index column."}
     )
     columns_read = DelimitedListField(
         fields.String(),

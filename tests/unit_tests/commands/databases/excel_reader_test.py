@@ -190,6 +190,23 @@ def test_excel_reader_file_to_dataframe(file, options, expected_cols, expected_v
     file.close()
 
 
+def test_excel_reader_index_column():
+    excel_reader = ExcelReader(
+        options=ExcelReaderOptions(index_column="Name"),
+    )
+    df = excel_reader.file_to_dataframe(create_excel_file(EXCEL_DATA))
+    assert df.index.name == "Name"
+
+
+def test_excel_reader_wrong_index_column():
+    excel_reader = ExcelReader(
+        options=ExcelReaderOptions(index_column="wrong"),
+    )
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        excel_reader.file_to_dataframe(create_excel_file(EXCEL_DATA))
+    assert str(ex.value) == ("Parsing error: Index wrong invalid (sheet: 0)")
+
+
 def test_excel_reader_wrong_columns_to_read():
     excel_reader = ExcelReader(
         options=ExcelReaderOptions(columns_read=["xpto"]),

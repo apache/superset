@@ -266,6 +266,23 @@ def test_csv_reader_file_to_dataframe(file, options, expected_cols, expected_val
     file.close()
 
 
+def test_csv_reader_index_column():
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(index_column="Name"),
+    )
+    df = csv_reader.file_to_dataframe(create_csv_file(CSV_DATA))
+    assert df.index.name == "Name"
+
+
+def test_csv_reader_wrong_index_column():
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(index_column="wrong"),
+    )
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(CSV_DATA))
+    assert str(ex.value) == "Parsing error: Index wrong invalid"
+
+
 def test_csv_reader_broken_file_no_columns():
     csv_reader = CSVReader(
         options=CSVReaderOptions(),

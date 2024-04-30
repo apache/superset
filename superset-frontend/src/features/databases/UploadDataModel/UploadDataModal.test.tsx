@@ -410,12 +410,13 @@ test('CSV, renders the columns elements correctly', () => {
     name: /columns/i,
   });
   userEvent.click(panelHeader);
+  const switchDataFrameIndex = screen.getByTestId('dataFrameIndex');
+  userEvent.click(switchDataFrameIndex);
   const selectIndexColumn = screen.getByRole('combobox', {
     name: /Choose index column/i,
   });
-  const switchDataFrameIndex = screen.getByTestId('dataFrameIndex');
   const inputColumnLabels = screen.getByRole('textbox', {
-    name: /Column labels/i,
+    name: /Index label/i,
   });
   const selectColumnsToRead = screen.getByRole('combobox', {
     name: /Choose columns to read/i,
@@ -446,12 +447,13 @@ test('Excel, renders the columns elements correctly', () => {
     name: /columns/i,
   });
   userEvent.click(panelHeader);
+  const switchDataFrameIndex = screen.getByTestId('dataFrameIndex');
+  userEvent.click(switchDataFrameIndex);
   const selectIndexColumn = screen.getByRole('combobox', {
     name: /Choose index column/i,
   });
-  const switchDataFrameIndex = screen.getByTestId('dataFrameIndex');
-  const inputColumnLabels = screen.getByRole('textbox', {
-    name: /Column labels/i,
+  const inputIndexLabel = screen.getByRole('textbox', {
+    name: /Index label/i,
   });
   const selectColumnsToRead = screen.getByRole('combobox', {
     name: /Choose columns to read/i,
@@ -467,7 +469,7 @@ test('Excel, renders the columns elements correctly', () => {
   const visibleComponents = [
     selectIndexColumn,
     switchDataFrameIndex,
-    inputColumnLabels,
+    inputIndexLabel,
     selectColumnsToRead,
   ];
   visibleComponents.forEach(component => {
@@ -489,8 +491,9 @@ test('Columnar, renders the columns elements correctly', () => {
   });
   expect(selectIndexColumn).not.toBeInTheDocument();
   const switchDataFrameIndex = screen.getByTestId('dataFrameIndex');
-  const inputColumnLabels = screen.getByRole('textbox', {
-    name: /Column labels/i,
+  userEvent.click(switchDataFrameIndex);
+  const inputIndexLabel = screen.getByRole('textbox', {
+    name: /Index label/i,
   });
   const selectColumnsToRead = screen.getByRole('combobox', {
     name: /Choose columns to read/i,
@@ -504,7 +507,7 @@ test('Columnar, renders the columns elements correctly', () => {
 
   const visibleComponents = [
     switchDataFrameIndex,
-    inputColumnLabels,
+    inputIndexLabel,
     selectColumnsToRead,
   ];
   visibleComponents.forEach(component => {

@@ -1450,7 +1450,7 @@ def test_excel_upload_file_extension_invalid(
                 "already_exists": "replace",
                 "columns_read": "col1,col2",
                 "dataframe_index": True,
-                "column_labels": "label",
+                "index_label": "label",
             },
             (
                 1,
@@ -1466,7 +1466,7 @@ def test_excel_upload_file_extension_invalid(
                     "file": ANY,
                     "table_name": "table2",
                     "dataframe_index": True,
-                    "column_labels": "label",
+                    "index_label": "label",
                 },
             ),
         ),
