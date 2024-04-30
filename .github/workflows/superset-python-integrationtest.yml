@@ -50,8 +50,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/testing.txt'
+          cache: "pip"
+          cache-dependency-path: "requirements/testing.txt"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -70,10 +70,11 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F mysql
-
+        uses: codecov/codecov-action@v4
+        with:
+          flags: python,mysql
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
   test-postgres:
     runs-on: ubuntu-20.04
     strategy:
@@ -116,8 +117,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/testing.txt'
+          cache: "pip"
+          cache-dependency-path: "requirements/testing.txt"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -136,9 +137,11 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F postgres
+        uses: codecov/codecov-action@v4
+        with:
+          flags: python,postgres
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
   test-sqlite:
     runs-on: ubuntu-20.04
@@ -174,8 +177,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/testing.txt'
+          cache: "pip"
+          cache-dependency-path: "requirements/testing.txt"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -194,6 +197,8 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F sqlite
+        uses: codecov/codecov-action@v4
+        with:
+          flags: python,sqlite
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
