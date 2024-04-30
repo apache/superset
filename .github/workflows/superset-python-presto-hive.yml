@@ -52,7 +52,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-          fetch-depth: 2 # codecov needs 2 to get a read on the SHA
       - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/
@@ -78,7 +77,7 @@ jobs:
       - name: Upload code coverage
         uses: codecov/codecov-action@v4
         with:
-          flags: javascript
+          flags: python,presto
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
 
@@ -143,6 +142,6 @@ jobs:
       - name: Upload code coverage
         uses: codecov/codecov-action@v4
         with:
-          flags: javascript
+          flags: python,hive
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true

@@ -20,7 +20,6 @@ jobs:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2 # codecov needs 2 to get a read on the SHA
           persist-credentials: false
           submodules: recursive
       - name: Check npm lock file version
