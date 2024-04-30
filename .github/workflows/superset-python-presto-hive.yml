@@ -52,6 +52,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          fetch-depth: 2 # codecov needs 2 to get a read on the SHA
       - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/

@@ -20,7 +20,7 @@ jobs:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history
+          fetch-depth: 2 # codecov needs 2 to get a read on the SHA
           persist-credentials: false
           submodules: recursive
       - name: Check npm lock file version
@@ -82,5 +82,3 @@ jobs:
         if: steps.check.outputs.frontend
         working-directory: ./superset-frontend
         run: ../.github/workflows/codecov.sh -c -F javascript
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
