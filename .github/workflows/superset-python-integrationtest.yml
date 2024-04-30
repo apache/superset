@@ -67,12 +67,11 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        if: steps.check.outputs.python
-        continue-on-error: true # codecob is not critical and randomly fails at times
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F mysql
+        uses: codecov/codecov-action@v4
+        with:
+          flags: javascript
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
   test-postgres:
     runs-on: ubuntu-20.04
     strategy:
@@ -127,12 +126,11 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        if: steps.check.outputs.python
-        continue-on-error: true # codecob is not critical and randomly fails at times
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F postgres
+        uses: codecov/codecov-action@v4
+        with:
+          flags: javascript
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
   test-sqlite:
     runs-on: ubuntu-20.04
@@ -179,9 +177,8 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        if: steps.check.outputs.python
-        continue-on-error: true # codecob is not critical and randomly fails at times
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F sqlite
+        uses: codecov/codecov-action@v4
+        with:
+          flags: javascript
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
