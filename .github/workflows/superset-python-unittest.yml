@@ -48,6 +48,7 @@ jobs:
           pytest --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear
       - name: Upload code coverage
         if: steps.check.outputs.python
+        continue-on-error: true # codecob is not critical and randomly fails at times
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |

@@ -68,6 +68,9 @@ jobs:
           ./scripts/python_tests.sh
       - name: Upload code coverage
         if: steps.check.outputs.python
+        continue-on-error: true # codecob is not critical and randomly fails at times
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
           bash .github/workflows/codecov.sh -c -F python -F mysql
   test-postgres:
@@ -125,6 +128,9 @@ jobs:
           ./scripts/python_tests.sh
       - name: Upload code coverage
         if: steps.check.outputs.python
+        continue-on-error: true # codecob is not critical and randomly fails at times
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
           bash .github/workflows/codecov.sh -c -F python -F postgres
 
@@ -174,6 +180,7 @@ jobs:
           ./scripts/python_tests.sh
       - name: Upload code coverage
         if: steps.check.outputs.python
+        continue-on-error: true # codecob is not critical and randomly fails at times
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |

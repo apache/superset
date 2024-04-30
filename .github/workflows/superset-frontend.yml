@@ -80,6 +80,7 @@ jobs:
         run: npx jest
       - name: Upload code coverage
         if: steps.check.outputs.frontend
+        continue-on-error: true # codecob is not critical and randomly fails at times
         working-directory: ./superset-frontend
         run: ../.github/workflows/codecov.sh -c -F javascript
         env:

@@ -140,6 +140,7 @@ jobs:
           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
         if: steps.check.outputs.python
+        continue-on-error: true # codecob is not critical and randomly fails at times
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
