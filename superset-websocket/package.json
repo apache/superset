@@ -20,7 +20,7 @@
     "@types/lodash": "^4.17.0",
     "cookie": "^0.6.0",
     "hot-shots": "^10.0.0",
-    "ioredis": "^4.28.0",
+    "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "uuid": "^9.0.1",
@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@types/cookie": "^0.6.0",
-    "@types/ioredis": "^4.27.8",
+    "@types/ioredis": "^5.0.0",
     "@types/jest": "^27.0.2",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.12.7",
