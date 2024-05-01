@@ -144,4 +144,41 @@ describe('ControlPanelsContainer', () => {
       await screen.findAllByTestId('collapsible-control-panel-header'),
     ).toHaveLength(2);
   });
+
+  test('hide ControlPanelSections when its visibility is false', async () => {
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: t('Advanced analytics'),
+          description: t('Advanced analytical post processin'),
+          expanded: true,
+          controlSetRows: [['groupby'], ['metrics'], ['percent_metrics']],
+          visibility: () => false,
+        },
+        {
+          label: t('Chart Title'),
+          visibility: () => true,
+          controlSetRows: [['timeseries_limit_metric', 'row_limit']],
+        },
+        {
+          label: t('Chart Options'),
+          controlSetRows: [['include_time', 'order_desc']],
+        },
+      ],
+    });
+    render(<ControlPanelsContainer {...getDefaultProps()} />, {
+      useRedux: true,
+    });
+
+    const disabledSection = screen.queryByRole('button', {
+      name: /advanced analytics/i,
+    });
+    expect(disabledSection).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /chart title/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /chart options/i }),
+    ).toBeInTheDocument();
+  });
 });
