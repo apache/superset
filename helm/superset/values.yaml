@@ -31,6 +31,11 @@ fullnameOverride: ~
 # Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
 runAsUser: 0
 
+# -- Specify rather or not helm should create the secret described in `secret-env.yaml` template
+secretEnv:
+  # -- Change to false in order to support externally created secret (Binami "Sealed Secrets" for Kubernetes or External Secrets Operator)
+  create: true
+
 # -- Specify service account name to be used
 serviceAccountName: ~
 serviceAccount:
