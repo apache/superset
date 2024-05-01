@@ -56,7 +56,7 @@ const config = {
             from: '/installation.html',
           },
           {
-            to: '/docs',
+            to: '/docs/intro',
             from: '/tutorials.html',
           },
           {
@@ -76,7 +76,7 @@ const config = {
             from: '/sqllab.html',
           },
           {
-            to: '/docs',
+            to: '/docs/intro',
             from: '/gallery.html',
           },
           {
@@ -116,7 +116,7 @@ const config = {
             from: '/docs/installation/email-reports',
           },
           {
-            to: '/docs',
+            to: '/docs/intro',
             from: '/docs/roadmap',
           },
           {
@@ -234,7 +234,7 @@ const config = {
             items: [
               {
                 label: 'Getting Started',
-                to: '/docs/README',
+                to: '/docs/intro',
               },
               {
                 label: 'FAQ',
@@ -268,7 +268,7 @@ const config = {
             ],
           },
           {
-            href: '/docs',
+            href: '/docs/intro',
             position: 'right',
             className: 'default-button-theme get-started-button',
             label: 'Get Started',

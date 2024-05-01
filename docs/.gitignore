@@ -22,4 +22,4 @@ yarn-error.log*
 docs/.zshrc
 
 # Gets copies from the root of the project at build time (yarn start / yarn build)
-docs/README.md
+docs/intro.md
