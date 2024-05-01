@@ -212,6 +212,13 @@ const config = {
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
   },
+  cache: {
+    type: 'filesystem', // Enable filesystem caching
+    cacheDirectory: path.resolve(__dirname, '.temp_cache'),
+    buildDependencies: {
+      config: [__filename],
+    },
+  },
   output,
   stats: 'minimal',
   /*
