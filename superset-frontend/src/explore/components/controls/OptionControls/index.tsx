@@ -231,7 +231,7 @@ export const AddIconButton = styled.button`
 `;
 
 interface DragItem {
-  index: number;
+  dragIndex: number;
   type: string;
 }
 
@@ -287,7 +287,7 @@ export const OptionControlLabel = ({
       if (!ref.current) {
         return;
       }
-      const dragIndex = item.index;
+      const { dragIndex } = item;
       const hoverIndex = index;
       // Don't replace items with themselves
       if (dragIndex === hoverIndex) {
@@ -322,13 +322,13 @@ export const OptionControlLabel = ({
       // but it's good here for the sake of performance
       // to avoid expensive index searches.
       // eslint-disable-next-line no-param-reassign
-      item.index = hoverIndex;
+      item.dragIndex = hoverIndex;
     },
   });
   const [{ isDragging }, drag] = useDrag({
     item: {
       type,
-      index,
+      dragIndex: index,
       value: savedMetric?.metric_name ? savedMetric : adhocMetric,
     },
     collect: monitor => ({
