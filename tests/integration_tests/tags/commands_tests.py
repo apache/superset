@@ -48,7 +48,9 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_config,  # noqa: F401
     dataset_metadata_config,  # noqa: F401
 )
-from tests.integration_tests.fixtures.tags import with_tagging_system_feature  # noqa: F401
+from tests.integration_tests.fixtures.tags import (
+    with_tagging_system_feature,  # noqa: F401
+)
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401

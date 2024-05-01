@@ -23,7 +23,9 @@ from flask_appbuilder.security.sqla.models import User  # noqa: F401
 from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
-from superset.commands.dashboard.exceptions import DashboardAccessDeniedError  # noqa: F401
+from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,  # noqa: F401
+)
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id

@@ -45,7 +45,9 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
-from tests.integration_tests.fixtures.public_role import public_role_like_gamma  # noqa: F401
+from tests.integration_tests.fixtures.public_role import (
+    public_role_like_gamma,  # noqa: F401
+)
 from tests.integration_tests.fixtures.query_context import get_query_context
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401

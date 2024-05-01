@@ -43,7 +43,10 @@ from sqlalchemy.sql.expression import and_, or_  # noqa: E402
 from sqlalchemy_utils import UUIDType  # noqa: E402
 
 from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES_LOWER  # noqa: E402
-from superset.connectors.sqla.utils import get_dialect_name, get_identifier_quoter  # noqa: E402
+from superset.connectors.sqla.utils import (  # noqa: E402
+    get_dialect_name,
+    get_identifier_quoter,
+)
 from superset.extensions import encrypted_field_factory  # noqa: E402
 from superset.migrations.shared.utils import assign_uuids  # noqa: E402
 from superset.sql_parse import extract_table_references, Table  # noqa: E402

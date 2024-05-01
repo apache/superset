@@ -25,8 +25,8 @@ from inspect import (
     isclass,
     isfunction,
     ismethod,
-    signature,
     Signature,
+    signature,
 )
 from logging import Logger
 from typing import Any, Callable, cast, Union
