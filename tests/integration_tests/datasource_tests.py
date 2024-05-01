@@ -27,13 +27,20 @@ import pytest
 from superset import app, db
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn  # noqa: F401
+from superset.connectors.sqla.models import (  # noqa: F401
+    SqlaTable,
+    SqlMetric,
+    TableColumn,
+)
 from superset.constants import CacheRegion
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_default_schema  # noqa: F401
-from superset.utils.database import get_example_database, get_main_database  # noqa: F401
+from superset.utils.database import (  # noqa: F401
+    get_example_database,
+    get_main_database,
+)
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (

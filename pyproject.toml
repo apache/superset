@@ -424,6 +424,7 @@ exclude = [
     "venv",
 ]
 
+
 # Same as Black.
 line-length = 88
 indent-width = 4
@@ -438,12 +439,30 @@ target-version = "py310"
 select = ["E4", "E7", "E9", "F"]
 ignore = []
 
+extend-select = ["I"]
+
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
 unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.isort]
+case-sensitive = false
+combine-as-imports = true
+force-sort-within-sections = false
+known-first-party = []
+known-third-party = []
+lines-after-imports = -1
+order-by-type = false
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder"
+]
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.

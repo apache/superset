@@ -32,7 +32,6 @@ from sqlalchemy.dialects.mysql.base import MySQLDialect  # noqa: E402
 from sqlalchemy.dialects.postgresql.base import PGDialect  # noqa: E402
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect  # noqa: E402
 
-
 report_schedule = sa.Table(
     "report_schedule",
     sa.MetaData(),

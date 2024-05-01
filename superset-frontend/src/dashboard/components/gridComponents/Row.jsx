@@ -323,14 +323,14 @@ class Row extends React.PureComponent {
                   {...(rowItems.length === 0
                     ? {
                         component: rowComponent,
-                        parentComponent,
+                        parentComponent: rowComponent,
                         dropToChild: true,
                       }
                     : {
-                        component: rowItems,
+                        component: rowItems[0],
                         parentComponent: rowComponent,
                       })}
-                  depth={depth + 1}
+                  depth={depth}
                   index={0}
                   orientation="row"
                   onDrop={handleComponentDrop}
@@ -375,7 +375,7 @@ class Row extends React.PureComponent {
                       <Droppable
                         component={rowItems}
                         parentComponent={rowComponent}
-                        depth={depth + 1}
+                        depth={depth}
                         index={itemIndex + 1}
                         orientation="row"
                         onDrop={handleComponentDrop}

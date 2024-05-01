@@ -26,7 +26,9 @@ from superset.reports.models import (
     ReportRecipientType,
     ReportScheduleType,
 )
-from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard  # noqa: F401
+from tests.integration_tests.fixtures.tabbed_dashboard import (
+    tabbed_dashboard,  # noqa: F401
+)
 
 DASHBOARD_REPORT_SCHEDULE_DEFAULTS = {
     "type": ReportScheduleType.REPORT,

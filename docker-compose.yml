@@ -39,7 +39,6 @@ x-common-build: &common-build
   cache_from:
     - apache/superset-cache:3.10-slim-bookworm
 
-version: "4.0"
 services:
   nginx:
     image: nginx:latest
@@ -94,7 +93,7 @@ services:
     depends_on: *superset-depends-on
     volumes: *superset-volumes
     environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
 
   superset-websocket:
     container_name: superset_websocket
@@ -144,7 +143,7 @@ services:
     user: *superset-user
     volumes: *superset-volumes
     environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
     healthcheck:
       disable: true
 
@@ -153,7 +152,7 @@ services:
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
-      SCARF_ANALYTICS: "${SCARF_ANALYTICS}"
+      SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
