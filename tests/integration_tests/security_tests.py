@@ -29,7 +29,7 @@ import prison
 import pytest
 
 from flask import current_app, g
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import Role
 from superset.daos.datasource import DatasourceDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
 from superset import app, appbuilder, db, security_manager, viz
@@ -1897,7 +1897,7 @@ class TestSecurityManager(SupersetTestCase):
 
         all_db_pvm = ("all_database_access", "all_database_access")
 
-        with self.temporary_user(gamma_user, extra_pvms=[all_db_pvm]) as tmp_user:
+        with self.temporary_user(gamma_user, extra_pvms=[all_db_pvm]):
             assert security_manager.can_access_all_databases()
             assert security_manager.can_access_datasource(self.get_datasource_mock())
 

@@ -1306,19 +1306,19 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             data = rv.get_json()
             return data["count"]
 
-        with self.temporary_user(gamma_user, login=True) as user:
+        with self.temporary_user(gamma_user, login=True):
             self.assertEqual(count_charts(), 0)
 
         perm = ("all_database_access", "all_database_access")
-        with self.temporary_user(gamma_user, extra_pvms=[perm], login=True) as user:
+        with self.temporary_user(gamma_user, extra_pvms=[perm], login=True):
             assert count_charts() > 0
 
         perm = ("all_datasource_access", "all_datasource_access")
-        with self.temporary_user(gamma_user, extra_pvms=[perm], login=True) as user:
+        with self.temporary_user(gamma_user, extra_pvms=[perm], login=True):
             assert count_charts() > 0
 
         # Back to normal
-        with self.temporary_user(gamma_user, login=True) as user_gamma:
+        with self.temporary_user(gamma_user, login=True):
             self.assertEqual(count_charts(), 0)
 
     @pytest.mark.usefixtures("create_charts")

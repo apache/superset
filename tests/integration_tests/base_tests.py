@@ -176,7 +176,6 @@ class SupersetTestCase(TestCase):
             temp_user.password = clone_user.password
         else:
             temp_user.first_name = temp_user.last_name = username
-            password = DEFAULT_PASSWORD
 
         if clone_user:
             temp_user.roles = clone_user.roles

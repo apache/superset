@@ -217,7 +217,7 @@ class TestDatasetApi(SupersetTestCase):
             assert count_datasets() > 0
 
         # Back to normal
-        with self.temporary_user(gamma_user, login=True) as user_gamma:
+        with self.temporary_user(gamma_user, login=True):
             assert count_datasets() == 0
 
     def test_get_dataset_list(self):
