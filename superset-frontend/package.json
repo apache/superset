@@ -228,7 +228,7 @@
     "@hot-loader/react-dom": "^16.13.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@storybook/addon-actions": "^7.6.13",
-    "@storybook/addon-controls": "^7.6.13",
+    "@storybook/addon-controls": "^8.0.9",
     "@storybook/addon-docs": "^7.6.13",
     "@storybook/addon-essentials": "^7.6.13",
     "@storybook/addon-links": "^7.6.13",
