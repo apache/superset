@@ -29,7 +29,7 @@ const sidebars = {
     {
       type: 'doc',
       label: 'Introduction',
-      id: 'intro',
+      id: 'README',
     },
     {
       type: 'doc',
