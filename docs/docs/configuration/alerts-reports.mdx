@@ -5,7 +5,7 @@ sidebar_position: 2
 version: 2
 ---
 
-## Alerts and Reports
+# Alerts and Reports
 
 Users can configure automated alerts and reports to send dashboards or charts to an email recipient or Slack channel.
 
@@ -14,11 +14,11 @@ Users can configure automated alerts and reports to send dashboards or charts to
 
 Alerts and reports are disabled by default. To turn them on, you need to do some setup, described here.
 
-### Requirements
+## Requirements
 
-#### Commons
+### Commons
 
-##### In your `superset_config.py` or `superset_config_docker.py`
+#### In your `superset_config.py` or `superset_config_docker.py`
 
 - `"ALERT_REPORTS"` [feature flag](/docs/configuration/configuring-superset#feature-flags) must be turned to True.
 - `beat_schedule` in CeleryConfig must contain schedule for `reports.scheduler`.
@@ -26,11 +26,11 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
   - emails: `SMTP_*` settings
   - Slack messages: `SLACK_API_TOKEN`
 
-###### Disable dry-run mode
+##### Disable dry-run mode
 
 Screenshots will be taken but no messages actually sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `docker/pythonpath_dev/superset_config.py`.  To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
 
-##### In your `Dockerfile`
+#### In your `Dockerfile`
 
 - You must install a headless browser, for taking screenshots of the charts and dashboards. Only Firefox and Chrome are currently supported.
   > If you choose Chrome, you must also change the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
@@ -43,7 +43,7 @@ You can either install and configure the headless browser - see "Custom Dockerfi
 
 *Note*: In this context, a "dev image" is the same application software as its corresponding non-dev image, just bundled with additional tools.  So an image like `3.1.0-dev` is identical to `3.1.0` when it comes to stability, functionality, and running in production.  The actual "in-development" versions of Superset - cutting-edge and unstable - are not tagged with version numbers on Docker Hub and will display version `0.0.0-dev` within the Superset UI.
 
-#### Slack integration
+### Slack integration
 
 To send alerts and reports to Slack channels, you need to create a new Slack Application on your workspace.
 
@@ -61,14 +61,14 @@ To send alerts and reports to Slack channels, you need to create a new Slack App
 
 Note: when you configure an alert or a report, the Slack channel list takes channel names without the leading '#' e.g. use `alerts` instead of `#alerts`.
 
-#### Kubernetes-specific
+### Kubernetes-specific
 
 - You must have a `celery beat` pod running. If you're using the chart included in the GitHub repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset), you need to put `supersetCeleryBeat.enabled = true` in your values override.
 - You can see the dedicated docs about [Kubernetes installation](/docs/installation/kubernetes) for more details.
 
-#### Docker Compose specific
+### Docker Compose specific
 
-##### You must have in your `docker-compose.yml`
+#### You must have in your `docker-compose.yml`
 
 - A Redis message broker
 - PostgreSQL DB instead of SQLlite
@@ -195,14 +195,14 @@ Please refer to `ExecutorType` in the codebase for other executor types.
   its default value of `http://0.0.0.0:8080/`.
 
 
-### Custom Dockerfile
+## Custom Dockerfile
 
 If you're running the dev version of a released Superset image, like `apache/superset:3.1.0-dev`, you should be set with the above.
 
 But if you're building your own image, or starting with a non-dev version, a webdriver (and headless browser) is needed to capture screenshots of the charts and dashboards which are then sent to the recipient.
 Here's how you can modify your Dockerfile to take the screenshots either with Firefox or Chrome.
 
-#### Using Firefox
+### Using Firefox
 
 ```docker
 FROM apache/superset:3.1.0
@@ -223,7 +223,7 @@ RUN pip install --no-cache gevent psycopg2 redis
 USER superset
 ```
 
-#### Using Chrome
+### Using Chrome
 
 ```docker
 FROM apache/superset:3.1.0
@@ -248,21 +248,21 @@ USER superset
 
 Don't forget to set `WEBDRIVER_TYPE` and `WEBDRIVER_OPTION_ARGS` in your config if you use Chrome.
 
-### Troubleshooting
+## Troubleshooting
 
 There are many reasons that reports might not be working.  Try these steps to check for specific issues.
 
-#### Confirm feature flag is enabled and you have sufficient permissions
+### Confirm feature flag is enabled and you have sufficient permissions
 
 If you don't see "Alerts & Reports" under the *Manage* section of the Settings dropdown in the Superset UI, you need to enable the `ALERT_REPORTS` feature flag (see above). Enable another feature flag and check to see that it took effect, to verify that your config file is getting loaded.
 
 Log in as an admin user to ensure you have adequate permissions.
 
-#### Check the logs of your Celery worker
+### Check the logs of your Celery worker
 
 This is the best source of information about the problem.  In a docker compose deployment, you can do this with a command like `docker logs superset_worker --since 1h`.
 
-#### Check web browser and webdriver installation
+### Check web browser and webdriver installation
 
 To take a screenshot, the worker visits the dashboard or chart using a headless browser, then takes a screenshot. If you are able to send a chart as CSV or text but can't send as PNG, your problem may lie with the browser.
 
@@ -270,7 +270,7 @@ Superset docker images that have a tag ending with `-dev` have the Firefox headl
 
 If you are handling the installation of that software on your own, or wish to use Chromium instead, do your own verification to ensure that the headless browser opens successfully in the worker environment.
 
-#### Send a test email
+### Send a test email
 
 One symptom of an invalid connection to an email server is receiving an error of `[Errno 110] Connection timed out` in your logs when the report tries to send.
 
@@ -301,7 +301,7 @@ Possible fixes:
 - Some cloud hosts disable outgoing unauthenticated SMTP email to prevent spam.  For instance, [Azure blocks port 25 by default on some machines](https://learn.microsoft.com/en-us/azure/virtual-network/troubleshoot-outbound-smtp-connectivity). Enable that port or use another sending method.
 - Use another set of SMTP credentials that you verify works in this setup.
 
-#### Browse to your report from the worker
+### Browse to your report from the worker
 
 The worker may be unable to reach the report. It will use the value of `WEBDRIVER_BASEURL` to browse to the report.  If that route is invalid, or presents an authentication challenge that the worker can't pass, the report screenshot will fail.
 
@@ -309,7 +309,7 @@ Check this by attempting to `curl` the URL of a report that you see in the error
 
 In a deployment with authentication measures enabled like HTTPS and Single Sign-On, it may make sense to have the worker navigate directly to the Superset application running in the same location, avoiding the need to sign in.  For instance, you could use `WEBDRIVER_BASEURL="http://superset_app:8088"` for a docker compose deployment, and set `"force_https": False,` in your `TALISMAN_CONFIG`.
 
-### Scheduling Queries as Reports
+## Scheduling Queries as Reports
 
 You can optionally allow your users to schedule queries directly in SQL Lab. This is done by adding
 extra metadata to saved queries, which are then picked up by an external scheduled (like

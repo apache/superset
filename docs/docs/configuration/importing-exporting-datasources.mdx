@@ -5,7 +5,7 @@ sidebar_position: 11
 version: 1
 ---
 
-## Importing and Exporting Datasources
+# Importing and Exporting Datasources
 
 The superset cli allows you to import and export datasources from and to YAML. Datasources include
 databases. The data is expected to be organized in the following hierarchy:
@@ -26,7 +26,7 @@ databases. The data is expected to be organized in the following hierarchy:
 |  └── ... (more databases)
 ```
 
-### Exporting Datasources to YAML
+## Exporting Datasources to YAML
 
 You can print your current datasources to stdout by running:
 
@@ -61,7 +61,7 @@ superset export_datasource_schema
 
 As a reminder, you can use the `-b` flag to include back references.
 
-### Importing Datasources
+## Importing Datasources
 
 In order to import datasources from a ZIP file, run:
 
@@ -75,9 +75,9 @@ The optional username flag **-u** sets the user used for the datasource import. 
 superset import_datasources -p <path / filename> -u 'admin'
 ```
 
-### Legacy Importing Datasources
+## Legacy Importing Datasources
 
-#### From older versions of Superset to current version
+### From older versions of Superset to current version
 
 When using Superset version 4.x.x to import from an older version (2.x.x or 3.x.x) importing is supported as the command `legacy_import_datasources` and expects a JSON or directory of JSONs. The options are `-r` for recursive and `-u` for specifying a user. Example of legacy import without options:
 
@@ -85,7 +85,7 @@ When using Superset version 4.x.x to import from an older version (2.x.x or 3.x.
 superset legacy_import_datasources -p <path or filename>
 ```
 
-#### From older versions of Superset to older versions
+### From older versions of Superset to older versions
 
 When using an older Superset version (2.x.x & 3.x.x) of Superset, the command is `import_datasources`. ZIP and YAML files are supported and to switch between them the feature flag `VERSIONED_EXPORT` is used. When `VERSIONED_EXPORT` is `True`, `import_datasources` expects a ZIP file, otherwise YAML. Example:
 

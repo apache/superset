@@ -5,9 +5,9 @@ sidebar_position: 4
 version: 1
 ---
 
-## Async Queries via Celery
+# Async Queries via Celery
 
-### Celery
+## Celery
 
 On large analytic databases, it’s common to run queries that execute for minutes or hours. To enable
 support for long running queries that execute beyond the typical web request’s timeout (30-60
@@ -89,7 +89,7 @@ issues arise. Please clear your existing results cache store when upgrading an e
 - SQL Lab will _only run your queries asynchronously if_ you enable **Asynchronous Query Execution**
   in your database settings (Sources > Databases > Edit record).
 
-### Celery Flower
+## Celery Flower
 
 Flower is a web based tool for monitoring the Celery cluster which you can install from pip:
 
