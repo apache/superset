@@ -150,7 +150,7 @@
     "json-stringify-pretty-compact": "^2.0.0",
     "lodash": "^4.17.21",
     "mapbox-gl": "^2.10.0",
-    "markdown-to-jsx": "^7.4.1",
+    "markdown-to-jsx": "^7.4.7",
     "match-sorter": "^6.3.4",
     "memoize-one": "^5.1.1",
     "moment": "^2.30.1",
