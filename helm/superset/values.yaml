@@ -34,6 +34,7 @@ runAsUser: 0
 # -- Specify rather or not helm should create the secret described in `secret-env.yaml` template
 secretEnv:
   # -- Change to false in order to support externally created secret (Binami "Sealed Secrets" for Kubernetes or External Secrets Operator)
+  # note: when externally creating the secret, the chart still expects to pull values from the name of the release - full logic located in _helpers.tpl file: `define "superset.fullname"`
   create: true
 
 # -- Specify service account name to be used
