@@ -80,7 +80,7 @@ const config = {
             from: '/gallery.html',
           },
           {
-            to: '/docs/databases/druid',
+            to: '/docs/configuration/databases',
             from: '/druid.html',
           },
           {
@@ -128,7 +128,7 @@ const config = {
             from: '/docs/contributing/contribution-page',
           },
           {
-            to: '/docs/databases/yugabytedb',
+            to: '/docs/configuration/databases',
             from: '/docs/databases/yugabyte/',
           },
           {

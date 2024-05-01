@@ -731,7 +731,7 @@ export default function Home(): JSX.Element {
             </div>
             <span className="database-sub">
               ...and many other{' '}
-              <a href="/docs/databases/installing-database-drivers">
+              <a href="/docs/configuration/databases#installing-database-drivers">
                 compatible databases
               </a>
             </span>
