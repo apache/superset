@@ -118,7 +118,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | resources | object | `{}` |  |
 | runAsUser | int | `0` | User ID directive. This user must have enough permissions to run the bootstrap script Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure |
 | secretEnv | object | `{"create":true}` | Specify rather or not helm should create the secret described in `secret-env.yaml` template |
-| secretEnv.create | bool | `true` | Change to false in order to support externally created secret (Binami "Sealed Secrets" for Kubernetes or External Secrets Operator) note: when externally creating the secret, the chart still expects to pull values from the name of the release - full logic located in _helpers.tpl file: `define "superset.fullname"` |
+| secretEnv.create | bool | `true` | Change to false in order to support externally created secret (Binami "Sealed Secrets" for Kubernetes or External Secrets Operator) note: when externally creating the secret, the chart still expects to pull values from a secret with the name of the release defaults to `release-name-superset-env` - full logic located in _helpers.tpl file: `define "superset.fullname"` |
 | service.annotations | object | `{}` |  |
 | service.loadBalancerIP | string | `nil` |  |
 | service.nodePort.http | int | `"nil"` |  |
