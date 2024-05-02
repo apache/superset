@@ -45,6 +45,7 @@ get_time_range_schema = {"type": "string"}
 
 class Api(BaseSupersetView):
     query_context_factory = None
+    allow_browser_login = True
 
     @event_logger.log_this
     @api
@@ -90,13 +91,14 @@ class Api(BaseSupersetView):
 
     @api
     @handle_api_exception
-    @has_access_api
     @protect()
+    @has_access_api
     @rison(get_time_range_schema)
     @expose("/v1/time_range/", methods=("GET",))
     def time_range(self, **kwargs: Any) -> FlaskResponse:
         """Get actually time range from human readable string or datetime expression"""
         time_range = kwargs["rison"]
+
         try:
             since, until = get_since_until(time_range)
             result = {
