@@ -347,7 +347,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_sql_comments = True
     allows_escaped_colons = True
 
-    # Whether ORDER BY clause can use aliases created in SELECT
+    # Whether ORDER BY clause can handle aliases created in SELECT
     # that are the same as a source column
     allows_alias_to_source_column = True
 

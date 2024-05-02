@@ -207,7 +207,7 @@ In practice, the attribute doesn't seem to be working as of 2023-07-27.
 
 ### `allows_alias_to_source_column = True`
 
-When this is true the database allows queries where alias can overshadow existing column names. For example, in this query:
+When this is true the database allows ORDER BY statements where an alias can have the same name as the selected source column. For example, in this query:
 
 ```sql
 SELECT
@@ -215,7 +215,7 @@ SELECT
 FROM
   some_table
 ORDER BY
-  foo  -- references the alias `foo + 1`, not the column `foo`
+  foo  -- references the source column `foo`, not the column alias `foo + 1`
 ```
 
 ### `allows_hidden_orderby_agg = True`
