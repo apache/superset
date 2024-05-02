@@ -63,7 +63,8 @@ logger = logging.getLogger(__name__)
 class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
-    allows_alias_to_source_column = False
+    order_by_allows_alias_to_source_column = False
+    group_by_allows_alias_to_source_column = False
 
     @classmethod
     def get_extra_table_metadata(

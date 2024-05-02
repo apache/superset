@@ -676,7 +676,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 class PrestoEngineSpec(PrestoBaseEngineSpec):
     engine = "presto"
     engine_name = "Presto"
-    allows_alias_to_source_column = False
+    order_by_allows_alias_to_source_column = False
+    group_by_allows_alias_to_source_column = False
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         COLUMN_DOES_NOT_EXIST_REGEX: (

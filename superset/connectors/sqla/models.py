@@ -1585,7 +1585,7 @@ class SqlaTable(
         the same as a source column. In this case, we update the SELECT alias to
         another name to avoid the conflict.
         """
-        if self.db_engine_spec.allows_alias_to_source_column:
+        if self.db_engine_spec.order_by_allows_alias_to_source_column:
             return
 
         def is_alias_used_in_orderby(col: ColumnElement) -> bool:
@@ -1601,6 +1601,36 @@ class SqlaTable(
         for col in select_exprs:
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
+
+    def make_groupby_compatible(
+        self, select_exprs: list[ColumnElement], groupby_exprs: list[ColumnElement]
+    ) -> None:
+        """
+        If needed, make sure aliases for selected columns are not used in
+        `GROUP BY`.
+
+        In some databases (e.g. Drill), `GROUP BY` clause is not able to
+        automatically pick the source column if a `SELECT` clause alias is named
+        the same as a source column. In this case, we update the SELECT alias to
+        another name to avoid the conflict.
+        """
+        if self.db_engine_spec.group_by_allows_alias_to_source_column:
+            return
+
+        def is_alias_used_in_groupby(col: ColumnElement) -> bool:
+            if not isinstance(col, Label):
+                return False
+            regexp = re.compile(f"\\(.*\\b{re.escape(col.name)}\\b.*\\)", re.IGNORECASE)
+            return any(regexp.search(str(x)) for x in groupby_exprs)
+
+        # Iterate through selected columns, if column alias appears in groupby
+        # use another `alias`. The final output columns will still use the
+        # original names, because they are updated by `labels_expected` after
+        # querying.
+        for col in select_exprs:
+            if is_alias_used_in_groupby(col):
+                col.name = f"{col.name}__"
+
 
     def text(self, clause: str) -> TextClause:
         return self.db_engine_spec.get_text_clause(clause)
