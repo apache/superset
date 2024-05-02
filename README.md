@@ -35,11 +35,11 @@ under the License.
 <picture width="500">
   <source
     media="(prefers-color-scheme: dark)"
-    src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache-dark.png"
+    src="https://superset.apache.org/img/superset-logo-horiz-dark.svg"
     alt="Superset logo (dark)"
   />
   <img
-    src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache.png"
+    src="https://superset.apache.org/img/superset-logo-horiz-apache.svg"
     alt="Superset logo (light)"
   />
 </picture>
@@ -81,19 +81,19 @@ https://superset.staged.apache.org/superset-video-4k.mp4
 
 **Large Gallery of Visualizations**
 
-<kbd><img title="Gallery" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/screenshots/gallery.jpg"/></kbd><br/>
+<kbd><img title="Gallery" src="https://superset.apache.org/img/screenshots/gallery.jpg"/></kbd><br/>
 
 **Craft Beautiful, Dynamic Dashboards**
 
-<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/screenshots/slack_dash.jpg"/></kbd><br/>
+<kbd><img title="View Dashboards" src="https://superset.apache.org/img/screenshots/slack_dash.jpg"/></kbd><br/>
 
 **No-Code Chart Builder**
 
-<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/screenshots/explore.jpg"/></kbd><br/>
+<kbd><img title="Slice & dice your data" src="https://superset.apache.org/img/screenshots/explore.jpg"/></kbd><br/>
 
 **Powerful SQL Editor**
 
-<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/screenshots/sql_lab.jpg"/></kbd><br/>
+<kbd><img title="SQL Lab" src="https://superset.apache.org/img/screenshots/sql_lab.jpg"/></kbd><br/>
 
 ## Supported Databases
 
@@ -102,39 +102,39 @@ Superset can query data from any SQL-speaking datastore or data engine (Presto, 
 Here are some of the major database solutions that are supported:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/redshift.png" alt="redshift" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/google-biquery.png" alt="google-biquery" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/snowflake.png" alt="snowflake" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/trino.png" alt="trino" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/presto.png" alt="presto" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/databricks.png" alt="databricks" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/druid.png" alt="druid" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/firebolt.png" alt="firebolt" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/timescale.png" alt="timescale" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/rockset.png" alt="rockset" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/postgresql.png" alt="postgresql" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/mysql.png" alt="mysql" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/mssql-server.png" alt="mssql-server" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/db2.png" alt="db2" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/sqlite.png" alt="sqlite" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/sybase.png" alt="sybase" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/mariadb.png" alt="mariadb" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/vertica.png" alt="vertica" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/oracle.png" alt="oracle" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/firebird.png" alt="firebird" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/greenplum.png" alt="greenplum" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/clickhouse.png" alt="clickhouse" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/exasol.png" alt="exasol" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/monet-db.png" alt="monet-db" border="0" width="200" height="80" />
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/apache-kylin.png" alt="apache-kylin" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/hologres.png" alt="hologres" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/netezza.png" alt="netezza" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/pinot.png" alt="pinot" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/teradata.png" alt="teradata" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/yugabyte.png" alt="yugabyte" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/databend.png" alt="databend" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/starrocks.png" alt="starrocks" border="0" width="200" height="80"/>
-  <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/src/assets/images/doris.png" alt="doris" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/amazon-redshift.png" alt="redshift" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/google-biquery.png" alt="google-biquery" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/snowflake.png" alt="snowflake" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/trino.png" alt="trino" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/presto.png" alt="presto" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/databricks.png" alt="databricks" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/druid.png" alt="druid" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/firebolt.png" alt="firebolt" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/timescale.png" alt="timescale" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/rockset.png" alt="rockset" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/postgresql.png" alt="postgresql" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/mssql-server.png" alt="mssql-server" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/db2.png" alt="db2" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/sybase.png" alt="sybase" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/vertica.png" alt="vertica" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/oracle.png" alt="oracle" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/firebird.png" alt="firebird" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/greenplum.png" alt="greenplum" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/clickhouse.png" alt="clickhouse" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/exasol.png" alt="exasol" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/monet-db.png" alt="monet-db" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/apache-kylin.png" alt="apache-kylin" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/hologres.png" alt="hologres" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/netezza.png" alt="netezza" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/pinot.png" alt="pinot" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/teradata.png" alt="teradata" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/yugabyte.png" alt="yugabyte" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/databend.png" alt="databend" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/doris.png" alt="doris" border="0" width="200" height="80"/>
 </p>
 
 **A more comprehensive list of supported databases** along with the configuration instructions can be found [here](https://superset.apache.org/docs/configuration/databases).
