@@ -98,7 +98,6 @@ services:
   superset-websocket:
     container_name: superset_websocket
     build: ./superset-websocket
-    image: superset-websocket
     ports:
       - 8080:8080
     extra_hosts:
@@ -121,7 +120,7 @@ services:
       - /home/superset-websocket/dist
 
       # Mounting a config file that contains a dummy secret required to boot up.
-      # do no not use this docker-compose in production
+      # do not use this docker-compose in production
       - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
     environment:
       - PORT=8080
