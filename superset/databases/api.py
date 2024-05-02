@@ -73,7 +73,9 @@ from superset.daos.database import DatabaseDAO, DatabaseUserOAuth2TokensDAO
 from superset.databases.decorators import check_table_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
+    ColumnarMetadataUploadFilePostSchema,
     ColumnarUploadPostSchema,
+    CSVMetadataUploadFilePostSchema,
     CSVUploadPostSchema,
     database_schemas_query_schema,
     database_tables_query_schema,
@@ -86,6 +88,7 @@ from superset.databases.schemas import (
     DatabaseTablesResponse,
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
+    ExcelMetadataUploadFilePostSchema,
     ExcelUploadPostSchema,
     get_export_ids_schema,
     OAuth2ProviderResponseSchema,
@@ -96,7 +99,6 @@ from superset.databases.schemas import (
     TableExtraMetadataResponseSchema,
     TableMetadataResponseSchema,
     UploadFileMetadata,
-    UploadFilePostSchema,
     ValidateSQLRequest,
     ValidateSQLResponse,
 )
@@ -285,7 +287,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
-        UploadFilePostSchema,
+        CSVMetadataUploadFilePostSchema,
+        ExcelMetadataUploadFilePostSchema,
+        ColumnarMetadataUploadFilePostSchema,
         UploadFileMetadata,
         ValidateSQLRequest,
         ValidateSQLResponse,
@@ -1556,7 +1560,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             content:
               multipart/form-data:
                 schema:
-                  $ref: '#/components/schemas/UploadFilePostSchema'
+                  $ref: '#/components/schemas/CSVMetadataUploadFilePostSchema'
           responses:
             200:
               description: Columnar upload response
@@ -1579,7 +1583,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
-            parameters = UploadFilePostSchema().load(request_form)
+            parameters = CSVMetadataUploadFilePostSchema().load(request_form)
         except ValidationError as error:
             return self.response_400(message=error.messages)
         metadata = CSVReader(parameters).file_metadata(parameters["file"])
@@ -1666,7 +1670,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             content:
               multipart/form-data:
                 schema:
-                  $ref: '#/components/schemas/UploadFilePostSchema'
+                  $ref: '#/components/schemas/ExcelMetadataUploadFilePostSchema'
           responses:
             200:
               description: Columnar upload response
@@ -1689,7 +1693,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
-            parameters = UploadFilePostSchema().load(request_form)
+            parameters = ExcelMetadataUploadFilePostSchema().load(request_form)
         except ValidationError as error:
             return self.response_400(message=error.messages)
         metadata = ExcelReader().file_metadata(parameters["file"])
@@ -1774,7 +1778,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             content:
               multipart/form-data:
                 schema:
-                  $ref: '#/components/schemas/UploadFilePostSchema'
+                  $ref: '#/components/schemas/ColumnarMetadataUploadFilePostSchema'
           responses:
             200:
               description: Columnar upload response
@@ -1797,7 +1801,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
-            parameters = UploadFilePostSchema().load(request_form)
+            parameters = ColumnarMetadataUploadFilePostSchema().load(request_form)
         except ValidationError as error:
             return self.response_400(message=error.messages)
         metadata = ColumnarReader().file_metadata(parameters["file"])

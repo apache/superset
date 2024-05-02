@@ -1054,8 +1054,23 @@ class DelimitedListField(fields.List):
             ) from exc
 
 
-class BaseUploadPostSchema(Schema):
+class BaseUploadFilePostSchema(Schema):
     _extension_config_key = ""
+
+    @validates("file")
+    def validate_file_extension(self, file: FileStorage) -> None:
+        allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"].intersection(
+            current_app.config[self._extension_config_key]
+        )
+        file_suffix = Path(file.filename).suffix
+        if not file_suffix:
+            raise ValidationError([_("File extension is not allowed.")])
+        file_suffix = file_suffix[1:]  # remove the dot
+        if file_suffix not in allowed_extensions:
+            raise ValidationError([_("File extension is not allowed.")])
+
+
+class BaseUploadPostSchema(BaseUploadFilePostSchema):
     already_exists = fields.String(
         load_default="fail",
         validate=OneOf(choices=("fail", "replace", "append")),
@@ -1083,18 +1098,6 @@ class BaseUploadPostSchema(Schema):
         allow_none=False,
         metadata={"description": "The name of the table to be created/appended"},
     )
-
-    @validates("file")
-    def validate_file_extension(self, file: FileStorage) -> None:
-        allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"].intersection(
-            current_app.config[self._extension_config_key]
-        )
-        file_suffix = Path(file.filename).suffix
-        if not file_suffix:
-            raise ValidationError([_("File extension is not allowed.")])
-        file_suffix = file_suffix[1:]  # remove the dot
-        if file_suffix not in allowed_extensions:
-            raise ValidationError([_("File extension is not allowed.")])
 
 
 class ColumnarUploadPostSchema(BaseUploadPostSchema):
@@ -1283,10 +1286,12 @@ class ExcelUploadPostSchema(BaseUploadPostSchema):
     )
 
 
-class UploadFilePostSchema(Schema):
+class CSVMetadataUploadFilePostSchema(BaseUploadFilePostSchema):
     """
-    Schema for upload file request.
+    Schema for CSV metadata.
     """
+
+    _extension_config_key = "CSV_EXTENSIONS"
 
     file = fields.Raw(
         required=True,
@@ -1302,6 +1307,46 @@ class UploadFilePostSchema(Schema):
             "description": "Row containing the headers to use as column names"
             "(0 is first line of data). Leave empty if there is no header row."
         }
+    )
+
+
+class ExcelMetadataUploadFilePostSchema(BaseUploadFilePostSchema):
+    """
+    Schema for CSV metadata.
+    """
+
+    _extension_config_key = "EXCEL_EXTENSIONS"
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The file to upload",
+            "type": "string",
+            "format": "binary",
+        },
+    )
+    header_row = fields.Integer(
+        metadata={
+            "description": "Row containing the headers to use as column names"
+            "(0 is first line of data). Leave empty if there is no header row."
+        }
+    )
+
+
+class ColumnarMetadataUploadFilePostSchema(BaseUploadFilePostSchema):
+    """
+    Schema for CSV metadata.
+    """
+
+    _extension_config_key = "COLUMNAR_EXTENSIONS"
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The file to upload",
+            "type": "string",
+            "format": "binary",
+        },
     )
 
 
