@@ -18,13 +18,13 @@ import logging
 from collections.abc import Generator
 from io import BytesIO
 from pathlib import Path
-from typing import IO, Optional, Any
+from typing import Any, IO, Optional
 from zipfile import BadZipfile, is_zipfile, ZipFile
 
 import pandas as pd
 import pyarrow.parquet as pq
-from pyarrow.lib import ArrowException
 from flask_babel import lazy_gettext as _
+from pyarrow.lib import ArrowException
 from werkzeug.datastructures import FileStorage
 
 from superset.commands.database.exceptions import DatabaseUploadFailed

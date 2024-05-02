@@ -17,12 +17,12 @@
 import io
 from datetime import datetime
 from typing import Any
-import xlsxwriter
-from xlsxwriter.workbook import Worksheet
 
 import numpy as np
 import pytest
+import xlsxwriter
 from werkzeug.datastructures import FileStorage
+from xlsxwriter.workbook import Worksheet
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
 from superset.commands.database.uploaders.excel_reader import (
