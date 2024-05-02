@@ -26,9 +26,9 @@ Create Date: 2024-05-02 13:40:23.126659
 revision = "3dfd0e78650e"
 down_revision = "5f57af97bc3f"
 
-from alembic import op
+from alembic import op  # noqa: E402
 
-from superset.migrations.shared.utils import table_has_index
+from superset.migrations.shared.utils import table_has_index  # noqa: E402
 
 table = "query"
 index = "ix_sql_editor_id"
