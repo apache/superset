@@ -152,7 +152,7 @@ Superset will try to use aliases whenever possible, in order to give friendly na
 
 ### `allows_alias_in_orderby = True`
 
-Does the DB support referencing alias in the `GROUP BY`, eg:
+Does the DB support referencing alias in the `ORDER BY`, eg:
 
 ```sql
 SELECT
@@ -160,7 +160,7 @@ SELECT
   COUNT(*) AS cnt
 FROM
   some_table
-GROUP BY
+ORDER BY
   country
 ```
 
