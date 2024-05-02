@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import io
-from typing import Any
 import tempfile
+from typing import Any
 from zipfile import ZipFile
 
 import numpy as np
@@ -29,7 +29,6 @@ from superset.commands.database.uploaders.columnar_reader import (
     ColumnarReaderOptions,
 )
 from tests.unit_tests.fixtures.common import create_columnar_file
-
 
 COLUMNAR_DATA: dict[str, list[Any]] = {
     "Name": ["name1", "name2", "name3"],
