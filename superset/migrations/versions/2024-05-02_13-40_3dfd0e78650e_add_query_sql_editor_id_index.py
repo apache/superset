@@ -23,8 +23,8 @@ Create Date: 2024-05-02 13:40:23.126659
 """
 
 # revision identifiers, used by Alembic.
-revision = '3dfd0e78650e'
-down_revision = '5f57af97bc3f'
+revision = "3dfd0e78650e"
+down_revision = "5f57af97bc3f"
 
 from alembic import op
 
