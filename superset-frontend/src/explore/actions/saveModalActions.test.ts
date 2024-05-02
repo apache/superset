@@ -20,7 +20,7 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { Dispatch } from 'redux';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
-
+import { DatasourceType } from '@superset-ui/core';
 import {
   createDashboard,
   createSlice,
@@ -29,28 +29,58 @@ import {
   SAVE_SLICE_SUCCESS,
   updateSlice,
   getSlicePayload,
-  Slice,
-  FormData,
+  PayloadSlice,
+  QueryFormData,
 } from './saveModalActions';
 
 // Define test constants and mock data using imported types
 const sliceId = 10;
 const sliceName = 'New chart';
 const vizType = 'sample_viz_type';
-const datasourceId = 11;
-const datasourceType = 'sample_datasource_type';
+const datasourceId = 22;
+const datasourceType = DatasourceType.Table;
 const dashboards = [12, 13];
 const queryContext = { sampleKey: 'sampleValue' };
 
-const formData: FormData = {
+const formData: Partial<QueryFormData> = {
   viz_type: vizType,
   datasource: `${datasourceId}__${datasourceType}`,
   dashboards,
 };
 
-const mockExploreState = { explore: { form_data: formData } };
+const mockExploreState: Partial<QueryFormData> = {
+  explore: {
+    can_add: false,
+    can_download: false,
+    can_overwrite: false,
+    isDatasourceMetaLoading: false,
+    isStarred: false,
+    triggerRender: false,
+    datasource: `${datasourceId}__${datasourceType}`,
+    verbose_map: { '': '' },
+    main_dttm_col: '',
+    datasource_name: null,
+    description: null,
+  },
+  controls: {},
+  form_data: {
+    datasource: `${datasourceId}__${datasourceType}`,
+    viz_type: '',
+  },
+  slice: {
+    slice_id: 0,
+    slice_name: '',
+    description: null,
+    cache_timeout: null,
+    is_managed_externally: false,
+  },
+  controlsTransferred: [],
+  standalone: false,
+  force: false,
+  common: {},
+};
 
-const sliceResponsePayload: Slice = {
+const sliceResponsePayload: Partial<PayloadSlice> = {
   slice_id: sliceId,
   owners: [],
   form_data: formData,
@@ -58,7 +88,6 @@ const sliceResponsePayload: Slice = {
 
 const sampleError = new Error('sampleError');
 
-// Mocks
 jest.mock('../exploreUtils', () => ({
   buildV1ChartDataPayload: jest.fn(() => queryContext),
 }));
@@ -77,11 +106,30 @@ test('updateSlice handles success', async () => {
   const getState = () => mockExploreState;
 
   const slice = await updateSlice(
-    { slice_id: sliceId, owners: [], form_data: formData },
+    {
+      slice_id: sliceId,
+      owners: [{ id: 0 }],
+      form_data: formData,
+      slice_name: '',
+      description: '',
+      description_markdown: '',
+      slice_url: '',
+      viz_type: '',
+      thumbnail_url: '',
+      changed_on: 0,
+      changed_on_humanized: '',
+      modified: '',
+      datasource_id: 0,
+      datasource_type: datasourceType,
+      datasource_url: '',
+      datasource_name: '',
+      created_by: {
+        id: 0,
+      },
+    },
     sliceName,
     [],
   )(dispatch as Dispatch<any>, getState);
-
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
   expect(dispatchSpy.callCount).toBe(2);
   expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
@@ -109,7 +157,27 @@ test('updateSlice handles failure', async () => {
   let caughtError;
   try {
     await updateSlice(
-      { slice_id: sliceId, owners: [], form_data: formData },
+      {
+        slice_id: sliceId,
+        owners: [],
+        form_data: formData,
+        slice_name: '',
+        description: '',
+        description_markdown: '',
+        slice_url: '',
+        viz_type: '',
+        thumbnail_url: '',
+        changed_on: 0,
+        changed_on_humanized: '',
+        modified: '',
+        datasource_id: 0,
+        datasource_type: datasourceType,
+        datasource_url: '',
+        datasource_name: '',
+        created_by: {
+          id: 0,
+        },
+      },
       sliceName,
       [],
     )(dispatch as Dispatch<any>, getState);
@@ -133,7 +201,7 @@ test('createSlice handles success', async () => {
   const dispatchSpy = sinon.spy();
   const dispatch = (action: any) => dispatchSpy(action);
   const getState = () => mockExploreState;
-  const slice: Partial<Slice> = await createSlice(sliceName, [])(
+  const slice: Partial<PayloadSlice> = await createSlice(sliceName, [])(
     dispatch as Dispatch,
     getState,
   );
@@ -223,10 +291,26 @@ test('updateSlice with add to new dashboard handles success', async () => {
       slice_id: sliceId,
       owners: [],
       form_data: {
-        datasource: '',
+        datasource: `${datasourceId}__${datasourceType}`,
         viz_type: '',
         adhoc_filters: [],
         dashboards: [],
+      },
+      slice_name: '',
+      description: '',
+      description_markdown: '',
+      slice_url: '',
+      viz_type: '',
+      thumbnail_url: '',
+      changed_on: 0,
+      changed_on_humanized: '',
+      modified: '',
+      datasource_id: 0,
+      datasource_type: datasourceType,
+      datasource_url: '',
+      datasource_name: '',
+      created_by: {
+        id: 0,
       },
     },
     sliceName,
@@ -269,10 +353,26 @@ test('updateSlice with add to existing dashboard handles success', async () => {
       slice_id: sliceId,
       owners: [],
       form_data: {
-        datasource: '',
+        datasource: `${datasourceId}__${datasourceType}`,
         viz_type: '',
         adhoc_filters: [],
         dashboards: [],
+      },
+      slice_name: '',
+      description: '',
+      description_markdown: '',
+      slice_url: '',
+      viz_type: '',
+      thumbnail_url: '',
+      changed_on: 0,
+      changed_on_humanized: '',
+      modified: '',
+      datasource_id: 0,
+      datasource_type: datasourceType,
+      datasource_url: '',
+      datasource_name: '',
+      created_by: {
+        id: 0,
       },
     },
     sliceName,
@@ -324,7 +424,7 @@ test('getSliceDashboards with slice handles success', async () => {
     slice_id: 10,
     owners: [],
     form_data: {
-      datasource: '',
+      datasource: `${datasourceId}__${datasourceType}`,
       viz_type: '',
       adhoc_filters: [],
       dashboards: [],
@@ -345,7 +445,7 @@ test('getSliceDashboards with slice handles failure', async () => {
       slice_id: sliceId,
       owners: [],
       form_data: {
-        datasource: '',
+        datasource: `${datasourceId}__${datasourceType}`,
         viz_type: '',
         adhoc_filters: [],
         dashboards: [],
@@ -364,14 +464,14 @@ test('getSliceDashboards with slice handles failure', async () => {
 describe('getSlicePayload', () => {
   const sliceName = 'Test Slice';
   const formDataWithNativeFilters = {
-    datasource: '22__table',
+    datasource: `${datasourceId}__${datasourceType}`,
     viz_type: 'pie',
     adhoc_filters: [],
   };
   const dashboards = [5];
-  const owners = ['1'];
-  const formDataFromSlice = {
-    datasource: '22__table',
+  const owners = [{ id: 1 }];
+  const formDataFromSlice: Partial<QueryFormData> = {
+    datasource: `${datasourceId}__${datasourceType}`,
     viz_type: 'pie',
     adhoc_filters: [
       {
@@ -404,13 +504,13 @@ describe('getSlicePayload', () => {
     expect(result).toHaveProperty('dashboards', dashboards);
     expect(result).toHaveProperty('owners', owners);
     expect(result).toHaveProperty('query_context');
-    expect(JSON.parse(result.params).adhoc_filters).toEqual(
-      formDataFromSlice.adhoc_filters,
+    expect(result.params?.adhoc_filters).toEqual(
+      formDataWithNativeFilters.adhoc_filters,
     );
   });
 
   test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', () => {
-    const formDataWithAdhocFilters = {
+    const formDataWithAdhocFilters: Partial<QueryFormData> = {
       ...formDataWithNativeFilters,
       adhoc_filters: [
         {
@@ -440,13 +540,13 @@ describe('getSlicePayload', () => {
     expect(result).toHaveProperty('dashboards', dashboards);
     expect(result).toHaveProperty('owners', owners);
     expect(result).toHaveProperty('query_context');
-    expect(JSON.parse(result.params).adhoc_filters).toEqual(
+    expect(result.params?.adhoc_filters).toEqual(
       formDataWithAdhocFilters.adhoc_filters,
     );
   });
 
   test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', () => {
-    const formDataWithAdhocFiltersWithExtra = {
+    const formDataWithAdhocFiltersWithExtra: Partial<QueryFormData> = {
       ...formDataWithNativeFilters,
       adhoc_filters: [
         {
@@ -476,13 +576,13 @@ describe('getSlicePayload', () => {
     expect(result).toHaveProperty('dashboards', dashboards);
     expect(result).toHaveProperty('owners', owners);
     expect(result).toHaveProperty('query_context');
-    expect(JSON.parse(result.params).adhoc_filters).toEqual(
+    expect(result.params?.adhoc_filters).toEqual(
       formDataFromSlice.adhoc_filters,
     );
   });
 
   test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', () => {
-    const formDataFromSliceWithAdhocFilterB = {
+    const formDataFromSliceWithAdhocFilterB: Partial<QueryFormData> = {
       ...formDataFromSlice,
       adhoc_filters_b: [
         {
@@ -494,7 +594,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const formDataWithAdhocFiltersWithExtra = {
+    const formDataWithAdhocFiltersWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
       viz_type: 'mixed_timeseries',
       adhoc_filters: [
@@ -526,10 +626,10 @@ describe('getSlicePayload', () => {
       formDataFromSliceWithAdhocFilterB,
     );
 
-    expect(JSON.parse(result.params).adhoc_filters).toEqual(
+    expect(result.params?.adhoc_filters).toEqual(
       formDataFromSliceWithAdhocFilterB.adhoc_filters,
     );
-    expect(JSON.parse(result.params).adhoc_filters_b).toEqual(
+    expect(result.params?.adhoc_filters_b).toEqual(
       formDataFromSliceWithAdhocFilterB.adhoc_filters_b,
     );
   });

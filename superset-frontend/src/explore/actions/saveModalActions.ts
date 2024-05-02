@@ -18,50 +18,23 @@
  */
 import rison from 'rison';
 import { Dispatch } from 'redux';
-import { SupersetClient, t } from '@superset-ui/core';
+import {
+  DatasourceType,
+  QueryFormData,
+  SimpleAdhocFilter,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
+import { Slice } from 'src/dashboard/types';
 import { Operators } from '../constants';
 
-export interface Dashboard {
-  title: string;
-  new?: boolean;
-}
-
-export interface Slice {
-  slice_id: number;
-  owners: string[];
-  form_data: FormData;
-}
-
-export interface FormData {
-  datasource: string;
-  viz_type: string;
-  adhoc_filters?: AdhocFilter[];
-  dashboards?: number[];
-  [key: string]: string | number | number[] | AdhocFilter[] | undefined;
-}
-
-interface AdhocFilter {
-  clause?: string;
-  subject?: string;
-  operator: string;
-  comparator?: string;
-  expressionType?: string;
-  isExtra?: boolean;
-}
-
-interface SlicePayload {
-  params: string;
-  slice_name: string;
-  viz_type: string;
-  datasource_id: number;
-  datasource_type: string;
+export interface PayloadSlice extends Slice {
+  params: Partial<QueryFormData>;
   dashboards: number[];
-  owners: string[];
   query_context: string;
 }
-
 const ADHOC_FILTER_REGEX = /^adhoc_filters/;
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
@@ -86,88 +59,108 @@ export function saveSliceFailed() {
 }
 
 export const SAVE_SLICE_SUCCESS = 'SAVE_SLICE_SUCCESS';
-export function saveSliceSuccess(data: any) {
+export function saveSliceSuccess(data: Partial<QueryFormData>) {
   return { type: SAVE_SLICE_SUCCESS, data };
 }
 
 function extractAdhocFiltersFromFormData(
-  formDataToHandle: FormData,
-): Partial<FormData> {
-  const result: Partial<FormData> = {};
+  formDataToHandle: QueryFormData,
+): Partial<QueryFormData> {
+  const result: Partial<QueryFormData> = {};
   Object.entries(formDataToHandle).forEach(([key, value]) => {
     if (ADHOC_FILTER_REGEX.test(key) && Array.isArray(value)) {
-      result[key] = (value as AdhocFilter[]).filter(
-        (f: AdhocFilter) => !f.isExtra,
+      result[key] = (value as SimpleAdhocFilter[]).filter(
+        (f: SimpleAdhocFilter) => !f.isExtra,
       );
     }
   });
   return result;
 }
 
-const hasTemporalRangeFilter = (formData: Partial<FormData>): boolean =>
+const hasTemporalRangeFilter = (formData: Partial<QueryFormData>): boolean =>
   (formData?.adhoc_filters || []).some(
-    (filter: any) => filter.operator === Operators.TemporalRange,
+    (filter: SimpleAdhocFilter) => filter.operator === Operators.TemporalRange,
   );
 
 export const getSlicePayload = (
   sliceName: string,
-  formDataWithNativeFilters: FormData = {} as FormData,
+  formDataWithNativeFilters: QueryFormData = {} as QueryFormData,
   dashboards: number[],
-  owners: string[],
-  formDataFromSlice: FormData = {} as FormData,
-): SlicePayload => {
-  const adhocFilters: Partial<FormData> = extractAdhocFiltersFromFormData(
+  owners: { id: number }[] | undefined,
+  formDataFromSlice: QueryFormData = {} as QueryFormData,
+): Partial<PayloadSlice> => {
+  const adhocFilters: Partial<QueryFormData> = extractAdhocFiltersFromFormData(
     formDataWithNativeFilters,
   );
-  if (!isEmpty(formDataFromSlice)) {
+
+  if (
+    !isEmpty(formDataFromSlice) &&
+    formDataWithNativeFilters.adhoc_filters &&
+    formDataWithNativeFilters.adhoc_filters.length > 0
+  ) {
     Object.keys(adhocFilters).forEach(adhocFilterKey => {
       if (isEmpty(adhocFilters[adhocFilterKey])) {
-        if (Array.isArray(formDataFromSlice[adhocFilterKey])) {
-          const filters = formDataFromSlice[adhocFilterKey] as AdhocFilter[];
-          filters.forEach(filter => {
-            if (
-              filter.operator === Operators.TemporalRange &&
-              !filter.isExtra
-            ) {
-              const targetArray =
-                (adhocFilters[adhocFilterKey] as AdhocFilter[]) || [];
+        const sourceFilters = formDataFromSlice[adhocFilterKey];
+        if (Array.isArray(sourceFilters)) {
+          const targetArray = adhocFilters[adhocFilterKey] || [];
+          sourceFilters.forEach(filter => {
+            if (filter.operator === Operators.TemporalRange) {
               targetArray.push({
                 ...filter,
-                comparator: 'No filter',
+                comparator: filter.comparator || 'No filter',
               });
-              adhocFilters[adhocFilterKey] = targetArray;
             }
           });
+          adhocFilters[adhocFilterKey] = targetArray;
         }
       }
     });
   }
 
   if (!hasTemporalRangeFilter(adhocFilters)) {
-    formDataWithNativeFilters.adhoc_filters?.forEach((filter: AdhocFilter) => {
-      if (filter.operator === Operators.TemporalRange && filter.isExtra) {
-        if (!adhocFilters.adhoc_filters) {
-          adhocFilters.adhoc_filters = [];
+    formDataWithNativeFilters.adhoc_filters?.forEach(
+      (filter: SimpleAdhocFilter) => {
+        if (filter.operator === Operators.TemporalRange && filter.isExtra) {
+          if (!adhocFilters.adhoc_filters) {
+            adhocFilters.adhoc_filters = [];
+          }
+          adhocFilters.adhoc_filters.push({
+            ...filter,
+            comparator: 'No filter',
+          });
         }
-        adhocFilters.adhoc_filters.push({ ...filter, comparator: 'No filter' });
-      }
-    });
+      },
+    );
   }
   const formData = {
     ...formDataWithNativeFilters,
     ...adhocFilters,
     dashboards,
   };
+  const ownerObjects = (owners ?? []).map(owner => ({ id: owner.id }));
+  let datasourceId = 0;
+  let datasourceType: DatasourceType = DatasourceType.Table;
 
-  const [datasourceId, datasourceType] = formData.datasource.split('__');
-  const payload: SlicePayload = {
-    params: JSON.stringify(formData),
+  if (formData.datasource) {
+    const [id, typeString] = formData.datasource.split('__');
+    datasourceId = parseInt(id, 10);
+
+    const formattedTypeString =
+      typeString.charAt(0).toUpperCase() + typeString.slice(1);
+    if (formattedTypeString in DatasourceType) {
+      datasourceType =
+        DatasourceType[formattedTypeString as keyof typeof DatasourceType];
+    }
+  }
+
+  const payload: Partial<PayloadSlice> = {
+    params: formData,
     slice_name: sliceName,
     viz_type: formData.viz_type,
-    datasource_id: parseInt(datasourceId, 10),
+    datasource_id: datasourceId,
     datasource_type: datasourceType,
     dashboards,
-    owners,
+    owners: ownerObjects,
     query_context: JSON.stringify({
       formData,
       force: false,
@@ -180,10 +173,14 @@ export const getSlicePayload = (
 
   return payload;
 };
+
 const addToasts = (
   isNewSlice: boolean,
   sliceName: string,
-  addedToDashboard?: Dashboard,
+  addedToDashboard?: {
+    title: string;
+    new?: boolean;
+  },
 ) => {
   const toasts = [];
   if (isNewSlice) {
@@ -226,15 +223,19 @@ export const updateSlice =
     slice: Slice,
     sliceName: string,
     dashboards: number[],
-    addedToDashboard?: Dashboard,
+    addedToDashboard?: {
+      title: string;
+      new?: boolean;
+    },
   ) =>
-  async (dispatch: Dispatch, getState: () => any) => {
-    const { slice_id: sliceId, owners, form_data: formDataFromSlice } = slice;
+  async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
     const {
-      explore: {
-        form_data: { url_params: _, ...formData },
-      },
-    } = getState();
+      slice_id: sliceId,
+      owners: ownerObjects,
+      form_data: formDataFromSlice,
+    } = slice;
+    const formData = getState().explore?.form_data;
+    const owners = (ownerObjects ?? []).map(owner => ({ id: owner.id }));
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
@@ -257,13 +258,17 @@ export const updateSlice =
   };
 
 export const createSlice =
-  (sliceName: string, dashboards: number[], addedToDashboard?: Dashboard) =>
-  async (dispatch: Dispatch, getState: () => any) => {
-    const {
-      explore: {
-        form_data: { url_params: _, ...formData },
-      },
-    } = getState();
+  (
+    sliceName: string,
+    dashboards: number[],
+    addedToDashboard?: {
+      title: string;
+      new?: boolean;
+    },
+  ) =>
+  async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
+    const formData = getState().explore?.form_data;
+
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
@@ -272,7 +277,7 @@ export const createSlice =
           formData,
           dashboards,
           [],
-          {} as FormData,
+          {} as QueryFormData,
         ),
       });
 
@@ -301,7 +306,7 @@ export const createDashboard =
   };
 
 export const getSliceDashboards =
-  (slice: Slice) => async (dispatch: Dispatch) => {
+  (slice: Partial<Slice>) => async (dispatch: Dispatch) => {
     try {
       const response = await SupersetClient.get({
         endpoint: `/api/v1/chart/${slice.slice_id}?q=${rison.encode({
@@ -317,3 +322,4 @@ export const getSliceDashboards =
       throw error;
     }
   };
+export { QueryFormData };
