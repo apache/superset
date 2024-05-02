@@ -38,14 +38,14 @@ export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 
 export function updateColorSchema(
   metadata: Record<string, any>,
-  labelColors: Record<string, string>,
+  labelsColor: Record<string, string>,
 ) {
   const categoricalNamespace = CategoricalColorNamespace.getNamespace(
     metadata?.color_namespace,
   );
-  const colorMap = isString(labelColors)
-    ? JSON.parse(labelColors)
-    : labelColors;
+  const colorMap = isString(labelsColor)
+    ? JSON.parse(labelsColor)
+    : labelsColor;
   Object.keys(colorMap).forEach(label => {
     categoricalNamespace.setColor(label, colorMap[label]);
   });
@@ -61,12 +61,12 @@ export function dashboardInfoChanged(newInfo: { metadata: any }) {
   // reset forced colors
   categoricalNamespace.resetColors();
 
-  const mergedLabelColors = {
+  const mergedLabelsColor = {
     ...(metadata?.label_colors || {}),
     ...(metadata?.shared_label_colors || {}),
   };
 
-  updateColorSchema(metadata, mergedLabelColors);
+  updateColorSchema(metadata, mergedLabelsColor);
 
   return { type: DASHBOARD_INFO_UPDATED, newInfo };
 }

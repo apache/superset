@@ -20,22 +20,22 @@
 import { CategoricalColorNamespace } from '.';
 import { makeSingleton } from '../utils';
 
-export enum SharedLabelColorSource {
+export enum LabelsColorMapSource {
   Dashboard,
   Explore,
 }
-export class SharedLabelColor {
+export class LabelsColorMap {
   sliceLabelMap: Map<number, string[]>;
 
   colorMap: Map<string, string>;
 
-  source: SharedLabelColorSource;
+  source: LabelsColorMapSource;
 
   constructor() {
     // { sliceId1: [label1, label2, ...], sliceId2: [label1, label2, ...] }
     this.sliceLabelMap = new Map();
     this.colorMap = new Map();
-    this.source = SharedLabelColorSource.Dashboard;
+    this.source = LabelsColorMapSource.Dashboard;
   }
 
   updateColorMap(colorNamespace?: string, colorScheme?: string) {
@@ -58,7 +58,7 @@ export class SharedLabelColor {
   }
 
   addSlice(label: string, color: string, sliceId: number) {
-    if (this.source !== SharedLabelColorSource.Dashboard) return;
+    if (this.source !== LabelsColorMapSource.Dashboard) return;
     const labels = this.sliceLabelMap.get(sliceId) || [];
     if (!labels.includes(label)) {
       labels.push(label);
@@ -68,7 +68,7 @@ export class SharedLabelColor {
   }
 
   removeSlice(sliceId: number) {
-    if (this.source !== SharedLabelColorSource.Dashboard) return;
+    if (this.source !== LabelsColorMapSource.Dashboard) return;
     this.sliceLabelMap.delete(sliceId);
     const newColorMap = new Map();
     this.sliceLabelMap.forEach(labels => {
@@ -85,6 +85,6 @@ export class SharedLabelColor {
   }
 }
 
-const getInstance = makeSingleton(SharedLabelColor);
+const getInstance = makeSingleton(LabelsColorMap);
 
 export default getInstance;

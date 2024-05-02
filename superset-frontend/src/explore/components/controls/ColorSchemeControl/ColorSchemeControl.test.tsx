@@ -21,7 +21,7 @@ import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import ColorSchemeControl, { ColorSchemes } from '.';
 
 const defaultProps = {
-  hasCustomLabelColors: false,
+  hasCustomLabelsColor: false,
   label: 'Color scheme',
   labelMargin: 0,
   name: 'color',
@@ -45,7 +45,7 @@ test('should display a label', async () => {
   expect(await screen.findByText('Color scheme')).toBeTruthy();
 });
 
-test('should not display an alert icon if hasCustomLabelColors=false', async () => {
+test('should not display an alert icon if hasCustomLabelsColor=false', async () => {
   setup();
   await waitFor(() => {
     expect(
@@ -54,12 +54,12 @@ test('should not display an alert icon if hasCustomLabelColors=false', async () 
   });
 });
 
-test('should display an alert icon if hasCustomLabelColors=true', async () => {
-  const hasCustomLabelColorsProps = {
+test('should display an alert icon if hasCustomLabelsColor=true', async () => {
+  const hasCustomLabelsColorProps = {
     ...defaultProps,
-    hasCustomLabelColors: true,
+    hasCustomLabelsColor: true,
   };
-  setup(hasCustomLabelColorsProps);
+  setup(hasCustomLabelsColorProps);
   await waitFor(() => {
     expect(
       screen.getByRole('img', { name: 'alert-solid' }),

@@ -21,8 +21,8 @@ import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import {
   CategoricalColorNamespace,
-  getSharedLabelColor,
-  SharedLabelColorSource,
+  getLabelsColorMap,
+  LabelsColorMapSource,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -188,8 +188,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [css]);
 
   useEffect(() => {
-    const sharedLabelColor = getSharedLabelColor();
-    sharedLabelColor.source = SharedLabelColorSource.Dashboard;
+    const labelsColorMap = getLabelsColorMap();
+    labelsColorMap.source = LabelsColorMapSource.Dashboard;
 
     return () => {
       // clean up label color
@@ -197,7 +197,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         metadata?.color_namespace,
       );
       categoricalNamespace.resetColors();
-      sharedLabelColor.clear();
+      labelsColorMap.clear();
     };
   }, [metadata?.color_namespace]);
 

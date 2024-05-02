@@ -30,7 +30,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getCategoricalSchemeRegistry,
-  getSharedLabelColor,
+  getLabelsColorMap,
   styled,
   SupersetClient,
   t,
@@ -378,7 +378,7 @@ const PropertiesModal = ({
       delete metadata.color_scheme_domain;
     }
 
-    const sharedLabelColor = getSharedLabelColor();
+    const labelsColorMap = getLabelsColorMap();
     const categoricalNamespace =
       CategoricalColorNamespace.getNamespace(colorNamespace);
 
@@ -387,15 +387,15 @@ const PropertiesModal = ({
 
     if (currentColorScheme) {
       // reset the shared label color map based on the current color scheme
-      sharedLabelColor.updateColorMap(colorNamespace, currentColorScheme);
+      labelsColorMap.updateColorMap(colorNamespace, currentColorScheme);
       // store the shared label color map and domain in the metadata
       metadata.shared_label_colors = Object.fromEntries(
-        sharedLabelColor.getColorMap(),
+        labelsColorMap.getColorMap(),
       );
       metadata.color_scheme_domain =
         categoricalSchemeRegistry.get(colorScheme)?.colors || [];
     } else {
-      sharedLabelColor.clear();
+      labelsColorMap.clear();
       metadata.shared_label_colors = {};
       metadata.color_scheme_domain = [];
     }
@@ -471,7 +471,7 @@ const PropertiesModal = ({
 
   const getRowsWithoutRoles = () => {
     const jsonMetadataObj = getJsonMetadata();
-    const hasCustomLabelColors = !!Object.keys(
+    const hasCustomLabelsColor = !!Object.keys(
       jsonMetadataObj?.label_colors || {},
     ).length;
 
@@ -501,7 +501,7 @@ const PropertiesModal = ({
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
           <ColorSchemeControlWrapper
-            hasCustomLabelColors={hasCustomLabelColors}
+            hasCustomLabelsColor={hasCustomLabelsColor}
             onChange={onColorSchemeChange}
             colorScheme={colorScheme}
             labelMargin={4}
@@ -513,7 +513,7 @@ const PropertiesModal = ({
 
   const getRowsWithRoles = () => {
     const jsonMetadataObj = getJsonMetadata();
-    const hasCustomLabelColors = !!Object.keys(
+    const hasCustomLabelsColor = !!Object.keys(
       jsonMetadataObj?.label_colors || {},
     ).length;
 
@@ -570,7 +570,7 @@ const PropertiesModal = ({
         <Row>
           <Col xs={24} md={12}>
             <ColorSchemeControlWrapper
-              hasCustomLabelColors={hasCustomLabelColors}
+              hasCustomLabelsColor={hasCustomLabelsColor}
               onChange={onColorSchemeChange}
               colorScheme={colorScheme}
               labelMargin={4}

@@ -45,7 +45,7 @@ import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilter
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
 import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
-import { setColorScheme } from 'src/dashboard/actions/dashboardState';
+import { setColorScheme, updateDashboardLabelsColor } from 'src/dashboard/actions/dashboardState';
 import jsonStringify from 'json-stringify-pretty-compact';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
@@ -132,81 +132,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [nativeFilterScopes, dashboardLayout, dispatch]);
 
   const verifyUpdateColorScheme = useCallback(() => {
-    const currentMetadata = dashboardInfo.metadata;
-    if (currentMetadata?.color_scheme) {
-      const metadata = { ...currentMetadata };
-      const colorScheme = metadata?.color_scheme;
-      const colorSchemeDomain = metadata?.color_scheme_domain || [];
-      const categoricalSchemes = getCategoricalSchemeRegistry();
-      const registryColorScheme =
-        categoricalSchemes.get(colorScheme, true) || undefined;
-      const registryColorSchemeDomain = registryColorScheme?.colors || [];
-      const defaultColorScheme = categoricalSchemes.defaultKey;
-      const colorSchemeExists = !!registryColorScheme;
-
-      const updateDashboardData = () => {
-        SupersetClient.put({
-          endpoint: `/api/v1/dashboard/${dashboardInfo.id}`,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            json_metadata: jsonStringify(metadata),
-          }),
-        }).catch(e => console.log(e));
-      };
-      const updateColorScheme = (scheme: string) => {
-        dispatch(setColorScheme(scheme));
-      };
-      const updateDashboard = () => {
-        dispatch(
-          dashboardInfoChanged({
-            metadata,
-          }),
-        );
-        updateDashboardData();
-      };
-      // selected color scheme does not exist anymore
-      // must fallback to the available default one
-      if (!colorSchemeExists) {
-        const updatedScheme =
-          defaultColorScheme?.toString() || 'supersetColors';
-        metadata.color_scheme = updatedScheme;
-        metadata.color_scheme_domain =
-          categoricalSchemes.get(defaultColorScheme)?.colors || [];
-
-        // reset shared_label_colors
-        // TODO: Requires regenerating the shared_label_colors after
-        // fixing a bug which affects their generation on dashboards with tabs
-        metadata.shared_label_colors = {};
-
-        updateColorScheme(updatedScheme);
-        updateDashboard();
-      } else {
-        // if this dashboard does not have a color_scheme_domain saved
-        // must create one and store it for the first time
-        if (colorSchemeExists && !colorSchemeDomain.length) {
-          metadata.color_scheme_domain = registryColorSchemeDomain;
-          updateDashboard();
-        }
-        // if the color_scheme_domain is not the same as the registry domain
-        // must update the existing color_scheme_domain
-        if (
-          colorSchemeExists &&
-          colorSchemeDomain.length &&
-          registryColorSchemeDomain.toString() !== colorSchemeDomain.toString()
-        ) {
-          metadata.color_scheme_domain = registryColorSchemeDomain;
-
-          // reset shared_label_colors
-          // TODO: Requires regenerating the shared_label_colors after
-          // fixing a bug which affects their generation on dashboards with tabs
-          metadata.shared_label_colors = {};
-
-          updateColorScheme(colorScheme);
-          updateDashboard();
-        }
-      }
-    }
-  }, [chartIds]);
+    dispatch(updateDashboardLabelsColor());
+  }, [dispatch]);
 
   useComponentDidUpdate(verifyUpdateColorScheme);
 

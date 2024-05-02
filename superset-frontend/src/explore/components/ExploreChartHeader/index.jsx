@@ -24,7 +24,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import {
   CategoricalColorNamespace,
   css,
-  getSharedLabelColor,
+  getLabelsColorMap,
   logging,
   SupersetClient,
   t,
@@ -97,13 +97,13 @@ export const ExploreChartHeader = ({
     const dashboard =
       dashboardId && dashboards && dashboards.find(d => d.id === dashboardId);
     const categoricalNamespace = CategoricalColorNamespace.getNamespace();
-    const sharedLabelColor = getSharedLabelColor();
+    const labelsColorMap = getLabelsColorMap();
 
     if (!dashboard) {
       // clean up color namespace and shared color maps
       // to avoid colors spill outside of dashboard context
       categoricalNamespace.resetColors();
-      sharedLabelColor.clear();
+      labelsColorMap.clear();
       return;
     }
 
@@ -118,17 +118,17 @@ export const ExploreChartHeader = ({
 
         // setting the chart to use the dashboard custom label colors if any
         const dashboardMetadata = JSON.parse(result.json_metadata);
-        const sharedLabelColors = dashboardMetadata.shared_label_colors || {};
-        const customLabelColors = dashboardMetadata.label_colors || {};
-        const mergedLabelColors = {
-          ...sharedLabelColors,
-          ...customLabelColors,
+        const labelsColorMap = dashboardMetadata.shared_label_colors || {};
+        const customLabelsColor = dashboardMetadata.label_colors || {};
+        const mergedLabelsColor = {
+          ...labelsColorMap,
+          ...customLabelsColor,
         };
 
-        Object.keys(mergedLabelColors).forEach(label => {
+        Object.keys(mergedLabelsColor).forEach(label => {
           categoricalNamespace.setColor(
             label,
-            mergedLabelColors[label],
+            mergedLabelsColor[label],
             dashboardMetadata.color_scheme,
           );
         });

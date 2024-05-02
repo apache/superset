@@ -21,7 +21,7 @@ import { scaleOrdinal, ScaleOrdinal } from 'd3-scale';
 import { ExtensibleFunction } from '../models';
 import { ColorsInitLookup, ColorsLookup } from './types';
 import stringifyAndTrim from './stringifyAndTrim';
-import getSharedLabelColor from './SharedLabelColorSingleton';
+import getLabelsColorMap from './LabelsColorMapSingleton';
 import { getAnalogousColors } from './utils';
 import { FeatureFlag, isFeatureEnabled } from '../utils';
 
@@ -40,7 +40,7 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   forcedColors: ColorsLookup;
 
-  sharedColorMapInstance: ReturnType<typeof getSharedLabelColor>;
+  labelsColorMapInstance: ReturnType<typeof getLabelsColorMap>;
 
   sliceMap: Map<string, string>;
 
@@ -61,7 +61,7 @@ class CategoricalColorScale extends ExtensibleFunction {
     // holds the values of this specific slice (label+color)
     this.sliceMap = new Map();
     // shared color map instance (when context is shared, i.e. dashboard)
-    this.sharedColorMapInstance = getSharedLabelColor();
+    this.labelsColorMapInstance = getLabelsColorMap();
     // holds the multiple value for analogous colors range
     this.multiple = 0;
 
@@ -168,7 +168,7 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   /**
    * Lower chances of color collision by returning the least used color
-   * Checks across colors of current slice within SharedLabelColorSingleton
+   * Checks across colors of current slice within LabelsColorMapSingleton
    *
    * @param currentColor
    * @returns the least used color that is not the excluded color
