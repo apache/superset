@@ -22,7 +22,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
-import { showIfTimeSeries } from '../utils';
+import { displayTimeRelatedControls } from '../utils';
 
 export const FORECAST_DEFAULT_DATA = {
   forecastEnabled: false,
@@ -36,7 +36,7 @@ export const FORECAST_DEFAULT_DATA = {
 export const forecastIntervalControls: ControlPanelSectionConfig = {
   label: t('Predictive Analytics'),
   expanded: false,
-  visibility: showIfTimeSeries,
+  visibility: displayTimeRelatedControls,
   controlSetRows: [
     [
       {

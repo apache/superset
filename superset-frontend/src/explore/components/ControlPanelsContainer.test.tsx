@@ -145,12 +145,12 @@ describe('ControlPanelsContainer', () => {
     ).toHaveLength(2);
   });
 
-  test('hide ControlPanelSections when its visibility is false', async () => {
+  test('visibility of panels is correctly applied', async () => {
     getChartControlPanelRegistry().registerValue('table', {
       controlPanelSections: [
         {
           label: t('Advanced analytics'),
-          description: t('Advanced analytical post processin'),
+          description: t('Advanced analytics post processing'),
           expanded: true,
           controlSetRows: [['groupby'], ['metrics'], ['percent_metrics']],
           visibility: () => false,

@@ -19,7 +19,7 @@
 import { isAdhocColumn, isPhysicalColumn } from '@superset-ui/core';
 import type { ColumnMeta, ControlPanelsContainerProps } from '../types';
 
-export default function showIfTimeSeries({
+export default function displayTimeRelatedControls({
   controls,
 }: ControlPanelsContainerProps) {
   if (!controls?.x_axis) {

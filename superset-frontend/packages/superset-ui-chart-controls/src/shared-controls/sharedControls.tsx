@@ -49,7 +49,7 @@ import {
 
 import {
   formatSelectOptions,
-  showIfTimeSeries,
+  displayTimeRelatedControls,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
@@ -201,7 +201,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   mapStateToProps: ({ datasource }) => ({
     choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
-  visibility: showIfTimeSeries,
+  visibility: displayTimeRelatedControls,
 };
 
 const time_range: SharedControlConfig<'DateFilterControl'> = {

@@ -21,7 +21,7 @@ import { t, RollingType, ComparisonType } from '@superset-ui/core';
 
 import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';
-import { formatSelectOptions, showIfTimeSeries } from '../utils';
+import { formatSelectOptions, displayTimeRelatedControls } from '../utils';
 
 export const advancedAnalyticsControls: ControlPanelSectionConfig = {
   label: t('Advanced analytics'),
@@ -31,7 +31,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
       'that allow for advanced analytical post processing ' +
       'of query results',
   ),
-  visibility: showIfTimeSeries,
+  visibility: displayTimeRelatedControls,
   controlSetRows: [
     [<ControlSubSectionHeader>{t('Rolling window')}</ControlSubSectionHeader>],
     [

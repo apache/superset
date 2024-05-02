@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { showIfTimeSeries } from '../../src';
+import { displayTimeRelatedControls } from '../../src';
 
 const mockData = {
   actions: {
@@ -39,55 +39,53 @@ const mockData = {
   },
 };
 
-describe('showIfTimeSeries', () => {
-  it('returns true when no x-axis exists', () => {
-    expect(
-      showIfTimeSeries({
-        ...mockData,
-        controls: {
-          control_options: {
-            type: 'SelectControl',
-            value: 'not_temporal',
-            options: [],
+test('returns true when no x-axis exists', () => {
+  expect(
+    displayTimeRelatedControls({
+      ...mockData,
+      controls: {
+        control_options: {
+          type: 'SelectControl',
+          value: 'not_temporal',
+          options: [],
+        },
+      },
+    }),
+  ).toBeTruthy();
+});
+
+test('returns false when x-axis value is not temporal', () => {
+  expect(displayTimeRelatedControls(mockData)).toBeFalsy();
+});
+
+test('returns true when x-axis value is temporal', () => {
+  expect(
+    displayTimeRelatedControls({
+      ...mockData,
+      controls: {
+        x_axis: {
+          ...mockData.controls.x_axis,
+          value: 'ds',
+        },
+      },
+    }),
+  ).toBeTruthy();
+});
+
+test('returns true when x-axis is ad-hoc column', () => {
+  expect(
+    displayTimeRelatedControls({
+      ...mockData,
+      controls: {
+        x_axis: {
+          ...mockData.controls.x_axis,
+          value: {
+            sqlExpression: 'ds',
+            label: 'ds',
+            expressionType: 'SQL',
           },
         },
-      }),
-    ).toBeTruthy();
-  });
-
-  it('returns false when x-axis value is not temporal', () => {
-    expect(showIfTimeSeries(mockData)).toBeFalsy();
-  });
-
-  it('returns true when x-axis value is temporal', () => {
-    expect(
-      showIfTimeSeries({
-        ...mockData,
-        controls: {
-          x_axis: {
-            ...mockData.controls.x_axis,
-            value: 'ds',
-          },
-        },
-      }),
-    ).toBeTruthy();
-  });
-
-  it('returns true when x-axis is ad-hoc column', () => {
-    expect(
-      showIfTimeSeries({
-        ...mockData,
-        controls: {
-          x_axis: {
-            ...mockData.controls.x_axis,
-            value: {
-              sqlExpression: 'ds',
-              label: 'ds',
-              expressionType: 'SQL',
-            },
-          },
-        },
-      }),
-    ).toBeTruthy();
-  });
+      },
+    }),
+  ).toBeTruthy();
 });
