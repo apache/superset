@@ -2374,7 +2374,7 @@ msgstr "面積圖"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:42
 #, fuzzy
-msgid "Area Chart (legacy)"
+msgid "Time-series Area Chart (legacy)"
 msgstr "面積圖（傳统）"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:177
@@ -8951,7 +8951,7 @@ msgid "Line Chart"
 msgstr "折線圖"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:39
-msgid "Line Chart (legacy)"
+msgid "Time-series Line Chart (legacy)"
 msgstr "折線圖（傳统）"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:121

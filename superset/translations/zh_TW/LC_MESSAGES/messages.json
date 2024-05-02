@@ -672,7 +672,7 @@
         "確實要保存並應用更改嗎？"
       ],
       "Area Chart": ["面積圖"],
-      "Area Chart (legacy)": ["面積圖（傳統）"],
+      "Time-series Area Chart (legacy)": ["面積圖（傳統）"],
       "Area chart": ["面積圖"],
       "Area chart opacity": ["面積圖不透明度"],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
@@ -2397,7 +2397,7 @@
       ],
       "Line": ["直線"],
       "Line Chart": ["折線圖"],
-      "Line Chart (legacy)": ["折線圖（傳統）"],
+      "Time-series Line Chart (legacy)": ["折線圖（傳統）"],
       "Line Style": ["線條樣式"],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         "時間序列折線圖用於可視化在規則時間間隔内進行的重復测量。折線圖是一種圖表，它將信息顯示為一系列由直線段連接的數據點。它是許多领域中常見的一種基本類型的圖表。"
