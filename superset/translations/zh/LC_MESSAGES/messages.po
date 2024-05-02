@@ -2370,7 +2370,7 @@ msgstr "面积图"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:42
 #, fuzzy
-msgid "Area Chart (legacy)"
+msgid "Time-series Area Chart (legacy)"
 msgstr "面积图不透明度"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:177

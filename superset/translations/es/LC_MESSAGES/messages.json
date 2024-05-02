@@ -1707,7 +1707,7 @@
       "Limits the number of the rows that are computed in the query that is the source of the data used for this chart.": [
         ""
       ],
-      "Line Chart (legacy)": [""],
+      "Time-series Line Chart (legacy)": [""],
       "Line Style": [""],
       "Line interpolation as defined by d3.js": [""],
       "Line width": ["Grosor de línea"],

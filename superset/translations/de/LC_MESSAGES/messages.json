@@ -775,7 +775,7 @@
         "Möchten Sie die Änderungen wirklich speichern und anwenden?"
       ],
       "Area Chart": ["Flächendiagramm"],
-      "Area Chart (legacy)": ["Flächendiagramm (Legacy)"],
+      "Time-series Area Chart (legacy)": ["Flächendiagramm (Legacy)"],
       "Area chart": ["Flächendiagramm"],
       "Area chart opacity": ["Deckkraft des Flächendiagramms"],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
@@ -2684,7 +2684,7 @@
       ],
       "Line": ["Linie"],
       "Line Chart": ["Liniendiagramm"],
-      "Line Chart (legacy)": ["Liniendiagramm (Legacy)"],
+      "Time-series Line Chart (legacy)": ["Liniendiagramm (Legacy)"],
       "Line Style": ["Linien Stil"],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         "Liniendiagramm wird verwendet, um Messungen zu visualisieren, die über eine bestimmte Kategorie durchgeführt wurden. Liniendiagramm ist eine Art Diagramm, das Informationen als eine Reihe von Datenpunkten anzeigt, die durch gerade Liniensegmente verbunden sind. Es ist ein grundlegender Diagrammtyp, der in vielen Bereichen üblich ist."

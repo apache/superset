@@ -774,7 +774,7 @@
         "Ви впевнені, що хочете зберегти та застосувати зміни?"
       ],
       "Area Chart": ["Діаграма"],
-      "Area Chart (legacy)": ["Діаграма області (спадщина)"],
+      "Time-series Area Chart (legacy)": ["Діаграма області (спадщина)"],
       "Area chart": ["Діаграма"],
       "Area chart opacity": ["Область прозоість діаграми"],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
@@ -2638,7 +2638,7 @@
       ],
       "Line": ["Лінія"],
       "Line Chart": ["Лінійна діаграма"],
-      "Line Chart (legacy)": ["Лінійна діаграма (спадщина)"],
+      "Time-series Line Chart (legacy)": ["Лінійна діаграма (спадщина)"],
       "Line Style": ["Лінійний стиль"],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         "Лінійна діаграма використовується для візуалізації вимірювань, взяті на задану категорію. Лінійна діаграма - це тип діаграми, яка відображає інформацію як ряд точок даних, підключених за допомогою прямих сегментів. Це основний тип діаграми, поширений у багатьох полях."

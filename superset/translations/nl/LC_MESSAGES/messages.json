@@ -582,7 +582,7 @@
         "Weet u zeker dat u de wijzigingen wilt opslaan en toepassen?"
       ],
       "Area Chart": [""],
-      "Area Chart (legacy)": [""],
+      "Time-series Area Chart (legacy)": [""],
       "Area chart": [""],
       "Area chart opacity": [""],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
@@ -2100,7 +2100,7 @@
       ],
       "Line": [""],
       "Line Chart": [""],
-      "Line Chart (legacy)": [""],
+      "Time-series Line Chart (legacy)": [""],
       "Line Style": [""],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         ""
