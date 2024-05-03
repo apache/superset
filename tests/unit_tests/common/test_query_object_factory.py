@@ -129,6 +129,6 @@ class TestQueryObjectFactory:
         query_object = query_object_factory.create(
             raw_query_context["result_type"], 
             datasource=raw_query_context["datasource"], 
-            **raw_query_object
+            **raw_query_object,
         )
         assert query_object.metric_names == ["SUM", "num_girls", "num_boys"]

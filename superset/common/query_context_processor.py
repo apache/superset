@@ -63,8 +63,13 @@ from superset.utils.core import (
     get_column_names_from_metrics,
     get_metric_names,
     get_xaxis_label,
+<<<<<<< HEAD
     is_adhoc_metric,
     is_adhoc_column,
+=======
+    is_adhoc_column,
+    is_adhoc_metric,
+>>>>>>> 831206fde (linting and unit test)
     normalize_dttm_col,
     TIME_COMPARISON,
 )
