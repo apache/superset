@@ -21,6 +21,7 @@ import polyline
 from sqlalchemy import inspect, String, Text
 
 from superset import db
+from superset.sql_parse import Table
 
 from ..utils.database import get_example_database
 from .helpers import get_example_url, get_table_connector_registry
@@ -31,7 +32,7 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
     database = get_example_database()
     with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
-        table_exists = database.has_table_by_name(tbl_name)
+        table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
             url = get_example_url("bart-lines.json.gz")

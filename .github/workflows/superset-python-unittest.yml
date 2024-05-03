@@ -46,6 +46,8 @@ jobs:
         run: |
           pytest --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear
       - name: Upload code coverage
-        if: steps.check.outputs.python
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F unit
+        uses: codecov/codecov-action@v4
+        with:
+          flags: python,unit
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true

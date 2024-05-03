@@ -22,6 +22,8 @@ import { OptionControlLabel } from 'src/explore/components/controls/OptionContro
 
 import ExploreContainer, { DraggingContext, DropzoneContext } from '.';
 import OptionWrapper from '../controls/DndColumnSelectControl/OptionWrapper';
+import DatasourcePanelDragOption from '../DatasourcePanel/DatasourcePanelDragOption';
+import { DndItemType } from '../DndItemType';
 
 const MockChildren = () => {
   const dragging = React.useContext(DraggingContext);
@@ -61,7 +63,7 @@ test('should render children', () => {
   expect(getByText('not dragging')).toBeInTheDocument();
 });
 
-test('should propagate dragging state', () => {
+test('should only propagate dragging state when dragging the panel option', () => {
   const defaultProps = {
     label: <span>Test label</span>,
     tooltipTitle: 'This is a tooltip title',
@@ -73,15 +75,19 @@ test('should propagate dragging state', () => {
   };
   const { container, getByText } = render(
     <ExploreContainer>
+      <DatasourcePanelDragOption
+        value={{ metric_name: 'panel option' }}
+        type={DndItemType.Metric}
+      />
       <OptionControlLabel
         {...defaultProps}
         index={1}
-        label={<span>Label 1</span>}
+        label={<span>Metric item</span>}
       />
       <OptionWrapper
         {...defaultProps}
         index={2}
-        label="Label 2"
+        label="Column item"
         clickClose={() => {}}
         onShiftOptions={() => {}}
       />
@@ -93,12 +99,15 @@ test('should propagate dragging state', () => {
     },
   );
   expect(container.getElementsByClassName('dragging')).toHaveLength(0);
-  fireEvent.dragStart(getByText('Label 1'));
+  fireEvent.dragStart(getByText('panel option'));
   expect(container.getElementsByClassName('dragging')).toHaveLength(1);
-  fireEvent.dragEnd(getByText('Label 1'));
+  fireEvent.dragEnd(getByText('panel option'));
+  fireEvent.dragStart(getByText('Metric item'));
+  expect(container.getElementsByClassName('dragging')).toHaveLength(0);
+  fireEvent.dragEnd(getByText('Metric item'));
   expect(container.getElementsByClassName('dragging')).toHaveLength(0);
   // don't show dragging state for the sorting item
-  fireEvent.dragStart(getByText('Label 2'));
+  fireEvent.dragStart(getByText('Column item'));
   expect(container.getElementsByClassName('dragging')).toHaveLength(0);
 });
 

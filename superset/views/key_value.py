@@ -29,7 +29,6 @@ from superset.views.base import BaseSupersetView, deprecated, json_error_respons
 
 
 class KV(BaseSupersetView):
-
     """Used for storing and retrieving key value pairs"""
 
     @staticmethod
@@ -44,7 +43,7 @@ class KV(BaseSupersetView):
     @event_logger.log_this
     @has_access_api
     @expose("/store/", methods=("POST",))
-    @deprecated(eol_version="4.0.0")
+    @deprecated(eol_version="5.0.0")
     def store(self) -> FlaskResponse:
         try:
             value = request.form.get("data")
@@ -58,7 +57,7 @@ class KV(BaseSupersetView):
     @event_logger.log_this
     @has_access_api
     @expose("/<int:key_id>/", methods=("GET",))
-    @deprecated(eol_version="4.0.0")
+    @deprecated(eol_version="5.0.0")
     def get_value(self, key_id: int) -> FlaskResponse:
         try:
             kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()

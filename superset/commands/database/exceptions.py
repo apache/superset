@@ -98,6 +98,11 @@ class DatabaseSchemaUploadNotAllowed(CommandException):
     message = _("Database schema is not allowed for csv uploads.")
 
 
+class DatabaseUploadNotSupported(CommandException):
+    status = 422
+    message = _("Database type does not support file uploads.")
+
+
 class DatabaseUploadFailed(CommandException):
     status = 422
     message = _("Database upload file failed")

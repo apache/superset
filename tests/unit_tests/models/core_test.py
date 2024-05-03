@@ -18,7 +18,6 @@
 # pylint: disable=import-outside-toplevel
 import json
 from datetime import datetime
-from typing import Optional
 
 import pytest
 from pytest_mock import MockFixture
@@ -26,6 +25,7 @@ from sqlalchemy.engine.reflection import Inspector
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
+from superset.sql_parse import Table
 
 
 def test_get_metrics(mocker: MockFixture) -> None:
@@ -37,7 +37,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
     from superset.models.core import Database
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    assert database.get_metrics("table") == [
+    assert database.get_metrics(Table("table")) == [
         {
             "expression": "COUNT(*)",
             "metric_name": "count",
@@ -52,8 +52,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
             cls,
             database: Database,
             inspector: Inspector,
-            table_name: str,
-            schema: Optional[str],
+            table: Table,
         ) -> list[MetricType]:
             return [
                 {
@@ -65,7 +64,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
             ]
 
     database.get_db_engine_spec = mocker.MagicMock(return_value=CustomSqliteEngineSpec)
-    assert database.get_metrics("table") == [
+    assert database.get_metrics(Table("table")) == [
         {
             "expression": "COUNT(DISTINCT user_id)",
             "metric_name": "count_distinct_user_id",

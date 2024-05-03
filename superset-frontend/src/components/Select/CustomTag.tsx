@@ -20,6 +20,7 @@ import React from 'react';
 import { Tag as AntdTag } from 'antd';
 import { styled, useCSSTextTruncation } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
+import { CustomCloseIcon } from '../Tags/Tag';
 import { CustomTagProps } from './types';
 import { SELECT_ALL_VALUE } from './utils';
 import { NoElement } from './styles';
@@ -42,7 +43,11 @@ const Tag = (props: any) => {
   const [tagRef, tagIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
   return (
     <Tooltip title={tagIsTruncated ? props.children : null}>
-      <StyledTag {...props} className="ant-select-selection-item">
+      <StyledTag
+        closeIcon={props?.closable ? CustomCloseIcon : undefined}
+        {...props}
+        className="ant-select-selection-item"
+      >
         <span className="tag-content" ref={tagRef}>
           {props.children}
         </span>

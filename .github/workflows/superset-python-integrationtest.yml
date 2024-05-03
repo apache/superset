@@ -29,6 +29,11 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
         ports:
           - 13306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
       redis:
         image: redis:7-alpine
         options: --entrypoint redis-server
@@ -61,9 +66,11 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        if: steps.check.outputs.python
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F mysql
+        uses: codecov/codecov-action@v4
+        with:
+          flags: python,mysql
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
   test-postgres:
     runs-on: ubuntu-20.04
     strategy:
@@ -118,9 +125,11 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        if: steps.check.outputs.python
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F postgres
+        uses: codecov/codecov-action@v4
+        with:
+          flags: python,postgres
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
   test-sqlite:
     runs-on: ubuntu-20.04
@@ -166,6 +175,8 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        if: steps.check.outputs.python
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F sqlite
+        uses: codecov/codecov-action@v4
+        with:
+          flags: python,sqlite
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true

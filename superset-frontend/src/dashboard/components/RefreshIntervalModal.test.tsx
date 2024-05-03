@@ -171,6 +171,23 @@ test('should change selected value', async () => {
   expect(selectedValue.title).not.toMatch(/don't refresh/i);
 });
 
+test('should change selected value to custom value', async () => {
+  render(setup(editModeOnProps));
+  await openRefreshIntervalModal();
+
+  // Initial selected value should be "Don't refresh"
+  const selectedValue = screen.getByText(/don't refresh/i);
+  expect(selectedValue.title).toMatch(/don't refresh/i);
+
+  // Display options and select "Custom interval"
+  await displayOptions();
+  userEvent.click(screen.getByText(/Custom interval/i));
+
+  // Selected value should now be "Custom interval"
+  expect(selectedValue.title).toMatch(/Custom interval/i);
+  expect(selectedValue.title).not.toMatch(/don't refresh/i);
+});
+
 test('should save a newly-selected value', async () => {
   render(setup(editModeOnProps));
   await openRefreshIntervalModal();

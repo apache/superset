@@ -27,6 +27,7 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
@@ -95,7 +96,7 @@ def load_birth_names(
         schema = inspect(engine).default_schema_name
 
     tbl_name = "birth_names"
-    table_exists = database.has_table_by_name(tbl_name, schema=schema)
+    table_exists = database.has_table(Table(tbl_name, schema))
 
     if not only_metadata and (not table_exists or force):
         load_data(tbl_name, database, sample=sample)

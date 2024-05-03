@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
+
 import json
 import logging
 import re
@@ -253,6 +254,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     ALPHA_ONLY_PMVS = {
         ("can_csv_upload", "Database"),
+        ("can_excel_upload", "Database"),
     }
 
     ADMIN_ONLY_PERMISSIONS = {
@@ -408,7 +410,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: Whether the user can access all the datasources
         """
 
-        return self.can_access("all_datasource_access", "all_datasource_access")
+        return self.can_access_all_databases() or self.can_access(
+            "all_datasource_access", "all_datasource_access"
+        )
 
     def can_access_all_databases(self) -> bool:
         """
@@ -416,7 +420,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :returns: Whether the user can access all the databases
         """
-
         return self.can_access("all_database_access", "all_database_access")
 
     def can_access_database(self, database: "Database") -> bool:
@@ -856,9 +859,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         pvms = self.get_session.query(PermissionView).filter(
             or_(
                 PermissionView.permission  # pylint: disable=singleton-comparison
-                == None,
+                == None,  # noqa: E711
                 PermissionView.view_menu  # pylint: disable=singleton-comparison
-                == None,
+                == None,  # noqa: E711
             )
         )
         self.get_session.commit()
@@ -1920,6 +1923,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         table: Optional["Table"] = None,
         viz: Optional["BaseViz"] = None,
         sql: Optional[str] = None,
+        catalog: Optional[str] = None,  # pylint: disable=unused-argument
         schema: Optional[str] = None,
     ) -> None:
         """
@@ -1932,6 +1936,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param table: The Superset table (requires database)
         :param viz: The visualization
         :param sql: The SQL string (requires database)
+        :param catalog: Optional catalog name
         :param schema: Optional schema name
         :raises SupersetSecurityException: If the user cannot access the resource
         """
@@ -2429,7 +2434,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if self.is_admin():
             return
-
         orig_resource = db.session.query(resource.__class__).get(resource.id)
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 

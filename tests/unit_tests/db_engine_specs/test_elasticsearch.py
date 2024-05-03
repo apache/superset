@@ -19,10 +19,10 @@ from typing import Any, Optional
 from unittest.mock import MagicMock
 
 import pytest
-from sqlalchemy import column
+from sqlalchemy import column  # noqa: F401
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -51,7 +51,7 @@ def test_elasticsearch_convert_dttm(
     target_type: str,
     db_extra: Optional[dict[str, Any]],
     expected_result: Optional[str],
-    dttm: datetime,
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec as spec
 
@@ -68,7 +68,7 @@ def test_elasticsearch_convert_dttm(
 def test_opendistro_convert_dttm(
     target_type: str,
     expected_result: Optional[str],
-    dttm: datetime,
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec as spec
 

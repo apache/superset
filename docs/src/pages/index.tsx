@@ -644,7 +644,7 @@ export default function Home(): JSX.Element {
               </div>
             </Carousel>
             <video autoPlay muted controls loop>
-              <source src="/video/superset-video-4k.mp4" type="video/mp4" />
+              <source src="https://superset.staged.apache.org/superset-video-4k.mp4" type="video/mp4" />
             </video>
           </StyledSliderSection>
           <StyledKeyFeatures>
@@ -731,7 +731,7 @@ export default function Home(): JSX.Element {
             </div>
             <span className="database-sub">
               ...and many other{' '}
-              <a href="/docs/databases/installing-database-drivers">
+              <a href="/docs/configuration/databases#installing-database-drivers">
                 compatible databases
               </a>
             </span>

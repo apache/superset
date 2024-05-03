@@ -69,9 +69,10 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
     def _export(
         model: SavedQuery, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
-        yield ExportSavedQueriesCommand._file_name(
-            model
-        ), lambda: ExportSavedQueriesCommand._file_content(model)
+        yield (
+            ExportSavedQueriesCommand._file_name(model),
+            lambda: ExportSavedQueriesCommand._file_content(model),
+        )
 
         if export_related:  # TODO: Maybe we can use database export command here?
             # include database as well

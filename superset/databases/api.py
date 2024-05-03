@@ -15,11 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime, timedelta
 from io import BytesIO
-from typing import Any, cast, Optional
+from typing import Any, cast
 from zipfile import is_zipfile, ZipFile
 
 from deprecation import deprecated
@@ -31,7 +34,6 @@ from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import app, event_logger
 from superset.commands.database.create import CreateDatabaseCommand
-from superset.commands.database.csv_import import CSVImportCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
@@ -55,6 +57,9 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.commands.database.tables import TablesDatabaseCommand
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.commands.database.update import UpdateDatabaseCommand
+from superset.commands.database.uploaders.base import UploadCommand
+from superset.commands.database.uploaders.csv_reader import CSVReader
+from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.commands.database.validate import ValidateDatabaseParametersCommand
 from superset.commands.database.validate_sql import ValidateSQLCommand
 from superset.commands.importers.exceptions import (
@@ -79,9 +84,11 @@ from superset.databases.schemas import (
     DatabaseTablesResponse,
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
+    ExcelUploadPostSchema,
     get_export_ids_schema,
     OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
+    QualifiedTableSchema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableExtraMetadataResponseSchema,
@@ -92,9 +99,18 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2Error, SupersetErrorsException, SupersetException
+from superset.exceptions import (
+    DatabaseNotFoundException,
+    InvalidPayloadSchemaError,
+    OAuth2Error,
+    SupersetErrorsException,
+    SupersetException,
+    SupersetSecurityException,
+    TableNotFoundException,
+)
 from superset.extensions import security_manager
 from superset.models.core import Database
+from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.utils.oauth2 import decode_oauth2_state
@@ -120,7 +136,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "tables",
         "table_metadata",
+        "table_metadata_deprecated",
         "table_extra_metadata",
+        "table_extra_metadata_deprecated",
         "select_star",
         "schemas",
         "test_connection",
@@ -133,6 +151,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "schemas_access_for_file_upload",
         "get_connection",
         "csv_upload",
+        "excel_upload",
         "oauth2",
     }
 
@@ -252,6 +271,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         DatabaseTablesResponse,
         DatabaseTestConnectionSchema,
         DatabaseValidateParametersSchema,
+        ExcelUploadPostSchema,
         TableExtraMetadataResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
@@ -703,10 +723,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_metadata",
+        f".table_metadata_deprecated",
         log_to_statsd=False,
     )
-    def table_metadata(
+    def table_metadata_deprecated(
         self, database: Database, table_name: str, schema_name: str
     ) -> FlaskResponse:
         """Get database table metadata.
@@ -747,16 +767,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.table_metadata.__name__)
+        self.incr_stats("init", self.table_metadata_deprecated.__name__)
         try:
-            table_info = get_table_metadata(database, table_name, schema_name)
+            table_info = get_table_metadata(database, Table(table_name, schema_name))
         except SQLAlchemyError as ex:
-            self.incr_stats("error", self.table_metadata.__name__)
+            self.incr_stats("error", self.table_metadata_deprecated.__name__)
             return self.response_422(error_msg_from_exception(ex))
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
-        self.incr_stats("success", self.table_metadata.__name__)
+        self.incr_stats("success", self.table_metadata_deprecated.__name__)
         return self.response(200, **table_info)
 
     @expose("/<int:pk>/table_extra/<path:table_name>/<schema_name>/", methods=("GET",))
@@ -764,15 +784,20 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @check_table_access
     @safe
     @statsd_metrics
+    @deprecated(deprecated_in="4.0", removed_in="5.0")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_extra_metadata",
+        f".table_extra_metadata_deprecated",
         log_to_statsd=False,
     )
-    def table_extra_metadata(
+    def table_extra_metadata_deprecated(
         self, database: Database, table_name: str, schema_name: str
     ) -> FlaskResponse:
         """Get table extra metadata.
+
+        A newer API was introduced between 4.0 and 5.0, with support for catalogs for
+        SIP-95. This method was kept to prevent breaking API integrations, but will be
+        removed in 5.0.
         ---
         get:
           summary: Get table extra metadata
@@ -812,13 +837,171 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.table_metadata.__name__)
+        self.incr_stats("init", self.table_extra_metadata_deprecated.__name__)
 
         parsed_schema = parse_js_uri_path_item(schema_name, eval_undefined=True)
         table_name = cast(str, parse_js_uri_path_item(table_name))
-        payload = database.db_engine_spec.extra_table_metadata(
-            database, table_name, parsed_schema
-        )
+        table = Table(table_name, parsed_schema)
+        payload = database.db_engine_spec.get_extra_table_metadata(database, table)
+        return self.response(200, **payload)
+
+    @expose("/<int:pk>/table_metadata/", methods=["GET"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".table_metadata",
+        log_to_statsd=False,
+    )
+    def table_metadata(self, pk: int) -> FlaskResponse:
+        """
+        Get metadata for a given table.
+
+        Optionally, a schema and a catalog can be passed, if different from the default
+        ones.
+        ---
+        get:
+          summary: Get table metadata
+          description: >-
+            Metadata associated with the table (columns, indexes, etc.)
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            schema:
+              type: string
+            name: table
+            required: true
+            description: Table name
+          - in: query
+            schema:
+              type: string
+            name: schema
+            description: >-
+              Optional table schema, if not passed default schema will be used
+          - in: query
+            schema:
+              type: string
+            name: catalog
+            description: >-
+              Optional table catalog, if not passed default catalog will be used
+          responses:
+            200:
+              description: Table metadata information
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/TableExtraMetadataResponseSchema"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        self.incr_stats("init", self.table_metadata.__name__)
+
+        database = DatabaseDAO.find_by_id(pk)
+        if database is None:
+            raise DatabaseNotFoundException("No such database")
+
+        try:
+            parameters = QualifiedTableSchema().load(request.args)
+        except ValidationError as ex:
+            raise InvalidPayloadSchemaError(ex) from ex
+
+        table = Table(parameters["name"], parameters["schema"], parameters["catalog"])
+        try:
+            security_manager.raise_for_access(database=database, table=table)
+        except SupersetSecurityException as ex:
+            # instead of raising 403, raise 404 to hide table existence
+            raise TableNotFoundException("No such table") from ex
+
+        payload = database.db_engine_spec.get_table_metadata(database, table)
+
+        return self.response(200, **payload)
+
+    @expose("/<int:pk>/table_metadata/extra/", methods=["GET"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".table_extra_metadata",
+        log_to_statsd=False,
+    )
+    def table_extra_metadata(self, pk: int) -> FlaskResponse:
+        """
+        Get extra metadata for a given table.
+
+        Optionally, a schema and a catalog can be passed, if different from the default
+        ones.
+        ---
+        get:
+          summary: Get table extra metadata
+          description: >-
+            Extra metadata associated with the table (partitions, description, etc.)
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            schema:
+              type: string
+            name: name
+            required: true
+            description: Table name
+          - in: query
+            schema:
+              type: string
+            name: schema
+            description: >-
+              Optional table schema, if not passed the schema configured in the database
+              will be used
+          - in: query
+            schema:
+              type: string
+            name: catalog
+            description: >-
+              Optional table catalog, if not passed the catalog configured in the
+              database will be used
+          responses:
+            200:
+              description: Table extra metadata information
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/TableExtraMetadataResponseSchema"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        self.incr_stats("init", self.table_extra_metadata.__name__)
+
+        if not (database := DatabaseDAO.find_by_id(pk)):
+            raise DatabaseNotFoundException("No such database")
+
+        try:
+            parameters = QualifiedTableSchema().load(request.args)
+        except ValidationError as ex:
+            raise InvalidPayloadSchemaError(ex) from ex
+
+        table = Table(parameters["name"], parameters["schema"], parameters["catalog"])
+        try:
+            security_manager.raise_for_access(database=database, table=table)
+        except SupersetSecurityException as ex:
+            # instead of raising 403, raise 404 to hide table existence
+            raise TableNotFoundException("No such table") from ex
+
+        payload = database.db_engine_spec.get_extra_table_metadata(database, table)
+
         return self.response(200, **payload)
 
     @expose("/<int:pk>/select_star/<path:table_name>/", methods=("GET",))
@@ -832,7 +1015,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def select_star(
-        self, database: Database, table_name: str, schema_name: Optional[str] = None
+        self, database: Database, table_name: str, schema_name: str | None = None
     ) -> FlaskResponse:
         """Get database select star for table.
         ---
@@ -875,7 +1058,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("init", self.select_star.__name__)
         try:
             result = database.select_star(
-                table_name, schema_name, latest_partition=True
+                Table(table_name, schema_name),
+                latest_partition=True,
             )
         except NoSuchTableError:
             self.incr_stats("error", self.select_star.__name__)
@@ -1389,11 +1573,72 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
             parameters = CSVUploadPostSchema().load(request_form)
-            CSVImportCommand(
+            UploadCommand(
                 pk,
                 parameters["table_name"],
                 parameters["file"],
-                parameters,
+                parameters.get("schema"),
+                CSVReader(parameters),
+            ).run()
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        return self.response(200, message="OK")
+
+    @expose("/<int:pk>/excel_upload/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
+        log_to_statsd=False,
+    )
+    @requires_form_data
+    def excel_upload(self, pk: int) -> Response:
+        """Upload an Excel file into a database.
+        ---
+        post:
+          summary: Upload an Excel file to a database table
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  $ref: '#/components/schemas/ExcelUploadPostSchema'
+          responses:
+            200:
+              description: Excel upload response
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            request_form = request.form.to_dict()
+            request_form["file"] = request.files.get("file")
+            parameters = ExcelUploadPostSchema().load(request_form)
+            UploadCommand(
+                pk,
+                parameters["table_name"],
+                parameters["file"],
+                parameters.get("schema"),
+                ExcelReader(parameters),
             ).run()
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -1528,9 +1773,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 and getattr(engine_spec, "default_driver") in drivers
             ):
                 payload["parameters"] = engine_spec.parameters_json_schema()
-                payload[
-                    "sqlalchemy_uri_placeholder"
-                ] = engine_spec.sqlalchemy_uri_placeholder
+                payload["sqlalchemy_uri_placeholder"] = (
+                    engine_spec.sqlalchemy_uri_placeholder
+                )
 
             available_databases.append(payload)
 

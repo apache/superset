@@ -20,22 +20,12 @@ from flask_appbuilder.fields import QuerySelectField
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from flask_appbuilder.forms import DynamicForm
 from flask_babel import lazy_gettext as _
-from flask_wtf.file import FileAllowed, FileField, FileRequired
-from wtforms import (
-    BooleanField,
-    IntegerField,
-    MultipleFileField,
-    SelectField,
-    StringField,
-)
-from wtforms.validators import DataRequired, Length, NumberRange, Optional, Regexp
+from flask_wtf.file import FileAllowed
+from wtforms import BooleanField, MultipleFileField, SelectField, StringField
+from wtforms.validators import DataRequired, Optional, Regexp
 
 from superset import app, db, security_manager
-from superset.forms import (
-    CommaSeparatedListField,
-    filter_not_empty_values,
-    JsonListField,
-)
+from superset.forms import JsonListField
 from superset.models.core import Database
 
 config = app.config
@@ -101,138 +91,6 @@ class UploadToDatabaseForm(DynamicForm):
         if database.db_engine_spec.supports_file_upload:
             return True
         return False
-
-
-class ExcelToDatabaseForm(UploadToDatabaseForm):
-    name = StringField(
-        _("Table Name"),
-        description=_("Name of table to be created from excel data."),
-        validators=[
-            DataRequired(),
-            Regexp(r"^[^\.]+$", message=_("Table name cannot contain a schema")),
-        ],
-        widget=BS3TextFieldWidget(),
-    )
-    excel_file = FileField(
-        _("Excel File"),
-        description=_("Select a Excel file to be uploaded to a database."),
-        validators=[
-            FileRequired(),
-            FileAllowed(
-                config["ALLOWED_EXTENSIONS"].intersection(config["EXCEL_EXTENSIONS"]),
-                _(
-                    "Only the following file extensions are allowed: "
-                    "%(allowed_extensions)s",
-                    allowed_extensions=", ".join(
-                        config["ALLOWED_EXTENSIONS"].intersection(
-                            config["EXCEL_EXTENSIONS"]
-                        )
-                    ),
-                ),
-            ),
-        ],
-    )
-
-    sheet_name = StringField(
-        _("Sheet Name"),
-        description=_("Strings used for sheet names (default is the first sheet)."),
-        validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-    )
-
-    database = QuerySelectField(
-        _("Database"),
-        query_func=UploadToDatabaseForm.file_allowed_dbs,
-        get_pk_func=lambda a: a.id,
-        get_label=lambda a: a.database_name,
-    )
-    schema = StringField(
-        _("Schema"),
-        description=_("Specify a schema (if database flavor supports this)."),
-        validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-    )
-    if_exists = SelectField(
-        _("Table Exists"),
-        description=_(
-            "If table exists do one of the following: "
-            "Fail (do nothing), Replace (drop and recreate table) "
-            "or Append (insert data)."
-        ),
-        choices=[
-            ("fail", _("Fail")),
-            ("replace", _("Replace")),
-            ("append", _("Append")),
-        ],
-        validators=[DataRequired()],
-    )
-    header = IntegerField(
-        _("Header Row"),
-        description=_(
-            "Row containing the headers to use as "
-            "column names (0 is first line of data). "
-            "Leave empty if there is no header row."
-        ),
-        validators=[Optional(), NumberRange(min=0)],
-        widget=BS3TextFieldWidget(),
-    )
-    index_col = IntegerField(
-        _("Index Column"),
-        description=_(
-            "Column to use as the row labels of the "
-            "dataframe. Leave empty if no index column."
-        ),
-        validators=[Optional(), NumberRange(min=0)],
-        widget=BS3TextFieldWidget(),
-    )
-    skiprows = IntegerField(
-        _("Skip Rows"),
-        description=_("Number of rows to skip at start of file."),
-        validators=[Optional(), NumberRange(min=0)],
-        widget=BS3TextFieldWidget(),
-    )
-    nrows = IntegerField(
-        _("Rows to Read"),
-        description=_("Number of rows of file to read."),
-        validators=[Optional(), NumberRange(min=0)],
-        widget=BS3TextFieldWidget(),
-    )
-    parse_dates = CommaSeparatedListField(
-        _("Parse Dates"),
-        description=_(
-            "A comma separated list of columns that should be parsed as dates."
-        ),
-        filters=[filter_not_empty_values],
-    )
-    decimal = StringField(
-        _("Decimal Character"),
-        default=".",
-        description=_("Character to interpret as decimal point."),
-        validators=[Optional(), Length(min=1, max=1)],
-        widget=BS3TextFieldWidget(),
-    )
-    index = BooleanField(
-        _("Dataframe Index"), description=_("Write dataframe index as a column.")
-    )
-    index_label = StringField(
-        _("Column Label(s)"),
-        description=_(
-            "Column label for index column(s). If None is given "
-            "and Dataframe Index is True, Index Names are used."
-        ),
-        validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-    )
-    null_values = JsonListField(
-        _("Null values"),
-        default=config["CSV_DEFAULT_NA_NAMES"],
-        description=_(
-            "Json list of the values that should be treated as null. "
-            'Examples: [""], ["None", "N/A"], ["nan", "null"]. '
-            "Warning: Hive database supports only single value. "
-            'Use [""] for empty string.'
-        ),
-    )
 
 
 class ColumnarToDatabaseForm(UploadToDatabaseForm):

@@ -61,11 +61,12 @@ class ValidateSQLCommand(BaseCommand):
             raise ValidatorSQLUnexpectedError()
         sql = self._properties["sql"]
         schema = self._properties.get("schema")
+        catalog = self._properties.get("catalog")
         try:
             timeout = current_app.config["SQLLAB_VALIDATION_TIMEOUT"]
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
-                errors = self._validator.validate(sql, schema, self._model)
+                errors = self._validator.validate(sql, catalog, schema, self._model)
             return [err.to_dict() for err in errors]
         except Exception as ex:
             logger.exception(ex)

@@ -87,9 +87,9 @@ class GetExploreCommand(BaseCommand, ABC):
                         "Form data not found in cache, reverting to chart metadata."
                     )
             elif self._datasource_id:
-                initial_form_data[
-                    "datasource"
-                ] = f"{self._datasource_id}__{self._datasource_type}"
+                initial_form_data["datasource"] = (
+                    f"{self._datasource_id}__{self._datasource_type}"
+                )
                 if self._form_data_key:
                     message = _(
                         "Form data not found in cache, reverting to dataset metadata."

@@ -44,8 +44,8 @@ from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import only_postgresql, only_sqlite
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.query_context import get_query_context
 
@@ -151,8 +151,12 @@ class TestQueryContext(SupersetTestCase):
         description_original = datasource.description
         datasource.description = "temporary description"
         db.session.commit()
+        # wait a second since mysql records timestamps in second granularity
+        time.sleep(1)
         datasource.description = description_original
         db.session.commit()
+        # wait another second because why not
+        time.sleep(1)
 
         # create new QueryContext with unchanged attributes, extract new query_cache_key
         query_context = ChartDataQueryContextSchema().load(payload)

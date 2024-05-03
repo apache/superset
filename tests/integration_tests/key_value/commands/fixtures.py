@@ -24,7 +24,6 @@ from uuid import UUID
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm import Session
 
 from superset.extensions import db
 from superset.key_value.types import (
@@ -65,6 +64,6 @@ def key_value_entry() -> Generator[KeyValueEntry, None, None]:
 
 @pytest.fixture
 def admin() -> User:
-    with app.app_context() as ctx:
+    with app.app_context():  # noqa: F841
         admin = db.session.query(User).filter_by(username="admin").one()
         return admin

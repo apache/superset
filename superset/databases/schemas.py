@@ -17,11 +17,13 @@
 
 # pylint: disable=unused-argument, too-many-lines
 
+from __future__ import annotations
+
 import inspect
 import json
 import os
 import re
-from typing import Any
+from typing import Any, TypedDict
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
@@ -581,6 +583,49 @@ class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
+class TableMetadataOptionsResponse(TypedDict):
+    deferrable: bool
+    initially: bool
+    match: bool
+    ondelete: bool
+    onupdate: bool
+
+
+class TableMetadataColumnsResponse(TypedDict, total=False):
+    keys: list[str]
+    longType: str
+    name: str
+    type: str
+    duplicates_constraint: str | None
+    comment: str | None
+
+
+class TableMetadataForeignKeysIndexesResponse(TypedDict):
+    column_names: list[str]
+    name: str
+    options: TableMetadataOptionsResponse
+    referred_columns: list[str]
+    referred_schema: str
+    referred_table: str
+    type: str
+
+
+class TableMetadataPrimaryKeyResponse(TypedDict):
+    column_names: list[str]
+    name: str
+    type: str
+
+
+class TableMetadataResponse(TypedDict):
+    name: str
+    columns: list[TableMetadataColumnsResponse]
+    foreignKeys: list[TableMetadataForeignKeysIndexesResponse]
+    indexes: list[TableMetadataForeignKeysIndexesResponse]
+    primaryKey: TableMetadataPrimaryKeyResponse
+    selectStar: str
+    comment: str | None
+
+
 class TableMetadataOptionsResponseSchema(Schema):
     deferrable = fields.Bool()
     initially = fields.Bool()
@@ -1009,20 +1054,7 @@ class DelimitedListField(fields.List):
             ) from exc
 
 
-class CSVUploadPostSchema(Schema):
-    """
-    Schema for CSV Upload
-    """
-
-    file = fields.Raw(
-        required=True,
-        metadata={
-            "description": "The CSV file to upload",
-            "type": "string",
-            "format": "text/csv",
-        },
-    )
-    delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
+class BaseUploadPostSchema(Schema):
     already_exists = fields.String(
         load_default="fail",
         validate=OneOf(choices=("fail", "replace", "append")),
@@ -1030,14 +1062,6 @@ class CSVUploadPostSchema(Schema):
             "description": "What to do if the table already "
             "exists accepts: fail, replace, append"
         },
-    )
-    column_data_types = fields.String(
-        metadata={
-            "description": "A dictionary with column names and "
-            "their data types if you need to change "
-            "the defaults. Example: {'user_id':'int'}. "
-            "Check Python Pandas library for supported data types"
-        }
     )
     column_dates = DelimitedListField(
         fields.String(),
@@ -1061,11 +1085,6 @@ class CSVUploadPostSchema(Schema):
         metadata={
             "description": "Column to use as the row labels of the dataframe. "
             "Leave empty if no index column"
-        }
-    )
-    day_first = fields.Boolean(
-        metadata={
-            "description": "DD/MM format dates, international and European format"
         }
     )
     decimal_character = fields.String(
@@ -1093,12 +1112,6 @@ class CSVUploadPostSchema(Schema):
             "Warning: Hive database supports only a single value"
         },
     )
-    overwrite_duplicates = fields.Boolean(
-        metadata={
-            "description": "If duplicate columns are not overridden,"
-            "they will be presented as 'X.1, X.2 ...X.x'."
-        }
-    )
     rows_to_read = fields.Integer(
         metadata={
             "description": "Number of rows to read from the file. "
@@ -1108,22 +1121,51 @@ class CSVUploadPostSchema(Schema):
         validate=Range(min=1),
     )
     schema = fields.String(
-        metadata={"description": "The schema to upload the CSV file to."}
-    )
-    skip_blank_lines = fields.Boolean(
-        metadata={"description": "Skip blank lines in the CSV file."}
-    )
-    skip_initial_space = fields.Boolean(
-        metadata={"description": "Skip spaces after delimiter."}
-    )
-    skip_rows = fields.Integer(
-        metadata={"description": "Number of rows to skip at start of file."}
+        metadata={"description": "The schema to upload the data file to."}
     )
     table_name = fields.String(
         required=True,
         validate=[Length(min=1, max=10000)],
         allow_none=False,
         metadata={"description": "The name of the table to be created/appended"},
+    )
+    skip_rows = fields.Integer(
+        metadata={"description": "Number of rows to skip at start of file."}
+    )
+
+
+class CSVUploadPostSchema(BaseUploadPostSchema):
+    """
+    Schema for CSV Upload
+    """
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The CSV file to upload",
+            "type": "string",
+            "format": "text/csv",
+        },
+    )
+    delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
+    column_data_types = fields.String(
+        metadata={
+            "description": "A dictionary with column names and "
+            "their data types if you need to change "
+            "the defaults. Example: {'user_id':'int'}. "
+            "Check Python Pandas library for supported data types"
+        }
+    )
+    day_first = fields.Boolean(
+        metadata={
+            "description": "DD/MM format dates, international and European format"
+        }
+    )
+    skip_blank_lines = fields.Boolean(
+        metadata={"description": "Skip blank lines in the CSV file."}
+    )
+    skip_initial_space = fields.Boolean(
+        metadata={"description": "Skip spaces after delimiter."}
     )
 
     @post_load
@@ -1153,6 +1195,39 @@ class CSVUploadPostSchema(Schema):
     def validate_file_extension(self, file: FileStorage) -> None:
         allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"].intersection(
             current_app.config["CSV_EXTENSIONS"]
+        )
+        matches = re.match(r".+\.([^.]+)$", file.filename)
+        if not matches:
+            raise ValidationError([_("File extension is not allowed.")])
+        extension = matches.group(1)
+        if extension not in allowed_extensions:
+            raise ValidationError([_("File extension is not allowed.")])
+
+
+class ExcelUploadPostSchema(BaseUploadPostSchema):
+    """
+    Schema for Excel Upload
+    """
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The Excel file to upload",
+            "type": "string",
+            "format": "binary",
+        },
+    )
+    sheet_name = fields.String(
+        metadata={
+            "description": "Strings used for sheet names "
+            "(default is the first sheet)."
+        }
+    )
+
+    @validates("file")
+    def validate_file_extension(self, file: FileStorage) -> None:
+        allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"].intersection(
+            current_app.config["EXCEL_EXTENSIONS"]
         )
         matches = re.match(r".+\.([^.]+)$", file.filename)
         if not matches:
@@ -1195,3 +1270,27 @@ class OAuth2ProviderResponseSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         # Ignore unknown fields that might be sent by the OAuth2 provider
         unknown = EXCLUDE
+
+
+class QualifiedTableSchema(Schema):
+    """
+    Schema for a qualified table reference.
+
+    Catalog and schema can be ommited, to fallback to default values. Table name must be
+    present.
+    """
+
+    name = fields.String(
+        required=True,
+        metadata={"description": "The table name"},
+    )
+    schema = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "The table schema"},
+    )
+    catalog = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "The table catalog"},
+    )
