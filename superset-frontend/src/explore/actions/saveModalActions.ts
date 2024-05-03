@@ -29,9 +29,10 @@ import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
 import { Slice } from 'src/dashboard/types';
 import { Operators } from '../constants';
+import { buildV1ChartDataPayload } from '../exploreUtils';
 
 export interface PayloadSlice extends Slice {
-  params: Partial<QueryFormData>;
+  params: string;
   dashboards: number[];
   query_context: string;
 }
@@ -86,7 +87,7 @@ export const getSlicePayload = (
   sliceName: string,
   formDataWithNativeFilters: QueryFormData = {} as QueryFormData,
   dashboards: number[],
-  owners: { id: number }[] | undefined,
+  owners: [],
   formDataFromSlice: QueryFormData = {} as QueryFormData,
 ): Partial<PayloadSlice> => {
   const adhocFilters: Partial<QueryFormData> = extractAdhocFiltersFromFormData(
@@ -137,7 +138,6 @@ export const getSlicePayload = (
     ...adhocFilters,
     dashboards,
   };
-  const ownerObjects = (owners ?? []).map(owner => ({ id: owner.id }));
   let datasourceId = 0;
   let datasourceType: DatasourceType = DatasourceType.Table;
 
@@ -154,21 +154,23 @@ export const getSlicePayload = (
   }
 
   const payload: Partial<PayloadSlice> = {
-    params: formData,
+    params: JSON.stringify(formData),
     slice_name: sliceName,
     viz_type: formData.viz_type,
     datasource_id: datasourceId,
     datasource_type: datasourceType,
     dashboards,
-    owners: ownerObjects,
-    query_context: JSON.stringify({
-      formData,
-      force: false,
-      resultFormat: 'json',
-      resultType: 'full',
-      setDataMask: null,
-      ownState: null,
-    }),
+    owners,
+    query_context: JSON.stringify(
+      buildV1ChartDataPayload({
+        formData,
+        force: false,
+        resultFormat: 'json',
+        resultType: 'full',
+        setDataMask: null,
+        ownState: null,
+      }),
+    ),
   };
 
   return payload;
@@ -229,13 +231,8 @@ export const updateSlice =
     },
   ) =>
   async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
-    const {
-      slice_id: sliceId,
-      owners: ownerObjects,
-      form_data: formDataFromSlice,
-    } = slice;
+    const { slice_id: sliceId, owners, form_data: formDataFromSlice } = slice;
     const formData = getState().explore?.form_data;
-    const owners = (ownerObjects ?? []).map(owner => ({ id: owner.id }));
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
@@ -243,7 +240,7 @@ export const updateSlice =
           sliceName,
           formData,
           dashboards,
-          owners,
+          owners as [],
           formDataFromSlice,
         ),
       });
@@ -268,7 +265,6 @@ export const createSlice =
   ) =>
   async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
     const formData = getState().explore?.form_data;
-
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,

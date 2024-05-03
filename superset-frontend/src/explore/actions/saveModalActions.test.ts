@@ -39,8 +39,9 @@ const sliceName = 'New chart';
 const vizType = 'sample_viz_type';
 const datasourceId = 22;
 const datasourceType = DatasourceType.Table;
-const dashboards = [ 12, 13 ];
+const dashboards = [12, 13];
 const queryContext = { sampleKey: 'sampleValue' };
+const owners = [0];
 
 const formData: Partial<QueryFormData> = {
   viz_type: vizType,
@@ -108,7 +109,7 @@ test('updateSlice handles success', async () => {
   const slice = await updateSlice(
     {
       slice_id: sliceId,
-      owners: [ { id: 0 } ],
+      owners: owners as [],
       form_data: formData,
       slice_name: '',
       description: '',
@@ -132,12 +133,12 @@ test('updateSlice handles success', async () => {
   )(dispatch as Dispatch<any>, getState);
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
   expect(dispatchSpy.callCount).toBe(2);
-  expect(dispatchSpy.getCall(0).args[ 0 ].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(dispatchSpy.getCall(1).args[ 0 ].type).toBe('ADD_TOAST');
-  expect(dispatchSpy.getCall(1).args[ 0 ].payload.toastType).toBe(
+  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
+  expect(dispatchSpy.getCall(1).args[0].type).toBe('ADD_TOAST');
+  expect(dispatchSpy.getCall(1).args[0].payload.toastType).toBe(
     'SUCCESS_TOAST',
   );
-  expect(dispatchSpy.getCall(1).args[ 0 ].payload.text).toBe(
+  expect(dispatchSpy.getCall(1).args[0].payload.text).toBe(
     'Chart [New chart] has been overwritten',
   );
   expect(slice).toEqual(sliceResponsePayload);
@@ -188,7 +189,7 @@ test('updateSlice handles failure', async () => {
   expect(caughtError).toEqual(sampleError);
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(4);
   expect(dispatchSpy.callCount).toBe(1);
-  expect(dispatchSpy.getCall(0).args[ 0 ].type).toBe(SAVE_SLICE_FAILED);
+  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
 });
 
 /**
@@ -207,12 +208,12 @@ test('createSlice handles success', async () => {
   );
   expect(fetchMock.calls(createSliceEndpoint)).toHaveLength(1);
   expect(dispatchSpy.callCount).toBe(2);
-  expect(dispatchSpy.getCall(0).args[ 0 ].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(dispatchSpy.getCall(1).args[ 0 ].type).toBe(ADD_TOAST);
-  expect(dispatchSpy.getCall(1).args[ 0 ].payload.toastType).toBe(
+  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
+  expect(dispatchSpy.getCall(1).args[0].type).toBe(ADD_TOAST);
+  expect(dispatchSpy.getCall(1).args[0].payload.toastType).toBe(
     'SUCCESS_TOAST',
   );
-  expect(dispatchSpy.getCall(1).args[ 0 ].payload.text).toBe(
+  expect(dispatchSpy.getCall(1).args[0].payload.text).toBe(
     'Chart [New chart] has been saved',
   );
 
@@ -237,7 +238,7 @@ test('createSlice handles failure', async () => {
   expect(caughtError).toEqual(sampleError);
   expect(fetchMock.calls(createSliceEndpoint)).toHaveLength(4);
   expect(dispatchSpy.callCount).toBe(1);
-  expect(dispatchSpy.getCall(0).args[ 0 ].type).toBe(SAVE_SLICE_FAILED);
+  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
 });
 
 const dashboardName = 'New dashboard';
@@ -276,7 +277,7 @@ test('createDashboard handles failure', async () => {
   expect(caughtError).toEqual(sampleError);
   expect(fetchMock.calls(createDashboardEndpoint)).toHaveLength(4);
   expect(dispatch.callCount).toBe(1);
-  expect(dispatch.getCall(0).args[ 0 ].type).toBe(SAVE_SLICE_FAILED);
+  expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
 });
 
 test('updateSlice with add to new dashboard handles success', async () => {
@@ -323,19 +324,19 @@ test('updateSlice with add to new dashboard handles success', async () => {
 
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
   expect(dispatchSpy.callCount).toBe(3);
-  expect(dispatchSpy.getCall(0).args[ 0 ].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(dispatchSpy.getCall(1).args[ 0 ].type).toBe(ADD_TOAST);
-  expect(dispatchSpy.getCall(1).args[ 0 ].payload.toastType).toBe(
+  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
+  expect(dispatchSpy.getCall(1).args[0].type).toBe(ADD_TOAST);
+  expect(dispatchSpy.getCall(1).args[0].payload.toastType).toBe(
     'SUCCESS_TOAST',
   );
-  expect(dispatchSpy.getCall(1).args[ 0 ].payload.text).toBe(
+  expect(dispatchSpy.getCall(1).args[0].payload.text).toBe(
     'Chart [New chart] has been overwritten',
   );
-  expect(dispatchSpy.getCall(2).args[ 0 ].type).toBe(ADD_TOAST);
-  expect(dispatchSpy.getCall(2).args[ 0 ].payload.toastType).toBe(
+  expect(dispatchSpy.getCall(2).args[0].type).toBe(ADD_TOAST);
+  expect(dispatchSpy.getCall(2).args[0].payload.toastType).toBe(
     'SUCCESS_TOAST',
   );
-  expect(dispatchSpy.getCall(2).args[ 0 ].payload.text).toBe(
+  expect(dispatchSpy.getCall(2).args[0].payload.text).toBe(
     'Dashboard [New dashboard] just got created and chart [New chart] was added to it',
   );
 
@@ -385,19 +386,19 @@ test('updateSlice with add to existing dashboard handles success', async () => {
 
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
   expect(dispatchSpy.callCount).toBe(3);
-  expect(dispatchSpy.getCall(0).args[ 0 ].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(dispatchSpy.getCall(1).args[ 0 ].type).toBe(ADD_TOAST);
-  expect(dispatchSpy.getCall(1).args[ 0 ].payload.toastType).toBe(
+  expect(dispatchSpy.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
+  expect(dispatchSpy.getCall(1).args[0].type).toBe(ADD_TOAST);
+  expect(dispatchSpy.getCall(1).args[0].payload.toastType).toBe(
     'SUCCESS_TOAST',
   );
-  expect(dispatchSpy.getCall(1).args[ 0 ].payload.text).toBe(
+  expect(dispatchSpy.getCall(1).args[0].payload.text).toBe(
     'Chart [New chart] has been overwritten',
   );
-  expect(dispatchSpy.getCall(2).args[ 0 ].type).toBe(ADD_TOAST);
-  expect(dispatchSpy.getCall(2).args[ 0 ].payload.toastType).toBe(
+  expect(dispatchSpy.getCall(2).args[0].type).toBe(ADD_TOAST);
+  expect(dispatchSpy.getCall(2).args[0].payload.toastType).toBe(
     'SUCCESS_TOAST',
   );
-  expect(dispatchSpy.getCall(2).args[ 0 ].payload.text).toBe(
+  expect(dispatchSpy.getCall(2).args[0].payload.text).toBe(
     'Chart [New chart] was added to dashboard [New dashboard]',
   );
 
@@ -406,10 +407,10 @@ test('updateSlice with add to existing dashboard handles success', async () => {
 
 const dashboardSlicesResponsePayload = {
   result: {
-    dashboards: [ { id: 21 }, { id: 22 }, { id: 23 } ],
+    dashboards: [{ id: 21 }, { id: 22 }, { id: 23 }],
   },
 };
-const getDashboardSlicesReturnValue = [ 21, 22, 23 ];
+const getDashboardSlicesReturnValue = [21, 22, 23];
 /**
  * Tests getSliceDashboards action
  */
@@ -458,7 +459,7 @@ test('getSliceDashboards with slice handles failure', async () => {
   expect(caughtError).toEqual(sampleError);
   expect(fetchMock.calls(getSliceDashboardsEndpoint)).toHaveLength(4);
   expect(dispatch.callCount).toBe(1);
-  expect(dispatch.getCall(0).args[ 0 ].type).toBe(SAVE_SLICE_FAILED);
+  expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
 });
 
 describe('getSlicePayload', () => {
@@ -468,8 +469,8 @@ describe('getSlicePayload', () => {
     viz_type: 'pie',
     adhoc_filters: [],
   };
-  const dashboards = [ 5 ];
-  const owners = [ { id: 1 } ];
+  const dashboards = [5];
+  const owners = [0];
   const formDataFromSlice: QueryFormData = {
     datasource: `${datasourceId}__${datasourceType}`,
     viz_type: 'pie',
@@ -490,7 +491,7 @@ describe('getSlicePayload', () => {
       sliceName,
       formDataWithNativeFilters,
       dashboards,
-      owners,
+      owners as [],
       formDataFromSlice,
     );
     expect(result).toHaveProperty('params');
@@ -504,7 +505,7 @@ describe('getSlicePayload', () => {
     expect(result).toHaveProperty('dashboards', dashboards);
     expect(result).toHaveProperty('owners', owners);
     expect(result).toHaveProperty('query_context');
-    expect(result.params?.adhoc_filters).toEqual(
+    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
       formDataWithNativeFilters.adhoc_filters,
     );
   });
@@ -526,7 +527,7 @@ describe('getSlicePayload', () => {
       sliceName,
       formDataWithAdhocFilters,
       dashboards,
-      owners,
+      owners as [],
       formDataFromSlice,
     );
     expect(result).toHaveProperty('params');
@@ -540,7 +541,7 @@ describe('getSlicePayload', () => {
     expect(result).toHaveProperty('dashboards', dashboards);
     expect(result).toHaveProperty('owners', owners);
     expect(result).toHaveProperty('query_context');
-    expect(result.params?.adhoc_filters).toEqual(
+    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
       formDataWithAdhocFilters.adhoc_filters,
     );
   });
@@ -562,7 +563,7 @@ describe('getSlicePayload', () => {
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
-      owners,
+      owners as [],
       formDataFromSlice,
     );
     expect(result).toHaveProperty('params');
@@ -576,7 +577,7 @@ describe('getSlicePayload', () => {
     expect(result).toHaveProperty('dashboards', dashboards);
     expect(result).toHaveProperty('owners', owners);
     expect(result).toHaveProperty('query_context');
-    expect(result.params?.adhoc_filters).toEqual(
+    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
       formDataFromSlice.adhoc_filters,
     );
   });
@@ -622,14 +623,13 @@ describe('getSlicePayload', () => {
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
-      owners,
+      owners as [],
       formDataFromSliceWithAdhocFilterB,
     );
-
-    expect(result.params?.adhoc_filters).toEqual(
+    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
       formDataFromSliceWithAdhocFilterB.adhoc_filters,
     );
-    expect(result.params?.adhoc_filters_b).toEqual(
+    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
       formDataFromSliceWithAdhocFilterB.adhoc_filters_b,
     );
   });
