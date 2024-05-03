@@ -213,7 +213,7 @@
     "superset-plugin-chart-check-table": "^1.0.2",
     "superset-plugin-chart-column-slider": "^2.0.2",
     "superset-plugin-chart-dendogram": "^1.0.4",
-    "superset-plugin-chart-heat-tree": "^1.0.3",
+    "superset-plugin-chart-heat-tree": "^1.0.4",
     "superset-plugin-chart-info-panel": "^1.0.5",
     "superset-plugin-chart-line-slider": "^2.0.3",
     "superset-plugin-chart-liquid": "^0.1.5",
