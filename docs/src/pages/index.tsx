@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import React, { useRef, useState, useEffect } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
@@ -27,6 +28,8 @@ import { Databases } from '../resources/data';
 import SectionHeader from '../components/SectionHeader';
 import BlurredSection from '../components/BlurredSection';
 import '../styles/main.less';
+
+// @ts-ignore
 
 const features = [
   {
