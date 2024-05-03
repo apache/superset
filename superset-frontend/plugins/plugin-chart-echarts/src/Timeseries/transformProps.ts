@@ -576,7 +576,7 @@ export default function transformProps(
       right: TIMESERIES_CONSTANTS.toolboxRight,
       feature: {
         dataZoom: {
-          ...(stack ? { yAxisIndex: false } : {}), // disable Y-axis zoom for stacked charts
+          ...(stack ? { yAxisIndex: false } : {}), // disable y-axis zoom for stacked charts
           title: {
             zoom: t('zoom area'),
             back: t('restore zoom'),
