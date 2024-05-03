@@ -5,8 +5,9 @@
   "license": "Apache-2.0",
   "scripts": {
     "docusaurus": "docusaurus",
-    "start": "docusaurus start",
-    "build": "docusaurus build",
+    "_init": "cp ../README.md docs/intro.md",
+    "start": "npm run _init && docusaurus start",
+    "build": "npm run _init && docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",

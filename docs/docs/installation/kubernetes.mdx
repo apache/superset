@@ -5,12 +5,18 @@ sidebar_position: 1
 version: 1
 ---
 
-## Installing on Kubernetes
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
+# Installing on Kubernetes
+
+
+<img src={useBaseUrl("/img/k8s.png" )} width="150" />
+<br /><br />
 
 Running Superset on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart
 found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
 
-### Prerequisites
+## Prerequisites
 
 - A Kubernetes cluster
 - Helm installed
@@ -22,7 +28,7 @@ and works fantastically well with the Helm chart referenced here.
 :::
 
 
-### Running
+## Running
 
 1. Add the Superset helm repository
 
@@ -89,9 +95,9 @@ Depending how you configured external access, the URL will vary. Once you've ide
 - user: `admin`
 - password: `admin`
 
-### Important settings
+## Important settings
 
-#### Security settings
+### Security settings
 
 Default security settings and passwords are included but you **MUST** update them to run `prod` instances, in particular:
 
@@ -135,7 +141,7 @@ Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect t
 To opt-out of this data collection in your Helm-based installation, edit the `repository:` line in your `helm/superset/values.yaml` file, replacing `apachesuperset.docker.scarf.sh/apache/superset` with `apache/superset` to pull the image directly from Docker Hub.
 :::
 
-#### Dependencies
+### Dependencies
 
 Install additional packages and do any other bootstrap configuration in the bootstrap script.
 For production clusters it's recommended to build own image with this step done in CI.
@@ -161,7 +167,7 @@ bootstrapScript: |
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 ```
 
-#### superset_config.py
+### superset_config.py
 
 The default `superset_config.py` is fairly minimal and you will very likely need to extend it. This is done by specifying one or more key/value entries in `configOverrides`, e.g.:
 
@@ -181,7 +187,7 @@ The entire `superset_config.py` will be installed as a secret, so it is safe to 
 
 Full python files can be provided by running `helm upgrade --install --values my-values.yaml --set-file configOverrides.oauth=set_oauth.py`
 
-#### Environment Variables
+### Environment Variables
 
 Those can be passed as key/values either with `extraEnv` or `extraSecretEnv` if they're sensitive. They can then be referenced from `superset_config.py` using e.g. `os.environ.get("VAR")`.
 
@@ -206,7 +212,7 @@ configOverrides:
     SMTP_PASSWORD = os.getenv("SMTP_PASSWORD","superset")
 ```
 
-#### System packages
+### System packages
 
 If new system packages are required, they can be installed before application startup by overriding the container's `command`, e.g.:
 
@@ -225,7 +231,7 @@ supersetWorker:
       . {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker
 ```
 
-#### Data sources
+### Data sources
 
 Data source definitions can be automatically declared by providing key/value yaml definitions in `extraConfigs`:
 
@@ -246,9 +252,9 @@ extraConfigs:
 
 Those will also be mounted as secrets and can include sensitive parameters.
 
-### Configuration Examples
+## Configuration Examples
 
-#### Setting up OAuth
+### Setting up OAuth
 
 :::note
 
@@ -302,11 +308,11 @@ configOverrides:
     AUTH_USER_REGISTRATION_ROLE = "Admin"
 ```
 
-#### Enable Alerts and Reports
+### Enable Alerts and Reports
 
 For this, as per the [Alerts and Reports doc](/docs/configuration/alerts-reports), you will need to:
 
-##### Install a supported webdriver in the Celery worker
+#### Install a supported webdriver in the Celery worker
 
 This is done either by using a custom image that has the webdriver pre-installed, or installing at startup time by overriding the `command`. Here's a working example for `chromedriver`:
 
@@ -335,7 +341,7 @@ supersetWorker:
       . {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker
 ```
 
-##### Run the Celery beat
+#### Run the Celery beat
 
 This pod will trigger the scheduled tasks configured in the alerts and reports UI section:
 
@@ -344,7 +350,7 @@ supersetCeleryBeat:
   enabled: true
 ```
 
-##### Configure the appropriate Celery jobs and SMTP/Slack settings
+#### Configure the appropriate Celery jobs and SMTP/Slack settings
 
 ```yaml
 extraEnv:
@@ -428,7 +434,7 @@ configOverrides:
         "--disable-extensions",
     ]
 ```
-#### Load the Examples data and dashboards
+### Load the Examples data and dashboards
 If you are trying Superset out and want some data and dashboards to explore, you can load some examples by creating a `my_values.yaml` and deploying it as described above in the **Configure your setting overrides** step of the **Running** section.
 To load the examples, add the following to the `my_values.yaml` file:
 ```yaml

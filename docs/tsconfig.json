@@ -3,5 +3,11 @@
   "extends": "@tsconfig/docusaurus/tsconfig.json",
   "compilerOptions": {
     "baseUrl": "."
+  },
+  "jsx": "react-jsx",
+  "moduleResolution": "node",
+  "baseUrl": "./",
+  "paths": {
+    "*": ["src/*", "node_modules/*"]
   }
 }
