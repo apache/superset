@@ -34,11 +34,13 @@ under the License.
 
 <picture width="500">
   <source
+    width="600"
     media="(prefers-color-scheme: dark)"
     src="https://superset.apache.org/img/superset-logo-horiz-dark.svg"
     alt="Superset logo (dark)"
   />
   <img
+    width="600"
     src="https://superset.apache.org/img/superset-logo-horiz-apache.svg"
     alt="Superset logo (light)"
   />
@@ -102,7 +104,7 @@ Superset can query data from any SQL-speaking datastore or data engine (Presto, 
 Here are some of the major database solutions that are supported:
 
 <p align="center">
-  <img src="https://superset.apache.org/img/databases/amazon-redshift.png" alt="redshift" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/redshift.png" alt="redshift" border="0" width="200" height="80"/>
   <img src="https://superset.apache.org/img/databases/google-biquery.png" alt="google-biquery" border="0" width="200" height="80"/>
   <img src="https://superset.apache.org/img/databases/snowflake.png" alt="snowflake" border="0" width="200" height="80"/>
   <img src="https://superset.apache.org/img/databases/trino.png" alt="trino" border="0" width="200" height="80"/>
@@ -126,9 +128,9 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/clickhouse.png" alt="clickhouse" border="0" width="200" height="80" />
   <img src="https://superset.apache.org/img/databases/exasol.png" alt="exasol" border="0" width="200" height="80" />
   <img src="https://superset.apache.org/img/databases/monet-db.png" alt="monet-db" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/apache-kylin.png" alt="apache-kylin" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/hologres.png" alt="hologres" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/netezza.png" alt="netezza" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/apache-kylin.png" alt="apache-kylin" border="0" width="80"/>
+  <img src="https://superset.apache.org/img/databases/hologres.png" alt="hologres" border="0" width="80"/>
+  <img src="https://superset.apache.org/img/databases/netezza.png" alt="netezza" border="0" width="80"/>
   <img src="https://superset.apache.org/img/databases/pinot.png" alt="pinot" border="0" width="200" height="80"/>
   <img src="https://superset.apache.org/img/databases/teradata.png" alt="teradata" border="0" width="200" height="80"/>
   <img src="https://superset.apache.org/img/databases/yugabyte.png" alt="yugabyte" border="0" width="200" height="80"/>
