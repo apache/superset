@@ -16,8 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch
 import json
 
@@ -1294,8 +1293,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         with patch.dict(
             "superset.commands.report.base.current_app.config",
             {
-                "ALERT_MINIMUM_INTERVAL_MINUTES": 2,
-                "REPORT_MINIMUM_INTERVAL_MINUTES": 5,
+                "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=2).total_seconds()),
+                "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=5).total_seconds()),
             },
         ):
             uri = "api/v1/report/"
@@ -1341,8 +1340,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         with patch.dict(
             "superset.commands.report.base.current_app.config",
             {
-                "ALERT_MINIMUM_INTERVAL_MINUTES": 6,
-                "REPORT_MINIMUM_INTERVAL_MINUTES": 8,
+                "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=6).total_seconds()),
+                "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=8).total_seconds()),
             },
         ):
             uri = "api/v1/report/"
@@ -1391,8 +1390,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         with patch.dict(
             "superset.commands.report.base.current_app.config",
             {
-                "ALERT_MINIMUM_INTERVAL_MINUTES": 5,
-                "REPORT_MINIMUM_INTERVAL_MINUTES": 3,
+                "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=5).total_seconds()),
+                "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=3).total_seconds()),
             },
         ):
             # Test alert minimum interval
@@ -1433,8 +1432,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         with patch.dict(
             "superset.commands.report.base.current_app.config",
             {
-                "ALERT_MINIMUM_INTERVAL_MINUTES": 6,
-                "REPORT_MINIMUM_INTERVAL_MINUTES": 4,
+                "ALERT_MINIMUM_INTERVAL": int(timedelta(minutes=6).total_seconds()),
+                "REPORT_MINIMUM_INTERVAL": int(timedelta(minutes=4).total_seconds()),
             },
         ):
             # Exceed alert minimum interval

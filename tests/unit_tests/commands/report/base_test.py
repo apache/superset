@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from datetime import timedelta
 from functools import wraps
 from typing import Any, Callable
 from unittest.mock import patch
@@ -55,8 +56,8 @@ def app_custom_config(
     """
     Decorator to mock the current_app.config values dynamically for each test.
 
-    :param alert_minimum_interval: Minimum interval in minutes for alerts. Defaults to None.
-    :param report_minimum_interval: Minimum interval in minutes for reports. Defaults to None.
+    :param alert_minimum_interval: Minimum interval. Defaults to None.
+    :param report_minimum_interval: Minimum interval. Defaults to None.
 
     :returns: A decorator that wraps a function.
     """
@@ -67,10 +68,10 @@ def app_custom_config(
             with patch(
                 "superset.commands.report.base.current_app.config"
             ) as mock_config:
-                mock_config.get.side_effect = lambda key: {
-                    "ALERT_MINIMUM_INTERVAL_MINUTES": alert_minimum_interval,
-                    "REPORT_MINIMUM_INTERVAL_MINUTES": report_minimum_interval,
-                }.get(key)
+                mock_config.get.side_effect = lambda key, default=0: {
+                    "ALERT_MINIMUM_INTERVAL": alert_minimum_interval,
+                    "REPORT_MINIMUM_INTERVAL": report_minimum_interval,
+                }.get(key, default)
                 return func(*args, **kwargs)
 
         return wrapper
@@ -78,21 +79,24 @@ def app_custom_config(
     return decorator
 
 
+@pytest.mark.parametrize("report_type", REPORT_TYPES)
+@pytest.mark.parametrize("schedule", TEST_SCHEDULES)
 @app_custom_config()
-def test_validate_report_frequency() -> None:
+def test_validate_report_frequency(report_type: str, schedule: str) -> None:
     """
     Test the ``validate_report_frequency`` method when there's
     no minimum frequency configured.
     """
-    for report_type in REPORT_TYPES:
-        for schedule in TEST_SCHEDULES:
-            BaseReportScheduleCommand().validate_report_frequency(
-                schedule,
-                report_type,
-            )
+    BaseReportScheduleCommand().validate_report_frequency(
+        schedule,
+        report_type,
+    )
 
 
-@app_custom_config(alert_minimum_interval=4, report_minimum_interval=5)
+@app_custom_config(
+    alert_minimum_interval=int(timedelta(minutes=4).total_seconds()),
+    report_minimum_interval=int(timedelta(minutes=5).total_seconds()),
+)
 def test_validate_report_frequency_minimum_set() -> None:
     """
     Test the ``validate_report_frequency`` method when there's
@@ -109,7 +113,10 @@ def test_validate_report_frequency_minimum_set() -> None:
     )
 
 
-@app_custom_config(alert_minimum_interval=2, report_minimum_interval=5)
+@app_custom_config(
+    alert_minimum_interval=int(timedelta(minutes=2).total_seconds()),
+    report_minimum_interval=int(timedelta(minutes=5).total_seconds()),
+)
 def test_validate_report_frequency_invalid_schedule() -> None:
     """
     Test the ``validate_report_frequency`` method when the configured
@@ -128,64 +135,92 @@ def test_validate_report_frequency_invalid_schedule() -> None:
         )
 
 
-@app_custom_config(alert_minimum_interval=10)
-def test_validate_report_frequency_alert_only() -> None:
+@pytest.mark.parametrize("schedule", TEST_SCHEDULES)
+@app_custom_config(
+    alert_minimum_interval=int(timedelta(minutes=10).total_seconds()),
+)
+def test_validate_report_frequency_alert_only(schedule: str) -> None:
     """
     Test the ``validate_report_frequency`` method when there's
     only a configuration for alerts and user is creating report.
     """
-    for schedule in TEST_SCHEDULES:
-        BaseReportScheduleCommand().validate_report_frequency(
-            schedule,
-            ReportScheduleType.REPORT,
-        )
+    BaseReportScheduleCommand().validate_report_frequency(
+        schedule,
+        ReportScheduleType.REPORT,
+    )
 
 
-@app_custom_config(report_minimum_interval=10)
-def test_validate_report_frequency_report_only() -> None:
+@pytest.mark.parametrize("schedule", TEST_SCHEDULES)
+@app_custom_config(
+    report_minimum_interval=int(timedelta(minutes=10).total_seconds()),
+)
+def test_validate_report_frequency_report_only(schedule: str) -> None:
     """
     Test the ``validate_report_frequency`` method when there's
     only a configuration for reports and user is creating alert.
     """
-    for schedule in TEST_SCHEDULES:
-        BaseReportScheduleCommand().validate_report_frequency(
-            schedule,
-            ReportScheduleType.ALERT,
-        )
+    BaseReportScheduleCommand().validate_report_frequency(
+        schedule,
+        ReportScheduleType.ALERT,
+    )
 
 
-@app_custom_config(alert_minimum_interval=1, report_minimum_interval=1)
-def test_validate_report_frequency_accepts_every_minute_with_one() -> None:
+@pytest.mark.parametrize("report_type", REPORT_TYPES)
+@pytest.mark.parametrize("schedule", TEST_SCHEDULES)
+@app_custom_config(
+    alert_minimum_interval=int(timedelta(minutes=1).total_seconds()),
+    report_minimum_interval=int(timedelta(minutes=1).total_seconds()),
+)
+def test_validate_report_frequency_accepts_every_minute_with_one(
+    report_type: str, schedule: str
+) -> None:
     """
     Test the ``validate_report_frequency`` method when configuration
     is set to `1`. Validates the usage of `-` and `*` in the cron.
     """
-    for report_type in REPORT_TYPES:
-        for schedule in TEST_SCHEDULES:
-            BaseReportScheduleCommand().validate_report_frequency(
-                schedule,
-                report_type,
-            )
+    BaseReportScheduleCommand().validate_report_frequency(
+        schedule,
+        report_type,
+    )
 
 
-@app_custom_config(alert_minimum_interval=2, report_minimum_interval=2)
-def test_validate_report_frequency_accepts_every_minute_with_two() -> None:
+@pytest.mark.parametrize("report_type", REPORT_TYPES)
+@pytest.mark.parametrize("schedule", TEST_SCHEDULES_SINGLE_MINUTES)
+@app_custom_config(
+    alert_minimum_interval=int(timedelta(minutes=2).total_seconds()),
+    report_minimum_interval=int(timedelta(minutes=2).total_seconds()),
+)
+def test_validate_report_frequency_accepts_every_minute_with_two(
+    report_type: str,
+    schedule: str,
+) -> None:
+    """
+    Test the ``validate_report_frequency`` method when configuration
+    is set to `2`.
+    """
+    BaseReportScheduleCommand().validate_report_frequency(
+        schedule,
+        report_type,
+    )
+
+
+@pytest.mark.parametrize("report_type", REPORT_TYPES)
+@pytest.mark.parametrize("schedule", TEST_SCHEDULES_EVERY_MINUTE)
+@app_custom_config(
+    alert_minimum_interval=int(timedelta(minutes=2).total_seconds()),
+    report_minimum_interval=int(timedelta(minutes=2).total_seconds()),
+)
+def test_validate_report_frequency_accepts_every_minute_with_two_raises(
+    report_type: str,
+    schedule: str,
+) -> None:
     """
     Test the ``validate_report_frequency`` method when configuration
     is set to `2`. Validates the usage of `-` and `*` in the cron.
     """
-    for report_type in REPORT_TYPES:
-        # Should fail for schedules with `-` and `*`
-        for schedule in TEST_SCHEDULES_EVERY_MINUTE:
-            with pytest.raises(ReportScheduleFrequencyNotAllowed):
-                BaseReportScheduleCommand().validate_report_frequency(
-                    schedule,
-                    report_type,
-                )
-
-        # Should work for schedules with single with bigger intervals
-        for schedule in TEST_SCHEDULES_SINGLE_MINUTES:
-            BaseReportScheduleCommand().validate_report_frequency(
-                schedule,
-                report_type,
-            )
+    # Should fail for schedules with `-` and `*`
+    with pytest.raises(ReportScheduleFrequencyNotAllowed):
+        BaseReportScheduleCommand().validate_report_frequency(
+            schedule,
+            report_type,
+        )

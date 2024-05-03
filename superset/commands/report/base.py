@@ -17,6 +17,7 @@
 import logging
 from typing import Any
 
+from croniter import croniter
 from flask import current_app
 from marshmallow import ValidationError
 
@@ -92,29 +93,31 @@ class BaseReportScheduleCommand(BaseCommand):
         :param report_type: The report type (Alert/Report).
         """
         config_key = (
-            "ALERT_MINIMUM_INTERVAL_MINUTES"
+            "ALERT_MINIMUM_INTERVAL"
             if report_type == ReportScheduleType.ALERT
-            else "REPORT_MINIMUM_INTERVAL_MINUTES"
+            else "REPORT_MINIMUM_INTERVAL"
         )
-        minimum_interval = current_app.config.get(config_key)
-        if not minimum_interval or minimum_interval < 2:
+        minimum_interval = current_app.config.get(config_key, 0)
+
+        if not isinstance(minimum_interval, int):
+            logger.error(
+                "Invalid value for %s: %s", config_key, minimum_interval, exc_info=True
+            )
             return
 
-        minutes_interval = cron_schedule.split(" ")[0]
-        # Check if cron is set to every minute (*)
-        # or if it has an every-minute block (1-5)
-        if "-" in minutes_interval or minutes_interval == "*":
-            raise ReportScheduleFrequencyNotAllowed(report_type, minimum_interval)
+        # Since configuration is in minutes, we only need to validate
+        # in case `minimum_interval` is <= 120 (2min)
+        if minimum_interval < 120:
+            return
 
-        # Calculate minimum interval (in minutes)
-        minutes_list = minutes_interval.split(",")
-        if len(minutes_list) > 1:
-            scheduled_minutes = [int(min) for min in minutes_list]
-            scheduled_minutes.sort()
-            differences = [
-                scheduled_minutes[i] - scheduled_minutes[i - 1]
-                for i in range(1, len(scheduled_minutes))
-            ]
+        iterations = 60 if minimum_interval <= 3660 else 24
+        schedule = croniter(cron_schedule)
+        current_exec = next(schedule)
 
-            if min(differences) < minimum_interval:
-                raise ReportScheduleFrequencyNotAllowed(report_type, minimum_interval)
+        for _ in range(iterations):
+            next_exec = next(schedule)
+            diff, current_exec = next_exec - current_exec, next_exec
+            if int(diff) < minimum_interval:
+                raise ReportScheduleFrequencyNotAllowed(
+                    report_type=report_type, minimum_interval=minimum_interval
+                )

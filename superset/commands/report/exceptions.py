@@ -99,14 +99,23 @@ class ReportScheduleFrequencyNotAllowed(ValidationError):
     frequently than allowed
     """
 
-    def __init__(self, report_type: str, minimum_interval: str) -> None:
+    def __init__(
+        self,
+        report_type: str = "Report",
+        minimum_interval: int = 120,
+    ) -> None:
+        interval_in_minutes = (
+            minimum_interval / 60
+            if not minimum_interval % 60
+            else minimum_interval // 60 + 1
+        )
         super().__init__(
             _(
                 "%(report_type)s schedule frequency exceeding limit."
                 " Please configure a schedule with a minimum interval of"
-                " %(minimum_interval)s minutes per execution.",
+                " %(minimum_interval)d minutes per execution.",
                 report_type=report_type,
-                minimum_interval=minimum_interval,
+                minimum_interval=interval_in_minutes,
             ),
             field_name="crontab",
         )
