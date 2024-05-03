@@ -128,6 +128,10 @@ class TimeseriesChart(MigrateViz):
         ):
             self.data["bottom_margin"] = 30
 
+        left_margin = self.data.get("left_margin")
+        if self.data.get("y_axis_label") and (not left_margin or left_margin == "auto"):
+            self.data["left_margin"] = 30
+
         if (rolling_type := self.data.get("rolling_type")) and rolling_type != "None":
             self.data["rolling_type"] = rolling_type
 
