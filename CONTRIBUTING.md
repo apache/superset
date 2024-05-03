@@ -20,5 +20,5 @@ Contributions are welcome and are greatly appreciated! Every
 little bit helps, and credit will always be given.
 
 All matters related to contributions have moved to [this section of
-the official Superset documentation](https://superset.apache.org/docs/contributing/contributing/). Source for the documentation is
+the official Superset documentation](https://superset.apache.org/docs/contributing/). Source for the documentation is
 [located here](https://github.com/apache/superset/tree/master/docs/docs).
