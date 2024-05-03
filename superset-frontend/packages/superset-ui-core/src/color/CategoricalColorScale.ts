@@ -73,17 +73,40 @@ class CategoricalColorScale extends ExtensibleFunction {
     this.multiple = 0;
   }
 
+  removeSharedLabelColorFromRange(
+    sharedColorMap: Map<string, string>,
+    cleanedValue: string,
+  ) {
+    // make sure we don't overwrite the origin colors
+    const updatedRange = new Set(this.originColors);
+    // remove the color option from shared color
+    sharedColorMap.forEach((value: string, key: string) => {
+      if (key !== cleanedValue) {
+        updatedRange.delete(value);
+      }
+    });
+    // remove the color option from forced colors
+    Object.entries(this.parentForcedColors).forEach(([key, value]) => {
+      if (key !== cleanedValue) {
+        updatedRange.delete(value);
+      }
+    });
+    this.range(updatedRange.size > 0 ? [...updatedRange] : this.originColors);
+  }
+
   getColor(value?: string, sliceId?: number) {
     const cleanedValue = stringifyAndTrim(value);
     const sharedLabelColor = getSharedLabelColor();
+    const sharedColorMap = sharedLabelColor.getColorMap();
+    const sharedColor = sharedColorMap.get(cleanedValue);
 
     // priority: parentForcedColors > forcedColors > labelColors
     let color =
       this.parentForcedColors?.[cleanedValue] ||
       this.forcedColors?.[cleanedValue] ||
-      sharedLabelColor.getColorMap().get(cleanedValue);
+      sharedColor;
 
-    if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
+    if (isFeatureEnabled(FeatureFlag.UseAnalagousColors)) {
       const multiple = Math.floor(
         this.domain().length / this.originColors.length,
       );
@@ -96,7 +119,12 @@ class CategoricalColorScale extends ExtensibleFunction {
     const newColor = this.scale(cleanedValue);
     if (!color) {
       color = newColor;
+      if (isFeatureEnabled(FeatureFlag.AvoidColorsCollision)) {
+        this.removeSharedLabelColorFromRange(sharedColorMap, cleanedValue);
+        color = this.scale(cleanedValue);
+      }
     }
+
     sharedLabelColor.addSlice(cleanedValue, color, sliceId);
 
     return color;

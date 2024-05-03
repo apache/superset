@@ -38,17 +38,13 @@ const SqlAlchemyTab = ({
   testInProgress?: boolean;
   children?: ReactNode;
 }) => {
-  let fallbackDocsUrl;
-  let fallbackDisplayText;
-  if (SupersetText) {
-    fallbackDocsUrl =
-      SupersetText.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DOCS_URL;
-    fallbackDisplayText =
-      SupersetText.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DISPLAY_TEXT;
-  } else {
-    fallbackDocsUrl = 'https://docs.sqlalchemy.org/en/13/core/engines.html';
-    fallbackDisplayText = 'SQLAlchemy docs';
-  }
+  const fallbackDocsUrl =
+    SupersetText?.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DOCS_URL ||
+    'https://docs.sqlalchemy.org/en/13/core/engines.html';
+  const fallbackDisplayText =
+    SupersetText?.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DISPLAY_TEXT ||
+    'SQLAlchemy docs';
+
   return (
     <>
       <StyledInputContainer>
@@ -82,9 +78,10 @@ const SqlAlchemyTab = ({
             data-test="sqlalchemy-uri-input"
             value={db?.sqlalchemy_uri || ''}
             autoComplete="off"
-            placeholder={t(
-              'dialect+driver://username:password@host:port/database',
-            )}
+            placeholder={
+              db?.sqlalchemy_uri_placeholder ||
+              t('dialect+driver://username:password@host:port/database')
+            }
             onChange={onInputChange}
           />
         </div>

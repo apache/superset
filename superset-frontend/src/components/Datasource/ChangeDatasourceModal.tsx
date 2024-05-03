@@ -24,7 +24,12 @@ import React, {
   useCallback,
 } from 'react';
 import Alert from 'src/components/Alert';
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import {
+  SupersetClient,
+  t,
+  styled,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { ServerPagination, SortByType } from 'src/components/TableView/types';
 import StyledModal from 'src/components/Modal';
@@ -33,7 +38,6 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Loading from 'src/components/Loading';
 import { AntdInput } from 'src/components';
 import { Input } from 'src/components/Input';
@@ -173,10 +177,12 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
   const handleChangeConfirm = () => {
     SupersetClient.get({
-      endpoint: `/datasource/get/${confirmedDataset?.type}/${confirmedDataset?.id}/`,
+      endpoint: `/api/v1/dataset/${confirmedDataset?.id}`,
     })
       .then(({ json }) => {
-        onDatasourceSave(json);
+        // eslint-disable-next-line no-param-reassign
+        json.result.type = 'table';
+        onDatasourceSave(json.result);
         onChange(`${confirmedDataset?.id}__table`);
       })
       .catch(response => {

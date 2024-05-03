@@ -130,9 +130,7 @@ class ChartCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         )
 
 
-class ChartOwnedCreatedFavoredByMeFilter(
-    BaseFilter
-):  # pylint: disable=too-few-public-methods
+class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET chart that filters all charts the user
     owns, created, changed or favored.
@@ -160,7 +158,8 @@ class ChartOwnedCreatedFavoredByMeFilter(
                 Slice.id == FavStar.obj_id,
             ),
             isouter=True,
-        ).filter(  # pylint: disable=comparison-with-callable
+        ).filter(
+            # pylint: disable=comparison-with-callable
             or_(
                 Slice.id.in_(owner_ids_query),
                 Slice.created_by_fk == get_user_id(),

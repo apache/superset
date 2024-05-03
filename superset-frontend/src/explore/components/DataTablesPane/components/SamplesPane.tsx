@@ -48,6 +48,7 @@ export const SamplesPane = ({
   const [colnames, setColnames] = useState<string[]>([]);
   const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [rowcount, setRowCount] = useState<number>(0);
   const [responseError, setResponseError] = useState<string>('');
   const datasourceId = useMemo(
     () => `${datasource.id}__${datasource.type}`,
@@ -66,6 +67,7 @@ export const SamplesPane = ({
           setData(ensureIsArray(response.data));
           setColnames(ensureIsArray(response.colnames));
           setColtypes(ensureIsArray(response.coltypes));
+          setRowCount(response.rowcount);
           setResponseError('');
           cache.add(datasource);
           if (queryForce && actions) {
@@ -92,6 +94,8 @@ export const SamplesPane = ({
     data,
     datasourceId,
     isVisible,
+    {}, // moreConfig
+    true, // allowHTML
   );
   const filteredData = useFilteredTableData(filterText, data);
 
@@ -106,6 +110,7 @@ export const SamplesPane = ({
           data={filteredData}
           columnNames={colnames}
           columnTypes={coltypes}
+          rowcount={rowcount}
           datasourceId={datasourceId}
           onInputChange={input => setFilterText(input)}
           isLoading={isLoading}
@@ -126,6 +131,7 @@ export const SamplesPane = ({
         data={filteredData}
         columnNames={colnames}
         columnTypes={coltypes}
+        rowcount={rowcount}
         datasourceId={datasourceId}
         onInputChange={input => setFilterText(input)}
         isLoading={isLoading}

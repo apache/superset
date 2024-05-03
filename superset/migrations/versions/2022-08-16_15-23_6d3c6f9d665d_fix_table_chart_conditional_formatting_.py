@@ -21,6 +21,7 @@ Revises: ffa79af61a56
 Create Date: 2022-08-16 15:23:42.860038
 
 """
+
 import json
 
 from alembic import op
@@ -72,7 +73,6 @@ def upgrade():
                     new_conditional_formatting.append(formatter)
             params["conditional_formatting"] = new_conditional_formatting
             slc.params = json.dumps(params)
-            session.merge(slc)
             session.commit()
     session.close()
 

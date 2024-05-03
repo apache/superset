@@ -20,17 +20,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ensureIsArray,
-  FeatureFlag,
   GenericDataType,
   isAdhocMetricSimple,
-  isFeatureEnabled,
   isSavedMetric,
   Metric,
   QueryFormMetric,
   t,
   tn,
 } from '@superset-ui/core';
-import { ColumnMeta, withDndFallback } from '@superset-ui/chart-controls';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger';
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
@@ -42,7 +40,6 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import { AGGREGATES } from 'src/explore/constants';
-import MetricsControl from '../MetricControl/MetricsControl';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
@@ -108,7 +105,27 @@ const getOptionsForSavedMetrics = (
 type ValueType = Metric | AdhocMetric | QueryFormMetric;
 
 const DndMetricSelect = (props: any) => {
-  const { onChange, multi } = props;
+  const { onChange, multi, datasource, savedMetrics } = props;
+
+  const extra = useMemo<{ disallow_adhoc_metrics?: boolean }>(() => {
+    let extra = {};
+    if (datasource?.extra) {
+      try {
+        extra = JSON.parse(datasource.extra);
+      } catch {} // eslint-disable-line no-empty
+    }
+    return extra;
+  }, [datasource?.extra]);
+
+  const savedMetricSet = useMemo(
+    () =>
+      new Set(
+        (savedMetrics as savedMetricType[]).map(
+          ({ metric_name }) => metric_name,
+        ),
+      ),
+    [savedMetrics],
+  );
 
   const handleChange = useCallback(
     opts => {
@@ -151,11 +168,19 @@ const DndMetricSelect = (props: any) => {
 
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
+      if (
+        extra.disallow_adhoc_metrics &&
+        (item.type !== DndItemType.Metric ||
+          !savedMetricSet.has(item.value.metric_name))
+      ) {
+        return false;
+      }
+
       const isMetricAlreadyInValues =
         item.type === 'metric' ? value.includes(item.value.metric_name) : false;
       return !isMetricAlreadyInValues;
     },
-    [value],
+    [value, extra, savedMetricSet],
   );
 
   const onNewMetric = useCallback(
@@ -315,12 +340,12 @@ const DndMetricSelect = (props: any) => {
       const config: Partial<AdhocMetric> = {
         column: itemValue,
       };
-      if (itemValue.type_generic === GenericDataType.NUMERIC) {
+      if (itemValue.type_generic === GenericDataType.Numeric) {
         config.aggregate = AGGREGATES.SUM;
       } else if (
-        itemValue.type_generic === GenericDataType.STRING ||
-        itemValue.type_generic === GenericDataType.BOOLEAN ||
-        itemValue.type_generic === GenericDataType.TEMPORAL
+        itemValue.type_generic === GenericDataType.String ||
+        itemValue.type_generic === GenericDataType.Boolean ||
+        itemValue.type_generic === GenericDataType.Temporal
       ) {
         config.aggregate = AGGREGATES.COUNT_DISTINCT;
       }
@@ -329,17 +354,11 @@ const DndMetricSelect = (props: any) => {
     return new AdhocMetric({});
   }, [droppedItem]);
 
-  const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-    ? tn(
-        'Drop a column/metric here or click',
-        'Drop columns/metrics here or click',
-        multi ? 2 : 1,
-      )
-    : tn(
-        'Drop column or metric here',
-        'Drop columns or metrics here',
-        multi ? 2 : 1,
-      );
+  const ghostButtonText = tn(
+    'Drop a column/metric here or click',
+    'Drop columns/metrics here or click',
+    multi ? 2 : 1,
+  );
 
   return (
     <div className="metrics-select">
@@ -350,11 +369,7 @@ const DndMetricSelect = (props: any) => {
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={ghostButtonText}
         displayGhostButton={multi || value.length === 0}
-        onClickGhostButton={
-          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-            ? handleClickGhostButton
-            : undefined
-        }
+        onClickGhostButton={handleClickGhostButton}
         {...props}
       />
       <AdhocMetricPopoverTrigger
@@ -376,9 +391,4 @@ const DndMetricSelect = (props: any) => {
   );
 };
 
-const DndMetricSelectWithFallback = withDndFallback(
-  DndMetricSelect,
-  MetricsControl,
-);
-
-export { DndMetricSelectWithFallback as DndMetricSelect };
+export { DndMetricSelect };

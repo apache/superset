@@ -15,18 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask_babel import lazy_gettext as _
 
+from superset.utils.backports import StrEnum
 
-class SupersetErrorType(str, Enum):
+
+class SupersetErrorType(StrEnum):
     """
     Types of errors that can exist within Superset.
 
-    Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
-    and docs/src/pages/docs/Miscellaneous/issue_codes.mdx
+    Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
     """
 
     # Frontend errors
@@ -65,10 +65,15 @@ class SupersetErrorType(str, Enum):
     QUERY_SECURITY_ACCESS_ERROR = "QUERY_SECURITY_ACCESS_ERROR"
     MISSING_OWNERSHIP_ERROR = "MISSING_OWNERSHIP_ERROR"
     USER_ACTIVITY_SECURITY_ACCESS_ERROR = "USER_ACTIVITY_SECURITY_ACCESS_ERROR"
+    DASHBOARD_SECURITY_ACCESS_ERROR = "DASHBOARD_SECURITY_ACCESS_ERROR"
+    CHART_SECURITY_ACCESS_ERROR = "CHART_SECURITY_ACCESS_ERROR"
+    OAUTH2_REDIRECT = "OAUTH2_REDIRECT"
+    OAUTH2_REDIRECT_ERROR = "OAUTH2_REDIRECT_ERROR"
 
     # Other errors
     BACKEND_TIMEOUT_ERROR = "BACKEND_TIMEOUT_ERROR"
     DATABASE_NOT_FOUND_ERROR = "DATABASE_NOT_FOUND_ERROR"
+    TABLE_NOT_FOUND_ERROR = "TABLE_NOT_FOUND_ERROR"
 
     # Sql Lab errors
     MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
@@ -81,6 +86,7 @@ class SupersetErrorType(str, Enum):
     RESULTS_BACKEND_ERROR = "RESULTS_BACKEND_ERROR"
     ASYNC_WORKERS_ERROR = "ASYNC_WORKERS_ERROR"
     ADHOC_SUBQUERY_NOT_ALLOWED_ERROR = "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR"
+    INVALID_SQL_ERROR = "INVALID_SQL_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -89,6 +95,7 @@ class SupersetErrorType(str, Enum):
     # API errors
     INVALID_PAYLOAD_FORMAT_ERROR = "INVALID_PAYLOAD_FORMAT_ERROR"
     INVALID_PAYLOAD_SCHEMA_ERROR = "INVALID_PAYLOAD_SCHEMA_ERROR"
+    MARSHMALLOW_ERROR = "MARSHMALLOW_ERROR"
 
     # Report errors
     REPORT_NOTIFICATION_ERROR = "REPORT_NOTIFICATION_ERROR"
@@ -130,7 +137,7 @@ ISSUE_CODES = {
     1025: _("CVAS (create view as select) query is not a SELECT statement."),
     1026: _("Query is too complex and takes too long to run."),
     1027: _("The database is currently running too many queries."),
-    1028: _("One or more parameters specified in the query are malformatted."),
+    1028: _("One or more parameters specified in the query are malformed."),
     1029: _("The object does not exist in the given database."),
     1030: _("The query has a syntax error."),
     1031: _("The results backend no longer has the data from the query."),
@@ -143,6 +150,7 @@ ISSUE_CODES = {
     1035: _("Failed to start remote query on a worker."),
     1036: _("The database was deleted."),
     1037: _("Custom SQL fields cannot contain sub-queries."),
+    1040: _("The submitted payload failed validation."),
 }
 
 
@@ -172,6 +180,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR: [1020],
     SupersetErrorType.INVALID_CTAS_QUERY_ERROR: [1023],
     SupersetErrorType.INVALID_CVAS_QUERY_ERROR: [1024, 1025],
+    SupersetErrorType.INVALID_SQL_ERROR: [1003],
     SupersetErrorType.SQLLAB_TIMEOUT_ERROR: [1026, 1027],
     SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR: [1029],
     SupersetErrorType.SYNTAX_ERROR: [1030],
@@ -180,14 +189,15 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.ASYNC_WORKERS_ERROR: [1035],
     SupersetErrorType.DATABASE_NOT_FOUND_ERROR: [1011, 1036],
     SupersetErrorType.CONNECTION_DATABASE_TIMEOUT: [1001, 1009],
+    SupersetErrorType.MARSHMALLOW_ERROR: [1040],
 }
 
 
-class ErrorLevel(str, Enum):
+class ErrorLevel(StrEnum):
     """
     Levels of errors that can exist within Superset.
 
-    Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
+    Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
     """
 
     INFO = "info"
@@ -204,15 +214,14 @@ class SupersetError:
     message: str
     error_type: SupersetErrorType
     level: ErrorLevel
-    extra: Optional[Dict[str, Any]] = None
+    extra: Optional[dict[str, Any]] = None
 
     def __post_init__(self) -> None:
         """
         Mutates the extra params with user facing error codes that map to backend
         errors.
         """
-        issue_codes = ERROR_TYPES_TO_ISSUE_CODES_MAPPING.get(self.error_type)
-        if issue_codes:
+        if issue_codes := ERROR_TYPES_TO_ISSUE_CODES_MAPPING.get(self.error_type):
             self.extra = self.extra or {}
             self.extra.update(
                 {
@@ -228,7 +237,7 @@ class SupersetError:
                 }
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         rv = {"message": self.message, "error_type": self.error_type}
         if self.extra:
             rv["extra"] = self.extra  # type: ignore

@@ -218,6 +218,11 @@ const schemes = [
     isDiverging: false,
     colors: ['#f6EFA6', '#D88273', '#BF444C'],
   },
+  {
+    id: 'deck_gl_heatmap_gradient',
+    label: 'Deck.gl Heatmap Default',
+    colors: ['#bd0026', '#f03b20', '#fd8d3c', '#feb24c', '#fed976', '#ffffb2'],
+  },
 ].map(s => new SequentialScheme(s));
 
 export default schemes;

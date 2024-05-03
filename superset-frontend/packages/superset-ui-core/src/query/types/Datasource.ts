@@ -27,6 +27,11 @@ export enum DatasourceType {
   SavedQuery = 'saved_query',
 }
 
+export interface Currency {
+  symbol: string;
+  symbolPosition: string;
+}
+
 /**
  * Datasource metadata.
  */
@@ -40,6 +45,9 @@ export interface Datasource {
   // key is column names (labels)
   columnFormats?: {
     [key: string]: string;
+  };
+  currencyFormats?: {
+    [key: string]: Currency;
   };
   verboseMap?: {
     [key: string]: string;

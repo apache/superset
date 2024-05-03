@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import simplejson as json
 
@@ -28,15 +28,13 @@ from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from superset.models.sql_lab import Query
-    from superset.sqllab.sql_json_executer import SqlResults
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 
 class ExecutionContextConvertor:
     _max_row_in_display_configuration: int  # pylint: disable=invalid-name
     _exc_status: SqlJsonExecutionStatus
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
 
     def set_max_row_in_display(self, value: int) -> None:
         self._max_row_in_display_configuration = value  # pylint: disable=invalid-name
@@ -60,7 +58,6 @@ class ExecutionContextConvertor:
                 ),
                 default=utils.pessimistic_json_iso_dttm_ser,
                 ignore_nan=True,
-                encoding=None,
             )
 
         return json.dumps(

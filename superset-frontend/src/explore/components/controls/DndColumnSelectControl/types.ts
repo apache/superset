@@ -32,6 +32,7 @@ export interface OptionProps {
   isExtra?: boolean;
   datasourceWarningMessage?: string;
   canDelete?: boolean;
+  tooltipOverlay?: ReactNode;
 }
 
 export interface OptionItemInterface {
@@ -47,7 +48,6 @@ export type DndControlProps<ValueType extends JsonValue> =
     multi?: boolean;
     canDelete?: boolean;
     ghostButtonText?: string;
-    clickEnabledGhostButtonText?: string;
     onChange: (value: ValueType | ValueType[] | null | undefined) => void;
   };
 

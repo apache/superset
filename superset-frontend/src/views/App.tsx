@@ -40,7 +40,6 @@ import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
-import QueryProvider from './QueryProvider';
 
 setupApp();
 setupPlugins();
@@ -70,31 +69,29 @@ const LocationPathnameLogger = () => {
 };
 
 const App = () => (
-  <QueryProvider>
-    <Router>
-      <ScrollToTop />
-      <LocationPathnameLogger />
-      <RootContextProviders>
-        <GlobalStyles />
-        <Menu
-          data={bootstrapData.common.menu_data}
-          isFrontendRoute={isFrontendRoute}
-        />
-        <Switch>
-          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-            <Route path={path} key={path}>
-              <Suspense fallback={<Fallback />}>
-                <ErrorBoundary>
-                  <Component user={bootstrapData.user} {...props} />
-                </ErrorBoundary>
-              </Suspense>
-            </Route>
-          ))}
-        </Switch>
-        <ToastContainer />
-      </RootContextProviders>
-    </Router>
-  </QueryProvider>
+  <Router>
+    <ScrollToTop />
+    <LocationPathnameLogger />
+    <RootContextProviders>
+      <GlobalStyles />
+      <Menu
+        data={bootstrapData.common.menu_data}
+        isFrontendRoute={isFrontendRoute}
+      />
+      <Switch>
+        {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+          <Route path={path} key={path}>
+            <Suspense fallback={<Fallback />}>
+              <ErrorBoundary>
+                <Component user={bootstrapData.user} {...props} />
+              </ErrorBoundary>
+            </Suspense>
+          </Route>
+        ))}
+      </Switch>
+      <ToastContainer />
+    </RootContextProviders>
+  </Router>
 );
 
 export default hot(App);

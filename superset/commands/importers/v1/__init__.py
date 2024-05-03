@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
-from marshmallow import Schema, validate
+from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -26,12 +26,12 @@ from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.commands.importers.v1.utils import (
     load_configs,
     load_metadata,
-    load_yaml,
-    METADATA_FILE_NAME,
+    load_yaml,  # noqa: F401
+    METADATA_FILE_NAME,  # noqa: F401
     validate_metadata_type,
 )
-from superset.dao.base import BaseDAO
-from superset.models.core import Database
+from superset.daos.base import BaseDAO
+from superset.models.core import Database  # noqa: F401
 
 
 class ImportModelsCommand(BaseCommand):
@@ -40,33 +40,31 @@ class ImportModelsCommand(BaseCommand):
     dao = BaseDAO
     model_name = "model"
     prefix = ""
-    schemas: Dict[str, Schema] = {}
+    schemas: dict[str, Schema] = {}
     import_error = CommandException
 
     # pylint: disable=unused-argument
-    def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
+    def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
-        self.passwords: Dict[str, str] = kwargs.get("passwords") or {}
-        self.ssh_tunnel_passwords: Dict[str, str] = (
+        self.passwords: dict[str, str] = kwargs.get("passwords") or {}
+        self.ssh_tunnel_passwords: dict[str, str] = (
             kwargs.get("ssh_tunnel_passwords") or {}
         )
-        self.ssh_tunnel_private_keys: Dict[str, str] = (
+        self.ssh_tunnel_private_keys: dict[str, str] = (
             kwargs.get("ssh_tunnel_private_keys") or {}
         )
-        self.ssh_tunnel_priv_key_passwords: Dict[str, str] = (
+        self.ssh_tunnel_priv_key_passwords: dict[str, str] = (
             kwargs.get("ssh_tunnel_priv_key_passwords") or {}
         )
         self.overwrite: bool = kwargs.get("overwrite", False)
-        self._configs: Dict[str, Any] = {}
+        self._configs: dict[str, Any] = {}
 
     @staticmethod
-    def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
-    ) -> None:
+    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
         raise NotImplementedError("Subclasses MUST implement _import")
 
     @classmethod
-    def _get_uuids(cls) -> Set[str]:
+    def _get_uuids(cls) -> set[str]:
         return {str(model.uuid) for model in db.session.query(cls.dao.model_cls).all()}
 
     def run(self) -> None:
@@ -74,7 +72,7 @@ class ImportModelsCommand(BaseCommand):
 
         # rollback to prevent partial imports
         try:
-            self._import(db.session, self._configs, self.overwrite)
+            self._import(self._configs, self.overwrite)
             db.session.commit()
         except CommandException as ex:
             db.session.rollback()
@@ -83,12 +81,12 @@ class ImportModelsCommand(BaseCommand):
             db.session.rollback()
             raise self.import_error() from ex
 
-    def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+    def validate(self) -> None:  # noqa: F811
+        exceptions: list[ValidationError] = []
 
         # verify that the metadata file is present and valid
         try:
-            metadata: Optional[Dict[str, str]] = load_metadata(self.contents)
+            metadata: Optional[dict[str, str]] = load_metadata(self.contents)
         except ValidationError as exc:
             exceptions.append(exc)
             metadata = None
@@ -108,12 +106,13 @@ class ImportModelsCommand(BaseCommand):
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
-            exception = CommandInvalidError(f"Error importing {self.model_name}")
-            exception.add_list(exceptions)
-            raise exception
+            raise CommandInvalidError(
+                f"Error importing {self.model_name}",
+                exceptions,
+            )
 
     def _prevent_overwrite_existing_model(  # pylint: disable=invalid-name
-        self, exceptions: List[ValidationError]
+        self, exceptions: list[ValidationError]
     ) -> None:
         """check if the object exists and shouldn't be overwritten"""
         if not self.overwrite:

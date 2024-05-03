@@ -22,13 +22,25 @@
 # A README is automatically generated from this file to document it, using helm-docs (see https://github.com/norwoodj/helm-docs)
 # To update it, install helm-docs and run helm-docs from the root of this chart
 
+# -- Provide a name to override the name of the chart
+nameOverride: ~
+# -- Provide a name to override the full names of resources
+fullnameOverride: ~
+
 # -- User ID directive. This user must have enough permissions to run the bootstrap script
 # Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
 runAsUser: 0
 
-# serviceAccountName: superset
+# -- Specify rather or not helm should create the secret described in `secret-env.yaml` template
+secretEnv:
+  # -- Change to false in order to support externally created secret (Binami "Sealed Secrets" for Kubernetes or External Secrets Operator)
+  # note: when externally creating the secret, the chart still expects to pull values from a secret with the name of the release defaults to `release-name-superset-env` - full logic located in _helpers.tpl file: `define "superset.fullname"`
+  create: true
+
+# -- Specify service account name to be used
+serviceAccountName: ~
 serviceAccount:
-  # -- Create custom service account for Superset. If create: true and name is not provided, `superset.fullname` will be used.
+  # -- Create custom service account for Superset. If create: true and serviceAccountName is not provided, `superset.fullname` will be used.
   create: false
   annotations: {}
 
@@ -87,6 +99,8 @@ extraSecretEnv: {}
   # # Google API Keys: https://console.cloud.google.com/apis/credentials
   # GOOGLE_KEY: ...
   # GOOGLE_SECRET: ...
+  #   # Generate your own secret key for encryption. Use openssl rand -base64 42 to generate a good key
+  #  SUPERSET_SECRET_KEY: 'CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET'
 
 # -- Extra files to mount on `/app/pythonpath`
 extraConfigs: {}
@@ -157,8 +171,8 @@ configOverrides: {}
   #   # The default user self registration role
   #   AUTH_USER_REGISTRATION_ROLE = "Admin"
   # secret: |
-  #   # Generate your own secret key for encryption. Use openssl rand -base64 42 to generate a good key
-  #   SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+  #   # Generate your own secret key for encryption. Use `openssl rand -base64 42` to generate a good key
+  #   SECRET_KEY = 'CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET'
 
 # -- Same as above but the values are files
 configOverridesFiles: {}
@@ -170,31 +184,30 @@ configMountPath: "/app/pythonpath"
 extraConfigMountPath: "/app/configs"
 
 image:
-  repository: apache/superset
-  tag: ""
+  repository: apachesuperset.docker.scarf.sh/apache/superset
+  tag: ~
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 
 initImage:
-  repository: jwilder/dockerize
-  tag: latest
+  repository: apache/superset
+  tag: dockerize
   pullPolicy: IfNotPresent
 
 service:
   type: ClusterIP
   port: 8088
-  annotations:
-    {}
+  annotations: {}
     # cloud.google.com/load-balancer-type: "Internal"
-  loadBalancerIP: null
+  loadBalancerIP: ~
   nodePort:
     # -- (int)
     http: nil
 
 ingress:
   enabled: false
-  # ingressClassName: nginx
+  ingressClassName: ~
   annotations: {}
     # kubernetes.io/tls-acme: "true"
     ## Extend timeout to allow long running queries.
@@ -235,6 +248,21 @@ hostAliases: []
 # Superset node configuration
 supersetNode:
   replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetNode pods
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
+
   # -- Startup command
   # @default -- See `values.yaml`
   command:
@@ -243,11 +271,19 @@ supersetNode:
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/run-server.sh"
   connections:
     # -- Change in case of bringing your own redis and then also set redis.enabled:false
-    redis_host: '{{ template "superset.fullname" . }}-redis-headless'
-    # redis_password: superset
+    redis_host: '{{ .Release.Name }}-redis-headless'
     redis_port: "6379"
+    redis_user: ""
+    # redis_password: superset
+    redis_cache_db: "1"
+    redis_celery_db: "0"
+    # Or SSL port is usually 6380
+    # Update following for using Redis with SSL
+    redis_ssl:
+      enabled: false
+      ssl_cert_reqs: CERT_NONE
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
-    db_host: '{{ template "superset.fullname" . }}-postgresql'
+    db_host: '{{ .Release.Name }}-postgresql'
     db_port: "5432"
     db_user: superset
     db_pass: superset
@@ -329,6 +365,20 @@ supersetNode:
 # Superset Celery worker configuration
 supersetWorker:
   replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWorker pods
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   # -- Worker startup command
   # @default -- a `celery worker` command
   command:
@@ -356,6 +406,10 @@ supersetWorker:
   deploymentAnnotations: {}
   # -- Labels to be added to supersetWorker deployment
   deploymentLabels: {}
+  # -- Affinity to be added to supersetWorker deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetWorker deployments
+  topologySpreadConstraints: []
   # -- Annotations to be added to supersetWorker pods
   podAnnotations: {}
   # -- Labels to be added to supersetWorker pods
@@ -397,6 +451,14 @@ supersetWorker:
 supersetCeleryBeat:
   # -- This is only required if you intend to use alerts and reports
   enabled: false
+  # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryBeat pods
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   # -- Command
   # @default -- a `celery beat` command
   command:
@@ -418,6 +480,8 @@ supersetCeleryBeat:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+  # -- Launch additional containers into supersetCeleryBeat pods
+  extraContainers: []
   # -- Annotations to be added to supersetCeleryBeat deployment
   deploymentAnnotations: {}
   # -- Affinity to be added to supersetCeleryBeat deployment
@@ -445,6 +509,14 @@ supersetCeleryFlower:
   # flower>=1.0.0 requires Celery 5+ which Superset 1.5 does not support
   enabled: false
   replicaCount: 1
+  # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryFlower pods
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   # -- Command
   # @default -- a `celery flower` command
   command:
@@ -454,6 +526,7 @@ supersetCeleryFlower:
   service:
     type: ClusterIP
     annotations: {}
+    loadBalancerIP: ~
     port: 5555
     nodePort:
       # -- (int)
@@ -498,6 +571,8 @@ supersetCeleryFlower:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+  # -- Launch additional containers into supersetCeleryFlower pods
+  extraContainers: []
   # -- Annotations to be added to supersetCeleryFlower deployment
   deploymentAnnotations: {}
   # -- Affinity to be added to supersetCeleryFlower deployment
@@ -524,6 +599,14 @@ supersetWebsockets:
   # see https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
   enabled: false
   replicaCount: 1
+  # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWebsockets pods
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   ingress:
     path: /ws
     pathType: Prefix
@@ -557,12 +640,15 @@ supersetWebsockets:
   service:
     type: ClusterIP
     annotations: {}
+    loadBalancerIP: ~
     port: 8080
     nodePort:
       # -- (int)
       http: nil
   command: []
   resources: {}
+  # -- Launch additional containers into supersetWebsockets pods
+  extraContainers: []
   deploymentAnnotations: {}
   # -- Affinity to be added to supersetWebsockets deployment
   affinity: {}
@@ -621,7 +707,9 @@ init:
     - "-c"
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
   enabled: true
-  helmHook: true
+  jobAnnotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": "before-hook-creation"
   loadExamples: false
   createAdmin: true
   adminUser:
@@ -644,7 +732,7 @@ init:
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -timeout 120s
   # -- A Superset init script
-  # @default -- a script to create admin user and initailize roles
+  # @default -- a script to create admin user and initialize roles
   initscript: |-
     #!/bin/sh
     set -eu
@@ -670,6 +758,8 @@ init:
       echo "Importing database connections.... "
       superset import_datasources -p {{ .Values.extraConfigMountPath }}/import_datasources.yaml
     fi
+  # -- Launch additional containers into init job pod
+  extraContainers: []
   ## Annotations to be added to init job pods
   podAnnotations: {}
   podSecurityContext: {}
@@ -682,7 +772,7 @@ init:
   topologySpreadConstraints: []
 
 # -- Configuration values for the postgresql dependency.
-# ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
+# ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql
 # @default -- see `values.yaml`
 postgresql:
   ##

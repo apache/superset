@@ -297,5 +297,6 @@ export default function transformProps(
     selectedValues,
     onContextMenu,
     refs,
+    coltypeMapping,
   };
 }

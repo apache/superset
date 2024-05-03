@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { createRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React, { createRef, useMemo } from 'react';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import shortid from 'shortid';
-import Alert from 'src/components/Alert';
 import Tabs from 'src/components/Tabs';
-import { EmptyStateMedium } from 'src/components/EmptyState';
-import { FeatureFlag, styled, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
 import { setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
-import { isFeatureEnabled } from 'src/featureFlags';
 
 import Label from 'src/components/Label';
 import { SqlLabRootState } from 'src/SqlLab/types';
@@ -34,11 +31,11 @@ import ResultSet from '../ResultSet';
 import {
   STATUS_OPTIONS,
   STATE_TYPE_MAP,
-  LOCALSTORAGE_MAX_QUERY_AGE_MS,
   STATUS_OPTIONS_LOCALIZED,
 } from '../../constants';
+import Results from './Results';
 
-const TAB_HEIGHT = 140;
+const TAB_HEIGHT = 130;
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -71,8 +68,6 @@ const StyledPane = styled.div<StyledPaneProps>`
     }
   }
   .ant-tabs-tabpane {
-    display: flex;
-    flex-direction: column;
     .scrollable {
       overflow-y: auto;
     }
@@ -88,18 +83,6 @@ const StyledPane = styled.div<StyledPaneProps>`
   }
 `;
 
-const EXTRA_HEIGHT_RESULTS = 24; // we need extra height in RESULTS tab. because the height from props was calculated based on PREVIEW tab.
-const StyledEmptyStateWrapper = styled.div`
-  height: 100%;
-  .ant-empty-image img {
-    margin-right: 28px;
-  }
-
-  p {
-    margin-right: 28px;
-  }
-`;
-
 const SouthPane = ({
   queryEditorId,
   latestQueryId,
@@ -108,121 +91,43 @@ const SouthPane = ({
   defaultQueryLimit,
 }: SouthPaneProps) => {
   const dispatch = useDispatch();
-
-  const { editorQueries, dataPreviewQueries, databases, offline, user } =
-    useSelector(({ sqlLab }: SqlLabRootState) => {
-      const { databases, offline, user, queries, tables } = sqlLab;
-      const dataPreviewQueries = tables
-        .filter(
-          ({ dataPreviewQueryId, queryEditorId: qeId }) =>
-            dataPreviewQueryId &&
-            queryEditorId === qeId &&
-            queries[dataPreviewQueryId],
-        )
-        .map(({ name, dataPreviewQueryId }) => ({
-          ...queries[dataPreviewQueryId],
-          tableName: name,
-        }));
-      const editorQueries = Object.values(queries).filter(
-        ({ sqlEditorId }) => sqlEditorId === queryEditorId,
-      );
-      return {
-        editorQueries,
-        dataPreviewQueries,
-        databases,
-        offline: offline ?? false,
-        user,
-      };
-    });
-
+  const { offline, tables } = useSelector(
+    ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
+      offline,
+      tables,
+    }),
+    shallowEqual,
+  );
+  const queries = useSelector(
+    ({ sqlLab: { queries } }: SqlLabRootState) => Object.keys(queries),
+    shallowEqual,
+  );
   const activeSouthPaneTab =
     useSelector<SqlLabRootState, string>(
       state => state.sqlLab.activeSouthPaneTab as string,
     ) ?? 'Results';
+
+  const querySet = useMemo(() => new Set(queries), [queries]);
+  const dataPreviewQueries = useMemo(
+    () =>
+      tables.filter(
+        ({ dataPreviewQueryId, queryEditorId: qeId }) =>
+          dataPreviewQueryId &&
+          queryEditorId === qeId &&
+          querySet.has(dataPreviewQueryId),
+      ),
+    [queryEditorId, tables, querySet],
+  );
   const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = createRef<HTMLDivElement>();
   const switchTab = (id: string) => {
     dispatch(setActiveSouthPaneTab(id));
   };
-  const renderOfflineStatus = () => (
+
+  return offline ? (
     <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
       {STATUS_OPTIONS_LOCALIZED.offline}
     </Label>
-  );
-
-  const renderResults = () => {
-    let latestQuery;
-    if (editorQueries.length > 0) {
-      // get the latest query
-      latestQuery = editorQueries.find(({ id }) => id === latestQueryId);
-    }
-    let results;
-    if (latestQuery) {
-      if (latestQuery?.extra?.errors) {
-        latestQuery.errors = latestQuery.extra.errors;
-      }
-      if (
-        isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
-        latestQuery.state === 'success' &&
-        !latestQuery.resultsKey &&
-        !latestQuery.results
-      ) {
-        results = (
-          <Alert
-            type="warning"
-            message={t(
-              'No stored results found, you need to re-run your query',
-            )}
-          />
-        );
-        return results;
-      }
-      if (Date.now() - latestQuery.startDttm <= LOCALSTORAGE_MAX_QUERY_AGE_MS) {
-        results = (
-          <ResultSet
-            search
-            query={latestQuery}
-            user={user}
-            height={innerTabContentHeight + EXTRA_HEIGHT_RESULTS}
-            database={databases[latestQuery.dbId]}
-            displayLimit={displayLimit}
-            defaultQueryLimit={defaultQueryLimit}
-          />
-        );
-      }
-    } else {
-      results = (
-        <StyledEmptyStateWrapper>
-          <EmptyStateMedium
-            title={t('Run a query to display results')}
-            image="document.svg"
-          />
-        </StyledEmptyStateWrapper>
-      );
-    }
-    return results;
-  };
-
-  const renderDataPreviewTabs = () =>
-    dataPreviewQueries.map(query => (
-      <Tabs.TabPane
-        tab={t('Preview: `%s`', decodeURIComponent(query.tableName))}
-        key={query.id}
-      >
-        <ResultSet
-          query={query}
-          visualize={false}
-          csv={false}
-          cache
-          user={user}
-          height={innerTabContentHeight}
-          displayLimit={displayLimit}
-          defaultQueryLimit={defaultQueryLimit}
-        />
-      </Tabs.TabPane>
-    ));
-  return offline ? (
-    renderOfflineStatus()
   ) : (
     <StyledPane
       data-test="south-pane"
@@ -239,16 +144,39 @@ const SouthPane = ({
         animated={false}
       >
         <Tabs.TabPane tab={t('Results')} key="Results">
-          {renderResults()}
+          <Results
+            height={innerTabContentHeight}
+            latestQueryId={latestQueryId}
+            displayLimit={displayLimit}
+            defaultQueryLimit={defaultQueryLimit}
+          />
         </Tabs.TabPane>
         <Tabs.TabPane tab={t('Query history')} key="History">
           <QueryHistory
-            queries={editorQueries}
+            queryEditorId={queryEditorId}
             displayLimit={displayLimit}
             latestQueryId={latestQueryId}
           />
         </Tabs.TabPane>
-        {renderDataPreviewTabs()}
+        {dataPreviewQueries.map(
+          ({ name, dataPreviewQueryId }) =>
+            dataPreviewQueryId && (
+              <Tabs.TabPane
+                tab={t('Preview: `%s`', decodeURIComponent(name))}
+                key={dataPreviewQueryId}
+              >
+                <ResultSet
+                  queryId={dataPreviewQueryId}
+                  visualize={false}
+                  csv={false}
+                  cache
+                  height={innerTabContentHeight}
+                  displayLimit={displayLimit}
+                  defaultQueryLimit={defaultQueryLimit}
+                />
+              </Tabs.TabPane>
+            ),
+        )}
       </Tabs>
     </StyledPane>
   );

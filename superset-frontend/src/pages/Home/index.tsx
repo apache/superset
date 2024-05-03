@@ -18,6 +18,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  isFeatureEnabled,
   FeatureFlag,
   getExtensionsRegistry,
   JsonObject,
@@ -45,12 +46,11 @@ import {
   loadingCardCount,
   mq,
 } from 'src/views/CRUD/utils';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { AntdSwitch } from 'src/components';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { TableTab } from 'src/views/CRUD/types';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { canUserAccessSqlLab } from 'src/dashboard/util/permissionUtils';
+import { userHasPermission } from 'src/dashboard/util/permissionUtils';
 import { WelcomePageLastTab } from 'src/features/home/types';
 import ActivityTable from 'src/features/home/ActivityTable';
 import ChartTable from 'src/features/home/ChartTable';
@@ -156,15 +156,15 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 );
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
-  const canAccessSqlLab = canUserAccessSqlLab(user);
+  const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read');
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
   const params = rison.encode({ page_size: 6 });
-  const recent = `/api/v1/log/recent_activity/${user.userId}/?q=${params}`;
+  const recent = `/api/v1/log/recent_activity/?q=${params}`;
   const [activeChild, setActiveChild] = useState('Loading');
   const userKey = dangerouslyGetItemDoNotUse(id, null);
   let defaultChecked = false;
-  const isThumbnailsEnabled = isFeatureEnabled(FeatureFlag.THUMBNAILS);
+  const isThumbnailsEnabled = isFeatureEnabled(FeatureFlag.Thumbnails);
   if (isThumbnailsEnabled) {
     defaultChecked =
       userKey?.thumbnails === undefined ? true : userKey?.thumbnails;
@@ -178,14 +178,15 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   );
   const [isFetchingActivityData, setIsFetchingActivityData] = useState(true);
 
-  const collapseState = getItem(LocalStorageKeys.homepage_collapse_state, []);
+  const collapseState = getItem(LocalStorageKeys.HomepageCollapseState, []);
   const [activeState, setActiveState] = useState<Array<string>>(collapseState);
 
   const handleCollapse = (state: Array<string>) => {
     setActiveState(state);
-    setItem(LocalStorageKeys.homepage_collapse_state, state);
+    setItem(LocalStorageKeys.HomepageCollapseState, state);
   };
 
+  const SubmenuExtension = extensionsRegistry.get('home.submenu');
   const WelcomeMessageExtension = extensionsRegistry.get('welcome.message');
   const WelcomeTopExtension = extensionsRegistry.get('welcome.banner');
   const WelcomeMainExtension = extensionsRegistry.get(
@@ -220,7 +221,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     if (!otherTabFilters) {
       return;
     }
-    const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
+    const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
     getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {
@@ -281,7 +282,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           addDangerToast(t('There was an issue fetching your chart: %s', err));
           return Promise.resolve();
         }),
-      canAccessSqlLab
+      canReadSavedQueries
         ? getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
             .then(r => {
               setQueryData(r);
@@ -352,7 +353,11 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   return (
     <>
-      <SubMenu {...menuData} />
+      {SubmenuExtension ? (
+        <SubmenuExtension {...menuData} />
+      ) : (
+        <SubMenu {...menuData} />
+      )}
       <WelcomeContainer>
         {WelcomeMessageExtension && <WelcomeMessageExtension />}
         {WelcomeTopExtension && <WelcomeTopExtension />}
@@ -410,7 +415,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   />
                 )}
               </Collapse.Panel>
-              {canAccessSqlLab && (
+              {canReadSavedQueries && (
                 <Collapse.Panel header={t('Saved queries')} key="4">
                   {!queryData ? (
                     <LoadingCards cover={checked} />

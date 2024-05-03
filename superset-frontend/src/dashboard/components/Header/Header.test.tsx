@@ -73,7 +73,6 @@ const createProps = () => ({
   fetchFaveStar: jest.fn(),
   fetchCharts: jest.fn(),
   onRefresh: jest.fn(),
-  fetchUISpecificReport: jest.fn(),
   saveFaveStar: jest.fn(),
   savePublished: jest.fn(),
   isPublished: false,
@@ -96,6 +95,7 @@ const createProps = () => ({
   maxUndoHistoryToast: jest.fn(),
   dashboardInfoChanged: jest.fn(),
   dashboardTitleChanged: jest.fn(),
+  showMenuDropdown: true,
 });
 const props = createProps();
 const editableProps = {

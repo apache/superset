@@ -89,8 +89,7 @@ export default class AdhocMetric {
   }
 
   getDefaultLabel() {
-    const label = this.translateToSql({ useVerboseName: true });
-    return label.length < 43 ? label : `${label.substring(0, 40)}...`;
+    return this.translateToSql({ useVerboseName: true });
   }
 
   translateToSql(
@@ -103,8 +102,8 @@ export default class AdhocMetric {
         params.useVerboseName && this.column?.verbose_name
           ? `(${this.column.verbose_name})`
           : this.column?.column_name
-          ? `(${this.column.column_name})`
-          : '';
+            ? `(${this.column.column_name})`
+            : '';
       // transform from `count_distinct(column)` to `count(distinct column)`
       if (
         params.transformCountDistinct &&

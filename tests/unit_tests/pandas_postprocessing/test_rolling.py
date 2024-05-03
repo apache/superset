@@ -107,7 +107,7 @@ def test_rolling():
         )
 
 
-def test_rolling_should_empty_df():
+def test_rolling_min_periods_trims_correctly():
     pivot_df = pp.pivot(
         df=single_metric_df,
         index=["dttm"],
@@ -121,7 +121,7 @@ def test_rolling_should_empty_df():
         min_periods=2,
         columns={"sum_metric": "sum_metric"},
     )
-    assert rolling_df.empty is True
+    assert len(rolling_df) == 1
 
 
 def test_rolling_after_pivot_with_single_metric():
@@ -149,21 +149,21 @@ def test_rolling_after_pivot_with_single_metric():
                sum_metric
     country            UK    US
     dttm
-    2019-01-01        5.0   6.0
-    2019-01-02       12.0  14.0
+    2019-01-01          5     6
+    2019-01-02         12    14
     """
     flat_df = pp.flatten(rolling_df)
     """
             dttm  sum_metric, UK  sum_metric, US
-    0 2019-01-01             5.0             6.0
-    1 2019-01-02            12.0            14.0
+    0 2019-01-01               5               6
+    1 2019-01-02              12              14
     """
     assert flat_df.equals(
         pd.DataFrame(
             data={
                 "dttm": pd.to_datetime(["2019-01-01", "2019-01-02"]),
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5.0, 12.0],
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6.0, 14.0],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5, 12],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6, 14],
             }
         )
     )
@@ -200,23 +200,23 @@ def test_rolling_after_pivot_with_multiple_metrics():
                count_metric      sum_metric
     country              UK   US         UK    US
     dttm
-    2019-01-01          1.0  2.0        5.0   6.0
-    2019-01-02          4.0  6.0       12.0  14.0
+    2019-01-01            1    2          5     6
+    2019-01-02            4    6         12    14
     """
     flat_df = pp.flatten(rolling_df)
     """
             dttm  count_metric, UK  count_metric, US  sum_metric, UK  sum_metric, US
-    0 2019-01-01               1.0               2.0             5.0             6.0
-    1 2019-01-02               4.0               6.0            12.0            14.0
+    0 2019-01-01                 1                 2               5               6
+    1 2019-01-02                 4                 6              12              14
     """
     assert flat_df.equals(
         pd.DataFrame(
             data={
                 "dttm": pd.to_datetime(["2019-01-01", "2019-01-02"]),
-                FLAT_COLUMN_SEPARATOR.join(["count_metric", "UK"]): [1.0, 4.0],
-                FLAT_COLUMN_SEPARATOR.join(["count_metric", "US"]): [2.0, 6.0],
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5.0, 12.0],
-                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6.0, 14.0],
+                FLAT_COLUMN_SEPARATOR.join(["count_metric", "UK"]): [1, 4],
+                FLAT_COLUMN_SEPARATOR.join(["count_metric", "US"]): [2, 6],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5, 12],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6, 14],
             }
         )
     )

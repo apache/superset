@@ -14,16 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import re
-from typing import Any, Dict, Optional, Pattern, Tuple
+from re import Pattern
+from typing import Any
 
+import pandas as pd
 from flask_babel import gettext as __
+from sqlalchemy.types import NVARCHAR
 
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
+from superset.models.core import Database
 from superset.models.sql_lab import Query
+from superset.sql_parse import Table
 
 logger = logging.getLogger()
 
@@ -50,7 +57,7 @@ CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
 )
 
 
-class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
+class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "redshift"
     engine_name = "Amazon Redshift"
     max_column_name_length = 127
@@ -62,7 +69,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
 
     encryption_parameters = {"sslmode": "verify-ca"}
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
@@ -96,6 +103,42 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         ),
     }
 
+    @classmethod
+    def df_to_sql(
+        cls,
+        database: Database,
+        table: Table,
+        df: pd.DataFrame,
+        to_sql_kwargs: dict[str, Any],
+    ) -> None:
+        """
+        Upload data from a Pandas DataFrame to a database.
+
+        For regular engines this calls the `pandas.DataFrame.to_sql` method.
+        Overrides the base class to allow for pandas string types to be
+        used as nvarchar(max) columns, as redshift does not support
+        text data types.
+
+        Note this method does not create metadata for the table.
+
+        :param database: The database to upload the data to
+        :param table: The table to upload the data to
+        :param df: The dataframe with data to be uploaded
+        :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
+        """
+        to_sql_kwargs = to_sql_kwargs or {}
+        to_sql_kwargs["dtype"] = {
+            # uses the max size for redshift nvarchar(65335)
+            # the default object and string types create a varchar(256)
+            col_name: NVARCHAR(length=65535)
+            for col_name, type in zip(df.columns, df.dtypes)
+            if isinstance(type, pd.StringDtype)
+        }
+
+        super().df_to_sql(
+            df=df, database=database, table=table, to_sql_kwargs=to_sql_kwargs
+        )
+
     @staticmethod
     def _mutate_label(label: str) -> str:
         """
@@ -107,7 +150,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         return label.lower()
 
     @classmethod
-    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> str | None:
         """
         Get Redshift PID that will be used to cancel all other running
         queries in the same session.

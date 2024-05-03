@@ -22,7 +22,7 @@ import { ChartType } from '../models/ChartPlugin';
 
 class ChartComponentRegistry extends Registry<ChartType> {
   constructor() {
-    super({ name: 'ChartComponent', overwritePolicy: OverwritePolicy.WARN });
+    super({ name: 'ChartComponent', overwritePolicy: OverwritePolicy.Warn });
   }
 }
 

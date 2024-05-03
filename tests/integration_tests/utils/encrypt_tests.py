@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from sqlalchemy import String, TypeDecorator
 from sqlalchemy_utils import EncryptedType
@@ -28,9 +28,9 @@ from tests.integration_tests.base_tests import SupersetTestCase
 class CustomEncFieldAdapter(AbstractEncryptedFieldAdapter):
     def create(
         self,
-        app_config: Optional[Dict[str, Any]],
-        *args: List[Any],
-        **kwargs: Optional[Dict[str, Any]]
+        app_config: Optional[dict[str, Any]],
+        *args: list[Any],
+        **kwargs: Optional[dict[str, Any]],
     ) -> TypeDecorator:
         if app_config:
             return StringEncryptedType(*args, app_config["SECRET_KEY"], **kwargs)
@@ -40,9 +40,9 @@ class CustomEncFieldAdapter(AbstractEncryptedFieldAdapter):
 
 class EncryptedFieldTest(SupersetTestCase):
     def setUp(self) -> None:
-        self.app.config[
-            "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
-        ] = SQLAlchemyUtilsAdapter
+        self.app.config["SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"] = (
+            SQLAlchemyUtilsAdapter
+        )
         encrypted_field_factory.init_app(self.app)
 
         super().setUp()
@@ -53,9 +53,9 @@ class EncryptedFieldTest(SupersetTestCase):
         self.assertEqual(self.app.config["SECRET_KEY"], field.key)
 
     def test_custom_adapter(self):
-        self.app.config[
-            "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
-        ] = CustomEncFieldAdapter
+        self.app.config["SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"] = (
+            CustomEncFieldAdapter
+        )
         encrypted_field_factory.init_app(self.app)
         field = encrypted_field_factory.create(String(1024))
         self.assertTrue(isinstance(field, StringEncryptedType))

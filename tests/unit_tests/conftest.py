@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=redefined-outer-name, import-outside-toplevel
-
+import functools
 import importlib
 import os
 import unittest.mock
-from typing import Any, Callable, Iterator
+from collections.abc import Iterator
+from typing import Any, Callable
+from unittest.mock import patch
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -32,14 +34,14 @@ from superset import security_manager
 from superset.app import SupersetApp
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object_factory import QueryObjectFactory
-from superset.extensions import appbuilder
+from superset.extensions import appbuilder, feature_flag_manager
 from superset.initialization import SupersetAppInitializer
 
 
 @pytest.fixture
 def get_session(mocker: MockFixture) -> Callable[[], Session]:
     """
-    Create an in-memory SQLite session to test models.
+    Create an in-memory SQLite db.session.to test models.
     """
     engine = create_engine("sqlite://")
 
@@ -47,7 +49,7 @@ def get_session(mocker: MockFixture) -> Callable[[], Session]:
         Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name
         in_memory_session = Session_()
 
-        # flask calls session.remove()
+        # flask calls db.session.remove()
         in_memory_session.remove = lambda: None
 
         # patch session
@@ -85,8 +87,18 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     app.config["WTF_CSRF_ENABLED"] = False
     app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
     app.config["TESTING"] = True
+    app.config["RATELIMIT_ENABLED"] = False
 
     # loop over extra configs passed in by tests
+    # and update the app config
+    # to override the default configs use:
+    #
+    # @pytest.mark.parametrize(
+    #     "app",
+    #     [{"SOME_CONFIG": "SOME_VALUE"}],
+    #     indirect=True,
+    # )
+    # def test_some_test(app_context: None) -> None:
     if request and hasattr(request, "param"):
         for key, val in request.param.items():
             app.config[key] = val
@@ -135,6 +147,7 @@ def full_api_access(mocker: MockFixture) -> Iterator[None]:
         "flask_appbuilder.security.decorators.verify_jwt_in_request",
         return_value=True,
     )
+    mocker.patch.object(security_manager, "is_item_public", return_value=True)
     mocker.patch.object(security_manager, "has_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_all_databases", return_value=True)
 
@@ -161,5 +174,39 @@ def dummy_query_object(request, app_context):
             "ROW_LIMIT": 100,
         },
         _datasource_dao=unittest.mock.Mock(),
-        session_maker=unittest.mock.Mock(),
     ).create(parent_result_type=result_type, **query_object)
+
+
+def with_feature_flags(**mock_feature_flags):
+    """
+    Use this decorator to mock feature flags in tests.integration_tests.
+
+    Usage:
+
+        class TestYourFeature(SupersetTestCase):
+
+            @with_feature_flags(YOUR_FEATURE=True)
+            def test_your_feature_enabled(self):
+                self.assertEqual(is_feature_enabled("YOUR_FEATURE"), True)
+
+            @with_feature_flags(YOUR_FEATURE=False)
+            def test_your_feature_disabled(self):
+                self.assertEqual(is_feature_enabled("YOUR_FEATURE"), False)
+    """
+
+    def mock_get_feature_flags():
+        feature_flags = feature_flag_manager._feature_flags or {}
+        return {**feature_flags, **mock_feature_flags}
+
+    def decorate(test_fn):
+        def wrapper(*args, **kwargs):
+            with patch.object(
+                feature_flag_manager,
+                "get_feature_flags",
+                side_effect=mock_get_feature_flags,
+            ):
+                test_fn(*args, **kwargs)
+
+        return functools.update_wrapper(wrapper, test_fn)
+
+    return decorate

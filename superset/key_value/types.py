@@ -14,31 +14,93 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
+import json
+import pickle
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
-from typing import Optional, TypedDict
+from typing import Any, TypedDict
 from uuid import UUID
+
+from marshmallow import Schema, ValidationError
+
+from superset.key_value.exceptions import (
+    KeyValueCodecDecodeException,
+    KeyValueCodecEncodeException,
+)
+from superset.utils.backports import StrEnum
 
 
 @dataclass
 class Key:
-    id: Optional[int]
-    uuid: Optional[UUID]
+    id: int | None
+    uuid: UUID | None
 
 
 class KeyValueFilter(TypedDict, total=False):
     resource: str
-    id: Optional[int]
-    uuid: Optional[UUID]
+    id: int | None
+    uuid: UUID | None
 
 
-class KeyValueResource(str, Enum):
+class KeyValueResource(StrEnum):
     APP = "app"
     DASHBOARD_PERMALINK = "dashboard_permalink"
     EXPLORE_PERMALINK = "explore_permalink"
     METASTORE_CACHE = "superset_metastore_cache"
+    LOCK = "lock"
 
 
-class SharedKey(str, Enum):
+class SharedKey(StrEnum):
     DASHBOARD_PERMALINK_SALT = "dashboard_permalink_salt"
     EXPLORE_PERMALINK_SALT = "explore_permalink_salt"
+
+
+class KeyValueCodec(ABC):
+    @abstractmethod
+    def encode(self, value: Any) -> bytes: ...
+
+    @abstractmethod
+    def decode(self, value: bytes) -> Any: ...
+
+
+class JsonKeyValueCodec(KeyValueCodec):
+    def encode(self, value: dict[Any, Any]) -> bytes:
+        try:
+            return bytes(json.dumps(value), encoding="utf-8")
+        except TypeError as ex:
+            raise KeyValueCodecEncodeException(str(ex)) from ex
+
+    def decode(self, value: bytes) -> dict[Any, Any]:
+        try:
+            return json.loads(value)
+        except TypeError as ex:
+            raise KeyValueCodecDecodeException(str(ex)) from ex
+
+
+class PickleKeyValueCodec(KeyValueCodec):
+    def encode(self, value: dict[Any, Any]) -> bytes:
+        return pickle.dumps(value)
+
+    def decode(self, value: bytes) -> dict[Any, Any]:
+        return pickle.loads(value)
+
+
+class MarshmallowKeyValueCodec(JsonKeyValueCodec):
+    def __init__(self, schema: Schema):
+        self.schema = schema
+
+    def encode(self, value: dict[Any, Any]) -> bytes:
+        try:
+            obj = self.schema.dump(value)
+            return super().encode(obj)
+        except ValidationError as ex:
+            raise KeyValueCodecEncodeException(message=str(ex)) from ex
+
+    def decode(self, value: bytes) -> dict[Any, Any]:
+        try:
+            obj = super().decode(value)
+            return self.schema.load(obj)
+        except ValidationError as ex:
+            raise KeyValueCodecEncodeException(message=str(ex)) from ex

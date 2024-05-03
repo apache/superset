@@ -24,10 +24,12 @@ import {
   css,
   ContextMenuFilters,
 } from '@superset-ui/core';
+import { Dataset } from '../types';
 
 interface DrillByChartProps {
   formData: BaseFormData & { [key: string]: any };
   result: QueryData[];
+  dataset: Dataset;
   onContextMenu: (
     offsetX: number,
     offsetY: number,
@@ -39,6 +41,7 @@ interface DrillByChartProps {
 export default function DrillByChart({
   formData,
   result,
+  dataset,
   onContextMenu,
   inContextMenu,
 }: DrillByChartProps) {
@@ -49,12 +52,15 @@ export default function DrillByChart({
       css={css`
         width: 100%;
         height: 100%;
+        min-height: 0;
       `}
+      data-test="drill-by-chart"
     >
       <SuperChart
         disableErrorBoundary
         chartType={formData.viz_type}
         enableNoResults
+        datasource={dataset}
         formData={formData}
         queriesData={result}
         hooks={hooks}

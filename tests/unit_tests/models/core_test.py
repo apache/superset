@@ -16,11 +16,16 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
+import json
+from datetime import datetime
 
-from typing import List, Optional
-
+import pytest
 from pytest_mock import MockFixture
 from sqlalchemy.engine.reflection import Inspector
+
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.models.core import Database
+from superset.sql_parse import Table
 
 
 def test_get_metrics(mocker: MockFixture) -> None:
@@ -32,7 +37,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
     from superset.models.core import Database
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    assert database.get_metrics("table") == [
+    assert database.get_metrics(Table("table")) == [
         {
             "expression": "COUNT(*)",
             "metric_name": "count",
@@ -47,9 +52,8 @@ def test_get_metrics(mocker: MockFixture) -> None:
             cls,
             database: Database,
             inspector: Inspector,
-            table_name: str,
-            schema: Optional[str],
-        ) -> List[MetricType]:
+            table: Table,
+        ) -> list[MetricType]:
             return [
                 {
                     "expression": "COUNT(DISTINCT user_id)",
@@ -60,7 +64,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
             ]
 
     database.get_db_engine_spec = mocker.MagicMock(return_value=CustomSqliteEngineSpec)
-    assert database.get_metrics("table") == [
+    assert database.get_metrics(Table("table")) == [
         {
             "expression": "COUNT(DISTINCT user_id)",
             "metric_name": "count_distinct_user_id",
@@ -143,3 +147,85 @@ def test_get_db_engine_spec(mocker: MockFixture) -> None:
         ).db_engine_spec
         == OldDBEngineSpec
     )
+
+
+@pytest.mark.parametrize(
+    "dttm,col,database,result",
+    [
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(python_date_format="epoch_s"),
+            Database(),
+            "1672536225",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(python_date_format="epoch_ms"),
+            Database(),
+            "1672536225000",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(python_date_format="%Y-%m-%d"),
+            Database(),
+            "'2023-01-01'",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(column_name="ds"),
+            Database(
+                extra=json.dumps(
+                    {
+                        "python_date_format_by_column_name": {
+                            "ds": "%Y-%m-%d",
+                        },
+                    },
+                ),
+                sqlalchemy_uri="foo://",
+            ),
+            "'2023-01-01'",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(),
+            Database(sqlalchemy_uri="foo://"),
+            "'2023-01-01 01:23:45.600000'",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(type="TimeStamp"),
+            Database(sqlalchemy_uri="trino://"),
+            "TIMESTAMP '2023-01-01 01:23:45.600000'",
+        ),
+    ],
+)
+def test_dttm_sql_literal(
+    dttm: datetime,
+    col: TableColumn,
+    database: Database,
+    result: str,
+) -> None:
+    assert SqlaTable(database=database).dttm_sql_literal(dttm, col) == result
+
+
+def test_table_column_database() -> None:
+    database = Database(database_name="db")
+    assert TableColumn(database=database).database is database
+
+
+def test_get_prequeries(mocker: MockFixture) -> None:
+    """
+    Tests for ``get_prequeries``.
+    """
+    mocker.patch.object(
+        Database,
+        "get_sqla_engine",
+    )
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = ["set a=1", "set b=2"]
+
+    database = Database(database_name="db")
+    with database.get_raw_connection() as conn:
+        conn.cursor().execute.assert_has_calls(
+            [mocker.call("set a=1"), mocker.call("set b=2")]
+        )

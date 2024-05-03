@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import userEvent from '@testing-library/user-event';
-import { FeatureFlag } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -29,6 +28,8 @@ import {
 import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import { AGGREGATES } from 'src/explore/constants';
 import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
+import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
+import { DndItemType } from '../../DndItemType';
 
 const defaultProps = {
   savedMetrics: [
@@ -68,22 +69,18 @@ const adhocMetricB = {
   optionName: 'def',
 };
 
-beforeAll(() => {
-  window.featureFlags = { [FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP]: true };
-});
-
-afterAll(() => {
-  window.featureFlags = {};
-});
-
 test('renders with default props', () => {
   render(<DndMetricSelect {...defaultProps} />, { useDnd: true });
-  expect(screen.getByText('Drop column or metric here')).toBeInTheDocument();
+  expect(
+    screen.getByText('Drop a column/metric here or click'),
+  ).toBeInTheDocument();
 });
 
 test('renders with default props and multi = true', () => {
   render(<DndMetricSelect {...defaultProps} multi />, { useDnd: true });
-  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
+  expect(
+    screen.getByText('Drop columns/metrics here or click'),
+  ).toBeInTheDocument();
 });
 
 test('render selected metrics correctly', () => {
@@ -159,7 +156,7 @@ test('remove selected custom metric when metric gets removed from dataset for si
 
   expect(screen.getByText('Metric B')).toBeVisible();
   expect(
-    screen.queryByText('Drop column or metric here'),
+    screen.queryByText('Drop a column/metric here or click'),
   ).not.toBeInTheDocument();
 
   const newPropsWithRemovedMetric = {
@@ -182,7 +179,7 @@ test('remove selected custom metric when metric gets removed from dataset for si
   );
 
   expect(screen.queryByText('Metric B')).not.toBeInTheDocument();
-  expect(screen.getByText('Drop column or metric here')).toBeVisible();
+  expect(screen.getByText('Drop a column/metric here or click')).toBeVisible();
 });
 
 test('remove selected adhoc metric when column gets removed from dataset', async () => {
@@ -310,6 +307,125 @@ test('can drag metrics', async () => {
 
   expect(within(firstMetric).getByText('SUM(Column B)')).toBeVisible();
   expect(within(lastMetric).getByText('metric_a')).toBeVisible();
+});
+
+test('cannot drop a duplicated item', () => {
+  const metricValues = ['metric_a'];
+  const { getByTestId } = render(
+    <>
+      <DatasourcePanelDragOption
+        value={{ metric_name: 'metric_a' }}
+        type={DndItemType.Metric}
+      />
+      <DndMetricSelect {...defaultProps} value={metricValues} multi />
+    </>,
+    {
+      useDnd: true,
+    },
+  );
+
+  const acceptableMetric = getByTestId('DatasourcePanelDragOption');
+  const currentMetric = getByTestId('dnd-labels-container');
+
+  const currentMetricSelection = currentMetric.children.length;
+
+  fireEvent.dragStart(acceptableMetric);
+  fireEvent.dragOver(currentMetric);
+  fireEvent.drop(currentMetric);
+
+  expect(currentMetric.children).toHaveLength(currentMetricSelection);
+  expect(currentMetric).toHaveTextContent('metric_a');
+});
+
+test('can drop a saved metric when disallow_adhoc_metrics', () => {
+  const metricValues = ['metric_b'];
+  const { getByTestId } = render(
+    <>
+      <DatasourcePanelDragOption
+        value={{ metric_name: 'metric_a' }}
+        type={DndItemType.Metric}
+      />
+      <DndMetricSelect
+        {...defaultProps}
+        value={metricValues}
+        multi
+        datasource={{ extra: '{ "disallow_adhoc_metrics": true }' }}
+      />
+    </>,
+    {
+      useDnd: true,
+    },
+  );
+
+  const acceptableMetric = getByTestId('DatasourcePanelDragOption');
+  const currentMetric = getByTestId('dnd-labels-container');
+
+  const currentMetricSelection = currentMetric.children.length;
+
+  fireEvent.dragStart(acceptableMetric);
+  fireEvent.dragOver(currentMetric);
+  fireEvent.drop(currentMetric);
+
+  expect(currentMetric.children).toHaveLength(currentMetricSelection + 1);
+  expect(currentMetric.children[1]).toHaveTextContent('metric_a');
+});
+
+test('cannot drop non-saved metrics when disallow_adhoc_metrics', () => {
+  const metricValues = ['metric_b'];
+  const { getByTestId, getAllByTestId } = render(
+    <>
+      <DatasourcePanelDragOption
+        value={{ metric_name: 'metric_a' }}
+        type={DndItemType.Metric}
+      />
+      <DatasourcePanelDragOption
+        value={{ metric_name: 'metric_c' }}
+        type={DndItemType.Metric}
+      />
+      <DatasourcePanelDragOption
+        value={{ column_name: 'column_1' }}
+        type={DndItemType.Column}
+      />
+      <DndMetricSelect
+        {...defaultProps}
+        value={metricValues}
+        multi
+        datasource={{ extra: '{ "disallow_adhoc_metrics": true }' }}
+      />
+    </>,
+    {
+      useDnd: true,
+    },
+  );
+
+  const selections = getAllByTestId('DatasourcePanelDragOption');
+  const acceptableMetric = selections[0];
+  const unacceptableMetric = selections[1];
+  const unacceptableType = selections[2];
+  const currentMetric = getByTestId('dnd-labels-container');
+
+  const currentMetricSelection = currentMetric.children.length;
+
+  fireEvent.dragStart(unacceptableMetric);
+  fireEvent.dragOver(currentMetric);
+  fireEvent.drop(currentMetric);
+
+  expect(currentMetric.children).toHaveLength(currentMetricSelection);
+  expect(currentMetric).not.toHaveTextContent('metric_c');
+
+  fireEvent.dragStart(unacceptableType);
+  fireEvent.dragOver(currentMetric);
+  fireEvent.drop(currentMetric);
+
+  expect(currentMetric.children).toHaveLength(currentMetricSelection);
+  expect(currentMetric).not.toHaveTextContent('column_1');
+
+  fireEvent.dragStart(acceptableMetric);
+  fireEvent.dragOver(currentMetric);
+  fireEvent.drop(currentMetric);
+
+  expect(currentMetric.children).toHaveLength(currentMetricSelection + 1);
+  expect(currentMetric).toHaveTextContent('metric_a');
 });
 
 test('title changes on custom SQL text change', async () => {

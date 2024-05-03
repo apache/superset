@@ -27,9 +27,7 @@ from superset.views.base import DeleteMixin, SupersetModelView
 from superset.views.chart.mixin import SliceMixin
 
 
-class SliceModelView(
-    SliceMixin, SupersetModelView, DeleteMixin
-):  # pylint: disable=too-many-ancestors
+class SliceModelView(SliceMixin, SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
     route_base = "/chart"
     datamodel = SQLAInterface(Slice)
     include_route_methods = RouteMethod.CRUD_SET | {
@@ -50,7 +48,13 @@ class SliceModelView(
     def pre_delete(self, item: "SliceModelView") -> None:
         security_manager.raise_for_ownership(item)
 
-    @expose("/add", methods=["GET", "POST"])
+    @expose(
+        "/add",
+        methods=(
+            "GET",
+            "POST",
+        ),
+    )
     @has_access
     def add(self) -> FlaskResponse:
         return super().render_app_template()

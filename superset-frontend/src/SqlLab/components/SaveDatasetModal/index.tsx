@@ -42,8 +42,6 @@ import {
   DatasetRadioState,
   EXPLORE_CHART_DEFAULT,
   DatasetOwner,
-  SqlLabExploreRootState,
-  getInitialState,
   SqlLabRootState,
 } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
@@ -62,6 +60,7 @@ export type ExploreQuery = QueryResponse & {
 
 export interface ISimpleColumn {
   column_name?: string | null;
+  name?: string | null;
   type?: string | null;
   is_dttm?: boolean | null;
 }
@@ -162,10 +161,10 @@ export const SaveDatasetModal = ({
   );
 
   const getDefaultDatasetName = () =>
-    `${datasource?.name || UNTITLED} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+    `${datasource?.name || UNTITLED} ${moment().format('L HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
-    DatasetRadioState.SAVE_NEW,
+    DatasetRadioState.SaveNew,
   );
   const [shouldOverwriteDataset, setShouldOverwriteDataset] = useState(false);
   const [datasetToOverwrite, setDatasetToOverwrite] = useState<
@@ -176,9 +175,7 @@ export const SaveDatasetModal = ({
   >(undefined);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const user = useSelector<SqlLabExploreRootState, User>(user =>
-    getInitialState(user),
-  );
+  const user = useSelector<SqlLabRootState, User>(state => state.user);
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
   const createWindow = (url: string) => {
@@ -199,14 +196,15 @@ export const SaveDatasetModal = ({
       return;
     }
     setLoading(true);
+
     const [, key] = await Promise.all([
       updateDataset(
         datasource?.dbId,
         datasetToOverwrite?.datasetid,
         datasource?.sql,
         datasource?.columns?.map(
-          (d: { name: string; type: string; is_dttm: boolean }) => ({
-            column_name: d.name,
+          (d: { column_name: string; type: string; is_dttm: boolean }) => ({
+            column_name: d.column_name,
             type: d.type,
             is_dttm: d.is_dttm,
           }),
@@ -255,7 +253,7 @@ export const SaveDatasetModal = ({
       });
 
       return SupersetClient.get({
-        endpoint: `/api/v1/dataset?q=${queryParams}`,
+        endpoint: `/api/v1/dataset/?q=${queryParams}`,
       }).then(response => ({
         data: response.json.result.map(
           (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
@@ -292,18 +290,17 @@ export const SaveDatasetModal = ({
 
     dispatch(
       createDatasource({
-        schema: datasource.schema,
         sql: datasource.sql,
         dbId: datasource.dbId || datasource?.database?.id,
+        schema: datasource?.schema,
         templateParams,
         datasourceName: datasetName,
-        columns: selectedColumns,
       }),
     )
-      .then((data: { table_id: number }) =>
-        postFormData(data.table_id, 'table', {
+      .then((data: { id: number }) =>
+        postFormData(data.id, 'table', {
           ...formDataWithDefaults,
-          datasource: `${data.table_id}__table`,
+          datasource: `${data.id}__table`,
           ...(defaultVizType === 'table' && {
             all_columns: selectedColumns.map(column => column.column_name),
           }),
@@ -340,9 +337,9 @@ export const SaveDatasetModal = ({
   };
 
   const disableSaveAndExploreBtn =
-    (newOrOverwrite === DatasetRadioState.SAVE_NEW &&
+    (newOrOverwrite === DatasetRadioState.SaveNew &&
       datasetName.length === 0) ||
-    (newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET &&
+    (newOrOverwrite === DatasetRadioState.OverwriteDataset &&
       isEmpty(selectedDatasetToOverwrite));
 
   const filterAutocompleteOption = (
@@ -357,7 +354,7 @@ export const SaveDatasetModal = ({
       onHide={onHide}
       footer={
         <>
-          {newOrOverwrite === DatasetRadioState.SAVE_NEW && (
+          {newOrOverwrite === DatasetRadioState.SaveNew && (
             <Button
               disabled={disableSaveAndExploreBtn}
               buttonStyle="primary"
@@ -367,7 +364,7 @@ export const SaveDatasetModal = ({
               {buttonTextOnSave}
             </Button>
           )}
-          {newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET && (
+          {newOrOverwrite === DatasetRadioState.OverwriteDataset && (
             <>
               {shouldOverwriteDataset && (
                 <Button onClick={handleOverwriteCancel}>{t('Back')}</Button>

@@ -6,10 +6,11 @@
     "strict": true,
     "target": "es2019",
     "lib": ["es2019", "DOM"],
-    "types": ["cypress"],
+    "types": ["cypress", "@applitools/eyes-cypress", "node"],
     "allowJs": true,
     "noEmit": true
   },
   "files": ["cypress/support/index.d.ts", "./node_modules/@applitools/eyes-cypress/eyes-index.d.ts"],
-  "include": ["node_modules/cypress", "cypress/**/*.ts"]
+  "include": ["cypress/**/*.ts", "./cypress.config.ts"],
+  "exclude": ["node_modules"]
 }

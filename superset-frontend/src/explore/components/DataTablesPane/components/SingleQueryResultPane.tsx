@@ -30,6 +30,7 @@ export const SingleQueryResultPane = ({
   data,
   colnames,
   coltypes,
+  rowcount,
   datasourceId,
   dataSize = 50,
   isVisible,
@@ -44,6 +45,8 @@ export const SingleQueryResultPane = ({
     data,
     datasourceId,
     isVisible,
+    {}, // moreConfig
+    true, // allowHTML
   );
   const filteredData = useFilteredTableData(filterText, data);
 
@@ -53,6 +56,7 @@ export const SingleQueryResultPane = ({
         data={filteredData}
         columnNames={colnames}
         columnTypes={coltypes}
+        rowcount={rowcount}
         datasourceId={datasourceId}
         onInputChange={input => setFilterText(input)}
         isLoading={false}

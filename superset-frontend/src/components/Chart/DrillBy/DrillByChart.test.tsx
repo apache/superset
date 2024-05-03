@@ -23,6 +23,24 @@ import { noOp } from 'src/utils/common';
 import DrillByChart from './DrillByChart';
 
 const chart = chartQueries[sliceId];
+const dataset = {
+  changed_on_humanized: '01-01-2001',
+  created_on_humanized: '01-01-2001',
+  description: 'desc',
+  table_name: 'my_dataset',
+  owners: [
+    {
+      first_name: 'Sarah',
+      last_name: 'Connor',
+    },
+  ],
+  columns: [
+    {
+      column_name: 'gender',
+    },
+    { column_name: 'name' },
+  ],
+};
 
 const setup = (overrides: Record<string, any> = {}, result?: any) =>
   render(
@@ -31,6 +49,7 @@ const setup = (overrides: Record<string, any> = {}, result?: any) =>
       onContextMenu={noOp}
       inContextMenu={false}
       result={result}
+      dataset={dataset}
     />,
     {
       useRedux: true,

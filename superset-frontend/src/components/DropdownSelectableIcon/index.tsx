@@ -46,7 +46,7 @@ const StyledDropdownButton = styled(
   button.ant-btn:first-of-type {
     display: none;
   }
-  > button.ant-btn:nth-child(2) {
+  > button.ant-btn:nth-of-type(2) {
     display: inline-flex;
     background-color: transparent !important;
     height: unset;
@@ -69,8 +69,8 @@ const StyledMenu = styled(Menu)`
       font-size: ${theme.typography.sizes.s}px;
       color: ${theme.colors.grayscale.base};
       padding: ${theme.gridUnit}px ${theme.gridUnit * 3}px ${
-    theme.gridUnit
-  }px ${theme.gridUnit * 3}px;
+        theme.gridUnit
+      }px ${theme.gridUnit * 3}px;
     }
     .ant-dropdown-menu-item-selected {
       color: ${theme.colors.grayscale.dark1};
@@ -100,24 +100,24 @@ const StyleSubmenuItem = styled.div`
 export default (props: DropDownSelectableProps) => {
   const theme = useTheme();
   const { icon, info, menuItems, selectedKeys, onSelect } = props;
-  const menuItem = (
-    label: string | React.ReactNode,
-    key: string,
-    divider?: boolean,
-  ) => (
-    <StyleMenuItem key={key} divider={divider}>
-      <StyleSubmenuItem>
-        <span>{label}</span>
-        {selectedKeys?.includes(key) && (
-          <Icons.Check
-            iconColor={theme.colors.primary.base}
-            className="tick-menu-item"
-            iconSize="xl"
-          />
-        )}
-      </StyleSubmenuItem>
-    </StyleMenuItem>
+  const menuItem = useMemo(
+    () => (label: string | React.ReactNode, key: string, divider?: boolean) => (
+      <StyleMenuItem key={key} divider={divider}>
+        <StyleSubmenuItem>
+          <span>{label}</span>
+          {selectedKeys?.includes(key) && (
+            <Icons.Check
+              iconColor={theme.colors.primary.base}
+              className="tick-menu-item"
+              iconSize="xl"
+            />
+          )}
+        </StyleSubmenuItem>
+      </StyleMenuItem>
+    ),
+    [selectedKeys, theme.colors.primary.base],
   );
+
   const overlayMenu = useMemo(
     () => (
       <StyledMenu selectedKeys={selectedKeys} onSelect={onSelect} selectable>
@@ -141,7 +141,7 @@ export default (props: DropDownSelectableProps) => {
         )}
       </StyledMenu>
     ),
-    [info, menuItems],
+    [selectedKeys, onSelect, info, menuItems, menuItem],
   );
 
   return (

@@ -47,6 +47,11 @@ test('it should not render a title or content when not visible', () => {
   expect(title).not.toBeInTheDocument();
 });
 
+test('it should render content when not visible but forceRender=true', () => {
+  render(<Popover content="Content sample" forceRender />);
+  expect(screen.getByText('Content sample')).toBeInTheDocument();
+});
+
 test('renders with icon child', async () => {
   render(
     <Popover content="Content sample" title="Popover title">

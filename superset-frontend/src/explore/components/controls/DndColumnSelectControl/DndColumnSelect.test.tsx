@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag } from '@superset-ui/core';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import {
@@ -32,20 +31,14 @@ const defaultProps: DndColumnSelectProps = {
   actions: { setControlValue: jest.fn() },
 };
 
-beforeAll(() => {
-  window.featureFlags = { [FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP]: true };
-});
-
-afterAll(() => {
-  window.featureFlags = {};
-});
-
 test('renders with default props', async () => {
   render(<DndColumnSelect {...defaultProps} />, {
     useDnd: true,
     useRedux: true,
   });
-  expect(await screen.findByText('Drop columns here')).toBeInTheDocument();
+  expect(
+    await screen.findByText('Drop columns here or click'),
+  ).toBeInTheDocument();
 });
 
 test('renders with value', async () => {

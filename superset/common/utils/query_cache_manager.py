@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from flask_caching import Cache
 from pandas import DataFrame
@@ -37,7 +37,7 @@ config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
-_cache: Dict[CacheRegion, Cache] = {
+_cache: dict[CacheRegion, Cache] = {
     CacheRegion.DEFAULT: cache_manager.cache,
     CacheRegion.DATA: cache_manager.data_cache,
 }
@@ -53,17 +53,18 @@ class QueryCacheManager:
         self,
         df: DataFrame = DataFrame(),
         query: str = "",
-        annotation_data: Optional[Dict[str, Any]] = None,
-        applied_template_filters: Optional[List[str]] = None,
-        applied_filter_columns: Optional[List[Column]] = None,
-        rejected_filter_columns: Optional[List[Column]] = None,
-        status: Optional[str] = None,
-        error_message: Optional[str] = None,
+        annotation_data: dict[str, Any] | None = None,
+        applied_template_filters: list[str] | None = None,
+        applied_filter_columns: list[Column] | None = None,
+        rejected_filter_columns: list[Column] | None = None,
+        status: str | None = None,
+        error_message: str | None = None,
         is_loaded: bool = False,
-        stacktrace: Optional[str] = None,
-        is_cached: Optional[bool] = None,
-        cache_dttm: Optional[str] = None,
-        cache_value: Optional[Dict[str, Any]] = None,
+        stacktrace: str | None = None,
+        is_cached: bool | None = None,
+        cache_dttm: str | None = None,
+        cache_value: dict[str, Any] | None = None,
+        sql_rowcount: int | None = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -79,16 +80,17 @@ class QueryCacheManager:
         self.is_cached = is_cached
         self.cache_dttm = cache_dttm
         self.cache_value = cache_value
+        self.sql_rowcount = sql_rowcount
 
     # pylint: disable=too-many-arguments
     def set_query_result(
         self,
         key: str,
         query_result: QueryResult,
-        annotation_data: Optional[Dict[str, Any]] = None,
-        force_query: Optional[bool] = False,
-        timeout: Optional[int] = None,
-        datasource_uid: Optional[str] = None,
+        annotation_data: dict[str, Any] | None = None,
+        force_query: bool | None = False,
+        timeout: int | None = None,
+        datasource_uid: str | None = None,
         region: CacheRegion = CacheRegion.DEFAULT,
     ) -> None:
         """
@@ -102,6 +104,7 @@ class QueryCacheManager:
             self.rejected_filter_columns = query_result.rejected_filter_columns
             self.error_message = query_result.error_message
             self.df = query_result.df
+            self.sql_rowcount = query_result.sql_rowcount
             self.annotation_data = {} if annotation_data is None else annotation_data
 
             if self.status != QueryStatus.FAILED:
@@ -117,6 +120,7 @@ class QueryCacheManager:
                 "applied_filter_columns": self.applied_filter_columns,
                 "rejected_filter_columns": self.rejected_filter_columns,
                 "annotation_data": self.annotation_data,
+                "sql_rowcount": self.sql_rowcount,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
                 self.set(
@@ -136,11 +140,11 @@ class QueryCacheManager:
     @classmethod
     def get(
         cls,
-        key: Optional[str],
+        key: str | None,
         region: CacheRegion = CacheRegion.DEFAULT,
-        force_query: Optional[bool] = False,
-        force_cached: Optional[bool] = False,
-    ) -> "QueryCacheManager":
+        force_query: bool | None = False,
+        force_cached: bool | None = False,
+    ) -> QueryCacheManager:
         """
         Initialize QueryCacheManager by query-cache key
         """
@@ -148,8 +152,7 @@ class QueryCacheManager:
         if not key or not _cache[region] or force_query:
             return query_cache
 
-        cache_value = _cache[region].get(key)
-        if cache_value:
+        if cache_value := _cache[region].get(key):
             logger.debug("Cache key: %s", key)
             stats_logger.incr("loading_from_cache")
             try:
@@ -168,6 +171,7 @@ class QueryCacheManager:
                 query_cache.status = QueryStatus.SUCCESS
                 query_cache.is_loaded = True
                 query_cache.is_cached = cache_value is not None
+                query_cache.sql_rowcount = cache_value.get("sql_rowcount", None)
                 query_cache.cache_dttm = (
                     cache_value["dttm"] if cache_value is not None else None
                 )
@@ -191,10 +195,10 @@ class QueryCacheManager:
 
     @staticmethod
     def set(
-        key: Optional[str],
-        value: Dict[str, Any],
-        timeout: Optional[int] = None,
-        datasource_uid: Optional[str] = None,
+        key: str | None,
+        value: dict[str, Any],
+        timeout: int | None = None,
+        datasource_uid: str | None = None,
         region: CacheRegion = CacheRegion.DEFAULT,
     ) -> None:
         """
@@ -205,7 +209,7 @@ class QueryCacheManager:
 
     @staticmethod
     def delete(
-        key: Optional[str],
+        key: str | None,
         region: CacheRegion = CacheRegion.DEFAULT,
     ) -> None:
         if key:
@@ -213,7 +217,7 @@ class QueryCacheManager:
 
     @staticmethod
     def has(
-        key: Optional[str],
+        key: str | None,
         region: CacheRegion = CacheRegion.DEFAULT,
     ) -> bool:
         return bool(_cache[region].get(key)) if key else False

@@ -16,8 +16,8 @@
 # under the License.
 import inspect
 
-from flask import Markup
 from flask_babel import lazy_gettext as _
+from markupsafe import Markup
 from sqlalchemy import MetaData
 
 from superset import app, security_manager
@@ -147,7 +147,9 @@ class DatabaseMixin:
             "whether or not the Explore button in SQL Lab results is shown<br/>"
             "6. The ``disable_data_preview`` field is a boolean specifying whether or"
             "not data preview queries will be run when fetching table metadata in"
-            "SQL Lab.",
+            "SQL Lab."
+            "7. The ``disable_drill_to_detail`` field is a boolean specifying whether or"
+            "not drill to detail is disabled for the database.",
             True,
         ),
         "encrypted_extra": utils.markdown(
@@ -221,22 +223,22 @@ class DatabaseMixin:
     def pre_update(self, database: Database) -> None:
         self._pre_add_update(database)
 
-    def pre_delete(self, database: Database) -> None:  # pylint: disable=no-self-use
+    def pre_delete(self, database: Database) -> None:
         if database.tables:
             raise SupersetException(
                 Markup(
                     "Cannot delete a database that has tables attached. "
                     "Here's the list of associated tables: "
-                    + ", ".join("{}".format(table) for table in database.tables)
+                    + ", ".join(f"{table}" for table in database.tables)
                 )
             )
 
-    def check_extra(self, database: Database) -> None:  # pylint: disable=no-self-use
+    def check_extra(self, database: Database) -> None:
         # this will check whether json.loads(extra) can succeed
         try:
             extra = database.get_extra()
         except Exception as ex:
-            raise Exception(
+            raise Exception(  # pylint: disable=broad-exception-raised
                 _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
             ) from ex
 
@@ -244,7 +246,7 @@ class DatabaseMixin:
         metadata_signature = inspect.signature(MetaData)
         for key in extra.get("metadata_params", {}):
             if key not in metadata_signature.parameters:
-                raise Exception(
+                raise Exception(  # pylint: disable=broad-exception-raised
                     _(
                         "The metadata_params in Extra field "
                         "is not configured correctly. The key "
@@ -253,13 +255,11 @@ class DatabaseMixin:
                     )
                 )
 
-    def check_encrypted_extra(  # pylint: disable=no-self-use
-        self, database: Database
-    ) -> None:
+    def check_encrypted_extra(self, database: Database) -> None:
         # this will check whether json.loads(secure_extra) can succeed
         try:
             database.get_encrypted_extra()
         except Exception as ex:
-            raise Exception(
+            raise Exception(  # pylint: disable=broad-exception-raised
                 _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
             ) from ex

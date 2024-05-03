@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, Optional, Type, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
@@ -51,15 +51,15 @@ from superset.viz import BaseViz, viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
 
 metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(
     "slice_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("slice_id", Integer, ForeignKey("slices.id")),
+    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
+    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
 )
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 ):
     """A slice is essentially a report or a view on data"""
 
-    query_context_factory: Optional[QueryContextFactory] = None
+    query_context_factory: QueryContextFactory | None = None
 
     __tablename__ = "slices"
     id = Column(Integer, primary_key=True)
@@ -78,8 +78,8 @@ class Slice(  # pylint: disable=too-many-public-methods
     datasource_type = Column(String(200))
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
-    params = Column(Text)
-    query_context = Column(Text)
+    params = Column(utils.MediumText())
+    query_context = Column(utils.MediumText())
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
@@ -95,10 +95,15 @@ class Slice(  # pylint: disable=too-many-public-methods
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
-    owners = relationship(security_manager.user_model, secondary=slice_user)
+    owners = relationship(
+        security_manager.user_model,
+        secondary=slice_user,
+        passive_deletes=True,
+    )
     tags = relationship(
         "Tag",
         secondary="tagged_object",
+        overlaps="objects,tag,tags",
         primaryjoin="and_(Slice.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
         "TaggedObject.object_type == 'chart')",
@@ -106,6 +111,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     table = relationship(
         "SqlaTable",
         foreign_keys=[datasource_id],
+        overlaps="table",
         primaryjoin="and_(Slice.datasource_id == SqlaTable.id, "
         "Slice.datasource_type == 'table')",
         remote_side="SqlaTable.id",
@@ -133,17 +139,17 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def cls_model(self) -> Type["BaseDatasource"]:
+    def cls_model(self) -> type[SqlaTable]:
         # pylint: disable=import-outside-toplevel
-        from superset.datasource.dao import DatasourceDAO
+        from superset.daos.datasource import DatasourceDAO
 
         return DatasourceDAO.sources[self.datasource_type]
 
     @property
-    def datasource(self) -> Optional["BaseDatasource"]:
+    def datasource(self) -> SqlaTable | None:
         return self.get_datasource
 
-    def clone(self) -> "Slice":
+    def clone(self) -> Slice:
         return Slice(
             slice_name=self.slice_name,
             datasource_id=self.datasource_id,
@@ -157,7 +163,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
-    def get_datasource(self) -> Optional["BaseDatasource"]:
+    def get_datasource(self) -> SqlaTable | None:
         return (
             db.session.query(self.cls_model)
             .filter_by(id=self.datasource_id)
@@ -165,21 +171,18 @@ class Slice(  # pylint: disable=too-many-public-methods
         )
 
     @renders("datasource_name")
-    def datasource_link(self) -> Optional[Markup]:
-        # pylint: disable=no-member
+    def datasource_link(self) -> Markup | None:
         datasource = self.datasource
         return datasource.link if datasource else None
 
     @renders("datasource_url")
-    def datasource_url(self) -> Optional[str]:
-        # pylint: disable=no-member
+    def datasource_url(self) -> str | None:
         if self.table:
             return self.table.explore_url
         datasource = self.datasource
         return datasource.explore_url if datasource else None
 
-    def datasource_name_text(self) -> Optional[str]:
-        # pylint: disable=no-member
+    def datasource_name_text(self) -> str | None:
         if self.table:
             if self.table.schema:
                 return f"{self.table.schema}.{self.table.table_name}"
@@ -191,15 +194,14 @@ class Slice(  # pylint: disable=too-many-public-methods
         return None
 
     @property
-    def datasource_edit_url(self) -> Optional[str]:
-        # pylint: disable=no-member
+    def datasource_edit_url(self) -> str | None:
         datasource = self.datasource
         return datasource.url if datasource else None
 
     # pylint: enable=using-constant-test
 
     @property
-    def viz(self) -> Optional[BaseViz]:
+    def viz(self) -> BaseViz | None:
         form_data = json.loads(self.params)
         viz_class = viz_types.get(self.viz_type)
         datasource = self.datasource
@@ -212,9 +214,9 @@ class Slice(  # pylint: disable=too-many-public-methods
         return utils.markdown(self.description)
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         """Data used to render slice in templates"""
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
         self.token = ""
         try:
             viz = self.viz
@@ -260,8 +262,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         return json.dumps(self.data)
 
     @property
-    def form_data(self) -> Dict[str, Any]:
-        form_data: Dict[str, Any] = {}
+    def form_data(self) -> dict[str, Any]:
+        form_data: dict[str, Any] = {}
         try:
             form_data = json.loads(self.params)
         except Exception as ex:  # pylint: disable=broad-except
@@ -271,7 +273,7 @@ class Slice(  # pylint: disable=too-many-public-methods
             {
                 "slice_id": self.id,
                 "viz_type": self.viz_type,
-                "datasource": "{}__{}".format(self.datasource_id, self.datasource_type),
+                "datasource": f"{self.datasource_id}__{self.datasource_type}",
             }
         )
 
@@ -280,7 +282,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         update_time_range(form_data)
         return form_data
 
-    def get_query_context(self) -> Optional[QueryContext]:
+    def get_query_context(self) -> QueryContext | None:
         if self.query_context:
             try:
                 return self.get_query_context_factory().create(
@@ -294,13 +296,13 @@ class Slice(  # pylint: disable=too-many-public-methods
     def get_explore_url(
         self,
         base_url: str = "/explore",
-        overrides: Optional[Dict[str, Any]] = None,
+        overrides: dict[str, Any] | None = None,
     ) -> str:
         return self.build_explore_url(self.id, base_url, overrides)
 
     @staticmethod
     def build_explore_url(
-        id_: int, base_url: str = "/explore", overrides: Optional[Dict[str, Any]] = None
+        id_: int, base_url: str = "/explore", overrides: dict[str, Any] | None = None
     ) -> str:
         overrides = overrides or {}
         form_data = {"slice_id": id_}
@@ -330,16 +332,6 @@ class Slice(  # pylint: disable=too-many-public-methods
     def slice_link(self) -> Markup:
         name = escape(self.chart)
         return Markup(f'<a href="{self.url}">{name}</a>')
-
-    @property
-    def created_by_url(self) -> str:
-        if not self.created_by:
-            return ""
-        return f"/superset/profile/{self.created_by.username}"
-
-    @property
-    def changed_by_url(self) -> str:
-        return f"/superset/profile/{self.changed_by.username}"  # type: ignore
 
     @property
     def icons(self) -> str:
@@ -372,8 +364,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
 def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:
     src_class = target.cls_model
-    id_ = target.datasource_id
-    if id_:
+    if id_ := target.datasource_id:
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
             target.perm = ds.perm

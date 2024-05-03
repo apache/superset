@@ -29,6 +29,8 @@ export * from './components/InfoTooltipWithTrigger';
 export * from './components/ColumnOption';
 export * from './components/ColumnTypeLabel/ColumnTypeLabel';
 export * from './components/MetricOption';
+export * from './components/ControlSubSectionHeader';
+export * from './components/Tooltip';
 
 export * from './shared-controls';
 export * from './types';

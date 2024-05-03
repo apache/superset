@@ -17,7 +17,6 @@
 
 
 import pytest
-from pkg_resources import EntryPoint
 from pytest_mock import MockFixture
 
 from superset.db_engine_specs import get_available_engine_specs

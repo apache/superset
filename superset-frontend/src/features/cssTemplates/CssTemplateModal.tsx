@@ -105,6 +105,9 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         const update_id = currentCssTemplate.id;
         delete currentCssTemplate.id;
         delete currentCssTemplate.created_by;
+        delete currentCssTemplate.changed_by;
+        delete currentCssTemplate.changed_on_delta_humanized;
+
         updateResource(update_id, currentCssTemplate).then(response => {
           if (!response) {
             return;
@@ -170,8 +173,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   useEffect(() => {
     if (
       isEditMode &&
-      (!currentCssTemplate ||
-        !currentCssTemplate.id ||
+      (!currentCssTemplate?.id ||
         (cssTemplate && cssTemplate?.id !== currentCssTemplate.id) ||
         (isHidden && show))
     ) {
@@ -236,7 +238,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       </StyledCssTemplateTitle>
       <TemplateContainer>
         <div className="control-label">
-          {t('CSS template name')}
+          {t('Name')}
           <span className="required">*</span>
         </div>
         <input

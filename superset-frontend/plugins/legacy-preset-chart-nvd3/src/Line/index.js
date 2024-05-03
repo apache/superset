@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
 import transformProps from '../transformProps';
 import example1 from './images/LineChart.jpg';
 import example2 from './images/LineChart2.jpg';
@@ -35,18 +35,22 @@ const metadata = new ChartMetadata({
     { url: example2 },
     { url: battery, caption: t('Battery level over time') },
   ],
-  name: t('Line Chart (legacy)'),
+  label: ChartLabel.Deprecated,
+  name: t('Time-series Line Chart (legacy)'),
   supportedAnnotationTypes: [
     ANNOTATION_TYPES.TIME_SERIES,
     ANNOTATION_TYPES.INTERVAL,
     ANNOTATION_TYPES.EVENT,
     ANNOTATION_TYPES.FORMULA,
   ],
-  tags: [t('Aesthetic'), t('Legacy'), t('nvd3'), t('Deprecated')],
+  tags: [t('Legacy'), t('nvd3')],
   thumbnail,
   useLegacyApi: true,
 });
 
+/**
+ * @deprecated in version 3.0.
+ */
 export default class LineChartPlugin extends ChartPlugin {
   constructor() {
     super({

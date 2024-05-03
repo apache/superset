@@ -53,7 +53,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   formData,
   enableNoResults,
 }) => {
-  const formFilter = (form.getFieldValue('filters') || {})[filterId];
+  const formFilter = form.getFieldValue('filters')?.[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
   const loading = hasDataset && queriesData === null;
   const value = formFilter?.defaultDataMask?.filterState?.value;
@@ -69,8 +69,8 @@ const DefaultValue: FC<DefaultValueProps> = ({
           ? TIME_FILTER_INPUT_WIDTH
           : INPUT_WIDTH
       }
-      appSection={AppSection.FILTER_CONFIG_MODAL}
-      behaviors={[Behavior.NATIVE_FILTER]}
+      appSection={AppSection.FilterConfigModal}
+      behaviors={[Behavior.NativeFilter]}
       formData={formData}
       // For charts that don't have datasource we need workaround for empty placeholder
       queriesData={

@@ -43,7 +43,7 @@ import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import {
-  canUserAccessSqlLab,
+  userHasPermission,
   isUserAdmin,
 } from 'src/dashboard/util/permissionUtils';
 import ModalTrigger from 'src/components/ModalTrigger';
@@ -52,6 +52,7 @@ import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
 import { isString } from 'lodash';
+import { Link } from 'react-router-dom';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -162,6 +163,14 @@ export const getDatasourceTitle = datasource => {
   return datasource?.name || '';
 };
 
+const preventRouterLinkWhileMetaClicked = evt => {
+  if (evt.metaKey) {
+    evt.preventDefault();
+  } else {
+    evt.stopPropagation();
+  }
+};
+
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -245,7 +254,7 @@ class DatasourceControl extends React.PureComponent {
             datasourceKey: `${datasource.id}__${datasource.type}`,
             sql: datasource.sql,
           };
-          SupersetClient.postForm('/superset/sqllab/', {
+          SupersetClient.postForm('/sqllab/', {
             form_data: safeStringify(payload),
           });
         }
@@ -283,9 +292,13 @@ class DatasourceControl extends React.PureComponent {
       datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
       isUserAdmin(user);
 
-    const canAccessSqlLab = canUserAccessSqlLab(user);
+    const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');
 
     const editText = t('Edit dataset');
+    const requestedQuery = {
+      datasourceKey: `${datasource.id}__${datasource.type}`,
+      sql: datasource.sql,
+    };
 
     const defaultDatasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
@@ -310,7 +323,17 @@ class DatasourceControl extends React.PureComponent {
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Swap dataset')}</Menu.Item>
         {!isMissingDatasource && canAccessSqlLab && (
-          <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
+          <Menu.Item key={VIEW_IN_SQL_LAB}>
+            <Link
+              to={{
+                pathname: '/sqllab',
+                state: { requestedQuery },
+              }}
+              onClick={preventRouterLinkWhileMetaClicked}
+            >
+              {t('View in SQL Lab')}
+            </Link>
+          </Menu.Item>
         )}
       </Menu>
     );
@@ -340,7 +363,17 @@ class DatasourceControl extends React.PureComponent {
           />
         </Menu.Item>
         {canAccessSqlLab && (
-          <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
+          <Menu.Item key={VIEW_IN_SQL_LAB}>
+            <Link
+              to={{
+                pathname: '/sqllab',
+                state: { requestedQuery },
+              }}
+              onClick={preventRouterLinkWhileMetaClicked}
+            >
+              {t('View in SQL Lab')}
+            </Link>
+          </Menu.Item>
         )}
         <Menu.Item key={SAVE_AS_DATASET}>{t('Save as dataset')}</Menu.Item>
       </Menu>

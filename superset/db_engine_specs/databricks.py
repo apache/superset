@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, TypedDict
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -26,9 +27,8 @@ from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from typing_extensions import TypedDict
 
-from superset.constants import USER_AGENT
+from superset.constants import TimeGrain, USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.db_engine_specs.hive import HiveEngineSpec
@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
+#
 class DatabricksParametersSchema(Schema):
     """
     This is the list of fields that are expected
@@ -49,12 +50,13 @@ class DatabricksParametersSchema(Schema):
     host = fields.Str(required=True)
     port = fields.Integer(
         required=True,
-        description=__("Database port"),
+        metadata={"description": __("Database port")},
         validate=Range(min=0, max=2**16, max_inclusive=False),
     )
     database = fields.Str(required=True)
     encryption = fields.Boolean(
-        required=False, description=__("Use an encrypted connection to the database")
+        required=False,
+        metadata={"description": __("Use an encrypted connection to the database")},
     )
 
 
@@ -92,20 +94,20 @@ class DatabricksPropertiesType(TypedDict):
     extra: str
 
 
-time_grain_expressions = {
+time_grain_expressions: dict[str | None, str] = {
     None: "{col}",
-    "PT1S": "date_trunc('second', {col})",
-    "PT1M": "date_trunc('minute', {col})",
-    "PT1H": "date_trunc('hour', {col})",
-    "P1D": "date_trunc('day', {col})",
-    "P1W": "date_trunc('week', {col})",
-    "P1M": "date_trunc('month', {col})",
-    "P3M": "date_trunc('quarter', {col})",
-    "P1Y": "date_trunc('year', {col})",
-    "P1W/1970-01-03T00:00:00Z": (
+    TimeGrain.SECOND: "date_trunc('second', {col})",
+    TimeGrain.MINUTE: "date_trunc('minute', {col})",
+    TimeGrain.HOUR: "date_trunc('hour', {col})",
+    TimeGrain.DAY: "date_trunc('day', {col})",
+    TimeGrain.WEEK: "date_trunc('week', {col})",
+    TimeGrain.MONTH: "date_trunc('month', {col})",
+    TimeGrain.QUARTER: "date_trunc('quarter', {col})",
+    TimeGrain.YEAR: "date_trunc('year', {col})",
+    TimeGrain.WEEK_ENDING_SATURDAY: (
         "date_trunc('week', {col} + interval '1 day') + interval '5 days'"
     ),
-    "1969-12-28T00:00:00Z/P1W": (
+    TimeGrain.WEEK_STARTING_SUNDAY: (
         "date_trunc('week', {col} + interval '1 day') - interval '1 day'"
     ),
 }
@@ -134,8 +136,8 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         return HiveEngineSpec.convert_dttm(target_type, dttm, db_extra=db_extra)
 
     @classmethod
@@ -143,7 +145,7 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
         return HiveEngineSpec.epoch_to_dttm()
 
 
-class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin):
+class DatabricksNativeEngineSpec(BasicParametersMixin, DatabricksODBCEngineSpec):
     engine_name = "Databricks"
 
     engine = "databricks"
@@ -159,14 +161,14 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
     encryption_parameters = {"ssl": "1"}
 
     @staticmethod
-    def get_extra_params(database: "Database") -> Dict[str, Any]:
+    def get_extra_params(database: Database) -> dict[str, Any]:
         """
         Add a user agent to be used in the requests.
         Trim whitespace from connect_args to avoid databricks driver errors
         """
-        extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
-        engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
-        connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
+        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
+        connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
 
         connect_args.setdefault("http_headers", [("User-Agent", USER_AGENT)])
         connect_args.setdefault("_user_agent_entry", USER_AGENT)
@@ -180,10 +182,10 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
     @classmethod
     def get_table_names(
         cls,
-        database: "Database",
+        database: Database,
         inspector: Inspector,
-        schema: Optional[str],
-    ) -> Set[str]:
+        schema: str | None,
+    ) -> set[str]:
         return super().get_table_names(
             database, inspector, schema
         ) - cls.get_view_names(database, inspector, schema)
@@ -195,11 +197,13 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
         query = {}
         if parameters.get("encryption"):
             if not cls.encryption_parameters:
-                raise Exception("Unable to build a URL with encryption enabled")
+                raise Exception(  # pylint: disable=broad-exception-raised
+                    "Unable to build a URL with encryption enabled"
+                )
             query.update(cls.encryption_parameters)
 
         return str(
-            URL(
+            URL.create(
                 f"{cls.engine}+{cls.default_driver}".rstrip("+"),
                 username="token",
                 password=parameters.get("access_token"),
@@ -212,8 +216,8 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
 
     @classmethod
     def extract_errors(
-        cls, ex: Exception, context: Optional[Dict[str, Any]] = None
-    ) -> List[SupersetError]:
+        cls, ex: Exception, context: dict[str, Any] | None = None
+    ) -> list[SupersetError]:
         raw_message = cls._extract_error_message(ex)
 
         context = context or {}
@@ -270,8 +274,8 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
     def validate_parameters(  # type: ignore
         cls,
         properties: DatabricksPropertiesType,
-    ) -> List[SupersetError]:
-        errors: List[SupersetError] = []
+    ) -> list[SupersetError]:
+        errors: list[SupersetError] = []
         required = {"access_token", "host", "port", "database", "extra"}
         extra = json.loads(properties.get("extra", "{}"))
         engine_params = extra.get("engine_params", {})
@@ -284,9 +288,8 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
             parameters["http_path"] = connect_args.get("http_path")
 
         present = {key for key in parameters if parameters.get(key, ())}
-        missing = sorted(required - present)
 
-        if missing:
+        if missing := sorted(required - present):
             errors.append(
                 SupersetError(
                     message=f'One or more parameters are missing: {", ".join(missing)}',

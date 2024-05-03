@@ -366,7 +366,6 @@ describe('getSlicePayload', () => {
           operator: 'TEMPORAL_RANGE',
           comparator: 'No filter',
           expressionType: 'SIMPLE',
-          isExtra: true,
         },
       ],
     };
@@ -390,6 +389,59 @@ describe('getSlicePayload', () => {
     expect(result).toHaveProperty('query_context');
     expect(JSON.parse(result.params).adhoc_filters).toEqual(
       formDataFromSlice.adhoc_filters,
+    );
+  });
+
+  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', () => {
+    const formDataFromSliceWithAdhocFilterB = {
+      ...formDataFromSlice,
+      adhoc_filters_b: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: 'No filter',
+          expressionType: 'SIMPLE',
+        },
+      ],
+    };
+    const formDataWithAdhocFiltersWithExtra = {
+      ...formDataWithNativeFilters,
+      viz_type: 'mixed_timeseries',
+      adhoc_filters: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: 'No filter',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+      adhoc_filters_b: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: 'No filter',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+    };
+    const result = getSlicePayload(
+      sliceName,
+      formDataWithAdhocFiltersWithExtra,
+      dashboards,
+      owners,
+      formDataFromSliceWithAdhocFilterB,
+    );
+
+    expect(JSON.parse(result.params).adhoc_filters).toEqual(
+      formDataFromSliceWithAdhocFilterB.adhoc_filters,
+    );
+    expect(JSON.parse(result.params).adhoc_filters_b).toEqual(
+      formDataFromSliceWithAdhocFilterB.adhoc_filters_b,
     );
   });
 });

@@ -16,7 +16,7 @@
 # under the License.
 import json
 import textwrap
-from typing import Dict, List, Tuple, Union
+from typing import Union
 
 import pandas as pd
 from sqlalchemy import DateTime, inspect, String
@@ -27,6 +27,7 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
@@ -42,7 +43,7 @@ from .helpers import (
 
 def gen_filter(
     subject: str, comparator: str, operator: str = "=="
-) -> Dict[str, Union[bool, str]]:
+) -> dict[str, Union[bool, str]]:
     return {
         "clause": "WHERE",
         "comparator": comparator,
@@ -63,7 +64,7 @@ def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
     pdf = pdf.head(100) if sample else pdf
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
 
         pdf.to_sql(
@@ -91,11 +92,11 @@ def load_birth_names(
 ) -> None:
     """Loading birth name dataset from a zip file in the repo"""
     database = get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
 
     tbl_name = "birth_names"
-    table_exists = database.has_table_by_name(tbl_name, schema=schema)
+    table_exists = database.has_table(Table(tbl_name, schema))
 
     if not only_metadata and (not table_exists or force):
         load_data(tbl_name, database, sample=sample)
@@ -152,7 +153,7 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
     datasource.metrics = metrics
 
 
-def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
+def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
     metrics = [
         {
             "expressionType": "SIMPLE",
@@ -388,20 +389,23 @@ def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Average and Sum Trends",
-            viz_type="dual_line",
+            viz_type="mixed_timeseries",
             params=get_slice_json(
                 defaults,
-                viz_type="dual_line",
-                metric={
-                    "expressionType": "SIMPLE",
-                    "column": {"column_name": "num", "type": "BIGINT(20)"},
-                    "aggregate": "AVG",
-                    "label": "AVG(num)",
-                    "optionName": "metric_vgops097wej_g8uff99zhk7",
-                },
-                metric_2="sum__num",
+                viz_type="mixed_timeseries",
+                metrics=[
+                    {
+                        "expressionType": "SIMPLE",
+                        "column": {"column_name": "num", "type": "BIGINT(20)"},
+                        "aggregate": "AVG",
+                        "label": "AVG(num)",
+                        "optionName": "metric_vgops097wej_g8uff99zhk7",
+                    }
+                ],
+                metrics_b=["sum__num"],
                 granularity_sqla="ds",
-                metrics=metrics,
+                yAxisIndex=0,
+                yAxisIndexB=1,
             ),
         ),
         Slice(
@@ -420,6 +424,16 @@ def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
                 time_range="1983 : 2023",
                 viz_type="table",
                 metrics=metrics,
+            ),
+            query_context=get_slice_json(
+                default_query_context,
+                queries=[
+                    {
+                        "columns": ["ds"],
+                        "metrics": metrics,
+                        "time_range": "1983 : 2023",
+                    }
+                ],
             ),
         ),
         Slice(
@@ -509,12 +523,12 @@ def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Pivot Table",
-            viz_type="pivot_table",
+            viz_type="pivot_table_v2",
             params=get_slice_json(
                 defaults,
-                viz_type="pivot_table",
-                groupby=["name"],
-                columns=["state"],
+                viz_type="pivot_table_v2",
+                groupbyRows=["name"],
+                groupbyColumns=["state"],
                 metrics=metrics,
             ),
         ),
@@ -529,12 +543,11 @@ def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
     return slices, misc_slices
 
 
-def create_dashboard(slices: List[Slice]) -> Dashboard:
+def create_dashboard(slices: list[Slice]) -> Dashboard:
     print("Creating a dashboard")
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()
-        dash.owners = []
         db.session.add(dash)
 
     dash.published = True

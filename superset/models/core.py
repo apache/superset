@@ -14,22 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long
+
+# pylint: disable=too-many-lines, too-many-arguments
+
 """A collection of ORM sqlalchemy models for Superset"""
-import enum
+
+from __future__ import annotations
+
+import builtins
 import json
 import logging
 import textwrap
 from ast import literal_eval
-from contextlib import closing, contextmanager, nullcontext
+from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
+import sshtunnel
 from flask import g, request
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -41,33 +47,39 @@ from sqlalchemy import (
     Integer,
     MetaData,
     String,
-    Table,
+    Table as SqlaTable,
     Text,
 )
 from sqlalchemy.engine import Connection, Dialect, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.exc import ArgumentError, NoSuchModuleError
+from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import expression, Select
+from sqlalchemy.sql import ColumnElement, expression, Select
 
 from superset import app, db_engine_specs
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import (
     cache_manager,
     encrypted_field_factory,
+    event_logger,
     security_manager,
     ssh_manager_factory,
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
+from superset.sql_parse import Table
+from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
 from superset.utils import cache as cache_util, core as utils
+from superset.utils.backports import StrEnum
 from superset.utils.core import get_username
+from superset.utils.oauth2 import get_oauth2_access_token
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -83,21 +95,12 @@ if TYPE_CHECKING:
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
 
-class Url(Model, AuditMixinNullable):
-    """Used for the short url feature"""
-
-    __tablename__ = "url"
-    id = Column(Integer, primary_key=True)
-    url = Column(Text)
-
-
 class KeyValue(Model):  # pylint: disable=too-few-public-methods
-
     """Used for any type of key-value store"""
 
     __tablename__ = "keyvalue"
     id = Column(Integer, primary_key=True)
-    value = Column(Text, nullable=False)
+    value = Column(utils.MediumText(), nullable=False)
 
 
 class CssTemplate(Model, AuditMixinNullable):
@@ -106,18 +109,15 @@ class CssTemplate(Model, AuditMixinNullable):
     __tablename__ = "css_templates"
     id = Column(Integer, primary_key=True)
     template_name = Column(String(250))
-    css = Column(Text, default="")
+    css = Column(utils.MediumText(), default="")
 
 
-class ConfigurationMethod(str, enum.Enum):
+class ConfigurationMethod(StrEnum):
     SQLALCHEMY_FORM = "sqlalchemy_form"
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(
-    Model, AuditMixinNullable, ImportExportMixin
-):  # pylint: disable=too-many-public-methods
-
+class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -178,6 +178,7 @@ class Database(
         "is_managed_externally",
         "external_url",
         "encrypted_extra",
+        "impersonate_user",
     ]
     export_children = ["tables"]
 
@@ -193,7 +194,7 @@ class Database(
         return self.db_engine_spec.allows_subqueries
 
     @property
-    def function_names(self) -> List[str]:
+    def function_names(self) -> list[str]:
         try:
             return self.db_engine_spec.get_function_names(self)
         except Exception as ex:  # pylint: disable=broad-except
@@ -218,7 +219,6 @@ class Database(
     @property
     def allows_virtual_table_explore(self) -> bool:
         extra = self.get_extra()
-
         return bool(extra.get("allows_virtual_table_explore", True))
 
     @property
@@ -228,12 +228,20 @@ class Database(
     @property
     def disable_data_preview(self) -> bool:
         # this will prevent any 'trash value' strings from going through
-        if self.get_extra().get("disable_data_preview", False) is not True:
-            return False
-        return True
+        return self.get_extra().get("disable_data_preview", False) is True
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def disable_drill_to_detail(self) -> bool:
+        # this will prevent any 'trash value' strings from going through
+        return self.get_extra().get("disable_drill_to_detail", False) is True
+
+    @property
+    def schema_options(self) -> dict[str, Any]:
+        """Additional schema display config for engines with complex schemas"""
+        return self.get_extra().get("schema_options", {})
+
+    @property
+    def data(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.database_name,
@@ -243,8 +251,10 @@ class Database(
             "allows_cost_estimate": self.allows_cost_estimate,
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
+            "schema_options": self.schema_options,
             "parameters": self.parameters,
             "disable_data_preview": self.disable_data_preview,
+            "disable_drill_to_detail": self.disable_drill_to_detail,
             "parameters_schema": self.parameters_schema,
             "engine_information": self.engine_information,
         }
@@ -266,24 +276,20 @@ class Database(
         return self.url_object.get_driver_name()
 
     @property
-    def masked_encrypted_extra(self) -> Optional[str]:
+    def masked_encrypted_extra(self) -> str | None:
         return self.db_engine_spec.mask_encrypted_extra(self.encrypted_extra)
 
     @property
-    def parameters(self) -> Dict[str, Any]:
+    def parameters(self) -> dict[str, Any]:
         # Database parameters are a dictionary of values that are used to make up
         # the sqlalchemy_uri
         # When returning the parameters we should use the masked SQLAlchemy URI and the
         # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
         masked_uri = make_url_safe(self.sqlalchemy_uri)
-        masked_encrypted_extra = self.masked_encrypted_extra
         encrypted_config = {}
-        if masked_encrypted_extra is not None:
-            try:
+        if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
+            with suppress(TypeError, json.JSONDecodeError):
                 encrypted_config = json.loads(masked_encrypted_extra)
-            except (TypeError, json.JSONDecodeError):
-                pass
-
         try:
             # pylint: disable=useless-suppression
             parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
@@ -296,7 +302,7 @@ class Database(
         return parameters
 
     @property
-    def parameters_schema(self) -> Dict[str, Any]:
+    def parameters_schema(self) -> dict[str, Any]:
         try:
             parameters_schema = self.db_engine_spec.parameters_json_schema()  # type: ignore
         except Exception:  # pylint: disable=broad-except
@@ -304,7 +310,7 @@ class Database(
         return parameters_schema
 
     @property
-    def metadata_cache_timeout(self) -> Dict[str, Any]:
+    def metadata_cache_timeout(self) -> dict[str, Any]:
         return self.get_extra().get("metadata_cache_timeout", {})
 
     @property
@@ -312,7 +318,7 @@ class Database(
         return "schema_cache_timeout" in self.metadata_cache_timeout
 
     @property
-    def schema_cache_timeout(self) -> Optional[int]:
+    def schema_cache_timeout(self) -> int | None:
         return self.metadata_cache_timeout.get("schema_cache_timeout")
 
     @property
@@ -320,19 +326,19 @@ class Database(
         return "table_cache_timeout" in self.metadata_cache_timeout
 
     @property
-    def table_cache_timeout(self) -> Optional[int]:
+    def table_cache_timeout(self) -> int | None:
         return self.metadata_cache_timeout.get("table_cache_timeout")
 
     @property
-    def default_schemas(self) -> List[str]:
+    def default_schemas(self) -> list[str]:
         return self.get_extra().get("default_schemas", [])
 
     @property
-    def connect_args(self) -> Dict[str, Any]:
+    def connect_args(self) -> dict[str, Any]:
         return self.get_extra().get("engine_params", {}).get("connect_args", {})
 
     @property
-    def engine_information(self) -> Dict[str, Any]:
+    def engine_information(self) -> dict[str, Any]:
         try:
             engine_information = self.db_engine_spec.get_public_information()
         except Exception:  # pylint: disable=broad-except
@@ -361,7 +367,7 @@ class Database(
         conn = conn.set(password=PASSWORD_MASK if conn.password else None)
         self.sqlalchemy_uri = str(conn)  # hides the password
 
-    def get_effective_user(self, object_url: URL) -> Optional[str]:
+    def get_effective_user(self, object_url: URL) -> str | None:
         """
         Get the effective user, especially during impersonation.
 
@@ -369,7 +375,7 @@ class Database(
         :return: The effective username
         """
 
-        return (  # pylint: disable=used-before-assignment
+        return (
             username
             if (username := get_username())
             else object_url.username
@@ -378,14 +384,23 @@ class Database(
         )
 
     @contextmanager
-    def get_sqla_engine_with_context(
+    def get_sqla_engine(  # pylint: disable=too-many-arguments
         self,
-        schema: Optional[str] = None,
+        catalog: str | None = None,
+        schema: str | None = None,
         nullpool: bool = True,
-        source: Optional[utils.QuerySource] = None,
-        override_ssh_tunnel: Optional["SSHTunnel"] = None,
+        source: utils.QuerySource | None = None,
+        override_ssh_tunnel: SSHTunnel | None = None,
     ) -> Engine:
-        from superset.databases.dao import (  # pylint: disable=import-outside-toplevel
+        """
+        Context manager for a SQLAlchemy engine.
+
+        This method will return a context manager for a SQLAlchemy engine. Using the
+        context manager (as opposed to the engine directly) is important because we need
+        to potentially establish SSH tunnels before the connection is created, and clean
+        them up once the engine is no longer used.
+        """
+        from superset.daos.database import (  # pylint: disable=import-outside-toplevel
             DatabaseDAO,
         )
 
@@ -399,15 +414,24 @@ class Database(
             # if ssh_tunnel is available build engine with information
             engine_context = ssh_manager_factory.instance.create_tunnel(
                 ssh_tunnel=ssh_tunnel,
-                sqlalchemy_database_uri=self.sqlalchemy_uri_decrypted,
+                sqlalchemy_database_uri=sqlalchemy_uri,
             )
 
         with engine_context as server_context:
-            if ssh_tunnel:
-                sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(
-                    sqlalchemy_uri, server_context
+            if ssh_tunnel and server_context:
+                logger.info(
+                    "[SSH] Successfully created tunnel w/ %s tunnel_timeout + %s ssh_timeout at %s",
+                    sshtunnel.TUNNEL_TIMEOUT,
+                    sshtunnel.SSH_TIMEOUT,
+                    server_context.local_bind_address,
                 )
+                sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(
+                    sqlalchemy_uri,
+                    server_context,
+                )
+
             yield self._get_sqla_engine(
+                catalog=catalog,
                 schema=schema,
                 nullpool=nullpool,
                 source=source,
@@ -416,10 +440,11 @@ class Database(
 
     def _get_sqla_engine(
         self,
-        schema: Optional[str] = None,
+        catalog: str | None = None,
+        schema: str | None = None,
         nullpool: bool = True,
-        source: Optional[utils.QuerySource] = None,
-        sqlalchemy_uri: Optional[str] = None,
+        source: utils.QuerySource | None = None,
+        sqlalchemy_uri: str | None = None,
     ) -> Engine:
         sqlalchemy_url = make_url_safe(
             sqlalchemy_uri if sqlalchemy_uri else self.sqlalchemy_uri_decrypted
@@ -432,30 +457,25 @@ class Database(
             params["poolclass"] = NullPool
         connect_args = params.get("connect_args", {})
 
-        # The ``adjust_database_uri`` method was renamed to ``adjust_engine_params`` and
-        # had its signature changed in order to support more DB engine specs. Since DB
-        # engine specs can be released as 3rd party modules we want to make sure the old
-        # method is still supported so we don't introduce a breaking change.
-        if hasattr(self.db_engine_spec, "adjust_database_uri"):
-            sqlalchemy_url = self.db_engine_spec.adjust_database_uri(
-                sqlalchemy_url,
-                schema,
-            )
-            logger.warning(
-                "DB engine spec %s implements the method `adjust_database_uri`, which is "
-                "deprecated and will be removed in version 3.0. Please update it to "
-                "implement `adjust_engine_params` instead.",
-                self.db_engine_spec,
-            )
-
         sqlalchemy_url, connect_args = self.db_engine_spec.adjust_engine_params(
             uri=sqlalchemy_url,
             connect_args=connect_args,
-            catalog=None,
+            catalog=catalog,
             schema=schema,
         )
 
         effective_username = self.get_effective_user(sqlalchemy_url)
+        oauth2_config = self.get_oauth2_config()
+        access_token = (
+            get_oauth2_access_token(
+                oauth2_config,
+                self.id,
+                g.user.id,
+                self.db_engine_spec,
+            )
+            if hasattr(g, "user") and hasattr(g.user, "id") and oauth2_config
+            else None
+        )
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
         # configuration parameter instead.
@@ -463,6 +483,7 @@ class Database(
             sqlalchemy_url,
             self.impersonate_user,
             effective_username,
+            access_token,
         )
 
         masked_url = self.get_password_masked_url(sqlalchemy_url)
@@ -473,6 +494,7 @@ class Database(
                 connect_args,
                 str(sqlalchemy_url),
                 effective_username,
+                access_token,
             )
 
         if connect_args:
@@ -486,7 +508,7 @@ class Database(
                     source = utils.QuerySource.DASHBOARD
                 elif "/explore/" in request.referrer:
                     source = utils.QuerySource.CHART
-                elif "/superset/sqllab" in request.referrer:
+                elif "/sqllab/" in request.referrer:
                     source = utils.QuerySource.SQL_LAB
 
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
@@ -504,17 +526,30 @@ class Database(
     @contextmanager
     def get_raw_connection(
         self,
-        schema: Optional[str] = None,
+        catalog: str | None = None,
+        schema: str | None = None,
         nullpool: bool = True,
-        source: Optional[utils.QuerySource] = None,
+        source: utils.QuerySource | None = None,
     ) -> Connection:
-        with self.get_sqla_engine_with_context(
-            schema=schema, nullpool=nullpool, source=source
+        with self.get_sqla_engine(
+            catalog=catalog,
+            schema=schema,
+            nullpool=nullpool,
+            source=source,
         ) as engine:
             with closing(engine.raw_connection()) as conn:
+                # pre-session queries are used to set the selected schema and, in the
+                # future, the selected catalog
+                for prequery in self.db_engine_spec.get_prequeries(
+                    catalog=catalog,
+                    schema=schema,
+                ):
+                    cursor = conn.cursor()
+                    cursor.execute(prequery)
+
                 yield conn
 
-    def get_default_schema_for_query(self, query: "Query") -> Optional[str]:
+    def get_default_schema_for_query(self, query: Query) -> str | None:
         """
         Return the default schema for a given query.
 
@@ -530,119 +565,132 @@ class Database(
         """
         return self.db_engine_spec.get_default_schema_for_query(self, query)
 
-    @property
-    def quote_identifier(self) -> Callable[[str], str]:
-        """Add quotes to potential identifiter expressions if needed"""
-        return self.get_dialect().identifier_preparer.quote
-
-    def get_reserved_words(self) -> Set[str]:
-        return self.get_dialect().preparer.reserved_words
-
-    def get_df(  # pylint: disable=too-many-locals
-        self,
-        sql: str,
-        schema: Optional[str] = None,
-        mutator: Optional[Callable[[pd.DataFrame], None]] = None,
-    ) -> pd.DataFrame:
-        sqls = self.db_engine_spec.parse_sql(sql)
-        engine = self._get_sqla_engine(schema)
-        username = utils.get_username()
-        mutate_after_split = config["MUTATE_AFTER_SPLIT"]
-        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
-
-        def needs_conversion(df_series: pd.Series) -> bool:
+    @staticmethod
+    def post_process_df(df: pd.DataFrame) -> pd.DataFrame:
+        def column_needs_conversion(df_series: pd.Series) -> bool:
             return (
                 not df_series.empty
                 and isinstance(df_series, pd.Series)
                 and isinstance(df_series[0], (list, dict))
             )
 
+        for col, coltype in df.dtypes.to_dict().items():
+            if coltype == numpy.object_ and column_needs_conversion(df[col]):
+                df[col] = df[col].apply(utils.json_dumps_w_dates)
+        return df
+
+    @property
+    def quote_identifier(self) -> Callable[[str], str]:
+        """Add quotes to potential identifier expressions if needed"""
+        return self.get_dialect().identifier_preparer.quote
+
+    def get_reserved_words(self) -> set[str]:
+        return self.get_dialect().preparer.reserved_words
+
+    def mutate_sql_based_on_config(self, sql_: str, is_split: bool = False) -> str:
+        """
+        Mutates the SQL query based on the app configuration.
+
+        Two config params here affect the behavior of the SQL query mutator:
+        - `SQL_QUERY_MUTATOR`: A user-provided function that mutates the SQL query.
+        - `MUTATE_AFTER_SPLIT`: If True, the SQL query mutator is only called after the
+          sql is broken down into smaller queries. If False, the SQL query mutator applies
+          on the group of queries as a whole. Here the called passes the context
+          as to whether the SQL is split or already.
+        """
+        sql_mutator = config["SQL_QUERY_MUTATOR"]
+        if sql_mutator and (is_split == config["MUTATE_AFTER_SPLIT"]):
+            return sql_mutator(
+                sql_,
+                security_manager=security_manager,
+                database=self,
+            )
+        return sql_
+
+    def get_df(  # pylint: disable=too-many-locals
+        self,
+        sql: str,
+        catalog: str | None = None,
+        schema: str | None = None,
+        mutator: Callable[[pd.DataFrame], None] | None = None,
+    ) -> pd.DataFrame:
+        sqls = self.db_engine_spec.parse_sql(sql)
+        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
+            engine_url = engine.url
+
         def _log_query(sql: str) -> None:
             if log_query:
                 log_query(
-                    engine.url,
+                    engine_url,
                     sql,
                     schema,
-                    get_username(),
                     __name__,
                     security_manager,
                 )
 
-        with self.get_raw_connection(schema=schema) as conn:
+        with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
-            for sql_ in sqls[:-1]:
-                if mutate_after_split:
-                    sql_ = sql_query_mutator(
-                        sql_,
-                        user_name=username,
-                        security_manager=security_manager,
-                        database=None,
-                    )
+            df = None
+            for i, sql_ in enumerate(sqls):
+                sql_ = self.mutate_sql_based_on_config(sql_, is_split=True)
                 _log_query(sql_)
-                self.db_engine_spec.execute(cursor, sql_)
-                cursor.fetchall()
-
-            if mutate_after_split:
-                last_sql = sql_query_mutator(
-                    sqls[-1],
-                    user_name=username,
-                    security_manager=security_manager,
-                    database=None,
-                )
-                _log_query(last_sql)
-                self.db_engine_spec.execute(cursor, last_sql)
-            else:
-                _log_query(sqls[-1])
-                self.db_engine_spec.execute(cursor, sqls[-1])
-
-            data = self.db_engine_spec.fetch_data(cursor)
-            result_set = SupersetResultSet(
-                data, cursor.description, self.db_engine_spec
-            )
-            df = result_set.to_pandas_df()
+                with event_logger.log_context(
+                    action="execute_sql",
+                    database=self,
+                    object_ref=__name__,
+                ):
+                    self.db_engine_spec.execute(cursor, sql_, self)
+                    if i < len(sqls) - 1:
+                        # If it's not the last, we don't keep the results
+                        cursor.fetchall()
+                    else:
+                        # Last query, fetch and process the results
+                        data = self.db_engine_spec.fetch_data(cursor)
+                        result_set = SupersetResultSet(
+                            data, cursor.description, self.db_engine_spec
+                        )
+                        df = result_set.to_pandas_df()
             if mutator:
                 df = mutator(df)
 
-            for col, coltype in df.dtypes.to_dict().items():
-                if coltype == numpy.object_ and needs_conversion(df[col]):
-                    df[col] = df[col].apply(utils.json_dumps_w_dates)
+            return self.post_process_df(df)
 
-            return df
+    def compile_sqla_query(
+        self,
+        qry: Select,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> str:
+        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
+            sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
 
-    def compile_sqla_query(self, qry: Select, schema: Optional[str] = None) -> str:
-        engine = self._get_sqla_engine(schema=schema)
-
-        sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
-
-        # pylint: disable=protected-access
-        if engine.dialect.identifier_preparer._double_percents:  # noqa
-            sql = sql.replace("%%", "%")
+            # pylint: disable=protected-access
+            if engine.dialect.identifier_preparer._double_percents:  # noqa
+                sql = sql.replace("%%", "%")
 
         return sql
 
     def select_star(  # pylint: disable=too-many-arguments
         self,
-        table_name: str,
-        schema: Optional[str] = None,
+        table: Table,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = False,
-        cols: Optional[List[Dict[str, Any]]] = None,
+        cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """Generates a ``select *`` statement in the proper dialect"""
-        eng = self._get_sqla_engine(schema=schema, source=utils.QuerySource.SQL_LAB)
-        return self.db_engine_spec.select_star(
-            self,
-            table_name,
-            schema=schema,
-            engine=eng,
-            limit=limit,
-            show_cols=show_cols,
-            indent=indent,
-            latest_partition=latest_partition,
-            cols=cols,
-        )
+        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
+            return self.db_engine_spec.select_star(
+                self,
+                table,
+                engine=engine,
+                limit=limit,
+                show_cols=show_cols,
+                indent=indent,
+                latest_partition=latest_partition,
+                cols=cols,
+            )
 
     def apply_limit_to_sql(
         self, sql: str, limit: int = 1000, force: bool = False
@@ -654,22 +702,18 @@ class Database(
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
 
-    @property
-    def inspector(self) -> Inspector:
-        engine = self._get_sqla_engine()
-        return sqla.inspect(engine)
-
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:table_list",
         cache=cache_manager.cache,
     )
     def get_all_table_names_in_schema(  # pylint: disable=unused-argument
         self,
+        catalog: str | None,
         schema: str,
         cache: bool = False,
-        cache_timeout: Optional[int] = None,
+        cache_timeout: int | None = None,
         force: bool = False,
-    ) -> Set[Tuple[str, str]]:
+    ) -> set[tuple[str, str]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -682,8 +726,8 @@ class Database(
         :return: The table/schema pairs
         """
         try:
-            with self.get_inspector_with_context() as inspector:
-                tables = {
+            with self.get_inspector(catalog=catalog, schema=schema) as inspector:
+                return {
                     (table, schema)
                     for table in self.db_engine_spec.get_table_names(
                         database=self,
@@ -691,7 +735,6 @@ class Database(
                         schema=schema,
                     )
                 }
-                return tables
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
@@ -701,11 +744,12 @@ class Database(
     )
     def get_all_view_names_in_schema(  # pylint: disable=unused-argument
         self,
+        catalog: str | None,
         schema: str,
         cache: bool = False,
-        cache_timeout: Optional[int] = None,
+        cache_timeout: int | None = None,
         force: bool = False,
-    ) -> Set[Tuple[str, str]]:
+    ) -> set[tuple[str, str]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -718,7 +762,7 @@ class Database(
         :return: set of views
         """
         try:
-            with self.get_inspector_with_context() as inspector:
+            with self.get_inspector(catalog=catalog, schema=schema) as inspector:
                 return {
                     (view, schema)
                     for view in self.db_engine_spec.get_view_names(
@@ -731,11 +775,16 @@ class Database(
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @contextmanager
-    def get_inspector_with_context(
-        self, ssh_tunnel: Optional["SSHTunnel"] = None
+    def get_inspector(
+        self,
+        catalog: str | None = None,
+        schema: str | None = None,
+        ssh_tunnel: SSHTunnel | None = None,
     ) -> Inspector:
-        with self.get_sqla_engine_with_context(
-            override_ssh_tunnel=ssh_tunnel
+        with self.get_sqla_engine(
+            catalog=catalog,
+            schema=schema,
+            override_ssh_tunnel=ssh_tunnel,
         ) as engine:
             yield sqla.inspect(engine)
 
@@ -745,11 +794,12 @@ class Database(
     )
     def get_all_schema_names(  # pylint: disable=unused-argument
         self,
+        catalog: str | None = None,
         cache: bool = False,
-        cache_timeout: Optional[int] = None,
+        cache_timeout: int | None = None,
         force: bool = False,
-        ssh_tunnel: Optional["SSHTunnel"] = None,
-    ) -> List[str]:
+        ssh_tunnel: SSHTunnel | None = None,
+    ) -> list[str]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -761,19 +811,24 @@ class Database(
         :return: schema list
         """
         try:
-            with self.get_inspector_with_context(ssh_tunnel=ssh_tunnel) as inspector:
+            with self.get_inspector(
+                catalog=catalog,
+                ssh_tunnel=ssh_tunnel,
+            ) as inspector:
                 return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @property
-    def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
+    def db_engine_spec(self) -> builtins.type[db_engine_specs.BaseEngineSpec]:
         url = make_url_safe(self.sqlalchemy_uri_decrypted)
         return self.get_db_engine_spec(url)
 
     @classmethod
     @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
-    def get_db_engine_spec(cls, url: URL) -> Type[db_engine_specs.BaseEngineSpec]:
+    def get_db_engine_spec(
+        cls, url: URL
+    ) -> builtins.type[db_engine_specs.BaseEngineSpec]:
         backend = url.get_backend_name()
         try:
             driver = url.get_driver_name()
@@ -783,7 +838,7 @@ class Database(
 
         return db_engine_specs.get_engine_spec(backend, driver)
 
-    def grains(self) -> Tuple[TimeGrain, ...]:
+    def grains(self) -> tuple[TimeGrain, ...]:
         """Defines time granularity database-specific expressions.
 
         The idea here is to make it easy for users to change the time grain
@@ -794,10 +849,10 @@ class Database(
         """
         return self.db_engine_spec.get_time_grains()
 
-    def get_extra(self) -> Dict[str, Any]:
+    def get_extra(self) -> dict[str, Any]:
         return self.db_engine_spec.get_extra_params(self)
 
-    def get_encrypted_extra(self) -> Dict[str, Any]:
+    def get_encrypted_extra(self) -> dict[str, Any]:
         encrypted_extra = {}
         if self.encrypted_extra:
             try:
@@ -808,52 +863,60 @@ class Database(
         return encrypted_extra
 
     # pylint: disable=invalid-name
-    def update_params_from_encrypted_extra(self, params: Dict[str, Any]) -> None:
+    def update_params_from_encrypted_extra(self, params: dict[str, Any]) -> None:
         self.db_engine_spec.update_params_from_encrypted_extra(self, params)
 
-    def get_table(self, table_name: str, schema: Optional[str] = None) -> Table:
+    def get_table(self, table: Table) -> SqlaTable:
         extra = self.get_extra()
         meta = MetaData(**extra.get("metadata_params", {}))
-        with self.get_sqla_engine_with_context() as engine:
-            return Table(
-                table_name,
+        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
+            return SqlaTable(
+                table.table,
                 meta,
-                schema=schema or None,
+                schema=table.schema or None,
                 autoload=True,
                 autoload_with=engine,
             )
 
-    def get_table_comment(
-        self, table_name: str, schema: Optional[str] = None
-    ) -> Optional[str]:
-        with self.get_inspector_with_context() as inspector:
-            return self.db_engine_spec.get_table_comment(inspector, table_name, schema)
+    def get_table_comment(self, table: Table) -> str | None:
+        with self.get_inspector(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as inspector:
+            return self.db_engine_spec.get_table_comment(inspector, table)
 
-    def get_columns(
-        self, table_name: str, schema: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
-        with self.get_inspector_with_context() as inspector:
-            return self.db_engine_spec.get_columns(inspector, table_name, schema)
+    def get_columns(self, table: Table) -> list[ResultSetColumnType]:
+        with self.get_inspector(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as inspector:
+            return self.db_engine_spec.get_columns(
+                inspector, table, self.schema_options
+            )
 
     def get_metrics(
         self,
-        table_name: str,
-        schema: Optional[str] = None,
-    ) -> List[MetricType]:
-        with self.get_inspector_with_context() as inspector:
-            return self.db_engine_spec.get_metrics(self, inspector, table_name, schema)
+        table: Table,
+    ) -> list[MetricType]:
+        with self.get_inspector(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as inspector:
+            return self.db_engine_spec.get_metrics(self, inspector, table)
 
-    def get_indexes(
-        self, table_name: str, schema: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
-        with self.get_inspector_with_context() as inspector:
-            return self.db_engine_spec.get_indexes(self, inspector, table_name, schema)
+    def get_indexes(self, table: Table) -> list[dict[str, Any]]:
+        with self.get_inspector(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as inspector:
+            return self.db_engine_spec.get_indexes(self, inspector, table)
 
-    def get_pk_constraint(
-        self, table_name: str, schema: Optional[str] = None
-    ) -> Dict[str, Any]:
-        with self.get_inspector_with_context() as inspector:
-            pk_constraint = inspector.get_pk_constraint(table_name, schema) or {}
+    def get_pk_constraint(self, table: Table) -> dict[str, Any]:
+        with self.get_inspector(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as inspector:
+            pk_constraint = inspector.get_pk_constraint(table.table, table.schema) or {}
 
             def _convert(value: Any) -> Any:
                 try:
@@ -863,15 +926,16 @@ class Database(
 
             return {key: _convert(value) for key, value in pk_constraint.items()}
 
-    def get_foreign_keys(
-        self, table_name: str, schema: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
-        with self.get_inspector_with_context() as inspector:
-            return inspector.get_foreign_keys(table_name, schema)
+    def get_foreign_keys(self, table: Table) -> list[dict[str, Any]]:
+        with self.get_inspector(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as inspector:
+            return inspector.get_foreign_keys(table.table, table.schema)
 
     def get_schema_access_for_file_upload(  # pylint: disable=invalid-name
         self,
-    ) -> List[str]:
+    ) -> list[str]:
         allowed_databases = self.get_extra().get("schemas_allowed_for_file_upload", [])
 
         if isinstance(allowed_databases, str):
@@ -888,7 +952,7 @@ class Database(
     def sqlalchemy_uri_decrypted(self) -> str:
         try:
             conn = make_url_safe(self.sqlalchemy_uri)
-        except (ArgumentError, ValueError):
+        except DatabaseInvalidError:
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
             return "dialect://invalid_uri"
@@ -916,38 +980,63 @@ class Database(
         return self.perm  # type: ignore
 
     def has_table(self, table: Table) -> bool:
-        with self.get_sqla_engine_with_context() as engine:
-            return engine.has_table(table.table_name, table.schema or None)
+        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
+            # do not pass "" as an empty schema; force null
+            return engine.has_table(table.table, table.schema or None)
 
-    def has_table_by_name(self, table_name: str, schema: Optional[str] = None) -> bool:
-        with self.get_sqla_engine_with_context() as engine:
-            return engine.has_table(table_name, schema)
+    def has_view(self, table: Table) -> bool:
+        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
+            connection = engine.connect()
+            try:
+                views = engine.dialect.get_view_names(
+                    connection=connection,
+                    schema=table.schema,
+                )
+            except Exception:  # pylint: disable=broad-except
+                logger.warning("Has view failed", exc_info=True)
+                views = []
 
-    @classmethod
-    def _has_view(
-        cls,
-        conn: Connection,
-        dialect: Dialect,
-        view_name: str,
-        schema: Optional[str] = None,
-    ) -> bool:
-        view_names: List[str] = []
-        try:
-            view_names = dialect.get_view_names(connection=conn, schema=schema)
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Has view failed", exc_info=True)
-        return view_name in view_names
-
-    def has_view(self, view_name: str, schema: Optional[str] = None) -> bool:
-        engine = self._get_sqla_engine()
-        return engine.run_callable(self._has_view, engine.dialect, view_name, schema)
-
-    def has_view_by_name(self, view_name: str, schema: Optional[str] = None) -> bool:
-        return self.has_view(view_name=view_name, schema=schema)
+        return table.table in views
 
     def get_dialect(self) -> Dialect:
         sqla_url = make_url_safe(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()
+
+    def make_sqla_column_compatible(
+        self, sqla_col: ColumnElement, label: str | None = None
+    ) -> ColumnElement:
+        """Takes a sqlalchemy column object and adds label info if supported by engine.
+        :param sqla_col: sqlalchemy column instance
+        :param label: alias/label that column is expected to have
+        :return: either a sql alchemy column or label instance if supported by engine
+        """
+        label_expected = label or sqla_col.name
+        # add quotes to tables
+        if self.db_engine_spec.get_allows_alias_in_select(self):
+            label = self.db_engine_spec.make_label_compatible(label_expected)
+            sqla_col = sqla_col.label(label)
+        sqla_col.key = label_expected
+        return sqla_col
+
+    def is_oauth2_enabled(self) -> bool:
+        """
+        Is OAuth2 enabled in the database for authentication?
+
+        Currently this looks for a global config at the DB engine spec level, but in the
+        future we want to be allow admins to create custom OAuth2 clients from the
+        Superset UI, and assign them to specific databases.
+        """
+        return self.db_engine_spec.is_oauth2_enabled()
+
+    def get_oauth2_config(self) -> OAuth2ClientConfig | None:
+        """
+        Return OAuth2 client configuration.
+
+        This includes client ID, client secret, scope, redirect URI, endpointsm etc.
+        Currently this reads the global DB engine spec config, but in the future it
+        should first check if there's a custom client assigned to the database.
+        """
+        return self.db_engine_spec.get_oauth2_config()
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)
@@ -955,8 +1044,36 @@ sqla.event.listen(Database, "after_update", security_manager.database_after_upda
 sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
 
 
-class Log(Model):  # pylint: disable=too-few-public-methods
+class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
+    """
+    Store OAuth2 tokens, for authenticating to DBs using user personal tokens.
+    """
 
+    __tablename__ = "database_user_oauth2_tokens"
+    __table_args__ = (sqla.Index("idx_user_id_database_id", "user_id", "database_id"),)
+
+    id = Column(Integer, primary_key=True)
+
+    user_id = Column(
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user = relationship(security_manager.user_model, foreign_keys=[user_id])
+
+    database_id = Column(
+        Integer,
+        ForeignKey("dbs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    database = relationship("Database", foreign_keys=[database_id])
+
+    access_token = Column(encrypted_field_factory.create(Text), nullable=True)
+    access_token_expiration = Column(DateTime, nullable=True)
+    refresh_token = Column(encrypted_field_factory.create(Text), nullable=True)
+
+
+class Log(Model):  # pylint: disable=too-few-public-methods
     """ORM object used to log Superset actions to the database"""
 
     __tablename__ = "logs"
@@ -966,7 +1083,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     dashboard_id = Column(Integer)
     slice_id = Column(Integer)
-    json = Column(Text)
+    json = Column(utils.MediumText())
     user = relationship(
         security_manager.user_model, backref="logs", foreign_keys=[user_id]
     )
@@ -975,7 +1092,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     referrer = Column(String(1024))
 
 
-class FavStarClassName(str, enum.Enum):
+class FavStarClassName(StrEnum):
     CHART = "slice"
     DASHBOARD = "Dashboard"
 

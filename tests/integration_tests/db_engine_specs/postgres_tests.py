@@ -119,29 +119,29 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         assert "postgres" in backends
 
     def test_extras_without_ssl(self):
-        db = mock.Mock()
-        db.extra = default_db_extra
-        db.server_cert = None
-        extras = PostgresEngineSpec.get_extra_params(db)
+        database = mock.Mock()
+        database.extra = default_db_extra
+        database.server_cert = None
+        extras = PostgresEngineSpec.get_extra_params(database)
         assert "connect_args" not in extras["engine_params"]
 
     def test_extras_with_ssl_default(self):
-        db = mock.Mock()
-        db.extra = default_db_extra
-        db.server_cert = ssl_certificate
-        extras = PostgresEngineSpec.get_extra_params(db)
+        database = mock.Mock()
+        database.extra = default_db_extra
+        database.server_cert = ssl_certificate
+        extras = PostgresEngineSpec.get_extra_params(database)
         connect_args = extras["engine_params"]["connect_args"]
         assert connect_args["sslmode"] == "verify-full"
         assert "sslrootcert" in connect_args
 
     def test_extras_with_ssl_custom(self):
-        db = mock.Mock()
-        db.extra = default_db_extra.replace(
+        database = mock.Mock()
+        database.extra = default_db_extra.replace(
             '"engine_params": {}',
             '"engine_params": {"connect_args": {"sslmode": "verify-ca"}}',
         )
-        db.server_cert = ssl_certificate
-        extras = PostgresEngineSpec.get_extra_params(db)
+        database.server_cert = ssl_certificate
+        extras = PostgresEngineSpec.get_extra_params(database)
         connect_args = extras["engine_params"]["connect_args"]
         assert connect_args["sslmode"] == "verify-ca"
         assert "sslrootcert" in connect_args
@@ -501,7 +501,6 @@ def test_base_parameters_mixin():
             "database": {"type": "string", "description": "Database name"},
             "port": {
                 "type": "integer",
-                "format": "int32",
                 "minimum": 0,
                 "maximum": 65536,
                 "description": "Database port",
@@ -512,6 +511,10 @@ def test_base_parameters_mixin():
                 "type": "object",
                 "description": "Additional parameters",
                 "additionalProperties": {},
+            },
+            "ssh": {
+                "description": "Use an ssh tunnel connection to the database",
+                "type": "boolean",
             },
         },
         "required": ["database", "host", "port", "username"],
@@ -527,7 +530,7 @@ def test_get_catalog_names(app_context: AppContext) -> None:
     if database.backend != "postgresql":
         return
 
-    with database.get_inspector_with_context() as inspector:
+    with database.get_inspector() as inspector:
         assert PostgresEngineSpec.get_catalog_names(database, inspector) == [
             "postgres",
             "superset",

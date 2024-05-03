@@ -18,7 +18,7 @@
 import importlib
 import logging
 import pkgutil
-from typing import Any, Dict
+from typing import Any
 
 import click
 from colorama import Fore, Style
@@ -37,11 +37,12 @@ logger = logging.getLogger(__name__)
 )
 @with_appcontext
 def superset() -> None:
-    """This is a management script for the Superset application."""
+    """\033[1;37mThe Apache Superset CLI\033[0m"""
+    # NOTE: codes above are ANSI color codes for bold white in CLI header ^^^
 
     @app.shell_context_processor
-    def make_shell_context() -> Dict[str, Any]:
-        return dict(app=app, db=db)
+    def make_shell_context() -> dict[str, Any]:
+        return {"app": app, "db": db}
 
 
 # add sub-commands
@@ -50,8 +51,11 @@ for load, module_name, is_pkg in pkgutil.walk_packages(
 ):
     module = importlib.import_module(module_name)
     for attribute in module.__dict__.values():
-        if isinstance(attribute, click.core.Command):
+        if isinstance(attribute, (click.core.Command, click.core.Group)):
             superset.add_command(attribute)
+
+            if isinstance(attribute, click.core.Group):
+                break
 
 
 @superset.command()
@@ -68,13 +72,8 @@ def init() -> None:
 def version(verbose: bool) -> None:
     """Prints the current version number"""
     print(Fore.BLUE + "-=" * 15)
-    print(
-        Fore.YELLOW
-        + "Superset "
-        + Fore.CYAN
-        + "{version}".format(version=app.config["VERSION_STRING"])
-    )
+    print(Fore.YELLOW + "Superset " + Fore.CYAN + f"{app.config['VERSION_STRING']}")
     print(Fore.BLUE + "-=" * 15)
     if verbose:
-        print("[DB] : " + "{}".format(db.engine))
+        print("[DB] : " + f"{db.engine}")
     print(Style.RESET_ALL)

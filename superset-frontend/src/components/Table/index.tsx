@@ -31,26 +31,26 @@ import VirtualTable from './VirtualTable';
 export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
 
 export enum SelectionType {
-  'DISABLED' = 'disabled',
-  'SINGLE' = 'single',
-  'MULTI' = 'multi',
+  Disabled = 'disabled',
+  Single = 'single',
+  Multi = 'multi',
 }
 
 export type SortOrder = 'descend' | 'ascend' | null;
 
 export enum ETableAction {
-  PAGINATE = 'paginate',
-  SORT = 'sort',
-  FILTER = 'filter',
+  Paginate = 'paginate',
+  Sort = 'sort',
+  Filter = 'filter',
 }
 
-export { ColumnsType };
+export type { ColumnsType };
 export type OnChangeFunction<RecordType> =
   AntTableProps<RecordType>['onChange'];
 
 export enum TableSize {
-  SMALL = 'small',
-  MIDDLE = 'middle',
+  Small = 'small',
+  Middle = 'middle',
 }
 
 export interface TableProps<RecordType> {
@@ -58,6 +58,10 @@ export interface TableProps<RecordType> {
    * Data that will populate the each row and map to the column key.
    */
   data: RecordType[];
+  /**
+   * Whether to show all table borders
+   */
+  bordered?: boolean;
   /**
    * Table column definitions.
    */
@@ -141,6 +145,17 @@ export interface TableProps<RecordType> {
    * Returns props that should be applied to each row component.
    */
   onRow?: AntTableProps<RecordType>['onRow'];
+  /**
+   * Will render html safely if set to true, anchor tags and such. Currently
+   * only supported for virtualize == true
+   */
+  allowHTML?: boolean;
+
+  /**
+   * The column that contains children to display.
+   * Check https://ant.design/components/table#table for more details.
+   */
+  childrenColumnName?: string;
 }
 
 const defaultRowSelection: React.Key[] = [];
@@ -174,6 +189,10 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
 
     .ant-pagination-item-active {
       border-color: ${theme.colors.primary.base};
+    }
+
+    .ant-table.ant-table-small {
+      font-size: ${theme.typography.sizes.s}px;
     }
   `,
 );
@@ -215,20 +234,21 @@ const defaultLocale = {
 
 const selectionMap = {};
 const noop = () => {};
-selectionMap[SelectionType.MULTI] = 'checkbox';
-selectionMap[SelectionType.SINGLE] = 'radio';
-selectionMap[SelectionType.DISABLED] = null;
+selectionMap[SelectionType.Multi] = 'checkbox';
+selectionMap[SelectionType.Single] = 'radio';
+selectionMap[SelectionType.Disabled] = null;
 
 export function Table<RecordType extends object>(
   props: TableProps<RecordType>,
 ) {
   const {
     data,
+    bordered,
     columns,
     selectedRows = defaultRowSelection,
     handleRowSelection,
-    size = TableSize.SMALL,
-    selectionType = SelectionType.DISABLED,
+    size = TableSize.Small,
+    selectionType = SelectionType.Disabled,
     sticky = true,
     loading = false,
     resizable = false,
@@ -244,6 +264,8 @@ export function Table<RecordType extends object>(
     onChange = noop,
     recordCount,
     onRow,
+    allowHTML = false,
+    childrenColumnName,
   } = props;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -376,6 +398,10 @@ export function Table<RecordType extends object>(
     onRow,
     theme,
     height: bodyHeight,
+    bordered,
+    expandable: {
+      childrenColumnName,
+    },
   };
 
   return (
@@ -391,7 +417,15 @@ export function Table<RecordType extends object>(
         {virtualize && (
           <StyledVirtualTable
             {...sharedProps}
-            scroll={{ y: 300, x: '100vw' }}
+            scroll={{
+              y: 300,
+              x: '100vw',
+              // To avoid jest failure by scrollTo
+              ...(process.env.WEBPACK_MODE === 'test' && {
+                scrollToFirstRowOnChange: false,
+              }),
+            }}
+            allowHTML={allowHTML}
           />
         )}
       </div>

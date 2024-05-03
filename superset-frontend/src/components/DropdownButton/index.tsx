@@ -19,7 +19,7 @@
 import React, { ReactNode } from 'react';
 import { AntdDropdown, AntdTooltip } from 'src/components';
 import { styled } from '@superset-ui/core';
-import kebabCase from 'lodash/kebabCase';
+import { kebabCase } from 'lodash';
 
 const StyledDropdownButton = styled.div`
   .ant-btn-group {
@@ -42,7 +42,7 @@ const StyledDropdownButton = styled.div`
         background-color: ${({ theme }) => theme.colors.grayscale.light2};
         color: ${({ theme }) => theme.colors.grayscale.base};
       }
-      &:nth-child(2) {
+      &:nth-of-type(2) {
         margin: 0;
         border-radius: ${({ theme }) =>
           `0 ${theme.gridUnit}px ${theme.gridUnit}px 0`};

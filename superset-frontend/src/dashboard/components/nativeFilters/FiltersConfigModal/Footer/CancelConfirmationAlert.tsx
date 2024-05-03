@@ -42,6 +42,7 @@ export function CancelConfirmationAlert({
       message={title}
       css={{
         textAlign: 'left',
+        flex: 1,
         '& .ant-alert-action': { alignSelf: 'center' },
       }}
       description={children}

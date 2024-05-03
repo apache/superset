@@ -16,23 +16,25 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
-from functools import wraps
-from typing import Any, Callable, Dict, Iterator, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, TYPE_CHECKING
+from uuid import UUID
 
-from flask import current_app, Response
+from flask import current_app, g, Response
 
-from superset import is_feature_enabled
-from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
 
 
-def statsd_gauge(metric_prefix: Optional[str] = None) -> Callable[..., Any]:
+def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
     def decorate(f: Callable[..., Any]) -> Callable[..., Any]:
         """
         Handle sending statsd gauge metric from any method or function
@@ -46,8 +48,7 @@ def statsd_gauge(metric_prefix: Optional[str] = None) -> Callable[..., Any]:
                 return result
             except Exception as ex:
                 if (
-                    hasattr(ex, "status")
-                    and ex.status < 500  # pylint: disable=no-member
+                    hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
                 ):
                     current_app.config["STATS_LOGGER"].gauge(
                         f"{metric_prefix_}.warning", 1
@@ -57,6 +58,82 @@ def statsd_gauge(metric_prefix: Optional[str] = None) -> Callable[..., Any]:
                         f"{metric_prefix_}.error", 1
                     )
                 raise ex
+
+        return wrapped
+
+    return decorate
+
+
+def logs_context(
+    context_func: Callable[..., dict[Any, Any]] | None = None,
+    **ctx_kwargs: int | str | UUID | None,
+) -> Callable[..., Any]:
+    """
+    Takes arguments and adds them to the global logs_context.
+    This is for logging purposes only and values should not be relied on or mutated
+    """
+
+    def decorate(f: Callable[..., Any]) -> Callable[..., Any]:
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            if not hasattr(g, "logs_context"):
+                g.logs_context = {}
+
+            # limit data that can be saved to logs_context
+            # in order to prevent antipatterns
+            available_logs_context_keys = [
+                "slice_id",
+                "dashboard_id",
+                "dataset_id",
+                "execution_id",
+                "report_schedule_id",
+            ]
+            # set value from kwargs from
+            # wrapper function if it exists
+            # e.g. @logs_context()
+            #      def my_func(slice_id=None, **kwargs)
+            #
+            #      my_func(slice_id=2)
+            logs_context_data = {
+                key: val
+                for key, val in kwargs.items()
+                if key in available_logs_context_keys
+                if val is not None
+            }
+
+            try:
+                # if keys are passed in to decorator directly, add them to logs_context
+                # by overriding values from kwargs
+                # e.g. @logs_context(slice_id=1, dashboard_id=1)
+                logs_context_data.update(
+                    {
+                        key: ctx_kwargs.get(key)
+                        for key in available_logs_context_keys
+                        if ctx_kwargs.get(key) is not None
+                    }
+                )
+
+                if context_func is not None:
+                    # if a context function is passed in, call it and add the
+                    # returned values to logs_context
+                    # context_func=lambda *args, **kwargs: {
+                    # "slice_id": 1, "dashboard_id": 1
+                    # }
+                    logs_context_data.update(
+                        {
+                            key: value
+                            for key, value in context_func(*args, **kwargs).items()
+                            if key in available_logs_context_keys
+                            if value is not None
+                        }
+                    )
+
+            except (TypeError, KeyError, AttributeError):
+                # do nothing if the key doesn't exist
+                # or context is not callable
+                logger.warning("Invalid data was passed to the logs context decorator")
+
+            g.logs_context.update(logs_context_data)
+            return f(*args, **kwargs)
 
         return wrapped
 
@@ -83,13 +160,13 @@ def arghash(args: Any, kwargs: Any) -> int:
     return hash(sorted_args)
 
 
-def debounce(duration: Union[float, int] = 0.1) -> Callable[..., Any]:
+def debounce(duration: float | int = 0.1) -> Callable[..., Any]:
     """Ensure a function called with the same arguments executes only once
     per `duration` (default: 100ms).
     """
 
     def decorate(f: Callable[..., Any]) -> Callable[..., Any]:
-        last: Dict[str, Any] = {"t": None, "input": None, "output": None}
+        last: dict[str, Any] = {"t": None, "input": None, "output": None}
 
         def wrapped(*args: Any, **kwargs: Any) -> Any:
             now = time.time()
@@ -115,25 +192,20 @@ def on_security_exception(self: Any, ex: Exception) -> Response:
     return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
 
 
-# noinspection PyPackageRequirements
-def check_dashboard_access(on_error: Callable[[str], Any]) -> Callable[..., Any]:
-    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
-        @wraps(f)
-        def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
-            # pylint: disable=import-outside-toplevel
-            from superset.models.dashboard import Dashboard
+@contextmanager
+def suppress_logging(
+    logger_name: str | None = None,
+    new_level: int = logging.CRITICAL,
+) -> Iterator[None]:
+    """
+    Context manager to suppress logging during the execution of code block.
 
-            dashboard = Dashboard.get(str(kwargs["dashboard_id_or_slug"]))
-            if is_feature_enabled("DASHBOARD_RBAC"):
-                try:
-                    current_app.appbuilder.sm.raise_for_dashboard_access(dashboard)
-                except DashboardAccessDeniedError as ex:
-                    return on_error(str(ex))
-                except Exception as exception:
-                    raise exception
-
-            return f(self, *args, dashboard=dashboard, **kwargs)
-
-        return wrapper
-
-    return decorator
+    Use with caution and make sure you have the least amount of code inside it.
+    """
+    target_logger = logging.getLogger(logger_name)
+    original_level = target_logger.getEffectiveLevel()
+    target_logger.setLevel(new_level)
+    try:
+        yield
+    finally:
+        target_logger.setLevel(original_level)

@@ -75,9 +75,9 @@ const FilterControls: FC<FilterControlsProps> = ({
 }) => {
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) =>
-      isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR)
+      isFeatureEnabled(FeatureFlag.HorizontalFilterBar)
         ? dashboardInfo.filterBarOrientation
-        : FilterBarOrientation.VERTICAL,
+        : FilterBarOrientation.Vertical,
   );
 
   const { outlinedFilterId, lastUpdated } = useFilterOutlined();
@@ -97,7 +97,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const verboseMaps = useChartsVerboseMaps();
 
   const isCrossFiltersEnabled = isFeatureEnabled(
-    FeatureFlag.DASHBOARD_CROSS_FILTERS,
+    FeatureFlag.DashboardCrossFilters,
   );
   const selectedCrossFilters = useMemo(
     () =>
@@ -173,8 +173,8 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const overflowedCrossFilters = useMemo(
     () =>
-      selectedCrossFilters.filter(({ emitterId, name }) =>
-        overflowedIds?.includes(`${name}${emitterId}`),
+      selectedCrossFilters.filter(
+        ({ emitterId, name }) => overflowedIds?.includes(`${name}${emitterId}`),
       ),
     [overflowedIds, selectedCrossFilters],
   );
@@ -208,7 +208,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       id: `${c.name}${c.emitterId}`,
       element: rendererCrossFilter(
         c,
-        FilterBarOrientation.HORIZONTAL,
+        FilterBarOrientation.Horizontal,
         selectedCrossFilters.at(-1),
       ),
     }));
@@ -277,6 +277,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               )
             : undefined
         }
+        forceRender={hasRequiredFirst}
         ref={popoverRef}
         onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
           if (
@@ -325,9 +326,9 @@ const FilterControls: FC<FilterControlsProps> = ({
             )}
           </InPortal>
         ))}
-      {filterBarOrientation === FilterBarOrientation.VERTICAL &&
+      {filterBarOrientation === FilterBarOrientation.Vertical &&
         renderVerticalContent()}
-      {filterBarOrientation === FilterBarOrientation.HORIZONTAL &&
+      {filterBarOrientation === FilterBarOrientation.Horizontal &&
         renderHorizontalContent()}
     </>
   );

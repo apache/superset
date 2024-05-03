@@ -22,6 +22,7 @@ import TagType from 'src/types/TagType';
 import AntdTag from 'antd/lib/tag';
 import React, { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
+import { CloseOutlined } from '@ant-design/icons';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
@@ -31,6 +32,10 @@ const StyledTag = styled(AntdTag)`
   `};
 `;
 
+export const CustomCloseIcon = <CloseOutlined role="button" />;
+
+const MAX_DISPLAY_CHAR = 20;
+
 const Tag = ({
   name,
   id,
@@ -38,49 +43,50 @@ const Tag = ({
   onDelete = undefined,
   editable = false,
   onClick = undefined,
+  toolTipTitle = name,
 }: TagType) => {
-  const isLongTag = useMemo(() => name.length > 20, [name]);
+  const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
+  const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
 
   const handleClose = () => (index ? onDelete?.(index) : null);
+
+  const whatRole = onClick ? (!id ? 'button' : 'link') : undefined;
 
   const tagElem = (
     <>
       {editable ? (
-        <StyledTag
-          key={id}
-          closable={editable}
-          onClose={handleClose}
-          color="blue"
-        >
-          {isLongTag ? `${name.slice(0, 20)}...` : name}
-        </StyledTag>
+        <Tooltip title={toolTipTitle} key={toolTipTitle}>
+          <StyledTag
+            key={id}
+            closable={editable}
+            onClose={handleClose}
+            color="blue"
+            closeIcon={editable ? CustomCloseIcon : undefined}
+          >
+            {tagDisplay}
+          </StyledTag>
+        </Tooltip>
       ) : (
-        <StyledTag role="link" key={id} onClick={onClick}>
-          {id ? (
-            <a
-              href={`/superset/tags/?tags=${name}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {isLongTag ? `${name.slice(0, 20)}...` : name}
-            </a>
-          ) : isLongTag ? (
-            `${name.slice(0, 20)}...`
-          ) : (
-            name
-          )}
-        </StyledTag>
+        <Tooltip title={toolTipTitle} key={toolTipTitle}>
+          <StyledTag data-test="tag" key={id} onClick={onClick} role={whatRole}>
+            {id ? (
+              <a
+                href={`/superset/all_entities/?id=${id}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {tagDisplay}
+              </a>
+            ) : (
+              tagDisplay
+            )}
+          </StyledTag>
+        </Tooltip>
       )}
     </>
   );
 
-  return isLongTag ? (
-    <Tooltip title={name} key={name}>
-      {tagElem}
-    </Tooltip>
-  ) : (
-    tagElem
-  );
+  return tagElem;
 };
 
 export default Tag;

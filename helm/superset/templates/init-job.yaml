@@ -1,34 +1,35 @@
-#
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+{{/*
+
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
+*/}}
+
 {{- if .Values.init.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ template "superset.name" . }}-init-db
+  name: {{ template "superset.fullname" . }}-init-db
   namespace: {{ .Release.Namespace }}
-  {{- if .Values.init.helmHook }}
-  annotations:
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-delete-policy": "before-hook-creation"
+  {{- if .Values.init.jobAnnotations }}
+  annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
   {{- end }}
 spec:
   template:
     metadata:
-      name: {{ template "superset.name" . }}-init-db
+      name: {{ template "superset.fullname" . }}-init-db
       {{- if .Values.init.podAnnotations }}
       annotations: {{- toYaml .Values.init.podAnnotations | nindent 8 }}
       {{- end }}
@@ -62,7 +63,7 @@ spec:
               name: {{ tpl .Values.envFromSecret . }}
           {{- range .Values.envFromSecrets }}
           - secretRef:
-              name: {{ tpl . $ }}
+              name: {{ tpl . $ | quote }}
           {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         {{- if .Values.init.containerSecurityContext }}
@@ -82,6 +83,9 @@ spec:
           {{- end }}
         command: {{  tpl (toJson .Values.init.command) . }}
         resources: {{- toYaml .Values.init.resources | nindent 10 }}
+      {{- if .Values.init.extraContainers }}
+          {{- toYaml .Values.init.extraContainers | nindent 6 }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}

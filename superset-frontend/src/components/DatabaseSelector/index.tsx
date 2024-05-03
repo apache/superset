@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useMemo, useEffect } from 'react';
+import React, { ReactNode, useState, useMemo, useEffect, useRef } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 import { AsyncSelect, Select } from 'src/components';
@@ -74,13 +74,13 @@ type DatabaseValue = {
   value: number;
   id: number;
   database_name: string;
-  backend: string;
+  backend?: string;
 };
 
 export type DatabaseObject = {
   id: number;
   database_name: string;
-  backend: string;
+  backend?: string;
 };
 
 export interface DatabaseSelectorProps {
@@ -102,11 +102,11 @@ const SelectLabel = ({
   backend,
   databaseName,
 }: {
-  backend: string;
+  backend?: string;
   databaseName: string;
 }) => (
   <LabelStyle>
-    <Label className="backend">{backend}</Label>
+    <Label className="backend">{backend || ''}</Label>
     <span className="name" title={databaseName}>
       {databaseName}
     </span>
@@ -133,6 +133,8 @@ export default function DatabaseSelector({
   const [currentSchema, setCurrentSchema] = useState<SchemaOption | undefined>(
     schema ? { label: schema, value: schema, title: schema } : undefined,
   );
+  const schemaRef = useRef(schema);
+  schemaRef.current = schema;
   const { addSuccessToast } = useToasts();
 
   const loadDatabases = useMemo(
@@ -165,7 +167,7 @@ export default function DatabaseSelector({
         });
         const endpoint = `/api/v1/database/?q=${queryParams}`;
         return SupersetClient.get({ endpoint }).then(({ json }) => {
-          const { result } = json;
+          const { result, count } = json;
           if (getDbList) {
             getDbList(result);
           }
@@ -187,7 +189,7 @@ export default function DatabaseSelector({
 
           return {
             data: options,
-            totalCount: options.length,
+            totalCount: count ?? options.length,
           };
         });
       },
@@ -215,7 +217,7 @@ export default function DatabaseSelector({
 
   function changeSchema(schema: SchemaOption | undefined) {
     setCurrentSchema(schema);
-    if (onSchemaChange) {
+    if (onSchemaChange && schema?.value !== schemaRef.current) {
       onSchemaChange(schema?.value);
     }
   }
@@ -223,14 +225,15 @@ export default function DatabaseSelector({
   const {
     data,
     isFetching: loadingSchemas,
-    isFetched,
     refetch,
   } = useSchemas({
     dbId: currentDb?.value,
-    onSuccess: data => {
-      if (data.length === 1) {
-        changeSchema(data[0]);
-      } else if (!data.find(schemaOption => schema === schemaOption.value)) {
+    onSuccess: (schemas, isFetched) => {
+      if (schemas.length === 1) {
+        changeSchema(schemas[0]);
+      } else if (
+        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
+      ) {
         changeSchema(undefined);
       }
 

@@ -21,10 +21,12 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import rison from 'rison';
 import {
   ensureIsArray,
+  isFeatureEnabled,
   FeatureFlag,
   getSharedLabelColor,
   SupersetClient,
   t,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import {
   addChart,
@@ -33,7 +35,6 @@ import {
 } from 'src/components/Chart/chartAction';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_OVERWRITE_CONFIRMED,
@@ -51,21 +52,16 @@ import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilte
 import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
-  setChartConfiguration,
+  saveChartConfiguration,
   dashboardInfoChanged,
-  SET_CHART_CONFIG_COMPLETE,
+  SAVE_CHART_CONFIG_COMPLETE,
 } from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
-import {
-  addFilter,
-  removeFilter,
-  updateDirectPathToFilter,
-} from './dashboardFilters';
+import { updateDirectPathToFilter } from './dashboardFilters';
 import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
 import getOverwriteItems from '../util/getOverwriteItems';
 
@@ -89,7 +85,6 @@ export function toggleFaveStar(isStarred) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
 }
 
-export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(id) {
   return function fetchFaveStarThunk(dispatch) {
     return SupersetClient.get({
@@ -110,7 +105,6 @@ export function fetchFaveStar(id) {
   };
 }
 
-export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(id, isStarred) {
   return function saveFaveStarThunk(dispatch) {
     const endpoint = `/api/v1/dashboard/${id}/favorites/`;
@@ -261,7 +255,7 @@ export function saveDashboardRequest(data, id, saveType) {
       css: css || '',
       dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
       owners: ensureIsArray(owners).map(o => (hasId(o) ? o.id : o)),
-      roles: !isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
+      roles: !isFeatureEnabled(FeatureFlag.DashboardRbac)
         ? undefined
         : ensureIsArray(roles).map(r => (hasId(r) ? r.id : r)),
       slug: slug || null,
@@ -287,13 +281,11 @@ export function saveDashboardRequest(data, id, saveType) {
       const {
         dashboardLayout,
         charts,
-        dashboardInfo: {
-          metadata: { chart_configuration = {} },
-        },
+        dashboardInfo: { metadata },
       } = getState();
       return getCrossFiltersConfiguration(
         dashboardLayout.present,
-        chart_configuration,
+        metadata,
         charts,
       );
     };
@@ -303,9 +295,15 @@ export function saveDashboardRequest(data, id, saveType) {
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
-      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-        const chartConfiguration = handleChartConfiguration();
-        dispatch(setChartConfiguration(chartConfiguration));
+      if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
+        const { chartConfiguration, globalChartConfiguration } =
+          handleChartConfiguration();
+        dispatch(
+          saveChartConfiguration({
+            chartConfiguration,
+            globalChartConfiguration,
+          }),
+        );
       }
       dispatch(saveDashboardFinished());
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
@@ -325,7 +323,7 @@ export function saveDashboardRequest(data, id, saveType) {
         );
         if (metadata.chart_configuration) {
           dispatch({
-            type: SET_CHART_CONFIG_COMPLETE,
+            type: SAVE_CHART_CONFIG_COMPLETE,
             chartConfiguration: metadata.chart_configuration,
           });
         }
@@ -373,8 +371,10 @@ export function saveDashboardRequest(data, id, saveType) {
       [SAVE_TYPE_OVERWRITE, SAVE_TYPE_OVERWRITE_CONFIRMED].includes(saveType)
     ) {
       let chartConfiguration = {};
-      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-        chartConfiguration = handleChartConfiguration();
+      let globalChartConfiguration = {};
+      if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
+        ({ chartConfiguration, globalChartConfiguration } =
+          handleChartConfiguration());
       }
       const updatedDashboard =
         saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
@@ -392,6 +392,7 @@ export function saveDashboardRequest(data, id, saveType) {
                 default_filters: safeStringify(serializedFilters),
                 filter_scopes: serializedFilterScopes,
                 chart_configuration: chartConfiguration,
+                global_chart_configuration: globalChartConfiguration,
               }),
             };
 
@@ -405,7 +406,7 @@ export function saveDashboardRequest(data, id, saveType) {
           .catch(response => onError(response));
       return new Promise((resolve, reject) => {
         if (
-          !isFeatureEnabled(FeatureFlag.CONFIRM_DASHBOARD_DIFF) ||
+          !isFeatureEnabled(FeatureFlag.ConfirmDashboardDiff) ||
           saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
         ) {
           // skip overwrite precheck
@@ -549,7 +550,7 @@ export function showBuilderPane() {
   return { type: SHOW_BUILDER_PANE };
 }
 
-export function addSliceToDashboard(id, component) {
+export function addSliceToDashboard(id) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
     const selectedSlice = sliceEntities.slices[id];
@@ -575,21 +576,12 @@ export function addSliceToDashboard(id, component) {
       dispatch(fetchDatasourceMetadata(form_data.datasource)),
     ]).then(() => {
       dispatch(addSlice(selectedSlice));
-
-      if (selectedSlice && selectedSlice.viz_type === 'filter_box') {
-        dispatch(addFilter(id, component, selectedSlice.form_data));
-      }
     });
   };
 }
 
 export function removeSliceFromDashboard(id) {
-  return (dispatch, getState) => {
-    const sliceEntity = getState().sliceEntities.slices[id];
-    if (sliceEntity && sliceEntity.viz_type === 'filter_box') {
-      dispatch(removeFilter(id));
-    }
-
+  return dispatch => {
     dispatch(removeSlice(id));
     dispatch(removeChart(id));
     getSharedLabelColor().removeSlice(id);
@@ -601,21 +593,19 @@ export function setColorScheme(colorScheme) {
   return { type: SET_COLOR_SCHEME, colorScheme };
 }
 
-export function setColorSchemeAndUnsavedChanges(colorScheme) {
-  return dispatch => {
-    dispatch(setColorScheme(colorScheme));
-    dispatch(setUnsavedChanges(true));
-  };
-}
-
 export const SET_DIRECT_PATH = 'SET_DIRECT_PATH';
 export function setDirectPathToChild(path) {
   return { type: SET_DIRECT_PATH, path };
 }
 
+export const SET_ACTIVE_TAB = 'SET_ACTIVE_TAB';
+export function setActiveTab(tabId, prevTabId) {
+  return { type: SET_ACTIVE_TAB, tabId, prevTabId };
+}
+
 export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
-export function setActiveTabs(tabId, prevTabId) {
-  return { type: SET_ACTIVE_TABS, tabId, prevTabId };
+export function setActiveTabs(activeTabs) {
+  return { type: SET_ACTIVE_TABS, activeTabs };
 }
 
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';

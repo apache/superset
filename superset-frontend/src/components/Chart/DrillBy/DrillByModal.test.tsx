@@ -68,7 +68,10 @@ const dataset = {
   ],
 };
 
-const renderModal = async (modalProps: Partial<DrillByModalProps> = {}) => {
+const renderModal = async (
+  modalProps: Partial<DrillByModalProps> = {},
+  overrideState: Record<string, any> = {},
+) => {
   const DrillByModalWrapper = () => {
     const [showModal, setShowModal] = useState(false);
 
@@ -82,6 +85,7 @@ const renderModal = async (modalProps: Partial<DrillByModalProps> = {}) => {
             formData={formData}
             onHideModal={() => setShowModal(false)}
             dataset={dataset}
+            drillByConfig={{ groupbyFieldName: 'groupby', filters: [] }}
             {...modalProps}
           />
         )}
@@ -92,7 +96,10 @@ const renderModal = async (modalProps: Partial<DrillByModalProps> = {}) => {
     useDnd: true,
     useRedux: true,
     useRouter: true,
-    initialState: drillByModalState,
+    initialState: {
+      ...drillByModalState,
+      ...overrideState,
+    },
   });
 
   userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
@@ -148,7 +155,10 @@ test('should render alert banner when results fail to load', async () => {
 test('should generate Explore url', async () => {
   await renderModal({
     column: { column_name: 'name' },
-    filters: [{ col: 'gender', op: '==', val: 'boy' }],
+    drillByConfig: {
+      filters: [{ col: 'gender', op: '==', val: 'boy' }],
+      groupbyFieldName: 'groupby',
+    },
   });
   await waitFor(() => fetchMock.called(CHART_DATA_ENDPOINT));
   const expectedRequestPayload = {
@@ -208,7 +218,10 @@ test('should render radio buttons', async () => {
 test('render breadcrumbs', async () => {
   await renderModal({
     column: { column_name: 'name' },
-    filters: [{ col: 'gender', op: '==', val: 'boy' }],
+    drillByConfig: {
+      filters: [{ col: 'gender', op: '==', val: 'boy' }],
+      groupbyFieldName: 'groupby',
+    },
   });
 
   const breadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
@@ -225,4 +238,30 @@ test('render breadcrumbs', async () => {
   // eslint-disable-next-line jest-dom/prefer-in-document
   expect(newBreadcrumbItems).toHaveLength(1);
   expect(within(breadcrumbItems[0]).getByText('gender')).toBeInTheDocument();
+});
+
+test('should render "Edit chart" as disabled without can_explore permission', async () => {
+  await renderModal(
+    {},
+    {
+      user: {
+        ...drillByModalState.user,
+        roles: { Admin: [['invalid_permission', 'Superset']] },
+      },
+    },
+  );
+  expect(screen.getByRole('button', { name: 'Edit chart' })).toBeDisabled();
+});
+
+test('should render "Edit chart" enabled with can_explore permission', async () => {
+  await renderModal(
+    {},
+    {
+      user: {
+        ...drillByModalState.user,
+        roles: { Admin: [['can_explore', 'Superset']] },
+      },
+    },
+  );
+  expect(screen.getByRole('button', { name: 'Edit chart' })).toBeEnabled();
 });

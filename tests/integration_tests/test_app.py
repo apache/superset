@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from os import environ
 from typing import TYPE_CHECKING
 
 from superset.app import create_app
@@ -23,7 +24,11 @@ if TYPE_CHECKING:
 
     from flask.testing import FlaskClient
 
-app = create_app()
+
+superset_config_module = environ.get(
+    "SUPERSET_CONFIG", "tests.integration_tests.superset_test_config"
+)
+app = create_app(superset_config_module=superset_config_module)
 
 
 def login(
@@ -34,3 +39,4 @@ def login(
         data=dict(username=username, password=password),
     ).get_data(as_text=True)
     assert "User confirmation needed" not in resp
+    return resp

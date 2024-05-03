@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
-import enum
 
 from cron_descriptor import get_description
 from flask_appbuilder import Model
@@ -26,6 +25,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Table,
@@ -41,28 +41,30 @@ from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
+from superset.utils.backports import StrEnum
+from superset.utils.core import MediumText
 
 metadata = Model.metadata  # pylint: disable=no-member
 
 
-class ReportScheduleType(str, enum.Enum):
+class ReportScheduleType(StrEnum):
     ALERT = "Alert"
     REPORT = "Report"
 
 
-class ReportScheduleValidatorType(str, enum.Enum):
+class ReportScheduleValidatorType(StrEnum):
     """Validator types for alerts"""
 
     NOT_NULL = "not null"
     OPERATOR = "operator"
 
 
-class ReportRecipientType(str, enum.Enum):
+class ReportRecipientType(StrEnum):
     EMAIL = "Email"
     SLACK = "Slack"
 
 
-class ReportState(str, enum.Enum):
+class ReportState(StrEnum):
     SUCCESS = "Success"
     WORKING = "Working"
     ERROR = "Error"
@@ -70,19 +72,20 @@ class ReportState(str, enum.Enum):
     GRACE = "On Grace"
 
 
-class ReportDataFormat(str, enum.Enum):
-    VISUALIZATION = "PNG"
-    DATA = "CSV"
+class ReportDataFormat(StrEnum):
+    PDF = "PDF"
+    PNG = "PNG"
+    CSV = "CSV"
     TEXT = "TEXT"
 
 
-class ReportCreationMethod(str, enum.Enum):
+class ReportCreationMethod(StrEnum):
     CHARTS = "charts"
     DASHBOARDS = "dashboards"
     ALERTS_REPORTS = "alerts_reports"
 
 
-class ReportSourceFormat(str, enum.Enum):
+class ReportSourceFormat(StrEnum):
     CHART = "chart"
     DASHBOARD = "dashboard"
 
@@ -91,16 +94,23 @@ report_schedule_user = Table(
     "report_schedule_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id"), nullable=False),
     Column(
-        "report_schedule_id", Integer, ForeignKey("report_schedule.id"), nullable=False
+        "user_id",
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "report_schedule_id",
+        Integer,
+        ForeignKey("report_schedule.id", ondelete="CASCADE"),
+        nullable=False,
     ),
     UniqueConstraint("user_id", "report_schedule_id"),
 )
 
 
-class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
-
+class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     """
     Report Schedules, supports alerts and reports
     """
@@ -119,8 +129,8 @@ class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
         String(255), server_default=ReportCreationMethod.ALERTS_REPORTS
     )
     timezone = Column(String(100), default="UTC", nullable=False)
-    report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
-    sql = Column(Text())
+    report_format = Column(String(50), default=ReportDataFormat.PNG)
+    sql = Column(MediumText())
     # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)
     chart = relationship(Slice, backref="report_schedules", foreign_keys=[chart_id])
@@ -132,17 +142,21 @@ class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
     # (Alerts) M-O to database
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
     database = relationship(Database, foreign_keys=[database_id])
-    owners = relationship(security_manager.user_model, secondary=report_schedule_user)
+    owners = relationship(
+        security_manager.user_model,
+        secondary=report_schedule_user,
+        passive_deletes=True,
+    )
 
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)
     last_state = Column(String(50), default=ReportState.NOOP)
     last_value = Column(Float)
-    last_value_row_json = Column(Text)
+    last_value_row_json = Column(MediumText())
 
     # (Alerts) Observed value validation related columns
     validator_type = Column(String(100))
-    validator_config_json = Column(Text, default="{}")
+    validator_config_json = Column(MediumText(), default="{}")
 
     # Log retention
     log_retention = Column(Integer, default=90)
@@ -153,6 +167,9 @@ class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
 
     # (Reports) When generating a screenshot, bypass the cache?
     force_screenshot = Column(Boolean, default=False)
+
+    custom_width = Column(Integer, nullable=True)
+    custom_height = Column(Integer, nullable=True)
 
     extra: ReportScheduleExtra  # type: ignore
 
@@ -172,7 +189,7 @@ class ReportRecipients(Model, AuditMixinNullable):
     __tablename__ = "report_recipient"
     id = Column(Integer, primary_key=True)
     type = Column(String(50), nullable=False)
-    recipient_config_json = Column(Text, default="{}")
+    recipient_config_json = Column(MediumText(), default="{}")
     report_schedule_id = Column(
         Integer, ForeignKey("report_schedule.id"), nullable=False
     )
@@ -182,9 +199,12 @@ class ReportRecipients(Model, AuditMixinNullable):
         foreign_keys=[report_schedule_id],
     )
 
+    __table_args__ = (
+        Index("ix_report_recipient_report_schedule_id", report_schedule_id),
+    )
+
 
 class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
-
     """
     Report Execution Log, hold the result of the report execution with timestamps,
     last observation and possible error messages
@@ -201,7 +221,7 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
 
     # (Alerts) Observed values
     value = Column(Float)
-    value_row_json = Column(Text)
+    value_row_json = Column(MediumText())
 
     state = Column(String(50), nullable=False)
     error_message = Column(Text)
@@ -213,4 +233,9 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
         ReportSchedule,
         backref=backref("logs", cascade="all,delete,delete-orphan"),
         foreign_keys=[report_schedule_id],
+    )
+
+    __table_args__ = (
+        Index("ix_report_execution_log_report_schedule_id", report_schedule_id),
+        Index("ix_report_execution_log_start_dttm", start_dttm),
     )

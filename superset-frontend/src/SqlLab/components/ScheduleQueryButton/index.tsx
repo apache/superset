@@ -46,7 +46,9 @@ const getJSONSchema = () => {
         if (value.default && value.format === 'date-time') {
           jsonSchema.properties[key] = {
             ...value,
-            default: chrono.parseDate(value.default).toISOString(),
+            default: value.default
+              ? chrono.parseDate(value.default)?.toISOString()
+              : null,
           };
         }
       },
@@ -79,7 +81,7 @@ interface ScheduleQueryButtonProps {
   defaultLabel?: string;
   sql: string;
   schema?: string;
-  dbId: number;
+  dbId?: number;
   animation?: boolean;
   onSchedule?: Function;
   scheduleQueryWarning: string | null;

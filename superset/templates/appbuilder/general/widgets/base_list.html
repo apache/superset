@@ -17,6 +17,7 @@
   under the License.
 #}
 {% import 'appbuilder/general/lib.html' as lib %}
+{% import "superset/macros.html" as macros %}
 
 {% set can_add = "can_add" | is_item_visible(modelview_name) %}
 {% set can_show = "can_show" | is_item_visible(modelview_name) %}
@@ -56,7 +57,7 @@
     {{ lib.render_pagination(page, page_size, count, modelview_name) }}
     {{ lib.render_set_page_size(page, page_size, count, modelview_name) }}
 </div>
-    <script language="javascript">
+    <script language="javascript" nonce="{{ macros.get_nonce() }}">
         var modelActions = new AdminActions();
     </script>
 

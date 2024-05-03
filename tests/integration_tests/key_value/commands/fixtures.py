@@ -17,16 +17,20 @@
 
 from __future__ import annotations
 
-import pickle
-from typing import Generator, TYPE_CHECKING
+import json
+from collections.abc import Generator
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm import Session
 
 from superset.extensions import db
-from superset.key_value.types import KeyValueResource
+from superset.key_value.types import (
+    JsonKeyValueCodec,
+    KeyValueResource,
+    PickleKeyValueCodec,
+)
 from tests.integration_tests.test_app import app
 
 if TYPE_CHECKING:
@@ -35,7 +39,10 @@ if TYPE_CHECKING:
 ID_KEY = 123
 UUID_KEY = UUID("3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc")
 RESOURCE = KeyValueResource.APP
-VALUE = {"foo": "bar"}
+JSON_VALUE = {"foo": "bar"}
+PICKLE_VALUE = object()
+JSON_CODEC = JsonKeyValueCodec()
+PICKLE_CODEC = PickleKeyValueCodec()
 
 
 @pytest.fixture
@@ -46,7 +53,7 @@ def key_value_entry() -> Generator[KeyValueEntry, None, None]:
         id=ID_KEY,
         uuid=UUID_KEY,
         resource=RESOURCE,
-        value=pickle.dumps(VALUE),
+        value=bytes(json.dumps(JSON_VALUE), encoding="utf-8"),
     )
     db.session.add(entry)
     db.session.commit()
@@ -57,7 +64,6 @@ def key_value_entry() -> Generator[KeyValueEntry, None, None]:
 
 @pytest.fixture
 def admin() -> User:
-    with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
-        admin = session.query(User).filter_by(username="admin").one()
+    with app.app_context():  # noqa: F841
+        admin = db.session.query(User).filter_by(username="admin").one()
         return admin

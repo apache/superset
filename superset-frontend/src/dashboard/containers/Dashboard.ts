@@ -39,7 +39,6 @@ function mapStateToProps(state: RootState) {
   const {
     datasources,
     sliceEntities,
-    charts,
     dataMask,
     dashboardInfo,
     dashboardState,
@@ -49,18 +48,15 @@ function mapStateToProps(state: RootState) {
   } = state;
 
   return {
-    initMessages: dashboardInfo.common?.flash_messages,
     timeout: dashboardInfo.common?.conf?.SUPERSET_WEBSERVER_TIMEOUT,
     userId: dashboardInfo.userId,
     dashboardInfo,
     dashboardState,
-    charts,
     datasources,
-    // filters prop: a map structure for all the active filter_box's values and scope in this dashboard,
+    // filters prop: a map structure for all the active filter's values and scope in this dashboard,
     // for each filter field. map key is [chartId_column]
     // When dashboard is first loaded into browser,
     // its value is from preselect_filters that dashboard owner saved in dashboard's meta data
-    // When user start interacting with dashboard, it will be user picked values from all filter_box
     activeFilters: {
       ...getActiveFilters(),
       ...getAllActiveFilters({

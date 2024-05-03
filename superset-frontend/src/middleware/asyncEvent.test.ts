@@ -19,8 +19,7 @@
 import fetchMock from 'fetch-mock';
 import WS from 'jest-websocket-mock';
 import sinon from 'sinon';
-import * as featureFlags from 'src/featureFlags';
-import { parseErrorJson } from 'src/utils/getClientErrorObject';
+import * as uiCore from '@superset-ui/core';
 import * as asyncEvent from 'src/middleware/asyncEvent';
 
 describe('asyncEvent middleware', () => {
@@ -84,7 +83,7 @@ describe('asyncEvent middleware', () => {
   let featureEnabledStub: any;
 
   beforeEach(async () => {
-    featureEnabledStub = sinon.stub(featureFlags, 'isFeatureEnabled');
+    featureEnabledStub = sinon.stub(uiCore, 'isFeatureEnabled');
     featureEnabledStub.withArgs('GLOBAL_ASYNC_QUERIES').returns(true);
   });
 
@@ -129,7 +128,7 @@ describe('asyncEvent middleware', () => {
         status: 200,
         body: { result: [asyncErrorEvent] },
       });
-      const errorResponse = await parseErrorJson(asyncErrorEvent);
+      const errorResponse = await uiCore.parseErrorJson(asyncErrorEvent);
       await expect(
         asyncEvent.waitForAsyncData(asyncPendingEvent),
       ).rejects.toEqual(errorResponse);
@@ -204,7 +203,7 @@ describe('asyncEvent middleware', () => {
 
       wsServer.send(JSON.stringify(asyncErrorEvent));
 
-      const errorResponse = await parseErrorJson(asyncErrorEvent);
+      const errorResponse = await uiCore.parseErrorJson(asyncErrorEvent);
 
       await expect(promise).rejects.toEqual(errorResponse);
 

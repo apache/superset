@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import builtins
 import json
 import re
-from typing import Callable, List, Union
+from typing import Callable, Union
 
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
@@ -41,9 +42,7 @@ from superset.views.base import (
 from superset.views.dashboard.mixin import DashboardMixin
 
 
-class DashboardModelView(
-    DashboardMixin, SupersetModelView, DeleteMixin
-):  # pylint: disable=too-many-ancestors
+class DashboardModelView(DashboardMixin, SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(DashboardModel)
     # TODO disable api_read and api_delete (used by cypress)
@@ -63,20 +62,21 @@ class DashboardModelView(
         return super().render_app_template()
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
-    def mulexport(  # pylint: disable=no-self-use
-        self, items: Union["DashboardModelView", List["DashboardModelView"]]
+    def mulexport(
+        self,
+        items: Union["DashboardModelView", builtins.list["DashboardModelView"]],
     ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]
-        ids = "".join("&id={}".format(d.id) for d in items)
-        return redirect("/dashboard/export_dashboards_form?{}".format(ids[1:]))
+        ids = "".join(f"&id={d.id}" for d in items)
+        return redirect(f"/dashboard/export_dashboards_form?{ids[1:]}")
 
     @event_logger.log_this
     @has_access
     @expose("/export_dashboards_form")
     def download_dashboards(self) -> FlaskResponse:
         if request.args.get("action") == "go":
-            ids = request.args.getlist("id")
+            ids = set(request.args.getlist("id"))
             return Response(
                 DashboardModel.export_dashboards(ids),
                 headers=generate_download_headers("json"),
@@ -112,7 +112,7 @@ class Dashboard(BaseSupersetView):
 
     @has_access
     @expose("/new/")
-    def new(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def new(self) -> FlaskResponse:
         """Creates a new, blank dashboard and redirects to it in edit mode"""
         new_dashboard = DashboardModel(
             dashboard_title="[ untitled dashboard ]",
@@ -149,7 +149,7 @@ class Dashboard(BaseSupersetView):
         )
 
         bootstrap_data = {
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
             "embedded": {"dashboard_id": dashboard_id_or_slug},
         }
 

@@ -56,9 +56,7 @@ export const Icon = (props: IconProps) => {
     let cancelled = false;
     async function importIcon(): Promise<void> {
       ImportedSVG.current = (
-        await import(
-          `!!@svgr/webpack?-svgo,+titleProp,+ref!src/assets/images/icons/${fileName}.svg`
-        )
+        await import(`!!@svgr/webpack!src/assets/images/icons/${fileName}.svg`)
       ).default;
       if (!cancelled) {
         setLoaded(true);
@@ -70,10 +68,13 @@ export const Icon = (props: IconProps) => {
     };
   }, [fileName, ImportedSVG]);
 
+  const whatRole = props?.onClick ? 'button' : 'img';
+
   return (
     <StyledIcon
       component={ImportedSVG.current || TransparentIcon}
       aria-label={name}
+      role={whatRole}
       {...iconProps}
     />
   );

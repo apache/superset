@@ -51,7 +51,7 @@ const propTypes = {
   leftMargin: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   metric: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   normalized: PropTypes.bool,
-  numberFormat: PropTypes.string,
+  valueFormatter: PropTypes.object,
   showLegend: PropTypes.bool,
   showPercentage: PropTypes.bool,
   showValues: PropTypes.bool,
@@ -90,7 +90,7 @@ function Heatmap(element, props) {
     leftMargin,
     metric,
     normalized,
-    numberFormat,
+    valueFormatter,
     showLegend,
     showPercentage,
     showValues,
@@ -99,9 +99,16 @@ function Heatmap(element, props) {
     xScaleInterval,
     yScaleInterval,
     yAxisBounds,
+    xAxisFormatter,
+    yAxisFormatter,
   } = props;
 
-  const { records, extents } = data;
+  const { extents } = data;
+  const records = data.records.map(record => ({
+    ...record,
+    x: xAxisFormatter(record.x),
+    y: yAxisFormatter(record.y),
+  }));
 
   const margin = {
     top: 10,
@@ -114,8 +121,6 @@ function Heatmap(element, props) {
   let showX = true;
   const pixelsPerCharX = 4.5; // approx, depends on font size
   let pixelsPerCharY = 6; // approx, depends on font size
-
-  const valueFormatter = getNumberFormatter(numberFormat);
 
   // Dynamically adjusts  based on max x / y category lengths
   function adjustMargins() {
@@ -172,15 +177,12 @@ function Heatmap(element, props) {
     }
   }
 
-  function ordScale(k, rangeBands, sortMethod) {
+  function ordScale(k, rangeBands, sortMethod, formatter) {
     let domain = {};
-    const actualKeys = {}; // hack to preserve type of keys when number
     records.forEach(d => {
       domain[d[k]] = (domain[d[k]] || 0) + d.v;
-      actualKeys[d[k]] = d[k];
     });
-    // Not using object.keys() as it converts to strings
-    const keys = Object.keys(actualKeys).map(s => actualKeys[s]);
+    const keys = Object.keys(domain).map(k => formatter(k));
     if (sortMethod === 'alpha_asc') {
       domain = keys.sort(cmp);
     } else if (sortMethod === 'alpha_desc') {
@@ -245,12 +247,12 @@ function Heatmap(element, props) {
     hideYLabel();
   }
 
-  const fp = getNumberFormatter(NumberFormats.PERCENT);
+  const fp = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
-  const xScale = ordScale('x', null, sortXAxis);
-  const yScale = ordScale('y', null, sortYAxis);
-  const xRbScale = ordScale('x', [0, hmWidth], sortXAxis);
-  const yRbScale = ordScale('y', [hmHeight, 0], sortYAxis);
+  const xScale = ordScale('x', null, sortXAxis, xAxisFormatter);
+  const yScale = ordScale('y', null, sortYAxis, yAxisFormatter);
+  const xRbScale = ordScale('x', [0, hmWidth], sortXAxis, xAxisFormatter);
+  const yRbScale = ordScale('y', [hmHeight, 0], sortYAxis, yAxisFormatter);
   const X = 0;
   const Y = 1;
   const heatmapDim = [xRbScale.domain().length, yRbScale.domain().length];

@@ -27,16 +27,16 @@ from superset.utils.core import DatasourceType
 
 class Datasource(Schema):
     database_name = fields.String(
-        description="Datasource name",
+        metadata={"description": "Datasource name"},
     )
     datasource_name = fields.String(
-        description=datasource_name_description,
+        metadata={"description": datasource_name_description},
     )
     schema = fields.String(
-        description="Datasource schema",
+        metadata={"description": "Datasource schema"},
     )
     datasource_type = fields.String(
-        description=datasource_type_description,
+        metadata={"description": datasource_type_description},
         validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
         required=True,
     )
@@ -45,9 +45,9 @@ class Datasource(Schema):
 class CacheInvalidationRequestSchema(Schema):
     datasource_uids = fields.List(
         fields.String(),
-        description=datasource_uid_description,
+        metadata={"description": datasource_uid_description},
     )
     datasources = fields.List(
         fields.Nested(Datasource),
-        description="A list of the data source and database names",
+        metadata={"description": "A list of the data source and database names"},
     )

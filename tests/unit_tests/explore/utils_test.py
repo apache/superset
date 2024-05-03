@@ -18,26 +18,24 @@ from flask_appbuilder.security.sqla.models import User
 from pytest import raises
 from pytest_mock import MockFixture
 
-from superset.charts.commands.exceptions import (
+from superset.commands.chart.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
 )
-from superset.commands.exceptions import (
-    DatasourceNotFoundValidationError,
-    DatasourceTypeInvalidError,
-    OwnersNotFoundValidationError,
-    QueryNotFoundValidationError,
-)
-from superset.datasets.commands.exceptions import (
+from superset.commands.dataset.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
+)
+from superset.commands.exceptions import (
+    DatasourceNotFoundValidationError,
+    QueryNotFoundValidationError,
 )
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceType, override_user
 
-dataset_find_by_id = "superset.datasets.dao.DatasetDAO.find_by_id"
-query_find_by_id = "superset.queries.dao.QueryDAO.find_by_id"
-chart_find_by_id = "superset.charts.dao.ChartDAO.find_by_id"
+dataset_find_by_id = "superset.daos.dataset.DatasetDAO.find_by_id"
+query_find_by_id = "superset.daos.query.QueryDAO.find_by_id"
+chart_find_by_id = "superset.daos.chart.ChartDAO.find_by_id"
 is_admin = "superset.security.SupersetSecurityManager.is_admin"
 is_owner = "superset.security.SupersetSecurityManager.is_owner"
 can_access_datasource = (
@@ -242,11 +240,11 @@ def test_dataset_has_access(mocker: MockFixture) -> None:
     mocker.patch(is_owner, return_value=False)
     mocker.patch(can_access, return_value=True)
     assert (
-        check_datasource_access(
+        check_datasource_access(  # noqa: E712
             datasource_id=1,
             datasource_type=DatasourceType.TABLE,
         )
-        == True
+        is True
     )
 
 
@@ -260,18 +258,17 @@ def test_query_has_access(mocker: MockFixture) -> None:
     mocker.patch(is_owner, return_value=False)
     mocker.patch(can_access, return_value=True)
     assert (
-        check_datasource_access(
+        check_datasource_access(  # noqa: E712
             datasource_id=1,
             datasource_type=DatasourceType.QUERY,
         )
-        == True
+        is True
     )
 
 
 def test_query_no_access(mocker: MockFixture, client) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_datasource_access
-    from superset.models.core import Database
     from superset.models.sql_lab import Query
 
     database = mocker.MagicMock()

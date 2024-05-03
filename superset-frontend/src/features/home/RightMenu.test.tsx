@@ -38,17 +38,17 @@ const dropdownItems = [
     childs: [
       {
         label: 'Connect database',
-        name: GlobalMenuDataOptions.DB_CONNECTION,
+        name: GlobalMenuDataOptions.DbConnection,
         perm: true,
       },
       {
         label: 'Create dataset',
-        name: GlobalMenuDataOptions.DATASET_CREATION,
+        name: GlobalMenuDataOptions.DatasetCreation,
         perm: true,
       },
       {
         label: 'Connect Google Sheet',
-        name: GlobalMenuDataOptions.GOOGLE_SHEETS,
+        name: GlobalMenuDataOptions.GoogleSheets,
         perm: true,
       },
       {
@@ -63,17 +63,11 @@ const dropdownItems = [
         url: '/columnartodatabaseview/form',
         perm: true,
       },
-      {
-        label: 'Upload Excel file to database',
-        name: 'Upload Excel',
-        url: '/exceltodatabaseview/form',
-        perm: true,
-      },
     ],
   },
   {
     label: 'SQL query',
-    url: '/superset/sqllab?new=true',
+    url: '/sqllab?new=true',
     icon: 'fa-fw fa-search',
     perm: 'can_sqllab',
     view: 'Superset',
@@ -117,7 +111,6 @@ const createProps = (): RightMenuProps => ({
     user_info_url: '/users/userinfo/',
     user_logout_url: '/logout/',
     user_login_url: '/login/',
-    user_profile_url: '/profile/',
     locale: 'en',
     version_string: '1.0.0',
     version_sha: 'randomSHA',
@@ -176,7 +169,8 @@ const resetUseSelectorMock = () => {
     permissions: {},
     roles: {
       Admin: [
-        ['can_this_form_get', 'CsvToDatabaseView'], // So we can upload CSV
+        ['can_csv_upload', 'Database'], // So we can upload CSV
+        ['can_excel_upload', 'Database'], // So we can upload CSV
         ['can_write', 'Database'], // So we can write DBs
         ['can_write', 'Dataset'], // So we can write Datasets
         ['can_write', 'Chart'], // So we can write Datasets
@@ -317,7 +311,10 @@ test('If there is a DB with allow_file_upload set as True the option should be e
   userEvent.hover(dataMenu);
   expect(
     (await screen.findByText('Upload CSV to database')).closest('a'),
-  ).toHaveAttribute('href', '/csvtodatabaseview/form');
+  ).toHaveAttribute('href', '#');
+  expect(
+    (await screen.findByText('Upload Excel to database')).closest('a'),
+  ).toHaveAttribute('href', '#');
 });
 
 test('If there is NOT a DB with allow_file_upload set as True the option should be disabled', async () => {

@@ -16,20 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { Behavior, t } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example from './images/example.jpg';
 import buildQuery from './buildQuery';
+import { EchartsChartPlugin } from '../types';
 
-export default class EchartsGraphChartPlugin extends ChartPlugin {
+export default class EchartsGraphChartPlugin extends EchartsChartPlugin {
   constructor() {
     super({
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsGraph'),
-      metadata: new ChartMetadata({
+      metadata: {
         category: t('Flow'),
         credits: ['https://echarts.apache.org'],
         description: t(
@@ -38,7 +39,6 @@ export default class EchartsGraphChartPlugin extends ChartPlugin {
         exampleGallery: [{ url: example }],
         name: t('Graph Chart'),
         tags: [
-          t('Aesthetic'),
           t('Circular'),
           t('Comparison'),
           t('Directional'),
@@ -49,11 +49,11 @@ export default class EchartsGraphChartPlugin extends ChartPlugin {
         ],
         thumbnail,
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
-      }),
+      },
       transformProps,
     });
   }

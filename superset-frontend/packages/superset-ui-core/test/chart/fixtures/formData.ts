@@ -56,13 +56,13 @@ export const wordCloudFormData = {
 
 export const sunburstFormData = {
   datasource: '2__table',
-  viz_type: 'sunburst',
+  viz_type: 'sunburst_v2',
   slice_id: 47,
   url_params: {},
   granularity_sqla: 'year',
   time_grain_sqla: 'P1D',
   time_range: '2011-01-01 : 2011-01-01',
-  groupby: ['region', 'country_name'],
+  columns: ['region', 'country_name'],
   metric: 'sum__SP_POP_TOTL',
   secondary_metric: 'sum__SP_RUR_TOTL',
   adhoc_filters: [],

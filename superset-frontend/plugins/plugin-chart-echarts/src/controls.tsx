@@ -22,12 +22,14 @@ import {
   ControlPanelsContainerProps,
   ControlSetItem,
   ControlSetRow,
+  ControlSubSectionHeader,
   DEFAULT_SORT_SERIES_DATA,
   SORT_SERIES_CHOICES,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_LEGEND_FORM_DATA, StackControlOptions } from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
+import { defaultXAxis } from './defaults';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
@@ -96,7 +98,7 @@ const legendOrientationControl: ControlSetItem = {
 };
 
 export const legendSection: ControlSetRow[] = [
-  [<div className="section-header">{t('Legend')}</div>],
+  [<ControlSubSectionHeader>{t('Legend')}</ControlSubSectionHeader>],
   [showLegendControl],
   [legendTypeControl],
   [legendOrientationControl],
@@ -210,7 +212,7 @@ const tooltipSortByMetricControl: ControlSetItem = {
 };
 
 export const richTooltipSection: ControlSetRow[] = [
-  [<div className="section-header">{t('Tooltip')}</div>],
+  [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
   [richTooltipControl],
   [tooltipSortByMetricControl],
   [tooltipTimeFormatControl],
@@ -242,8 +244,79 @@ const sortSeriesAscending: ControlSetItem = {
   },
 };
 
+export const xAxisLabelRotation = {
+  name: 'xAxisLabelRotation',
+  config: {
+    type: 'SelectControl',
+    freeForm: true,
+    clearable: false,
+    label: t('Rotate x axis label'),
+    choices: [
+      [0, '0°'],
+      [45, '45°'],
+      [90, '90°'],
+    ],
+    default: defaultXAxis.xAxisLabelRotation,
+    renderTrigger: true,
+    description: t('Input field supports custom rotation. e.g. 30 for 30°'),
+  },
+};
+
 export const seriesOrderSection: ControlSetRow[] = [
-  [<div className="section-header">{t('Series Order')}</div>],
+  [<ControlSubSectionHeader>{t('Series Order')}</ControlSubSectionHeader>],
   [sortSeriesType],
   [sortSeriesAscending],
 ];
+
+export const truncateXAxis: ControlSetItem = {
+  name: 'truncateXAxis',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Truncate X Axis'),
+    default: DEFAULT_FORM_DATA.truncateXAxis,
+    renderTrigger: true,
+    description: t(
+      'Truncate X Axis. Can be overridden by specifying a min or max bound. Only applicable for numercal X axis.',
+    ),
+  },
+};
+
+export const xAxisBounds: ControlSetItem = {
+  name: 'xAxisBounds',
+  config: {
+    type: 'BoundsControl',
+    label: t('X Axis Bounds'),
+    renderTrigger: true,
+    default: DEFAULT_FORM_DATA.xAxisBounds,
+    description: t(
+      'Bounds for numerical X axis. Not applicable for temporal or categorical axes. ' +
+        'When left empty, the bounds are dynamically defined based on the min/max of the data. ' +
+        "Note that this feature will only expand the axis range. It won't " +
+        "narrow the data's extent.",
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.truncateXAxis?.value),
+  },
+};
+
+export const minorTicks: ControlSetItem = {
+  name: 'minorTicks',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Minor ticks'),
+    default: false,
+    renderTrigger: true,
+    description: t('Show minor ticks on axes.'),
+  },
+};
+
+export const forceCategorical: ControlSetItem = {
+  name: 'forceCategorical',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Force categorical'),
+    default: false,
+    renderTrigger: true,
+    description: t('Make the x-axis categorical'),
+  },
+};

@@ -18,7 +18,11 @@
  */
 
 import { ScaleOrdinal } from 'd3-scale';
-import { CategoricalColorScale, FeatureFlag } from '@superset-ui/core';
+import {
+  CategoricalColorScale,
+  FeatureFlag,
+  getSharedLabelColor,
+} from '@superset-ui/core';
 
 describe('CategoricalColorScale', () => {
   it('exists', () => {
@@ -79,7 +83,7 @@ describe('CategoricalColorScale', () => {
     });
     it('recycles colors when number of items exceed available colors', () => {
       window.featureFlags = {
-        [FeatureFlag.USE_ANALAGOUS_COLORS]: false,
+        [FeatureFlag.UseAnalagousColors]: false,
       };
       const colorSet: { [key: string]: number } = {};
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
@@ -105,7 +109,7 @@ describe('CategoricalColorScale', () => {
     });
     it('get analogous colors when number of items exceed available colors', () => {
       window.featureFlags = {
-        [FeatureFlag.USE_ANALAGOUS_COLORS]: true,
+        [FeatureFlag.UseAnalagousColors]: true,
       };
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       scale.getColor('pig');
@@ -116,6 +120,24 @@ describe('CategoricalColorScale', () => {
       scale.getColor('goat');
       expect(scale.range()).toHaveLength(6);
     });
+
+    it('should remove shared color from range if avoid colors collision enabled', () => {
+      window.featureFlags = {
+        [FeatureFlag.AvoidColorsCollision]: true,
+      };
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      const color1 = scale.getColor('a', 1);
+      expect(scale.range()).toHaveLength(3);
+      const color2 = scale.getColor('a', 2);
+      expect(color1).toBe(color2);
+      scale.getColor('b', 2);
+      expect(scale.range()).toHaveLength(2);
+      scale.getColor('c', 2);
+      expect(scale.range()).toHaveLength(1);
+    });
+    window.featureFlags = {
+      [FeatureFlag.AvoidColorsCollision]: false,
+    };
   });
   describe('.setColor(value, forcedColor)', () => {
     it('overrides default color', () => {
@@ -220,6 +242,52 @@ describe('CategoricalColorScale', () => {
       const scale: ScaleOrdinal<{ toString(): string }, string> =
         new CategoricalColorScale(['blue', 'red', 'green']);
       expect(scale('pig')).toBe('blue');
+    });
+  });
+
+  describe('.removeSharedLabelColorFromRange(colorMap, cleanedValue)', () => {
+    it('should remove shared color from range', () => {
+      const scale = new CategoricalColorScale(['blue', 'green', 'red']);
+      expect(scale.range()).toEqual(['blue', 'green', 'red']);
+
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.clear();
+      const colorMap = sharedLabelColor.getColorMap();
+      sharedLabelColor.addSlice('cow', 'blue', 1);
+      scale.removeSharedLabelColorFromRange(colorMap, 'pig');
+      expect(scale.range()).toEqual(['green', 'red']);
+      scale.removeSharedLabelColorFromRange(colorMap, 'cow');
+      expect(scale.range()).toEqual(['blue', 'green', 'red']);
+      sharedLabelColor.clear();
+    });
+
+    it('recycles colors when all colors are in sharedLabelColor', () => {
+      const scale = new CategoricalColorScale(['blue', 'green', 'red']);
+      expect(scale.range()).toEqual(['blue', 'green', 'red']);
+      const sharedLabelColor = getSharedLabelColor();
+      const colorMap = sharedLabelColor.getColorMap();
+      sharedLabelColor.addSlice('cow', 'blue', 1);
+      sharedLabelColor.addSlice('pig', 'red', 1);
+      sharedLabelColor.addSlice('horse', 'green', 1);
+      scale.removeSharedLabelColorFromRange(colorMap, 'goat');
+      expect(scale.range()).toEqual(['blue', 'green', 'red']);
+      sharedLabelColor.clear();
+    });
+
+    it('should remove parentForcedColors from range', () => {
+      const parentForcedColors = { house: 'blue', cow: 'red' };
+      const scale = new CategoricalColorScale(
+        ['blue', 'red', 'green'],
+        parentForcedColors,
+      );
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.clear();
+      const colorMap = sharedLabelColor.getColorMap();
+      scale.removeSharedLabelColorFromRange(colorMap, 'pig');
+      expect(scale.range()).toEqual(['green']);
+      scale.removeSharedLabelColorFromRange(colorMap, 'cow');
+      expect(scale.range()).toEqual(['red', 'green']);
+      sharedLabelColor.clear();
     });
   });
 });

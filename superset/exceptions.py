@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -47,7 +47,7 @@ class SupersetException(Exception):
     def error_type(self) -> Optional[SupersetErrorType]:
         return self._error_type
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         rv = {}
         if hasattr(self, "message"):
             rv["message"] = self.message
@@ -67,7 +67,7 @@ class SupersetErrorException(SupersetException):
         if status is not None:
             self.status = status
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return self.error.to_dict()
 
 
@@ -94,7 +94,7 @@ class SupersetErrorFromParamsException(SupersetErrorException):
         error_type: SupersetErrorType,
         message: str,
         level: ErrorLevel,
-        extra: Optional[Dict[str, Any]] = None,
+        extra: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(
             SupersetError(
@@ -107,7 +107,7 @@ class SupersetErrorsException(SupersetException):
     """Exceptions with multiple SupersetErrorType associated with them"""
 
     def __init__(
-        self, errors: List[SupersetError], status: Optional[int] = None
+        self, errors: list[SupersetError], status: Optional[int] = None
     ) -> None:
         super().__init__(str(errors))
         self.errors = errors
@@ -119,7 +119,7 @@ class SupersetSyntaxErrorException(SupersetErrorsException):
     status = 422
     error_type = SupersetErrorType.SYNTAX_ERROR
 
-    def __init__(self, errors: List[SupersetError]) -> None:
+    def __init__(self, errors: list[SupersetError]) -> None:
         super().__init__(errors)
 
 
@@ -134,7 +134,7 @@ class SupersetGenericDBErrorException(SupersetErrorFromParamsException):
         self,
         message: str,
         level: ErrorLevel = ErrorLevel.ERROR,
-        extra: Optional[Dict[str, Any]] = None,
+        extra: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(
             SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
@@ -152,7 +152,7 @@ class SupersetTemplateParamsErrorException(SupersetErrorFromParamsException):
         message: str,
         error: SupersetErrorType,
         level: ErrorLevel = ErrorLevel.ERROR,
-        extra: Optional[Dict[str, Any]] = None,
+        extra: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(
             error,
@@ -166,7 +166,7 @@ class SupersetSecurityException(SupersetErrorException):
     status = 403
 
     def __init__(
-        self, error: SupersetError, payload: Optional[Dict[str, Any]] = None
+        self, error: SupersetError, payload: Optional[dict[str, Any]] = None
     ) -> None:
         super().__init__(error)
         self.payload = payload
@@ -198,6 +198,10 @@ class CertificateException(SupersetException):
 
 class DatabaseNotFound(SupersetException):
     status = 400
+
+
+class MissingUserContextException(SupersetException):
+    status = 422
 
 
 class QueryObjectValidationError(SupersetException):
@@ -274,3 +278,113 @@ class QueryNotFoundException(SupersetException):
 
 class ColumnNotFoundException(SupersetException):
     status = 404
+
+
+class SupersetMarshmallowValidationError(SupersetErrorException):
+    """
+    Exception to be raised for Marshmallow validation errors.
+    """
+
+    status = 422
+
+    def __init__(self, exc: ValidationError, payload: dict[str, Any]):
+        error = SupersetError(
+            message=_("The schema of the submitted payload is invalid."),
+            error_type=SupersetErrorType.MARSHMALLOW_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"messages": exc.messages, "payload": payload},
+        )
+        super().__init__(error)
+
+
+class SupersetParseError(SupersetErrorException):
+    """
+    Exception to be raised when we fail to parse SQL.
+    """
+
+    status = 422
+
+    def __init__(self, sql: str, engine: Optional[str] = None):
+        error = SupersetError(
+            message=_("The SQL is invalid and cannot be parsed."),
+            error_type=SupersetErrorType.INVALID_SQL_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"sql": sql, "engine": engine},
+        )
+        super().__init__(error)
+
+
+class OAuth2RedirectError(SupersetErrorException):
+    """
+    Exception used to start OAuth2 dance for personal tokens.
+
+    The exception requires 3 parameters:
+
+    - The URL that starts the OAuth2 dance.
+    - The UUID of the browser tab where OAuth2 started, so that the newly opened tab
+      where OAuth2 happens can communicate with the original tab to inform that OAuth2
+      was successful (or not).
+    - The redirect URL, so that the original tab can validate that the message from the
+      second tab is coming from a valid origin.
+
+    See the `OAuth2RedirectMessage.tsx` component for more details of how this
+    information is handled.
+    """
+
+    def __init__(self, url: str, tab_id: str, redirect_uri: str):
+        super().__init__(
+            SupersetError(
+                message="You don't have permission to access the data.",
+                error_type=SupersetErrorType.OAUTH2_REDIRECT,
+                level=ErrorLevel.WARNING,
+                extra={"url": url, "tab_id": tab_id, "redirect_uri": redirect_uri},
+            )
+        )
+
+
+class OAuth2Error(SupersetErrorException):
+    """
+    Exception for when OAuth2 goes wrong.
+    """
+
+    def __init__(self, error: str):
+        super().__init__(
+            SupersetError(
+                message="Something went wrong while doing OAuth2",
+                error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"error": error},
+            )
+        )
+
+
+class CreateKeyValueDistributedLockFailedException(Exception):
+    """
+    Exception to signalize failure to acquire lock.
+    """
+
+
+class DatabaseNotFoundException(SupersetErrorException):
+    status = 404
+
+    def __init__(self, message: str):
+        super().__init__(
+            SupersetError(
+                message=message,
+                error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+
+class TableNotFoundException(SupersetErrorException):
+    status = 404
+
+    def __init__(self, message: str):
+        super().__init__(
+            SupersetError(
+                message=message,
+                error_type=SupersetErrorType.TABLE_NOT_FOUND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )

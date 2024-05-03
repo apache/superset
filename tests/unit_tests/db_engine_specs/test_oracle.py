@@ -25,7 +25,7 @@ from sqlalchemy.dialects.oracle import DATE, NVARCHAR, VARCHAR
 from sqlalchemy.sql import quoted_name
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -106,8 +106,24 @@ def test_fetch_data() -> None:
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.oracle import OracleEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "name,expected_result",
+    [
+        ("col", "COL"),
+        ("Col", "Col"),
+        ("COL", "COL"),
+    ],
+)
+def test_denormalize_name(name: str, expected_result: str):
+    from superset.db_engine_specs.oracle import OracleEngineSpec as spec
+
+    assert spec.denormalize_name(oracle.dialect(), name) == expected_result

@@ -19,7 +19,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import os
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -55,7 +55,7 @@ def test_client(app_context: AppContext):
 
 
 @pytest.fixture
-def login_as(test_client: "FlaskClient[Any]"):
+def login_as(test_client: FlaskClient[Any]):
     """Fixture with app context and logged in admin user."""
 
     def _login_as(username: str, password: str = "general"):
@@ -118,8 +118,8 @@ def get_or_create_user(get_user, create_user) -> ab_models.User:
 @pytest.fixture(autouse=True, scope="session")
 def setup_sample_data() -> Any:
     # TODO(john-bodley): Determine a cleaner way of setting up the sample data without
-    # relying on `tests.integration_tests.test_app.app` leveraging an  `app` fixture which is purposely
-    # scoped to the function level to ensure tests remain idempotent.
+    # relying on `tests.integration_tests.test_app.app` leveraging an `app` fixture
+    # which is purposely scoped to the function level to ensure tests remain idempotent.
     with app.app_context():
         setup_presto_if_needed()
 
@@ -135,7 +135,6 @@ def setup_sample_data() -> Any:
 
     with app.app_context():
         # drop sqlalchemy tables
-
         db.session.commit()
         from sqlalchemy.ext import declarative
 
@@ -147,7 +146,7 @@ def setup_sample_data() -> Any:
 
 
 def drop_from_schema(engine: Engine, schema_name: str):
-    schemas = engine.execute(f"SHOW SCHEMAS").fetchall()
+    schemas = engine.execute(f"SHOW SCHEMAS").fetchall()  # noqa: F541
     if schema_name not in [s[0] for s in schemas]:
         # schema doesn't exist
         return
@@ -160,15 +159,15 @@ def drop_from_schema(engine: Engine, schema_name: str):
 @pytest.fixture(scope="session")
 def example_db_provider() -> Callable[[], Database]:  # type: ignore
     class _example_db_provider:
-        _db: Optional[Database] = None
+        _db: Database | None = None
 
         def __call__(self) -> Database:
-            with app.app_context():
-                if self._db is None:
+            if self._db is None:
+                with app.app_context():
                     self._db = get_example_database()
                     self._load_lazy_data_to_decouple_from_session()
 
-                return self._db
+            return self._db
 
         def _load_lazy_data_to_decouple_from_session(self) -> None:
             self._db._get_sqla_engine()  # type: ignore
@@ -212,7 +211,7 @@ def setup_presto_if_needed():
 
     if backend in {"presto", "hive"}:
         database = get_example_database()
-        with database.get_sqla_engine_with_context() as engine:
+        with database.get_sqla_engine() as engine:
             drop_from_schema(engine, CTAS_SCHEMA_NAME)
             engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")
             engine.execute(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}")
@@ -257,7 +256,7 @@ def with_feature_flags(**mock_feature_flags):
     return decorate
 
 
-def with_config(override_config: Dict[str, Any]):
+def with_config(override_config: dict[str, Any]):
     """
     Use this decorator to mock specific config keys.
 
@@ -296,25 +295,25 @@ def virtual_dataset():
     dataset = SqlaTable(
         table_name="virtual_dataset",
         sql=(
-            "SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5 "
+            "SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5, 1 as col6 "
             "UNION ALL "
-            "SELECT 1, 'b', 1.1, NULL, '2000-01-02 00:00:00' "
+            "SELECT 1, 'b', 1.1, NULL, '2000-01-02 00:00:00', NULL "
             "UNION ALL "
-            "SELECT 2 as col1, 'c' as col2, 1.2, NULL, '2000-01-03 00:00:00' "
+            "SELECT 2 as col1, 'c' as col2, 1.2, NULL, '2000-01-03 00:00:00', 3 "
             "UNION ALL "
-            "SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00' "
+            "SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00', 4 "
             "UNION ALL "
-            "SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00' "
+            "SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00', 5 "
             "UNION ALL "
-            "SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00' "
+            "SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6 "
             "UNION ALL "
-            "SELECT 6 as col1, 'g' as col2, 1.6, NULL, '2000-01-07 00:00:00' "
+            "SELECT 6 as col1, 'g' as col2, 1.6, NULL, '2000-01-07 00:00:00', 7 "
             "UNION ALL "
-            "SELECT 7 as col1, 'h' as col2, 1.7, NULL, '2000-01-08 00:00:00' "
+            "SELECT 7 as col1, 'h' as col2, 1.7, NULL, '2000-01-08 00:00:00', 8 "
             "UNION ALL "
-            "SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00' "
+            "SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00', 9 "
             "UNION ALL "
-            "SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00' "
+            "SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00', 10"
         ),
         database=get_example_database(),
     )
@@ -324,9 +323,11 @@ def virtual_dataset():
     TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
     # Different database dialect datetime type is not consistent, so temporarily use varchar
     TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col6", type="INTEGER", table=dataset)
 
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
-    db.session.merge(dataset)
+    db.session.add(dataset)
+    db.session.commit()
 
     yield dataset
 
@@ -341,7 +342,7 @@ def physical_dataset():
 
     example_database = get_example_database()
 
-    with example_database.get_sqla_engine_with_context() as engine:
+    with example_database.get_sqla_engine() as engine:
         quoter = get_identifier_quoter(engine.name)
         # sqlite can only execute one statement at a time
         engine.execute(
@@ -390,7 +391,7 @@ def physical_dataset():
         table=dataset,
     )
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
-    db.session.merge(dataset)
+    db.session.add(dataset)
     db.session.commit()
 
     yield dataset
@@ -425,7 +426,8 @@ def virtual_dataset_comma_in_column_value():
     TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
 
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
-    db.session.merge(dataset)
+    db.session.add(dataset)
+    db.session.commit()
 
     yield dataset
 

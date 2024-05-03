@@ -23,8 +23,9 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   NumberFormats,
-  NumberFormatter,
   t,
+  ValueFormatter,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, PieSeriesOption } from 'echarts';
@@ -58,7 +59,7 @@ export function formatPieLabel({
 }: {
   params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
   labelType: EchartsPieLabelType;
-  numberFormatter: NumberFormatter;
+  numberFormatter: ValueFormatter;
   sanitizeName?: boolean;
 }): string {
   const { name: rawName = '', value, percent } = params;
@@ -79,6 +80,8 @@ export function formatPieLabel({
       return `${name}: ${formattedValue} (${formattedPercent})`;
     case EchartsPieLabelType.KeyPercent:
       return `${name}: ${formattedPercent}`;
+    case EchartsPieLabelType.ValuePercent:
+      return `${formattedValue} (${formattedPercent})`;
     default:
       return name;
   }
@@ -145,7 +148,9 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    datasource,
   } = chartProps;
+  const { columnFormats = {}, currencyFormats = {} } = datasource;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
@@ -162,6 +167,7 @@ export default function transformProps(
     legendType,
     metric = '',
     numberFormat,
+    currencyFormat,
     dateFormat,
     outerRadius,
     showLabels,
@@ -203,7 +209,14 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getNumberFormatter(numberFormat);
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
+  );
+
   let totalValue = 0;
 
   const transformedData: PieSeriesOption[] = data.map(datum => {
@@ -345,5 +358,6 @@ export default function transformProps(
     onContextMenu,
     refs,
     emitCrossFilters,
+    coltypeMapping,
   };
 }

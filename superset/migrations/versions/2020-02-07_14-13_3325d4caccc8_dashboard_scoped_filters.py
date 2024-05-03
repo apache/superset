@@ -27,7 +27,7 @@ import json
 import logging
 
 from alembic import op
-from sqlalchemy import and_, Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -99,8 +99,6 @@ def upgrade():
                 )
             else:
                 dashboard.json_metadata = None
-
-            session.merge(dashboard)
         except Exception as ex:
             logging.exception(f"dashboard {dashboard.id} has error: {ex}")
 

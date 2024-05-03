@@ -18,7 +18,10 @@
  */
 import React, { ReactNode } from 'react';
 import shortid from 'shortid';
+
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { t, styled } from '@superset-ui/core';
+
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import Fieldset from './Fieldset';
@@ -29,6 +32,7 @@ interface CRUDCollectionProps {
   allowDeletes?: boolean;
   collection: Array<object>;
   columnLabels?: object;
+  columnLabelTooltips?: object;
   emptyMessage?: ReactNode;
   expandFieldset?: ReactNode;
   extraButtons?: ReactNode;
@@ -56,9 +60,9 @@ interface CRUDCollectionProps {
 type Sort = number | string | boolean | any;
 
 enum SortOrder {
-  asc = 1,
-  desc = 2,
-  unsort = 0,
+  Asc = 1,
+  Desc = 2,
+  Unsorted = 0,
 }
 
 interface CRUDCollectionState {
@@ -222,6 +226,11 @@ export default class CRUDCollection extends React.PureComponent<
     return label;
   }
 
+  getTooltip(col: string) {
+    const { columnLabelTooltips } = this.props;
+    return columnLabelTooltips?.[col];
+  }
+
   changeCollection(collection: any, newItem?: object) {
     this.setState({ collection });
     if (this.props.onChange) {
@@ -261,7 +270,7 @@ export default class CRUDCollection extends React.PureComponent<
     }));
   }
 
-  sortColumn(col: string, sort = SortOrder.unsort) {
+  sortColumn(col: string, sort = SortOrder.Unsorted) {
     const { sortColumns } = this.props;
     // default sort logic sorting string, boolean and number
     const compareSort = (m: Sort, n: Sort) => {
@@ -273,7 +282,7 @@ export default class CRUDCollection extends React.PureComponent<
     return () => {
       if (sortColumns?.includes(col)) {
         // display in unsorted order if no sort specified
-        if (sort === SortOrder.unsort) {
+        if (sort === SortOrder.Unsorted) {
           const { collection } = createKeyedCollection(this.props.collection);
           const collectionArray = createCollectionArray(collection);
           this.setState({
@@ -289,7 +298,7 @@ export default class CRUDCollection extends React.PureComponent<
           (a: object, b: object) => compareSort(a[col], b[col]),
         );
         const newCollection =
-          sort === SortOrder.asc ? sorted : sorted.reverse();
+          sort === SortOrder.Asc ? sorted : sorted.reverse();
 
         this.setState(prevState => ({
           ...prevState,
@@ -302,13 +311,32 @@ export default class CRUDCollection extends React.PureComponent<
   }
 
   renderSortIcon(col: string) {
-    if (this.state.sortColumn === col && this.state.sort === SortOrder.asc) {
+    if (this.state.sortColumn === col && this.state.sort === SortOrder.Asc) {
       return <Icons.SortAsc onClick={this.sortColumn(col, 2)} />;
     }
-    if (this.state.sortColumn === col && this.state.sort === SortOrder.desc) {
+    if (this.state.sortColumn === col && this.state.sort === SortOrder.Desc) {
       return <Icons.SortDesc onClick={this.sortColumn(col, 0)} />;
     }
     return <Icons.Sort onClick={this.sortColumn(col, 1)} />;
+  }
+
+  renderTH(col: string, sortColumns: Array<string>) {
+    const tooltip = this.getTooltip(col);
+    return (
+      <th key={col} className="no-wrap">
+        {this.getLabel(col)}
+        {tooltip && (
+          <>
+            {' '}
+            <InfoTooltipWithTrigger
+              label={t('description')}
+              tooltip={tooltip}
+            />
+          </>
+        )}
+        {sortColumns?.includes(col) && this.renderSortIcon(col)}
+      </th>
+    );
   }
 
   renderHeaderRow() {
@@ -319,12 +347,7 @@ export default class CRUDCollection extends React.PureComponent<
       <thead>
         <tr>
           {expandFieldset && <th aria-label="Expand" className="tiny-cell" />}
-          {cols.map(col => (
-            <th key={col}>
-              {this.getLabel(col)}
-              {sortColumns?.includes(col) && this.renderSortIcon(col)}
-            </th>
-          ))}
+          {cols.map(col => this.renderTH(col, sortColumns))}
           {extraButtons}
           {allowDeletes && (
             <th key="delete-item" aria-label="Delete" className="tiny-cell" />

@@ -14,18 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=invalid-name, no-self-use, too-few-public-methods, too-many-arguments
+# pylint: disable=invalid-name, too-few-public-methods, too-many-arguments
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import gettext as __, ngettext
 from jinja2 import TemplateError
 from jinja2.meta import find_undeclared_variables
 
 from superset import is_feature_enabled
+from superset.commands.sql_lab.execute import SqlQueryRender
 from superset.errors import SupersetErrorType
-from superset.sqllab.commands.execute import SqlQueryRender
+from superset.sql_parse import ParsedQuery
 from superset.sqllab.exceptions import SqlLabException
 from superset.utils import core as utils
 
@@ -57,8 +58,13 @@ class SqlQueryRenderImpl(SqlQueryRender):
                 database=query_model.database, query=query_model
             )
 
+            parsed_query = ParsedQuery(
+                query_model.sql,
+                strip_comments=True,
+                engine=query_model.database.db_engine_spec.engine,
+            )
             rendered_query = sql_template_processor.process_template(
-                query_model.sql, **execution_context.template_params
+                parsed_query.stripped(), **execution_context.template_params
             )
             self._validate(execution_context, rendered_query, sql_template_processor)
             return rendered_query
@@ -73,11 +79,8 @@ class SqlQueryRenderImpl(SqlQueryRender):
         sql_template_processor: BaseTemplateProcessor,
     ) -> None:
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-            # pylint: disable=protected-access
-            syntax_tree = sql_template_processor._env.parse(rendered_query)
-            undefined_parameters = find_undeclared_variables(  # type: ignore
-                syntax_tree
-            )
+            syntax_tree = sql_template_processor.env.parse(rendered_query)
+            undefined_parameters = find_undeclared_variables(syntax_tree)
             if undefined_parameters:
                 self._raise_undefined_parameter_exception(
                     execution_context, undefined_parameters
@@ -126,16 +129,16 @@ class SqlQueryRenderImpl(SqlQueryRender):
 
 
 class SqlQueryRenderException(SqlLabException):
-    _extra: Optional[Dict[str, Any]]
+    _extra: dict[str, Any] | None
 
     def __init__(
         self,
         sql_json_execution_context: SqlJsonExecutionContext,
         error_type: SupersetErrorType,
-        reason_message: Optional[str] = None,
-        exception: Optional[Exception] = None,
-        suggestion_help_msg: Optional[str] = None,
-        extra: Optional[Dict[str, Any]] = None,
+        reason_message: str | None = None,
+        exception: Exception | None = None,
+        suggestion_help_msg: str | None = None,
+        extra: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(
             sql_json_execution_context,
@@ -147,10 +150,10 @@ class SqlQueryRenderException(SqlLabException):
         self._extra = extra
 
     @property
-    def extra(self) -> Optional[Dict[str, Any]]:
+    def extra(self) -> dict[str, Any] | None:
         return self._extra
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         rv = super().to_dict()
         if self._extra:
             rv["extra"] = self._extra

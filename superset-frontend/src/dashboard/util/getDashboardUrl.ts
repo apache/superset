@@ -17,6 +17,7 @@
  * under the License.
  */
 import { JsonObject } from '@superset-ui/core';
+import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import serializeActiveFilterValues from './serializeActiveFilterValues';
@@ -32,18 +33,23 @@ export default function getDashboardUrl({
   hash: string;
   standalone?: number | null;
 }) {
-  const newSearchParams = new URLSearchParams();
+  const newSearchParams = new URLSearchParams(window.location.search);
 
-  // convert flattened { [id_column]: values } object
-  // to nested filter object
-  newSearchParams.set(
-    URL_PARAMS.preselectFilters.name,
-    JSON.stringify(serializeActiveFilterValues(filters)),
-  );
+  if (!isEmpty(filters)) {
+    // convert flattened { [id_column]: values } object
+    // to nested filter object
+    newSearchParams.set(
+      URL_PARAMS.preselectFilters.name,
+      JSON.stringify(serializeActiveFilterValues(filters)),
+    );
+  }
 
   if (standalone) {
     newSearchParams.set(URL_PARAMS.standalone.name, standalone.toString());
+  } else {
+    newSearchParams.delete(URL_PARAMS.standalone.name);
   }
+
   const dataMaskKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
   if (dataMaskKey) {
     newSearchParams.set(

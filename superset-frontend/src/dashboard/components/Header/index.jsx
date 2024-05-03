@@ -23,13 +23,13 @@ import PropTypes from 'prop-types';
 import {
   styled,
   css,
+  isFeatureEnabled,
   FeatureFlag,
   t,
   getSharedLabelColor,
-  getUiOverrideRegistry,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
-import { isFeatureEnabled } from 'src/featureFlags';
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
@@ -55,10 +55,10 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import { DashboardEmbedModal } from '../DashboardEmbedControls';
+import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 
-const uiOverrideRegistry = getUiOverrideRegistry();
+const extensionsRegistry = getExtensionsRegistry();
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -471,7 +471,7 @@ class Header extends React.PureComponent {
     const userCanShare = dashboardInfo.dash_share_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
     const userCanCurate =
-      isFeatureEnabled(FeatureFlag.EMBEDDED_SUPERSET) &&
+      isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
       findPermission('can_set_embedded', 'Dashboard', user.roles);
     const refreshLimit =
       dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
@@ -495,7 +495,7 @@ class Header extends React.PureComponent {
       dashboardTitleChanged(updates.title);
     };
 
-    const NavExtension = uiOverrideRegistry.get('dashboard.nav.right');
+    const NavExtension = extensionsRegistry.get('dashboard.nav.right');
 
     return (
       <div
@@ -553,6 +553,7 @@ class Header extends React.PureComponent {
                           <StyledUndoRedoButton
                             type="text"
                             disabled={undoLength < 1}
+                            onClick={undoLength && onUndo}
                           >
                             <Icons.Undo
                               css={[
@@ -560,7 +561,6 @@ class Header extends React.PureComponent {
                                 this.state.emphasizeUndo && undoRedoEmphasized,
                                 undoLength < 1 && undoRedoDisabled,
                               ]}
-                              onClick={undoLength && onUndo}
                               data-test="undo-action"
                               iconSize="xl"
                             />
@@ -573,6 +573,7 @@ class Header extends React.PureComponent {
                           <StyledUndoRedoButton
                             type="text"
                             disabled={redoLength < 1}
+                            onClick={redoLength && onRedo}
                           >
                             <Icons.Redo
                               css={[
@@ -580,7 +581,6 @@ class Header extends React.PureComponent {
                                 this.state.emphasizeRedo && undoRedoEmphasized,
                                 redoLength < 1 && undoRedoDisabled,
                               ]}
-                              onClick={redoLength && onRedo}
                               data-test="redo-action"
                               iconSize="xl"
                             />

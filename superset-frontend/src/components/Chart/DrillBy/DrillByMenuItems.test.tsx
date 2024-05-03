@@ -61,15 +61,14 @@ const defaultFilters = [
 
 const renderMenu = ({
   formData = defaultFormData,
-  filters = defaultFilters,
+  drillByConfig = { filters: defaultFilters, groupbyFieldName: 'groupby' },
   ...rest
 }: Partial<DrillByMenuItemsProps>) =>
   render(
     <Menu>
       <DrillByMenuItems
         formData={formData ?? defaultFormData}
-        filters={filters}
-        groupbyFieldName="groupby"
+        drillByConfig={drillByConfig}
         {...rest}
       />
     </Menu>,
@@ -114,7 +113,7 @@ getChartMetadataRegistry().registerValue(
     name: 'fake pie',
     thumbnail: '.png',
     useLegacyApi: false,
-    behaviors: [Behavior.DRILL_BY],
+    behaviors: [Behavior.DrillBy],
   }),
 );
 
@@ -132,16 +131,17 @@ test('render disabled menu item for unsupported chart', async () => {
   );
 });
 
-test('render disabled menu item for supported chart, no filters', async () => {
-  renderMenu({ filters: [] });
-  await expectDrillByDisabled('Drill by is not available for this data point');
+test('render enabled menu item for supported chart, no filters', async () => {
+  renderMenu({ drillByConfig: { filters: [], groupbyFieldName: 'groupby' } });
+  await expectDrillByEnabled();
 });
 
 test('render disabled menu item for supported chart, no columns', async () => {
   fetchMock.get(DATASET_ENDPOINT, { result: { columns: [] } });
   renderMenu({});
   await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
-  await expectDrillByDisabled('No dimensions available for drill by');
+  await expectDrillByEnabled();
+  screen.getByText('No columns found');
 });
 
 test('render menu item with submenu without searchbox', async () => {
@@ -237,6 +237,6 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
       column_name: 'col1',
       groupby: true,
     },
-    defaultFilters,
+    { filters: defaultFilters, groupbyFieldName: 'groupby' },
   );
 });

@@ -16,48 +16,81 @@
 # under the License.
 from __future__ import annotations
 
+import json
 import pickle
-from uuid import UUID
 
+import pytest
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 
 from superset.extensions import db
+from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.utils.core import override_user
 from tests.integration_tests.key_value.commands.fixtures import (
-    admin,
-    ID_KEY,
+    admin,  # noqa: F401
+    JSON_CODEC,
+    JSON_VALUE,
+    PICKLE_CODEC,
+    PICKLE_VALUE,
     RESOURCE,
-    UUID_KEY,
-    VALUE,
 )
 
 
-def test_create_id_entry(app_context: AppContext, admin: User) -> None:
-    from superset.key_value.commands.create import CreateKeyValueCommand
+def test_create_id_entry(app_context: AppContext, admin: User) -> None:  # noqa: F811
+    from superset.commands.key_value.create import CreateKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):
-        key = CreateKeyValueCommand(resource=RESOURCE, value=VALUE).run()
-        entry = (
-            db.session.query(KeyValueEntry).filter_by(id=key.id).autoflush(False).one()
-        )
-        assert pickle.loads(entry.value) == VALUE
+        key = CreateKeyValueCommand(
+            resource=RESOURCE,
+            value=JSON_VALUE,
+            codec=JSON_CODEC,
+        ).run()
+        entry = db.session.query(KeyValueEntry).filter_by(id=key.id).one()
+        assert json.loads(entry.value) == JSON_VALUE
         assert entry.created_by_fk == admin.id
         db.session.delete(entry)
         db.session.commit()
 
 
-def test_create_uuid_entry(app_context: AppContext, admin: User) -> None:
-    from superset.key_value.commands.create import CreateKeyValueCommand
+def test_create_uuid_entry(app_context: AppContext, admin: User) -> None:  # noqa: F811
+    from superset.commands.key_value.create import CreateKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):
-        key = CreateKeyValueCommand(resource=RESOURCE, value=VALUE).run()
-    entry = (
-        db.session.query(KeyValueEntry).filter_by(uuid=key.uuid).autoflush(False).one()
-    )
-    assert pickle.loads(entry.value) == VALUE
+        key = CreateKeyValueCommand(
+            resource=RESOURCE, value=JSON_VALUE, codec=JSON_CODEC
+        ).run()
+    entry = db.session.query(KeyValueEntry).filter_by(uuid=key.uuid).one()
+    assert json.loads(entry.value) == JSON_VALUE
     assert entry.created_by_fk == admin.id
     db.session.delete(entry)
     db.session.commit()
+
+
+def test_create_fail_json_entry(app_context: AppContext, admin: User) -> None:  # noqa: F811
+    from superset.commands.key_value.create import CreateKeyValueCommand
+
+    with pytest.raises(KeyValueCreateFailedError):
+        CreateKeyValueCommand(
+            resource=RESOURCE,
+            value=PICKLE_VALUE,
+            codec=JSON_CODEC,
+        ).run()
+
+
+def test_create_pickle_entry(app_context: AppContext, admin: User) -> None:  # noqa: F811
+    from superset.commands.key_value.create import CreateKeyValueCommand
+    from superset.key_value.models import KeyValueEntry
+
+    with override_user(admin):
+        key = CreateKeyValueCommand(
+            resource=RESOURCE,
+            value=PICKLE_VALUE,
+            codec=PICKLE_CODEC,
+        ).run()
+        entry = db.session.query(KeyValueEntry).filter_by(id=key.id).one()
+        assert type(pickle.loads(entry.value)) == type(PICKLE_VALUE)
+        assert entry.created_by_fk == admin.id
+        db.session.delete(entry)
+        db.session.commit()

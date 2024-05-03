@@ -16,23 +16,23 @@
 # under the License.
 import itertools
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch  # noqa: F401
 
 import pytest
 import yaml
 from werkzeug.utils import secure_filename
 
 from superset import db, security_manager
-from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.connectors.sqla.models import SqlaTable
-from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.commands.export import (
+from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.commands.dashboard.export import (
     append_charts,
     ExportDashboardsCommand,
     get_default_position,
 )
-from superset.dashboards.commands.importers import v0, v1
+from superset.commands.dashboard.importers import v0, v1
+from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -47,8 +47,8 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_metadata_config,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 
@@ -78,7 +78,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
         assert expected_paths == set(contents.keys())
 
         metadata = yaml.safe_load(
-            contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]
+            contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]()
         )
 
         # remove chart UUIDs from metadata so we can compare
@@ -92,19 +92,16 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "description": None,
             "css": None,
             "slug": "world_health",
+            "certified_by": None,
+            "certification_details": None,
+            "published": False,
             "uuid": str(example_dashboard.uuid),
             "position": {
-                "CHART-36bfc934": {
-                    "children": [],
-                    "id": "CHART-36bfc934",
-                    "meta": {"height": 25, "sliceName": "Region Filter", "width": 2},
-                    "type": "CHART",
-                },
                 "CHART-37982887": {
                     "children": [],
                     "id": "CHART-37982887",
                     "meta": {
-                        "height": 25,
+                        "height": 52,
                         "sliceName": "World's Population",
                         "width": 2,
                     },
@@ -177,7 +174,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                     "type": "COLUMN",
                 },
                 "COLUMN-fe3914b8": {
-                    "children": ["CHART-36bfc934", "CHART-37982887"],
+                    "children": ["CHART-37982887"],
                     "id": "COLUMN-fe3914b8",
                     "meta": {"background": "BACKGROUND_TRANSPARENT", "width": 2},
                     "type": "COLUMN",
@@ -272,13 +269,16 @@ class TestExportDashboardsCommand(SupersetTestCase):
         contents = dict(command.run())
 
         metadata = yaml.safe_load(
-            contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]
+            contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]()
         )
         assert list(metadata.keys()) == [
             "dashboard_title",
             "description",
             "css",
             "slug",
+            "certified_by",
+            "certification_details",
+            "published",
             "uuid",
             "position",
             "metadata",
@@ -286,14 +286,16 @@ class TestExportDashboardsCommand(SupersetTestCase):
         ]
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @patch("superset.dashboards.commands.export.suffix")
+    @patch("superset.commands.dashboard.export.suffix")
     def test_append_charts(self, mock_suffix):
         """Test that orphaned charts are added to the dashboard position"""
         # return deterministic IDs
         mock_suffix.side_effect = (str(i) for i in itertools.count(1))
 
         position = get_default_position("example")
-        chart_1 = db.session.query(Slice).filter_by(slice_name="Region Filter").one()
+        chart_1 = (
+            db.session.query(Slice).filter_by(slice_name="World's Population").one()
+        )
         new_position = append_charts(position, {chart_1})
         assert new_position == {
             "DASHBOARD_VERSION_KEY": "v2",
@@ -322,7 +324,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "meta": {
                     "chartId": chart_1.id,
                     "height": 50,
-                    "sliceName": "Region Filter",
+                    "sliceName": "World's Population",
                     "uuid": str(chart_1.uuid),
                     "width": 4,
                 },
@@ -369,7 +371,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "meta": {
                     "chartId": chart_1.id,
                     "height": 50,
-                    "sliceName": "Region Filter",
+                    "sliceName": "World's Population",
                     "uuid": str(chart_1.uuid),
                     "width": 4,
                 },
@@ -400,7 +402,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "meta": {
                     "chartId": chart_1.id,
                     "height": 50,
-                    "sliceName": "Region Filter",
+                    "sliceName": "World's Population",
                     "uuid": str(chart_1.uuid),
                     "width": 4,
                 },
@@ -484,7 +486,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.dashboards.commands.importers.v1.utils.g")
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     def test_import_v1_dashboard(self, sm_g, utils_g):
         """Test that we can import a dashboard"""
@@ -549,14 +551,9 @@ class TestImportDashboardsCommand(SupersetTestCase):
         }
         assert json.loads(dashboard.json_metadata) == {
             "color_scheme": None,
-            "default_filters": "{}",
             "expanded_slices": {str(new_chart_id): True},
-            "filter_scopes": {
-                str(new_chart_id): {
-                    "region": {"scope": ["ROOT_ID"], "immune": [new_chart_id]}
-                },
-            },
             "import_time": 1604342885,
+            "native_filter_configuration": [],
             "refresh_frequency": 0,
             "remote_id": 7,
             "timed_refresh_immune_slices": [new_chart_id],
@@ -573,10 +570,6 @@ class TestImportDashboardsCommand(SupersetTestCase):
 
         assert dashboard.owners == [admin]
 
-        dashboard.owners = []
-        chart.owners = []
-        dataset.owners = []
-        database.owners = []
         db.session.delete(dashboard)
         db.session.delete(chart)
         db.session.delete(dataset)

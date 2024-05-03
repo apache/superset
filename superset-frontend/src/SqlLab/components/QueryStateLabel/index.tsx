@@ -22,7 +22,7 @@ import { STATE_TYPE_MAP, STATE_TYPE_MAP_LOCALIZED } from 'src/SqlLab/constants';
 import { styled, Query } from '@superset-ui/core';
 
 interface QueryStateLabelProps {
-  query: Query;
+  query: Pick<Query, 'state'>;
 }
 
 const StyledLabel = styled(Label)`

@@ -21,7 +21,7 @@ import { SupersetTheme, t } from '@superset-ui/core';
 import { AntdSwitch } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
-import { FieldPropTypes } from '.';
+import { FieldPropTypes } from '../../types';
 import { toggleStyle, infoTooltip } from '../styles';
 
 export const hostField = ({
@@ -48,6 +48,7 @@ export const hostField = ({
     onChange={changeMethods.onParametersChange}
   />
 );
+
 export const portField = ({
   required,
   changeMethods,
@@ -162,6 +163,8 @@ export const accessTokenField = ({
   validationErrors,
   db,
   isEditMode,
+  default_value,
+  description,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="access_token"
@@ -171,7 +174,13 @@ export const accessTokenField = ({
     value={db?.parameters?.access_token}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.access_token}
-    placeholder={t('e.g. ********')}
+    placeholder={t('Paste your access token here')}
+    get_url={
+      typeof default_value === 'string' && default_value.includes('https://')
+        ? default_value
+        : null
+    }
+    description={description}
     label={t('Access token')}
     onChange={changeMethods.onParametersChange}
   />

@@ -17,13 +17,14 @@
 # isort:skip_file
 import re
 from datetime import datetime
-from typing import Any, Dict, List, NamedTuple, Optional, Pattern, Tuple, Union
+from typing import Any, NamedTuple, Optional, Union
+from re import Pattern
 from unittest.mock import patch
 import pytest
 
 import numpy as np
 import pandas as pd
-from flask import Flask
+from flask.ctx import AppContext
 from pytest_mock import MockFixture
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
@@ -33,7 +34,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException  # noqa: F401
 from superset.models.core import Database
 from superset.utils.core import (
     AdhocMetricExpressionType,
@@ -42,15 +43,14 @@ from superset.utils.core import (
 )
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
-from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
 from .conftest import only_postgresql
 
-VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
+VIRTUAL_TABLE_INT_TYPES: dict[str, Pattern[str]] = {
     "hive": re.compile(r"^INT_TYPE$"),
     "mysql": re.compile("^LONGLONG$"),
     "postgresql": re.compile(r"^INTEGER$"),
@@ -58,7 +58,7 @@ VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
     "sqlite": re.compile(r"^INT$"),
 }
 
-VIRTUAL_TABLE_STRING_TYPES: Dict[str, Pattern[str]] = {
+VIRTUAL_TABLE_STRING_TYPES: dict[str, Pattern[str]] = {
     "hive": re.compile(r"^STRING_TYPE$"),
     "mysql": re.compile(r"^VAR_STRING$"),
     "postgresql": re.compile(r"^STRING$"),
@@ -70,8 +70,8 @@ VIRTUAL_TABLE_STRING_TYPES: Dict[str, Pattern[str]] = {
 class FilterTestCase(NamedTuple):
     column: str
     operator: str
-    value: Union[float, int, List[Any], str]
-    expected: Union[str, List[str]]
+    value: Union[float, int, list[Any], str]
+    expected: Union[str, list[str]]
 
 
 class TestDatabaseModel(SupersetTestCase):
@@ -101,7 +101,7 @@ class TestDatabaseModel(SupersetTestCase):
         assert col.is_temporal is True
 
     def test_db_column_types(self):
-        test_cases: Dict[str, GenericDataType] = {
+        test_cases: dict[str, GenericDataType] = {
             # string
             "CHAR": GenericDataType.STRING,
             "VARCHAR": GenericDataType.STRING,
@@ -131,14 +131,15 @@ class TestDatabaseModel(SupersetTestCase):
             col = TableColumn(column_name="foo", type=str_type, table=tbl, is_dttm=True)
             self.assertTrue(col.is_temporal)
 
-    @patch("superset.jinja_context.g")
-    def test_extra_cache_keys(self, flask_g):
-        flask_g.user.username = "abc"
+    @patch("superset.jinja_context.get_user_id", return_value=1)
+    @patch("superset.jinja_context.get_username", return_value="abc")
+    @patch("superset.jinja_context.get_user_email", return_value="abc@test.com")
+    def test_extra_cache_keys(self, mock_user_email, mock_username, mock_user_id):
         base_query_obj = {
             "granularity": None,
             "from_dttm": None,
             "to_dttm": None,
-            "groupby": ["user"],
+            "groupby": ["id", "username", "email"],
             "metrics": [],
             "is_timeseries": False,
             "filter": [],
@@ -147,19 +148,29 @@ class TestDatabaseModel(SupersetTestCase):
         # Table with Jinja callable.
         table1 = SqlaTable(
             table_name="test_has_extra_cache_keys_table",
-            sql="SELECT '{{ current_username() }}' as user",
+            sql="""
+            SELECT
+              '{{ current_user_id() }}' as id,
+              '{{ current_username() }}' as username,
+              '{{ current_user_email() }}' as email
+            """,
             database=get_example_database(),
         )
 
         query_obj = dict(**base_query_obj, extras={})
         extra_cache_keys = table1.get_extra_cache_keys(query_obj)
         self.assertTrue(table1.has_extra_cache_key_calls(query_obj))
-        assert extra_cache_keys == ["abc"]
+        assert extra_cache_keys == [1, "abc", "abc@test.com"]
 
         # Table with Jinja callable disabled.
         table2 = SqlaTable(
             table_name="test_has_extra_cache_keys_disabled_table",
-            sql="SELECT '{{ current_username(False) }}' as user",
+            sql="""
+            SELECT
+              '{{ current_user_id(False) }}' as id,
+              '{{ current_username(False) }}' as username,
+              '{{ current_user_email(False) }}' as email,
+            """,
             database=get_example_database(),
         )
         query_obj = dict(**base_query_obj, extras={})
@@ -188,14 +199,8 @@ class TestDatabaseModel(SupersetTestCase):
         self.assertTrue(table3.has_extra_cache_key_calls(query_obj))
         assert extra_cache_keys == ["abc"]
 
-        # Cleanup
-        for table in [table1, table2, table3]:
-            db.session.delete(table)
-        db.session.commit()
-
-    @patch("superset.jinja_context.g")
-    def test_jinja_metrics_and_calc_columns(self, flask_g):
-        flask_g.user.username = "abc"
+    @patch("superset.jinja_context.get_username", return_value="abc")
+    def test_jinja_metrics_and_calc_columns(self, mock_username):
         base_query_obj = {
             "granularity": None,
             "from_dttm": None,
@@ -246,10 +251,11 @@ class TestDatabaseModel(SupersetTestCase):
 
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
+
         # assert virtual dataset
-        assert "SELECT 'user_abc' as user, 'xyz_P1D' as time_grain" in query
+        assert "SELECT\n  'user_abc' AS user,\n  'xyz_P1D' AS time_grain" in query
         # assert dataset calculated column
-        assert "case when 'abc' = 'abc' then 'yes' else 'no' end AS expr" in query
+        assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert adhoc column
         assert "'foo_P1D'" in query
         # assert dataset saved metric
@@ -258,6 +264,61 @@ class TestDatabaseModel(SupersetTestCase):
         assert "SUM(case when user = 'user_abc' then 1 else 0 end)" in query
         # Cleanup
         db.session.delete(table)
+        db.session.commit()
+
+    @patch("superset.views.utils.get_form_data")
+    def test_jinja_metric_macro(self, mock_form_data_context):
+        self.login(username="admin")
+        table = self.get_table(name="birth_names")
+        metric = SqlMetric(
+            metric_name="count_jinja_metric", expression="count(*)", table=table
+        )
+        db.session.commit()
+
+        base_query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "columns": [],
+            "metrics": [
+                {
+                    "hasCustomLabel": True,
+                    "label": "Metric using Jinja macro",
+                    "expressionType": AdhocMetricExpressionType.SQL,
+                    "sqlExpression": "{{ metric('count_jinja_metric') }}",
+                },
+                {
+                    "hasCustomLabel": True,
+                    "label": "Same but different",
+                    "expressionType": AdhocMetricExpressionType.SQL,
+                    "sqlExpression": "{{ metric('count_jinja_metric', "
+                    + str(table.id)
+                    + ") }}",
+                },
+            ],
+            "is_timeseries": False,
+            "filter": [],
+            "extras": {"time_grain_sqla": "P1D"},
+        }
+        mock_form_data_context.return_value = [
+            {
+                "url_params": {
+                    "datasource_id": table.id,
+                }
+            },
+            None,
+        ]
+        sqla_query = table.get_sqla_query(**base_query_obj)
+        query = table.database.compile_sqla_query(sqla_query.sqla_query)
+
+        database = table.database
+        with database.get_sqla_engine() as engine:
+            quote = engine.dialect.identifier_preparer.quote_identifier
+
+        for metric_label in {"metric using jinja macro", "same but different"}:
+            assert f"count(*) as {quote(metric_label)}" in query.lower()
+
+        db.session.delete(metric)
         db.session.commit()
 
     def test_adhoc_metrics_and_calc_columns(self):
@@ -291,7 +352,7 @@ class TestDatabaseModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_where_operators(self):
-        filters: Tuple[FilterTestCase, ...] = (
+        filters: tuple[FilterTestCase, ...] = (
             FilterTestCase("num", FilterOperator.IS_NULL, "", "IS NULL"),
             FilterTestCase("num", FilterOperator.IS_NOT_NULL, "", "IS NOT NULL"),
             # Some db backends translate true/false to 1/0
@@ -429,7 +490,7 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
         table = SqlaTable(
-            table_name="test_has_extra_cache_keys_table",
+            table_name="test_multiple_sql_statements",
             sql="SELECT 'foo' as grp, 1 as num; SELECT 'bar' as grp, 2 as num",
             database=get_example_database(),
         )
@@ -450,7 +511,7 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
         table = SqlaTable(
-            table_name="test_has_extra_cache_keys_table",
+            table_name="test_dml_statement",
             sql="DELETE FROM foo",
             database=get_example_database(),
         )
@@ -493,7 +554,7 @@ class TestDatabaseModel(SupersetTestCase):
             "mycase",
             "expr",
         }
-        cols: Dict[str, TableColumn] = {col.column_name: col for col in table.columns}
+        cols: dict[str, TableColumn] = {col.column_name: col for col in table.columns}
         # assert that the type for intcol has been updated (asserting CI types)
         backend = table.database.backend
         assert VIRTUAL_TABLE_INT_TYPES[backend].match(cols["intcol"].type)
@@ -536,26 +597,25 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.commit()
 
 
-@pytest.fixture
-def text_column_table():
-    with app.app_context():
-        table = SqlaTable(
-            table_name="text_column_table",
-            sql=(
-                "SELECT 'foo' as foo "
-                "UNION SELECT '' "
-                "UNION SELECT NULL "
-                "UNION SELECT 'null' "
-                "UNION SELECT '\"text in double quotes\"' "
-                "UNION SELECT '''text in single quotes''' "
-                "UNION SELECT 'double quotes \" in text' "
-                "UNION SELECT 'single quotes '' in text' "
-            ),
-            database=get_example_database(),
-        )
-        TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
-        SqlMetric(metric_name="count", expression="count(*)", table=table)
-        yield table
+@pytest.fixture()
+def text_column_table(app_context: AppContext):
+    table = SqlaTable(
+        table_name="text_column_table",
+        sql=(
+            "SELECT 'foo' as foo "
+            "UNION SELECT '' "
+            "UNION SELECT NULL "
+            "UNION SELECT 'null' "
+            "UNION SELECT '\"text in double quotes\"' "
+            "UNION SELECT '''text in single quotes''' "
+            "UNION SELECT 'double quotes \" in text' "
+            "UNION SELECT 'single quotes '' in text' "
+        ),
+        database=get_example_database(),
+    )
+    TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
+    SqlMetric(metric_name="count", expression="count(*)", table=table)
+    yield table
 
 
 def test_values_for_column_on_text_column(text_column_table):
@@ -742,7 +802,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
         {
             "operator": FilterOperator.NOT_EQUALS.value,
             "count": 0,
-            "sql_should_contain": "COL4 IS NOT NULL",
+            "sql_should_contain": "NOT COL4 IS NULL",
         },
     ]
     for expected in expected_results:
@@ -774,6 +834,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             )
 
 
+@pytest.mark.usefixtures("app_context")
 @pytest.mark.parametrize(
     "row,dimension,result",
     [
@@ -795,14 +856,13 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
     ],
 )
 def test__normalize_prequery_result_type(
-    app_context: Flask,
     mocker: MockFixture,
     row: pd.Series,
     dimension: str,
     result: Any,
 ) -> None:
     def _convert_dttm(
-        target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         if target_type.upper() == "TIMESTAMP":
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
@@ -865,7 +925,8 @@ def test__normalize_prequery_result_type(
         assert normalized == result
 
 
-def test__temporal_range_operator_in_adhoc_filter(app_context, physical_dataset):
+@pytest.mark.usefixtures("app_context")
+def test__temporal_range_operator_in_adhoc_filter(physical_dataset):
     result = physical_dataset.query(
         {
             "columns": ["col1", "col2"],

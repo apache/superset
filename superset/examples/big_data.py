@@ -16,7 +16,6 @@
 # under the License.
 import random
 import string
-from typing import List
 
 import sqlalchemy.sql.sqltypes
 
@@ -36,7 +35,7 @@ COLUMN_TYPES = [
 
 def load_big_data() -> None:
     print("Creating table `wide_table` with 100 columns")
-    columns: List[ColumnInfo] = []
+    columns: list[ColumnInfo] = []
     for i in range(100):
         column: ColumnInfo = {
             "name": f"col{i}",

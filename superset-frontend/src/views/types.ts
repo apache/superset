@@ -25,6 +25,7 @@ export interface ViewState {
       SQLALCHEMY_DISPLAY_TEXT: string;
       ALERT_REPORTS_NOTIFICATION_METHODS: NotificationMethodOption[];
     };
+    currencies: string[];
   };
   messageToast: Array<Object>;
 }

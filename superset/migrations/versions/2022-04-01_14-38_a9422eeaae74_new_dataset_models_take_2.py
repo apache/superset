@@ -26,28 +26,31 @@ Create Date: 2022-04-01 14:38:09.499483
 revision = "a9422eeaae74"
 down_revision = "ad07e4fdbaba"
 
-import json
-import os
-from datetime import datetime
-from typing import List, Optional, Set, Type, Union
-from uuid import uuid4
+import json  # noqa: E402
+import os  # noqa: E402
+from datetime import datetime  # noqa: E402
+from typing import Optional, Union  # noqa: E402
+from uuid import uuid4  # noqa: E402
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy import select
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import backref, relationship, Session
-from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import functions as func
-from sqlalchemy.sql.expression import and_, or_
-from sqlalchemy_utils import UUIDType
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy import select  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base, declared_attr  # noqa: E402
+from sqlalchemy.orm import backref, relationship, Session  # noqa: E402
+from sqlalchemy.schema import UniqueConstraint  # noqa: E402
+from sqlalchemy.sql import functions as func  # noqa: E402
+from sqlalchemy.sql.expression import and_, or_  # noqa: E402
+from sqlalchemy_utils import UUIDType  # noqa: E402
 
-from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES_LOWER
-from superset.connectors.sqla.utils import get_dialect_name, get_identifier_quoter
-from superset.extensions import encrypted_field_factory
-from superset.migrations.shared.utils import assign_uuids
-from superset.sql_parse import extract_table_references, Table
-from superset.utils.core import MediumText
+from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES_LOWER  # noqa: E402
+from superset.connectors.sqla.utils import (  # noqa: E402
+    get_dialect_name,
+    get_identifier_quoter,
+)
+from superset.extensions import encrypted_field_factory  # noqa: E402
+from superset.migrations.shared.utils import assign_uuids  # noqa: E402
+from superset.sql_parse import extract_table_references, Table  # noqa: E402
+from superset.utils.core import MediumText  # noqa: E402
 
 Base = declarative_base()
 SHOW_PROGRESS = os.environ.get("SHOW_PROGRESS") == "1"
@@ -86,7 +89,7 @@ class AuxiliaryColumnsMixin(UUIDMixin):
 
 
 def insert_from_select(
-    target: Union[str, sa.Table, Type[Base]], source: sa.sql.expression.Select
+    target: Union[str, sa.Table, type[Base]], source: sa.sql.expression.Select
 ) -> None:
     """
     Execute INSERT FROM SELECT to copy data from a SELECT query to the target table.
@@ -257,7 +260,7 @@ class NewTable(AuxiliaryColumnsMixin, Base):
     )
 
 
-class NewDataset(Base, AuxiliaryColumnsMixin):
+class NewDataset(AuxiliaryColumnsMixin, Base):
     __tablename__ = "sl_datasets"
 
     id = sa.Column(sa.Integer, primary_key=True)
@@ -274,8 +277,8 @@ def find_tables(
     session: Session,
     database_id: int,
     default_schema: Optional[str],
-    tables: Set[Table],
-) -> List[int]:
+    tables: set[Table],
+) -> list[int]:
     """
     Look for NewTable's of from a specific database
     """
@@ -336,9 +339,8 @@ def copy_tables(session: Session) -> None:
             ]
         )
         # use an inner join to filter out only tables with valid database ids
-        .select_from(
-            sa.join(SqlaTable, Database, SqlaTable.database_id == Database.id)
-        ).where(is_physical_table),
+        .select_from(sa.join(SqlaTable, Database, SqlaTable.database_id == Database.id))
+        .where(is_physical_table),
     )
 
 

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { omit } from 'lodash';
 import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
@@ -26,12 +27,14 @@ import rison from 'rison';
 import {
   CategoricalColorNamespace,
   ensureIsArray,
+  isFeatureEnabled,
   FeatureFlag,
   getCategoricalSchemeRegistry,
   getSharedLabelColor,
   styled,
   SupersetClient,
   t,
+  getClientErrorObject,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -39,9 +42,7 @@ import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { isFeatureEnabled } from 'src/featureFlags';
 import TagType from 'src/types/TagType';
 import {
   addTag,
@@ -194,15 +195,11 @@ const PropertiesModal = ({
       setRoles(roles);
       setColorScheme(metadata.color_scheme);
 
-      // temporary fix to remove positions from dashboards' metadata
-      if (metadata?.positions) {
-        delete metadata.positions;
-      }
-      const metaDataCopy = { ...metadata };
-
-      delete metaDataCopy.shared_label_colors;
-
-      delete metaDataCopy.color_scheme_domain;
+      const metaDataCopy = omit(metadata, [
+        'positions',
+        'shared_label_colors',
+        'color_scheme_domain',
+      ]);
 
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
     },
@@ -404,7 +401,7 @@ const PropertiesModal = ({
       updateMetadata: false,
     });
 
-    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       // update tags
       try {
         fetchTags(
@@ -425,7 +422,7 @@ const PropertiesModal = ({
 
     const moreOnSubmitProps: { roles?: Roles } = {};
     const morePutProps: { roles?: number[] } = {};
-    if (isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)) {
+    if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
     }
@@ -606,7 +603,7 @@ const PropertiesModal = ({
   }, [dashboardInfo, dashboardTitle, form]);
 
   useEffect(() => {
-    if (!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
+    if (!isFeatureEnabled(FeatureFlag.TaggingSystem)) return;
     try {
       fetchTags(
         {
@@ -684,7 +681,7 @@ const PropertiesModal = ({
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <FormItem label={t('Title')} name="title">
+            <FormItem label={t('Name')} name="title">
               <Input
                 data-test="dashboard-title-input"
                 type="text"
@@ -701,7 +698,7 @@ const PropertiesModal = ({
             </p>
           </Col>
         </Row>
-        {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
+        {isFeatureEnabled(FeatureFlag.DashboardRbac)
           ? getRowsWithRoles()
           : getRowsWithoutRoles()}
         <Row>
@@ -730,21 +727,20 @@ const PropertiesModal = ({
             </p>
           </Col>
         </Row>
-        {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+        {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
             </Col>
           </Row>
         ) : null}
-        {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+        {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <StyledFormItem>
                 <AsyncSelect
                   ariaLabel="Tags"
                   mode="multiple"
-                  allowNewOptions
                   value={tagsAsSelectValues}
                   options={loadTags}
                   onChange={handleChangeTags}

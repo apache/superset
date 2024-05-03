@@ -18,16 +18,18 @@
  */
 
 import React from 'react';
+import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import ErrorMessageWithStackTrace from './ErrorMessageWithStackTrace';
-import { ErrorLevel, ErrorSource } from './types';
+import BasicErrorAlert from './BasicErrorAlert';
 
 jest.mock(
   'src/components/Icons/Icon',
   () =>
-    ({ fileName }: { fileName: string }) =>
-      <span role="img" aria-label={fileName.replace('_', '-')} />,
+    ({ fileName }: { fileName: string }) => (
+      <span role="img" aria-label={fileName.replace('_', '-')} />
+    ),
 );
 
 const mockedProps = {
@@ -56,4 +58,22 @@ test('should render the link', () => {
   const link = screen.getByRole('link');
   expect(link).toHaveTextContent('(Request Access)');
   expect(link).toHaveAttribute('href', mockedProps.link);
+});
+
+test('should render the fallback', () => {
+  const body = 'Blahblah';
+  render(
+    <ErrorMessageWithStackTrace
+      error={{
+        error_type: ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
+        message: body,
+        extra: {},
+        level: 'error',
+      }}
+      fallback={<BasicErrorAlert title="Blah" body={body} level="error" />}
+      {...mockedProps}
+    />,
+    { useRedux: true },
+  );
+  expect(screen.getByText(body)).toBeInTheDocument();
 });

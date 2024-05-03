@@ -25,7 +25,12 @@ import React, {
 } from 'react';
 import { SelectValue } from 'antd/lib/select';
 
-import { styled, t } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  getClientErrorMessage,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
@@ -37,10 +42,6 @@ import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useTables, Table } from 'src/hooks/apiResources';
-import {
-  getClientErrorMessage,
-  getClientErrorObject,
-} from 'src/utils/getClientErrorObject';
 
 const REFRESH_WIDTH = 30;
 
@@ -97,7 +98,6 @@ interface TableSelectorProps {
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
   onSchemaChange?: (schema?: string) => void;
-  onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;
   onEmptyResults?: (searchText?: string) => void;
@@ -105,6 +105,7 @@ interface TableSelectorProps {
   tableValue?: string | string[];
   onTableSelectChange?: (value?: string | string[], schema?: string) => void;
   tableSelectMode?: 'single' | 'multiple';
+  customTableOptionLabelRenderer?: (table: Table) => JSX.Element;
 }
 
 export interface TableOption {
@@ -133,6 +134,7 @@ export const TableOption = ({ table }: { table: Table }) => {
         <WarningIconWithTooltip
           warningMarkdown={extra.warning_markdown}
           size="l"
+          marginRight={4}
         />
       )}
       {value}
@@ -158,7 +160,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   isDatabaseSelectEnabled = true,
   onDbChange,
   onSchemaChange,
-  onTablesLoad,
   readOnly = false,
   onEmptyResults,
   schema,
@@ -166,6 +167,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   tableSelectMode = 'single',
   tableValue = undefined,
   onTableSelectChange,
+  customTableOptionLabelRenderer,
 }) => {
   const { addSuccessToast } = useToasts();
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
@@ -177,17 +179,16 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const {
     data,
     isFetching: loadingTables,
-    isFetched,
     refetch,
   } = useTables({
     dbId: database?.id,
     schema: currentSchema,
-    onSuccess: () => {
+    onSuccess: (data, isFetched) => {
       if (isFetched) {
         addSuccessToast(t('List updated'));
       }
     },
-    onError: (err: Response) => {
+    onError: err => {
       getClientErrorObject(err).then(clientError => {
         handleError(
           getClientErrorMessage(
@@ -199,14 +200,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     },
   });
 
-  useEffect(() => {
-    // Set the tableOptions in the queryEditor so autocomplete
-    // works on new tabs
-    if (data && isFetched) {
-      onTablesLoad?.(data.options);
-    }
-  }, [data, isFetched, onTablesLoad]);
-
   const tableOptions = useMemo<TableOption[]>(
     () =>
       data
@@ -214,9 +207,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
             value: table.value,
             label: <TableOption table={table} />,
             text: table.value,
+            ...(customTableOptionLabelRenderer && {
+              customLabel: customTableOptionLabelRenderer(table),
+            }),
           }))
         : [],
-    [data],
+    [data, customTableOptionLabelRenderer],
   );
 
   useEffect(() => {
@@ -275,8 +271,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const handleFilterOption = useMemo(
     () => (search: string, option: TableOption) => {
       const searchValue = search.trim().toLowerCase();
-      const { text } = option;
-      return text.toLowerCase().includes(searchValue);
+      const { value } = option;
+      return value.toLowerCase().includes(searchValue);
     },
     [],
   );
@@ -308,6 +304,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         mode={tableSelectMode}
         value={tableSelectValue}
         allowClear={tableSelectMode === 'multiple'}
+        allowSelectAll={false}
       />
     );
 
@@ -343,7 +340,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
 };
 
-export const TableSelectorMultiple: FunctionComponent<TableSelectorProps> =
-  props => <TableSelector tableSelectMode="multiple" {...props} />;
+export const TableSelectorMultiple: FunctionComponent<
+  TableSelectorProps
+> = props => <TableSelector tableSelectMode="multiple" {...props} />;
 
 export default TableSelector;

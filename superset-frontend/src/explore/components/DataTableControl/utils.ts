@@ -25,7 +25,7 @@ import {
 
 export const getTimeColumns = (datasourceId?: string): string[] => {
   const colsMap = getItem(
-    LocalStorageKeys.explore__data_table_original_formatted_time_columns,
+    LocalStorageKeys.ExploreDataTableOriginalFormattedTimeColumns,
     {},
   );
   if (datasourceId === undefined) {
@@ -36,14 +36,11 @@ export const getTimeColumns = (datasourceId?: string): string[] => {
 
 export const setTimeColumns = (datasourceId: string, columns: string[]) => {
   const colsMap = getItem(
-    LocalStorageKeys.explore__data_table_original_formatted_time_columns,
+    LocalStorageKeys.ExploreDataTableOriginalFormattedTimeColumns,
     {},
   );
-  setItem(
-    LocalStorageKeys.explore__data_table_original_formatted_time_columns,
-    {
-      ...colsMap,
-      [datasourceId]: columns,
-    },
-  );
+  setItem(LocalStorageKeys.ExploreDataTableOriginalFormattedTimeColumns, {
+    ...colsMap,
+    [datasourceId]: columns,
+  });
 };

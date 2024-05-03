@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest import mock
 
 import pytest
 
@@ -30,7 +29,9 @@ from superset.utils.core import DatasourceType
 from superset.utils.database import get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.fixtures.tags import with_tagging_system_feature
+from tests.integration_tests.fixtures.tags import (
+    with_tagging_system_feature,  # noqa: F401
+)
 
 
 class TestTagging(SupersetTestCase):
@@ -71,7 +72,7 @@ class TestTagging(SupersetTestCase):
         # Test to make sure that a dataset tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
-        self.assertEqual("ObjectTypes.dataset", str(tags[0].object_type))
+        self.assertEqual("ObjectType.dataset", str(tags[0].object_type))
         self.assertEqual(test_dataset.id, tags[0].object_id)
 
         # Cleanup the db
@@ -109,7 +110,7 @@ class TestTagging(SupersetTestCase):
         # Test to make sure that a chart tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
-        self.assertEqual("ObjectTypes.chart", str(tags[0].object_type))
+        self.assertEqual("ObjectType.chart", str(tags[0].object_type))
         self.assertEqual(test_chart.id, tags[0].object_id)
 
         # Cleanup the db
@@ -137,7 +138,6 @@ class TestTagging(SupersetTestCase):
         test_dashboard = Dashboard()
         test_dashboard.dashboard_title = "test_dashboard"
         test_dashboard.slug = "test_slug"
-        test_dashboard.slices = []
         test_dashboard.published = True
 
         db.session.add(test_dashboard)
@@ -146,7 +146,7 @@ class TestTagging(SupersetTestCase):
         # Test to make sure that a dashboard tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
-        self.assertEqual("ObjectTypes.dashboard", str(tags[0].object_type))
+        self.assertEqual("ObjectType.dashboard", str(tags[0].object_type))
         self.assertEqual(test_dashboard.id, tags[0].object_id)
 
         # Cleanup the db
@@ -180,14 +180,14 @@ class TestTagging(SupersetTestCase):
 
         self.assertEqual(2, len(tags))
 
-        self.assertEqual("ObjectTypes.query", str(tags[0].object_type))
+        self.assertEqual("ObjectType.query", str(tags[0].object_type))
         self.assertEqual("owner:None", str(tags[0].tag.name))
-        self.assertEqual("TagTypes.owner", str(tags[0].tag.type))
+        self.assertEqual("TagType.owner", str(tags[0].tag.type))
         self.assertEqual(test_saved_query.id, tags[0].object_id)
 
-        self.assertEqual("ObjectTypes.query", str(tags[1].object_type))
+        self.assertEqual("ObjectType.query", str(tags[1].object_type))
         self.assertEqual("type:query", str(tags[1].tag.name))
-        self.assertEqual("TagTypes.type", str(tags[1].tag.type))
+        self.assertEqual("TagType.type", str(tags[1].tag.type))
         self.assertEqual(test_saved_query.id, tags[1].object_id)
 
         # Cleanup the db
@@ -219,7 +219,7 @@ class TestTagging(SupersetTestCase):
         # Test to make sure that a favorited object tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
-        self.assertEqual("ObjectTypes.chart", str(tags[0].object_type))
+        self.assertEqual("ObjectType.chart", str(tags[0].object_type))
         self.assertEqual(test_saved_query.obj_id, tags[0].object_id)
 
         # Cleanup the db
@@ -265,7 +265,6 @@ class TestTagging(SupersetTestCase):
         test_dashboard = Dashboard()
         test_dashboard.dashboard_title = "test_dashboard"
         test_dashboard.slug = "test_slug"
-        test_dashboard.slices = []
         test_dashboard.published = True
 
         # Create a saved query and add it to the db

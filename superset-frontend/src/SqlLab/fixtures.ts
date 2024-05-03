@@ -19,7 +19,14 @@
 import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
-import { DatasourceType, QueryResponse, QueryState } from '@superset-ui/core';
+import {
+  DatasourceType,
+  denormalizeTimestamp,
+  GenericDataType,
+  QueryResponse,
+  QueryState,
+} from '@superset-ui/core';
+import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
 export const mockedActions = sinon.stub({ ...actions });
@@ -28,7 +35,7 @@ export const alert = { bsStyle: 'danger', msg: 'Ooops', id: 'lksvmcx32' };
 export const table = {
   dbId: 1,
   selectStar: 'SELECT * FROM ab_user',
-  queryEditorId: 'rJ-KP47a',
+  queryEditorId: 'dfsadfs',
   schema: 'superset',
   name: 'ab_user',
   id: 'r11Vgt60',
@@ -176,6 +183,7 @@ export const table = {
 };
 
 export const defaultQueryEditor = {
+  version: LatestQueryEditorVersion,
   id: 'dfsadfs',
   autorun: false,
   dbId: undefined,
@@ -185,8 +193,6 @@ export const defaultQueryEditor = {
   name: 'Untitled Query 1',
   schema: 'main',
   remoteId: null,
-  tableOptions: [],
-  functionNames: [],
   hideLeftBar: false,
   templateParams: '{}',
 };
@@ -218,8 +224,7 @@ export const queries = [
     id: 'BkA1CLrJg',
     progress: 100,
     startDttm: 1476910566092.96,
-    state: QueryState.SUCCESS,
-    changedOn: 1476910566000,
+    state: QueryState.Success,
     tempTable: null,
     userId: 1,
     executedSql: null,
@@ -239,24 +244,24 @@ export const queries = [
       columns: [
         {
           is_dttm: true,
-          name: 'ds',
+          column_name: 'ds',
           type: 'STRING',
         },
         {
           is_dttm: false,
-          name: 'gender',
+          column_name: 'gender',
           type: 'STRING',
         },
       ],
       selected_columns: [
         {
           is_dttm: true,
-          name: 'ds',
+          column_name: 'ds',
           type: 'STRING',
         },
         {
           is_dttm: false,
-          name: 'gender',
+          column_name: 'gender',
           type: 'STRING',
         },
       ],
@@ -277,8 +282,7 @@ export const queries = [
     id: 'S1zeAISkx',
     progress: 100,
     startDttm: 1476910570802.2,
-    state: QueryState.SUCCESS,
-    changedOn: 1476910572000,
+    state: QueryState.Success,
     tempTable: null,
     userId: 1,
     executedSql:
@@ -311,8 +315,7 @@ export const queryWithNoQueryLimit = {
   id: 'BkA1CLrJg',
   progress: 100,
   startDttm: 1476910566092.96,
-  state: QueryState.SUCCESS,
-  changedOn: 1476910566000,
+  state: QueryState.Success,
   tempTable: null,
   userId: 1,
   executedSql: null,
@@ -331,7 +334,7 @@ export const queryWithNoQueryLimit = {
     columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
       },
       {
@@ -343,12 +346,12 @@ export const queryWithNoQueryLimit = {
     selected_columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
       },
     ],
@@ -369,57 +372,57 @@ export const queryWithBadColumns = {
     selected_columns: [
       {
         is_dttm: true,
-        name: 'COUNT(*)',
+        column_name: 'COUNT(*)',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'this_col_is_ok',
+        column_name: 'this_col_is_ok',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'a',
+        column_name: 'a',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: '1',
+        column_name: '1',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: '123',
+        column_name: '123',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'CASE WHEN 1=1 THEN 1 ELSE 0 END',
+        column_name: 'CASE WHEN 1=1 THEN 1 ELSE 0 END',
         type: 'STRING',
       },
       {
         is_dttm: true,
-        name: '_TIMESTAMP',
+        column_name: '_TIMESTAMP',
         type: 'TIMESTAMP',
       },
       {
         is_dttm: true,
-        name: '__TIME',
+        column_name: '__TIME',
         type: 'TIMESTAMP',
       },
       {
         is_dttm: false,
-        name: 'my_dupe_col__2',
+        column_name: 'my_dupe_col__2',
         type: 'STRING',
       },
       {
         is_dttm: true,
-        name: '__timestamp',
+        column_name: '__timestamp',
         type: 'TIMESTAMP',
       },
       {
         is_dttm: true,
-        name: '__TIMESTAMP',
+        column_name: '__TIMESTAMP',
         type: 'TIMESTAMP',
       },
     ],
@@ -484,7 +487,7 @@ export const stoppedQuery = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.STOPPED,
+  state: QueryState.Stopped,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -502,7 +505,7 @@ export const failedQueryWithErrorMessage = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.FAILED,
+  state: QueryState.Failed,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -527,7 +530,7 @@ export const failedQueryWithErrors = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.FAILED,
+  state: QueryState.Failed,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -543,7 +546,7 @@ const baseQuery: QueryResponse = {
   id: 'BkA1CLrJg',
   progress: 100,
   startDttm: 1476910566092.96,
-  state: QueryState.SUCCESS,
+  state: QueryState.Success,
   tempSchema: null,
   tempTable: 'temp',
   userId: 1,
@@ -577,32 +580,37 @@ const baseQuery: QueryResponse = {
     columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.String,
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
+        type_generic: GenericDataType.String,
       },
     ],
     selected_columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.Temporal,
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
+        type_generic: GenericDataType.String,
       },
     ],
     expanded_columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.String,
       },
     ],
     data: [
@@ -619,7 +627,7 @@ export const runningQuery: QueryResponse = {
   ctas: false,
   id: 'ryhMUZCGb',
   progress: 90,
-  state: QueryState.RUNNING,
+  state: QueryState.Running,
   startDttm: Date.now() - 500,
 };
 
@@ -630,7 +638,7 @@ export const successfulQuery: QueryResponse = {
   ctas: false,
   id: 'ryhMUZCGb',
   progress: 100,
-  state: QueryState.SUCCESS,
+  state: QueryState.Success,
   startDttm: Date.now() - 500,
 };
 
@@ -660,10 +668,10 @@ export const initialState = {
     workspaceQueries: [],
     queriesLastUpdate: 0,
     activeSouthPaneTab: 'Results',
-    user: { user },
     unsavedQueryEditor: {},
   },
   messageToasts: [],
+  user,
   common: {
     conf: {
       DEFAULT_SQLLAB_LIMIT: 1000,
@@ -671,6 +679,7 @@ export const initialState = {
       DISPLAY_MAX_ROW: 100,
       SQLALCHEMY_DOCS_URL: 'test_SQLALCHEMY_DOCS_URL',
       SQLALCHEMY_DISPLAY_TEXT: 'test_SQLALCHEMY_DISPLAY_TEXT',
+      SUPERSET_WEBSERVER_TIMEOUT: '300',
     },
   },
 };
@@ -689,6 +698,7 @@ export const queryId = 'clientId2353';
 export const testQuery: ISaveableDatasource = {
   name: 'unimportant',
   dbId: 1,
+  schema: 'main',
   sql: 'SELECT *',
   columns: [
     {
@@ -712,9 +722,8 @@ export const testQuery: ISaveableDatasource = {
 export const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by_name: 'user',
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
-  changed_by_url: 'changed_by_url',
   changed_by: 'user',
-  changed_on: new Date().toISOString(),
+  changed_on: denormalizeTimestamp(new Date().toISOString()),
   database_name: `db ${i}`,
   explore_url: `/explore/?datasource_type=table&datasource_id=${i}`,
   id: i,

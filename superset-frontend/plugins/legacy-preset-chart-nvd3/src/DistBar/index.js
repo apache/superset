@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  ChartMetadata,
-  ChartPlugin,
-  hasGenericChartAxes,
-} from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Bar_Chart.jpg';
@@ -40,24 +35,25 @@ const metadata = new ChartMetadata({
     { url: example2, caption: 'Grouped style' },
     { url: example3 },
   ],
-  name: hasGenericChartAxes ? t('Bar Chart (legacy)') : t('Bar Chart'),
+  label: ChartLabel.Deprecated,
+  name: t('Bar Chart (legacy)'),
   tags: [
     t('Additive'),
     t('Bar'),
     t('Categorical'),
     t('Comparison'),
-    t('Discrete'),
     t('Legacy'),
     t('Percentages'),
-    t('Popular'),
     t('Stacked'),
-    t('Vertical'),
     t('nvd3'),
   ],
   thumbnail,
   useLegacyApi: true,
 });
 
+/**
+ * @deprecated in version 3.0.
+ */
 export default class DistBarChartPlugin extends ChartPlugin {
   constructor() {
     super({

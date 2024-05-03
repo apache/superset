@@ -117,7 +117,6 @@ export default {
     js_columns: [],
     where: '',
     having: '',
-    having_filters: [],
     filters: [
       {
         col: 'LATITUDE',

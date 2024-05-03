@@ -24,10 +24,10 @@ import { AnnotationData } from './AnnotationLayer';
  * Generic data types, see enum of the same name in superset/utils/core.py.
  */
 export enum GenericDataType {
-  NUMERIC = 0,
-  STRING = 1,
-  TEMPORAL = 2,
-  BOOLEAN = 3,
+  Numeric = 0,
+  String = 1,
+  Temporal = 2,
+  Boolean = 3,
 }
 
 /**
@@ -67,6 +67,7 @@ export interface ChartDataResponseResult {
   is_cached: boolean;
   query: string;
   rowcount: number;
+  sql_rowcount: number;
   stacktrace: string | null;
   status:
     | 'stopped'

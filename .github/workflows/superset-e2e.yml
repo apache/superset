@@ -2,16 +2,18 @@ name: E2E
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/**/docs/**"
-    paths-ignore:
-      - "docs/**"
+    branches:
+      - "master"
+      - "[0-9].[0-9]"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   cypress-matrix:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     permissions:
       contents: read
@@ -26,7 +28,7 @@ jobs:
         containers: [1, 2, 3]
         browser: ["chrome"]
     env:
-      FLASK_ENV: development
+      SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       PYTHONPATH: ${{ github.workspace }}
@@ -34,7 +36,7 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
     services:
       postgres:
-        image: postgres:14-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -46,73 +48,58 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout (pull) ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         if: github.event_name == 'push'
         with:
           persist-credentials: false
           submodules: recursive
       - name: "Checkout (pull_request) ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
         with:
           ref: "refs/pull/${{ github.event.number }}/merge"
           persist-credentials: false
           submodules: recursive
-      - name: Check if python or frontend changes are present
+      - name: Check for file changes
         id: check
-        env:
-          GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        continue-on-error: true
-        run: ./scripts/ci_check_no_file_changes.sh python frontend
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
-        if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.8"
-      - name: OS dependencies
-        if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: apt-get-install
-      - name: Install python dependencies
-        if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: |
-            pip-upgrade
-            pip install -r requirements/testing.txt
+        uses: ./.github/actions/setup-backend/
+        if: steps.check.outputs.python || steps.check.outputs.frontend
       - name: Setup postgres
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Import test data
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: testdata
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: actions/setup-node@v4
         with:
-          node-version: "16"
+          node-version: "18"
       - name: Install npm dependencies
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
       - name: Install cypress
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: cypress-install
       - name: Run Cypress
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
@@ -120,8 +107,8 @@ jobs:
         with:
           run: cypress-run-all
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
-        if: failure()
+        uses: actions/upload-artifact@v4
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         with:
           name: screenshots
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots

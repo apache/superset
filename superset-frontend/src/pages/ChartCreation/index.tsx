@@ -20,7 +20,6 @@ import React, { ReactNode } from 'react';
 import rison from 'rison';
 import querystring from 'query-string';
 import {
-  FeatureFlag,
   isDefined,
   JsonResponse,
   styled,
@@ -28,13 +27,11 @@ import {
   t,
 } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { URL_PARAMS } from 'src/constants';
+import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { AsyncSelect, Steps } from 'src/components';
-import { Tooltip } from 'src/components/Tooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { isFeatureEnabled } from 'src/featureFlags';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
@@ -42,13 +39,10 @@ import VizTypeGallery, {
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
-
-type Dataset = {
-  id: number;
-  table_name: string;
-  description: string;
-  datasource_type: string;
-};
+import {
+  Dataset,
+  DatasetSelectLabel,
+} from 'src/features/datasets/DatasetSelectLabel';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
@@ -66,14 +60,9 @@ const ESTIMATED_NAV_HEIGHT = 56;
 const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
 
 const bootstrapData = getBootstrapData();
-const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
-
-if (
-  isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-  !('filter_box' in denyList)
-) {
-  denyList.push('filter_box');
-}
+const denyList: string[] = (
+  bootstrapData.common.conf.VIZ_TYPE_DENYLIST || []
+).concat(Object.values(FilterPlugins));
 
 const StyledContainer = styled.div`
   ${({ theme }) => `
@@ -169,40 +158,10 @@ const StyledContainer = styled.div`
     &&&& .ant-select-selection-placeholder {
       padding-left: ${theme.gridUnit * 3}px;
     }
-  `}
-`;
 
-const TooltipContent = styled.div<{ hasDescription: boolean }>`
-  ${({ theme, hasDescription }) => `
-    .tooltip-header {
-      font-size: ${
-        hasDescription ? theme.typography.sizes.l : theme.typography.sizes.s
-      }px;
-      font-weight: ${
-        hasDescription
-          ? theme.typography.weights.bold
-          : theme.typography.weights.normal
-      };
+    &&&& .ant-select-selection-item {
+      padding-left: ${theme.gridUnit * 3}px;
     }
-
-    .tooltip-description {
-      margin-top: ${theme.gridUnit * 2}px;
-      display: -webkit-box;
-      -webkit-line-clamp: 20;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  `}
-`;
-
-const StyledLabel = styled.span`
-  ${({ theme }) => `
-    position: absolute;
-    left: ${theme.gridUnit * 3}px;
-    right: ${theme.gridUnit * 3}px;
-    overflow: hidden;
-    text-overflow: ellipsis;
   `}
 `;
 
@@ -242,7 +201,6 @@ export class ChartCreation extends React.PureComponent<
     this.changeDatasource = this.changeDatasource.bind(this);
     this.changeVizType = this.changeVizType.bind(this);
     this.gotoSlice = this.gotoSlice.bind(this);
-    this.newLabel = this.newLabel.bind(this);
     this.loadDatasources = this.loadDatasources.bind(this);
     this.onVizTypeDoubleClick = this.onVizTypeDoubleClick.bind(this);
   }
@@ -293,28 +251,15 @@ export class ChartCreation extends React.PureComponent<
     }
   }
 
-  newLabel(item: Dataset) {
-    return (
-      <Tooltip
-        mouseEnterDelay={1}
-        placement="right"
-        title={
-          <TooltipContent hasDescription={!!item.description}>
-            <div className="tooltip-header">{item.table_name}</div>
-            {item.description && (
-              <div className="tooltip-description">{item.description}</div>
-            )}
-          </TooltipContent>
-        }
-      >
-        <StyledLabel>{item.table_name}</StyledLabel>
-      </Tooltip>
-    );
-  }
-
   loadDatasources(search: string, page: number, pageSize: number) {
     const query = rison.encode({
-      columns: ['id', 'table_name', 'description', 'datasource_type'],
+      columns: [
+        'id',
+        'table_name',
+        'datasource_type',
+        'database.database_name',
+        'schema',
+      ],
       filters: [{ col: 'table_name', opr: 'ct', value: search }],
       page,
       page_size: pageSize,
@@ -332,7 +277,7 @@ export class ChartCreation extends React.PureComponent<
       }[] = response.json.result.map((item: Dataset) => ({
         id: item.id,
         value: `${item.id}__${item.datasource_type}`,
-        customLabel: this.newLabel(item),
+        customLabel: DatasetSelectLabel(item),
         label: item.table_name,
       }));
       return {

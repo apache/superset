@@ -65,6 +65,7 @@ export interface Metric {
   certification_details?: Maybe<string>;
   certified_by?: Maybe<string>;
   d3format?: Maybe<string>;
+  currency?: Maybe<string>;
   description?: Maybe<string>;
   is_certified?: boolean;
   verbose_name?: string;

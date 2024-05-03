@@ -17,14 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, styled, t, useTheme } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  styled,
+  t,
+  useTheme,
+  isFeatureEnabled,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { storeQuery } from 'src/utils/common';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { isFeatureEnabled } from 'src/featureFlags';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 interface ShareSqlLabQueryProps {
@@ -87,7 +92,7 @@ const ShareSqlLabQuery = ({
     }
   };
   const getCopyUrl = (callback: Function) => {
-    if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
+    if (isFeatureEnabled(FeatureFlag.ShareQueriesViaKvStore)) {
       return getCopyUrlForKvStore(callback);
     }
     return getCopyUrlForSavedQuery(callback);
@@ -111,7 +116,7 @@ const ShareSqlLabQuery = ({
   };
 
   const canShare =
-    !!remoteId || isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
+    !!remoteId || isFeatureEnabled(FeatureFlag.ShareQueriesViaKvStore);
 
   return (
     <>

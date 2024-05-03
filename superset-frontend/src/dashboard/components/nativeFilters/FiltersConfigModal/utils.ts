@@ -70,7 +70,7 @@ export const validateForm = async (
   } catch (error) {
     logging.warn('Filter configuration failed:', error);
 
-    if (!error.errorFields || !error.errorFields.length) return null; // not a validation error
+    if (!error.errorFields?.length) return null; // not a validation error
 
     // the name is in array format since the fields are nested
     type ErrorFields = { name: ['filters', string, string] }[];
@@ -106,10 +106,10 @@ export const createHandleSave =
         const formInputs = values.filters?.[id];
         // if user didn't open a filter, return the original config
         if (!formInputs) return filterConfigMap[id];
-        if (formInputs.type === NativeFilterType.DIVIDER) {
+        if (formInputs.type === NativeFilterType.Divider) {
           return {
             id,
-            type: NativeFilterType.DIVIDER,
+            type: NativeFilterType.Divider,
             scope: {
               rootPath: [DASHBOARD_ROOT_ID],
               excluded: [],
@@ -194,7 +194,7 @@ export const NATIVE_FILTER_PREFIX = 'NATIVE_FILTER-';
 export const NATIVE_FILTER_DIVIDER_PREFIX = 'NATIVE_FILTER_DIVIDER-';
 export const generateFilterId = (type: NativeFilterType) => {
   const prefix =
-    type === NativeFilterType.NATIVE_FILTER
+    type === NativeFilterType.NativeFilter
       ? NATIVE_FILTER_PREFIX
       : NATIVE_FILTER_DIVIDER_PREFIX;
   return `${prefix}${shortid.generate()}`;

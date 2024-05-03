@@ -81,7 +81,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
     super(props);
     this.state = {
       saveType: props.saveType,
-      newDashName: props.dashboardTitle + t('[copy]'),
+      newDashName: `${props.dashboardTitle} ${t('[copy]')}`,
       duplicateSlices: false,
     };
 

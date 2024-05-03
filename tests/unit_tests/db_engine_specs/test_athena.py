@@ -23,7 +23,7 @@ import pytest
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa
 
 SYNTAX_ERROR_REGEX = re.compile(
     ": mismatched input '(?P<syntax_error>.*?)'. Expecting: "
@@ -39,7 +39,9 @@ SYNTAX_ERROR_REGEX = re.compile(
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.athena import AthenaEngineSpec as spec
 
@@ -81,7 +83,7 @@ def test_get_text_clause_with_colon() -> None:
     from superset.db_engine_specs.athena import AthenaEngineSpec
 
     query = (
-        "SELECT foo FROM tbl WHERE " "abc >= TIMESTAMP '2021-11-26T00\:00\:00.000000'"
+        "SELECT foo FROM tbl WHERE " r"abc >= TIMESTAMP '2021-11-26T00\:00\:00.000000'"
     )
     text_clause = AthenaEngineSpec.get_text_clause(query)
     assert text_clause.text == query

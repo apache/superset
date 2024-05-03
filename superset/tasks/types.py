@@ -14,11 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from superset.utils.backports import StrEnum
 
-from enum import Enum
 
-
-class ExecutorType(str, Enum):
+class ExecutorType(StrEnum):
     """
     Which user should scheduled tasks be executed as. Used as follows:
     For Alerts & Reports: the "model" refers to the AlertSchedule object

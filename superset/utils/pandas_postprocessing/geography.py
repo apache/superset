@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional, Tuple
+from typing import Optional
 
 import geohash as geohash_lib
 from flask_babel import gettext as _
@@ -95,7 +95,7 @@ def geodetic_parse(
     :return: DataFrame with decoded longitudes and latitudes
     """
 
-    def _parse_location(location: str) -> Tuple[float, float, float]:
+    def _parse_location(location: str) -> tuple[float, float, float]:
         """
         Parse a string containing a geodetic point and return latitude, longitude
         and altitude

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
 import {
   DataMaskStateWithId,
   ensureIsArray,
@@ -32,6 +32,7 @@ export function useFilterDependencies(
 ): ExtraFormData {
   const dependencyIds = useSelector<any, string[] | undefined>(
     state => state.nativeFilters.filters[id]?.cascadeParentIds,
+    shallowEqual,
   );
   return useMemo(() => {
     let dependencies = {};

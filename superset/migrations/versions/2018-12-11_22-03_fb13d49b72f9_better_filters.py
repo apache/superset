@@ -21,6 +21,7 @@ Revises: 6c7537a6004a
 Create Date: 2018-12-11 22:03:21.612516
 
 """
+
 import json
 import logging
 
@@ -78,8 +79,8 @@ def upgrade():
     for slc in filter_box_slices.all():
         try:
             upgrade_slice(slc)
-        except Exception as ex:
-            logging.exception(e)
+        except Exception:
+            logging.exception(e)  # noqa: F821
 
     session.commit()
     session.close()

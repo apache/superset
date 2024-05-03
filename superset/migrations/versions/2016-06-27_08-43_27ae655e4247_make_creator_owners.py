@@ -26,15 +26,13 @@ Create Date: 2016-06-27 08:43:52.592242
 revision = "27ae655e4247"
 down_revision = "d8bc074f7aad"
 
-from alembic import op
-from flask import g
-from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer, Table
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import relationship
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, ForeignKey, Integer, Table  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base, declared_attr  # noqa: E402
+from sqlalchemy.orm import relationship  # noqa: E402
 
-from superset import db
-from superset.utils.core import get_user_id
+from superset import db  # noqa: E402
+from superset.utils.core import get_user_id  # noqa: E402
 
 Base = declarative_base()
 
@@ -74,12 +72,12 @@ class AuditMixin:
     def created_by(cls):
         return relationship(
             "User",
-            primaryjoin="%s.created_by_fk == User.id" % cls.__name__,
+            primaryjoin=f"{cls.__name__}.created_by_fk == User.id",
             enable_typechecks=False,
         )
 
 
-class Slice(Base, AuditMixin):
+class Slice(AuditMixin, Base):
     """Declarative class to do query in upgrade"""
 
     __tablename__ = "slices"
@@ -87,7 +85,7 @@ class Slice(Base, AuditMixin):
     owners = relationship("User", secondary=slice_user)
 
 
-class Dashboard(Base, AuditMixin):
+class Dashboard(AuditMixin, Base):
     """Declarative class to do query in upgrade"""
 
     __tablename__ = "dashboards"

@@ -16,52 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import logger from './logging';
+
 // We can codegen the enum definition based on a list of supported flags that we
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
   // PLEASE KEEP THE LIST SORTED ALPHABETICALLY
-  ALERTS_ATTACH_REPORTS = 'ALERTS_ATTACH_REPORTS',
-  ALERT_REPORTS = 'ALERT_REPORTS',
-  ALLOW_FULL_CSV_EXPORT = 'ALLOW_FULL_CSV_EXPORT',
-  CLIENT_CACHE = 'CLIENT_CACHE',
-  DASHBOARD_CROSS_FILTERS = 'DASHBOARD_CROSS_FILTERS',
-  DASHBOARD_EDIT_CHART_IN_NEW_TAB = 'DASHBOARD_EDIT_CHART_IN_NEW_TAB',
-  DASHBOARD_FILTERS_EXPERIMENTAL = 'DASHBOARD_FILTERS_EXPERIMENTAL',
-  CONFIRM_DASHBOARD_DIFF = 'CONFIRM_DASHBOARD_DIFF',
-  DASHBOARD_NATIVE_FILTERS = 'DASHBOARD_NATIVE_FILTERS',
-  DASHBOARD_NATIVE_FILTERS_SET = 'DASHBOARD_NATIVE_FILTERS_SET',
-  DASHBOARD_VIRTUALIZATION = 'DASHBOARD_VIRTUALIZATION',
-  DASHBOARD_RBAC = 'DASHBOARD_RBAC',
-  DATAPANEL_CLOSED_BY_DEFAULT = 'DATAPANEL_CLOSED_BY_DEFAULT',
-  DISABLE_DATASET_SOURCE_EDIT = 'DISABLE_DATASET_SOURCE_EDIT',
-  DISABLE_LEGACY_DATASOURCE_EDITOR = 'DISABLE_LEGACY_DATASOURCE_EDITOR',
-  DRILL_TO_DETAIL = 'DRILL_TO_DETAIL',
-  DRILL_BY = 'DRILL_BY',
-  DYNAMIC_PLUGINS = 'DYNAMIC_PLUGINS',
-  EMBEDDABLE_CHARTS = 'EMBEDDABLE_CHARTS',
-  EMBEDDED_SUPERSET = 'EMBEDDED_SUPERSET',
-  ENABLE_ADVANCED_DATA_TYPES = 'ENABLE_ADVANCED_DATA_TYPES',
-  ENABLE_DND_WITH_CLICK_UX = 'ENABLE_DND_WITH_CLICK_UX',
-  ENABLE_EXPLORE_DRAG_AND_DROP = 'ENABLE_EXPLORE_DRAG_AND_DROP',
-  ENABLE_JAVASCRIPT_CONTROLS = 'ENABLE_JAVASCRIPT_CONTROLS',
-  ENABLE_TEMPLATE_PROCESSING = 'ENABLE_TEMPLATE_PROCESSING',
-  ENABLE_TEMPLATE_REMOVE_FILTERS = 'ENABLE_TEMPLATE_REMOVE_FILTERS',
-  ESCAPE_MARKDOWN_HTML = 'ESCAPE_MARKDOWN_HTML',
-  ESTIMATE_QUERY_COST = 'ESTIMATE_QUERY_COST',
-  GENERIC_CHART_AXES = 'GENERIC_CHART_AXES',
-  GLOBAL_ASYNC_QUERIES = 'GLOBAL_ASYNC_QUERIES',
-  HORIZONTAL_FILTER_BAR = 'HORIZONTAL_FILTER_BAR',
-  LISTVIEWS_DEFAULT_CARD_VIEW = 'LISTVIEWS_DEFAULT_CARD_VIEW',
-  SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',
-  SHARE_QUERIES_VIA_KV_STORE = 'SHARE_QUERIES_VIA_KV_STORE',
-  SQLLAB_BACKEND_PERSISTENCE = 'SQLLAB_BACKEND_PERSISTENCE',
-  SQL_VALIDATORS_BY_ENGINE = 'SQL_VALIDATORS_BY_ENGINE',
-  THUMBNAILS = 'THUMBNAILS',
-  USE_ANALAGOUS_COLORS = 'USE_ANALAGOUS_COLORS',
-  TAGGING_SYSTEM = 'TAGGING_SYSTEM',
-  VERSIONED_EXPORT = 'VERSIONED_EXPORT',
-  SSH_TUNNELING = 'SSH_TUNNELING',
+  AlertsAttachReports = 'ALERTS_ATTACH_REPORTS',
+  AlertReports = 'ALERT_REPORTS',
+  AlertReportTabs = 'ALERT_REPORT_TABS',
+  AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
+  AvoidColorsCollision = 'AVOID_COLORS_COLLISION',
+  ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
+  ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
+  /** @deprecated */
+  DashboardCrossFilters = 'DASHBOARD_CROSS_FILTERS',
+  DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
+  DashboardRbac = 'DASHBOARD_RBAC',
+  DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
+  DisableLegacyDatasourceEditor = 'DISABLE_LEGACY_DATASOURCE_EDITOR',
+  DrillToDetail = 'DRILL_TO_DETAIL',
+  DrillBy = 'DRILL_BY',
+  DynamicPlugins = 'DYNAMIC_PLUGINS',
+  EmbeddableCharts = 'EMBEDDABLE_CHARTS',
+  EmbeddedSuperset = 'EMBEDDED_SUPERSET',
+  EnableAdvancedDataTypes = 'ENABLE_ADVANCED_DATA_TYPES',
+  /** @deprecated */
+  EnableJavascriptControls = 'ENABLE_JAVASCRIPT_CONTROLS',
+  EnableTemplateProcessing = 'ENABLE_TEMPLATE_PROCESSING',
+  EscapeMarkdownHtml = 'ESCAPE_MARKDOWN_HTML',
+  EstimateQueryCost = 'ESTIMATE_QUERY_COST',
+  GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
+  HorizontalFilterBar = 'HORIZONTAL_FILTER_BAR',
+  ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
+  ScheduledQueries = 'SCHEDULED_QUERIES',
+  ShareQueriesViaKvStore = 'SHARE_QUERIES_VIA_KV_STORE',
+  SqllabBackendPersistence = 'SQLLAB_BACKEND_PERSISTENCE',
+  SqlValidatorsByEngine = 'SQL_VALIDATORS_BY_ENGINE',
+  SshTunneling = 'SSH_TUNNELING',
+  TaggingSystem = 'TAGGING_SYSTEM',
+  Thumbnails = 'THUMBNAILS',
+  UseAnalagousColors = 'USE_ANALAGOUS_COLORS',
 }
+
 export type ScheduleQueriesProps = {
   JSONSCHEMA: {
     [key: string]: string;
@@ -74,9 +71,9 @@ export type ScheduleQueriesProps = {
   };
 };
 export type FeatureFlagMap = {
-  [key in Exclude<FeatureFlag, FeatureFlag.SCHEDULED_QUERIES>]?: boolean;
+  [key in Exclude<FeatureFlag, FeatureFlag.ScheduledQueries>]?: boolean;
 } & {
-  SCHEDULED_QUERIES?: ScheduleQueriesProps;
+  ScheduledQueries?: ScheduleQueriesProps;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -86,11 +83,17 @@ declare global {
   }
 }
 
+export function initFeatureFlags(featureFlags?: FeatureFlagMap) {
+  if (!window.featureFlags) {
+    window.featureFlags = featureFlags || {};
+  }
+}
+
 export function isFeatureEnabled(feature: FeatureFlag): boolean {
   try {
     return !!window.featureFlags[feature];
   } catch (error) {
-    console.error(`Failed to query feature flag ${feature}`);
+    logger.error(`Failed to query feature flag ${feature}`);
   }
   return false;
 }

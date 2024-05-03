@@ -18,13 +18,13 @@
  */
 import { DatasourceType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
+import * as uiCore from '@superset-ui/core';
 import {
   setDatasource,
   changeDatasource,
   saveDataset,
 } from 'src/explore/actions/datasourcesActions';
 import sinon from 'sinon';
-import * as ClientError from 'src/utils/getClientErrorObject';
 import datasourcesReducer from '../reducers/datasourcesReducer';
 import { updateFormDataByDatasource } from './exploreActions';
 
@@ -34,7 +34,8 @@ const CURRENT_DATASOURCE = {
   type: DatasourceType.Table,
   columns: [],
   metrics: [],
-  column_format: {},
+  column_formats: {},
+  currency_formats: {},
   verbose_map: {},
   main_dttm_col: '__timestamp',
   // eg. ['["ds", true]', 'ds [asc]']
@@ -47,7 +48,8 @@ const NEW_DATASOURCE = {
   type: DatasourceType.Table,
   columns: [],
   metrics: [],
-  column_format: {},
+  column_formats: {},
+  currency_formats: {},
   verbose_map: {},
   main_dttm_col: '__timestamp',
   // eg. ['["ds", true]', 'ds [asc]']
@@ -68,7 +70,7 @@ const defaultDatasourcesReducerState = {
   [CURRENT_DATASOURCE.uid]: CURRENT_DATASOURCE,
 };
 
-const saveDatasetEndpoint = `glob:*/superset/sqllab_viz/`;
+const saveDatasetEndpoint = `glob:*/api/v1/dataset/`;
 
 test('sets new datasource', () => {
   const newState = datasourcesReducer(
@@ -124,7 +126,7 @@ test('updateSlice with add to existing dashboard handles failure', async () => {
   const sampleError = new Error('sampleError');
   fetchMock.post(saveDatasetEndpoint, { throws: sampleError });
   const dispatch = sinon.spy();
-  const errorSpy = jest.spyOn(ClientError, 'getClientErrorObject');
+  const errorSpy = jest.spyOn(uiCore, 'getClientErrorObject');
 
   let caughtError;
   try {

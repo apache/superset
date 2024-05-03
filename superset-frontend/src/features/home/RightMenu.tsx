@@ -46,6 +46,7 @@ import {
 import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
+import TelemetryPixel from 'src/components/TelemetryPixel';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -171,24 +172,24 @@ const RightMenu = ({
       childs: [
         {
           label: t('Connect database'),
-          name: GlobalMenuDataOptions.DB_CONNECTION,
+          name: GlobalMenuDataOptions.DbConnection,
           perm: canDatabase && !nonExamplesDBConnected,
         },
         {
           label: t('Create dataset'),
-          name: GlobalMenuDataOptions.DATASET_CREATION,
+          name: GlobalMenuDataOptions.DatasetCreation,
           url: '/dataset/add/',
           perm: canDataset && nonExamplesDBConnected,
         },
         {
           label: t('Connect Google Sheet'),
-          name: GlobalMenuDataOptions.GOOGLE_SHEETS,
+          name: GlobalMenuDataOptions.GoogleSheets,
           perm: canDatabase && HAS_GSHEETS_INSTALLED,
         },
         {
           label: t('Upload CSV to database'),
           name: 'Upload a CSV',
-          url: '/csvtodatabaseview/form',
+          url: '#',
           perm: canUploadCSV && showUploads,
           disable: isAdmin && !allowUploads,
         },
@@ -200,9 +201,9 @@ const RightMenu = ({
           disable: isAdmin && !allowUploads,
         },
         {
-          label: t('Upload Excel file to database'),
+          label: t('Upload Excel to database'),
           name: 'Upload Excel',
-          url: '/exceltodatabaseview/form',
+          url: '#',
           perm: canUploadExcel && showUploads,
           disable: isAdmin && !allowUploads,
         },
@@ -210,7 +211,7 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: '/superset/sqllab?new=true',
+      url: '/sqllab?new=true',
       icon: 'fa-fw fa-search',
       perm: 'can_sqllab',
       view: 'Superset',
@@ -283,9 +284,9 @@ const RightMenu = ({
   );
 
   const handleMenuSelection = (itemChose: any) => {
-    if (itemChose.key === GlobalMenuDataOptions.DB_CONNECTION) {
+    if (itemChose.key === GlobalMenuDataOptions.DbConnection) {
       setShowDatabaseModal(true);
-    } else if (itemChose.key === GlobalMenuDataOptions.GOOGLE_SHEETS) {
+    } else if (itemChose.key === GlobalMenuDataOptions.GoogleSheets) {
       setShowDatabaseModal(true);
       setEngine('Google Sheets');
     }
@@ -472,11 +473,6 @@ const RightMenu = ({
           {!navbarRight.user_is_anonymous && [
             <Menu.Divider key="user-divider" />,
             <Menu.ItemGroup key="user-section" title={t('User')}>
-              {navbarRight.user_profile_url && (
-                <Menu.Item key="profile">
-                  <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
-                </Menu.Item>
-              )}
               {navbarRight.user_info_url && (
                 <Menu.Item key="info">
                   <a href={navbarRight.user_info_url}>{t('Info')}</a>
@@ -562,6 +558,11 @@ const RightMenu = ({
           {t('Login')}
         </StyledAnchor>
       )}
+      <TelemetryPixel
+        version={navbarRight.version_string}
+        sha={navbarRight.version_sha}
+        build={navbarRight.build_number}
+      />
     </StyledDiv>
   );
 };

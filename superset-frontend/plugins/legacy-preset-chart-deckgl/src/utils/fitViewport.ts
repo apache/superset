@@ -49,7 +49,7 @@ export default function fitViewport(
     offset,
     padding = 20,
   }: FitViewportOptions,
-) {
+): Viewport {
   const { bearing, pitch } = originalViewPort;
   const bounds = computeBoundsFromPoints(points);
 

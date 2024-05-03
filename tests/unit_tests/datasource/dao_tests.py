@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Iterator
+from collections.abc import Iterator
 
 import pytest
 from sqlalchemy.orm.session import Session
@@ -35,7 +35,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
-    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
 
     columns = [
         TableColumn(column_name="a", type="INTEGER"),
@@ -45,12 +45,12 @@ def session_with_data(session: Session) -> Iterator[Session]:
         table_name="my_sqla_table",
         columns=columns,
         metrics=[],
-        database=db,
+        database=database,
     )
 
     query_obj = Query(
         client_id="foo",
-        database=db,
+        database=database,
         tab_name="test_tab",
         sql_editor_id="test_editor_id",
         sql="select * from bar",
@@ -63,13 +63,13 @@ def session_with_data(session: Session) -> Iterator[Session]:
         results_key="abc",
     )
 
-    saved_query = SavedQuery(database=db, sql="select * from foo")
+    saved_query = SavedQuery(database=database, sql="select * from foo")
 
     table = Table(
         name="my_table",
         schema="my_schema",
         catalog="my_catalog",
-        database=db,
+        database=database,
         columns=[],
     )
 
@@ -93,7 +93,7 @@ FROM my_catalog.my_schema.my_table
     session.add(table)
     session.add(saved_query)
     session.add(query_obj)
-    session.add(db)
+    session.add(database)
     session.add(sqla_table)
     session.flush()
     yield session
@@ -101,12 +101,11 @@ FROM my_catalog.my_schema.my_table
 
 def test_get_datasource_sqlatable(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.TABLE,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert 1 == result.id
@@ -115,11 +114,11 @@ def test_get_datasource_sqlatable(session_with_data: Session) -> None:
 
 
 def test_get_datasource_query(session_with_data: Session) -> None:
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
     from superset.models.sql_lab import Query
 
     result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.QUERY, datasource_id=1, session=session_with_data
+        datasource_type=DatasourceType.QUERY, datasource_id=1
     )
 
     assert result.id == 1
@@ -127,13 +126,12 @@ def test_get_datasource_query(session_with_data: Session) -> None:
 
 
 def test_get_datasource_saved_query(session_with_data: Session) -> None:
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
     from superset.models.sql_lab import SavedQuery
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SAVEDQUERY,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert result.id == 1
@@ -141,13 +139,12 @@ def test_get_datasource_saved_query(session_with_data: Session) -> None:
 
 
 def test_get_datasource_sl_table(session_with_data: Session) -> None:
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
     from superset.tables.models import Table
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SLTABLE,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert result.id == 1
@@ -155,13 +152,12 @@ def test_get_datasource_sl_table(session_with_data: Session) -> None:
 
 
 def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
+    from superset.daos.datasource import DatasourceDAO
     from superset.datasets.models import Dataset
-    from superset.datasource.dao import DatasourceDAO
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.DATASET,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert result.id == 1
@@ -170,15 +166,13 @@ def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
 
 def test_get_datasource_w_str_param(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.models import Dataset
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
     from superset.tables.models import Table
 
     assert isinstance(
         DatasourceDAO.get_datasource(
             datasource_type="table",
             datasource_id=1,
-            session=session_with_data,
         ),
         SqlaTable,
     )
@@ -187,7 +181,6 @@ def test_get_datasource_w_str_param(session_with_data: Session) -> None:
         DatasourceDAO.get_datasource(
             datasource_type="sl_table",
             datasource_id=1,
-            session=session_with_data,
         ),
         Table,
     )
@@ -196,17 +189,16 @@ def test_get_datasource_w_str_param(session_with_data: Session) -> None:
 def test_get_all_datasources(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
 
-    result = SqlaTable.get_all_datasources(session=session_with_data)
+    result = SqlaTable.get_all_datasources()
     assert len(result) == 1
 
 
 def test_not_found_datasource(session_with_data: Session) -> None:
-    from superset.dao.exceptions import DatasourceNotFound
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
+    from superset.daos.exceptions import DatasourceNotFound
 
     with pytest.raises(DatasourceNotFound):
         DatasourceDAO.get_datasource(
             datasource_type="table",
             datasource_id=500000,
-            session=session_with_data,
         )

@@ -39,13 +39,16 @@ import {
 jest.mock(
   'src/components/Icons/Icon',
   () =>
-    ({ fileName }: { fileName: string }) =>
-      <span role="img" aria-label={fileName.replace('_', '-')} />,
+    ({ fileName }: { fileName: string }) => (
+      <span role="img" aria-label={fileName.replace('_', '-')} />
+    ),
 );
 
 describe('DatasetPanel', () => {
   test('renders a blank state DatasetPanel', () => {
-    render(<DatasetPanel hasError={false} columnList={[]} loading={false} />);
+    render(<DatasetPanel hasError={false} columnList={[]} loading={false} />, {
+      useRouter: true,
+    });
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
     expect(blankDatasetImg).toBeVisible();
@@ -73,6 +76,9 @@ describe('DatasetPanel', () => {
         columnList={[]}
         loading={false}
       />,
+      {
+        useRouter: true,
+      },
     );
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
@@ -91,6 +97,9 @@ describe('DatasetPanel', () => {
         columnList={[]}
         loading
       />,
+      {
+        useRouter: true,
+      },
     );
 
     const blankDatasetImg = screen.getByAltText(ALT_LOADING);
@@ -107,6 +116,9 @@ describe('DatasetPanel', () => {
         columnList={[]}
         loading={false}
       />,
+      {
+        useRouter: true,
+      },
     );
 
     const errorTitle = screen.getByText(ERROR_TITLE);
@@ -124,6 +136,9 @@ describe('DatasetPanel', () => {
         columnList={exampleColumns}
         loading={false}
       />,
+      {
+        useRouter: true,
+      },
     );
     expect(await screen.findByText(tableName)).toBeVisible();
     expect(screen.getByText(COLUMN_TITLE)).toBeVisible();
@@ -148,6 +163,9 @@ describe('DatasetPanel', () => {
         loading={false}
         datasets={exampleDataset}
       />,
+      {
+        useRouter: true,
+      },
     );
 
     // This is text in the info banner
