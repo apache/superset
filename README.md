@@ -116,8 +116,8 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/rockset.png" alt="rockset" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/postgresql.png" alt="postgresql" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/mssql.jpg" alt="mssql-server" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/db2.png" alt="db2" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/mssql-server.png" alt="mssql-server" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/imb-db2.svg" alt="db2" border="0" width="220" />
   <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/sybase.png" alt="sybase" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="200" />
@@ -126,7 +126,7 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/firebird.png" alt="firebird" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/greenplum.png" alt="greenplum" border="0" width="200"  />
   <img src="https://superset.apache.org/img/databases/clickhouse.png" alt="clickhouse" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/exasol.png" alt="exasol" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/exasol.png" alt="exasol" border="0" width="160" />
   <img src="https://superset.apache.org/img/databases/monet-db.png" alt="monet-db" border="0" width="200"  />
   <img src="https://superset.apache.org/img/databases/apache-kylin.png" alt="apache-kylin" border="0" width="80"/>
   <img src="https://superset.apache.org/img/databases/hologres.png" alt="hologres" border="0" width="80"/>
