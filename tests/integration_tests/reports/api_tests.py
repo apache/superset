@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 from datetime import datetime, timedelta
 from unittest.mock import patch
 import json
@@ -1406,6 +1407,13 @@ class TestReportSchedulesApi(SupersetTestCase):
             rv = self.put_assert_metric(uri, update_payload, "put")
             assert rv.status_code == 200
 
+        with patch.dict(
+            "superset.commands.report.base.current_app.config",
+            {
+                "ALERT_MINIMUM_INTERVAL": 0,
+                "REPORT_MINIMUM_INTERVAL": 0,
+            },
+        ):
             # Undo changes
             update_payload["crontab"] = previous_cron
             update_payload["type"] = ReportScheduleType.ALERT

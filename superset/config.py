@@ -1327,8 +1327,8 @@ ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
-ALERT_MINIMUM_INTERVAL = None
-REPORT_MINIMUM_INTERVAL = None
+ALERT_MINIMUM_INTERVAL = 0
+REPORT_MINIMUM_INTERVAL = 0
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "

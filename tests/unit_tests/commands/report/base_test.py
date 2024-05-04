@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from datetime import timedelta
 from functools import wraps
 from typing import Any, Callable
@@ -50,8 +51,8 @@ TEST_SCHEDULES = TEST_SCHEDULES_EVERY_MINUTE.union(TEST_SCHEDULES_SINGLE_MINUTES
 
 
 def app_custom_config(
-    alert_minimum_interval: int | None = None,
-    report_minimum_interval: int | None = None,
+    alert_minimum_interval: int | str = 0,
+    report_minimum_interval: int | str = 0,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     Decorator to mock the current_app.config values dynamically for each test.
@@ -224,3 +225,29 @@ def test_validate_report_frequency_accepts_every_minute_with_two_raises(
             schedule,
             report_type,
         )
+
+
+@pytest.mark.parametrize("report_type", REPORT_TYPES)
+@pytest.mark.parametrize("schedule", TEST_SCHEDULES)
+@app_custom_config(
+    alert_minimum_interval="10 minutes",
+    report_minimum_interval="10 minutes",
+)
+def test_validate_report_frequency_invalid_config(
+    caplog: pytest.LogCaptureFixture,
+    report_type: str,
+    schedule: str,
+) -> None:
+    """
+    Test the ``validate_report_frequency`` method when the configuration
+    is invalid.
+    """
+    caplog.set_level(logging.ERROR)
+    BaseReportScheduleCommand().validate_report_frequency(
+        schedule,
+        report_type,
+    )
+    expected_error_message = (
+        f"invalid value for {report_type}_MINIMUM_INTERVAL: 10 minutes"
+    )
+    assert expected_error_message.lower() in caplog.text.lower()
