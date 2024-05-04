@@ -104,39 +104,39 @@ Superset can query data from any SQL-speaking datastore or data engine (Presto, 
 Here are some of the major database solutions that are supported:
 
 <p align="center">
-  <img src="https://superset.apache.org/img/databases/redshift.png" alt="redshift" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/google-biquery.png" alt="google-biquery" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/snowflake.png" alt="snowflake" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/trino.png" alt="trino" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/presto.png" alt="presto" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/databricks.png" alt="databricks" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/druid.png" alt="druid" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/firebolt.png" alt="firebolt" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/timescale.png" alt="timescale" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/rockset.png" alt="rockset" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/postgresql.png" alt="postgresql" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/mssql-server.png" alt="mssql-server" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/db2.png" alt="db2" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/sybase.png" alt="sybase" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/vertica.png" alt="vertica" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/oracle.png" alt="oracle" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/firebird.png" alt="firebird" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/greenplum.png" alt="greenplum" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/clickhouse.png" alt="clickhouse" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/exasol.png" alt="exasol" border="0" width="200" height="80" />
-  <img src="https://superset.apache.org/img/databases/monet-db.png" alt="monet-db" border="0" width="200" height="80" />
+  <img src="https://superset.apache.org/img/databases/redshift.png" alt="redshift" border="0" width="200"/>
+  <img src="https://superset.apache.org/img/databases/google-biquery.png" alt="google-biquery" border="0" width="200"/>
+  <img src="https://superset.apache.org/img/databases/snowflake.png" alt="snowflake" border="0" width="200"/>
+  <img src="https://superset.apache.org/img/databases/trino.png" alt="trino" border="0" width="150" />
+  <img src="https://superset.apache.org/img/databases/presto.png" alt="presto" border="0" width="200"/>
+  <img src="https://superset.apache.org/img/databases/databricks.png" alt="databricks" border="0" width="160" />
+  <img src="https://superset.apache.org/img/databases/druid.png" alt="druid" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/firebolt.png" alt="firebolt" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/timescale.png" alt="timescale" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/rockset.png" alt="rockset" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/postgresql.png" alt="postgresql" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/mssql-server.png" alt="mssql-server" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/imb-db2.svg" alt="db2" border="0" width="220" />
+  <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/sybase.png" alt="sybase" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/vertica.png" alt="vertica" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/oracle.png" alt="oracle" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/firebird.png" alt="firebird" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/greenplum.png" alt="greenplum" border="0" width="200"  />
+  <img src="https://superset.apache.org/img/databases/clickhouse.png" alt="clickhouse" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/exasol.png" alt="exasol" border="0" width="160" />
+  <img src="https://superset.apache.org/img/databases/monet-db.png" alt="monet-db" border="0" width="200"  />
   <img src="https://superset.apache.org/img/databases/apache-kylin.png" alt="apache-kylin" border="0" width="80"/>
   <img src="https://superset.apache.org/img/databases/hologres.png" alt="hologres" border="0" width="80"/>
   <img src="https://superset.apache.org/img/databases/netezza.png" alt="netezza" border="0" width="80"/>
-  <img src="https://superset.apache.org/img/databases/pinot.png" alt="pinot" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/teradata.png" alt="teradata" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/yugabyte.png" alt="yugabyte" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/databend.png" alt="databend" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="200" height="80"/>
-  <img src="https://superset.apache.org/img/databases/doris.png" alt="doris" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/pinot.png" alt="pinot" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/teradata.png" alt="teradata" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/yugabyte.png" alt="yugabyte" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/databend.png" alt="databend" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/doris.png" alt="doris" border="0" width="200" />
 </p>
 
 **A more comprehensive list of supported databases** along with the configuration instructions can be found [here](https://superset.apache.org/docs/configuration/databases).
