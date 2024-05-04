@@ -5,22 +5,28 @@ sidebar_position: 3
 version: 1
 ---
 
-## Using Docker Compose
+import useBaseUrl from "@docusaurus/useBaseUrl";
 
-**DO NOT USE THIS FOR PRODUCTION!**
+# Using Docker Compose
 
-The fastest way to try Superset locally is using Docker Compose on a Linux or Mac OSX
-computer. Superset does not have official support for Windows. It's also the easiest
-way to launch a fully functioning **development environment** quickly.
+
+<img src={useBaseUrl("/img/docker-compose.webp" )} width="150" />
+<br /><br />
 
 :::caution
 Since `docker-compose` is primarily designed to run a set of containers on **a single host**
-and can't credibly support **high availability** as a result, we do not support nor recommend
+and can't support requirements for **high availability**, we do not support nor recommend
 using our `docker-compose` constructs to support production-type use-cases. For single host
 environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
 our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
 documentation.
 :::
+
+
+As mentioned in our [quickstart guidee](/docs/quickstart), The fastest way to try
+Superset locally is using Docker Compose on a Linux or Mac OSX
+computer. Superset does not have official support for Windows. It's also the easiest
+way to launch a fully functioning **development environment** quickly.
 
 Note that there are 3 major ways we support to run docker-compose:
 1. **docker-compose.yml:** for interactive development, where we mount your local folder with the
@@ -37,14 +43,14 @@ Note that there are 3 major ways we support to run docker-compose:
 
 More on these two approaches after setting up the requirements for either.
 
-### Requirements
+## Requirements
 
 Note that this documentation assumes that you have [Docker](https://www.docker.com),
 [docker-compose](https://docs.docker.com/compose/), and
 [git](https://git-scm.com/) installed.
 
 
-### 1. Clone Superset's GitHub repository
+## 1. Clone Superset's GitHub repository
 
 [Clone Superset's repo](https://github.com/apache/superset) in your terminal with the
 following command:
@@ -56,7 +62,7 @@ git clone --depth=1  https://github.com/apache/superset.git
 Once that command completes successfully, you should see a new `superset` folder in your
 current directory.
 
-### 2. Launch Superset Through Docker Compose
+## 2. Launch Superset Through Docker Compose
 
 First let's assume you're familiar with docker-compose mechanics. Here we'll refer generally
 to `docker compose up` even though in some cases you may want to force a check for newer remote
@@ -86,13 +92,13 @@ perform those operations. In this case, we recommend you set the env var
 Simply trigger `npm i && npm run dev`, this should be MUCH faster.
 :::
 
-### Option #2 - build an immutable image from the local branch
+### Option #2 - build a set of immutable images from the local branch
 
 ```bash
 docker compose -f docker-compose-non-dev.yml up
 ```
 
-### Option #3 - pull and build a release image from docker-hub
+### Option #3 - boot up an official release
 
 ```bash
 export TAG=3.1.1
@@ -103,7 +109,7 @@ Here various release tags, github SHA, and latest `master` can be referenced by 
 Refer to the docker-related documentation to learn more about existing tags you can point to
 from Docker Hub.
 
-## General tips & configuration
+## docker-compose tips & configuration
 
 :::caution
 All of the content belonging to a Superset instance - charts, dashboards, users, etc. - is stored in
@@ -119,7 +125,7 @@ You should see a wall of logging output from the containers being launched on yo
 this output slows, you should have a running instance of Superset on your local machine!  To avoid
 the wall of text on future runs, add the `-d` option to the end of the `docker compose up` command.
 
-#### Configuring Further
+### Configuring Further
 
 The following is for users who want to configure how Superset runs in Docker Compose; otherwise, you
 can skip to the next section.
@@ -170,7 +176,7 @@ To disable the Scarf telemetry pixel, set the `SCARF_ANALYTICS` environment vari
 your terminal and/or in your `docker/.env` file.
 :::
 
-### 3. Log in to Superset
+## 3. Log in to Superset
 
 Your local Superset instance also includes a Postgres server to store your data and is already
 pre-loaded with some example datasets that ship with Superset. You can access Superset now via your
@@ -187,7 +193,7 @@ username: admin
 password: admin
 ```
 
-### 4. Connecting Superset to your local database instance
+## 4. Connecting Superset to your local database instance
 
 When running Superset using `docker` or `docker compose` it runs in its own docker container, as if
 the Superset was running in a separate machine entirely. Therefore attempts to connect to your local

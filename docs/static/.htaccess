@@ -63,3 +63,5 @@ RewriteRule ^docs/installation/async-queries-celery/$ /docs/configuration/async-
 RewriteRule ^docs/installation/event-logging/$ /docs/configuration/event-logging [R=301,L]
 
 RewriteRule ^docs/databases.*$ /docs/configuration/databases [R=301,L]
+
+RewriteRule ^docs/configuration/setup-ssh-tunneling$ /docs/configuration/networking-settings [R=301,L]

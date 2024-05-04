@@ -5,11 +5,16 @@ sidebar_position: 2
 version: 1
 ---
 
-## Installing Superset from PyPI
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
+# Installing Superset from PyPI
+
+<img src={useBaseUrl("/img/pypi.png" )} width="150" />
+<br /><br />
 
 This page describes how to install Superset using the `apache-superset` package [published on PyPI](https://pypi.org/project/apache-superset/).
 
-### OS Dependencies
+## OS Dependencies
 
 Superset stores database connection information in its metadata database. For that purpose, we use
 the cryptography Python library to encrypt connection passwords. Unfortunately, this library has OS
@@ -91,7 +96,7 @@ export CFLAGS="-I$(brew --prefix openssl)/include"
 
 These will now be available when pip installing requirements.
 
-### Python Virtual Environment
+## Python Virtual Environment
 
 We highly recommend installing Superset inside of a virtual environment. Python ships with
 `virtualenv` out of the box. If you're using [pyenv](https://github.com/pyenv/pyenv), you can install [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv). Or you can install it with `pip`:

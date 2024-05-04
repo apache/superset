@@ -231,6 +231,7 @@ const config = {
         items: [
           {
             label: 'Documentation',
+            to: '/docs/intro',
             items: [
               {
                 label: 'Getting Started',
@@ -244,6 +245,7 @@ const config = {
           },
           {
             label: 'Community',
+            to: '/community',
             items: [
               {
                 label: 'Resources',
