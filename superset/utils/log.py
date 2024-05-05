@@ -35,7 +35,7 @@ from superset.extensions import stats_logger_manager
 from superset.utils.core import get_user_id, LoggerLevel, to_int
 
 if TYPE_CHECKING:
-    from superset.stats_logger import BaseStatsLogger
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -321,7 +321,7 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
             "of superset.utils.log.AbstractEventLogger."
         )
 
-    logging.info("Configured event logger of type %s", type(result))
+    logging.debug("Configured event logger of type %s", type(result))
     return cast(AbstractEventLogger, result)
 
 

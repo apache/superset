@@ -130,9 +130,7 @@ class ChartCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         )
 
 
-class ChartOwnedCreatedFavoredByMeFilter(
-    BaseFilter
-):  # pylint: disable=too-few-public-methods
+class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET chart that filters all charts the user
     owns, created, changed or favored.

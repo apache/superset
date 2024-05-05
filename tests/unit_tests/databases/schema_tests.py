@@ -25,7 +25,6 @@ from pytest_mock import MockFixture
 
 if TYPE_CHECKING:
     from superset.databases.schemas import DatabaseParametersSchemaMixin
-    from superset.db_engine_specs.base import BasicParametersMixin
 
 
 # pylint: disable=too-few-public-methods

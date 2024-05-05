@@ -35,6 +35,7 @@ import colombia from './countries/colombia.geojson';
 import costa_rica from './countries/costa_rica.geojson';
 import cuba from './countries/cuba.geojson';
 import cyprus from './countries/cyprus.geojson';
+import czech_republic from './countries/czech_republic.geojson';
 import denmark from './countries/denmark.geojson';
 import dominican_republic from './countries/dominican_republic.geojson';
 import ecuador from './countries/ecuador.geojson';
@@ -80,6 +81,7 @@ import papua_new_guinea from './countries/papua_new_guinea.geojson';
 import paraguay from './countries/paraguay.geojson';
 import peru from './countries/peru.geojson';
 import philippines from './countries/philippines.geojson';
+import philippines_regions from './countries/philippines_regions.geojson';
 import portugal from './countries/portugal.geojson';
 import poland from './countries/poland.geojson';
 import puerto_rico from './countries/puerto_rico.geojson';
@@ -133,6 +135,7 @@ export const countries = {
   costa_rica,
   cuba,
   cyprus,
+  czech_republic,
   denmark,
   dominican_republic,
   ecuador,
@@ -178,6 +181,7 @@ export const countries = {
   paraguay,
   peru,
   philippines,
+  philippines_regions,
   portugal,
   poland,
   puerto_rico,

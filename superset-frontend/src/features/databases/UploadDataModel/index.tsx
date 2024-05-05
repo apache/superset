@@ -68,7 +68,6 @@ const CSVSpecificFields = [
   'skip_initial_space',
   'skip_blank_lines',
   'day_first',
-  'overwrite_duplicates',
   'column_data_types',
 ];
 
@@ -109,7 +108,6 @@ interface UploadInfo {
   dataframe_index: boolean;
   column_labels: string;
   columns_read: Array<string>;
-  overwrite_duplicates: boolean;
   column_data_types: string;
 }
 
@@ -132,7 +130,6 @@ const defaultUploadInfo: UploadInfo = {
   dataframe_index: false,
   column_labels: '',
   columns_read: [],
-  overwrite_duplicates: false,
   column_data_types: '',
 };
 
@@ -975,20 +972,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                 </StyledFormItem>
               </Col>
             </Row>
-            {type === 'csv' && (
-              <Row>
-                <Col span={24}>
-                  <StyledFormItem name="overwrite_duplicates">
-                    <SwitchContainer
-                      label={t(
-                        'Overwrite Duplicate Columns. If duplicate columns are not overridden, they will be presented as "X.1, X.2 ...X.x"',
-                      )}
-                      dataTest="overwriteDuplicates"
-                    />
-                  </StyledFormItem>
-                </Col>
-              </Row>
-            )}
           </Collapse.Panel>
           <Collapse.Panel
             header={

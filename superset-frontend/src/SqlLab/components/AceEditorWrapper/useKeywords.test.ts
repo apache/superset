@@ -18,6 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import { act, renderHook } from '@testing-library/react-hooks';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import {
   createWrapper,
   defaultStore as store,
@@ -312,4 +313,44 @@ test('returns long keywords with docText', async () => {
       }),
     ),
   );
+});
+
+test('Add custom keywords for autocomplete', () => {
+  const expected = [
+    {
+      name: 'Custom keyword 1',
+      label: 'Custom keyword 1',
+      meta: 'Custom',
+      value: 'custom1',
+      score: 100,
+    },
+    {
+      name: 'Custom keyword 2',
+      label: 'Custom keyword 2',
+      meta: 'Custom',
+      value: 'custom2',
+      score: 50,
+    },
+  ];
+  const extensionsRegistry = getExtensionsRegistry();
+  extensionsRegistry.set(
+    'sqleditor.extension.customAutocomplete',
+    () => expected,
+  );
+  const { result } = renderHook(
+    () =>
+      useKeywords({
+        queryEditorId: 'testqueryid',
+        dbId: expectDbId,
+        schema: expectSchema,
+      }),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store,
+      }),
+    },
+  );
+  expect(result.current).toContainEqual(expect.objectContaining(expected[0]));
+  expect(result.current).toContainEqual(expect.objectContaining(expected[1]));
 });

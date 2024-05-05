@@ -314,9 +314,7 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.visibility_of_any_elements_located(
                         (By.CLASS_NAME, "ant-modal-content")
                     )
-                )[
-                    0
-                ]
+                )[0]
 
                 err_msg_div = modal.find_element(By.CLASS_NAME, "ant-modal-body")
 

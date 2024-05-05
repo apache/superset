@@ -308,7 +308,6 @@ def import_dashboards(
         params = json.loads(table.params)
         dataset_id_mapping[params["remote_id"]] = new_dataset_id
 
-    db.session.commit()
     for dashboard in data["dashboards"]:
         import_dashboard(dashboard, dataset_id_mapping, import_time=import_time)
     db.session.commit()

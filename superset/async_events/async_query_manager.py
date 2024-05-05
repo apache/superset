@@ -21,7 +21,7 @@ from typing import Any, Literal, Optional
 
 import jwt
 import redis
-from flask import Flask, request, Request, Response, session
+from flask import Flask, Request, request, Response, session
 
 from superset.utils.core import get_user_id
 

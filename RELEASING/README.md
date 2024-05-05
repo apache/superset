@@ -506,3 +506,18 @@ and re-push the proper images and tags through this interface. The action
 takes the version (ie `3.1.1`), the git reference (any SHA, tag or branch
 reference), and whether to force the `latest` Docker tag on the
 generated images.
+
+### Npm Release
+You might want to publish the latest @superset-ui release to npm
+```bash
+cd superset/superset-frontend
+```
+An automated GitHub action will run and generate a new tag, which will contain a version number provided as a parameter.
+```bash
+export GH_TOKEN={GITHUB_TOKEN}
+npx lerna version {VERSION} --conventional-commits --create-release github --no-private --yes --message {COMMIT_MESSAGE}
+```
+This action will publish the specified version to npm registry.
+```bash
+npx lerna publish from-package --yes
+```

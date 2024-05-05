@@ -8479,7 +8479,7 @@ msgstr "类型"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:42
 #, fuzzy
-msgid "Area Chart (legacy)"
+msgid "Time-series Area Chart (legacy)"
 msgstr "面积图（传统）"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:46
@@ -8707,7 +8707,7 @@ msgid "Battery level over time"
 msgstr "电池电量随时间变化"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:39
-msgid "Line Chart (legacy)"
+msgid "Time-series Line Chart (legacy)"
 msgstr "折线图（传统）"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:49

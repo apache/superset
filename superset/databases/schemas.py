@@ -17,11 +17,13 @@
 
 # pylint: disable=unused-argument, too-many-lines
 
+from __future__ import annotations
+
 import inspect
 import json
 import os
 import re
-from typing import Any
+from typing import Any, TypedDict
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
@@ -581,6 +583,49 @@ class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
+class TableMetadataOptionsResponse(TypedDict):
+    deferrable: bool
+    initially: bool
+    match: bool
+    ondelete: bool
+    onupdate: bool
+
+
+class TableMetadataColumnsResponse(TypedDict, total=False):
+    keys: list[str]
+    longType: str
+    name: str
+    type: str
+    duplicates_constraint: str | None
+    comment: str | None
+
+
+class TableMetadataForeignKeysIndexesResponse(TypedDict):
+    column_names: list[str]
+    name: str
+    options: TableMetadataOptionsResponse
+    referred_columns: list[str]
+    referred_schema: str
+    referred_table: str
+    type: str
+
+
+class TableMetadataPrimaryKeyResponse(TypedDict):
+    column_names: list[str]
+    name: str
+    type: str
+
+
+class TableMetadataResponse(TypedDict):
+    name: str
+    columns: list[TableMetadataColumnsResponse]
+    foreignKeys: list[TableMetadataForeignKeysIndexesResponse]
+    indexes: list[TableMetadataForeignKeysIndexesResponse]
+    primaryKey: TableMetadataPrimaryKeyResponse
+    selectStar: str
+    comment: str | None
+
+
 class TableMetadataOptionsResponseSchema(Schema):
     deferrable = fields.Bool()
     initially = fields.Bool()
@@ -1114,12 +1159,6 @@ class CSVUploadPostSchema(BaseUploadPostSchema):
     day_first = fields.Boolean(
         metadata={
             "description": "DD/MM format dates, international and European format"
-        }
-    )
-    overwrite_duplicates = fields.Boolean(
-        metadata={
-            "description": "If duplicate columns are not overridden,"
-            "they will be presented as 'X.1, X.2 ...X.x'."
         }
     )
     skip_blank_lines = fields.Boolean(

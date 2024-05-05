@@ -21,7 +21,6 @@ import os
 import re
 import subprocess
 from typing import List
-from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 # Define patterns for each group of files you're interested in
@@ -102,12 +101,12 @@ def main(event_type: str, sha: str, repo: str) -> None:
     if event_type == "pull_request":
         pr_number = os.getenv("GITHUB_REF", "").split("/")[-2]
         files = fetch_changed_files_pr(repo, pr_number)
-        print(f"PR files:")
+        print("PR files:")
         print_files(files)
 
     elif event_type == "push":
         files = fetch_changed_files_push(repo, sha)
-        print(f"Files touched since previous commit:")
+        print("Files touched since previous commit:")
         print_files(files)
     else:
         raise ValueError("Unsupported event type")

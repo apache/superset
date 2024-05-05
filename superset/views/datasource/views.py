@@ -37,6 +37,7 @@ from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.datasource import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
+from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import DatasourceType
 from superset.views.base import (
@@ -180,8 +181,7 @@ class Datasource(BaseSupersetView):
                 )
                 external_metadata = get_physical_table_metadata(
                     database=database,
-                    table_name=params["table_name"],
-                    schema_name=params["schema_name"],
+                    table=Table(params["table_name"], params["schema_name"]),
                     normalize_columns=params.get("normalize_columns") or False,
                 )
         except (NoResultFound, NoSuchTableError) as ex:

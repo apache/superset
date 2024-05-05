@@ -660,7 +660,7 @@ This way, when a user selects a column that doesn't exist Superset can return a 
 
 ### Dynamic schema
 
-In SQL Lab it's possible to select a database, and then a schema in that database. Ideally, when running a query in SQL Lab, any unqualified table names (eg, `table`, instead of `schema.table`) should be in the selected schema. For example, if the user select `dev` as the schema and then runs the following query:
+In SQL Lab it's possible to select a database, and then a schema in that database. Ideally, when running a query in SQL Lab, any unqualified table names (eg, `table`, instead of `schema.table`) should be in the selected schema. For example, if the user selects `dev` as the schema and then runs the following query:
 
 ```sql
 SELECT * FROM my_table
@@ -674,7 +674,7 @@ Implementing this method is also important for usability. When the method is not
 
 ### Catalog
 
-In general, databases support a hierarchy of concepts of one-to-many concepts:
+In general, databases support a hierarchy of one-to-many concepts:
 
 1. Database
 2. Catalog
@@ -692,7 +692,7 @@ These concepts have different names depending on the database. For example, Post
 
 BigQuery, on the other hand:
 
-1. Bigquery (database)
+1. BigQuery (database)
 2. Project (catalog)
 3. Schema (namespace)
 4. Table

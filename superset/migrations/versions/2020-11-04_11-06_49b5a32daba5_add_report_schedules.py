@@ -26,10 +26,9 @@ Create Date: 2020-11-04 11:06:59.249758
 revision = "49b5a32daba5"
 down_revision = "96e99fb176a0"
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.exc import OperationalError
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy.engine.reflection import Inspector  # noqa: E402
 
 
 def upgrade():

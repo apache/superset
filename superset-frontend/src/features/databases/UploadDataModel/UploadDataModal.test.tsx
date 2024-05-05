@@ -301,7 +301,6 @@ test('CSV, renders the columns elements correctly', () => {
   const selectColumnsToRead = screen.getByRole('combobox', {
     name: /Choose columns to read/i,
   });
-  const switchOverwriteDuplicates = screen.getByTestId('overwriteDuplicates');
   const inputColumnDataTypes = screen.getByRole('textbox', {
     name: /Column data types/i,
   });
@@ -312,7 +311,6 @@ test('CSV, renders the columns elements correctly', () => {
     switchDataFrameIndex,
     inputColumnLabels,
     selectColumnsToRead,
-    switchOverwriteDuplicates,
     inputColumnDataTypes,
   ];
   visibleComponents.forEach(component => {
