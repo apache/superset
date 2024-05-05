@@ -95,7 +95,7 @@ const StyledSectionHeaderH2 = styled(StyledSectionHeader)`
 interface SectionHeaderProps {
   level: any;
   title: string;
-  subtitle?: string | Element | React.ReactNode;
+  subtitle?: string | React.ReactNode;
   dark?: boolean;
 }
 
