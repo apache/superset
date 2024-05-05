@@ -566,10 +566,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       if (notificationSettings.length - 1 > index) {
         setNotificationAddState('active');
       }
-
-      if (setting.method !== undefined && notificationAddState !== 'hidden') {
-        setNotificationAddState('active');
-      }
+    } else {
+      const settings = notificationSettings.slice();
+      settings[index] = setting;
+      setNotificationSettings(settings);
+    }
+    if (setting.method !== undefined && notificationAddState !== 'hidden') {
+      setNotificationAddState('active');
     }
   };
 
