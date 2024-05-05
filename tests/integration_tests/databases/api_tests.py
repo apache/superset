@@ -295,14 +295,14 @@ class TestDatabaseApi(SupersetTestCase):
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
-    @mock.patch(
-        "superset.models.core.Database.get_all_schema_names",
-    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_create_database_with_ssh_tunnel(
         self,
-        mock_test_connection_database_command_run,
-        mock_create_is_feature_enabled,
         mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_create_is_feature_enabled,
+        mock_test_connection_database_command_run,
     ):
         """
         Database API: Test create with SSH Tunnel
@@ -343,14 +343,14 @@ class TestDatabaseApi(SupersetTestCase):
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
-    @mock.patch(
-        "superset.models.core.Database.get_all_schema_names",
-    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_create_database_with_missing_port_raises_error(
         self,
-        mock_test_connection_database_command_run,
-        mock_create_is_feature_enabled,
         mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_create_is_feature_enabled,
+        mock_test_connection_database_command_run,
     ):
         """
         Database API: Test that missing port raises SSHTunnelDatabaseError
@@ -396,15 +396,15 @@ class TestDatabaseApi(SupersetTestCase):
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.commands.database.update.is_feature_enabled")
-    @mock.patch(
-        "superset.models.core.Database.get_all_schema_names",
-    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_update_database_with_ssh_tunnel(
         self,
-        mock_test_connection_database_command_run,
-        mock_create_is_feature_enabled,
-        mock_update_is_feature_enabled,
         mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_update_is_feature_enabled,
+        mock_create_is_feature_enabled,
+        mock_test_connection_database_command_run,
     ):
         """
         Database API: Test update Database with SSH Tunnel
@@ -457,15 +457,15 @@ class TestDatabaseApi(SupersetTestCase):
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.commands.database.update.is_feature_enabled")
-    @mock.patch(
-        "superset.models.core.Database.get_all_schema_names",
-    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_update_database_with_missing_port_raises_error(
         self,
-        mock_test_connection_database_command_run,
-        mock_create_is_feature_enabled,
-        mock_update_is_feature_enabled,
         mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_update_is_feature_enabled,
+        mock_create_is_feature_enabled,
+        mock_test_connection_database_command_run,
     ):
         """
         Database API: Test that missing port raises SSHTunnelDatabaseError
@@ -522,16 +522,16 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch("superset.commands.database.ssh_tunnel.delete.is_feature_enabled")
-    @mock.patch(
-        "superset.models.core.Database.get_all_schema_names",
-    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_delete_ssh_tunnel(
         self,
-        mock_test_connection_database_command_run,
-        mock_create_is_feature_enabled,
-        mock_update_is_feature_enabled,
-        mock_delete_is_feature_enabled,
         mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_delete_is_feature_enabled,
+        mock_update_is_feature_enabled,
+        mock_create_is_feature_enabled,
+        mock_test_connection_database_command_run,
     ):
         """
         Database API: Test deleting a SSH tunnel via Database update
@@ -605,15 +605,15 @@ class TestDatabaseApi(SupersetTestCase):
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.commands.database.update.is_feature_enabled")
-    @mock.patch(
-        "superset.models.core.Database.get_all_schema_names",
-    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_update_ssh_tunnel_via_database_api(
         self,
-        mock_test_connection_database_command_run,
-        mock_create_is_feature_enabled,
-        mock_update_is_feature_enabled,
         mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_update_is_feature_enabled,
+        mock_create_is_feature_enabled,
+        mock_test_connection_database_command_run,
     ):
         """
         Database API: Test update SSH Tunnel via Database API
@@ -738,16 +738,16 @@ class TestDatabaseApi(SupersetTestCase):
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
-    @mock.patch(
-        "superset.models.core.Database.get_all_schema_names",
-    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
     @mock.patch("superset.extensions.db.session.rollback")
     def test_do_not_create_database_if_ssh_tunnel_creation_fails(
         self,
-        mock_rollback,
-        mock_test_connection_database_command_run,
-        mock_create_is_feature_enabled,
         mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_create_is_feature_enabled,
+        mock_test_connection_database_command_run,
+        mock_rollback,
     ):
         """
         Database API: Test rollback is called if SSH Tunnel creation fails
@@ -787,14 +787,14 @@ class TestDatabaseApi(SupersetTestCase):
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
-    @mock.patch(
-        "superset.models.core.Database.get_all_schema_names",
-    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_get_database_returns_related_ssh_tunnel(
         self,
-        mock_test_connection_database_command_run,
-        mock_create_is_feature_enabled,
         mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_create_is_feature_enabled,
+        mock_test_connection_database_command_run,
     ):
         """
         Database API: Test GET Database returns its related SSH Tunnel
@@ -841,13 +841,13 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch(
-        "superset.models.core.Database.get_all_schema_names",
-    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_if_ssh_tunneling_flag_is_not_active_it_raises_new_exception(
         self,
-        mock_test_connection_database_command_run,
         mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_test_connection_database_command_run,
     ):
         """
         Database API: Test raises SSHTunneling feature flag not enabled
