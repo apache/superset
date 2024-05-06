@@ -447,16 +447,10 @@ function SavedQueryList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Name'),
+        Header: t('search'),
         id: 'label',
         key: 'search',
         input: 'search',
-        operator: FilterOperator.AllText,
-      },
-      {
-        Header: t('Description'),
-        id: 'description',
-        key: 'description',
         operator: FilterOperator.AllText,
       },
       {
