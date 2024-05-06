@@ -40,7 +40,6 @@ import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import * as XLSX from 'xlsx';
 import {
   antdCollapseStyles,
   antDModalNoPaddingStyles,
@@ -69,9 +68,25 @@ const CSVSpecificFields = [
   'skip_blank_lines',
   'day_first',
   'column_data_types',
+  'column_dates',
+  'decimal_character',
+  'null_values',
+  'index_column',
+  'header_row',
+  'rows_to_read',
+  'skip_rows',
 ];
 
-const ExcelSpecificFields = ['sheet_name'];
+const ExcelSpecificFields = [
+  'sheet_name',
+  'column_dates',
+  'decimal_character',
+  'null_values',
+  'index_column',
+  'header_row',
+  'rows_to_read',
+  'skip_rows',
+];
 
 const ColumnarSpecificFields: string[] = [];
 
@@ -88,6 +103,9 @@ const UploadTypeToSpecificFields: Record<UploadType, string[]> = {
   excel: ExcelSpecificFields,
   columnar: ColumnarSpecificFields,
 };
+
+const isFieldATypeSpecificField = (field: string, type: UploadType) =>
+  UploadTypeToSpecificFields[type].includes(field);
 
 interface UploadInfo {
   table_name: string;
@@ -106,9 +124,14 @@ interface UploadInfo {
   column_dates: Array<string>;
   index_column: string | null;
   dataframe_index: boolean;
-  column_labels: string;
+  index_label: string;
   columns_read: Array<string>;
   column_data_types: string;
+}
+
+interface SheetColumnNames {
+  sheet_name: string;
+  column_names: string[];
 }
 
 const defaultUploadInfo: UploadInfo = {
@@ -128,7 +151,7 @@ const defaultUploadInfo: UploadInfo = {
   column_dates: [],
   index_column: null,
   dataframe_index: false,
-  column_labels: '',
+  index_label: '',
   columns_read: [],
   column_data_types: '',
 };
@@ -136,7 +159,11 @@ const defaultUploadInfo: UploadInfo = {
 // Allowed extensions to accept for file upload, users can always override this
 // by selecting all file extensions on the OS file picker. Also ".txt" will
 // allow all files to be selected.
-const READ_HEADER_SIZE = 10000;
+const allowedExtensionsToAccept = {
+  csv: '.csv, .tsv',
+  excel: '.xls, .xlsx',
+  columnar: '.parquet, .zip',
+};
 
 export const validateUploadFileExtension = (
   file: UploadFile<any>,
@@ -183,20 +210,16 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [columns, setColumns] = React.useState<string[]>([]);
   const [sheetNames, setSheetNames] = React.useState<string[]>([]);
-  const [currentSheetName, setCurrentSheetName] = React.useState<
-    string | undefined
-  >();
+  const [sheetsColumnNames, setSheetsColumnNames] = React.useState<
+    SheetColumnNames[]
+  >([]);
   const [delimiter, setDelimiter] = useState<string>(',');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>();
+  const [currentDataframeIndex, setCurrentDataframeIndex] =
+    useState<boolean>(false);
   const [previewUploadedFile, setPreviewUploadedFile] = useState<boolean>(true);
   const [fileLoading, setFileLoading] = useState<boolean>(false);
-
-  const allowedExtensionsToAccept = {
-    csv: '.csv, .tsv',
-    excel: '.xls, .xlsx',
-    columnar: '.parquet, .orc',
-  };
 
   const createTypeToEndpointMap = (
     databaseId: number,
@@ -205,6 +228,12 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     excel: `/api/v1/database/${databaseId}/excel_upload/`,
     columnar: `/api/v1/database/${databaseId}/columnar_upload/`,
   });
+
+  const typeToFileMetadataEndpoint = {
+    csv: '/api/v1/database/csv_metadata/',
+    excel: '/api/v1/database/excel_metadata/',
+    columnar: '/api/v1/database/columnar_metadata/',
+  };
 
   const nullValuesOptions = [
     {
@@ -286,12 +315,12 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     setColumns([]);
     setCurrentSchema('');
     setCurrentDatabaseId(0);
-    setCurrentSheetName(undefined);
     setSheetNames([]);
     setIsLoading(false);
     setDelimiter(',');
     setPreviewUploadedFile(true);
     setFileLoading(false);
+    setSheetsColumnNames([]);
     form.resetFields();
   };
 
@@ -343,6 +372,58 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     [currentDatabaseId],
   );
 
+  const loadFileMetadata = (file: File) => {
+    const fields = form.getFieldsValue();
+    const mergedValues = { ...defaultUploadInfo, ...fields };
+    const formData = new FormData();
+    formData.append('file', file);
+    if (type === 'csv') {
+      formData.append('delimiter', mergedValues.delimiter);
+    }
+    setFileLoading(true);
+    return SupersetClient.post({
+      endpoint: typeToFileMetadataEndpoint[type],
+      body: formData,
+      headers: { Accept: 'application/json' },
+    })
+      .then(response => {
+        const { items } = response.json.result;
+        if (items && type !== 'excel') {
+          setColumns(items[0].column_names);
+        } else {
+          const { allSheetNames, sheetColumnNamesMap } = items.reduce(
+            (
+              acc: {
+                allSheetNames: any[];
+                sheetColumnNamesMap: Record<string, string[]>;
+              },
+              item: { sheet_name: any; column_names: any },
+            ) => {
+              acc.allSheetNames.push(item.sheet_name);
+              acc.sheetColumnNamesMap[item.sheet_name] = item.column_names;
+              return acc;
+            },
+            { allSheetNames: [], sheetColumnNamesMap: {} },
+          );
+          setColumns(items[0].column_names);
+          setSheetNames(allSheetNames);
+          form.setFieldsValue({ sheet_name: allSheetNames[0] });
+          setSheetsColumnNames(sheetColumnNamesMap);
+        }
+      })
+      .catch(response =>
+        getClientErrorObject(response).then(error => {
+          addDangerToast(error.error || 'Error');
+          setColumns([]);
+          form.setFieldsValue({ sheet_name: undefined });
+          setSheetNames([]);
+        }),
+      )
+      .finally(() => {
+        setFileLoading(false);
+      });
+  };
+
   const getAllFieldsNotInType = (): string[] => {
     const specificFields = UploadTypeToSpecificFields[type] || [];
     return [...AllSpecificFields].filter(
@@ -353,7 +434,13 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const appendFormData = (formData: FormData, data: Record<string, any>) => {
     const allFieldsNotInType = getAllFieldsNotInType();
     Object.entries(data).forEach(([key, value]) => {
-      if (!(allFieldsNotInType.includes(key) || NonNullFields.includes(key))) {
+      if (
+        !(
+          allFieldsNotInType.includes(key) ||
+          (NonNullFields.includes(key) &&
+            (value === undefined || value === null))
+        )
+      ) {
         formData.append(key, value);
       }
     });
@@ -401,13 +488,12 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     setFileList(fileList.filter(file => file.uid !== removedFile.uid));
     setColumns([]);
     setSheetNames([]);
-    setCurrentSheetName(undefined);
     form.setFieldsValue({ sheet_name: undefined });
     return false;
   };
 
   const onSheetNameChange = (value: string) => {
-    setCurrentSheetName(value);
+    setColumns(sheetsColumnNames[value] ?? []);
   };
 
   const columnsToOptions = () =>
@@ -422,97 +508,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       label: sheetName,
     }));
 
-  const readFileContent = (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = event => {
-        if (event.target) {
-          const text = event.target.result as string;
-          resolve(text);
-        } else {
-          reject(new Error('Failed to read file content'));
-        }
-      };
-      reader.onerror = () => {
-        reject(new Error('Failed to read file content'));
-      };
-      reader.readAsText(file.slice(0, READ_HEADER_SIZE));
-    });
-
-  const processCSVFile = async (file: File) => {
-    try {
-      setFileLoading(true);
-      const text = await readFileContent(file);
-      const firstLine = text.split('\n')[0].trim();
-      const firstRow = firstLine
-        .split(delimiter)
-        .map(column => column.replace(/^"(.*)"$/, '$1'));
-      setColumns(firstRow);
-      setFileLoading(false);
-    } catch (error) {
-      addDangerToast('Failed to process file content');
-      setFileLoading(false);
-    }
-  };
-
-  const processExcelColumns = (workbook: XLSX.WorkBook, sn: string[]) => {
-    if (!workbook) {
-      return;
-    }
-    let cSheetName = currentSheetName;
-    if (!currentSheetName) {
-      setCurrentSheetName(sn[0]);
-      cSheetName = sn[0];
-    }
-    cSheetName = cSheetName || sn[0];
-    form.setFieldsValue({ sheet_name: cSheetName });
-    const worksheet = workbook.Sheets[cSheetName];
-
-    const worksheetRef: string = worksheet['!ref'] ? worksheet['!ref'] : '';
-    const range = XLSX.utils.decode_range(worksheetRef);
-    const columnNames = Array.from({ length: range.e.c + 1 }, (_, i) => {
-      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: i });
-      return worksheet[cellAddress]?.v;
-    });
-    setColumns(columnNames);
-  };
-
-  const processExcelFile = async (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      setFileLoading(true);
-      const reader = new FileReader();
-      reader.readAsBinaryString(file);
-
-      reader.onload = event => {
-        if (!event.target && event.target == null) {
-          reader.onerror = () => {
-            reject(new Error('Failed to read file content'));
-          };
-          return;
-        }
-        // Read workbook
-        const workbook = XLSX.read(event.target.result, { type: 'binary' });
-        if (workbook == null) {
-          reject(new Error('Failed to process file content'));
-          addDangerToast('Failed to process file content');
-          setFileLoading(false);
-          return;
-        }
-        // Extract sheet names
-        const tmpSheetNames = workbook.SheetNames;
-        if (tmpSheetNames.length < 1) {
-          reject(new Error('Failed to read file content'));
-          addDangerToast('Failed to process file content');
-          setFileLoading(false);
-          return;
-        }
-        processExcelColumns(workbook, tmpSheetNames);
-        setSheetNames(workbook.SheetNames);
-        setFileLoading(false);
-        resolve('success');
-      };
-    });
-
   const onChangeFile = async (info: UploadChangeParam<any>) => {
     setFileList([
       {
@@ -523,14 +518,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     if (!previewUploadedFile) {
       return;
     }
-    if (type === 'csv') {
-      await processCSVFile(info.file.originFileObj);
-    }
-    if (type === 'excel') {
-      setSheetNames([]);
-      setCurrentSheetName(undefined);
-      await processExcelFile(info.file.originFileObj);
-    }
+    await loadFileMetadata(info.file.originFileObj);
   };
 
   useEffect(() => {
@@ -542,24 +530,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       if (!previewUploadedFile) {
         return;
       }
-      processCSVFile(fileList[0].originFileObj).then(r => r);
+      loadFileMetadata(fileList[0].originFileObj).then(r => r);
     }
   }, [delimiter]);
-
-  useEffect(() => {
-    (async () => {
-      if (
-        columns.length > 0 &&
-        fileList[0].originFileObj &&
-        fileList[0].originFileObj instanceof File
-      ) {
-        if (!previewUploadedFile) {
-          return;
-        }
-        await processExcelFile(fileList[0].originFileObj);
-      }
-    })();
-  }, [currentSheetName]);
 
   const validateUpload = (_: any, value: string) => {
     if (fileList.length === 0) {
@@ -734,9 +707,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                 </StyledFormItem>
               </Col>
             </Row>
-            <Row>
-              <Col span={24}>
-                {type === 'csv' && (
+            {isFieldATypeSpecificField('delimiter', type) && (
+              <Row>
+                <Col span={24}>
                   <StyledFormItemWithTip
                     label={t('Delimiter')}
                     tip={t('Select a delimiter for this data')}
@@ -749,8 +722,12 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                       allowNewOptions
                     />
                   </StyledFormItemWithTip>
-                )}
-                {type === 'excel' && (
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('sheet_name', type) && (
+              <Row>
+                <Col span={24}>
                   <StyledFormItem label={t('Sheet name')} name="sheet_name">
                     <Select
                       ariaLabel={t('Choose sheet name')}
@@ -762,9 +739,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                       )}
                     />
                   </StyledFormItem>
-                )}
-              </Col>
-            </Row>
+                </Col>
+              </Row>
+            )}
           </Collapse.Panel>
           <Collapse.Panel
             header={
@@ -794,91 +771,99 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                 </StyledFormItemWithTip>
               </Col>
             </Row>
-            <Row>
-              <Col span={24}>
-                <StyledFormItem
-                  label={t('Columns To Be Parsed as Dates')}
-                  name="column_dates"
-                >
-                  <Select
-                    ariaLabel={t('Choose columns to be parsed as dates')}
-                    mode="multiple"
-                    options={columnsToOptions()}
-                    allowClear
-                    allowNewOptions
-                    placeholder={t(
-                      'A comma separated list of columns that should be parsed as dates',
+            {isFieldATypeSpecificField('column_dates', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem
+                    label={t('Columns To Be Parsed as Dates')}
+                    name="column_dates"
+                  >
+                    <Select
+                      ariaLabel={t('Choose columns to be parsed as dates')}
+                      mode="multiple"
+                      options={columnsToOptions()}
+                      allowClear
+                      allowNewOptions
+                      placeholder={t(
+                        'A comma separated list of columns that should be parsed as dates',
+                      )}
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('decimal_character', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItemWithTip
+                    label={t('Decimal Character')}
+                    tip={t('Character to interpret as decimal point')}
+                    name="decimal_character"
+                  >
+                    <Input type="text" />
+                  </StyledFormItemWithTip>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('null_values', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItemWithTip
+                    label={t('Null Values')}
+                    tip={t(
+                      'Choose values that should be treated as null. Warning: Hive database supports only a single value',
                     )}
-                  />
-                </StyledFormItem>
-              </Col>
-            </Row>
-            <Row>
-              <Col span={24}>
-                <StyledFormItemWithTip
-                  label={t('Decimal Character')}
-                  tip={t('Character to interpret as decimal point')}
-                  name="decimal_character"
-                >
-                  <Input type="text" />
-                </StyledFormItemWithTip>
-              </Col>
-            </Row>
-            <Row>
-              <Col span={24}>
-                <StyledFormItemWithTip
-                  label={t('Null Values')}
-                  tip={t(
-                    'Choose values that should be treated as null. Warning: Hive database supports only a single value',
-                  )}
-                  name="null_values"
-                >
-                  <Select
-                    mode="multiple"
-                    options={nullValuesOptions}
-                    allowClear
-                    allowNewOptions
-                  />
-                </StyledFormItemWithTip>
-              </Col>
-            </Row>
-            {type === 'csv' && (
-              <>
-                <Row>
-                  <Col span={24}>
-                    <StyledFormItem name="skip_initial_space">
-                      <SwitchContainer
-                        label={t('Skip spaces after delimiter')}
-                        dataTest="skipInitialSpace"
-                      />
-                    </StyledFormItem>
-                  </Col>
-                </Row>
-                <Row>
-                  <Col span={24}>
-                    <StyledFormItem name="skip_blank_lines">
-                      <SwitchContainer
-                        label={t(
-                          'Skip blank lines rather than interpreting them as Not A Number values',
-                        )}
-                        dataTest="skipBlankLines"
-                      />
-                    </StyledFormItem>
-                  </Col>
-                </Row>
-                <Row>
-                  <Col span={24}>
-                    <StyledFormItem name="day_first">
-                      <SwitchContainer
-                        label={t(
-                          'DD/MM format dates, international and European format',
-                        )}
-                        dataTest="dayFirst"
-                      />
-                    </StyledFormItem>
-                  </Col>
-                </Row>
-              </>
+                    name="null_values"
+                  >
+                    <Select
+                      mode="multiple"
+                      options={nullValuesOptions}
+                      allowClear
+                      allowNewOptions
+                    />
+                  </StyledFormItemWithTip>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('skip_initial_space', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem name="skip_initial_space">
+                    <SwitchContainer
+                      label={t('Skip spaces after delimiter')}
+                      dataTest="skipInitialSpace"
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('skip_blank_lines', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem name="skip_blank_lines">
+                    <SwitchContainer
+                      label={t(
+                        'Skip blank lines rather than interpreting them as Not A Number values',
+                      )}
+                      dataTest="skipBlankLines"
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('day_first', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem name="day_first">
+                    <SwitchContainer
+                      label={t(
+                        'DD/MM format dates, international and European format',
+                      )}
+                      dataTest="dayFirst"
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
             )}
           </Collapse.Panel>
           <Collapse.Panel
@@ -894,40 +879,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
             }
             key="3"
           >
-            <Row>
-              <Col span={24}>
-                <StyledFormItemWithTip
-                  label={t('Index Column')}
-                  tip={t(
-                    'Column to use as the row labels of the dataframe. Leave empty if no index column',
-                  )}
-                  name="index_column"
-                >
-                  <Select
-                    ariaLabel={t('Choose index column')}
-                    options={columns.map(column => ({
-                      value: column,
-                      label: column,
-                    }))}
-                    allowClear
-                    allowNewOptions
-                  />
-                </StyledFormItemWithTip>
-              </Col>
-            </Row>
-            <Row>
-              <Col span={24}>
-                <StyledFormItemWithTip
-                  label={t('Column Label(s)')}
-                  tip={t(
-                    'Column label for index column(s). If None is given and Dataframe Index is checked, Index Names are used',
-                  )}
-                  name="column_labels"
-                >
-                  <Input aria-label={t('Column labels')} type="text" />
-                </StyledFormItemWithTip>
-              </Col>
-            </Row>
             <Row>
               <Col span={24}>
                 <StyledFormItem
@@ -947,7 +898,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                 </StyledFormItem>
               </Col>
             </Row>
-            {type === 'csv' && (
+            {isFieldATypeSpecificField('column_data_types', type) && (
               <Row>
                 <Col span={24}>
                   <StyledFormItemWithTip
@@ -966,66 +917,114 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
               <Col span={24}>
                 <StyledFormItem name="dataframe_index">
                   <SwitchContainer
-                    label={t('Write dataframe index as a column')}
+                    label={t('Create dataframe index')}
                     dataTest="dataFrameIndex"
+                    onChange={setCurrentDataframeIndex}
                   />
                 </StyledFormItem>
               </Col>
             </Row>
+            {currentDataframeIndex &&
+              isFieldATypeSpecificField('index_column', type) && (
+                <Row>
+                  <Col span={24}>
+                    <StyledFormItemWithTip
+                      label={t('Index Column')}
+                      tip={t(
+                        'Column to use as the index of the dataframe. If None is given, Index label is used.',
+                      )}
+                      name="index_column"
+                    >
+                      <Select
+                        ariaLabel={t('Choose index column')}
+                        options={columns.map(column => ({
+                          value: column,
+                          label: column,
+                        }))}
+                        allowClear
+                        allowNewOptions
+                      />
+                    </StyledFormItemWithTip>
+                  </Col>
+                </Row>
+              )}
+            {currentDataframeIndex && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItemWithTip
+                    label={t('Index Label')}
+                    tip={t(
+                      "Label for the index column. Don't use an existing column name.",
+                    )}
+                    name="index_label"
+                  >
+                    <Input aria-label={t('Index label')} type="text" />
+                  </StyledFormItemWithTip>
+                </Col>
+              </Row>
+            )}
           </Collapse.Panel>
-          <Collapse.Panel
-            header={
-              <div>
-                <h4>{t('Rows')}</h4>
-                <p className="helper">
-                  {t('Set header rows and the number of rows to read or skip.')}
-                </p>
-              </div>
-            }
-            key="4"
-          >
-            <Row>
-              <Col span={8}>
-                <StyledFormItemWithTip
-                  label={t('Header Row')}
-                  tip={t(
-                    'Row containing the headers to use as column names (0 is first line of data).',
-                  )}
-                  name="header_row"
-                  rules={[
-                    { required: true, message: 'Header row is required' },
-                  ]}
-                >
-                  <InputNumber
-                    aria-label={t('Header row')}
-                    type="text"
-                    min={0}
-                  />
-                </StyledFormItemWithTip>
-              </Col>
-              <Col span={8}>
-                <StyledFormItemWithTip
-                  label={t('Rows to Read')}
-                  tip={t(
-                    'Number of rows of file to read. Leave empty (default) to read all rows',
-                  )}
-                  name="rows_to_read"
-                >
-                  <InputNumber aria-label={t('Rows to read')} min={1} />
-                </StyledFormItemWithTip>
-              </Col>
-              <Col span={8}>
-                <StyledFormItemWithTip
-                  label={t('Skip Rows')}
-                  tip={t('Number of rows to skip at start of file.')}
-                  name="skip_rows"
-                  rules={[{ required: true, message: 'Skip rows is required' }]}
-                >
-                  <InputNumber aria-label={t('Skip rows')} min={0} />
-                </StyledFormItemWithTip>
-              </Col>
-            </Row>
-          </Collapse.Panel>
+          {isFieldATypeSpecificField('header_row', type) &&
+            isFieldATypeSpecificField('rows_to_read', type) &&
+            isFieldATypeSpecificField('skip_rows', type) && (
+              <Collapse.Panel
+                header={
+                  <div>
+                    <h4>{t('Rows')}</h4>
+                    <p className="helper">
+                      {t(
+                        'Set header rows and the number of rows to read or skip.',
+                      )}
+                    </p>
+                  </div>
+                }
+                key="4"
+              >
+                <Row>
+                  <Col span={8}>
+                    <StyledFormItemWithTip
+                      label={t('Header Row')}
+                      tip={t(
+                        'Row containing the headers to use as column names (0 is first line of data).',
+                      )}
+                      name="header_row"
+                      rules={[
+                        { required: true, message: 'Header row is required' },
+                      ]}
+                    >
+                      <InputNumber
+                        aria-label={t('Header row')}
+                        type="text"
+                        min={0}
+                      />
+                    </StyledFormItemWithTip>
+                  </Col>
+                  <Col span={8}>
+                    <StyledFormItemWithTip
+                      label={t('Rows to Read')}
+                      tip={t(
+                        'Number of rows of file to read. Leave empty (default) to read all rows',
+                      )}
+                      name="rows_to_read"
+                    >
+                      <InputNumber aria-label={t('Rows to read')} min={1} />
+                    </StyledFormItemWithTip>
+                  </Col>
+                  <Col span={8}>
+                    <StyledFormItemWithTip
+                      label={t('Skip Rows')}
+                      tip={t('Number of rows to skip at start of file.')}
+                      name="skip_rows"
+                      rules={[
+                        { required: true, message: 'Skip rows is required' },
+                      ]}
+                    >
+                      <InputNumber aria-label={t('Skip rows')} min={0} />
+                    </StyledFormItemWithTip>
+                  </Col>
+                </Row>
+              </Collapse.Panel>
+            )}
         </Collapse>
       </AntdForm>
     </Modal>
