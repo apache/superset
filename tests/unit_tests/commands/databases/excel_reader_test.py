@@ -235,7 +235,7 @@ def test_excel_reader_invalid_file():
         options=ExcelReaderOptions(),
     )
     with pytest.raises(DatabaseUploadFailed) as ex:
-        excel_reader.file_to_dataframe(FileStorage(io.StringIO("c1")))
+        excel_reader.file_to_dataframe(FileStorage(io.BytesIO(b"c1")))
     assert str(ex.value) == (
         "Parsing error: Excel file format cannot be determined, you must specify an engine manually."
     )
