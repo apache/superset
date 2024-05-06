@@ -452,6 +452,8 @@ function SavedQueryList({
         key: 'search',
         input: 'search',
         operator: FilterOperator.AllText,
+        toolTipDescription:
+          'Searches all text fields: Name, Description, Database & Schema',
       },
       {
         Header: t('Database'),
