@@ -209,7 +209,10 @@ class ImportExportMixin:
         """Get a mapping of foreign name to the local name of foreign keys"""
         parent_rel = cls.__mapper__.relationships.get(cls.export_parent)
         if parent_rel:
-            return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}  # noqa: E741
+            return {
+                local.name: remote.name
+                for (local, remote) in parent_rel.local_remote_pairs
+            }
         return {}
 
     @classmethod
@@ -773,6 +776,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
+    def catalog(self) -> str:
+        raise NotImplementedError()
+
+    @property
     def schema(self) -> str:
         raise NotImplementedError()
 
@@ -1025,7 +1032,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return df
 
         try:
-            df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
+            df = self.database.get_df(
+                sql,
+                self.catalog,
+                self.schema,
+                mutator=assign_column_label,
+            )
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
             status = QueryStatus.FAILED

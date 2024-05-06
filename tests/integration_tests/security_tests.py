@@ -898,7 +898,7 @@ class TestRolePermission(SupersetTestCase):
             db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
         )
         self.assertEqual(changed_table1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
-        self.assertEqual(changed_table1.schema_perm, f"[tmp_db2].[tmp_schema]")  # noqa: F541
+        self.assertEqual(changed_table1.schema_perm, "[tmp_db2].[tmp_schema]")  # noqa: F541
 
         # Test Chart permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
@@ -956,12 +956,12 @@ class TestRolePermission(SupersetTestCase):
             db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
         )
         self.assertEqual(changed_table1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
-        self.assertEqual(changed_table1.schema_perm, f"[tmp_db1].[tmp_schema_changed]")  # noqa: F541
+        self.assertEqual(changed_table1.schema_perm, "[tmp_db1].[tmp_schema_changed]")  # noqa: F541
 
         # Test Chart schema permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
         self.assertEqual(slice1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
-        self.assertEqual(slice1.schema_perm, f"[tmp_db1].[tmp_schema_changed]")  # noqa: F541
+        self.assertEqual(slice1.schema_perm, "[tmp_db1].[tmp_schema_changed]")  # noqa: F541
 
         # cleanup
         db.session.delete(slice1)
@@ -1069,7 +1069,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertEqual(
             changed_table1.perm, f"[tmp_db2].[tmp_table1_changed](id:{table1.id})"
         )
-        self.assertEqual(changed_table1.schema_perm, f"[tmp_db2].[tmp_schema]")  # noqa: F541
+        self.assertEqual(changed_table1.schema_perm, "[tmp_db2].[tmp_schema]")  # noqa: F541
 
         # Test Chart permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
@@ -1158,9 +1158,9 @@ class TestRolePermission(SupersetTestCase):
         with self.client.application.test_request_context():
             database = get_example_database()
             schemas = security_manager.get_schemas_accessible_by_user(
-                database, ["1", "2", "3"]
+                database, None, {"1", "2", "3"}
             )
-            self.assertEqual(schemas, ["1", "2", "3"])  # no changes
+            self.assertEqual(schemas, {"1", "2", "3"})  # no changes
 
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
@@ -1171,10 +1171,10 @@ class TestRolePermission(SupersetTestCase):
         with self.client.application.test_request_context():
             database = get_example_database()
             schemas = security_manager.get_schemas_accessible_by_user(
-                database, ["1", "2", "3"]
+                database, None, {"1", "2", "3"}
             )
             # temp_schema is not passed in the params
-            self.assertEqual(schemas, ["1"])
+            self.assertEqual(schemas, {"1"})
         delete_schema_perm("[examples].[1]")
 
     def test_schemas_accessible_by_user_datasource_access(self):
@@ -1183,9 +1183,9 @@ class TestRolePermission(SupersetTestCase):
         with self.client.application.test_request_context():
             with override_user(security_manager.find_user("gamma")):
                 schemas = security_manager.get_schemas_accessible_by_user(
-                    database, ["temp_schema", "2", "3"]
+                    database, None, {"temp_schema", "2", "3"}
                 )
-                self.assertEqual(schemas, ["temp_schema"])
+                self.assertEqual(schemas, {"temp_schema"})
 
     def test_schemas_accessible_by_user_datasource_and_schema_access(self):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
@@ -1194,9 +1194,9 @@ class TestRolePermission(SupersetTestCase):
             database = get_example_database()
             with override_user(security_manager.find_user("gamma")):
                 schemas = security_manager.get_schemas_accessible_by_user(
-                    database, ["temp_schema", "2", "3"]
+                    database, None, {"temp_schema", "2", "3"}
                 )
-                self.assertEqual(schemas, ["temp_schema", "2"])
+                self.assertEqual(schemas, {"temp_schema", "2"})
                 vm = security_manager.find_permission_view_menu(
                     "schema_access", "[examples].[2]"
                 )

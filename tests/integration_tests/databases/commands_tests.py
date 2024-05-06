@@ -1095,7 +1095,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
     def test_database_tables_list_with_unknown_database(self, mock_find_by_id):
         mock_find_by_id.return_value = None
-        command = TablesDatabaseCommand(1, "test", False)
+        command = TablesDatabaseCommand(1, None, "test", False)
 
         with pytest.raises(DatabaseNotFoundError) as excinfo:
             command.run()
@@ -1115,7 +1115,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = SupersetException("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        command = TablesDatabaseCommand(database.id, "main", False)
+        command = TablesDatabaseCommand(database.id, None, "main", False)
         with pytest.raises(SupersetException) as excinfo:
             command.run()
             assert str(excinfo.value) == "Test Error"
@@ -1131,7 +1131,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = Exception("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        command = TablesDatabaseCommand(database.id, "main", False)
+        command = TablesDatabaseCommand(database.id, None, "main", False)
         with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:
             command.run()
             assert (
@@ -1154,7 +1154,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         if database.backend == "postgresql" or database.backend == "mysql":
             return
 
-        command = TablesDatabaseCommand(database.id, schema_name, False)
+        command = TablesDatabaseCommand(database.id, None, schema_name, False)
         result = command.run()
 
         assert result["count"] > 0

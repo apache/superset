@@ -132,6 +132,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "related_objects": "read",
     "tables": "read",
     "schemas": "read",
+    "catalogs": "read",
     "select_star": "read",
     "table_metadata": "read",
     "table_metadata_deprecated": "read",

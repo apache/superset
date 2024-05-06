@@ -73,10 +73,12 @@ from superset.daos.database import DatabaseDAO, DatabaseUserOAuth2TokensDAO
 from superset.databases.decorators import check_table_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
+    CatalogsResponseSchema,
     ColumnarMetadataUploadFilePostSchema,
     ColumnarUploadPostSchema,
     CSVMetadataUploadFilePostSchema,
     CSVUploadPostSchema,
+    database_catalogs_query_schema,
     database_schemas_query_schema,
     database_tables_query_schema,
     DatabaseConnectionSchema,
@@ -146,6 +148,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "table_extra_metadata",
         "table_extra_metadata_deprecated",
         "select_star",
+        "catalogs",
         "schemas",
         "test_connection",
         "related_objects",
@@ -266,6 +269,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     edit_model_schema = DatabasePutSchema()
 
     apispec_parameter_schemas = {
+        "database_catalogs_query_schema": database_catalogs_query_schema,
         "database_schemas_query_schema": database_schemas_query_schema,
         "database_tables_query_schema": database_tables_query_schema,
         "get_export_ids_schema": get_export_ids_schema,
@@ -273,6 +277,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
+        CatalogsResponseSchema,
         ColumnarUploadPostSchema,
         CSVUploadPostSchema,
         DatabaseConnectionSchema,
@@ -604,6 +609,70 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
+    @expose("/<int:pk>/catalogs/")
+    @protect()
+    @safe
+    @rison(database_catalogs_query_schema)
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".catalogs",
+        log_to_statsd=False,
+    )
+    def catalogs(self, pk: int, **kwargs: Any) -> FlaskResponse:
+        """Get all catalogs from a database.
+        ---
+        get:
+          summary: Get all catalogs from a database
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/database_catalogs_query_schema'
+          responses:
+            200:
+              description: A List of all catalogs from the database
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/CatalogsResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        database = DatabaseDAO.find_by_id(pk)
+        if not database:
+            return self.response_404()
+        try:
+            catalogs = database.get_all_catalog_names(
+                cache=database.catalog_cache_enabled,
+                cache_timeout=database.catalog_cache_timeout or None,
+                force=kwargs["rison"].get("force", False),
+            )
+            catalogs = security_manager.get_catalogs_accessible_by_user(
+                database,
+                catalogs,
+            )
+            return self.response(200, result=list(catalogs))
+        except OperationalError:
+            return self.response(
+                500,
+                message="There was an error connecting to the database",
+            )
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
+
     @expose("/<int:pk>/schemas/")
     @protect()
     @safe
@@ -650,13 +719,19 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not database:
             return self.response_404()
         try:
+            catalog = kwargs["rison"].get("catalog")
             schemas = database.get_all_schema_names(
+                catalog=catalog,
                 cache=database.schema_cache_enabled,
                 cache_timeout=database.schema_cache_timeout or None,
                 force=kwargs["rison"].get("force", False),
             )
-            schemas = security_manager.get_schemas_accessible_by_user(database, schemas)
-            return self.response(200, result=schemas)
+            schemas = security_manager.get_schemas_accessible_by_user(
+                database,
+                catalog,
+                schemas,
+            )
+            return self.response(200, result=list(schemas))
         except OperationalError:
             return self.response(
                 500, message="There was an error connecting to the database"
@@ -718,10 +793,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         force = kwargs["rison"].get("force", False)
+        catalog_name = kwargs["rison"].get("catalog_name")
         schema_name = kwargs["rison"].get("schema_name", "")
 
         try:
-            command = TablesDatabaseCommand(pk, schema_name, force)
+            command = TablesDatabaseCommand(pk, catalog_name, schema_name, force)
             payload = command.run()
             return self.response(200, **payload)
         except DatabaseNotFoundError:

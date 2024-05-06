@@ -2066,3 +2066,101 @@ def test_table_extra_metadata_unauthorized(
             }
         ]
     }
+
+
+def test_catalogs(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `catalogs` endpoint.
+    """
+    database = mocker.MagicMock()
+    database.get_all_catalog_names.return_value = {"db1", "db2"}
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")
+    DatabaseDAO.find_by_id.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_catalogs_accessible_by_user.return_value = {"db2"}
+
+    response = client.get("/api/v1/database/1/catalogs/")
+    assert response.status_code == 200
+    assert response.json == {"result": ["db2"]}
+    database.get_all_catalog_names.assert_called_with(
+        cache=database.catalog_cache_enabled,
+        cache_timeout=database.catalog_cache_timeout,
+        force=False,
+    )
+    security_manager.get_catalogs_accessible_by_user.assert_called_with(
+        database,
+        {"db1", "db2"},
+    )
+
+    response = client.get("/api/v1/database/1/catalogs/?q=(force:!t)")
+    database.get_all_catalog_names.assert_called_with(
+        cache=database.catalog_cache_enabled,
+        cache_timeout=database.catalog_cache_timeout,
+        force=True,
+    )
+
+
+def test_schemas(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `schemas` endpoint.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.return_value = {"schema1", "schema2"}
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_schemas_accessible_by_user.return_value = {"schema2"}
+
+    response = client.get("/api/v1/database/1/schemas/")
+    assert response.status_code == 200
+    assert response.json == {"result": ["schema2"]}
+    database.get_all_schema_names.assert_called_with(
+        catalog=None,
+        cache=database.schema_cache_enabled,
+        cache_timeout=database.schema_cache_timeout,
+        force=False,
+    )
+    security_manager.get_schemas_accessible_by_user.assert_called_with(
+        database,
+        None,
+        {"schema1", "schema2"},
+    )
+
+    response = client.get("/api/v1/database/1/schemas/?q=(force:!t)")
+    database.get_all_schema_names.assert_called_with(
+        catalog=None,
+        cache=database.schema_cache_enabled,
+        cache_timeout=database.schema_cache_timeout,
+        force=True,
+    )
+
+    response = client.get("/api/v1/database/1/schemas/?q=(force:!t,catalog:catalog2)")
+    database.get_all_schema_names.assert_called_with(
+        catalog="catalog2",
+        cache=database.schema_cache_enabled,
+        cache_timeout=database.schema_cache_timeout,
+        force=True,
+    )
+    security_manager.get_schemas_accessible_by_user.assert_called_with(
+        database,
+        "catalog2",
+        {"schema1", "schema2"},
+    )

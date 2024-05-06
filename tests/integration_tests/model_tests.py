@@ -343,20 +343,20 @@ class TestDatabaseModel(SupersetTestCase):
         main_db = get_example_database()
 
         if main_db.backend == "mysql":
-            df = main_db.get_df("SELECT 1", None)
+            df = main_db.get_df("SELECT 1", None, None)
             self.assertEqual(df.iat[0, 0], 1)
 
-            df = main_db.get_df("SELECT 1;", None)
+            df = main_db.get_df("SELECT 1;", None, None)
             self.assertEqual(df.iat[0, 0], 1)
 
     def test_multi_statement(self):
         main_db = get_example_database()
 
         if main_db.backend == "mysql":
-            df = main_db.get_df("USE superset; SELECT 1", None)
+            df = main_db.get_df("USE superset; SELECT 1", None, None)
             self.assertEqual(df.iat[0, 0], 1)
 
-            df = main_db.get_df("USE superset; SELECT ';';", None)
+            df = main_db.get_df("USE superset; SELECT ';';", None, None)
             self.assertEqual(df.iat[0, 0], ";")
 
     @mock.patch("superset.models.core.create_engine")

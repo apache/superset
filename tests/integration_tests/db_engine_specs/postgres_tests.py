@@ -531,7 +531,7 @@ def test_get_catalog_names(app_context: AppContext) -> None:
         return
 
     with database.get_inspector() as inspector:
-        assert PostgresEngineSpec.get_catalog_names(database, inspector) == [
+        assert PostgresEngineSpec.get_catalog_names(database, inspector) == {
             "postgres",
             "superset",
-        ]
+        }
