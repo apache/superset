@@ -1,4 +1,4 @@
-name: Upload Technical Debt Metrics to Google Sheets
+name: Validate All GitHub Actions
 
 on:
   push:
