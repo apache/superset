@@ -66,7 +66,7 @@ class ExcelReader(BaseDataReader):
         kwargs = {
             "header": self._options.get("header_row", 0),
             "index_col": self._options.get("index_column"),
-            "io": file.stream,
+            "io": file,
             "keep_default_na": not self._options.get("null_values"),
             "decimal": self._options.get("decimal_character", "."),
             "na_values": self._options.get("null_values")
