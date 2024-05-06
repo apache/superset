@@ -379,10 +379,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             [database].[schema]
             [database].[catalog].[schema]
 
-        For backwards compatibility, when processing the first format Superset should
-        use the default catalog when the database supports them. This way, migrating
-        existing permissions is not necessary.
-
         :param database: The database name
         :param catalog: The database catalog name
         :param schema: The database schema name

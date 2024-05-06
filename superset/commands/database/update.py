@@ -247,30 +247,12 @@ class UpdateDatabaseCommand(BaseCommand):
                 "schema_access",
                 perm,
             )
-            new_name = security_manager.get_schema_perm(
-                database.database_name,
-                catalog,
-                schema,
-            )
             if not existing_pvm:
-                # If the PVM doesn't exist it could be for 2 reasons: either the schema
-                # is new, or the database was updated to support catalogs and the schema
-                # exists with the old permission format of `[db].[schema]` and needs to
-                # be updated.
-                if catalog and catalog == database.get_default_catalog():
-                    perm = security_manager.get_schema_perm(
-                        original_database_name,
-                        None,
-                        schema,
-                    )
-                    existing_pvm = security_manager.find_permission_view_menu(
-                        "schema_access",
-                        perm,
-                    )
-                    if existing_pvm:
-                        existing_pvm.view_menu.name = new_name
-                        continue
-
+                new_name = security_manager.get_schema_perm(
+                    database.database_name,
+                    catalog,
+                    schema,
+                )
                 security_manager.add_permission_view_menu("schema_access", new_name)
 
     def _rename_database_in_permissions(

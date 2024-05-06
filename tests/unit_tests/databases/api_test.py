@@ -2076,12 +2076,10 @@ def test_catalogs(
     """
     Test the `catalogs` endpoint.
     """
-    from superset.databases.api import DatabaseRestApi
-
     database = mocker.MagicMock()
     database.get_all_catalog_names.return_value = {"db1", "db2"}
-    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
-    datamodel.get.return_value = database
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")
+    DatabaseDAO.find_by_id.return_value = database
 
     security_manager = mocker.patch(
         "superset.databases.api.security_manager",

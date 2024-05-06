@@ -196,8 +196,6 @@ def test_rename_with_catalog(
         "[my_db].[catalog2]",  # second catalog already exists
         "[my_db].[catalog2].[schema3]",  # first schema already exists
         None,  # second schema is new
-        # these are called when checking for existing perms in [db].[schema] format
-        None,
         # these are called when renaming the permissions:
         catalog2_pvm,  # old [my_db].[catalog2]
         catalog2_schema3_pvm,  # old [my_db].[catalog2].[schema3]
@@ -272,64 +270,3 @@ def test_rename_without_catalog(
     )
 
     assert schema2_pvm.view_menu.name == "[my_other_db].[schema2]"
-
-
-def test_update_old_format_with_catalog(
-    mocker: MockerFixture,
-    database_with_catalog: MockerFixture,
-) -> None:
-    """
-    Test existing permissions in old format are updated correctly.
-
-    Before catalogs were introduced, the format for schema permissions was
-    `[db].[schema]`. With catalogs, these needs to be updated to
-    `[db].[catalog].[schema]`, where `catalog` is the default catalog.
-
-    In this test, the database has two catalogs with two schemas each:
-
-        - catalog1
-            - schema1
-            - schema2
-        - catalog2
-            - schema3
-            - schema4
-
-    When update is called, only `catalog2.schema3` has permissions associated with it,
-    so `catalog1.*` and `catalog2.schema4` are added. Furthermore, the `schema3` has
-    permissions in the old format of `[db].[schema]`, so it is updated to the new format.
-    """
-    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")
-    DatabaseDAO.find_by_id.return_value = database_with_catalog
-    DatabaseDAO.update.return_value = database_with_catalog
-
-    find_permission_view_menu = mocker.patch.object(
-        security_manager,
-        "find_permission_view_menu",
-    )
-    schema3_pvm = mocker.MagicMock()
-    find_permission_view_menu.side_effect = [
-        None,  # first catalog is new
-        "[my_db].[catalog2]",  # second catalog already exists
-        None,  # first schema has old format
-        schema3_pvm,  # old format for first schema exists
-        None,  # second schema is new
-        None,  # second schema has not old format
-    ]
-    add_permission_view_menu = mocker.patch.object(
-        security_manager,
-        "add_permission_view_menu",
-    )
-
-    UpdateDatabaseCommand(1, {}).run()
-
-    add_permission_view_menu.assert_has_calls(
-        [
-            # first catalog is added with all schemas
-            mocker.call("catalog_access", "[my_db].[catalog1]"),
-            mocker.call("schema_access", "[my_db].[catalog1].[schema1]"),
-            mocker.call("schema_access", "[my_db].[catalog1].[schema2]"),
-            # second catalog already exists, only `schema4` is added
-            mocker.call("schema_access", "[my_db].[catalog2].[schema4]"),
-        ],
-    )
-    assert schema3_pvm.view_menu.name == "[my_db].[catalog2].[schema3]"

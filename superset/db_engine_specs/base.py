@@ -404,6 +404,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the DB support catalogs? A catalog here is a group of schemas, and has
     # different names depending on the DB: BigQuery calles it a "project", Postgres calls
     # it a "database", Trino calls it a "catalog", etc.
+    #
+    # When this is changed to true in a DB engine spec it MUST support the
+    # `get_default_catalog` and `get_catalog_names` methods. In addition, you MUST write
+    # a database migration updating any existing schema permissions.
     supports_catalog = False
 
     # Can the catalog be changed on a per-query basis?

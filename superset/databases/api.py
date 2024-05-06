@@ -651,7 +651,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        database = self.datamodel.get(pk, self._base_filters)
+        database = DatabaseDAO.find_by_id(pk)
         if not database:
             return self.response_404()
         try:

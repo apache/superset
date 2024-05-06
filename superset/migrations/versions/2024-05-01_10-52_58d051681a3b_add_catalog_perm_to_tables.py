@@ -17,7 +17,7 @@
 """Add catalog_perm to tables
 
 Revision ID: 58d051681a3b
-Revises: 5f57af97bc3f
+Revises: 4a33124c18ad
 Create Date: 2024-05-01 10:52:31.458433
 
 """
@@ -25,9 +25,14 @@ Create Date: 2024-05-01 10:52:31.458433
 import sqlalchemy as sa
 from alembic import op
 
+from superset.migrations.shared.catalogs import (
+    downgrade_schema_perms,
+    upgrade_schema_perms,
+)
+
 # revision identifiers, used by Alembic.
 revision = "58d051681a3b"
-down_revision = "5f57af97bc3f"
+down_revision = "4a33124c18ad"
 
 
 def upgrade():
@@ -39,8 +44,10 @@ def upgrade():
         "slices",
         sa.Column("catalog_perm", sa.String(length=1000), nullable=True),
     )
+    upgrade_schema_perms(engine="postgresql")
 
 
 def downgrade():
     op.drop_column("slices", "catalog_perm")
     op.drop_column("tables", "catalog_perm")
+    downgrade_schema_perms(engine="postgresql")
