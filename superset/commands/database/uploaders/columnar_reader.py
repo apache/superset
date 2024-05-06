@@ -85,10 +85,10 @@ class ColumnarReader(BaseDataReader):
             raise DatabaseUploadFailed(_("Unexpected no file extension found"))
         file_suffix = file_suffix[1:]  # remove the dot
         if file_suffix == "zip":
-            if not is_zipfile(file.stream):
+            if not is_zipfile(file):
                 raise DatabaseUploadFailed(_("Not a valid ZIP file"))
             try:
-                with ZipFile(file.stream) as zip_file:
+                with ZipFile(file) as zip_file:
                     # check if all file types are of the same extension
                     file_suffixes = {Path(name).suffix for name in zip_file.namelist()}
                     if len(file_suffixes) > 1:

@@ -945,7 +945,7 @@ def test_csv_upload(
         data=payload,
         content_type="multipart/form-data",
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json == {"message": "OK"}
     init_mock.assert_called_with(*upload_called_with)
     reader_mock.assert_called_with(*reader_called_with)
@@ -1182,7 +1182,7 @@ def test_csv_upload_file_extension_valid(
         },
         content_type="multipart/form-data",
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
 
 
 @pytest.mark.parametrize(
@@ -1287,7 +1287,7 @@ def test_excel_upload(
         data=payload,
         content_type="multipart/form-data",
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json == {"message": "OK"}
     init_mock.assert_called_with(*upload_called_with)
     reader_mock.assert_called_with(*reader_called_with)
@@ -1493,7 +1493,7 @@ def test_columnar_upload(
         data=payload,
         content_type="multipart/form-data",
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json == {"message": "OK"}
     init_mock.assert_called_with(*upload_called_with)
     reader_mock.assert_called_with(*reader_called_with)
@@ -1588,7 +1588,7 @@ def test_columnar_upload_file_extension_valid(
         },
         content_type="multipart/form-data",
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
 
 
 @pytest.mark.parametrize(

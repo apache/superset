@@ -1614,7 +1614,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 schema:
                   $ref: '#/components/schemas/CSVUploadPostSchema'
           responses:
-            200:
+            201:
               description: CSV upload response
               content:
                 application/json:
@@ -1647,7 +1647,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             ).run()
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        return self.response(200, message="OK")
+        return self.response(201, message="OK")
 
     @expose("/excel_upload_metadata/", methods=("POST",))
     @protect()
@@ -1724,7 +1724,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 schema:
                   $ref: '#/components/schemas/ExcelUploadPostSchema'
           responses:
-            200:
+            201:
               description: Excel upload response
               content:
                 application/json:
@@ -1757,7 +1757,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             ).run()
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        return self.response(200, message="OK")
+        return self.response(201, message="OK")
 
     @expose("/columnar_upload_metadata/", methods=("POST",))
     @protect()
@@ -1834,7 +1834,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 schema:
                   $ref: '#/components/schemas/ColumnarUploadPostSchema'
           responses:
-            200:
+            201:
               description: Columnar upload response
               content:
                 application/json:
@@ -1867,7 +1867,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             ).run()
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        return self.response(200, message="OK")
+        return self.response(201, message="OK")
 
     @expose("/<int:pk>/function_names/", methods=("GET",))
     @protect()

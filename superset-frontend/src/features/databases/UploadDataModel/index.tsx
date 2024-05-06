@@ -377,8 +377,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     const mergedValues = { ...defaultUploadInfo, ...fields };
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('delimiter', mergedValues.delimiter);
-    formData.append('header_row', mergedValues.header_row);
+    if (type === 'csv') {
+      formData.append('delimiter', mergedValues.delimiter);
+    }
     setFileLoading(true);
     return SupersetClient.post({
       endpoint: typeToFileMetadataEndpoint[type],
@@ -492,11 +493,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   };
 
   const onSheetNameChange = (value: string) => {
-    if (sheetsColumnNames[value]) {
-      setColumns(sheetsColumnNames[value]);
-    } else {
-      setColumns([]);
-    }
+    setColumns(sheetsColumnNames[value] ?? []);
   };
 
   const columnsToOptions = () =>
