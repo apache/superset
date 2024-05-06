@@ -298,6 +298,10 @@ function SavedQueryList({
         Header: t('Name'),
       },
       {
+        accessor: 'description',
+        Header: t('Description'),
+      },
+      {
         accessor: 'database.database_name',
         Header: t('Database'),
         size: 'xl',
@@ -447,6 +451,12 @@ function SavedQueryList({
         id: 'label',
         key: 'search',
         input: 'search',
+        operator: FilterOperator.AllText,
+      },
+      {
+        Header: t('Description'),
+        id: 'description',
+        key: 'description',
         operator: FilterOperator.AllText,
       },
       {
