@@ -447,7 +447,7 @@ function SavedQueryList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('search'),
+        Header: t('Search'),
         id: 'label',
         key: 'search',
         input: 'search',
