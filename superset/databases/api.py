@@ -157,11 +157,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "schemas_access_for_file_upload",
         "get_connection",
         "csv_upload",
-        "csv_upload_metadata",
+        "csv_metadata",
         "excel_upload",
-        "excel_upload_metadata",
+        "excel_metadata",
         "columnar_upload",
-        "columnar_upload_metadata",
+        "columnar_metadata",
         "oauth2",
     }
 
@@ -1539,18 +1539,18 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command.run()
         return self.response(200, message="OK")
 
-    @expose("/csv_upload_metadata/", methods=("POST",))
+    @expose("/csv_metadata/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=(
             lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-            ".csv_upload_metadata"
+            ".csv_metadata"
         ),
         log_to_statsd=False,
     )
     @requires_form_data
-    def csv_upload_metadata(self) -> Response:
+    def csv_metadata(self) -> Response:
         """Upload an CSV file and returns file metadata.
         ---
         post:
@@ -1649,18 +1649,18 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         return self.response(201, message="OK")
 
-    @expose("/excel_upload_metadata/", methods=("POST",))
+    @expose("/excel_metadata/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=(
             lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-            ".excel_upload_metadata"
+            ".excel_metadata"
         ),
         log_to_statsd=False,
     )
     @requires_form_data
-    def excel_upload_metadata(self) -> Response:
+    def excel_metadata(self) -> Response:
         """Upload an Excel file and returns file metadata.
         ---
         post:
@@ -1759,16 +1759,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         return self.response(201, message="OK")
 
-    @expose("/columnar_upload_metadata/", methods=("POST",))
+    @expose("/columnar_metadata/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        ".columnar_upload_metadata",
+        ".columnar_metadata",
         log_to_statsd=False,
     )
     @requires_form_data
-    def columnar_upload_metadata(self) -> Response:
+    def columnar_metadata(self) -> Response:
         """Upload a Columnar file and returns file metadata.
         ---
         post:

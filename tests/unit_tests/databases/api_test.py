@@ -1628,24 +1628,22 @@ def test_columnar_upload_file_extension_invalid(
     assert response.json == {"message": {"file": ["File extension is not allowed."]}}
 
 
-def test_csv_upload_metadata(
-    mocker: MockFixture, client: Any, full_api_access: None
-) -> None:
+def test_csv_metadata(mocker: MockFixture, client: Any, full_api_access: None) -> None:
     _ = mocker.patch.object(CSVReader, "file_metadata")
     response = client.post(
-        "/api/v1/database/csv_upload_metadata/",
+        "/api/v1/database/csv_metadata/",
         data={"file": create_csv_file()},
         content_type="multipart/form-data",
     )
     assert response.status_code == 200
 
 
-def test_csv_upload_metadata_bad_extension(
+def test_csv_metadata_bad_extension(
     mocker: MockFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(CSVReader, "file_metadata")
     response = client.post(
-        "/api/v1/database/csv_upload_metadata/",
+        "/api/v1/database/csv_metadata/",
         data={"file": create_csv_file(filename="test.out")},
         content_type="multipart/form-data",
     )
@@ -1653,12 +1651,12 @@ def test_csv_upload_metadata_bad_extension(
     assert response.json == {"message": {"file": ["File extension is not allowed."]}}
 
 
-def test_csv_upload_metadata_validation(
+def test_csv_metadata_validation(
     mocker: MockFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(CSVReader, "file_metadata")
     response = client.post(
-        "/api/v1/database/csv_upload_metadata/",
+        "/api/v1/database/csv_metadata/",
         data={},
         content_type="multipart/form-data",
     )
@@ -1666,24 +1664,24 @@ def test_csv_upload_metadata_validation(
     assert response.json == {"message": {"file": ["Field may not be null."]}}
 
 
-def test_excel_upload_metadata(
+def test_excel_metadata(
     mocker: MockFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ExcelReader, "file_metadata")
     response = client.post(
-        "/api/v1/database/excel_upload_metadata/",
+        "/api/v1/database/excel_metadata/",
         data={"file": create_excel_file()},
         content_type="multipart/form-data",
     )
     assert response.status_code == 200
 
 
-def test_excel_upload_metadata_bad_extension(
+def test_excel_metadata_bad_extension(
     mocker: MockFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ExcelReader, "file_metadata")
     response = client.post(
-        "/api/v1/database/excel_upload_metadata/",
+        "/api/v1/database/excel_metadata/",
         data={"file": create_excel_file(filename="test.out")},
         content_type="multipart/form-data",
     )
@@ -1691,12 +1689,12 @@ def test_excel_upload_metadata_bad_extension(
     assert response.json == {"message": {"file": ["File extension is not allowed."]}}
 
 
-def test_excel_upload_metadata_validation(
+def test_excel_metadata_validation(
     mocker: MockFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ExcelReader, "file_metadata")
     response = client.post(
-        "/api/v1/database/excel_upload_metadata/",
+        "/api/v1/database/excel_metadata/",
         data={},
         content_type="multipart/form-data",
     )
@@ -1704,24 +1702,24 @@ def test_excel_upload_metadata_validation(
     assert response.json == {"message": {"file": ["Field may not be null."]}}
 
 
-def test_columnar_upload_metadata(
+def test_columnar_metadata(
     mocker: MockFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ColumnarReader, "file_metadata")
     response = client.post(
-        "/api/v1/database/columnar_upload_metadata/",
+        "/api/v1/database/columnar_metadata/",
         data={"file": create_columnar_file()},
         content_type="multipart/form-data",
     )
     assert response.status_code == 200
 
 
-def test_columnar_upload_metadata_bad_extension(
+def test_columnar_metadata_bad_extension(
     mocker: MockFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ColumnarReader, "file_metadata")
     response = client.post(
-        "/api/v1/database/columnar_upload_metadata/",
+        "/api/v1/database/columnar_metadata/",
         data={"file": create_columnar_file(filename="test.out")},
         content_type="multipart/form-data",
     )
@@ -1729,12 +1727,12 @@ def test_columnar_upload_metadata_bad_extension(
     assert response.json == {"message": {"file": ["File extension is not allowed."]}}
 
 
-def test_columnar_upload_metadata_validation(
+def test_columnar_metadata_validation(
     mocker: MockFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ColumnarReader, "file_metadata")
     response = client.post(
-        "/api/v1/database/columnar_upload_metadata/",
+        "/api/v1/database/columnar_metadata/",
         data={},
         content_type="multipart/form-data",
     )

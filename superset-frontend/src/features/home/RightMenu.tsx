@@ -363,6 +363,7 @@ const RightMenu = ({
         <UploadDataModal
           onHide={() => setShowCSVUploadModal(false)}
           show={showCSVUploadModal}
+          allowedExtensions={CSV_EXTENSIONS}
           type="csv"
         />
       )}
@@ -370,6 +371,7 @@ const RightMenu = ({
         <UploadDataModal
           onHide={() => setShowExcelUploadModal(false)}
           show={showExcelUploadModal}
+          allowedExtensions={EXCEL_EXTENSIONS}
           type="excel"
         />
       )}
@@ -377,6 +379,7 @@ const RightMenu = ({
         <UploadDataModal
           onHide={() => setShowColumnarUploadModal(false)}
           show={showColumnarUploadModal}
+          allowedExtensions={COLUMNAR_EXTENSIONS}
           type="columnar"
         />
       )}

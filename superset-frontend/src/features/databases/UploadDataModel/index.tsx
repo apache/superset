@@ -230,9 +230,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   });
 
   const typeToFileMetadataEndpoint = {
-    csv: '/api/v1/database/csv_upload_metadata/',
-    excel: '/api/v1/database/excel_upload_metadata/',
-    columnar: '/api/v1/database/columnar_upload_metadata/',
+    csv: '/api/v1/database/csv_metadata/',
+    excel: '/api/v1/database/excel_metadata/',
+    columnar: '/api/v1/database/columnar_metadata/',
   };
 
   const nullValuesOptions = [
