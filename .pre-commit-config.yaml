@@ -91,3 +91,7 @@ repos:
             "-sn", # Don't display the score
             "--rcfile=.pylintrc",
           ]
+  - repo: https://github.com/mpalmer/action-validator
+    rev: v0.5.1
+    hooks:
+      - id: action-validator
