@@ -433,7 +433,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const appendFormData = (formData: FormData, data: Record<string, any>) => {
     const allFieldsNotInType = getAllFieldsNotInType();
     Object.entries(data).forEach(([key, value]) => {
-      console.log(key, value);
       if (
         !(
           allFieldsNotInType.includes(key) ||
