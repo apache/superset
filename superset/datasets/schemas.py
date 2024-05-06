@@ -93,6 +93,7 @@ class DatasetMetricsPutSchema(Schema):
 
 class DatasetPostSchema(Schema):
     database = fields.Integer(required=True)
+    catalog = fields.String(allow_none=True, validate=Length(0, 250))
     schema = fields.String(allow_none=True, validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     sql = fields.String(allow_none=True)
@@ -109,6 +110,7 @@ class DatasetPutSchema(Schema):
     sql = fields.String(allow_none=True)
     filter_select_enabled = fields.Boolean(allow_none=True)
     fetch_values_predicate = fields.String(allow_none=True, validate=Length(0, 1000))
+    catalog = fields.String(allow_none=True, validate=Length(0, 250))
     schema = fields.String(allow_none=True, validate=Length(0, 255))
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
@@ -271,6 +273,11 @@ class GetOrCreateDatasetSchema(Schema):
     table_name = fields.String(required=True, metadata={"description": "Name of table"})
     database_id = fields.Integer(
         required=True, metadata={"description": "ID of database table belongs to"}
+    )
+    catalog = fields.String(
+        allow_none=True,
+        validate=Length(0, 250),
+        metadata={"description": "The catalog the table belongs to"},
     )
     schema = fields.String(
         allow_none=True,

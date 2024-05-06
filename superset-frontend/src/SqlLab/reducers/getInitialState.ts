@@ -89,6 +89,7 @@ export default function getInitialState({
         autorun: Boolean(activeTab.autorun),
         templateParams: activeTab.template_params || undefined,
         dbId: activeTab.database_id,
+        catalog: activeTab.catalog,
         schema: activeTab.schema,
         queryLimit: activeTab.query_limit,
         hideLeftBar: activeTab.hide_left_bar,
@@ -121,6 +122,7 @@ export default function getInitialState({
         const table = {
           dbId: tableSchema.database_id,
           queryEditorId: tableSchema.tab_state_id.toString(),
+          catalog: tableSchema.catalog,
           schema: tableSchema.schema,
           name: tableSchema.table,
           expanded: tableSchema.expanded,

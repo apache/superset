@@ -206,3 +206,16 @@ export function parseUrl(url: string) {
   }
   return url;
 }
+
+export function toQueryString(params: Record<string, any>): string {
+  const queryParts: string[] = [];
+  Object.keys(params).forEach(key => {
+    const value = params[key];
+    if (value) {
+      queryParts.push(
+        `${encodeURIComponent(key)}=${encodeURIComponent(value)}`,
+      );
+    }
+  });
+  return queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
+}

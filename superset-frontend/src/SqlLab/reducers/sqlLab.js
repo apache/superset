@@ -109,6 +109,7 @@ export default function sqlLabReducer(state = {}, action) {
         remoteId: progenitor.remoteId,
         name: t('Copy of %s', progenitor.name),
         dbId: action.query.dbId ? action.query.dbId : null,
+        catalog: action.query.catalog ? action.query.catalog : null,
         schema: action.query.schema ? action.query.schema : null,
         autorun: true,
         sql: action.query.sql,
@@ -180,6 +181,7 @@ export default function sqlLabReducer(state = {}, action) {
         if (
           xt.dbId === at.dbId &&
           xt.queryEditorId === at.queryEditorId &&
+          xt.catalog === at.catalog &&
           xt.schema === at.schema &&
           xt.name === at.name
         ) {
@@ -410,6 +412,8 @@ export default function sqlLabReducer(state = {}, action) {
       return state;
     },
     [actions.LOAD_QUERY_EDITOR]() {
+      console.log(state);
+      console.log(state.unsavedQueryEditor);
       const mergeUnsavedState = alterInArr(
         state,
         'queryEditors',
@@ -498,6 +502,18 @@ export default function sqlLabReducer(state = {}, action) {
           state,
           {
             dbId: action.dbId,
+          },
+          action.queryEditor.id,
+        ),
+      };
+    },
+    [actions.QUERY_EDITOR_SET_CATALOG]() {
+      return {
+        ...state,
+        ...alterUnsavedQueryEditorState(
+          state,
+          {
+            catalog: action.catalog,
           },
           action.queryEditor.id,
         ),

@@ -53,6 +53,7 @@ class ExecutePayloadSchema(Schema):
     client_id = fields.String(allow_none=True)
     queryLimit = fields.Integer(allow_none=True)
     sql_editor_id = fields.String(allow_none=True)
+    catalog = fields.String(allow_none=True)
     schema = fields.String(allow_none=True)
     tab = fields.String(allow_none=True)
     ctas_method = fields.String(allow_none=True)

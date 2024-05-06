@@ -698,7 +698,11 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
 
     @classmethod
     def get_datasource_by_name(
-        cls, datasource_name: str, schema: str, database_name: str
+        cls,
+        datasource_name: str,
+        catalog: str | None,
+        schema: str,
+        database_name: str,
     ) -> BaseDatasource | None:
         raise NotImplementedError()
 
@@ -1239,6 +1243,7 @@ class SqlaTable(
     def get_datasource_by_name(
         cls,
         datasource_name: str,
+        catalog: str | None,
         schema: str | None,
         database_name: str,
     ) -> SqlaTable | None:
@@ -1248,6 +1253,7 @@ class SqlaTable(
             .join(Database)
             .filter(cls.table_name == datasource_name)
             .filter(Database.database_name == database_name)
+            .filter(cls.catalog == catalog)
         )
         # Handling schema being '' or None, which is easier to handle
         # in python than in the SQLA query in a multi-dialect way
@@ -1752,7 +1758,7 @@ class SqlaTable(
         try:
             df = self.database.get_df(
                 sql,
-                None,
+                self.catalog,
                 self.schema or None,
                 mutator=assign_column_label,
             )

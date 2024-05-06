@@ -66,6 +66,7 @@ export type OptionSortType = Partial<
 export type Datasource = Dataset & {
   database?: DatabaseObject;
   datasource?: string;
+  catalog?: string | null;
   schema?: string;
   is_sqllab_view?: boolean;
   extra?: string;

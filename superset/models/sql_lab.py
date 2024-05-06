@@ -514,6 +514,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
             "label": self.label,
             "active": self.active,
             "database_id": self.database_id,
+            "catalog": self.catalog,
             "schema": self.schema,
             "table_schemas": [ts.to_dict() for ts in self.table_schemas],
             "sql": self.sql,

@@ -90,6 +90,7 @@ function Footer({
     if (datasetObject) {
       const data = {
         database: datasetObject.db?.id,
+        catalog: datasetObject.catalog,
         schema: datasetObject.schema,
         table_name: datasetObject.table_name,
       };

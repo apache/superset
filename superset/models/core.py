@@ -236,6 +236,10 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return self.get_extra().get("disable_drill_to_detail", False) is True
 
     @property
+    def allow_multi_catalog(self) -> bool:
+        return self.get_extra().get("allow_multi_catalog", False)
+
+    @property
     def schema_options(self) -> dict[str, Any]:
         """Additional schema display config for engines with complex schemas"""
         return self.get_extra().get("schema_options", {})
@@ -255,6 +259,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             "parameters": self.parameters,
             "disable_data_preview": self.disable_data_preview,
             "disable_drill_to_detail": self.disable_drill_to_detail,
+            "allow_multi_catalog": self.allow_multi_catalog,
             "parameters_schema": self.parameters_schema,
             "engine_information": self.engine_information,
         }
