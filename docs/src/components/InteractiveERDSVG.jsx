@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { UncontrolledReactSVGPanZoom } from 'react-svg-pan-zoom';
 import ErdSvg from '../../static/img/erd.svg';
 

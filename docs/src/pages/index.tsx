@@ -17,7 +17,7 @@
  * under the License.
  */
 // @ts-nocheck
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import { Carousel } from 'antd';
