@@ -20,47 +20,42 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { FallbackProps } from 'react-error-boundary';
 import { ThemeProvider, supersetTheme } from '../../../src/style';
 
 import FallbackComponent from '../../../src/chart/components/FallbackComponent';
+
+const renderWithTheme = (props: FallbackProps) =>
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <FallbackComponent {...props} />
+    </ThemeProvider>,
+  );
 
 const ERROR = new Error('CaffeineOverLoadException');
 const STACK_TRACE = 'Error at line 1: x.drink(coffee)';
 
 test('renders error and stack trace', () => {
-  const { getByText } = render(
-    <ThemeProvider theme={supersetTheme}>
-      <FallbackComponent componentStack={STACK_TRACE} error={ERROR} />
-    </ThemeProvider>,
-  );
+  const { getByText } = renderWithTheme({
+    componentStack: STACK_TRACE,
+    error: ERROR,
+  });
   expect(getByText('Error: CaffeineOverLoadException')).toBeInTheDocument();
   expect(getByText('Error at line 1: x.drink(coffee)')).toBeInTheDocument();
 });
 
 test('renders error only', () => {
-  const { getByText } = render(
-    <ThemeProvider theme={supersetTheme}>
-      <FallbackComponent error={ERROR} />
-    </ThemeProvider>,
-  );
+  const { getByText } = renderWithTheme({ error: ERROR });
   expect(getByText('Error: CaffeineOverLoadException')).toBeInTheDocument();
 });
 
 test('renders stacktrace only', () => {
-  const { getByText } = render(
-    <ThemeProvider theme={supersetTheme}>
-      <FallbackComponent componentStack={STACK_TRACE} />
-    </ThemeProvider>,
-  );
+  const { getByText } = renderWithTheme({ componentStack: STACK_TRACE });
   expect(getByText('Unknown Error')).toBeInTheDocument();
   expect(getByText('Error at line 1: x.drink(coffee)')).toBeInTheDocument();
 });
 
 test('renders when nothing is given', () => {
-  const { getByText } = render(
-    <ThemeProvider theme={supersetTheme}>
-      <FallbackComponent />
-    </ThemeProvider>,
-  );
+  const { getByText } = renderWithTheme({});
   expect(getByText('Unknown Error')).toBeInTheDocument();
 });
