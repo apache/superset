@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import datetime
+import json
 import os
 from dataclasses import dataclass
 from typing import Any, Optional
@@ -31,8 +33,10 @@ from superset.utils.core import (
     generic_find_fk_constraint_name,
     get_datasource_full_name,
     is_test,
+    json_iso_dttm_ser,
     normalize_dttm_col,
     parse_boolean_string,
+    pessimistic_json_iso_dttm_ser,
     QueryObjectFilterClause,
     remove_extra_adhoc_filters,
 )
@@ -396,3 +400,40 @@ def test_get_datasource_full_name():
         get_datasource_full_name("db", "table", "catalog", None)
         == "[db].[catalog].[table]"
     )
+
+
+def test_json_iso_dttm_ser():
+    data = {
+        "datetime": datetime.datetime(2021, 1, 1, 0, 0, 0),
+        "date": datetime.date(2021, 1, 1),
+    }
+    json_str = json.dumps(data, default=json_iso_dttm_ser)
+    reloaded_data = json.loads(json_str)
+    assert reloaded_data["datetime"] == "2021-01-01T00:00:00"
+    assert reloaded_data["date"] == "2021-01-01"
+
+
+def test_pessimistic_json_iso_dttm_ser():
+    data = {
+        "datetime": datetime.datetime(2021, 1, 1, 0, 0, 0),
+        "date": datetime.date(2021, 1, 1),
+        "UNSERIALIZABLE": MagicMock(),
+    }
+    json_str = json.dumps(data, default=pessimistic_json_iso_dttm_ser)
+    reloaded_data = json.loads(json_str)
+    assert reloaded_data["datetime"] == "2021-01-01T00:00:00"
+    assert reloaded_data["date"] == "2021-01-01"
+    assert (
+        reloaded_data["UNSERIALIZABLE"]
+        == "Unserializable [<class 'unittest.mock.MagicMock'>]"
+    )
+
+
+def test_pessimistic_json_iso_dttm_ser_nonutf8():
+    data = {
+        "INVALID_UTF8_BYTES": b"\xff",
+    }
+    assert isinstance(data["INVALID_UTF8_BYTES"], bytes)
+    json_str = json.dumps(data, default=pessimistic_json_iso_dttm_ser)
+    reloaded_data = json.loads(json_str)
+    assert reloaded_data["INVALID_UTF8_BYTES"] == "[bytes]"
