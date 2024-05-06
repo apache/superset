@@ -19,8 +19,8 @@ on:
         default: 'false'
         description: Whether to force a latest tag on the release
         options:
-          - true
-          - false
+          - 'true'
+          - 'false'
 jobs:
   config:
     runs-on: "ubuntu-latest"
