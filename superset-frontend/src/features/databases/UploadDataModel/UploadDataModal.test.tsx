@@ -540,7 +540,7 @@ test('renders the rows elements correctly', () => {
   });
 });
 
-test('Columnar, does nor render the rows', () => {
+test('Columnar, does not render the rows', () => {
   render(<UploadDataModal {...columnarProps} />, {
     useRedux: true,
   });
