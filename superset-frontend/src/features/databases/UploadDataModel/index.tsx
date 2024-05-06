@@ -441,7 +441,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
         )
       ) {
         formData.append(key, value);
-        console.log(key, value);
       }
     });
   };
