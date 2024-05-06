@@ -12,7 +12,6 @@ jobs:
 
   validate-all-ghas:
     runs-on: ubuntu-latest
-    name: Generate Reports
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
