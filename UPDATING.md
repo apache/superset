@@ -48,6 +48,10 @@ assists people when migrating to a new version.
   listing all databases in CRUD-view and dropdown and didn't provide access to data as it
   seemed the name would imply.
 
+### Potential Downtime
+
+- [27392](https://github.com/apache/superset/pull/27392): Adds an index to `query.sql_editor_id` to improve performance. This may cause downtime on large deployments.
+
 ## 4.0.0
 
 - [27119](https://github.com/apache/superset/pull/27119): Updates various database columns to use the `MediumText` type, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
