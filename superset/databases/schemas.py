@@ -1063,10 +1063,7 @@ class BaseUploadFilePostSchema(Schema):
             current_app.config[self._extension_config_key]
         )
         file_suffix = Path(file.filename).suffix
-        if not file_suffix:
-            raise ValidationError([_("File extension is not allowed.")])
-        file_suffix = file_suffix[1:]  # remove the dot
-        if file_suffix not in allowed_extensions:
+        if not file_suffix or file_suffix[1:] not in allowed_extensions:
             raise ValidationError([_("File extension is not allowed.")])
 
 
