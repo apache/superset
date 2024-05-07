@@ -947,29 +947,29 @@ class ChartDataFilterSchema(Schema):
         }
     )
 
-    print(f"==============Validating ChartDataFilterSchema, received op = {op}=============")
-    @validates('op')
-    def validate_op(self, op, values):
-        col = values.get('col')
-        val = values.get('val')
-        if col.is_string_type and op == 'IN':
-            # Change the operator to 'like' for string comparisons
-            op = 'LIKE'
-            # Modify the value to include wildcard characters
-            val = f'%{val}%'
-            # Update the 'val' field with the modified value
-            values['val'] = val
-        # elif col.is_string_type and op == 'not_eq':
-            # For 'not_eq' operator, we need to negate the wildcard matching
-            # op = 'not_like'
-            # val = f'%{val}%'
-            # values['val'] = val
-        # else:
-            # No changes needed for non-string columns or other operators
-            # return
-
-        # Update the 'op' field with the modified operator
-        values['op'] = op
+    # print(f"==============Validating ChartDataFilterSchema, received op = {op}=============")
+    # @validates('op')
+    # def validate_op(self, op, values):
+    #     col = values.get('col')
+    #     val = values.get('val')
+    #     if col.is_string_type and op == 'IN':
+    #         # Change the operator to 'like' for string comparisons
+    #         op = 'LIKE'
+    #         # Modify the value to include wildcard characters
+    #         val = f'%{val}%'
+    #         # Update the 'val' field with the modified value
+    #         values['val'] = val
+    #     # elif col.is_string_type and op == 'not_eq':
+    #         # For 'not_eq' operator, we need to negate the wildcard matching
+    #         # op = 'not_like'
+    #         # val = f'%{val}%'
+    #         # values['val'] = val
+    #     # else:
+    #         # No changes needed for non-string columns or other operators
+    #         # return
+    #
+    #     # Update the 'op' field with the modified operator
+    #     values['op'] = op
 
 
 class ChartDataExtrasSchema(Schema):
