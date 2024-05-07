@@ -50,7 +50,8 @@ from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapper, validates
 from sqlalchemy.sql.elements import ColumnElement, literal_column, TextClause
-from sqlalchemy.sql.expression import Label, Select
+from sqlalchemy.sql.expression import Label, Select, TextAsFrom
+from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
 from superset import app, db, is_feature_enabled, security_manager
@@ -73,6 +74,7 @@ from superset.jinja_context import BaseTemplateProcessor
 from superset.sql_parse import (
     has_table_query,
     insert_rls_in_predicate,
+    ParsedQuery,
     sanitize_clause,
     SQLScript,
     SQLStatement,
@@ -103,12 +105,10 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
-config = app.config
 logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
-ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 
 def validate_adhoc_subquery(
@@ -1094,6 +1094,34 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def text(self, clause: str) -> TextClause:
         return self.db_engine_spec.get_text_clause(clause)
 
+    def get_from_clause(
+        self, template_processor: Optional[BaseTemplateProcessor] = None
+    ) -> tuple[Union[TableClause, Alias], Optional[str]]:
+        """
+        Return where to select the columns and metrics from. Either a physical table
+        or a virtual table with it's own subquery. If the FROM is referencing a
+        CTE, the CTE is returned as the second value in the return tuple.
+        """
+
+        from_sql = self.get_rendered_sql(template_processor)
+        parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
+        if not (
+            parsed_query.is_unknown()
+            or self.db_engine_spec.is_readonly_query(parsed_query)
+        ):
+            raise QueryObjectValidationError(
+                _("Virtual dataset query must be read-only")
+            )
+
+        cte = self.db_engine_spec.get_cte_query(from_sql)
+        from_clause = (
+            sa.table(self.db_engine_spec.cte_alias)
+            if cte
+            else TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
+        )
+
+        return from_clause, cte
+
     def adhoc_metric_to_sqla(
         self,
         metric: AdhocMetric,
@@ -1339,7 +1367,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         cols = {col.column_name: col for col in self.columns}
         target_col = cols[column_name_]
         tp = self.get_template_processor()
-        tbl, cte = self.get_from_clause(tp)  # type: ignore
+        tbl, cte = self.get_from_clause(tp)
 
         qry = (
             sa.select(
@@ -1721,7 +1749,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         qry = sa.select(select_exprs)
 
-        tbl, cte = self.get_from_clause(template_processor)  # type: ignore
+        tbl, cte = self.get_from_clause(template_processor)
 
         if groupby_all_columns:
             qry = qry.group_by(*groupby_all_columns.values())
@@ -1787,15 +1815,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     is_list_target=is_list_target,
                     db_engine_spec=db_engine_spec,
                 )
+                advanced_data_type = app.config["ADVANCED_DATA_TYPES"]
                 if (
                     col_advanced_data_type != ""
                     and feature_flag_manager.is_feature_enabled(
                         "ENABLE_ADVANCED_DATA_TYPES"
                     )
-                    and col_advanced_data_type in ADVANCED_DATA_TYPES
+                    and col_advanced_data_type in advanced_data_type
                 ):
                     values = eq if is_list_target else [eq]  # type: ignore
-                    bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
+                    bus_resp: AdvancedDataTypeResponse = advanced_data_type[
                         col_advanced_data_type
                     ].translate_type(
                         {
@@ -1809,7 +1838,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
 
                     where_clause_and.append(
-                        ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
+                        advanced_data_type[col_advanced_data_type].translate_filter(
                             sqla_col, op, bus_resp["values"]
                         )
                     )
