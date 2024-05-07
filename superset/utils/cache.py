@@ -34,8 +34,10 @@ from superset.utils.core import json_int_dttm_ser
 from superset.utils.hashing import md5_sha_from_dict
 
 if TYPE_CHECKING:
-    pass
+    from superset.stats_logger import BaseStatsLogger
 
+config = app.config
+stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 
@@ -63,9 +65,9 @@ def set_and_log_cache(
         dttm = datetime.utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
         cache_instance.set(cache_key, value, timeout=timeout)
-        app.config["STATS_LOGGER"].incr("set_cache_key")
+        stats_logger.incr("set_cache_key")
 
-        if datasource_uid and app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
+        if datasource_uid and config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
             ck = CacheKey(
                 cache_key=cache_key,
                 cache_timeout=cache_timeout,
