@@ -260,7 +260,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         return get_metric_names(
             self.metrics or [],
             self.datasource.verbose_map
-            if self.datasource and self.datasource.verbose_map
+            if self.datasource and hasattr(self.datasource, "verbose_map")
             else None,
         )
 
