@@ -539,8 +539,8 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     assert "data" in rv2.json["result"]
 
     eager_samples = virtual_dataset.database.get_df(
-        f"select * from ({virtual_dataset.sql}) as tbl"
-        f' limit {app.config["SAMPLES_ROW_LIMIT"]}'
+        f"select * from ({virtual_dataset.sql}) as tbl "
+        f'limit {app.config["SAMPLES_ROW_LIMIT"]}'
     )
     # the col3 is Decimal
     eager_samples["col3"] = eager_samples["col3"].apply(float)
