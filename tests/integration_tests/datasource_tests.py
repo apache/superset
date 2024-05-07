@@ -542,7 +542,6 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
         f"select * from ({virtual_dataset.sql}) as tbl "
         f'limit {app.config["SAMPLES_ROW_LIMIT"]}'
     )
-    print(sql)
     eager_samples = virtual_dataset.database.get_df(sql)
 
     # the col3 is Decimal
