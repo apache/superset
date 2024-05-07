@@ -27,7 +27,7 @@ import {
   isAdhocColumn,
   NumberFormatter,
   rgbToHex,
-  SupersetTheme,
+  tooltipHtml,
 } from '@superset-ui/core';
 import { EChartsOption, BarSeriesOption } from 'echarts';
 import {
@@ -44,13 +44,11 @@ import { Refs } from '../types';
 import { NULL_STRING } from '../constants';
 
 function formatTooltip({
-  theme,
   params,
   breakdownName,
   defaultFormatter,
   xAxisFormatter,
 }: {
-  theme: SupersetTheme;
   params: ICallbackDataParams[];
   breakdownName?: string;
   defaultFormatter: NumberFormatter | CurrencyFormatter;
@@ -70,40 +68,19 @@ function formatTooltip({
     return NULL_STRING;
   }
 
-  const createRow = (name: string, value: string) => `
-    <div>
-      <span style="
-        font-size:${theme.typography.sizes.m}px;
-        color:${theme.colors.grayscale.base};
-        font-weight:${theme.typography.weights.normal};
-        margin-left:${theme.gridUnit * 0.5}px;"
-      >
-        ${name}:
-      </span>
-      <span style="
-        float:right;
-        margin-left:${theme.gridUnit * 5}px;
-        font-size:${theme.typography.sizes.m}px;
-        color:${theme.colors.grayscale.base};
-        font-weight:${theme.typography.weights.bold}"
-      >
-        ${value}
-      </span>
-    </div>
-  `;
-
-  let result = '';
-  if (!isTotal || breakdownName) {
-    result = xAxisFormatter(series.name, series.dataIndex);
-  }
+  const title =
+    !isTotal || breakdownName
+      ? xAxisFormatter(series.name, series.dataIndex)
+      : undefined;
+  const rows: string[][] = [];
   if (!isTotal) {
-    result += createRow(
+    rows.push([
       series.seriesName!,
       defaultFormatter(series.data.originalValue),
-    );
+    ]);
   }
-  result += createRow(TOTAL_MARK, defaultFormatter(series.data.totalSum));
-  return result;
+  rows.push([TOTAL_MARK, defaultFormatter(series.data.totalSum)]);
+  return tooltipHtml(rows, title);
 }
 
 function transformer({
@@ -463,7 +440,6 @@ export default function transformProps(
       show: !inContextMenu,
       formatter: (params: any) =>
         formatTooltip({
-          theme,
           params,
           breakdownName,
           defaultFormatter,

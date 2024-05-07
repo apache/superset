@@ -24,6 +24,7 @@ import { Refs } from '../types';
 export function getDefaultTooltip(refs: Refs) {
   return {
     appendToBody: true,
+    borderColor: 'transparent',
     position: (
       canvasMousePos: [number, number],
       params: CallbackDataParams,

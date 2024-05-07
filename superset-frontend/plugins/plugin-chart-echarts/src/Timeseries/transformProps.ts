@@ -25,6 +25,7 @@ import {
   CategoricalColorNamespace,
   CurrencyFormatter,
   ensureIsArray,
+  tooltipHtml,
   GenericDataType,
   getCustomFormatter,
   getMetricLabel,
@@ -38,6 +39,7 @@ import {
   isTimeseriesAnnotationLayer,
   t,
   TimeseriesChartDataResponseResult,
+  NumberFormats,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -254,7 +256,9 @@ export default function transformProps(
   const series: SeriesOption[] = [];
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
-  const percentFormatter = getPercentFormatter(yAxisFormat);
+  const percentFormatter = forcePercentFormatter
+    ? getPercentFormatter(yAxisFormat)
+    : getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
     : getNumberFormatter(yAxisFormat);
@@ -526,36 +530,58 @@ export default function transformProps(
           forecastValue.sort((a, b) => b.data[yIndex] - a.data[yIndex]);
         }
 
-        const rows: string[] = [];
         const forecastValues: Record<string, ForecastValue> =
           extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
 
-        Object.keys(forecastValues).forEach(key => {
+        const isForecast = Object.values(forecastValues).some(
+          value =>
+            value.forecastTrend || value.forecastLower || value.forecastUpper,
+        );
+
+        const formatter = forcePercentFormatter
+          ? percentFormatter
+          : getCustomFormatter(customFormatters, metrics) ?? defaultFormatter;
+
+        const rows: string[][] = [];
+        const total = Object.values(forecastValues).reduce(
+          (acc, value) =>
+            value.observation !== undefined ? acc + value.observation : acc,
+          0,
+        );
+        const showTotal = Boolean(isMultiSeries) && richTooltip && !isForecast;
+        const showPercentage = showTotal && !forcePercentFormatter;
+        const keys = Object.keys(forecastValues);
+        keys.forEach(key => {
           const value = forecastValues[key];
           if (value.observation === 0 && stack) {
             return;
           }
-          // if there are no dimensions, key is a verbose name of a metric,
-          // otherwise it is a comma separated string where the first part is metric name
-          const formatterKey =
-            groupBy.length === 0 ? inverted[key] : labelMap[key]?.[0];
-          const content = formatForecastTooltipSeries({
+          const row = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
-            formatter: forcePercentFormatter
-              ? percentFormatter
-              : getCustomFormatter(customFormatters, metrics, formatterKey) ??
-                defaultFormatter,
+            formatter,
           });
-          const contentStyle =
-            key === focusedSeries ? 'font-weight: 700' : 'opacity: 0.7';
-          rows.push(`<span style="${contentStyle}">${content}</span>`);
+          if (showPercentage && value.observation !== undefined) {
+            row.push(percentFormatter.format(value.observation / (total || 1)));
+          }
+          rows.push(row);
         });
         if (stack) {
+          keys.reverse();
           rows.reverse();
         }
-        rows.unshift(`${tooltipFormatter(xValue)}`);
-        return rows.join('<br />');
+        if (showTotal) {
+          const totalRow = ['Total', formatter.format(total)];
+          if (showPercentage) {
+            totalRow.push(percentFormatter.format(1));
+          }
+          rows.push(totalRow);
+        }
+        return tooltipHtml(
+          rows,
+          tooltipFormatter(xValue),
+          keys.findIndex(key => key === focusedSeries),
+        );
       },
     },
     legend: {

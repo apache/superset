@@ -24,6 +24,7 @@ import {
   AxisType,
   getMetricLabel,
   NumberFormatter,
+  tooltipHtml,
 } from '@superset-ui/core';
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
@@ -60,13 +61,17 @@ export function formatTooltip(
   tooltipSizeFormatter: NumberFormatter,
 ) {
   const title = params.data[4]
-    ? `${params.data[3]} </br> ${params.data[4]}`
+    ? `${params.data[4]} (${params.data[3]})`
     : params.data[3];
 
-  return `<p>${title}</p>
-        ${xAxisLabel}: ${xAxisFormatter(params.data[0])} <br/>
-        ${yAxisLabel}: ${yAxisFormatter(params.data[1])} <br/>
-        ${sizeLabel}: ${tooltipSizeFormatter(params.data[2])}`;
+  return tooltipHtml(
+    [
+      [xAxisLabel, xAxisFormatter(params.data[0])],
+      [yAxisLabel, yAxisFormatter(params.data[1])],
+      [sizeLabel, tooltipSizeFormatter(params.data[2])],
+    ],
+    title,
+  );
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
