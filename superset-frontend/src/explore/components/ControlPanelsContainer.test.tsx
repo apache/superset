@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { useSelector } from 'react-redux';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import {
@@ -24,12 +25,21 @@ import {
   getChartControlPanelRegistry,
   t,
 } from '@superset-ui/core';
-import { defaultControls } from 'src/explore/store';
+import { defaultControls, defaultState } from 'src/explore/store';
+import { ExplorePageState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import {
   ControlPanelsContainer,
   ControlPanelsContainerProps,
 } from 'src/explore/components/ControlPanelsContainer';
+
+const FormDataMock = () => {
+  const formData = useSelector(
+    (state: ExplorePageState) => state.explore.form_data,
+  );
+
+  return <div data-test="mock-formdata">{Object.keys(formData).join(':')}</div>;
+};
 
 describe('ControlPanelsContainer', () => {
   beforeAll(() => {
@@ -166,9 +176,16 @@ describe('ControlPanelsContainer', () => {
         },
       ],
     });
-    render(<ControlPanelsContainer {...getDefaultProps()} />, {
-      useRedux: true,
-    });
+    const { getByTestId } = render(
+      <>
+        <ControlPanelsContainer {...getDefaultProps()} />
+        <FormDataMock />
+      </>,
+      {
+        useRedux: true,
+        initialState: { explore: { form_data: defaultState.form_data } },
+      },
+    );
 
     const disabledSection = screen.queryByRole('button', {
       name: /advanced analytics/i,
@@ -180,5 +197,11 @@ describe('ControlPanelsContainer', () => {
     expect(
       screen.queryByRole('button', { name: /chart options/i }),
     ).toBeInTheDocument();
+
+    expect(getByTestId('mock-formdata')).not.toHaveTextContent('groupby');
+    expect(getByTestId('mock-formdata')).not.toHaveTextContent('metrics');
+    expect(getByTestId('mock-formdata')).not.toHaveTextContent(
+      'percent_metrics',
+    );
   });
 });

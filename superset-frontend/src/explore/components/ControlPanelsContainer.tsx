@@ -71,6 +71,7 @@ import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
 import { Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
+import StashFormDataContainer from './StashFormDataContainer';
 
 const { confirm } = Modal;
 
@@ -521,16 +522,22 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     }
 
     return (
-      <Control
-        key={`control-${name}`}
-        name={name}
-        label={label}
-        description={description}
-        validationErrors={validationErrors}
-        actions={props.actions}
-        isVisible={isVisible}
-        {...restProps}
-      />
+      <StashFormDataContainer
+        shouldStash={isVisible === false}
+        fieldNames={[name]}
+        key={`control-container-${name}`}
+      >
+        <Control
+          key={`control-${name}`}
+          name={name}
+          label={label}
+          description={description}
+          validationErrors={validationErrors}
+          actions={props.actions}
+          isVisible={isVisible}
+          {...restProps}
+        />
+      </StashFormDataContainer>
     );
   };
 
@@ -607,69 +614,85 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
 
     return (
-      isVisible && (
-        <Collapse.Panel
-          css={theme => css`
-            margin-bottom: 0;
-            box-shadow: none;
+      <>
+        <StashFormDataContainer
+          key={`sectionId-${sectionId}`}
+          shouldStash={!isVisible}
+          fieldNames={section.controlSetRows
+            .flat()
+            .map(item =>
+              item && typeof item === 'object'
+                ? 'name' in item
+                  ? item.name
+                  : ''
+                : String(item || ''),
+            )
+            .filter(Boolean)}
+        />
+        {isVisible && (
+          <Collapse.Panel
+            css={theme => css`
+              margin-bottom: 0;
+              box-shadow: none;
 
-            &:last-child {
-              padding-bottom: ${theme.gridUnit * 16}px;
-              border-bottom: 0;
-            }
+              &:last-child {
+                padding-bottom: ${theme.gridUnit * 16}px;
+                border-bottom: 0;
+              }
 
-            .panel-body {
-              margin-left: ${theme.gridUnit * 4}px;
-              padding-bottom: 0;
-            }
+              .panel-body {
+                margin-left: ${theme.gridUnit * 4}px;
+                padding-bottom: 0;
+              }
 
-            span.label {
-              display: inline-block;
-            }
-            ${!section.label &&
-            `
+              span.label {
+                display: inline-block;
+              }
+              ${!section.label &&
+              `
             .ant-collapse-header {
               display: none;
             }
           `}
-          `}
-          header={<PanelHeader />}
-          key={sectionId}
-        >
-          {section.controlSetRows.map((controlSets, i) => {
-            const renderedControls = controlSets
-              .map(controlItem => {
-                if (!controlItem) {
-                  // When the item is invalid
+            `}
+            header={<PanelHeader />}
+            key={sectionId}
+          >
+            {section.controlSetRows.map((controlSets, i) => {
+              const renderedControls = controlSets
+                .map(controlItem => {
+                  if (!controlItem) {
+                    // When the item is invalid
+                    return null;
+                  }
+                  if (React.isValidElement(controlItem)) {
+                    // When the item is a React element
+                    return controlItem;
+                  }
+                  if (
+                    controlItem.name &&
+                    controlItem.config &&
+                    controlItem.name !== 'datasource'
+                  ) {
+                    return renderControl(controlItem);
+                  }
                   return null;
-                }
-                if (React.isValidElement(controlItem)) {
-                  // When the item is a React element
-                  return controlItem;
-                }
-                if (
-                  controlItem.name &&
-                  controlItem.config &&
-                  controlItem.name !== 'datasource'
-                ) {
-                  return renderControl(controlItem);
-                }
+                })
+                .filter(x => x !== null);
+              // don't show the row if it is empty
+              if (renderedControls.length === 0) {
                 return null;
-              })
-              .filter(x => x !== null);
-            // don't show the row if it is empty
-            if (renderedControls.length === 0) {
-              return null;
-            }
-            return (
-              <ControlRow
-                key={`controlsetrow-${i}`}
-                controls={renderedControls}
-              />
-            );
-          })}
-        </Collapse.Panel>
-      )
+              }
+              return (
+                <ControlRow
+                  key={`controlsetrow-${i}`}
+                  controls={renderedControls}
+                />
+              );
+            })}
+          </Collapse.Panel>
+        )}
+      </>
     );
   };
 
