@@ -25,10 +25,10 @@ from superset.db_engine_specs.base import BaseEngineSpec
 class PinotEngineSpec(BaseEngineSpec):
     engine = "pinot"
     engine_name = "Apache Pinot"
-    allows_subqueries = False
-    allows_joins = False
-    allows_alias_in_select = False
-    allows_alias_in_orderby = False
+    allows_subqueries = True
+    allows_joins = True
+    allows_alias_in_select = True
+    allows_alias_in_orderby = True
 
     # https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#datetime-functions
     _time_grain_expressions = {
