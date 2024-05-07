@@ -356,6 +356,7 @@ class ChartDataRestApi(ChartRestApi):
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
 
+        print("======result in _send_chart_response=====", str(result))
         # Post-process the data so it matches the data presented in the chart.
         # This is needed for sending reports based on text charts that do the
         # post-processing of data, eg, the pivot table.
