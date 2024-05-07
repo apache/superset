@@ -39,7 +39,6 @@ x-common-build: &common-build
   cache_from:
     - apache/superset-cache:3.10-slim-bookworm
 
-version: "4.0"
 services:
   nginx:
     image: nginx:latest
@@ -94,12 +93,11 @@ services:
     depends_on: *superset-depends-on
     volumes: *superset-volumes
     environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
 
   superset-websocket:
     container_name: superset_websocket
     build: ./superset-websocket
-    image: superset-websocket
     ports:
       - 8080:8080
     extra_hosts:
@@ -122,7 +120,7 @@ services:
       - /home/superset-websocket/dist
 
       # Mounting a config file that contains a dummy secret required to boot up.
-      # do no not use this docker-compose in production
+      # do not use this docker-compose in production
       - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
     environment:
       - PORT=8080
@@ -144,7 +142,7 @@ services:
     user: *superset-user
     volumes: *superset-volumes
     environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
     healthcheck:
       disable: true
 
@@ -153,7 +151,7 @@ services:
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
-      SCARF_ANALYTICS: "${SCARF_ANALYTICS}"
+      SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
     env_file:

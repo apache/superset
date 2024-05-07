@@ -8585,7 +8585,7 @@ msgid "Vehicle Types"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:42
-msgid "Area Chart (legacy)"
+msgid "Time-series Area Chart (legacy)"
 msgstr "Диаграмма с областями (устарело)"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:46
@@ -8820,7 +8820,7 @@ msgid "Battery level over time"
 msgstr "Уровень заряда батареи с течением времени"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:39
-msgid "Line Chart (legacy)"
+msgid "Time-series Line Chart (legacy)"
 msgstr "Линейный график (устарело)"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:49

@@ -5,9 +5,9 @@ sidebar_position: 4
 version: 1
 ---
 
-## Upgrading Superset
+# Upgrading Superset
 
-### Docker Compose
+## Docker Compose
 
 First make sure to wind down the running containers in Docker Compose:
 
@@ -27,12 +27,19 @@ Then, restart the containers and any changed Docker images will be automatically
 docker compose up
 ```
 
-### Updating Superset Manually
+## Updating Superset Manually
 
 To upgrade superset in a native installation, run the following commands:
 
 ```bash
 pip install apache-superset --upgrade
+```
+
+## Upgrading the Metadata Database
+
+Migrate the metadata database by running:
+
+```bash
 superset db upgrade
 superset init
 ```

@@ -1294,6 +1294,33 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 0)
 
+    @pytest.mark.usefixtures("load_energy_charts")
+    def test_user_gets_all_charts(self):
+        # test filtering on datasource_name
+        gamma_user = security_manager.find_user(username="gamma")
+
+        def count_charts():
+            uri = "api/v1/chart/"
+            rv = self.client.get(uri, "get_list")
+            self.assertEqual(rv.status_code, 200)
+            data = rv.get_json()
+            return data["count"]
+
+        with self.temporary_user(gamma_user, login=True):
+            self.assertEqual(count_charts(), 0)
+
+        perm = ("all_database_access", "all_database_access")
+        with self.temporary_user(gamma_user, extra_pvms=[perm], login=True):
+            assert count_charts() > 0
+
+        perm = ("all_datasource_access", "all_datasource_access")
+        with self.temporary_user(gamma_user, extra_pvms=[perm], login=True):
+            assert count_charts() > 0
+
+        # Back to normal
+        with self.temporary_user(gamma_user, login=True):
+            self.assertEqual(count_charts(), 0)
+
     @pytest.mark.usefixtures("create_charts")
     def test_get_charts_favorite_filter(self):
         """

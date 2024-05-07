@@ -710,7 +710,7 @@
         "Tem certeza que deseja salvar e aplicar mudanças ?"
       ],
       "Area Chart": ["Gráfico de área"],
-      "Area Chart (legacy)": ["Gráfico de área (legado)"],
+      "Time-series Area Chart (legacy)": ["Gráfico de área (legado)"],
       "Area chart": ["Gráfico de área"],
       "Area chart opacity": ["Opacidade do gráfico de área"],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
@@ -2536,7 +2536,7 @@
       ],
       "Line": ["Linha"],
       "Line Chart": ["Gráfico de linhas"],
-      "Line Chart (legacy)": ["Gráfico de linhas (herdado)"],
+      "Time-series Line Chart (legacy)": ["Gráfico de linhas (herdado)"],
       "Line Style": ["Estilo da linha"],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         "O gráfico de linhas é utilizado para visualizar as medições efetuadas numa determinada categoria. O gráfico de linhas é um tipo de gráfico que apresenta informações como uma série de pontos de dados ligados por segmentos de linha reta. É um tipo básico de gráfico comum em muitos domínios."

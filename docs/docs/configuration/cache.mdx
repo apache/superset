@@ -5,7 +5,7 @@ sidebar_position: 3
 version: 1
 ---
 
-## Caching
+# Caching
 
 Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purposes.
 Flask-Caching supports various caching backends, including Redis (recommended), Memcached,
@@ -33,7 +33,7 @@ FILTER_STATE_CACHE_CONFIG = {
 }
 ```
 
-### Dependencies
+## Dependencies
 
 In order to use dedicated cache stores, additional python libraries must be installed
 
@@ -43,7 +43,7 @@ In order to use dedicated cache stores, additional python libraries must be inst
 
 These libraries can be installed using pip.
 
-### Fallback Metastore Cache
+## Fallback Metastore Cache
 
 Note, that some form of Filter State and Explore caching are required. If either of these caches
 are undefined, Superset falls back to using a built-in cache that stores data in the metadata
@@ -60,7 +60,7 @@ DATA_CACHE_CONFIG = {
 }
 ```
 
-### Chart Cache Timeout
+## Chart Cache Timeout
 
 The cache timeout for charts may be overridden by the settings for an individual chart, dataset, or
 database. Each of these configurations will be checked in order before falling back to the default
@@ -69,7 +69,7 @@ value defined in `DATA_CACHE_CONFIG`.
 Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
 per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
 
-### SQL Lab Query Results
+## SQL Lab Query Results
 
 Caching for SQL Lab query results is used when async queries are enabled and is configured using
 `RESULTS_BACKEND`.
@@ -79,7 +79,7 @@ instead requires a cachelib object.
 
 See [Async Queries via Celery](/docs/configuration/async-queries-celery) for details.
 
-### Caching Thumbnails
+## Caching Thumbnails
 
 This is an optional feature that can be turned on by activating it’s [feature flag](/docs/configuration/configuring-superset#feature-flags) on config:
 

@@ -43,6 +43,14 @@ assists people when migrating to a new version.
   set `SLACK_API_TOKEN` to fetch and serve Slack avatar links
 - [28134](https://github.com/apache/superset/pull/28134/) The default logging level was changed
   from DEBUG to INFO - which is the normal/sane default logging level for most software.
+- [28205](https://github.com/apache/superset/pull/28205) The permission `all_database_access` now
+  more clearly provides access to all databases, as specified in its name. Before it only allowed
+  listing all databases in CRUD-view and dropdown and didn't provide access to data as it
+  seemed the name would imply.
+
+### Potential Downtime
+
+- [27392](https://github.com/apache/superset/pull/27392): Adds an index to `query.sql_editor_id` to improve performance. This may cause downtime on large deployments.
 
 ## 4.0.0
 

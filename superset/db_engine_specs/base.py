@@ -404,6 +404,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the DB support catalogs? A catalog here is a group of schemas, and has
     # different names depending on the DB: BigQuery calles it a "project", Postgres calls
     # it a "database", Trino calls it a "catalog", etc.
+    #
+    # When this is changed to true in a DB engine spec it MUST support the
+    # `get_default_catalog` and `get_catalog_names` methods. In addition, you MUST write
+    # a database migration updating any existing schema permissions.
     supports_catalog = False
 
     # Can the catalog be changed on a per-query basis?
@@ -639,9 +643,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return driver in cls.drivers
 
     @classmethod
+    def get_default_catalog(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> str | None:
+        """
+        Return the default catalog for a given database.
+        """
+        return None
+
+    @classmethod
     def get_default_schema(cls, database: Database, catalog: str | None) -> str | None:
         """
-        Return the default schema in a given database.
+        Return the default schema for a catalog in a given database.
         """
         with database.get_inspector(catalog=catalog) as inspector:
             return inspector.default_schema_name
@@ -1412,24 +1426,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         inspector: Inspector,
-    ) -> list[str]:
+    ) -> set[str]:
         """
         Get all catalogs from database.
 
         This needs to be implemented per database, since SQLAlchemy doesn't offer an
         abstraction.
         """
-        return []
+        return set()
 
     @classmethod
-    def get_schema_names(cls, inspector: Inspector) -> list[str]:
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
         """
         Get all schemas from database
 
         :param inspector: SqlAlchemy inspector
         :return: All schemas in the database
         """
-        return sorted(inspector.get_schema_names())
+        return set(inspector.get_schema_names())
 
     @classmethod
     def get_table_names(  # pylint: disable=unused-argument

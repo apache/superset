@@ -28,7 +28,6 @@ down_revision = "4b85906e5b91"
 
 from importlib import import_module  # noqa: E402
 
-
 module = import_module(
     "superset.migrations.versions.2023-09-06_13-18_317970b4400c_added_time_secondary_column_to_"
 )

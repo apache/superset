@@ -17,9 +17,11 @@
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy import create_engine
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import OAuth2RedirectError
+from superset.models.core import Database
 from superset.superset_typing import QueryObjectDict
 
 
@@ -64,3 +66,124 @@ def test_query_bubbles_errors(mocker: MockerFixture) -> None:
     }
     with pytest.raises(OAuth2RedirectError):
         sqla_table.query(query_obj)
+
+
+def test_permissions_without_catalog() -> None:
+    """
+    Test permissions when the table has no catalog.
+    """
+    database = Database(database_name="my_db")
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+        schema="schema1",
+        catalog=None,
+        id=1,
+    )
+
+    assert sqla_table.get_perm() == "[my_db].[my_sqla_table](id:1)"
+    assert sqla_table.get_catalog_perm() is None
+    assert sqla_table.get_schema_perm() == "[my_db].[schema1]"
+
+
+def test_permissions_with_catalog() -> None:
+    """
+    Test permissions when the table with a catalog set.
+    """
+    database = Database(database_name="my_db")
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+        schema="schema1",
+        catalog="db1",
+        id=1,
+    )
+
+    assert sqla_table.get_perm() == "[my_db].[my_sqla_table](id:1)"
+    assert sqla_table.get_catalog_perm() == "[my_db].[db1]"
+    assert sqla_table.get_schema_perm() == "[my_db].[db1].[schema1]"
+
+
+def test_query_datasources_by_name(mocker: MockerFixture) -> None:
+    """
+    Test the `query_datasources_by_name` method.
+    """
+    db = mocker.patch("superset.connectors.sqla.models.db")
+
+    database = Database(database_name="my_db", id=1)
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+
+    sqla_table.query_datasources_by_name(database, "my_table")
+    db.session.query().filter_by.assert_called_with(
+        database_id=1,
+        table_name="my_table",
+    )
+
+    sqla_table.query_datasources_by_name(database, "my_table", "db1", "schema1")
+    db.session.query().filter_by.assert_called_with(
+        database_id=1,
+        table_name="my_table",
+        catalog="db1",
+        schema="schema1",
+    )
+
+
+def test_query_datasources_by_permissions(mocker: MockerFixture) -> None:
+    """
+    Test the `query_datasources_by_permissions` method.
+    """
+    db = mocker.patch("superset.connectors.sqla.models.db")
+
+    engine = create_engine("sqlite://")
+    database = Database(database_name="my_db", id=1)
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+
+    sqla_table.query_datasources_by_permissions(database, set(), set(), set())
+    db.session.query().filter_by.assert_called_with(database_id=1)
+    clause = db.session.query().filter_by().filter.mock_calls[0].args[0]
+    assert str(clause.compile(engine, compile_kwargs={"literal_binds": True})) == ""
+
+
+def test_query_datasources_by_permissions_with_catalog_schema(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `query_datasources_by_permissions` method passing a catalog and schema.
+    """
+    db = mocker.patch("superset.connectors.sqla.models.db")
+
+    engine = create_engine("sqlite://")
+    database = Database(database_name="my_db", id=1)
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    sqla_table.query_datasources_by_permissions(
+        database,
+        {"[my_db].[table1](id:1)"},
+        {"[my_db].[db1]"},
+        # pass as list to have deterministic order for test
+        ["[my_db].[db1].[schema1]", "[my_other_db].[schema]"],  # type: ignore
+    )
+    clause = db.session.query().filter_by().filter.mock_calls[0].args[0]
+    assert str(clause.compile(engine, compile_kwargs={"literal_binds": True})) == (
+        "tables.perm IN ('[my_db].[table1](id:1)') OR "
+        "tables.schema_perm IN ('[my_db].[db1].[schema1]', '[my_other_db].[schema]') OR "
+        "tables.catalog_perm IN ('[my_db].[db1]')"
+    )

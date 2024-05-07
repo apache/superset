@@ -30,7 +30,14 @@ down_revision = "bddc498dd179"
 import json  # noqa: E402
 
 from alembic import op  # noqa: E402
-from sqlalchemy import Column, create_engine, ForeignKey, Integer, String, Text  # noqa: E402
+from sqlalchemy import (  # noqa: E402
+    Column,
+    create_engine,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402

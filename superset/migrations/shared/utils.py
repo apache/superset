@@ -51,6 +51,23 @@ def table_has_column(table: str, column: str) -> bool:
         return False
 
 
+def table_has_index(table: str, index: str) -> bool:
+    """
+    Checks if an index exists in a given table.
+
+    :param table: A table name
+    :param index: A index name
+    :returns: True if the index exists in the table
+    """
+
+    insp = inspect(op.get_context().bind)
+
+    try:
+        return any(ind["name"] == index for ind in insp.get_indexes(table))
+    except NoSuchTableError:
+        return False
+
+
 uuid_by_dialect = {
     MySQLDialect: "UNHEX(REPLACE(CONVERT(UUID() using utf8mb4), '-', ''))",
     PGDialect: "uuid_in(md5(random()::text || clock_timestamp()::text)::cstring)",

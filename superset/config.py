@@ -564,9 +564,9 @@ IS_FEATURE_ENABLED_FUNC: Callable[[str, bool | None], bool] | None = None
 #
 # Takes as a parameter the common bootstrap payload before transformations.
 # Returns a dict containing data that should be added or overridden to the payload.
-COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[[dict[str, Any]], dict[str, Any]] = (  # noqa: E731
-    lambda data: {}
-)  # default: empty dict
+COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
+    [dict[str, Any]], dict[str, Any]
+] = lambda data: {}
 
 # EXTRA_CATEGORICAL_COLOR_SCHEMES is used for adding custom categorical color schemes
 # example code for "My custom warm to hot" color scheme

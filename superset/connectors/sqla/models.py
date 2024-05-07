@@ -211,6 +211,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
     params = Column(String(1000))
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
+    catalog_perm = Column(String(1000), nullable=True, default=None)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
 
@@ -1261,9 +1262,20 @@ class SqlaTable(
         anchor = f'<a target="_blank" href="{self.explore_url}">{name}</a>'
         return Markup(anchor)
 
+    def get_catalog_perm(self) -> str | None:
+        """Returns catalog permission if present, database one otherwise."""
+        return security_manager.get_catalog_perm(
+            self.database.database_name,
+            self.catalog,
+        )
+
     def get_schema_perm(self) -> str | None:
         """Returns schema permission if present, database one otherwise."""
-        return security_manager.get_schema_perm(self.database, self.schema or None)
+        return security_manager.get_schema_perm(
+            self.database.database_name,
+            self.catalog,
+            self.schema or None,
+        )
 
     def get_perm(self) -> str:
         """
@@ -1282,7 +1294,10 @@ class SqlaTable(
     @property
     def full_name(self) -> str:
         return utils.get_datasource_full_name(
-            self.database, self.table_name, schema=self.schema
+            self.database,
+            self.table_name,
+            catalog=self.catalog,
+            schema=self.schema,
         )
 
     @property
@@ -1736,7 +1751,10 @@ class SqlaTable(
 
         try:
             df = self.database.get_df(
-                sql, self.schema or None, mutator=assign_column_label
+                sql,
+                None,
+                self.schema or None,
+                mutator=assign_column_label,
             )
         except (SupersetErrorException, SupersetErrorsException) as ex:
             # SupersetError(s) exception should not be captured; instead, they should
@@ -1870,34 +1888,45 @@ class SqlaTable(
         cls,
         database: Database,
         datasource_name: str,
+        catalog: str | None = None,
         schema: str | None = None,
     ) -> list[SqlaTable]:
-        query = (
-            db.session.query(cls)
-            .filter_by(database_id=database.id)
-            .filter_by(table_name=datasource_name)
-        )
+        filters = {
+            "database_id": database.id,
+            "table_name": datasource_name,
+        }
+        if catalog:
+            filters["catalog"] = catalog
         if schema:
-            query = query.filter_by(schema=schema)
-        return query.all()
+            filters["schema"] = schema
+
+        return db.session.query(cls).filter_by(**filters).all()
 
     @classmethod
     def query_datasources_by_permissions(  # pylint: disable=invalid-name
         cls,
         database: Database,
         permissions: set[str],
+        catalog_perms: set[str],
         schema_perms: set[str],
     ) -> list[SqlaTable]:
-        # TODO(hughhhh): add unit test
+        # remove empty sets from the query, since SQLAlchemy produces horrible SQL for
+        # Model.column._in({}):
+        #
+        #   table.column IN (SELECT 1 FROM (SELECT 1) WHERE 1!=1)
+        filters = [
+            method.in_(perms)
+            for method, perms in zip(
+                (SqlaTable.perm, SqlaTable.schema_perm, SqlaTable.catalog_perm),
+                (permissions, schema_perms, catalog_perms),
+            )
+            if perms
+        ]
+
         return (
             db.session.query(cls)
             .filter_by(database_id=database.id)
-            .filter(
-                or_(
-                    SqlaTable.perm.in_(permissions),
-                    SqlaTable.schema_perm.in_(schema_perms),
-                )
-            )
+            .filter(or_(*filters))
             .all()
         )
 

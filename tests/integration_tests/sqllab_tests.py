@@ -284,9 +284,15 @@ class TestSqlLab(SupersetTestCase):
             # sqlite doesn't support database creation
             return
 
+        catalog = examples_db.get_default_catalog()
         sqllab_test_db_schema_permission_view = (
             security_manager.add_permission_view_menu(
-                "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
+                "schema_access",
+                security_manager.get_schema_perm(
+                    examples_db.name,
+                    catalog,
+                    CTAS_SCHEMA_NAME,
+                ),
             )
         )
         schema_perm_role = security_manager.add_role("SchemaPermission")

@@ -46,7 +46,10 @@ from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import CTAS_SCHEMA_NAME, with_feature_flags  # noqa: F401
+from tests.integration_tests.conftest import (  # noqa: F401
+    CTAS_SCHEMA_NAME,
+    with_feature_flags,
+)
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -185,6 +188,40 @@ class TestDatasetApi(SupersetTestCase):
                 fp.write(yaml.safe_dump(dataset_config).encode())
         buf.seek(0)
         return buf
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_user_gets_all_datasets(self):
+        # test filtering on datasource_name
+        gamma_user = security_manager.find_user(username="gamma")
+
+        def count_datasets():
+            uri = "api/v1/chart/"
+            rv = self.client.get(uri, "get_list")
+            print(rv.data)
+            self.assertEqual(rv.status_code, 200)
+            data = rv.get_json()
+            return data["count"]
+
+        with self.temporary_user(gamma_user, login=True) as user:
+            assert count_datasets() == 0
+
+        all_db_pvm = ("all_database_access", "all_database_access")
+        with self.temporary_user(
+            gamma_user, extra_pvms=[all_db_pvm], login=True
+        ) as user:
+            self.login(username=user.username)
+            assert count_datasets() > 0
+
+        all_db_pvm = ("all_datasource_access", "all_datasource_access")
+        with self.temporary_user(
+            gamma_user, extra_pvms=[all_db_pvm], login=True
+        ) as user:
+            self.login(username=user.username)
+            assert count_datasets() > 0
+
+        # Back to normal
+        with self.temporary_user(gamma_user, login=True):
+            assert count_datasets() == 0
 
     def test_get_dataset_list(self):
         """

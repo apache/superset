@@ -159,7 +159,7 @@ table afterwards to configure the Columns tab, check the appropriate boxes and s
 
 To clarify, the database backend is an OLTP database used by Superset to store its internal
 information like your list of users and dashboard definitions. While Superset supports a
-[variety of databases as data *sources*](/docs/databases/installing-database-drivers/),
+[variety of databases as data *sources*](/docs/configuration/databases#installing-database-drivers),
 only a few database engines are supported for use as the OLTP backend / metadata store.
 
 Superset is tested using MySQL, PostgreSQL, and SQLite backends. It’s recommended you install
@@ -189,7 +189,7 @@ Metadata attribute using the `label_colors` key.
 
 ## Does Superset work with [insert database engine here]?
 
-The [Connecting to Databases section](/docs/databases/installing-database-drivers) provides the best
+The [Connecting to Databases section](/docs/configuration/databases) provides the best
 overview for supported databases. Database engines not listed on that page may work too. We rely on
 the community to contribute to this knowledge base.
 

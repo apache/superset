@@ -270,11 +270,6 @@ class SupersetShillelaghAdapter(Adapter):
         self.schema = parts.pop(-1) if parts else None
         self.catalog = parts.pop(-1) if parts else None
 
-        if self.catalog:
-            # TODO (betodealmeida): when SIP-95 is implemented we should check to see if
-            # the database has multi-catalog enabled, and if so, give access.
-            raise NotImplementedError("Catalogs are not currently supported")
-
         # If the table has a single integer primary key we use that as the row ID in order
         # to perform updates and deletes. Otherwise we can only do inserts and selects.
         self._rowid: str | None = None
