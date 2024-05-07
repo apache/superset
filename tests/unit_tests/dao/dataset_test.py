@@ -51,7 +51,6 @@ def test_validate_update_uniqueness(session: Session) -> None:
     db.session.add_all([database, dataset1, dataset2])
     db.session.flush()
 
-    # same table name, different schema
     assert (
         DatasetDAO.validate_update_uniqueness(
             database_id=database.id,
@@ -61,7 +60,6 @@ def test_validate_update_uniqueness(session: Session) -> None:
         is True
     )
 
-    # duplicate schema and table name
     assert (
         DatasetDAO.validate_update_uniqueness(
             database_id=database.id,
@@ -71,7 +69,6 @@ def test_validate_update_uniqueness(session: Session) -> None:
         is False
     )
 
-    # no schema
     assert (
         DatasetDAO.validate_update_uniqueness(
             database_id=database.id,
