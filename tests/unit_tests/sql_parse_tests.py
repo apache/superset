@@ -118,9 +118,8 @@ def test_extract_tables_subselect() -> None:
     """
     Test that tables inside subselects are parsed correctly.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT sub.*
 FROM (
     SELECT *
@@ -129,13 +128,10 @@ FROM (
     ) sub, s2.t2
 WHERE sub.resolution = 'NONE'
 """
-        )
-        == {Table("t1", "s1"), Table("t2", "s2")}
-    )
+    ) == {Table("t1", "s1"), Table("t2", "s2")}
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT sub.*
 FROM (
     SELECT *
@@ -144,13 +140,10 @@ FROM (
 ) sub
 WHERE sub.resolution = 'NONE'
 """
-        )
-        == {Table("t1", "s1")}
-    )
+    ) == {Table("t1", "s1")}
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT * FROM t1
 WHERE s11 > ANY (
     SELECT COUNT(*) /* no hint */ FROM t2
@@ -162,9 +155,7 @@ WHERE s11 > ANY (
     )
 )
 """
-        )
-        == {Table("t1"), Table("t2"), Table("t3"), Table("t4")}
-    )
+    ) == {Table("t1"), Table("t2"), Table("t3"), Table("t4")}
 
 
 def test_extract_tables_select_in_expression() -> None:
@@ -235,30 +226,24 @@ def test_extract_tables_select_array() -> None:
     """
     Test that queries selecting arrays work as expected.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT ARRAY[1, 2, 3] AS my_array
 FROM t1 LIMIT 10
 """
-        )
-        == {Table("t1")}
-    )
+    ) == {Table("t1")}
 
 
 def test_extract_tables_select_if() -> None:
     """
     Test that queries with an ``IF`` work as expected.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT IF(CARDINALITY(my_array) >= 3, my_array[3], NULL)
 FROM t1 LIMIT 10
 """
-        )
-        == {Table("t1")}
-    )
+    ) == {Table("t1")}
 
 
 def test_extract_tables_with_catalog() -> None:
@@ -277,26 +262,30 @@ def test_extract_tables_illdefined() -> None:
     with pytest.raises(SupersetSecurityException) as excinfo:
         extract_tables("SELECT * FROM schemaname.")
     assert (
-        str(excinfo.value) == "Unable to parse SQL (generic): SELECT * FROM schemaname."
+        str(excinfo.value)
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:25"
     )
 
     with pytest.raises(SupersetSecurityException) as excinfo:
         extract_tables("SELECT * FROM catalogname.schemaname.")
     assert (
         str(excinfo.value)
-        == "Unable to parse SQL (generic): SELECT * FROM catalogname.schemaname."
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:37"
     )
 
     with pytest.raises(SupersetSecurityException) as excinfo:
         extract_tables("SELECT * FROM catalogname..")
     assert (
         str(excinfo.value)
-        == "Unable to parse SQL (generic): SELECT * FROM catalogname.."
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:27"
     )
 
     with pytest.raises(SupersetSecurityException) as excinfo:
         extract_tables('SELECT * FROM "tbname')
-    assert str(excinfo.value) == 'Unable to parse SQL (generic): SELECT * FROM "tbname'
+    assert (
+        str(excinfo.value)
+        == "You may have an error in your SQL statement. Error tokenizing 'SELECT * FROM \"tbnam'"
+    )
 
     # odd edge case that works
     assert extract_tables("SELECT * FROM catalogname..tbname") == {
@@ -322,38 +311,29 @@ def test_extract_tables_where_subquery() -> None:
     """
     Test that tables in a ``WHERE`` subquery are parsed correctly.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT name
 FROM t1
 WHERE regionkey = (SELECT max(regionkey) FROM t2)
 """
-        )
-        == {Table("t1"), Table("t2")}
-    )
+    ) == {Table("t1"), Table("t2")}
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT name
 FROM t1
 WHERE regionkey IN (SELECT regionkey FROM t2)
 """
-        )
-        == {Table("t1"), Table("t2")}
-    )
+    ) == {Table("t1"), Table("t2")}
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT name
 FROM t1
 WHERE EXISTS (SELECT 1 FROM t2 WHERE t1.regionkey = t2.regionkey);
 """
-        )
-        == {Table("t1"), Table("t2")}
-    )
+    ) == {Table("t1"), Table("t2")}
 
 
 def test_extract_tables_describe() -> None:
@@ -367,15 +347,12 @@ def test_extract_tables_show_partitions() -> None:
     """
     Test ``SHOW PARTITIONS``.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SHOW PARTITIONS FROM orders
 WHERE ds >= '2013-01-01' ORDER BY ds DESC
 """
-        )
-        == {Table("orders")}
-    )
+    ) == {Table("orders")}
 
 
 def test_extract_tables_join() -> None:
@@ -387,9 +364,8 @@ def test_extract_tables_join() -> None:
         Table("t2"),
     }
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT a.date, b.name
 FROM left_table a
 JOIN (
@@ -400,13 +376,10 @@ JOIN (
 ) b
 ON a.date = b.date
 """
-        )
-        == {Table("left_table"), Table("right_table")}
-    )
+    ) == {Table("left_table"), Table("right_table")}
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT a.date, b.name
 FROM left_table a
 LEFT INNER JOIN (
@@ -417,13 +390,10 @@ LEFT INNER JOIN (
 ) b
 ON a.date = b.date
 """
-        )
-        == {Table("left_table"), Table("right_table")}
-    )
+    ) == {Table("left_table"), Table("right_table")}
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT a.date, b.name
 FROM left_table a
 RIGHT OUTER JOIN (
@@ -434,13 +404,10 @@ RIGHT OUTER JOIN (
 ) b
 ON a.date = b.date
 """
-        )
-        == {Table("left_table"), Table("right_table")}
-    )
+    ) == {Table("left_table"), Table("right_table")}
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT a.date, b.name
 FROM left_table a
 FULL OUTER JOIN (
@@ -451,18 +418,15 @@ FULL OUTER JOIN (
 ) b
 ON a.date = b.date
 """
-        )
-        == {Table("left_table"), Table("right_table")}
-    )
+    ) == {Table("left_table"), Table("right_table")}
 
 
 def test_extract_tables_semi_join() -> None:
     """
     Test ``LEFT SEMI JOIN``.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT a.date, b.name
 FROM left_table a
 LEFT SEMI JOIN (
@@ -473,18 +437,15 @@ LEFT SEMI JOIN (
 ) b
 ON a.data = b.date
 """
-        )
-        == {Table("left_table"), Table("right_table")}
-    )
+    ) == {Table("left_table"), Table("right_table")}
 
 
 def test_extract_tables_combinations() -> None:
     """
     Test a complex case with nested queries.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT * FROM t1
 WHERE s11 > ANY (
     SELECT * FROM t1 UNION ALL SELECT * FROM (
@@ -498,13 +459,10 @@ WHERE s11 > ANY (
     )
 )
 """
-        )
-        == {Table("t1"), Table("t3"), Table("t4"), Table("t6")}
-    )
+    ) == {Table("t1"), Table("t3"), Table("t4"), Table("t6")}
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT * FROM (
     SELECT * FROM (
         SELECT * FROM (
@@ -513,56 +471,45 @@ SELECT * FROM (
     ) AS S2
 ) AS S3
 """
-        )
-        == {Table("EmployeeS")}
-    )
+    ) == {Table("EmployeeS")}
 
 
 def test_extract_tables_with() -> None:
     """
     Test ``WITH``.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 WITH
     x AS (SELECT a FROM t1),
     y AS (SELECT a AS b FROM t2),
     z AS (SELECT b AS c FROM t3)
 SELECT c FROM z
 """
-        )
-        == {Table("t1"), Table("t2"), Table("t3")}
-    )
+    ) == {Table("t1"), Table("t2"), Table("t3")}
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 WITH
     x AS (SELECT a FROM t1),
     y AS (SELECT a AS b FROM x),
     z AS (SELECT b AS c FROM y)
 SELECT c FROM z
 """
-        )
-        == {Table("t1")}
-    )
+    ) == {Table("t1")}
 
 
 def test_extract_tables_reusing_aliases() -> None:
     """
     Test that the parser follows aliases.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 with q1 as ( select key from q2 where key = '5'),
 q2 as ( select key from src where key = '5')
 select * from (select key from q1) a
 """
-        )
-        == {Table("src")}
-    )
+    ) == {Table("src")}
 
     # weird query with circular dependency
     assert (
@@ -599,9 +546,8 @@ def test_extract_tables_complex() -> None:
     """
     Test a few complex queries.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT sum(m_examples) AS "sum__m_example"
 FROM (
     SELECT
@@ -622,29 +568,23 @@ FROM (
 ORDER BY "sum__m_example" DESC
 LIMIT 10;
 """
-        )
-        == {
-            Table("my_l_table"),
-            Table("my_b_table"),
-            Table("my_t_table"),
-            Table("inner_table"),
-        }
-    )
+    ) == {
+        Table("my_l_table"),
+        Table("my_b_table"),
+        Table("my_t_table"),
+        Table("inner_table"),
+    }
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT *
 FROM table_a AS a, table_b AS b, table_c as c
 WHERE a.id = b.id and b.id = c.id
 """
-        )
-        == {Table("table_a"), Table("table_b"), Table("table_c")}
-    )
+    ) == {Table("table_a"), Table("table_b"), Table("table_c")}
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT somecol AS somecol
 FROM (
     WITH bla AS (
@@ -688,63 +628,51 @@ FROM (
     LIMIT 50000
 )
 """
-        )
-        == {Table("a"), Table("b"), Table("c"), Table("d"), Table("e"), Table("f")}
-    )
+    ) == {Table("a"), Table("b"), Table("c"), Table("d"), Table("e"), Table("f")}
 
 
 def test_extract_tables_mixed_from_clause() -> None:
     """
     Test that the parser handles a ``FROM`` clause with table and subselect.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 SELECT *
 FROM table_a AS a, (select * from table_b) AS b, table_c as c
 WHERE a.id = b.id and b.id = c.id
 """
-        )
-        == {Table("table_a"), Table("table_b"), Table("table_c")}
-    )
+    ) == {Table("table_a"), Table("table_b"), Table("table_c")}
 
 
 def test_extract_tables_nested_select() -> None:
     """
     Test that the parser handles selects inside functions.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(TABLE_NAME)
 from INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_SCHEMA like "%bi%"),0x7e)));
 """,
-            "mysql",
-        )
-        == {Table("COLUMNS", "INFORMATION_SCHEMA")}
-    )
+        "mysql",
+    ) == {Table("COLUMNS", "INFORMATION_SCHEMA")}
 
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(COLUMN_NAME)
 from INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME="bi_achievement_daily"),0x7e)));
 """,
-            "mysql",
-        )
-        == {Table("COLUMNS", "INFORMATION_SCHEMA")}
-    )
+        "mysql",
+    ) == {Table("COLUMNS", "INFORMATION_SCHEMA")}
 
 
 def test_extract_tables_complex_cte_with_prefix() -> None:
     """
     Test that the parser handles CTEs with prefixes.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 WITH CTE__test (SalesPersonID, SalesOrderID, SalesYear)
 AS (
     SELECT SalesPersonID, SalesOrderID, YEAR(OrderDate) AS SalesYear
@@ -756,26 +684,21 @@ FROM CTE__test
 GROUP BY SalesYear, SalesPersonID
 ORDER BY SalesPersonID, SalesYear;
 """
-        )
-        == {Table("SalesOrderHeader")}
-    )
+    ) == {Table("SalesOrderHeader")}
 
 
 def test_extract_tables_identifier_list_with_keyword_as_alias() -> None:
     """
     Test that aliases that are keywords are parsed correctly.
     """
-    assert (
-        extract_tables(
-            """
+    assert extract_tables(
+        """
 WITH
     f AS (SELECT * FROM foo),
     match AS (SELECT * FROM f)
 SELECT * FROM match
 """
-        )
-        == {Table("foo")}
-    )
+    ) == {Table("foo")}
 
 
 def test_update() -> None:
@@ -1880,6 +1803,9 @@ WITH t AS (
 )
 SELECT * FROM t"""
     ).is_select()
+    assert not ParsedQuery("").is_select()
+    assert not ParsedQuery("USE foo").is_select()
+    assert ParsedQuery("USE foo; SELECT * FROM bar").is_select()
 
 
 def test_sqlquery() -> None:
@@ -1934,34 +1860,40 @@ def test_sqlstatement() -> None:
     ],
 )
 @pytest.mark.parametrize(
-    "macro",
-    [
-        "latest_partition('foo.bar')",
-        "latest_sub_partition('foo.bar', baz='qux')",
-    ],
-)
-@pytest.mark.parametrize(
-    "sql,expected",
+    "macro,expected",
     [
         (
-            "SELECT '{{{{ {engine}.{macro} }}}}'",
+            "latest_partition('foo.bar')",
             {Table(table="bar", schema="foo")},
         ),
         (
-            "SELECT * FROM foo.baz WHERE quux = '{{{{ {engine}.{macro} }}}}'",
-            {Table(table="bar", schema="foo"), Table(table="baz", schema="foo")},
+            "latest_partition(' foo.bar ')",  # Non-atypical user error which works
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format('bar'))",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_sub_partition('foo.bar', baz='qux')",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format(str('bar')))",
+            set(),
+        ),
+        (
+            "latest_partition('foo.{}'.format('bar'))",
+            set(),
         ),
     ],
 )
 def test_extract_tables_from_jinja_sql(
-    engine: str,
-    macro: str,
-    sql: str,
-    expected: set[Table],
+    engine: str, macro: str, expected: set[Table]
 ) -> None:
     assert (
         extract_tables_from_jinja_sql(
-            sql=sql.format(engine=engine, macro=macro),
+            sql=f"'{{{{ {engine}.{macro} }}}}'",
             database=Mock(),
         )
         == expected

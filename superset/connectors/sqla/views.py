@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Views used by the SqlAlchemy connector"""
+
 import logging
 import re
 

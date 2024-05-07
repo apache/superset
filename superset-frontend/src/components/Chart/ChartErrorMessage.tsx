@@ -18,9 +18,9 @@
  */
 
 import React from 'react';
+import { SupersetError } from '@superset-ui/core';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import { SupersetError } from 'src/components/ErrorMessage/types';
 
 interface Props {
   chartId: string;

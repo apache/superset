@@ -162,10 +162,14 @@ const StyledHeader = styled.div`
 
 const styledDisabled = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
+  cursor: not-allowed;
 
-  .ant-menu-item-active {
+  &:hover {
     color: ${theme.colors.grayscale.light1};
-    cursor: default;
+  }
+
+  .ant-menu-item-selected {
+    background-color: ${theme.colors.grayscale.light1};
   }
 `;
 
@@ -297,7 +301,11 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                 {link.childs?.map(item => {
                   if (typeof item === 'object') {
                     return item.disable ? (
-                      <DropdownMenu.Item key={item.label} css={styledDisabled}>
+                      <DropdownMenu.Item
+                        key={item.label}
+                        css={styledDisabled}
+                        disabled
+                      >
                         <Tooltip
                           placement="top"
                           title={t(
@@ -309,7 +317,9 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                       </DropdownMenu.Item>
                     ) : (
                       <DropdownMenu.Item key={item.label}>
-                        <a href={item.url}>{item.label}</a>
+                        <a href={item.url} onClick={item.onClick}>
+                          {item.label}
+                        </a>
                       </DropdownMenu.Item>
                     );
                   }

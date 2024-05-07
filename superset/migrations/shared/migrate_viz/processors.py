@@ -128,6 +128,10 @@ class TimeseriesChart(MigrateViz):
         ):
             self.data["bottom_margin"] = 30
 
+        left_margin = self.data.get("left_margin")
+        if self.data.get("y_axis_label") and (not left_margin or left_margin == "auto"):
+            self.data["left_margin"] = 30
+
         if (rolling_type := self.data.get("rolling_type")) and rolling_type != "None":
             self.data["rolling_type"] = rolling_type
 
@@ -213,3 +217,18 @@ class MigrateBubbleChart(MigrateViz):
 
         # Truncate y-axis by default to preserve layout
         self.data["y_axis_showminmax"] = True
+
+
+class MigrateHeatmapChart(MigrateViz):
+    source_viz_type = "heatmap"
+    target_viz_type = "heatmap_v2"
+    rename_keys = {
+        "all_columns_x": "x_axis",
+        "all_columns_y": "groupby",
+        "y_axis_bounds": "value_bounds",
+        "show_perc": "show_percentage",
+    }
+    remove_keys = {"sort_by_metric", "canvas_image_rendering"}
+
+    def _pre_action(self) -> None:
+        self.data["legend_type"] = "continuous"

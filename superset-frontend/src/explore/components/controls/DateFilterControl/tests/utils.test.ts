@@ -20,8 +20,6 @@
 import {
   customTimeRangeEncode,
   customTimeRangeDecode,
-  buildTimeRangeString,
-  formatTimeRange,
 } from 'src/explore/components/controls/DateFilterControl/utils';
 
 describe('Custom TimeRange', () => {
@@ -296,36 +294,5 @@ describe('Custom TimeRange', () => {
         matchedFlag: true,
       });
     });
-  });
-});
-
-describe('buildTimeRangeString', () => {
-  it('generates proper time range string', () => {
-    expect(
-      buildTimeRangeString('2010-07-30T00:00:00', '2020-07-30T00:00:00'),
-    ).toBe('2010-07-30T00:00:00 : 2020-07-30T00:00:00');
-    expect(buildTimeRangeString('', '2020-07-30T00:00:00')).toBe(
-      ' : 2020-07-30T00:00:00',
-    );
-    expect(buildTimeRangeString('', '')).toBe(' : ');
-  });
-});
-
-describe('formatTimeRange', () => {
-  it('generates a readable time range', () => {
-    expect(formatTimeRange('Last 7 days')).toBe('Last 7 days');
-    expect(formatTimeRange('No filter')).toBe('No filter');
-    expect(formatTimeRange('Yesterday : Tomorrow')).toBe(
-      'Yesterday ≤ col < Tomorrow',
-    );
-    expect(formatTimeRange('2010-07-30T00:00:00 : 2020-07-30T00:00:00')).toBe(
-      '2010-07-30 ≤ col < 2020-07-30',
-    );
-    expect(formatTimeRange('2010-07-30T01:00:00 : ')).toBe(
-      '2010-07-30T01:00:00 ≤ col < ∞',
-    );
-    expect(formatTimeRange(' : 2020-07-30T00:00:00')).toBe(
-      '-∞ ≤ col < 2020-07-30',
-    );
   });
 });

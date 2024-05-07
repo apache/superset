@@ -18,7 +18,6 @@
 # pylint: disable=import-outside-toplevel
 import json
 from datetime import datetime
-from typing import Optional
 
 import pytest
 from pytest_mock import MockFixture
@@ -26,6 +25,7 @@ from sqlalchemy.engine.reflection import Inspector
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
+from superset.sql_parse import Table
 
 
 def test_get_metrics(mocker: MockFixture) -> None:
@@ -37,7 +37,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
     from superset.models.core import Database
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    assert database.get_metrics("table") == [
+    assert database.get_metrics(Table("table")) == [
         {
             "expression": "COUNT(*)",
             "metric_name": "count",
@@ -52,8 +52,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
             cls,
             database: Database,
             inspector: Inspector,
-            table_name: str,
-            schema: Optional[str],
+            table: Table,
         ) -> list[MetricType]:
             return [
                 {
@@ -65,7 +64,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
             ]
 
     database.get_db_engine_spec = mocker.MagicMock(return_value=CustomSqliteEngineSpec)
-    assert database.get_metrics("table") == [
+    assert database.get_metrics(Table("table")) == [
         {
             "expression": "COUNT(DISTINCT user_id)",
             "metric_name": "count_distinct_user_id",
@@ -220,7 +219,7 @@ def test_get_prequeries(mocker: MockFixture) -> None:
     """
     mocker.patch.object(
         Database,
-        "get_sqla_engine_with_context",
+        "get_sqla_engine",
     )
     db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
     db_engine_spec.get_prequeries.return_value = ["set a=1", "set b=2"]
@@ -230,3 +229,63 @@ def test_get_prequeries(mocker: MockFixture) -> None:
         conn.cursor().execute.assert_has_calls(
             [mocker.call("set a=1"), mocker.call("set b=2")]
         )
+
+
+def test_catalog_cache() -> None:
+    """
+    Test the catalog cache.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        extra=json.dumps({"metadata_cache_timeout": {"catalog_cache_timeout": 10}}),
+    )
+
+    assert database.catalog_cache_enabled
+    assert database.catalog_cache_timeout == 10
+
+
+def test_get_default_catalog() -> None:
+    """
+    Test the `get_default_catalog` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    assert database.get_default_catalog() == "examples"
+
+
+def test_get_default_schema(mocker: MockFixture) -> None:
+    """
+    Test the `get_default_schema` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    with get_inspector() as inspector:
+        inspector.default_schema_name = "public"
+
+    assert database.get_default_schema("examples") == "public"
+    get_inspector.assert_called_with(catalog="examples")
+
+
+def test_get_all_catalog_names(mocker: MockFixture) -> None:
+    """
+    Test the `get_all_catalog_names` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    with get_inspector() as inspector:
+        inspector.bind.execute.return_value = [("examples",), ("other",)]
+
+    assert database.get_all_catalog_names(force=True) == {"examples", "other"}
+    get_inspector.assert_called_with(ssh_tunnel=None)

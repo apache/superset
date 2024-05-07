@@ -739,7 +739,7 @@
         "Вы уверены, что хотите сохранить и применить изменения?"
       ],
       "Area Chart": ["Диаграмма с областями"],
-      "Area Chart (legacy)": ["Диаграмма с областями (устарело)"],
+      "Time-series Area Chart (legacy)": ["Диаграмма с областями (устарело)"],
       "Area chart": ["Диаграмма с областями"],
       "Area chart opacity": ["Непрозрачность диаграммы с областями"],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
@@ -2504,7 +2504,7 @@
       ],
       "Line": ["Линейный"],
       "Line Chart": ["Линейный график"],
-      "Line Chart (legacy)": ["Линейный график (устарело)"],
+      "Time-series Line Chart (legacy)": ["Линейный график (устарело)"],
       "Line Style": ["Тип линии"],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         "Линейная диаграмма используется для визуализации показателей, полученных в рамках одной категории. Линейная диаграмма - это тип диаграммы, который отображает информацию в виде ряда точек данных, соединенных прямыми отрезками. Это базовый тип диаграммы, распространенный во многих областях."

@@ -238,6 +238,7 @@ const transformProps = (
     show_totals: showTotals,
     conditional_formatting: conditionalFormatting,
     allow_rearrange_columns: allowRearrangeColumns,
+    allow_render_html: allowRenderHtml,
   } = formData;
   const timeGrain = extractTimegrain(formData);
 
@@ -291,6 +292,7 @@ const transformProps = (
     columnColorFormatters,
     timeGrain,
     allowRearrangeColumns,
+    allowRenderHtml,
     onContextMenu,
   };
 };

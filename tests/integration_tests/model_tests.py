@@ -21,30 +21,31 @@ import unittest
 from unittest import mock
 
 from superset import security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable  # noqa: F401
 from superset.exceptions import SupersetException
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 
 import pytest
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.types import DateTime
+from sqlalchemy.types import DateTime  # noqa: F401
 
-import tests.integration_tests.test_app
+import tests.integration_tests.test_app  # noqa: F401
 from superset import app, db as metadata_db
-from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.postgres import PostgresEngineSpec  # noqa: F401
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
 from .fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
+    load_energy_table_with_slice,  # noqa: F401
+    load_energy_table_data,  # noqa: F401
 )
 
 
@@ -56,22 +57,22 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_with_context() as engine:
+        with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive/default", db)
 
-        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+        with model.get_sqla_engine(schema="core_db") as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive/core_db", db)
 
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_with_context() as engine:
+        with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive", db)
 
-        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+        with model.get_sqla_engine(schema="core_db") as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive/core_db", db)
 
@@ -79,11 +80,11 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "postgresql+psycopg2://postgres.airbnb.io:5439/prod"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_with_context() as engine:
+        with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
             self.assertEqual("prod", db)
 
-        with model.get_sqla_engine_with_context(schema="foo") as engine:
+        with model.get_sqla_engine(schema="foo") as engine:
             db = make_url(engine.url).database
             self.assertEqual("prod", db)
 
@@ -97,11 +98,11 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "hive://hive@hive.airbnb.io:10000/default?auth=NOSASL"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_with_context() as engine:
+        with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
             self.assertEqual("default", db)
 
-        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+        with model.get_sqla_engine(schema="core_db") as engine:
             db = make_url(engine.url).database
             self.assertEqual("core_db", db)
 
@@ -112,11 +113,11 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "mysql://root@localhost/superset"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_with_context() as engine:
+        with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
             self.assertEqual("superset", db)
 
-        with model.get_sqla_engine_with_context(schema="staging") as engine:
+        with model.get_sqla_engine(schema="staging") as engine:
             db = make_url(engine.url).database
             self.assertEqual("staging", db)
 
@@ -130,12 +131,12 @@ class TestDatabaseModel(SupersetTestCase):
 
         with override_user(example_user):
             model.impersonate_user = True
-            with model.get_sqla_engine_with_context() as engine:
+            with model.get_sqla_engine() as engine:
                 username = make_url(engine.url).username
                 self.assertEqual(example_user.username, username)
 
             model.impersonate_user = False
-            with model.get_sqla_engine_with_context() as engine:
+            with model.get_sqla_engine() as engine:
                 username = make_url(engine.url).username
                 self.assertNotEqual(example_user.username, username)
 
@@ -294,14 +295,14 @@ class TestDatabaseModel(SupersetTestCase):
     def test_select_star(self):
         db = get_example_database()
         table_name = "energy_usage"
-        sql = db.select_star(table_name, show_cols=False, latest_partition=False)
-        with db.get_sqla_engine_with_context() as engine:
+        sql = db.select_star(Table(table_name), show_cols=False, latest_partition=False)
+        with db.get_sqla_engine() as engine:
             quote = engine.dialect.identifier_preparer.quote_identifier
 
         source = quote(table_name) if db.backend in {"presto", "hive"} else table_name
         expected = f"SELECT\n  *\nFROM {source}\nLIMIT 100"
         assert expected in sql
-        sql = db.select_star(table_name, show_cols=True, latest_partition=False)
+        sql = db.select_star(Table(table_name), show_cols=True, latest_partition=False)
         # TODO(bkyryliuk): unify sql generation
         if db.backend == "presto":
             assert (
@@ -324,7 +325,9 @@ class TestDatabaseModel(SupersetTestCase):
         schema = "schema.name"
         table_name = "table/name"
         sql = db.select_star(
-            table_name, schema=schema, show_cols=False, latest_partition=False
+            Table(table_name, schema),
+            show_cols=False,
+            latest_partition=False,
         )
         fully_qualified_names = {
             "sqlite": '"schema.name"."table/name"',
@@ -340,20 +343,20 @@ class TestDatabaseModel(SupersetTestCase):
         main_db = get_example_database()
 
         if main_db.backend == "mysql":
-            df = main_db.get_df("SELECT 1", None)
+            df = main_db.get_df("SELECT 1", None, None)
             self.assertEqual(df.iat[0, 0], 1)
 
-            df = main_db.get_df("SELECT 1;", None)
+            df = main_db.get_df("SELECT 1;", None, None)
             self.assertEqual(df.iat[0, 0], 1)
 
     def test_multi_statement(self):
         main_db = get_example_database()
 
         if main_db.backend == "mysql":
-            df = main_db.get_df("USE superset; SELECT 1", None)
+            df = main_db.get_df("USE superset; SELECT 1", None, None)
             self.assertEqual(df.iat[0, 0], 1)
 
-            df = main_db.get_df("USE superset; SELECT ';';", None)
+            df = main_db.get_df("USE superset; SELECT ';';", None, None)
             self.assertEqual(df.iat[0, 0], ";")
 
     @mock.patch("superset.models.core.create_engine")

@@ -25,10 +25,10 @@ from flask_appbuilder.security.sqla.models import User
 from superset.extensions import db
 from superset.utils.core import override_user
 from tests.integration_tests.key_value.commands.fixtures import (
-    admin,
+    admin,  # noqa: F401
     ID_KEY,
     JSON_CODEC,
-    key_value_entry,
+    key_value_entry,  # noqa: F401
     RESOURCE,
     UUID_KEY,
 )
@@ -42,8 +42,8 @@ NEW_VALUE = "new value"
 
 def test_upsert_id_entry(
     app_context: AppContext,
-    admin: User,
-    key_value_entry: KeyValueEntry,
+    admin: User,  # noqa: F811
+    key_value_entry: KeyValueEntry,  # noqa: F811
 ) -> None:
     from superset.commands.key_value.upsert import UpsertKeyValueCommand
     from superset.key_value.models import KeyValueEntry
@@ -64,8 +64,8 @@ def test_upsert_id_entry(
 
 def test_upsert_uuid_entry(
     app_context: AppContext,
-    admin: User,
-    key_value_entry: KeyValueEntry,
+    admin: User,  # noqa: F811
+    key_value_entry: KeyValueEntry,  # noqa: F811
 ) -> None:
     from superset.commands.key_value.upsert import UpsertKeyValueCommand
     from superset.key_value.models import KeyValueEntry
@@ -84,7 +84,7 @@ def test_upsert_uuid_entry(
     assert entry.changed_by_fk == admin.id
 
 
-def test_upsert_missing_entry(app_context: AppContext, admin: User) -> None:
+def test_upsert_missing_entry(app_context: AppContext, admin: User) -> None:  # noqa: F811
     from superset.commands.key_value.upsert import UpsertKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 

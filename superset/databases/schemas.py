@@ -15,17 +15,30 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument, too-many-lines
+
+from __future__ import annotations
 
 import inspect
 import json
-from typing import Any
+import os
+from pathlib import Path
+from typing import Any, TypedDict
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
-from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
-from marshmallow.validate import Length, ValidationError
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    pre_load,
+    Schema,
+    validates,
+    validates_schema,
+)
+from marshmallow.validate import Length, OneOf, Range, ValidationError
 from sqlalchemy import MetaData
+from werkzeug.datastructures import FileStorage
 
 from superset import db, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
@@ -44,6 +57,14 @@ from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
     "type": "object",
+    "properties": {
+        "force": {"type": "boolean"},
+        "catalog": {"type": "string"},
+    },
+}
+
+database_catalogs_query_schema = {
+    "type": "object",
     "properties": {"force": {"type": "boolean"}},
 }
 
@@ -52,6 +73,7 @@ database_tables_query_schema = {
     "properties": {
         "force": {"type": "boolean"},
         "schema_name": {"type": "string"},
+        "catalog_name": {"type": "string"},
     },
     "required": ["schema_name"],
 }
@@ -570,6 +592,49 @@ class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
+class TableMetadataOptionsResponse(TypedDict):
+    deferrable: bool
+    initially: bool
+    match: bool
+    ondelete: bool
+    onupdate: bool
+
+
+class TableMetadataColumnsResponse(TypedDict, total=False):
+    keys: list[str]
+    longType: str
+    name: str
+    type: str
+    duplicates_constraint: str | None
+    comment: str | None
+
+
+class TableMetadataForeignKeysIndexesResponse(TypedDict):
+    column_names: list[str]
+    name: str
+    options: TableMetadataOptionsResponse
+    referred_columns: list[str]
+    referred_schema: str
+    referred_table: str
+    type: str
+
+
+class TableMetadataPrimaryKeyResponse(TypedDict):
+    column_names: list[str]
+    name: str
+    type: str
+
+
+class TableMetadataResponse(TypedDict):
+    name: str
+    columns: list[TableMetadataColumnsResponse]
+    foreignKeys: list[TableMetadataForeignKeysIndexesResponse]
+    indexes: list[TableMetadataForeignKeysIndexesResponse]
+    primaryKey: TableMetadataPrimaryKeyResponse
+    selectStar: str
+    comment: str | None
+
+
 class TableMetadataOptionsResponseSchema(Schema):
     deferrable = fields.Bool()
     initially = fields.Bool()
@@ -653,6 +718,12 @@ class SelectStarResponseSchema(Schema):
 class SchemasResponseSchema(Schema):
     result = fields.List(
         fields.String(metadata={"description": "A database schema name"})
+    )
+
+
+class CatalogsResponseSchema(Schema):
+    result = fields.List(
+        fields.String(metadata={"description": "A database catalog name"})
     )
 
 
@@ -977,4 +1048,390 @@ class DatabaseConnectionSchema(Schema):
     sqlalchemy_uri = fields.String(
         metadata={"description": sqlalchemy_uri_description},
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
+    )
+
+
+class DelimitedListField(fields.List):
+    """
+    Special marshmallow field for handling delimited lists.
+    formData expects a string, so we need to deserialize it into a list.
+    """
+
+    def _deserialize(
+        self, value: str, attr: Any, data: Any, **kwargs: Any
+    ) -> list[Any]:
+        try:
+            values = value.split(",") if value else []
+            return super()._deserialize(values, attr, data, **kwargs)
+        except AttributeError as exc:
+            raise ValidationError(
+                f"{attr} is not a delimited list it has a non string value {value}."
+            ) from exc
+
+
+class BaseUploadFilePostSchema(Schema):
+    _extension_config_key = ""
+
+    @validates("file")
+    def validate_file_extension(self, file: FileStorage) -> None:
+        allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"].intersection(
+            current_app.config[self._extension_config_key]
+        )
+        file_suffix = Path(file.filename).suffix
+        if not file_suffix or file_suffix[1:] not in allowed_extensions:
+            raise ValidationError([_("File extension is not allowed.")])
+
+
+class BaseUploadPostSchema(BaseUploadFilePostSchema):
+    already_exists = fields.String(
+        load_default="fail",
+        validate=OneOf(choices=("fail", "replace", "append")),
+        metadata={
+            "description": "What to do if the table already "
+            "exists accepts: fail, replace, append"
+        },
+    )
+    index_label = fields.String(
+        metadata={"description": "Index label for index column."}
+    )
+    columns_read = DelimitedListField(
+        fields.String(),
+        metadata={"description": "A List of the column names that should be read"},
+    )
+    dataframe_index = fields.Boolean(
+        metadata={"description": "Write dataframe index as a column."}
+    )
+    schema = fields.String(
+        metadata={"description": "The schema to upload the data file to."}
+    )
+    table_name = fields.String(
+        required=True,
+        validate=[Length(min=1, max=10000)],
+        allow_none=False,
+        metadata={"description": "The name of the table to be created/appended"},
+    )
+
+
+class ColumnarUploadPostSchema(BaseUploadPostSchema):
+    """
+    Schema for Columnar Upload
+    """
+
+    _extension_config_key = "COLUMNAR_EXTENSIONS"
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The Columnar file to upload",
+            "type": "string",
+            "format": "binary",
+        },
+    )
+
+
+class CSVUploadPostSchema(BaseUploadPostSchema):
+    """
+    Schema for CSV Upload
+    """
+
+    _extension_config_key = "CSV_EXTENSIONS"
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The CSV file to upload",
+            "type": "string",
+            "format": "text/csv",
+        },
+    )
+    delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
+    column_data_types = fields.String(
+        metadata={
+            "description": "A dictionary with column names and "
+            "their data types if you need to change "
+            "the defaults. Example: {'user_id':'int'}. "
+            "Check Python Pandas library for supported data types"
+        }
+    )
+    day_first = fields.Boolean(
+        metadata={
+            "description": "DD/MM format dates, international and European format"
+        }
+    )
+    skip_blank_lines = fields.Boolean(
+        metadata={"description": "Skip blank lines in the CSV file."}
+    )
+    skip_initial_space = fields.Boolean(
+        metadata={"description": "Skip spaces after delimiter."}
+    )
+    column_dates = DelimitedListField(
+        fields.String(),
+        metadata={
+            "description": "A list of column names that should be "
+            "parsed as dates. Example: date,timestamp"
+        },
+    )
+    decimal_character = fields.String(
+        metadata={
+            "description": "Character to recognize as decimal point. Default is '.'"
+        }
+    )
+    header_row = fields.Integer(
+        metadata={
+            "description": "Row containing the headers to use as column names"
+            "(0 is first line of data). Leave empty if there is no header row."
+        }
+    )
+    index_column = fields.String(
+        metadata={
+            "description": "Column to use as the row labels of the dataframe. "
+            "Leave empty if no index column"
+        }
+    )
+    null_values = DelimitedListField(
+        fields.String(),
+        metadata={
+            "description": "A list of strings that should be treated as null. "
+            "Examples: '' for empty strings, 'None', 'N/A',"
+            "Warning: Hive database supports only a single value"
+        },
+    )
+    rows_to_read = fields.Integer(
+        metadata={
+            "description": "Number of rows to read from the file. "
+            "If None, reads all rows."
+        },
+        allow_none=True,
+        validate=Range(min=1),
+    )
+    skip_rows = fields.Integer(
+        metadata={"description": "Number of rows to skip at start of file."}
+    )
+
+    @post_load
+    def convert_column_data_types(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        if "column_data_types" in data and data["column_data_types"]:
+            try:
+                data["column_data_types"] = json.loads(data["column_data_types"])
+            except json.JSONDecodeError as ex:
+                raise ValidationError(
+                    "Invalid JSON format for column_data_types"
+                ) from ex
+        return data
+
+    @validates("file")
+    def validate_file_size(self, file: FileStorage) -> None:
+        file.flush()
+        size = os.fstat(file.fileno()).st_size
+        if (
+            current_app.config["CSV_UPLOAD_MAX_SIZE"] is not None
+            and size > current_app.config["CSV_UPLOAD_MAX_SIZE"]
+        ):
+            raise ValidationError([_("File size exceeds the maximum allowed size.")])
+
+
+class ExcelUploadPostSchema(BaseUploadPostSchema):
+    """
+    Schema for Excel Upload
+    """
+
+    _extension_config_key = "EXCEL_EXTENSIONS"
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The Excel file to upload",
+            "type": "string",
+            "format": "binary",
+        },
+    )
+    sheet_name = fields.String(
+        metadata={
+            "description": "Strings used for sheet names "
+            "(default is the first sheet)."
+        }
+    )
+    column_dates = DelimitedListField(
+        fields.String(),
+        metadata={
+            "description": "A list of column names that should be "
+            "parsed as dates. Example: date,timestamp"
+        },
+    )
+    decimal_character = fields.String(
+        metadata={
+            "description": "Character to recognize as decimal point. Default is '.'"
+        }
+    )
+    header_row = fields.Integer(
+        metadata={
+            "description": "Row containing the headers to use as column names"
+            "(0 is first line of data). Leave empty if there is no header row."
+        }
+    )
+    index_column = fields.String(
+        metadata={
+            "description": "Column to use as the row labels of the dataframe. "
+            "Leave empty if no index column"
+        }
+    )
+    null_values = DelimitedListField(
+        fields.String(),
+        metadata={
+            "description": "A list of strings that should be treated as null. "
+            "Examples: '' for empty strings, 'None', 'N/A',"
+            "Warning: Hive database supports only a single value"
+        },
+    )
+    rows_to_read = fields.Integer(
+        metadata={
+            "description": "Number of rows to read from the file. "
+            "If None, reads all rows."
+        },
+        allow_none=True,
+        validate=Range(min=1),
+    )
+    skip_rows = fields.Integer(
+        metadata={"description": "Number of rows to skip at start of file."}
+    )
+
+
+class CSVMetadataUploadFilePostSchema(BaseUploadFilePostSchema):
+    """
+    Schema for CSV metadata.
+    """
+
+    _extension_config_key = "CSV_EXTENSIONS"
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The file to upload",
+            "type": "string",
+            "format": "binary",
+        },
+    )
+    delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
+    header_row = fields.Integer(
+        metadata={
+            "description": "Row containing the headers to use as column names"
+            "(0 is first line of data). Leave empty if there is no header row."
+        }
+    )
+
+
+class ExcelMetadataUploadFilePostSchema(BaseUploadFilePostSchema):
+    """
+    Schema for CSV metadata.
+    """
+
+    _extension_config_key = "EXCEL_EXTENSIONS"
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The file to upload",
+            "type": "string",
+            "format": "binary",
+        },
+    )
+    header_row = fields.Integer(
+        metadata={
+            "description": "Row containing the headers to use as column names"
+            "(0 is first line of data). Leave empty if there is no header row."
+        }
+    )
+
+
+class ColumnarMetadataUploadFilePostSchema(BaseUploadFilePostSchema):
+    """
+    Schema for CSV metadata.
+    """
+
+    _extension_config_key = "COLUMNAR_EXTENSIONS"
+
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The file to upload",
+            "type": "string",
+            "format": "binary",
+        },
+    )
+
+
+class UploadFileMetadataItemSchema(Schema):
+    sheet_name = fields.String(metadata={"description": "The name of the sheet"})
+    column_names = fields.List(
+        fields.String(),
+        metadata={"description": "A list of columns names in the sheet"},
+    )
+
+
+class UploadFileMetadata(Schema):
+    """
+    Schema for upload file metadata response.
+    """
+
+    items = fields.List(fields.Nested(UploadFileMetadataItemSchema))
+
+
+class OAuth2ProviderResponseSchema(Schema):
+    """
+    Schema for the payload sent on OAuth2 redirect.
+    """
+
+    code = fields.String(
+        required=False,
+        metadata={"description": "The authorization code returned by the provider"},
+    )
+    state = fields.String(
+        required=False,
+        metadata={"description": "The state parameter originally passed by the client"},
+    )
+    scope = fields.String(
+        required=False,
+        metadata={
+            "description": "A space-separated list of scopes granted by the user"
+        },
+    )
+    error = fields.String(
+        required=False,
+        metadata={
+            "description": "In case of an error, this field contains the error code"
+        },
+    )
+    error_description = fields.String(
+        required=False,
+        metadata={"description": "Additional description of the error"},
+    )
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        # Ignore unknown fields that might be sent by the OAuth2 provider
+        unknown = EXCLUDE
+
+
+class QualifiedTableSchema(Schema):
+    """
+    Schema for a qualified table reference.
+
+    Catalog and schema can be ommited, to fallback to default values. Table name must be
+    present.
+    """
+
+    name = fields.String(
+        required=True,
+        metadata={"description": "The table name"},
+    )
+    schema = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "The table schema"},
+    )
+    catalog = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "The table catalog"},
     )

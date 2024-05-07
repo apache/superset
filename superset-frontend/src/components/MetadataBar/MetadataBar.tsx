@@ -148,6 +148,7 @@ const Item = ({
       collapsed={collapsed}
       last={last}
       onClick={onClick ? () => onClick(type) : undefined}
+      role={onClick ? 'button' : undefined}
     >
       <Icon iconSize="l" className="metadata-icon" />
       {!collapsed && (

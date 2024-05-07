@@ -71,11 +71,13 @@ export interface TableControlsProps {
   columnNames: string[];
   columnTypes: GenericDataType[];
   isLoading: boolean;
+  rowcount: number;
 }
 
 export interface QueryResultInterface {
   colnames: string[];
   coltypes: GenericDataType[];
+  rowcount: number;
   data: Record<string, any>[][];
 }
 

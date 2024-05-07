@@ -21,6 +21,7 @@ from sqlalchemy import BigInteger, Date, DateTime, inspect, String
 
 from superset import app, db
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
@@ -39,9 +40,9 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     """Loading time series data from a zip file in the repo"""
     tbl_name = "multiformat_time_series"
     database = get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
-        table_exists = database.has_table_by_name(tbl_name)
+        table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
             url = get_example_url("multiformat_time_series.json.gz")

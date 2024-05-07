@@ -23,10 +23,9 @@ from typing import Any, Callable, Optional, Union
 from uuid import uuid4
 
 from alembic import op
-from sqlalchemy import engine_from_config, inspect
+from sqlalchemy import inspect
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
-from sqlalchemy.engine import reflection
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import Query, Session
 
@@ -48,6 +47,23 @@ def table_has_column(table: str, column: str) -> bool:
 
     try:
         return any(col["name"] == column for col in insp.get_columns(table))
+    except NoSuchTableError:
+        return False
+
+
+def table_has_index(table: str, index: str) -> bool:
+    """
+    Checks if an index exists in a given table.
+
+    :param table: A table name
+    :param index: A index name
+    :returns: True if the index exists in the table
+    """
+
+    insp = inspect(op.get_context().bind)
+
+    try:
+        return any(ind["name"] == index for ind in insp.get_indexes(table))
     except NoSuchTableError:
         return False
 
@@ -106,7 +122,7 @@ def paginated_update(
     result = session.execute(query)
 
     if print_page_progress is None or print_page_progress is True:
-        print_page_progress = lambda processed, total: print(
+        print_page_progress = lambda processed, total: print(  # noqa: E731
             f"    {processed}/{total}", end="\r"
         )
 

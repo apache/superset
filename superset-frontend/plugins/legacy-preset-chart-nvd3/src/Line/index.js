@@ -36,14 +36,14 @@ const metadata = new ChartMetadata({
     { url: battery, caption: t('Battery level over time') },
   ],
   label: ChartLabel.Deprecated,
-  name: t('Line Chart (legacy)'),
+  name: t('Time-series Line Chart (legacy)'),
   supportedAnnotationTypes: [
     ANNOTATION_TYPES.TIME_SERIES,
     ANNOTATION_TYPES.INTERVAL,
     ANNOTATION_TYPES.EVENT,
     ANNOTATION_TYPES.FORMULA,
   ],
-  tags: [t('Aesthetic'), t('Legacy'), t('nvd3'), t('Deprecated')],
+  tags: [t('Legacy'), t('nvd3')],
   thumbnail,
   useLegacyApi: true,
 });

@@ -19,11 +19,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
-from superset.models.core import Database
+from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
@@ -132,6 +133,31 @@ class DatabaseDAO(BaseDAO[Database]):
         }
 
     @classmethod
+    def get_datasets(
+        cls,
+        database_id: int,
+        catalog: str | None,
+        schema: str | None,
+    ) -> list[SqlaTable]:
+        """
+        Return all datasets, optionally filtered by catalog/schema.
+
+        :param database_id: The database ID
+        :param catalog: The catalog name
+        :param schema: The schema name
+        :return: A list of SqlaTable objects
+        """
+        return (
+            db.session.query(SqlaTable)
+            .filter(
+                SqlaTable.database_id == database_id,
+                SqlaTable.catalog == catalog,
+                SqlaTable.schema == schema,
+            )
+            .all()
+        )
+
+    @classmethod
     def get_ssh_tunnel(cls, database_id: int) -> SSHTunnel | None:
         ssh_tunnel = (
             db.session.query(SSHTunnel)
@@ -165,3 +191,9 @@ class SSHTunnelDAO(BaseDAO[SSHTunnel]):
             attributes = unmask_password_info(attributes, item)
 
         return super().update(item, attributes, commit)
+
+
+class DatabaseUserOAuth2TokensDAO(BaseDAO[DatabaseUserOAuth2Tokens]):
+    """
+    DAO for OAuth2 tokens.
+    """
