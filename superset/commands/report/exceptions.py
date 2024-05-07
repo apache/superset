@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import math
+
 from flask_babel import lazy_gettext as _
 
 from superset.commands.exceptions import (
@@ -104,11 +106,8 @@ class ReportScheduleFrequencyNotAllowed(ValidationError):
         report_type: str = "Report",
         minimum_interval: int = 120,
     ) -> None:
-        interval_in_minutes = (
-            minimum_interval / 60
-            if not minimum_interval % 60
-            else minimum_interval // 60 + 1
-        )
+        interval_in_minutes = math.ceil(minimum_interval / 60)
+
         super().__init__(
             _(
                 "%(report_type)s schedule frequency exceeding limit."
