@@ -1071,7 +1071,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=ex.message,
                     )
                 ) from ex
-        sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
+        sql = sqlparse.format(sql.strip("\t\r\n; "))
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         if len(sqlparse.split(sql)) > 1:

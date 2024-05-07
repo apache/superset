@@ -458,9 +458,11 @@ class BaseDatasource(
                 )
             else:
                 _columns = [
-                    utils.get_column_name(column_)
-                    if utils.is_adhoc_column(column_)
-                    else column_
+                    (
+                        utils.get_column_name(column_)
+                        if utils.is_adhoc_column(column_)
+                        else column_
+                    )
                     for column_param in COLUMN_FORM_DATA_PARAMS
                     for column_ in utils.as_list(form_data.get(column_param) or [])
                 ]
@@ -757,7 +759,6 @@ class AnnotationDatasource(BaseDatasource):
 
 
 class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
-
     """ORM object for table columns, each table can have multiple columns"""
 
     __tablename__ = "table_columns"
@@ -971,7 +972,6 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
 
 class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
-
     """ORM object for metrics, each table can have multiple metrics"""
 
     __tablename__ = "sql_metrics"
@@ -1492,7 +1492,7 @@ class SqlaTable(
                         msg=ex.message,
                     )
                 ) from ex
-        sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
+        sql = sqlparse.format(sql.strip("\t\r\n; "))
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         if len(sqlparse.split(sql)) > 1:
