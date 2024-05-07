@@ -633,7 +633,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      ...sections.timeComparisonControls(false, false),
+      ...sections.timeComparisonControls(false, false, false),
       visibility: isAggMode,
     },
   ],

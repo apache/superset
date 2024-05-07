@@ -20,21 +20,46 @@ import { t, ComparisonType } from '@superset-ui/core';
 
 import { ControlPanelSectionConfig } from '../types';
 
+const fullChoices = [
+  ['1 day ago', t('1 day ago')],
+  ['1 week ago', t('1 week ago')],
+  ['28 days ago', t('28 days ago')],
+  ['30 days ago', t('30 days ago')],
+  ['1 month ago', t('1 month ago')],
+  ['52 weeks ago', t('52 weeks ago')],
+  ['1 year ago', t('1 year ago')],
+  ['104 weeks ago', t('104 weeks ago')],
+  ['2 years ago', t('2 years ago')],
+  ['156 weeks ago', t('156 weeks ago')],
+  ['3 years ago', t('3 years ago')],
+  ['custom', t('Custom date')],
+  ['inherit', t('Inherit range from time filter')],
+];
+
+const reducedKeys = new Set([
+  '1 day ago',
+  '1 week ago',
+  '1 month ago',
+  '1 year ago',
+  'custom',
+  'inherit',
+]);
+
+// Filter fullChoices to get only the entries whose keys are in reducedKeys
+const reducedChoices = fullChoices.filter(choice => reducedKeys.has(choice[0]));
+
 export const timeComparisonControls: (
   multi?: boolean,
-  show_calculation_type?: boolean,
+  showCalculationType?: boolean,
+  showFullChoices?: boolean,
 ) => ControlPanelSectionConfig = (
   multi = true,
-  show_calculation_type = true,
+  showCalculationType = true,
+  showFullChoices = true,
 ) => ({
   label: t('Time Comparison'),
   tabOverride: 'data',
-  description: t(
-    'This section contains options ' +
-      'that allow for time comparison ' +
-      'of query results using some portions of the ' +
-      'existing advanced analytics section',
-  ),
+  description: t('Compare results with other time periods.'),
   controlSetRows: [
     [
       {
@@ -43,26 +68,18 @@ export const timeComparisonControls: (
           type: 'SelectControl',
           multi,
           freeForm: true,
+          placeholder: t('Select or type a custom value...'),
           label: t('Time shift'),
-          choices: [
-            ['1 day ago', t('1 day ago')],
-            ['1 week ago', t('1 week ago')],
-            ['28 days ago', t('28 days ago')],
-            ['30 days ago', t('30 days ago')],
-            ['52 weeks ago', t('52 weeks ago')],
-            ['1 year ago', t('1 year ago')],
-            ['104 weeks ago', t('104 weeks ago')],
-            ['2 years ago', t('2 years ago')],
-            ['156 weeks ago', t('156 weeks ago')],
-            ['3 years ago', t('3 years ago')],
-            ['custom', t('Custom')],
-            ['inherit', t('Inherit')],
-          ],
+          choices: showFullChoices ? fullChoices : reducedChoices,
           description: t(
-            'Overlay one or more timeseries from a ' +
-              'relative time period. Expects relative time deltas ' +
+            'Overlay results from a relative time period. ' +
+              'Expects relative time deltas ' +
               'in natural language (example:  24 hours, 7 days, ' +
-              '52 weeks, 365 days). Free text is supported.',
+              '52 weeks, 365 days). Free text is supported. ' +
+              'Use "Inherit range from time filters" ' +
+              'to shift the comparison time range ' +
+              'by the same length as your time range ' +
+              'and use "Custom" to set a custom comparison range.',
           ),
         },
       },
@@ -96,7 +113,7 @@ export const timeComparisonControls: (
               'difference between the main time series and each time shift; ' +
               'as the percentage change; or as the ratio between series and time shifts.',
           ),
-          visibility: () => Boolean(show_calculation_type),
+          visibility: () => Boolean(showCalculationType),
         },
       },
     ],
