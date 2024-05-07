@@ -184,10 +184,10 @@ export default function transformProps(
     zoomable,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const refs: Refs = {};
-
+  const groupBy = ensureIsArray(groupby);
   const labelMap = Object.entries(label_map).reduce((acc, entry) => {
     if (
-      entry[1].length > groupby.length &&
+      entry[1].length > groupBy.length &&
       Array.isArray(timeCompare) &&
       timeCompare.includes(entry[1][0])
     ) {
@@ -219,7 +219,7 @@ export default function transformProps(
     getMetricLabel,
   );
 
-  const isMultiSeries = groupby?.length || metrics?.length > 1;
+  const isMultiSeries = groupBy.length || metrics?.length > 1;
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -538,7 +538,7 @@ export default function transformProps(
           // if there are no dimensions, key is a verbose name of a metric,
           // otherwise it is a comma separated string where the first part is metric name
           const formatterKey =
-            groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
+            groupBy.length === 0 ? inverted[key] : labelMap[key]?.[0];
           const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
@@ -576,6 +576,7 @@ export default function transformProps(
       right: TIMESERIES_CONSTANTS.toolboxRight,
       feature: {
         dataZoom: {
+          ...(stack ? { yAxisIndex: false } : {}), // disable y-axis zoom for stacked charts
           title: {
             zoom: t('zoom area'),
             back: t('restore zoom'),
@@ -604,7 +605,7 @@ export default function transformProps(
     echartOptions,
     emitCrossFilters,
     formData,
-    groupby,
+    groupby: groupBy,
     height,
     labelMap,
     selectedValues,
