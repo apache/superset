@@ -228,6 +228,7 @@ class ChartDataRestApi(ChartRestApi):
         json_body = None
         if request.is_json:
             json_body = request.json
+            print("============json_body========", json_body)
         elif request.form.get("form_data"):
             # CSV export submits regular form data
             with contextlib.suppress(TypeError, json.JSONDecodeError):
@@ -256,8 +257,9 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
+            print("============ran_async========")
             return self._run_async(json_body, command)
-
+        print("============not_async========")
         form_data = json_body.get("form_data")
         return self._get_data_response(
             command, form_data=form_data, datasource=query_context.datasource
