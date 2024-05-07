@@ -38,6 +38,8 @@ import { parseAxisBound } from '../utils/controls';
 import { NULL_STRING } from '../constants';
 import { getPercentFormatter } from '../utils/formatters';
 
+const DEFAULT_ECHARTS_BOUNDS = [0, 200];
+
 // Calculated totals per x and y categories plus total
 const calculateTotals = memoizeOne(
   (
@@ -123,11 +125,14 @@ export default function transformProps(
 
   let [min, max] = (valueBounds || []).map(parseAxisBound);
   if (min === undefined) {
-    min = (minBy(data, row => row[colorColumn])?.[colorColumn] as number) || 0;
+    min =
+      (minBy(data, row => row[colorColumn])?.[colorColumn] as number) ||
+      DEFAULT_ECHARTS_BOUNDS[0];
   }
   if (max === undefined) {
     max =
-      (maxBy(data, row => row[colorColumn])?.[colorColumn] as number) || 200;
+      (maxBy(data, row => row[colorColumn])?.[colorColumn] as number) ||
+      DEFAULT_ECHARTS_BOUNDS[1];
   }
 
   const series: HeatmapSeriesOption[] = [

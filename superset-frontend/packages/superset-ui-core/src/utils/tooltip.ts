@@ -41,14 +41,12 @@ export function tooltipHtml(
             .map((row, i) => {
               const rowStyle =
                 i === focusedRow ? 'font-weight: 700;' : 'opacity: 0.8;';
-              let padding = 0;
               const cells = row.map((cell, j) => {
                 const cellStyle = `
                   text-align: ${j > 0 ? 'right' : 'left'};
-                  padding-left: ${padding}px;
+                  padding-left: ${j === 0 ? 0 : 16}px;
                   ${TRUNCATION_STYLE}
                 `;
-                padding = 16;
                 return `<td style="${cellStyle}">${cell}</td>`;
               });
               return `<tr style="${rowStyle}">${cells.join('')}</tr>`;
