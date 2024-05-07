@@ -105,10 +105,12 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
+config = app.config
 logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
+ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 
 def validate_adhoc_subquery(
@@ -1815,16 +1817,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     is_list_target=is_list_target,
                     db_engine_spec=db_engine_spec,
                 )
-                advanced_data_type = app.config["ADVANCED_DATA_TYPES"]
                 if (
                     col_advanced_data_type != ""
                     and feature_flag_manager.is_feature_enabled(
                         "ENABLE_ADVANCED_DATA_TYPES"
                     )
-                    and col_advanced_data_type in advanced_data_type
+                    and col_advanced_data_type in ADVANCED_DATA_TYPES
                 ):
                     values = eq if is_list_target else [eq]  # type: ignore
-                    bus_resp: AdvancedDataTypeResponse = advanced_data_type[
+                    bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
                         col_advanced_data_type
                     ].translate_type(
                         {
@@ -1838,7 +1839,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
 
                     where_clause_and.append(
-                        advanced_data_type[col_advanced_data_type].translate_filter(
+                        ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
                             sqla_col, op, bus_resp["values"]
                         )
                     )
