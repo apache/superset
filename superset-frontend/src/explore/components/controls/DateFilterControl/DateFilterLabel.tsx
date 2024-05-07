@@ -1,21 +1,5 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
+
 import React, { ReactNode, useState, useEffect, useMemo } from 'react';
 import {
   css,
@@ -375,7 +359,8 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         getPopupContainer={trigger => trigger.parentElement as HTMLElement}
       >
         <DateLabel
-          label={actualTimeRange}
+          // label={actualTimeRange} // DODO commented #33067895
+          label={t(actualTimeRange)} // DODO changed #33067895
           isActive={show}
           isPlaceholder={actualTimeRange === NO_TIME_RANGE}
           data-test={DATE_FILTER_TEST_KEY.popoverOverlay}
@@ -394,7 +379,8 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       >
         <DateLabel
           onClick={toggleOverlay}
-          label={actualTimeRange}
+          // label={actualTimeRange} // DODO commented #33067895
+          label={t(actualTimeRange)} // DODO changed #33067895
           isActive={show}
           isPlaceholder={actualTimeRange === NO_TIME_RANGE}
           data-test={DATE_FILTER_TEST_KEY.modalOverlay}

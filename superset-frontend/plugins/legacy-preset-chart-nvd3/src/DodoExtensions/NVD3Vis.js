@@ -67,7 +67,7 @@ export const applyXAxisBounds = ({
     ) {
       // Because there are custom bounds, we need to override them back to the domain of the
       // data since this is a stream area chart
-      chart.xDomain(computeStackedYDomain(data));
+      chart.xDomain(computeStackedXDomain(data));
     } else if (hasCustomMin && hasCustomMax) {
       // Override the y domain if there's both a custom min and max
       chart.xDomain([customMin, customMax]);
