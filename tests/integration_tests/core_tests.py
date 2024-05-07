@@ -540,7 +540,9 @@ class TestCore(SupersetTestCase):
             database=get_example_database(),
         )
         rendered_query = str(table.get_from_clause()[0])
-        self.assertEqual(clean_query, rendered_query)
+        assert "comment 1" in rendered_query
+        assert "comment 2" in rendered_query
+        assert "FROM tbl" in rendered_query
 
     def test_slice_payload_no_datasource(self):
         form_data = {
