@@ -50,10 +50,6 @@ import NewForecastModule from '../gridComponents/new/components/NewForecastModul
 export interface BCPProps {
   isStandalone: boolean;
   topOffset: number;
-  hasDynamicMarkdown?: boolean;
-  sidepanelExpanded?: boolean;
-  handleExpandSidepanel?: () => void;
-  handleCollapseSidepanel?: () => void;
 }
 
 const SUPERSET_HEADER_HEIGHT = 59;
@@ -88,37 +84,11 @@ const DashboardBuilderSidepane = styled.div<{
 const BuilderComponentPane: React.FC<BCPProps> = ({
   isStandalone,
   topOffset = 0,
-  hasDynamicMarkdown,
-  sidepanelExpanded,
-  handleExpandSidepanel,
-  handleCollapseSidepanel,
 }) => (
   <DashboardBuilderSidepane
     topOffset={topOffset}
     className="dashboard-builder-sidepane"
-    style={{ width: hasDynamicMarkdown ? '40px' : '374px' }}
   >
-    {/* <button
-      className="sidepanel-toggle-button"
-      type="button"
-      onClick={
-        sidepanelExpanded ? handleCollapseSidepanel : handleExpandSidepanel
-      }
-    >
-      <svg
-        className={`sidepanel-toggle-btn-svg ${
-          sidepanelExpanded ? 'expanded' : 'collapsed'
-        }`}
-        width="14"
-        height="7"
-        viewBox="0 0 14 7"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        // style="transform: rotate(90deg);"
-      >
-        <path d="M6.58824e-05 5.88002C-0.000423903 5.73593 0.0313676 5.59357 0.0931037 5.46339C0.15484 5.33321 0.244952 5.21852 0.356819 5.12774L6.14199 0.469403C6.31451 0.327549 6.53092 0.25 6.75425 0.25C6.97758 0.25 7.19399 0.327549 7.36651 0.469403L13.1517 5.2917C13.3486 5.45541 13.4724 5.69065 13.4959 5.94568C13.5194 6.2007 13.4407 6.45463 13.277 6.65159C13.1134 6.84855 12.8782 6.97241 12.6232 6.99592C12.3683 7.01943 12.1144 6.94067 11.9175 6.77697L6.74943 2.46583L1.58134 6.6323C1.43982 6.75023 1.26748 6.82515 1.08471 6.84818C0.901951 6.87121 0.716417 6.84139 0.550067 6.76226C0.383716 6.68312 0.243512 6.55797 0.146041 6.40162C0.0485703 6.24527 -0.002086 6.06426 6.58824e-05 5.88002Z" />
-      </svg>
-    </button> */}
     <ParentSize>
       {({ height }) => (
         <StickyContainer>
@@ -137,8 +107,6 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                   style={{
                     ...style,
                     top: hasHeader ? withHeaderTopOffset : topOffset,
-                    width: hasDynamicMarkdown ? '40px' : '374px',
-                    ...(hasDynamicMarkdown && { opacity: '0.24' }),
                   }}
                 >
                   <BuilderComponentPaneTabs

@@ -76,9 +76,6 @@ import { useNativeFilters } from './state';
 
 type DashboardBuilderProps = {};
 
-let hasDynamicMarkdown = false;
-let sidepanelExpanded = true;
-
 const StyledDiv = styled.div`
   display: grid;
   grid-template-columns: auto 1fr;
@@ -201,9 +198,7 @@ const StyledDashboardContent = styled.div<{
       editMode &&
       `
       max-width: calc(100% - ${
-        hasDynamicMarkdown
-          ? '80px'
-          : BUILDER_SIDEPANEL_WIDTH + theme.gridUnit * 16
+        BUILDER_SIDEPANEL_WIDTH + theme.gridUnit * 16
       }px);
     `}
   }
@@ -264,16 +259,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     [dispatch],
   );
 
-  const handleExpandSidepanel = () => {
-    console.log('handleExpandSidepanel', sidepanelExpanded);
-    sidepanelExpanded = true;
-  };
-
-  const handleCollapseSidepanel = () => {
-    console.log('handleCollapseSidepanel', sidepanelExpanded);
-    sidepanelExpanded = false;
-  };
-
   const headerRef = React.useRef<HTMLDivElement>(null);
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
   const rootChildId = dashboardRoot?.children[0];
@@ -288,26 +273,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     standaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE ||
     isReport;
   const [barTopOffset, setBarTopOffset] = useState(0);
-
-  if (
-    dashboardLayout[DASHBOARD_GRID_ID]?.children &&
-    dashboardLayout[DASHBOARD_GRID_ID]?.children?.length > 0
-  ) {
-    const dashItems = dashboardLayout[DASHBOARD_GRID_ID]?.children;
-    Object.keys(dashItems).forEach((item: any) => {
-      if (dashItems[item].includes('IKI_DYNAMIC_MARKDOWN')) {
-        hasDynamicMarkdown = true;
-        sidepanelExpanded = false;
-      }
-    });
-  }
-
-  console.log(
-    'dashboardLayout[DASHBOARD_GRID_ID]?.children',
-    dashboardLayout[DASHBOARD_GRID_ID]?.children,
-    hasDynamicMarkdown,
-    sidepanelExpanded,
-  );
 
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
@@ -324,7 +289,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     }
 
     const iframeUrl: any = new URL(window.location.href);
-    console.log('iframeUrl', iframeUrl);
+
     if (iframeUrl && iframeUrl.search) {
       dispatch(setSupersetUrl(iframeUrl.toString()));
     }
@@ -539,10 +504,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
               <BuilderComponentPane
                 isStandalone={!!standaloneMode}
                 topOffset={barTopOffset}
-                hasDynamicMarkdown={hasDynamicMarkdown}
-                sidepanelExpanded={sidepanelExpanded}
-                handleExpandSidepanel={handleExpandSidepanel}
-                handleCollapseSidepanel={handleCollapseSidepanel}
               />
             )}
           </StyledDashboardContent>
