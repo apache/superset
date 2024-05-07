@@ -16,15 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD:superset-frontend/src/components/Chart/Chart.jsx
 import PropTypes from 'prop-types';
 import { PureComponent } from 'react';
+=======
+import React, { MouseEventHandler } from 'react';
+>>>>>>> fcb4d64048 (refactor: Migration of Chart.jsx to TypeScript):superset-frontend/src/components/Chart/Chart.tsx
 import {
   ensureIsArray,
   FeatureFlag,
   isFeatureEnabled,
   logging,
+  QueryFormData,
   styled,
   t,
+  SupersetError,
 } from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
@@ -40,6 +46,7 @@ import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
+<<<<<<< HEAD:superset-frontend/src/components/Chart/Chart.jsx
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
@@ -83,26 +90,73 @@ const propTypes = {
   isInView: PropTypes.bool,
   emitCrossFilters: PropTypes.bool,
 };
+=======
+export interface ChartProps {
+  annotationData?: object;
+  actions: any;
+  chartId: string;
+  datasource?: {
+    database?: {
+      name: string;
+    };
+  };
+  dashboardId?: number;
+  initialValues?: object;
+  formData: QueryFormData;
+  labelColors?: object;
+  sharedLabelColors?: object;
+  width: number;
+  height: number;
+  setControlValue: Function;
+  timeout?: number;
+  vizType: string;
+  triggerRender?: boolean;
+  force?: boolean;
+  isFiltersInitialized?: boolean;
+  chartAlert?: string;
+  chartStatus?: string;
+  chartStackTrace?: string;
+  queriesResponse?: queryResponse[];
+  triggerQuery?: boolean;
+  chartIsStale?: boolean;
+  errorMessage?: React.ReactNode;
+  addFilter?: Function;
+  onQuery?: MouseEventHandler<HTMLSpanElement>;
+  onFilterMenuOpen?: Function;
+  onFilterMenuClose?: Function;
+  ownState?: any;
+  postTransformProps?: Function;
+  datasetsStatus?: 'loading' | 'error' | 'complete';
+  isInView?: boolean;
+  emitCrossFilters?: boolean;
+  renderStartTime?: Date;
+}
+>>>>>>> fcb4d64048 (refactor: Migration of Chart.jsx to TypeScript):superset-frontend/src/components/Chart/Chart.tsx
 
+export type queryResponse = {
+  errors: SupersetError[];
+  message: string;
+  link: string;
+};
 const BLANK = {};
 const NONEXISTENT_DATASET = t(
   'The dataset associated with this chart no longer exists',
 );
 
-const defaultProps = {
+const defaultProps: Partial<ChartProps> = {
   addFilter: () => BLANK,
   onFilterMenuOpen: () => BLANK,
   onFilterMenuClose: () => BLANK,
   initialValues: BLANK,
-  setControlValue() {},
+  setControlValue: () => BLANK,
   triggerRender: false,
-  dashboardId: null,
-  chartStackTrace: null,
+  dashboardId: undefined,
+  chartStackTrace: undefined,
   force: false,
   isInView: true,
 };
 
-const Styles = styled.div`
+const Styles = styled.div<{ height: number; width?: number }>`
   min-height: ${p => p.height}px;
   position: relative;
   text-align: center;
@@ -150,9 +204,21 @@ const MonospaceDiv = styled.div`
   overflow-x: auto;
   white-space: pre-wrap;
 `;
+class Chart extends React.PureComponent<ChartProps, {}> {
+  static defaultProps = defaultProps;
 
+<<<<<<< HEAD:superset-frontend/src/components/Chart/Chart.jsx
 class Chart extends PureComponent {
   constructor(props) {
+=======
+  renderStartTime: any;
+
+  renderContainerStartTime: number;
+
+  static propTypes: any;
+
+  constructor(props: ChartProps) {
+>>>>>>> fcb4d64048 (refactor: Migration of Chart.jsx to TypeScript):superset-frontend/src/components/Chart/Chart.tsx
     super(props);
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
@@ -182,7 +248,10 @@ class Chart extends PureComponent {
     );
   }
 
-  handleRenderContainerFailure(error, info) {
+  handleRenderContainerFailure(
+    error: Error,
+    info: { componentStack: string } | null,
+  ) {
     const { actions, chartId } = this.props;
     logging.warn(error);
     actions.chartRenderingFailed(
@@ -201,7 +270,7 @@ class Chart extends PureComponent {
     });
   }
 
-  renderErrorMessage(queryResponse) {
+  renderErrorMessage(queryResponse: queryResponse) {
     const {
       chartId,
       chartAlert,
@@ -241,14 +310,14 @@ class Chart extends PureComponent {
         error={error}
         subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
         copyText={message}
-        link={queryResponse ? queryResponse.link : null}
+        link={queryResponse ? queryResponse.link : undefined}
         source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
         stackTrace={chartStackTrace}
       />
     );
   }
 
-  renderSpinner(databaseName) {
+  renderSpinner(databaseName: string | undefined) {
     const message = databaseName
       ? t('Waiting on %s', databaseName)
       : t('Waiting on database...');
@@ -354,8 +423,4 @@ class Chart extends PureComponent {
     );
   }
 }
-
-Chart.propTypes = propTypes;
-Chart.defaultProps = defaultProps;
-
 export default Chart;

@@ -21,10 +21,16 @@ import { FC } from 'react';
 import { SupersetError } from '@superset-ui/core';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import { ChartSource } from 'src/types/ChartSource';
 
-interface Props {
+export interface Props {
   chartId: string;
   error?: SupersetError;
+  subtitle: JSX.Element;
+  copyText: string;
+  link: string | undefined;
+  source: ChartSource;
+  stackTrace?: string;
 }
 
 /**
