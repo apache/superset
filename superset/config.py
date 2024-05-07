@@ -1227,7 +1227,7 @@ DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
 
 
 # A function that intercepts the SQL to be executed and can alter it.
-# The use case is can be around adding some sort of comment header
+# A common use case for this is around adding some sort of comment header to the SQL
 # with information such as the username and worker node information
 #
 #    def SQL_QUERY_MUTATOR(
@@ -1237,9 +1237,12 @@ DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
 #    ):
 #        dttm = datetime.now().isoformat()
 #        return f"-- [SQL LAB] {user_name} {dttm}\n{sql}"
-# For backward compatibility, you can unpack any of the above arguments in your
+#
+# NOTE: For backward compatibility, you can unpack any of the above arguments in your
 # function definition, but keep the **kwargs as the last argument to allow new args
 # to be added later without any errors.
+# NOTE: whatever you in this function DOES NOT affect the cache key, so ideally this function
+# is "functional", as in deterministic from its input.
 def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     sql: str, **kwargs: Any
 ) -> str:
