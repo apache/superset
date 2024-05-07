@@ -29,7 +29,6 @@ import antarctica from './countries/antarctica.geojson';
 import antigua_and_barbuda from './countries/antigua_and_barbuda.geojson';
 import argentina from './countries/argentina.geojson';
 import armenia from './countries/armenia.geojson';
-import aruba from './countries/aruba.geojson';
 import australia from './countries/australia.geojson';
 import austria from './countries/austria.geojson';
 import azerbaijan from './countries/azerbaijan.geojson';
@@ -48,7 +47,6 @@ import bosnia_and_herzegovina from './countries/bosnia_and_herzegovina.geojson';
 import botswana from './countries/botswana.geojson';
 import brazil from './countries/brazil.geojson';
 import brunei from './countries/brunei.geojson';
-import british_indian_ocean_territory from './countries/british_indian_ocean_territory.geojson';
 import bulgaria from './countries/bulgaria.geojson';
 import burkina_faso from './countries/burkina_faso.geojson';
 import burundi from './countries/burundi.geojson';
@@ -56,7 +54,6 @@ import cape_verde from './countries/cape_verde.geojson';
 import cambodia from './countries/cambodia.geojson';
 import cameroon from './countries/cameroon.geojson';
 import canada from './countries/canada.geojson';
-import cayman_islands from './countries/cayman_islands.geojson';
 import central_african_republic from './countries/central_african_republic.geojson';
 import chad from './countries/chad.geojson';
 import chile from './countries/chile.geojson';
@@ -68,7 +65,6 @@ import cook_islands from './countries/cook_islands.geojson';
 import costa_rica from './countries/costa_rica.geojson';
 import croatia from './countries/croatia.geojson';
 import cuba from './countries/cuba.geojson';
-import curaçao from './countries/curaçao.geojson';
 import cyprus from './countries/cyprus.geojson';
 import czech_republic from './countries/czech_republic.geojson';
 import denmark from './countries/denmark.geojson';
@@ -82,8 +78,6 @@ import equatorial_guinea from './countries/equatorial_guinea.geojson';
 import eritrea from './countries/eritrea.geojson';
 import estonia from './countries/estonia.geojson';
 import ethiopia from './countries/ethiopia.geojson';
-import falkland_islands from './countries/falkland_islands.geojson';
-import faroe_islands from './countries/faroe_islands.geojson';
 import fiji from './countries/fiji.geojson';
 import finland from './countries/finland.geojson';
 import france from './countries/france.geojson';
@@ -92,14 +86,11 @@ import gabon from './countries/gabon.geojson';
 import gambia from './countries/gambia.geojson';
 import germany from './countries/germany.geojson';
 import ghana from './countries/ghana.geojson';
-import gibraltar from './countries/gibraltar.geojson';
 import greece from './countries/greece.geojson';
 import greenland from './countries/greenland.geojson';
 import grenada from './countries/grenada.geojson';
-import guam from './countries/guam.geojson';
 import guatemala from './countries/guatemala.geojson';
 import haiti from './countries/haiti.geojson';
-import guernsey from './countries/guernsey.geojson';
 import guinea from './countries/guinea.geojson';
 import guyana from './countries/guyana.geojson';
 import honduras from './countries/honduras.geojson';
@@ -138,7 +129,6 @@ import mauritius from './countries/mauritius.geojson';
 import mexico from './countries/mexico.geojson';
 import moldova from './countries/moldova.geojson';
 import montserrat from './countries/montserrat.geojson';
-import monaco from './countries/monaco.geojson';
 import mongolia from './countries/mongolia.geojson';
 import montenegro from './countries/montenegro.geojson';
 import morocco from './countries/morocco.geojson';
@@ -153,8 +143,6 @@ import new_zealand from './countries/new_zealand.geojson';
 import nicaragua from './countries/nicaragua.geojson';
 import niger from './countries/niger.geojson';
 import nigeria from './countries/nigeria.geojson';
-import niue from './countries/niue.geojson';
-import norfolk_island from './countries/norfolk_island.geojson';
 import northern_mariana_islands from './countries/northern_mariana_islands.geojson';
 import norway from './countries/norway.geojson';
 import oman from './countries/oman.geojson';
@@ -167,14 +155,11 @@ import peru from './countries/peru.geojson';
 import philippines from './countries/philippines.geojson';
 import poland from './countries/poland.geojson';
 import portugal from './countries/portugal.geojson';
-import puerto_rico from './countries/puerto_rico.geojson';
 import qatar from './countries/qatar.geojson';
 import romania from './countries/romania.geojson';
 import russia from './countries/russia.geojson';
 import rwanda from './countries/rwanda.geojson';
-import saint_barthelemy from './countries/saint_barthelemy.geojson';
 import saint_lucia from './countries/saint_lucia.geojson';
-import saint_martin from './countries/saint_martin.geojson';
 import saint_pierre_and_miquelon from './countries/saint_pierre_and_miquelon.geojson';
 import saint_vincent_and_the_grenadines from './countries/saint_vincent_and_the_grenadines.geojson';
 import samoa from './countries/samoa.geojson';
@@ -209,7 +194,6 @@ import tunisia from './countries/tunisia.geojson';
 import turkey from './countries/turkey.geojson';
 import turkmenistan from './countries/turkmenistan.geojson';
 import turks_and_caicos_islands from './countries/turks_and_caicos_islands.geojson';
-import tuvalu from './countries/tuvalu.geojson';
 import uganda from './countries/uganda.geojson';
 import uk from './countries/uk.geojson';
 import ukraine from './countries/ukraine.geojson';
@@ -219,10 +203,8 @@ import uruguay from './countries/uruguay.geojson';
 import usa from './countries/usa.geojson';
 import uzbekistan from './countries/uzbekistan.geojson';
 import vanuatu from './countries/vanuatu.geojson';
-import vatican from './countries/vatican.geojson';
 import venezuela from './countries/venezuela.geojson';
 import vietnam from './countries/vietnam.geojson';
-import british_virgin_islands from './countries/british_virgin_islands.geojson';
 import united_states_virgin_islands from './countries/united_states_virgin_islands.geojson';
 import wallis_and_futuna from './countries/wallis_and_futuna.geojson';
 import yemen from './countries/yemen.geojson';
@@ -242,7 +224,6 @@ export const countries = {
   antigua_and_barbuda,
   argentina,
   armenia,
-  aruba,
   australia,
   austria,
   azerbaijan,
@@ -261,7 +242,6 @@ export const countries = {
   botswana,
   brazil,
   brunei,
-  british_indian_ocean_territory,
   bulgaria,
   burkina_faso,
   burundi,
@@ -269,7 +249,6 @@ export const countries = {
   cambodia,
   cameroon,
   canada,
-  cayman_islands,
   central_african_republic,
   chad,
   chile,
@@ -281,7 +260,6 @@ export const countries = {
   costa_rica,
   croatia,
   cuba,
-  curaçao,
   cyprus,
   czech_republic,
   denmark,
@@ -295,8 +273,6 @@ export const countries = {
   eritrea,
   estonia,
   ethiopia,
-  falkland_islands,
-  faroe_islands,
   fiji,
   finland,
   france,
@@ -305,14 +281,11 @@ export const countries = {
   gambia,
   germany,
   ghana,
-  gibraltar,
   greece,
   greenland,
   grenada,
-  guam,
   guatemala,
   haiti,
-  guernsey,
   guinea,
   guyana,
   honduras,
@@ -351,7 +324,6 @@ export const countries = {
   mexico,
   moldova,
   montserrat,
-  monaco,
   mongolia,
   montenegro,
   morocco,
@@ -366,8 +338,6 @@ export const countries = {
   nicaragua,
   niger,
   nigeria,
-  niue,
-  norfolk_island,
   northern_mariana_islands,
   norway,
   oman,
@@ -380,14 +350,11 @@ export const countries = {
   philippines,
   poland,
   portugal,
-  puerto_rico,
   qatar,
   romania,
   russia,
   rwanda,
-  saint_barthelemy,
   saint_lucia,
-  saint_martin,
   saint_pierre_and_miquelon,
   saint_vincent_and_the_grenadines,
   samoa,
@@ -422,7 +389,6 @@ export const countries = {
   turkey,
   turkmenistan,
   turks_and_caicos_islands,
-  tuvalu,
   uganda,
   uk,
   ukraine,
@@ -432,10 +398,8 @@ export const countries = {
   usa,
   uzbekistan,
   vanuatu,
-  vatican,
   venezuela,
   vietnam,
-  british_virgin_islands,
   united_states_virgin_islands,
   wallis_and_futuna,
   yemen,
