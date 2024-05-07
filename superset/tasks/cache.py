@@ -21,10 +21,10 @@ from urllib.error import URLError
 
 from celery.beat import SchedulingError
 from celery.utils.log import get_task_logger
+from flask import current_app as app
 from sqlalchemy import and_, func
 
-from superset import app, db, security_manager
-from superset.extensions import celery_app
+from superset.extensions import celery_app, db, security_manager
 from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice

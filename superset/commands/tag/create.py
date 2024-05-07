@@ -17,13 +17,13 @@
 import logging
 from typing import Any
 
-from superset import db, security_manager
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.tag.exceptions import TagCreateFailedError, TagInvalidError
 from superset.commands.tag.utils import to_object_model, to_object_type
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.daos.tag import TagDAO
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import db, security_manager
 from superset.tags.models import ObjectType, TagType
 
 logger = logging.getLogger(__name__)

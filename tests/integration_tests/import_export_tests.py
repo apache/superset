@@ -33,7 +33,8 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 )
 from tests.integration_tests.test_app import app
 from superset.commands.dashboard.importers.v0 import decode_dashboards
-from superset import db, security_manager
+from superset.extensions import db
+from superset import security_manager
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.commands.dashboard.importers.v0 import import_chart, import_dashboard

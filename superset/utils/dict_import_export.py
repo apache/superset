@@ -17,7 +17,7 @@
 import logging
 from typing import Any
 
-from superset import db
+from superset.extensions import db
 from superset.models.core import Database
 
 EXPORT_VERSION = "1.0.0"

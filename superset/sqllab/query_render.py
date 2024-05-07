@@ -23,9 +23,9 @@ from flask_babel import gettext as __, ngettext
 from jinja2 import TemplateError
 from jinja2.meta import find_undeclared_variables
 
-from superset import is_feature_enabled
 from superset.commands.sql_lab.execute import SqlQueryRender
 from superset.errors import SupersetErrorType
+from superset.extensions import feature_flag_manager
 from superset.sql_parse import ParsedQuery
 from superset.sqllab.exceptions import SqlLabException
 from superset.utils import core as utils
@@ -78,7 +78,7 @@ class SqlQueryRenderImpl(SqlQueryRender):
         rendered_query: str,
         sql_template_processor: BaseTemplateProcessor,
     ) -> None:
-        if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
+        if feature_flag_manager.is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
             syntax_tree = sql_template_processor.env.parse(rendered_query)
             undefined_parameters = find_undeclared_variables(syntax_tree)
             if undefined_parameters:

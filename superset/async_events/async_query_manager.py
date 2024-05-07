@@ -20,7 +20,7 @@ from typing import Any, Literal, Optional
 
 import jwt
 import redis
-from flask import Flask, Request, request, Response, session
+from flask import current_app, Flask, Request, request, Response, session
 
 from superset.utils import json
 from superset.utils.core import get_user_id
@@ -121,8 +121,7 @@ class AsyncQueryManager:
         if config["GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS"]:
             self.register_request_handlers(app)
 
-        # pylint: disable=import-outside-toplevel
-        from superset.tasks.async_queries import (
+        from superset.tasks.async_queries import (  # pylint: disable=import-outside-toplevel
             load_chart_data_into_cache,
             load_explore_json_into_cache,
         )
@@ -191,8 +190,9 @@ class AsyncQueryManager:
         force: Optional[bool] = False,
         user_id: Optional[int] = None,
     ) -> dict[str, Any]:
-        # pylint: disable=import-outside-toplevel
-        from superset import security_manager
+        from superset.extensions import (  # pylint: disable=import-outside-toplevel
+            security_manager,
+        )
 
         job_metadata = self.init_job(channel_id, user_id)
         self._load_explore_json_into_cache_job.delay(
@@ -202,6 +202,7 @@ class AsyncQueryManager:
             form_data,
             response_type,
             force,
+            soft_time_limit=current_app.config["SQLLAB_ASYNC_TIME_LIMIT_SEC"],
         )
         return job_metadata
 
@@ -211,8 +212,9 @@ class AsyncQueryManager:
         form_data: dict[str, Any],
         user_id: Optional[int] = None,
     ) -> dict[str, Any]:
-        # pylint: disable=import-outside-toplevel
-        from superset import security_manager
+        from superset.extensions import (  # pylint: disable=import-outside-toplevel
+            security_manager,
+        )
 
         # if it's guest user, we want to pass the guest token to the celery task
         # chart data cache key is calculated based on the current user
@@ -224,6 +226,7 @@ class AsyncQueryManager:
             if (guest_user := security_manager.get_current_guest_user_if_guest())
             else job_metadata,
             form_data,
+            soft_time_limit=current_app.config["SQLLAB_ASYNC_TIME_LIMIT_SEC"],
         )
         return job_metadata
 

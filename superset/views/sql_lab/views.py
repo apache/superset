@@ -23,8 +23,8 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from sqlalchemy import and_
 
-from superset import db
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.extensions import db
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.superset_typing import FlaskResponse
 from superset.utils import json

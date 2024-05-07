@@ -27,11 +27,11 @@ from flask import current_app
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
-from superset import db
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenDataURI,
 )
 from superset.commands.dataset.importers.v1.utils import validate_data_uri
+from superset.extensions import db
 from superset.utils import json
 
 

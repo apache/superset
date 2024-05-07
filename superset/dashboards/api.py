@@ -32,7 +32,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import is_feature_enabled, thumbnail_cache
+from superset import thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.dashboard.create import CreateDashboardCommand
 from superset.commands.dashboard.delete import DeleteDashboardCommand
@@ -78,7 +78,7 @@ from superset.dashboards.schemas import (
     openapi_spec_methods_override,
     thumbnail_query_schema,
 )
-from superset.extensions import event_logger
+from superset.extensions import event_logger, feature_flag_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
@@ -128,7 +128,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     @before_request(only=["thumbnail"])
     def ensure_thumbnails_enabled(self) -> Optional[Response]:
-        if not is_feature_enabled("THUMBNAILS"):
+        if not feature_flag_manager.is_feature_enabled("THUMBNAILS"):
             return self.response_404()
         return None
 

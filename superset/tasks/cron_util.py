@@ -20,9 +20,8 @@ from collections.abc import Iterator
 from datetime import datetime, timedelta
 
 from croniter import croniter
+from flask import current_app as app
 from pytz import timezone as pytz_timezone, UnknownTimeZoneError
-
-from superset import app
 
 logger = logging.getLogger(__name__)
 

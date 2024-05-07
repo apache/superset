@@ -31,7 +31,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils import UUIDType
 
-from superset import db
+from superset.extensions import db
 from superset.migrations.shared.utils import assign_uuids
 
 # revision identifiers, used by Alembic.

@@ -1964,8 +1964,8 @@ def test_apply_post_process_json_format_data_is_none():
 
 
 def test_apply_post_process_verbose_map(session: Session):
-    from superset import db
     from superset.connectors.sqla.models import SqlaTable, SqlMetric
+    from superset.extensions import db
     from superset.models.core import Database
 
     engine = db.session.get_bind()

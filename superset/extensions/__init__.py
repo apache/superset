@@ -16,7 +16,7 @@
 # under the License.
 import json
 import os
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 import celery
 from flask import Flask
@@ -29,6 +29,7 @@ from werkzeug.local import LocalProxy
 
 from superset.async_events.async_query_manager import AsyncQueryManager
 from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
+from superset.extensions.event_logger_manager import EventLoggerManager
 from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.utils.cache_manager import CacheManager
@@ -123,9 +124,11 @@ cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
 db = SQLA()  # pylint: disable=disallowed-name
-_event_logger: dict[str, Any] = {}
 encrypted_field_factory = EncryptedFieldFactory()
-event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
+
+event_logger_manager = EventLoggerManager()
+event_logger = event_logger_manager.get_event_logger()
+
 feature_flag_manager = FeatureFlagManager()
 machine_auth_provider_factory = MachineAuthProviderFactory()
 manifest_processor = UIManifestProcessor(APP_DIR)

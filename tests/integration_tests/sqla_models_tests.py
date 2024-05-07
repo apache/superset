@@ -29,7 +29,7 @@ from pytest_mock import MockFixture
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 
-from superset import db
+from superset.extensions import db
 from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec

@@ -34,7 +34,8 @@ from sqlalchemy.engine.url import make_url  # noqa: F401
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
 
-from superset import db, security_manager
+from superset.extensions import db
+from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe  # noqa: F401

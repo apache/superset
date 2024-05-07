@@ -35,8 +35,8 @@ def test_import_new_assets(mocker: MockFixture, session: Session) -> None:
     """
     Test that all new assets are imported correctly.
     """
-    from superset import db, security_manager
     from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.extensions import db, security_manager
     from superset.models.dashboard import dashboard_slices
     from superset.models.slice import Slice
 
@@ -67,8 +67,8 @@ def test_import_adds_dashboard_charts(mocker: MockFixture, session: Session) -> 
     """
     Test that existing dashboards are updated with new charts.
     """
-    from superset import db, security_manager
     from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.extensions import db, security_manager
     from superset.models.dashboard import dashboard_slices
     from superset.models.slice import Slice
 
@@ -106,8 +106,8 @@ def test_import_removes_dashboard_charts(mocker: MockFixture, session: Session) 
     """
     Test that existing dashboards are updated without old charts.
     """
-    from superset import db, security_manager
     from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.extensions import db, security_manager
     from superset.models.dashboard import dashboard_slices
     from superset.models.slice import Slice
 

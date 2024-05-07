@@ -1,0 +1,27 @@
+name: pre-commit checks
+
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test_python_imports:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+      - name: Enable brew and helm-docs
+        run: |
+          echo "Checking that all python modules are importable"
+          python scripts/test_imports.py superset

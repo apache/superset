@@ -18,10 +18,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.engine.reflection import Inspector
 
 from superset.utils.core import generic_find_fk_constraint_name
+
+NAMING_CONVENTION = {
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+}
 
 
 @dataclass(frozen=True)
@@ -52,9 +57,10 @@ def redefine(
 
     bind = op.get_bind()
     insp = Inspector.from_engine(bind)
-    conv = {"fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s"}
 
-    with op.batch_alter_table(foreign_key.table, naming_convention=conv) as batch_op:
+    with op.batch_alter_table(
+        foreign_key.table, naming_convention=NAMING_CONVENTION
+    ) as batch_op:
         if constraint := generic_find_fk_constraint_name(
             table=foreign_key.table,
             columns=set(foreign_key.remote_cols),
@@ -71,3 +77,20 @@ def redefine(
             ondelete=on_delete,
             onupdate=on_update,
         )
+
+
+def delete_fk(table1: str, columns: set[str], table2: str) -> None:
+    bind = op.get_bind()
+    insp = sa.engine.reflection.Inspector.from_engine(bind)
+
+    with op.batch_alter_table(
+        "tab_state", naming_convention=NAMING_CONVENTION
+    ) as batch_op:
+        table_schema_id_constraint = generic_find_fk_constraint_name(
+            table1, columns, table2, insp
+        )
+        if table_schema_id_constraint:
+            batch_op.drop_constraint(
+                table_schema_id_constraint,
+                type_="foreignkey",
+            )

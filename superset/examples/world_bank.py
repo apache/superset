@@ -19,11 +19,11 @@
 import os
 
 import pandas as pd
+from flask import current_app as app
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
 import superset.utils.database
-from superset import app, db
 from superset.connectors.sqla.models import BaseDatasource, SqlMetric
 from superset.examples.helpers import (
     get_example_url,
@@ -34,6 +34,7 @@ from superset.examples.helpers import (
     misc_dash_slices,
     update_slice_ids,
 )
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql_parse import Table

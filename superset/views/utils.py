@@ -15,21 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 import contextlib
+import dataclasses
 import logging
+import traceback
 from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, DefaultDict, Optional, Union
 
 import msgpack
 import pyarrow as pa
-from flask import flash, g, has_request_context, redirect, request
+from flask import current_app as app, flash, g, has_request_context, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
 from sqlalchemy.exc import NoResultFound
 from werkzeug.wrappers.response import Response
 
-from superset import app, dataframe, db, result_set, viz
+from superset import dataframe, result_set, viz
 from superset.common.db_query_status import QueryStatus
 from superset.daos.datasource import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -39,20 +41,23 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager, feature_flag_manager, security_manager
+from superset.extensions import (
+    cache_manager,
+    db,
+    feature_flag_manager,
+    security_manager,
+)
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
-from superset.superset_typing import FormData
-from superset.utils import json
+from superset.superset_typing import FlaskResponse, FormData
+from superset.utils import json, json as json_utils
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
-from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
-stats_logger = app.config["STATS_LOGGER"]
 
 REJECTED_FORM_DATA_KEYS: list[str] = []
 if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
@@ -124,13 +129,14 @@ def get_viz(
     datasource_id: int,
     force: bool = False,
     force_cached: bool = False,
-) -> BaseViz:
+) -> viz.BaseViz:
     viz_type = form_data.get("viz_type", "table")
     datasource = DatasourceDAO.get_datasource(
         DatasourceType(datasource_type),
         datasource_id,
     )
-    viz_obj = viz.viz_types[viz_type](
+    viz_types = viz.get_viz_types()
+    viz_obj = viz_types[viz_type](
         datasource, form_data=form_data, force=force, force_cached=force_cached
     )
     return viz_obj
@@ -141,6 +147,18 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
         return json.loads(request_json_data)
     except (TypeError, json.JSONDecodeError):
         return {}
+
+
+def get_error_msg() -> str:
+    if app.conf.get("SHOW_STACKTRACE"):
+        error_msg = traceback.format_exc()
+    else:
+        error_msg = "FATAL ERROR \n"
+        error_msg += (
+            "Stacktrace is hidden. Change the SHOW_STACKTRACE "
+            "configuration setting to enable it"
+        )
+    return error_msg
 
 
 def get_form_data(
@@ -502,6 +520,7 @@ def _deserialize_results_payload(
     payload: Union[bytes, str], query: Query, use_msgpack: Optional[bool] = False
 ) -> dict[str, Any]:
     logger.debug("Deserializing from msgpack: %r", use_msgpack)
+    stats_logger = app.config["STATS_LOGGER"]
     if use_msgpack:
         with stats_timing(
             "sqllab.query.results_backend_msgpack_deserialize", stats_logger
@@ -550,3 +569,22 @@ def get_cta_schema_name(
 def redirect_with_flash(url: str, message: str, category: str) -> Response:
     flash(message=message, category=category)
     return redirect(url)
+
+
+def json_errors_response(
+    errors: list[SupersetError],
+    status: int = 500,
+    payload: Union[dict[str, Any], None] = None,
+) -> FlaskResponse:
+    payload = payload or {}
+
+    payload["errors"] = [dataclasses.asdict(error) for error in errors]
+    return Response(
+        json.dumps(payload, default=json_utils.json_iso_dttm_ser, ignore_nan=True),
+        status=status,
+        mimetype="application/json; charset=utf-8",
+    )
+
+
+def json_success(json_msg: str, status: int = 200) -> FlaskResponse:
+    return Response(json_msg, status=status, mimetype="application/json")

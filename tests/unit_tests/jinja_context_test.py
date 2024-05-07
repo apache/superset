@@ -19,11 +19,11 @@
 from typing import Any
 
 import pytest
+from flask import current_app as app
 from pytest_mock import MockFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
 
-from superset import app
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.exceptions import SupersetTemplateException

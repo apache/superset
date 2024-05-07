@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from superset import db
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 
 logger = logging.getLogger(__name__)

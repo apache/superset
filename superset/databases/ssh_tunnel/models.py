@@ -18,7 +18,7 @@
 from typing import Any
 
 import sqlalchemy as sa
-from flask import current_app
+from flask import current_app as app
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.types import Text
@@ -32,7 +32,9 @@ from superset.models.helpers import (
     ImportExportMixin,
 )
 
-app_config = current_app.config
+
+def get_key() -> str:
+    return app.config["SECRET_KEY"]
 
 
 class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):

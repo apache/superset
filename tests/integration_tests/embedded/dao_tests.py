@@ -18,7 +18,7 @@
 import pytest
 
 import tests.integration_tests.test_app  # pylint: disable=unused-import  # noqa: F401
-from superset import db
+from superset.extensions import db
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase

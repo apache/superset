@@ -19,8 +19,10 @@
 import os
 from typing import Any
 
-from superset import app, db
+from flask import current_app as app
+
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils import json
 

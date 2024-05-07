@@ -33,7 +33,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql import func
 from sqlalchemy.sql.visitors import VisitableType
 
-from superset import db
+from superset.extensions import db
 from superset.sql_parse import Table
 from superset.utils import json
 

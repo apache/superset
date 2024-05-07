@@ -29,7 +29,7 @@ from typing import Any, Optional
 import click
 import jinja2
 
-from superset import db
+from superset.extensions import db
 
 GROUPINGS: dict[str, Iterable[str]] = {
     "Core": [

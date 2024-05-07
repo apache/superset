@@ -21,7 +21,6 @@ import yaml
 from flask_appbuilder import Model
 from sqlalchemy.orm.session import make_transient
 
-from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.commands.dataset.exceptions import DatasetInvalidError
@@ -32,6 +31,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.extensions import db
 from superset.models.core import Database
 from superset.utils import json
 from superset.utils.dict_import_export import DATABASES_KEY

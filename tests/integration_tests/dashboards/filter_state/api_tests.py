@@ -21,12 +21,11 @@ from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session  # noqa: F401
 
-from superset import db
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,  # noqa: F401
 )
 from superset.commands.temporary_cache.entry import Entry
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, db
 from superset.models.dashboard import Dashboard
 from superset.temporary_cache.utils import cache_key
 from superset.utils import json
@@ -54,7 +53,7 @@ def admin_id(app_context: AppContext) -> int:
 
 
 @pytest.fixture(autouse=True)
-def cache(dashboard_id, admin_id):
+def cache(dashboard_id: int, admin_id: int) -> None:
     entry: Entry = {"owner": admin_id, "value": INITIAL_VALUE}
     cache_manager.filter_state_cache.set(cache_key(dashboard_id, KEY), entry)
 

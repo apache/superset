@@ -28,7 +28,7 @@ import prison
 from freezegun import freeze_time
 from sqlalchemy.sql import func, and_
 
-from superset import db
+from superset.extensions import db
 from superset.models.core import Database
 from superset.models.core import FavStar
 from superset.models.sql_lab import SavedQuery

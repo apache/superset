@@ -21,8 +21,8 @@ import humanize
 from sqlalchemy import and_, or_
 from sqlalchemy.sql import functions as func
 
-from superset import db
 from superset.daos.base import BaseDAO
+from superset.extensions import db
 from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice

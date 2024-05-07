@@ -18,7 +18,6 @@ from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.orm import relationship
 
-from superset import security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 
 VALUE_MAX_SIZE = 2**24 - 1
@@ -36,5 +35,5 @@ class KeyValueEntry(AuditMixinNullable, ImportExportMixin, Model):
     changed_on = Column(DateTime, nullable=True)
     expires_on = Column(DateTime, nullable=True)
     changed_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
-    created_by = relationship(security_manager.user_model, foreign_keys=[created_by_fk])
-    changed_by = relationship(security_manager.user_model, foreign_keys=[changed_by_fk])
+    created_by = relationship("User", foreign_keys=[created_by_fk])
+    changed_by = relationship("User", foreign_keys=[changed_by_fk])

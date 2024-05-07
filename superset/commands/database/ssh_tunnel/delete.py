@@ -17,7 +17,6 @@
 import logging
 from typing import Optional
 
-from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDeleteFailedError,
@@ -27,6 +26,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.daos.database import SSHTunnelDAO
 from superset.daos.exceptions import DAODeleteFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.extensions import feature_flag_manager
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class DeleteSSHTunnelCommand(BaseCommand):
         self._model: Optional[SSHTunnel] = None
 
     def run(self) -> None:
-        if not is_feature_enabled("SSH_TUNNELING"):
+        if not feature_flag_manager.is_feature_enabled("SSH_TUNNELING"):
             raise SSHTunnelingNotEnabledError()
         self.validate()
         assert self._model

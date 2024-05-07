@@ -31,7 +31,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text  # noqa:
 from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 from sqlalchemy.orm import relationship  # noqa: E402
 
-from superset import db  # noqa: E402
+from superset.extensions import db  # noqa: E402
 from superset.migrations.shared.native_filters import migrate_dashboard  # noqa: E402
 from superset.migrations.shared.utils import paginated_update  # noqa: E402
 

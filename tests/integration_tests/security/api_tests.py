@@ -21,7 +21,7 @@ import jwt
 import pytest
 
 from flask_wtf.csrf import generate_csrf
-from superset import db
+from superset.extensions import db
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host

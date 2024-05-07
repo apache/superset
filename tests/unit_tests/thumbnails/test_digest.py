@@ -156,7 +156,8 @@ def test_dashboard_digest(
     use_custom_digest: bool,
     expected_result: str | Exception,
 ) -> None:
-    from superset import app
+    from flask import current_app as app
+
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.thumbnails.digest import get_dashboard_digest
@@ -231,7 +232,8 @@ def test_chart_digest(
     use_custom_digest: bool,
     expected_result: str | Exception,
 ) -> None:
-    from superset import app
+    from flask import current_app as app
+
     from superset.models.slice import Slice
     from superset.thumbnails.digest import get_chart_digest
 

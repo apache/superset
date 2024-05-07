@@ -21,6 +21,7 @@ import threading
 from re import Pattern
 from typing import Any, Callable, NamedTuple, Optional
 
+from flask import current_app as app
 from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 
@@ -29,8 +30,6 @@ with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be inst
     import geojson
     import pyocient
     from shapely import wkt
-
-    from superset import app
 
     superset_log_level = app.config["LOG_LEVEL"]
     pyocient.logger.setLevel(superset_log_level)

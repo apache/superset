@@ -18,7 +18,7 @@
 
 import textwrap
 
-from superset import db
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.utils import json
 

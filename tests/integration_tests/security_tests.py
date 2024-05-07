@@ -27,14 +27,16 @@ import jwt
 import prison
 import pytest
 
-from flask import current_app, g
+from flask import current_app as app, g
 from flask_appbuilder.security.sqla.models import Role
+
+from superset import viz
 from superset.daos.datasource import DatasourceDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
-from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import appbuilder, db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.sql_parse import Table
@@ -1253,7 +1255,7 @@ class TestRolePermission(SupersetTestCase):
             [permission.view_menu.name, permission.permission.name]
             for permission in public_role.permissions
         ]
-        for pvm in current_app.config["FAB_ROLES"]["TestRole"]:
+        for pvm in app.config["FAB_ROLES"]["TestRole"]:
             assert pvm in public_role_resource_names
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -2021,7 +2023,7 @@ class TestGuestTokens(SupersetTestCase):
     def test_get_guest_user(self):
         token = self.create_guest_token()
         fake_request = FakeRequest()
-        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        fake_request.headers[app.config["GUEST_TOKEN_HEADER_NAME"]] = token
 
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
@@ -2031,7 +2033,7 @@ class TestGuestTokens(SupersetTestCase):
     def test_get_guest_user_with_request_form(self):
         token = self.create_guest_token()
         fake_request = FakeRequest()
-        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = None
+        fake_request.headers[app.config["GUEST_TOKEN_HEADER_NAME"]] = None
         fake_request.form["guest_token"] = token
 
         guest_user = security_manager.get_guest_user_from_request(fake_request)
@@ -2047,7 +2049,7 @@ class TestGuestTokens(SupersetTestCase):
         )
         token = self.create_guest_token()
         fake_request = FakeRequest()
-        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        fake_request.headers[app.config["GUEST_TOKEN_HEADER_NAME"]] = token
 
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
@@ -2059,7 +2061,7 @@ class TestGuestTokens(SupersetTestCase):
         rls = {}
         token = security_manager.create_guest_access_token(user, resources, rls)
         fake_request = FakeRequest()
-        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        fake_request.headers[app.config["GUEST_TOKEN_HEADER_NAME"]] = token
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
         self.assertIsNone(guest_user)
@@ -2071,7 +2073,7 @@ class TestGuestTokens(SupersetTestCase):
         rls = {}
         token = security_manager.create_guest_access_token(user, resources, rls)
         fake_request = FakeRequest()
-        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        fake_request.headers[app.config["GUEST_TOKEN_HEADER_NAME"]] = token
         security_manager.get_guest_user_from_request(fake_request)
 
         self.assertRaisesRegex(
@@ -2099,7 +2101,7 @@ class TestGuestTokens(SupersetTestCase):
             algorithm=self.app.config["GUEST_TOKEN_JWT_ALGO"],
         )
         fake_request = FakeRequest()
-        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        fake_request.headers[app.config["GUEST_TOKEN_HEADER_NAME"]] = token
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
         self.assertIsNone(guest_user)
@@ -2126,7 +2128,7 @@ class TestGuestTokens(SupersetTestCase):
             algorithm=self.app.config["GUEST_TOKEN_JWT_ALGO"],
         )
         fake_request = FakeRequest()
-        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        fake_request.headers[app.config["GUEST_TOKEN_HEADER_NAME"]] = token
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
         self.assertRaisesRegex(jwt.exceptions.InvalidAudienceError, "Invalid audience")

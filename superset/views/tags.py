@@ -21,9 +21,11 @@ from flask_appbuilder import expose
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
+from jinja2.sandbox import SandboxedEnvironment
 from werkzeug.exceptions import NotFound
 
-from superset import db, is_feature_enabled
+from superset.extensions import db, feature_flag_manager
+from superset.jinja_context import ExtraCache
 from superset.superset_typing import FlaskResponse
 from superset.tags.models import Tag
 from superset.utils import json
@@ -34,16 +36,25 @@ from .base import BaseSupersetView, json_success
 logger = logging.getLogger(__name__)
 
 
+def process_template(content: str) -> str:
+    env = SandboxedEnvironment()
+    template = env.from_string(content)
+    context = {
+        "current_user_id": ExtraCache.current_user_id,
+        "current_username": ExtraCache.current_username,
+    }
+    return template.render(context)
+
+
 class TagModelView(SupersetModelView):
     route_base = "/superset/tags"
     datamodel = SQLAInterface(Tag)
     class_permission_name = "Tags"
-    include_route_methods = {"list"}
 
     @has_access
     @expose("/")
     def list(self) -> FlaskResponse:
-        if not is_feature_enabled("TAGGING_SYSTEM"):
+        if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             return super().list()
 
         return super().render_app_template()
@@ -52,7 +63,7 @@ class TagModelView(SupersetModelView):
 class TagView(BaseSupersetView):
     @staticmethod
     def is_enabled() -> bool:
-        return is_feature_enabled("TAGGING_SYSTEM")
+        return feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
 
     @before_request
     def ensure_enabled(self) -> None:

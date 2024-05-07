@@ -24,7 +24,7 @@ Create Date: 2022-06-13 14:17:51.872706
 
 from alembic import op
 
-from superset import db
+from superset.extensions import db
 from superset.migrations.shared.migrate_viz import MigrateAreaChart
 
 # revision identifiers, used by Alembic.

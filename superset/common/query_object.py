@@ -26,13 +26,13 @@ from flask import g
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset import feature_flag_manager
 from superset.common.chart_data import ChartDataResultType
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
+from superset.extensions import feature_flag_manager
 from superset.sql_parse import sanitize_clause
 from superset.superset_typing import Column, Metric, OrderBy
 from superset.utils import json, pandas_postprocessing

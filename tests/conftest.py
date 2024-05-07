@@ -84,7 +84,8 @@ def pandas_loader_configuration(
 
 @fixture(scope="session")
 def support_datetime_type(example_db_provider: Callable[[], Database]) -> bool:
-    return example_db_provider().backend != PRESTO
+    with app.app_context():
+        return example_db_provider().backend != PRESTO
 
 
 @fixture(scope="session")

@@ -22,6 +22,7 @@ import logging
 from abc import ABC
 from typing import Any, Callable, TYPE_CHECKING
 
+from flask import current_app as app
 from flask_babel import gettext as __
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -176,6 +177,8 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
                 start_time=now_as_float(),
                 expand_data=execution_context.expand_data,
                 log_params=log_params,
+                time_limit=app.config["SQLLAB_ASYNC_TIME_LIMIT_SEC"] + 60,
+                soft_time_limit=app.config["SQLLAB_ASYNC_TIME_LIMIT_SEC"],
             )
             try:
                 task.forget()

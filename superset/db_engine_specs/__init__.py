@@ -37,12 +37,13 @@ from pathlib import Path
 from typing import Any, Optional
 
 import sqlalchemy.dialects
+from flask import current_app as app
 from importlib_metadata import entry_points
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.exc import NoSuchModuleError
 
-from superset import app, feature_flag_manager
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils.feature_flag_manager import FeatureFlagManager
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +168,7 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
             drivers[backend].add(driver)
 
     dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
+    feature_flag_manager = FeatureFlagManager()
     if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
         dbs_denylist["superset"] = {""}
     dbs_denylist_engines = dbs_denylist.keys()
@@ -192,3 +194,14 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
         available_engines[engine_spec] = driver
 
     return available_engines
+
+
+def get_available_dialects() -> set[str]:
+    """
+    Return available dialects in the current environment.
+    """
+    all_dialects: set[str] = set()
+    for _, dialects in get_available_engine_specs().values():
+        for dialect in dialects:
+            all_dialects.add(dialect)
+    return all_dialects

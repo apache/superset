@@ -24,8 +24,8 @@ def test_column_model(session: Session) -> None:
     """
     Test basic attributes of a ``Column``.
     """
-    from superset import db
     from superset.columns.models import Column
+    from superset.extensions import db
 
     engine = db.session.get_bind()
     Column.metadata.create_all(engine)  # pylint: disable=no-member

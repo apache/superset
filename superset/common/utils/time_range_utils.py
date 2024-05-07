@@ -19,7 +19,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, cast
 
-from superset import app
+from flask import current_app as app
+
 from superset.common.query_object import QueryObject
 from superset.utils.core import FilterOperator
 from superset.utils.date_parser import get_since_until

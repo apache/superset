@@ -20,7 +20,6 @@ from marshmallow import Schema
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.sql import select
 
-from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.chart.importers.v1 import ImportChartsCommand
 from superset.commands.chart.importers.v1.utils import import_chart
@@ -40,6 +39,7 @@ from superset.daos.base import BaseDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.extensions import db
 from superset.models.dashboard import dashboard_slices
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database

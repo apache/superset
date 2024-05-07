@@ -23,7 +23,6 @@ from typing import Any
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset import is_feature_enabled, security_manager
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardForbiddenError,
@@ -32,7 +31,7 @@ from superset.commands.dashboard.exceptions import (
 from superset.daos.base import BaseDAO
 from superset.dashboards.filters import DashboardAccessFilter, is_uuid
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db
+from superset.extensions import db, feature_flag_manager, security_manager
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -282,9 +281,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
     def copy_dashboard(
         cls, original_dash: Dashboard, data: dict[str, Any]
     ) -> Dashboard:
-        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
-            original_dash
-        ):
+        if feature_flag_manager.is_feature_enabled(
+            "DASHBOARD_RBAC"
+        ) and not security_manager.is_owner(original_dash):
             raise DashboardForbiddenError()
 
         dash = Dashboard()

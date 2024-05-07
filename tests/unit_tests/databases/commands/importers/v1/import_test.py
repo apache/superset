@@ -19,11 +19,12 @@
 import copy
 
 import pytest
+from flask import current_app as app
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
-from superset import db
 from superset.commands.exceptions import ImportFailedError
+from superset.extensions import db, security_manager
 from superset.utils import json
 
 
@@ -71,7 +72,6 @@ def test_import_database_sqlite_invalid(mocker: MockFixture, session: Session) -
     """
     Test importing a database.
     """
-    from superset import app, security_manager
     from superset.commands.database.importers.v1.utils import import_database
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config_sqlite

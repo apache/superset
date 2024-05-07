@@ -20,7 +20,7 @@ import click
 from click_option_group import optgroup, RequiredMutuallyExclusiveOptionGroup
 from flask.cli import with_appcontext
 
-from superset import db
+from superset.extensions import db
 
 
 class VizType(str, Enum):

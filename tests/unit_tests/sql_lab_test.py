@@ -20,7 +20,7 @@ import sqlparse
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
-from superset import db
+from superset.extensions import db
 from superset.utils.core import override_user
 
 

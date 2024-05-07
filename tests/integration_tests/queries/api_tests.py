@@ -27,7 +27,8 @@ import prison
 from sqlalchemy.sql import func
 
 import tests.integration_tests.test_app  # noqa: F401
-from superset import db, security_manager
+from superset.extensions import db
+from superset import security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.utils.database import get_example_database, get_main_database

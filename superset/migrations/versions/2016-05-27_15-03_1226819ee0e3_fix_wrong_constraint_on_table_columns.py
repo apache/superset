@@ -26,7 +26,7 @@ import logging
 
 from alembic import op
 
-from superset import db
+from superset.extensions import db
 from superset.utils.core import generic_find_constraint_name
 
 # revision identifiers, used by Alembic.

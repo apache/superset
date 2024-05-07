@@ -26,7 +26,7 @@ import pytest
 
 import tests.integration_tests.test_app  # noqa: F401
 import superset.viz as viz
-from superset import app
+from flask import current_app as app
 from superset.constants import NULL_STRING
 from superset.exceptions import QueryObjectValidationError, SpatialException
 from superset.utils.core import DTTM_ALIAS

@@ -35,7 +35,8 @@ from urllib import parse
 
 
 import tests.integration_tests.test_app  # noqa: F401
-from superset import db, security_manager  # noqa: F401
+from superset.extensions import db
+from superset import security_manager  # noqa: F401
 from superset.common.db_query_status import QueryStatus  # noqa: F401
 from superset.models.core import Database  # noqa: F401
 from superset.utils.database import get_example_database, get_main_database  # noqa: F401

@@ -22,9 +22,9 @@ import yaml
 from marshmallow import fields, Schema, validate
 from marshmallow.exceptions import ValidationError
 
-from superset import db
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.extensions import db
 from superset.models.core import Database
 from superset.utils.core import check_is_safe_zip
 

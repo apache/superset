@@ -25,7 +25,7 @@ from flask_appbuilder.security.sqla.models import User
 import prison
 from unittest.mock import patch
 
-from superset import db
+from superset.extensions import db
 from superset.models.core import Log
 from superset.views.log.api import LogRestApi
 from superset.utils import json

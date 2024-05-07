@@ -18,9 +18,10 @@ from unittest.mock import ANY, Mock, patch
 
 import pytest
 
-from superset import db, security_manager
+from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.exceptions import DatasourceTypeNotSupportedError
+from superset.extensions import db
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME

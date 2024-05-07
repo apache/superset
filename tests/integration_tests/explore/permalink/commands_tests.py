@@ -18,11 +18,12 @@
 from unittest.mock import patch
 
 import pytest
+from flask import current_app as app
 
-from superset import app, db, security_manager
 from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db, security_manager
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils.core import DatasourceType, get_example_default_schema

@@ -24,8 +24,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.ext.declarative import declarative_base
 
-from superset import db, security_manager
 from superset.daos.database import DatabaseDAO
+from superset.extensions import db, security_manager
 from superset.migrations.shared.security_converge import add_pvms, ViewMenu
 from superset.models.core import Database
 

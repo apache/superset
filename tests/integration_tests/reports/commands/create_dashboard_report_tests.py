@@ -17,9 +17,9 @@
 
 import pytest
 
-from superset import db
 from superset.commands.report.create import CreateReportScheduleCommand
 from superset.commands.report.exceptions import ReportScheduleInvalidError
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.reports.models import (
     ReportCreationMethod,

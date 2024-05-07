@@ -24,7 +24,7 @@ from freezegun import freeze_time
 from sqlalchemy.sql import func
 
 import tests.integration_tests.test_app  # noqa: F401
-from superset import db
+from superset.extensions import db
 from superset.models.core import CssTemplate
 from superset.utils.database import get_example_database  # noqa: F401
 from superset.utils import json

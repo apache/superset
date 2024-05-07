@@ -31,7 +31,7 @@ from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import error_msg_from_exception
 from superset.views.utils import get_dashboard_extra_filters, get_form_data, get_viz
-from superset.viz import viz_types
+from superset.viz import get_viz_types
 
 
 class ChartWarmUpCacheCommand(BaseCommand):
@@ -52,7 +52,7 @@ class ChartWarmUpCacheCommand(BaseCommand):
         try:
             form_data = get_form_data(chart.id, use_slice_data=True)[0]
 
-            if form_data.get("viz_type") in viz_types:
+            if form_data.get("viz_type") in get_viz_types():
                 # Legacy visualizations.
                 if not chart.datasource:
                     raise ChartInvalidError("Chart's datasource does not exist")

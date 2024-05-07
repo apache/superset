@@ -22,8 +22,8 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
-from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db, feature_flag_manager, security_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -106,7 +106,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
         is_rbac_disabled_filter = []
         dashboard_has_roles = Dashboard.roles.any()
-        if is_feature_enabled("DASHBOARD_RBAC"):
+        if feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC"):
             is_rbac_disabled_filter.append(~dashboard_has_roles)
 
         datasource_perm_query = (
@@ -133,7 +133,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         )
 
         feature_flagged_filters = []
-        if is_feature_enabled("DASHBOARD_RBAC"):
+        if feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC"):
             roles_based_query = (
                 db.session.query(Dashboard.id)
                 .join(Dashboard.roles)
@@ -148,9 +148,9 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
             feature_flagged_filters.append(Dashboard.id.in_(roles_based_query))
 
-        if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
-            g.user
-        ):
+        if feature_flag_manager.is_feature_enabled(
+            "EMBEDDED_SUPERSET"
+        ) and security_manager.is_guest_user(g.user):
             guest_user: GuestUser = g.user
             embedded_dashboard_ids = [
                 r["id"]

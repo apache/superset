@@ -16,7 +16,7 @@
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
 
-import builtins
+import builtins  # noqa: I001
 import inspect
 import logging
 import re
@@ -47,8 +47,8 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
 
-from superset import security_manager
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import security_manager
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -66,6 +66,9 @@ from superset.utils.core import (
     QueryStatus,
     user_label,
 )
+
+# Import required for sqlalchemy's order of operations
+from superset.tags.models import TaggedObject  # pylint: disable=unused-import # noqa
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -103,7 +106,7 @@ class Query(
     __tablename__ = "query"
     type = "query"
     id = Column(Integer, primary_key=True)
-    client_id = Column(String(11), unique=True, nullable=False)
+    client_id = Column(Integer, unique=True, nullable=False)
     query_language = "sql"
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
 
@@ -154,7 +157,7 @@ class Query(
         foreign_keys=[database_id],
         backref=backref("queries", cascade="all, delete-orphan"),
     )
-    user = relationship(security_manager.user_model, foreign_keys=[user_id])
+    user = relationship("User", foreign_keys=[user_id])
 
     __table_args__ = (sqla.Index("ti_user_id_changed_on", user_id, changed_on),)
 
@@ -401,7 +404,7 @@ class SavedQuery(
     sql = Column(MediumText())
     template_parameters = Column(Text)
     user = relationship(
-        security_manager.user_model,
+        "User",
         backref=backref("saved_queries", cascade="all, delete-orphan"),
         foreign_keys=[user_id],
     )
@@ -503,7 +506,9 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     latest_query_id = Column(
         Integer, ForeignKey("query.client_id", ondelete="SET NULL")
     )
-    latest_query = relationship("Query")
+    latest_query = relationship(
+        "Query", primaryjoin="TabState.latest_query_id == Query.client_id"
+    )
 
     # other properties
     autorun = Column(Boolean, default=False)

@@ -25,7 +25,7 @@ from superset.exceptions import QueryNotFoundException, SupersetCancelQueryExcep
 
 
 def test_query_dao_save_metadata(session: Session) -> None:
-    from superset import db
+    from superset.extensions import db
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -60,7 +60,7 @@ def test_query_dao_save_metadata(session: Session) -> None:
 
 
 def test_query_dao_get_queries_changed_after(session: Session) -> None:
-    from superset import db
+    from superset.extensions import db
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -118,8 +118,8 @@ def test_query_dao_get_queries_changed_after(session: Session) -> None:
 def test_query_dao_stop_query_not_found(
     mocker: MockFixture, app: Any, session: Session
 ) -> None:
-    from superset import db
     from superset.common.db_query_status import QueryStatus
+    from superset.extensions import db
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -161,8 +161,8 @@ def test_query_dao_stop_query_not_found(
 def test_query_dao_stop_query_not_running(
     mocker: MockFixture, app: Any, session: Session
 ) -> None:
-    from superset import db
     from superset.common.db_query_status import QueryStatus
+    from superset.extensions import db
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -200,8 +200,8 @@ def test_query_dao_stop_query_not_running(
 def test_query_dao_stop_query_failed(
     mocker: MockFixture, app: Any, session: Session
 ) -> None:
-    from superset import db
     from superset.common.db_query_status import QueryStatus
+    from superset.extensions import db
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -241,8 +241,8 @@ def test_query_dao_stop_query_failed(
 
 
 def test_query_dao_stop_query(mocker: MockFixture, app: Any, session: Session) -> None:
-    from superset import db
     from superset.common.db_query_status import QueryStatus
+    from superset.extensions import db
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 

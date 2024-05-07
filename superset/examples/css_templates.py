@@ -16,7 +16,7 @@
 # under the License.
 import textwrap
 
-from superset import db
+from superset.extensions import db
 from superset.models.core import CssTemplate
 
 

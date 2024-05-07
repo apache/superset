@@ -20,7 +20,6 @@ from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy.sql import delete, insert
 
-from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.base import BaseCommand
 from superset.commands.chart.importers.v1.utils import import_chart
@@ -41,6 +40,7 @@ from superset.commands.query.importers.v1.utils import import_saved_query
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.extensions import db
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import dashboard_slices
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema

@@ -40,13 +40,13 @@ from sqlalchemy.engine.result import Row as ResultRow
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import cache_manager, db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
+from superset.extensions import cache_manager, db, feature_flag_manager
 from superset.models.sql_lab import Query
 from superset.models.sql_types.presto_sql_types import (
     Array,
@@ -1017,7 +1017,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         result: list[ResultSetColumnType] = []
         for column in columns:
             # parse column if it is a row or array
-            if is_feature_enabled("PRESTO_EXPAND_DATA") and (
+            if feature_flag_manager.is_feature_enabled("PRESTO_EXPAND_DATA") and (
                 "array" in column.Type or "row" in column.Type
             ):
                 structural_column_index = len(result)
@@ -1106,7 +1106,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         """
         cols = cols or []
         presto_cols = cols
-        if is_feature_enabled("PRESTO_EXPAND_DATA") and show_cols:
+        if feature_flag_manager.is_feature_enabled("PRESTO_EXPAND_DATA") and show_cols:
             dot_regex = r"\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
             presto_cols = [
                 col
@@ -1151,7 +1151,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         :return: list of all columns(selected columns and their nested fields),
                  expanded data set, listed of nested fields
         """
-        if not is_feature_enabled("PRESTO_EXPAND_DATA"):
+        if not feature_flag_manager.is_feature_enabled("PRESTO_EXPAND_DATA"):
             return columns, data, []
 
         # process each column, unnesting ARRAY types and

@@ -27,7 +27,6 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
 
-from superset import db
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -38,6 +37,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIProgrammingError,
 )
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
+from superset.extensions import db
 from superset.models.sql_lab import Query
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType

@@ -24,7 +24,9 @@ from sqlalchemy.engine.reflection import Inspector
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
+from superset.models.dashboard import Dashboard  # noqa
 from superset.sql_parse import Table
+from superset.tags import models  # noqa
 from superset.utils import json
 
 

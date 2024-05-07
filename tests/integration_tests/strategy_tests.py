@@ -31,7 +31,7 @@ import pandas as pd  # noqa: F401
 from superset.models.slice import Slice  # noqa: F401
 from superset.utils.database import get_example_database  # noqa: F401
 
-from superset import db
+from superset.extensions import db
 
 from superset.models.core import Log
 from superset.tags.models import get_tag, ObjectType, TaggedObject, TagType

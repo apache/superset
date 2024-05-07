@@ -22,8 +22,8 @@ from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import db
 from superset.commands.base import BaseCommand
+from superset.extensions import db
 from superset.key_value.exceptions import KeyValueUpdateFailedError
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import Key, KeyValueCodec, KeyValueResource

@@ -20,11 +20,10 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session  # noqa: F401
 
-from superset import db
 from superset.commands.dataset.exceptions import DatasetAccessDeniedError
 from superset.commands.explore.form_data.state import TemporaryExploreState
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, db
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import DatasourceType

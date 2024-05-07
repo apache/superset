@@ -20,7 +20,7 @@ from typing import Callable, ContextManager
 import pytest
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import db
+from superset.extensions import db
 from superset.models.sql_lab import Query
 from superset.utils.core import shortid
 from superset.utils.database import get_example_database

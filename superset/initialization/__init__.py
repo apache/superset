@@ -20,20 +20,34 @@ import contextlib
 import logging
 import os
 import sys
+from importlib.resources import files
 from typing import Any, Callable, TYPE_CHECKING
 
+import simplejson as json
+import sqlalchemy as sqla
 import wtforms_json
 from deprecation import deprecated
-from flask import Flask, redirect
+from flask import (
+    Flask,
+    redirect,
+    render_template,
+    request,
+    Response,
+    send_file,
+)
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __
 from flask_compress import Compress
 from flask_session import Session
+from flask_wtf.csrf import CSRFError
+from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException, SupersetErrorsException
 from superset.extensions import (
-    _event_logger,
     APP_DIR,
     appbuilder,
     async_query_manager_factory,
@@ -42,19 +56,24 @@ from superset.extensions import (
     csrf,
     db,
     encrypted_field_factory,
+    event_logger_manager,
     feature_flag_manager,
     machine_auth_provider_factory,
     manifest_processor,
     migrate,
     profiling,
     results_backend_manager,
+    security_manager,
     ssh_manager_factory,
     stats_logger_manager,
     talisman,
 )
 from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
-from superset.tags.core import register_sqla_event_listeners
+from superset.tags.core import (
+    register_sqla_event_listeners as register_tag_event_listeners,
+)
+from superset.utils import core as utils, json as json_utils
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
@@ -64,18 +83,30 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_error_level_from_status_code(  # pylint: disable=invalid-name
+    status: int,
+) -> ErrorLevel:
+    if status < 400:
+        return ErrorLevel.INFO
+    if status < 500:
+        return ErrorLevel.WARNING
+    return ErrorLevel.ERROR
+
+
 class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def __init__(self, app: SupersetApp) -> None:
         super().__init__()
 
+        self.app = app
         self.superset_app = app
         self.config = app.config
         self.manifest: dict[Any, Any] = {}
+        self.app.stats_logger = app.config["STATS_LOGGER"]
 
-    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
+    @deprecated(details="use self.app instead of self.flask_app")  # type: ignore
     @property
     def flask_app(self) -> SupersetApp:
-        return self.superset_app
+        return self.app
 
     def pre_init(self) -> None:
         """
@@ -94,7 +125,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def configure_celery(self) -> None:
         celery_app.config_from_object(self.config["CELERY_CONFIG"])
         celery_app.set_default()
-        superset_app = self.superset_app
+        app = self.app
 
         # Here, we want to ensure that every call into Celery task has an app context
         # setup properly
@@ -106,7 +137,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             # Grab each call into the task and set up an app context
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
-                with superset_app.app_context():
+                with app.app_context():
                     return task_base.__call__(self, *args, **kwargs)
 
         celery_app.Task = AppContextTask
@@ -415,12 +446,174 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
         if flask_app_mutator := self.config["FLASK_APP_MUTATOR"]:
-            flask_app_mutator(self.superset_app)
-
-        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            register_sqla_event_listeners()
+            flask_app_mutator(self.app)
 
         self.init_views()
+
+        self.register_sqla_event_listeners()
+        self.register_error_handlers()
+        self.register_other_views()
+
+    def register_other_views(self) -> None:
+        @talisman(force_https=False)
+        @self.app.route("/health")
+        @self.app.route("/healthcheck")
+        @self.app.route("/ping")
+        def health() -> FlaskResponse:
+            self.app.stats_logger.incr("health")
+            return "OK"
+
+    def register_sqla_event_listeners(self) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.models.core import Database
+
+        # TODO move all sqla.event.listen to this method
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            register_tag_event_listeners()
+
+        # Using lambdas for security manager to prevent referencing it in module scope
+        sqla.event.listen(
+            Database,
+            "after_insert",
+            security_manager.database_after_insert,
+        )
+        sqla.event.listen(
+            Database,
+            "after_update",
+            security_manager.database_after_update,
+        )
+        sqla.event.listen(
+            Database,
+            "after_delete",
+            security_manager.database_after_delete,
+        )
+
+    def register_error_handlers(self) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.views.utils import get_error_msg, json_errors_response
+
+        # SIP-40 compatible error responses; make sure APIs raise
+        # SupersetErrorException or SupersetErrorsException
+        @self.app.errorhandler(SupersetErrorException)
+        def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
+            logger.warning("SupersetErrorException", exc_info=True)
+            return json_errors_response(errors=[ex.error], status=ex.status)
+
+        @self.app.errorhandler(SupersetErrorsException)
+        def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
+            logger.warning("SupersetErrorsException", exc_info=True)
+            return json_errors_response(errors=ex.errors, status=ex.status)
+
+        # Redirect to login if the CSRF token is expired
+        @self.app.errorhandler(CSRFError)
+        def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
+            logger.warning("Refresh CSRF token error", exc_info=True)
+
+            if request.is_json:
+                return show_http_exception(ex)
+
+            return redirect(appbuilder.get_url_for_login)
+
+        @self.app.errorhandler(HTTPException)
+        def show_http_exception(ex: HTTPException) -> FlaskResponse:
+            logger.warning("HTTPException", exc_info=True)
+            if (
+                "text/html" in request.accept_mimetypes
+                and not self.app.config["DEBUG"]
+                and ex.code in {404, 500}
+            ):
+                path = files("superset") / f"static/assets/{ex.code}.html"
+                return send_file(path, max_age=0), ex.code
+
+            return json_errors_response(
+                errors=[
+                    SupersetError(
+                        message=utils.error_msg_from_exception(ex),
+                        error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                        level=ErrorLevel.ERROR,
+                    ),
+                ],
+                status=ex.code or 500,
+            )
+
+        @self.app.errorhandler(500)
+        def show_traceback(self) -> FlaskResponse:  # type: ignore # pylint: disable=unused-argument
+            return (
+                render_template("superset/traceback.html", error_msg=get_error_msg()),
+                500,
+            )
+
+        # Temporary handler for CommandException; if an API raises a
+        # CommandException it should be fixed to map it to SupersetErrorException
+        # or SupersetErrorsException, with a specific status code and error type
+        @self.app.errorhandler(CommandException)
+        def show_command_errors(ex: CommandException) -> FlaskResponse:
+            logger.warning("CommandException", exc_info=True)
+            if "text/html" in request.accept_mimetypes and not self.app.config["DEBUG"]:
+                path = files("superset") / "static/assets/500.html"
+                return send_file(path, max_age=0), 500
+
+            extra = (
+                ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
+            )
+            return json_errors_response(
+                errors=[
+                    SupersetError(
+                        message=ex.message,
+                        error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                        level=get_error_level_from_status_code(ex.status),
+                        extra=extra,
+                    ),
+                ],
+                status=ex.status,
+            )
+
+        # Catch-all, to ensure all errors from the backend conform to SIP-40
+        @self.app.errorhandler(Exception)
+        def show_unexpected_exception(ex: Exception) -> FlaskResponse:
+            logger.exception(ex)
+            if "text/html" in request.accept_mimetypes and not self.app.config["DEBUG"]:
+                path = files("superset") / "static/assets/500.html"
+                return send_file(path, max_age=0), 500
+
+            return json_errors_response(
+                errors=[
+                    SupersetError(
+                        message=utils.error_msg_from_exception(ex),
+                        error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                        level=ErrorLevel.ERROR,
+                    ),
+                ],
+            )
+
+        @self.app.context_processor
+        def get_common_bootstrap_data() -> dict[str, Any]:
+            from superset.initialization.bootstrap import common_bootstrap_payload
+
+            def serialize_bootstrap_data() -> str:
+                return json.dumps(
+                    {"common": common_bootstrap_payload()},
+                    default=json_utils.pessimistic_json_iso_dttm_ser,
+                )
+
+            return {"bootstrap_data": serialize_bootstrap_data}
+
+        @self.app.after_request
+        def apply_http_headers(response: Response) -> Response:
+            """Applies the configuration's http headers to all responses"""
+
+            # HTTP_HEADERS is deprecated, this provides backwards compatibility
+            response.headers.extend(
+                {
+                    **self.app.config["OVERRIDE_HTTP_HEADERS"],
+                    **self.app.config["HTTP_HEADERS"],
+                }
+            )
+
+            for k, v in self.app.config["DEFAULT_HTTP_HEADERS"].items():
+                if k not in response.headers:
+                    response.headers[k] = v
+            return response
 
     def check_secret_key(self) -> None:
         def log_default_secret_key_warning() -> None:
@@ -437,11 +630,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             logger.warning(bottom_banner)
 
         if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
-            if (
-                self.superset_app.debug
-                or self.superset_app.config["TESTING"]
-                or is_test()
-            ):
+            if self.app.debug or self.app.config["TESTING"] or is_test():
                 logger.warning("Debug mode identified with default secret key")
                 log_default_secret_key_warning()
                 return
@@ -451,7 +640,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
-            Session(self.superset_app)
+            Session(self.app)
 
     def init_app(self) -> None:
         """
@@ -477,24 +666,25 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_middlewares()
         self.configure_cache()
 
-        with self.superset_app.app_context():
+        with self.app.app_context():
             self.init_app_in_ctx()
 
         self.post_init()
 
     def configure_auth_provider(self) -> None:
-        machine_auth_provider_factory.init_app(self.superset_app)
+        machine_auth_provider_factory.init_app(self.app)
 
     def configure_ssh_manager(self) -> None:
-        ssh_manager_factory.init_app(self.superset_app)
+        ssh_manager_factory.init_app(self.app)
 
     def configure_stats_manager(self) -> None:
-        stats_logger_manager.init_app(self.superset_app)
+        stats_logger_manager.init_app(self.app)
 
     def setup_event_logger(self) -> None:
-        _event_logger["event_logger"] = get_event_logger_from_cfg_value(
-            self.superset_app.config.get("EVENT_LOGGER", DBEventLogger())
+        event_logger = get_event_logger_from_cfg_value(
+            self.app.config.get("EVENT_LOGGER") or DBEventLogger()
         )
+        event_logger_manager.set_event_logger(event_logger)
 
     def configure_data_sources(self) -> None:
         # Registering sources
@@ -507,13 +697,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             __import__(module_name, fromlist=class_names)
 
     def configure_cache(self) -> None:
-        cache_manager.init_app(self.superset_app)
-        results_backend_manager.init_app(self.superset_app)
+        cache_manager.init_app(self.app)
+        results_backend_manager.init_app(self.app)
 
     def configure_feature_flags(self) -> None:
-        feature_flag_manager.init_app(self.superset_app)
+        feature_flag_manager.init_app(self.app)
 
     def configure_fab(self) -> None:
+        """
+        NOTE: somehow appbuilder.init_app will run a `db.create_all`
+        which creates the foundation db models FAB needs. This needs to happen
+        before other [superset] models are initialized. For this
+        reason we tend to do late imports in this module. A simple
+        `from superset.models import core` in this context would lead to FAB
+        creating models, and conflict with db migrations happening later in
+        the installation flows
+        """
         if self.config["SILENCE_FAB"]:
             logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
 
@@ -528,7 +727,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.indexview = SupersetIndexView
         appbuilder.base_template = "superset/base.html"
         appbuilder.security_manager_class = custom_sm
-        appbuilder.init_app(self.superset_app, db.session)
+        appbuilder.init_app(self.app, db.session)
 
     def configure_url_map_converters(self) -> None:
         #
@@ -541,19 +740,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             RegexConverter,
         )
 
-        self.superset_app.url_map.converters["regex"] = RegexConverter
-        self.superset_app.url_map.converters["object_type"] = ObjectTypeConverter
+        self.app.url_map.converters["regex"] = RegexConverter
+        self.app.url_map.converters["object_type"] = ObjectTypeConverter
 
     def configure_middlewares(self) -> None:
         if self.config["ENABLE_CORS"]:
             # pylint: disable=import-outside-toplevel
             from flask_cors import CORS
 
-            CORS(self.superset_app, **self.config["CORS_OPTIONS"])
+            CORS(self.app, **self.config["CORS_OPTIONS"])
 
         if self.config["ENABLE_PROXY_FIX"]:
-            self.superset_app.wsgi_app = ProxyFix(
-                self.superset_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
+            self.app.wsgi_app = ProxyFix(
+                self.app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
             )
 
         if self.config["ENABLE_CHUNK_ENCODING"]:
@@ -571,33 +770,33 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         environ["wsgi.input_terminated"] = True
                     return self.app(environ, start_response)
 
-            self.superset_app.wsgi_app = ChunkedEncodingFix(self.superset_app.wsgi_app)
+            self.app.wsgi_app = ChunkedEncodingFix(self.app.wsgi_app)
 
         if self.config["UPLOAD_FOLDER"]:
             with contextlib.suppress(OSError):
                 os.makedirs(self.config["UPLOAD_FOLDER"])
         for middleware in self.config["ADDITIONAL_MIDDLEWARE"]:
-            self.superset_app.wsgi_app = middleware(self.superset_app.wsgi_app)
+            self.app.wsgi_app = middleware(self.app.wsgi_app)
 
         # Flask-Compress
-        Compress(self.superset_app)
+        Compress(self.app)
 
         # Talisman
         talisman_enabled = self.config["TALISMAN_ENABLED"]
         talisman_config = (
             self.config["TALISMAN_DEV_CONFIG"]
-            if self.superset_app.debug
+            if self.app.debug
             else self.config["TALISMAN_CONFIG"]
         )
         csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]
 
         if talisman_enabled:
-            talisman.init_app(self.superset_app, **talisman_config)
+            talisman.init_app(self.app, **talisman_config)
 
         show_csp_warning = False
         if (
             csp_warning
-            and not self.superset_app.debug
+            and not self.app.debug
             and (
                 not talisman_enabled
                 or not talisman_config
@@ -619,45 +818,45 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_logging(self) -> None:
         self.config["LOGGING_CONFIGURATOR"].configure_logging(
-            self.config, self.superset_app.debug
+            self.config, self.app.debug
         )
 
     def configure_db_encrypt(self) -> None:
-        encrypted_field_factory.init_app(self.superset_app)
+        encrypted_field_factory.init_app(self.app)
 
     def setup_db(self) -> None:
-        db.init_app(self.superset_app)
+        db.init_app(self.app)
 
-        with self.superset_app.app_context():
+        with self.app.app_context():
             pessimistic_connection_handling(db.engine)
 
-        migrate.init_app(self.superset_app, db=db, directory=APP_DIR + "/migrations")
+        migrate.init_app(self.app, db=db, directory=APP_DIR + "/migrations")
 
     def configure_wtf(self) -> None:
         if self.config["WTF_CSRF_ENABLED"]:
-            csrf.init_app(self.superset_app)
+            csrf.init_app(self.app)
             csrf_exempt_list = self.config["WTF_CSRF_EXEMPT_LIST"]
             for ex in csrf_exempt_list:
                 csrf.exempt(ex)
 
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-            async_query_manager_factory.init_app(self.superset_app)
+            async_query_manager_factory.init_app(self.app)
 
     def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:
             try:
                 logger.info("Registering blueprint: %s", bp.name)
-                self.superset_app.register_blueprint(bp)
+                self.app.register_blueprint(bp)
             except Exception:  # pylint: disable=broad-except
                 logger.exception("blueprint registration failed")
 
     def setup_bundle_manifest(self) -> None:
-        manifest_processor.init_app(self.superset_app)
+        manifest_processor.init_app(self.app)
 
     def enable_profiling(self) -> None:
         if self.config["PROFILING"]:
-            profiling.init_app(self.superset_app)
+            profiling.init_app(self.app)
 
 
 class SupersetIndexView(IndexView):

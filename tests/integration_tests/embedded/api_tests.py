@@ -21,7 +21,7 @@ from unittest import mock
 
 import pytest
 
-from superset import db
+from superset.extensions import db
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase

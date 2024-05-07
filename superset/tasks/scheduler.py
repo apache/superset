@@ -19,8 +19,9 @@ from datetime import datetime
 
 from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app as app
 
-from superset import app, is_feature_enabled
+from superset import feature_flag_manager
 from superset.commands.exceptions import CommandException
 from superset.commands.report.exceptions import ReportScheduleUnexpectedError
 from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
@@ -43,7 +44,7 @@ def scheduler() -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("reports.scheduler")
 
-    if not is_feature_enabled("ALERT_REPORTS"):
+    if not feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
         return
     active_schedules = ReportScheduleDAO.find_active()
     triggered_at = (

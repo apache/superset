@@ -16,14 +16,14 @@
 # under the License.
 from typing import Any
 
-from flask import current_app, g
+from flask import current_app as app, g
 from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 from sqlalchemy.orm import Query
 from sqlalchemy.sql.expression import cast
 from sqlalchemy.sql.sqltypes import JSON
 
-from superset import app, security_manager
+from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.views.base import BaseFilter
 
@@ -50,7 +50,7 @@ class DatabaseFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         filtering.
         """
 
-        if dynamic_filters := current_app.config["EXTRA_DYNAMIC_QUERY_FILTERS"]:
+        if dynamic_filters := app.config["EXTRA_DYNAMIC_QUERY_FILTERS"]:
             if dynamic_databases_filter := dynamic_filters.get("databases"):
                 query = dynamic_databases_filter(query)
 

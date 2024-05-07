@@ -22,8 +22,8 @@ from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
-from superset import is_feature_enabled
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.extensions import feature_flag_manager
 from superset.models.dynamic_plugins import DynamicPlugin
 
 
@@ -62,6 +62,6 @@ class DynamicPluginsView(ModelView):
 
     @before_request
     def ensure_dynamic_plugins_enabled(self) -> Optional[Response]:
-        if not is_feature_enabled("DYNAMIC_PLUGINS"):
+        if not feature_flag_manager.is_feature_enabled("DYNAMIC_PLUGINS"):
             return make_response("Not found", 404)
         return None

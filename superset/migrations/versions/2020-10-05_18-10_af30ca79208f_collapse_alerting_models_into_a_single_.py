@@ -28,7 +28,7 @@ from sqlalchemy.dialects.sqlite.base import SQLiteDialect
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import backref, relationship, RelationshipProperty
 
-from superset import db
+from superset.extensions import db
 from superset.utils.core import generic_find_fk_constraint_name
 
 revision = "af30ca79208f"

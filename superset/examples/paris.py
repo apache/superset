@@ -19,7 +19,7 @@ import pandas as pd
 from sqlalchemy import inspect, String, Text
 
 import superset.utils.database as database_utils
-from superset import db
+from superset.extensions import db
 from superset.sql_parse import Table
 from superset.utils import json
 

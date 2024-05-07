@@ -23,7 +23,15 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-from flask import abort, flash, g, redirect, render_template, request, Response
+from flask import (
+    abort,
+    current_app as app,
+    flash,
+    g,
+    redirect,
+    request,
+    Response,
+)
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -33,15 +41,6 @@ from flask_appbuilder.security.decorators import (
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import (
-    app,
-    appbuilder,
-    conf,
-    db,
-    event_logger,
-    is_feature_enabled,
-    security_manager,
-)
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
@@ -63,7 +62,15 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
-from superset.extensions import async_query_manager, cache_manager
+from superset.extensions import (
+    appbuilder,
+    async_query_manager,
+    cache_manager,
+    db,
+    event_logger,
+    feature_flag_manager,
+    security_manager,
+)
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -85,7 +92,6 @@ from superset.views.base import (
     data_payload_response,
     deprecated,
     generate_download_headers,
-    get_error_msg,
     handle_api_exception,
     json_error_response,
     json_success,
@@ -104,9 +110,6 @@ from superset.views.utils import (
 )
 from superset.viz import BaseViz
 
-config = app.config
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-stats_logger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
@@ -181,9 +184,10 @@ class Superset(BaseSupersetView):
         self, viz_obj: BaseViz, response_type: str | None = None
     ) -> FlaskResponse:
         if response_type == ChartDataResultFormat.CSV:
-            return CsvResponse(
+            csv_resp: CsvResponse = CsvResponse(
                 viz_obj.get_csv(), headers=generate_download_headers("csv")
             )
+            return csv_resp
 
         if response_type == ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
@@ -300,7 +304,7 @@ class Superset(BaseSupersetView):
 
             # TODO: support CSV, SQL query and other non-JSON types
             if (
-                is_feature_enabled("GLOBAL_ASYNC_QUERIES")
+                feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES")
                 and response_type == ChartDataResultFormat.JSON
             ):
                 # First, look for the chart query results in the cache.
@@ -886,19 +890,12 @@ class Superset(BaseSupersetView):
         datasource.raise_for_access()
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
 
-    @app.errorhandler(500)
-    def show_traceback(self) -> FlaskResponse:
-        return (
-            render_template("superset/traceback.html", error_msg=get_error_msg()),
-            500,
-        )
-
     @event_logger.log_this
     @expose("/welcome/")
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
         if not g.user or not get_user_id():
-            if conf["PUBLIC_ROLE_LIKE"]:
+            if app.config["PUBLIC_ROLE_LIKE"]:
                 return self.render_template("superset/public_welcome.html")
             return redirect(appbuilder.get_url_for_login)
 

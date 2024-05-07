@@ -19,11 +19,11 @@ from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 
-from superset import db
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.tag.exceptions import TagInvalidError, TagNotFoundError
 from superset.commands.tag.utils import to_object_type
 from superset.daos.tag import TagDAO
+from superset.extensions import db
 from superset.tags.models import Tag
 
 logger = logging.getLogger(__name__)

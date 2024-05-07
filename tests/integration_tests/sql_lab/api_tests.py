@@ -30,7 +30,8 @@ from unittest import mock
 
 from flask_appbuilder.security.sqla.models import Role
 from tests.integration_tests.test_app import app
-from superset import db, sql_lab
+from superset.extensions import db
+from superset import sql_lab
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database  # noqa: F401
 from superset.utils.database import get_example_database, get_main_database  # noqa: F401

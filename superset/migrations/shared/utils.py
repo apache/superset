@@ -21,6 +21,7 @@ from collections.abc import Iterator
 from typing import Any, Callable, Optional, Union
 from uuid import uuid4
 
+import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import inspect
 from sqlalchemy.dialects.mysql.base import MySQLDialect
@@ -168,3 +169,25 @@ def try_load_json(data: Optional[str]) -> dict[str, Any]:
     except json.JSONDecodeError:
         print(f"Failed to parse: {data}")
         return {}
+
+
+def force_add_column(table_name: str, column_object: sa.Column) -> None:
+    """
+    Checks if the column exists in the given table, and drops and recreates it if it does.
+
+    :param table_name: The name of the table.
+    :param column_object: SQLAlchemy Column object to add.
+    """
+    bind = op.get_bind()
+    insp = sa.engine.reflection.Inspector.from_engine(bind)
+
+    # Check if the column exists
+    columns = [col["name"] for col in insp.get_columns(table_name)]
+    if (column_name := column_object.name) in columns:
+        # Drop the existing column
+        with op.batch_alter_table(table_name) as batch_op:
+            batch_op.drop_column(column_name)
+
+    # Add the new column
+    with op.batch_alter_table(table_name) as batch_op:
+        batch_op.add_column(column_object)

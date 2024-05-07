@@ -19,10 +19,10 @@ import copy
 import yaml
 from flask import g
 
-from superset import db
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import is_valid_config
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json

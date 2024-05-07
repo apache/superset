@@ -30,7 +30,7 @@ from alembic import op  # noqa: E402
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text  # noqa: E402
 from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db  # noqa: E402
+from superset.extensions import db  # noqa: E402
 from superset.utils import json  # noqa: E402
 
 Base = declarative_base()

@@ -23,7 +23,7 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
-from superset import db
+from superset.extensions import db
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable

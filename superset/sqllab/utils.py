@@ -20,9 +20,9 @@ from typing import Any
 
 import pyarrow as pa
 
-from superset import db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.daos.database import DatabaseDAO
+from superset.extensions import db, feature_flag_manager
 from superset.models.sql_lab import TabState
 
 DATABASE_KEYS = [
@@ -91,7 +91,7 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
         databases[database.id]["backend"] = database.backend
 
     # These are unnecessary if sqllab backend persistence is disabled
-    if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
+    if feature_flag_manager.is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
         # send list of tab state ids
         tabs_state = (
             db.session.query(TabState.id, TabState.label)

@@ -29,7 +29,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.ext.declarative import declarative_base
 
-from superset import db
+from superset.extensions import db
 from superset.utils import json
 
 revision = "7fcdcde0761c"

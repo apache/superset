@@ -36,12 +36,12 @@ from shillelagh.exceptions import UnauthenticatedError
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL
 
-from superset import db, security_manager
 from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
+from superset.extensions import db, security_manager
 from superset.utils import json
 
 if TYPE_CHECKING:

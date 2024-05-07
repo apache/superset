@@ -20,24 +20,18 @@ import inspect
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable
 
 from flask import current_app as app, request
 from flask_caching import Cache
 from flask_caching.backends import NullCache
 from werkzeug.wrappers import Response
 
-from superset import db
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, db
 from superset.models.cache import CacheKey
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.json import json_int_dttm_ser
 
-if TYPE_CHECKING:
-    from superset.stats_logger import BaseStatsLogger
-
-config = app.config
-stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 
@@ -65,9 +59,9 @@ def set_and_log_cache(
         dttm = datetime.utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
         cache_instance.set(cache_key, value, timeout=timeout)
-        stats_logger.incr("set_cache_key")
+        app.stats_logger.incr("set_cache_key")
 
-        if datasource_uid and config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
+        if datasource_uid and app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
             ck = CacheKey(
                 cache_key=cache_key,
                 cache_timeout=cache_timeout,
@@ -147,7 +141,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
 def etag_cache(
     cache: Cache = cache_manager.cache,
     get_last_modified: Callable[..., datetime] | None = None,
-    max_age: int | float = app.config["CACHE_DEFAULT_TIMEOUT"],
+    max_age: int | float = 0,
     raise_for_access: Callable[..., Any] | None = None,
     skip: Callable[..., bool] | None = None,
 ) -> Callable[..., Any]:
@@ -167,6 +161,7 @@ def etag_cache(
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Response:
+            max_age = app.config["CACHE_DEFAULT_TIMEOUT"] or 0
             # Check if the user can access the resource
             if raise_for_access:
                 try:

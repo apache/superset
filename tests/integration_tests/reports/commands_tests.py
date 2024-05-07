@@ -38,7 +38,6 @@ from slack_sdk.errors import (
 )
 from sqlalchemy.sql import func
 
-from superset import db
 from superset.commands.report.exceptions import (
     AlertQueryError,
     AlertQueryInvalidTypeError,
@@ -60,6 +59,7 @@ from superset.commands.report.execute import (
 )
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.exceptions import SupersetException
+from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice

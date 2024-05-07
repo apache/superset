@@ -20,12 +20,13 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from superset import db, security_manager
+from superset import security_manager
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.commands.query.exceptions import SavedQueryNotFoundError
 from superset.commands.query.export import ExportSavedQueriesCommand
 from superset.commands.query.importers.v1 import ImportSavedQueriesCommand
+from superset.extensions import db
 from superset.models.core import Database
 from superset.models.sql_lab import SavedQuery
 from superset.utils.database import get_example_database

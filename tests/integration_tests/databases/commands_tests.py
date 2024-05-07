@@ -22,7 +22,7 @@ import yaml
 from func_timeout import FunctionTimedOut
 from sqlalchemy.exc import DBAPIError
 
-from superset import db, event_logger, security_manager  # noqa: F401
+from superset import event_logger, security_manager  # noqa: F401
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.exceptions import (
     DatabaseInvalidError,
@@ -49,6 +49,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
+from superset.extensions import db
 from superset.models.core import Database
 from superset.utils.core import backend
 from superset.utils.database import get_example_database

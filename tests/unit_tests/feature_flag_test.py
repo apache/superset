@@ -16,7 +16,9 @@
 # under the License.
 from pytest_mock import MockFixture
 
-from superset import is_feature_enabled
+from superset.extensions import feature_flag_manager
+
+is_feature_enabled = feature_flag_manager.is_feature_enabled
 
 
 def dummy_is_feature_enabled(feature_flag_name: str, default: bool = True) -> bool:

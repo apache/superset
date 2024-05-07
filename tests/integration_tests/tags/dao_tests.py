@@ -27,7 +27,8 @@ from superset.tags.models import ObjectType, Tag, TaggedObject
 from tests.integration_tests.tags.api_tests import TAGS_FIXTURE_COUNT
 
 import tests.integration_tests.test_app  # pylint: disable=unused-import  # noqa: F401
-from superset import db, security_manager  # noqa: F401
+from superset.extensions import db
+from superset import security_manager  # noqa: F401
 from superset.daos.dashboard import DashboardDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase

@@ -24,7 +24,7 @@ Create Date: 2023-06-08 11:34:36.241939
 
 from alembic import op
 
-from superset import db
+from superset.extensions import db
 from superset.migrations.shared.migrate_viz.processors import (
     MigrateDualLine,  # noqa: E402
 )

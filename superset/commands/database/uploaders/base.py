@@ -23,7 +23,6 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.datastructures import FileStorage
 
-from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
@@ -34,6 +33,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.database import DatabaseDAO
+from superset.extensions import db
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.utils.core import get_user

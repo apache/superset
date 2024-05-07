@@ -22,9 +22,9 @@ from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.key_value.create import CreateKeyValueCommand
+from superset.extensions import db
 from superset.key_value.exceptions import (
     KeyValueCreateFailedError,
     KeyValueUpsertFailedError,

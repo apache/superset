@@ -19,11 +19,11 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from flask import current_app as app
 from sqlalchemy import and_, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
-from superset import conf
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 from superset.utils import json
@@ -94,7 +94,9 @@ class MigrateViz:
     def _migrate_temporal_filter(self, rv_data: dict[str, Any]) -> None:
         """Adds a temporal filter."""
         granularity_sqla = rv_data.pop("granularity_sqla", None)
-        time_range = rv_data.pop("time_range", None) or conf.get("DEFAULT_TIME_FILTER")
+        time_range = rv_data.pop("time_range", None) or app.conf.get(
+            "DEFAULT_TIME_FILTER"
+        )
 
         if not granularity_sqla:
             return

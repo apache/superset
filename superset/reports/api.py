@@ -24,7 +24,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset import is_feature_enabled
 from superset.charts.filters import ChartFilter
 from superset.commands.report.create import CreateReportScheduleCommand
 from superset.commands.report.delete import DeleteReportScheduleCommand
@@ -40,7 +39,7 @@ from superset.commands.report.update import UpdateReportScheduleCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
-from superset.extensions import event_logger
+from superset.extensions import event_logger, feature_flag_manager
 from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
 from superset.reports.models import ReportSchedule
 from superset.reports.schemas import (
@@ -65,7 +64,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     @before_request
     def ensure_alert_reports_enabled(self) -> Optional[Response]:
-        if not is_feature_enabled("ALERT_REPORTS"):
+        if not feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
             return self.response_404()
         return None
 

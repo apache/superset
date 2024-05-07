@@ -28,7 +28,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-from superset import db
+from superset.extensions import db
 
 revision = "5afa9079866a"
 down_revision = "db4b49eb0782"

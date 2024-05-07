@@ -17,7 +17,7 @@
 
 from typing import Any
 
-from superset import db
+from superset.extensions import db
 from superset.models.sql_lab import SavedQuery
 
 

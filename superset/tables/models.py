@@ -31,7 +31,6 @@ import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy import inspect
 from sqlalchemy.orm import backref, relationship, Session
-from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import and_, or_
 
 from superset.columns.models import Column
@@ -75,7 +74,7 @@ class Table(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     # not exist in the migrations. The reason it does not physically exist is MySQL,
     # PostgreSQL, etc. have a different interpretation of uniqueness when it comes to NULL
     # which is problematic given the catalog and schema are optional.
-    __table_args__ = (UniqueConstraint("database_id", "catalog", "schema", "name"),)
+    # __table_args__ = (UniqueConstraint("database_id", "catalog", "schema", "name"),)
 
     id = sa.Column(sa.Integer, primary_key=True)
     database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)

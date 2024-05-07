@@ -22,11 +22,12 @@ from typing import Any
 
 import click
 from colorama import Fore, Style
+from flask import current_app as app
 from flask.cli import FlaskGroup, with_appcontext
 
-from superset import app, appbuilder, cli, security_manager
+from superset import cli
 from superset.cli.lib import normalize_token
-from superset.extensions import db
+from superset.extensions import appbuilder, db, security_manager
 
 logger = logging.getLogger(__name__)
 

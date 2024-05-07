@@ -26,9 +26,9 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm.session import Session
 
-from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import db
 from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:

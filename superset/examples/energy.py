@@ -23,8 +23,8 @@ from sqlalchemy import Float, inspect, String
 from sqlalchemy.sql import column
 
 import superset.utils.database as database_utils
-from superset import db
 from superset.connectors.sqla.models import SqlMetric
+from superset.extensions import db
 from superset.models.slice import Slice
 from superset.sql_parse import Table
 from superset.utils.core import DatasourceType

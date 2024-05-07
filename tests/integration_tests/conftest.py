@@ -27,8 +27,8 @@ from flask.ctx import AppContext
 from flask_appbuilder.security.sqla import models as ab_models
 from sqlalchemy.engine import Engine
 
-from superset import db, security_manager
-from superset.extensions import feature_flag_manager
+from superset import security_manager
+from superset.extensions import db, feature_flag_manager
 from superset.utils.database import get_example_database, remove_database
 from superset.utils.json import json_dumps_w_dates
 from tests.integration_tests.test_app import app, login

@@ -31,7 +31,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import load_only
 from sqlalchemy_utils import UUIDType
 
-from superset import db
+from superset.extensions import db
 from superset.migrations.shared.utils import assign_uuids
 from superset.utils import core as utils, json
 

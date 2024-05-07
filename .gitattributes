@@ -1,1 +1,2 @@
 docker/**/*.sh text eol=lf
+docs/static/img/erd.svg -diff

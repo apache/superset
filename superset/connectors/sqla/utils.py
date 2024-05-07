@@ -29,13 +29,13 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm.exc import ObjectDeletedError
 from sqlalchemy.sql.type_api import TypeEngine
 
-from superset import db
 from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetGenericDBErrorException,
     SupersetSecurityException,
 )
+from superset.extensions import db
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery, Table

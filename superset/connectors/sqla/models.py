@@ -31,6 +31,7 @@ import dateutil.parser
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
+from flask import current_app as app
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
@@ -70,7 +71,6 @@ from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
-from superset import app, db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.utils import (
@@ -90,6 +90,7 @@ from superset.exceptions import (
     SupersetGenericDBErrorException,
     SupersetSecurityException,
 )
+from superset.extensions import db, feature_flag_manager, security_manager
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -120,10 +121,8 @@ from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import GenericDataType, MediumText
 
-config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
-ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 # a non-exhaustive set of additive metrics
@@ -1129,7 +1128,7 @@ class SqlaTable(
     )
     metric_class = SqlMetric
     column_class = TableColumn
-    owner_class = security_manager.user_model
+    owner_class = "User"
 
     __tablename__ = "tables"
 
@@ -1372,7 +1371,7 @@ class SqlaTable(
 
     @property
     def health_check_message(self) -> str | None:
-        check = config["DATASET_HEALTH_CHECK"]
+        check = app.config["DATASET_HEALTH_CHECK"]
         return check(self) if check else None
 
     @property
@@ -1627,7 +1626,7 @@ class SqlaTable(
                 else:
                     all_filters.append(clause)
 
-            if is_feature_enabled("EMBEDDED_SUPERSET"):
+            if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
                 for rule in security_manager.get_guest_rls_filters(self):
                     clause = self.text(
                         f"({template_processor.process_template(rule['clause'])})"
@@ -1890,7 +1889,7 @@ class SqlaTable(
         self.add_missing_metrics(metrics)
 
         # Apply config supplied mutations.
-        config["SQLA_TABLE_MUTATOR"](self)
+        app.config["SQLA_TABLE_MUTATOR"](self)
 
         db.session.merge(self)
         if commit:
@@ -2119,7 +2118,7 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
     )
     group_key = Column(String(255), nullable=True)
     roles = relationship(
-        security_manager.role_model,
+        "Role",
         secondary=RLSFilterRoles,
         backref="row_level_security_filters",
     )

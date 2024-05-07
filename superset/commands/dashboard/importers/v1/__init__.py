@@ -21,7 +21,6 @@ from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import select
 
-from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.dashboard.exceptions import DashboardImportError
@@ -38,6 +37,7 @@ from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.extensions import db
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard, dashboard_slices
 

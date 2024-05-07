@@ -31,7 +31,7 @@ from alembic import op
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
-from superset import db
+from superset.extensions import db
 from superset.utils import json
 from superset.utils.date_parser import parse_human_timedelta
 

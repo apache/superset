@@ -22,9 +22,9 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 import pytest
+from flask import current_app as app
 from pandas import DateOffset
 
-from superset import app, db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
@@ -32,7 +32,7 @@ from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlMetric
 from superset.daos.datasource import DatasourceDAO
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, db
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     AdhocMetricExpressionType,

@@ -28,7 +28,7 @@ down_revision = "59a1450b3c10"
 
 from alembic import op  # noqa: E402
 
-from superset import db  # noqa: E402
+from superset.extensions import db  # noqa: E402
 from superset.migrations.shared.migrate_viz import MigrateSunburst  # noqa: E402
 
 

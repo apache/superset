@@ -16,6 +16,7 @@
 # under the License.
 from typing import TYPE_CHECKING
 
+from flask import current_app as app
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
@@ -24,7 +25,6 @@ from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import CertificateException
 from superset.superset_typing import FlaskResponse
@@ -41,9 +41,6 @@ from .validators import sqlalchemy_uri_validator
 
 if TYPE_CHECKING:
     from werkzeug.datastructures import FileStorage
-
-config = app.config
-stats_logger = config["STATS_LOGGER"]
 
 
 def sqlalchemy_uri_form_validator(_: _, field: StringField) -> None:

@@ -17,11 +17,11 @@
 import logging
 from datetime import datetime, timedelta
 
-from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import ReportSchedulePruneLogError
 from superset.daos.exceptions import DAODeleteFailedError
 from superset.daos.report import ReportScheduleDAO
+from superset.extensions import db
 from superset.reports.models import ReportSchedule
 
 logger = logging.getLogger(__name__)

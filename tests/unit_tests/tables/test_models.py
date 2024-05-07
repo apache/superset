@@ -17,7 +17,7 @@
 # pylint: disable=import-outside-toplevel, unused-argument
 from sqlalchemy.orm.session import Session
 
-from superset import db
+from superset.extensions import db
 
 
 def test_table_model(session: Session) -> None:

@@ -25,7 +25,8 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from unittest import mock
 
-from superset import app
+from flask import current_app as app
+
 from superset.utils import core as utils
 from tests.integration_tests.base_tests import SupersetTestCase
 

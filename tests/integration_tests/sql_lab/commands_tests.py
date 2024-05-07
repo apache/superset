@@ -19,9 +19,10 @@ from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
+from flask import current_app as app
 from flask_babel import gettext as __
 
-from superset import app, db, sql_lab
+from superset import sql_lab
 from superset.commands.sql_lab import estimate, export, results
 from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -31,6 +32,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
+from superset.extensions import db
 from superset.models.core import Database  # noqa: F401
 from superset.models.sql_lab import Query
 from superset.sqllab.limiting_factor import LimitingFactor

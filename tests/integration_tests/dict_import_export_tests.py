@@ -23,7 +23,7 @@ from uuid import uuid4
 import yaml
 
 from tests.integration_tests.test_app import app
-from superset import db
+from superset.extensions import db
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.utils.database import get_example_database

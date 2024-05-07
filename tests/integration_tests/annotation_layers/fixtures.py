@@ -20,7 +20,7 @@ from typing import Optional
 import pytest
 from flask.ctx import AppContext
 
-from superset import db
+from superset.extensions import db
 from superset.models.annotations import Annotation, AnnotationLayer
 
 ANNOTATION_LAYERS_COUNT = 10

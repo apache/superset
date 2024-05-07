@@ -36,7 +36,7 @@ from sqlalchemy.dialects.sqlite.base import SQLiteDialect  # noqa: E402
 from sqlalchemy.exc import OperationalError  # noqa: E402
 from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db  # noqa: E402
+from superset.extensions import db  # noqa: E402
 from superset.utils import json  # noqa: E402
 from superset.utils.date_parser import DateRangeMigration  # noqa: E402
 

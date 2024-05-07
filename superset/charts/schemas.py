@@ -20,11 +20,11 @@ from __future__ import annotations
 import inspect
 from typing import Any, TYPE_CHECKING
 
+from flask import current_app as app
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
 
-from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import pandas_postprocessing, schema as utils
@@ -40,11 +40,7 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
 
-config = app.config
-
-#
 # RISON/JSON schemas for query parameters
-#
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 width_height_schema = {
@@ -597,6 +593,14 @@ class ChartDataContributionOptionsSchema(ChartDataPostProcessingOperationOptions
     )
 
 
+def get_time_grain_choices():  # type: ignore
+    return [
+        i
+        for i in {**builtin_time_grains, **app.config["TIME_GRAIN_ADDONS"]}.keys()
+        if i
+    ]
+
+
 class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     """
     Prophet operation config.
@@ -609,13 +613,8 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(
-            choices=[
-                i
-                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
-                if i
-            ]
-        ),
+        # TODO reinstate at runtime since schemas shouldn't be dynamic
+        # validate=validate.OneOf(choices=get_time_grain_choices),
         required=True,
     )
     periods = fields.Integer(
@@ -946,14 +945,14 @@ class ChartDataExtrasSchema(Schema):
     relative_start = fields.String(
         metadata={
             "description": "Start time for relative time deltas. "
-            'Default: `config["DEFAULT_RELATIVE_START_TIME"]`'
+            'Default: `app.config["DEFAULT_RELATIVE_START_TIME"]`'
         },
         validate=validate.OneOf(choices=("today", "now")),
     )
     relative_end = fields.String(
         metadata={
             "description": "End time for relative time deltas. "
-            'Default: `config["DEFAULT_RELATIVE_START_TIME"]`'
+            'Default: `app.config["DEFAULT_RELATIVE_START_TIME"]`'
         },
         validate=validate.OneOf(choices=("today", "now")),
     )
@@ -975,13 +974,8 @@ class ChartDataExtrasSchema(Schema):
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(
-            choices=[
-                i
-                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
-                if i
-            ]
-        ),
+        # TODO reinstate at runtime since schemas shouldn't be dynamic
+        # validate=validate.OneOf(choices=[]),
         allow_none=True,
     )
     instant_time_comparison_range = fields.String(

@@ -21,10 +21,11 @@ from unittest.mock import Mock, patch
 import pytest
 from flask import g
 
-from superset import db, security_manager
+from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.security.guest_token import GuestTokenResourceType  # noqa: F401
 from superset.sql_parse import Table  # noqa: F401

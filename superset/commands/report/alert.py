@@ -24,9 +24,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app as app
 from flask_babel import lazy_gettext as _
 
-from superset import app, jinja_context, security_manager
+from superset import jinja_context
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
     AlertQueryError,
@@ -36,6 +37,7 @@ from superset.commands.report.exceptions import (
     AlertQueryTimeout,
     AlertValidatorConfigError,
 )
+from superset.extensions import security_manager
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
 from superset.tasks.utils import get_executor
 from superset.utils import json

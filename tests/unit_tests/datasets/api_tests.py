@@ -19,7 +19,7 @@ from typing import Any
 
 from sqlalchemy.orm.session import Session
 
-from superset import db
+from superset.extensions import db
 
 
 def test_put_invalid_dataset(

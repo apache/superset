@@ -20,19 +20,19 @@ import logging
 from typing import Any, cast, TypedDict
 
 import pandas as pd
+from flask import current_app as app
 from flask_babel import gettext as __
 
-from superset import app, db, results_backend, results_backend_use_msgpack
+from superset import results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.extensions import db
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import core as utils, csv
 from superset.views.utils import _deserialize_results_payload
-
-config = app.config
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +132,7 @@ class SqlResultExportCommand(BaseCommand):
                 self._query.schema,
             )[:limit]
 
-        csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
+        csv_data = csv.df_to_escaped_csv(df, index=False, **app.config["CSV_EXPORT"])
 
         return {
             "query": self._query,

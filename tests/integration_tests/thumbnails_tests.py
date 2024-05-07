@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# from superset import db
+# from superset.extensions import db
 # from superset.models.dashboard import Dashboard
 
 import urllib.request
@@ -26,8 +26,12 @@ import pytest
 from flask_testing import LiveServerTestCase
 from sqlalchemy.sql import func
 
-from superset import db, is_feature_enabled, security_manager
-from superset.extensions import machine_auth_provider_factory
+from superset.extensions import (
+    db,
+    feature_flag_manager,
+    machine_auth_provider_factory,
+    security_manager,
+)
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tasks.types import ExecutorType
@@ -59,7 +63,9 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
         opener.addheaders.append(("Cookie", f"session={cookies['session']}"))
         return opener.open(f"{self.get_server_url()}/{url}")
 
-    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    @skipUnless(
+        (feature_flag_manager.is_feature_enabled("THUMBNAILS")), "Thumbnails feature"
+    )
     def test_get_async_dashboard_screenshot(self):
         """
         Thumbnails: Simple get async dashboard screenshot
@@ -298,7 +304,9 @@ class TestThumbnails(SupersetTestCase):
         self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    @skipUnless(
+        (feature_flag_manager.is_feature_enabled("THUMBNAILS")), "Thumbnails feature"
+    )
     def test_get_async_dashboard_not_allowed(self):
         """
         Thumbnails: Simple get async dashboard not allowed

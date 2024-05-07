@@ -23,8 +23,8 @@ from flask_appbuilder.api.schemas import get_item_schema, get_list_schema
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset import is_feature_enabled
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.extensions import feature_flag_manager
 from superset.reports.logs.schemas import openapi_spec_methods_override
 from superset.reports.models import ReportExecutionLog
 from superset.views.base_api import BaseSupersetModelRestApi
@@ -37,7 +37,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
 
     @before_request
     def ensure_alert_reports_enabled(self) -> Optional[Response]:
-        if not is_feature_enabled("ALERT_REPORTS"):
+        if not feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
             return self.response_404()
         return None
 

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset import db
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json

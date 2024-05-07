@@ -27,9 +27,9 @@ from flask import current_app
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
-from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.extensions import db
 from superset.models.sql_lab import Query
 
 if TYPE_CHECKING:

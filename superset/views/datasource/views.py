@@ -25,7 +25,6 @@ from flask_babel import _
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoResultFound, NoSuchTableError
 
-from superset import db, event_logger, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
@@ -35,6 +34,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.datasource import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.extensions import db, event_logger, security_manager
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse

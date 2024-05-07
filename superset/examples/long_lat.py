@@ -22,7 +22,7 @@ import pandas as pd
 from sqlalchemy import DateTime, Float, inspect, String
 
 import superset.utils.database as database_utils
-from superset import db
+from superset.extensions import db
 from superset.models.slice import Slice
 from superset.sql_parse import Table
 from superset.utils.core import DatasourceType

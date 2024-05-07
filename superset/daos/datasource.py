@@ -18,11 +18,11 @@
 import logging
 from typing import Union
 
-from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.models import Dataset
+from superset.extensions import db
 from superset.models.sql_lab import Query, SavedQuery
 from superset.tables.models import Table
 from superset.utils.core import DatasourceType

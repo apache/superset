@@ -208,7 +208,7 @@ gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.Gevent
 You can log anything to the browser console, including objects:
 
 ```python
-from superset import app
+from flask import current_app as app
 app.logger.error('An exception occurred!')
 app.logger.info(form_data)
 ```

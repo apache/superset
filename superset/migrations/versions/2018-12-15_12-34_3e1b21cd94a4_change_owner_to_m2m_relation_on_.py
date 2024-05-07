@@ -26,7 +26,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-from superset import db
+from superset.extensions import db
 from superset.utils.core import generic_find_fk_constraint_name
 
 revision = "3e1b21cd94a4"

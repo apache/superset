@@ -37,7 +37,6 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 
-from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
 
 if TYPE_CHECKING:
@@ -54,6 +53,7 @@ user_favorite_tag_table = Table(
     Model.metadata,  # pylint: disable=no-member
     Column("user_id", Integer, ForeignKey("ab_user.id")),
     Column("tag_id", Integer, ForeignKey("tag.id")),
+    extend_existing=True,
 )
 
 
@@ -99,9 +99,7 @@ class Tag(Model, AuditMixinNullable):
         "TaggedObject", back_populates="tag", overlaps="objects,tags"
     )
 
-    users_favorited = relationship(
-        security_manager.user_model, secondary=user_favorite_tag_table
-    )
+    users_favorited = relationship("User", secondary=user_favorite_tag_table)
 
 
 class TaggedObject(Model, AuditMixinNullable):

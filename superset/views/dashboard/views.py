@@ -30,8 +30,8 @@ from flask_appbuilder.security.decorators import (
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_login import AnonymousUserMixin, login_user
 
-from superset import db, event_logger, is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.extensions import db, event_logger, feature_flag_manager
 from superset.models.dashboard import Dashboard as DashboardModel
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -138,7 +138,7 @@ class Dashboard(BaseSupersetView):
         :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
             default value to appease pylint
         """
-        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+        if not feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
             return Response(status=404)
 
         # Log in as an anonymous user, just for this view.

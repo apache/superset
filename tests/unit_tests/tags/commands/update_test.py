@@ -18,7 +18,7 @@ import pytest
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
-from superset import db
+from superset.extensions import db
 from superset.utils.core import DatasourceType
 
 

@@ -18,8 +18,8 @@
 from unittest.mock import patch
 
 import pytest
+from flask import current_app as app
 
-from superset import app, db, security_manager
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.explore.form_data.create import CreateFormDataCommand
 from superset.commands.explore.form_data.delete import DeleteFormDataCommand
@@ -27,6 +27,7 @@ from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.commands.explore.form_data.update import UpdateFormDataCommand
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db, security_manager
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils import json

@@ -58,6 +58,7 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     SupersetSecurityException,
 )
+from superset.extensions import feature_flag_manager
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -340,7 +341,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def request_loader(self, request: Request) -> Optional[User]:
         # pylint: disable=import-outside-toplevel
-        from superset.extensions import feature_flag_manager
 
         if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
             return self.get_guest_user_from_request(request)
@@ -2157,7 +2157,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         # pylint: disable=import-outside-toplevel
-        from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
@@ -2290,9 +2289,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         .one_or_none()
                     )
                     and (
-                        (is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles)
+                        (
+                            feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
+                            and dashboard_.roles
+                        )
                         or (
-                            is_feature_enabled("EMBEDDED_SUPERSET")
+                            feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET")
                             and self.is_guest_user()
                         )
                     )
@@ -2352,7 +2354,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             # DASHBOARD_RBAC logic - Manage dashboard access through roles.
             # Only applicable in case the dashboard has roles set.
-            if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
+            if (
+                feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
+                and dashboard.roles
+            ):
                 if dashboard.published and {role.id for role in dashboard.roles} & {
                     role.id for role in self.get_user_roles()
                 }:
@@ -2628,9 +2633,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def is_guest_user(user: Optional[Any] = None) -> bool:
         # pylint: disable=import-outside-toplevel
-        from superset import is_feature_enabled
 
-        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+        if not feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
             return False
         if not user:
             user = g.user
@@ -2674,7 +2678,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         # pylint: disable=import-outside-toplevel
-        from superset import db
+        from superset.extensions import db
 
         if self.is_admin():
             return

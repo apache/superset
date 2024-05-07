@@ -18,11 +18,12 @@ import textwrap
 from typing import Union
 
 import pandas as pd
+from flask import current_app as app
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
-from superset import app, db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice

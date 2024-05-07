@@ -27,7 +27,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 import prison
 
 import tests.integration_tests.test_app  # noqa: F401
-from superset import db, security_manager
+from superset.extensions import db
+from superset import security_manager
 from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
 from superset.views.base_api import BaseSupersetModelRestApi, requires_json  # noqa: F401

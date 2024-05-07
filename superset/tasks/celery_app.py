@@ -25,20 +25,15 @@ from typing import Any
 from celery.signals import task_postrun, worker_process_init
 
 # Superset framework imports
-from superset import create_app
-from superset.extensions import celery_app, db
+from superset.app import create_app
+from superset.extensions import db
 
 # Init the Flask app / configure everything
-flask_app = create_app()
-
-# Need to import late, as the celery_app will have been setup by "create_app()"
-
-# Export the celery app globally for Celery (as run on the cmd line) to find
-app = celery_app
 
 
 @worker_process_init.connect
 def reset_db_connection_pool(**kwargs: Any) -> None:  # pylint: disable=unused-argument
+    flask_app = create_app()
     with flask_app.app_context():
         # https://docs.sqlalchemy.org/en/14/core/connections.html#engine-disposal
         db.engine.dispose()
@@ -59,6 +54,7 @@ def teardown(  # pylint: disable=unused-argument
     :see: https://docs.celeryq.dev/en/stable/userguide/signals.html#task-postrun
     :see: https://gist.github.com/twolfson/a1b329e9353f9b575131
     """
+    flask_app = create_app()
 
     if flask_app.config.get("SQLALCHEMY_COMMIT_ON_TEARDOWN"):
         if not isinstance(retval, Exception):

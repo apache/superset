@@ -35,7 +35,7 @@ def get_or_create_db(
     database_name: str, sqlalchemy_uri: str, always_create: bool | None = True
 ) -> Database:
     # pylint: disable=import-outside-toplevel
-    from superset import db
+    from superset.extensions import db
     from superset.models import core as models
 
     database = (
@@ -77,7 +77,7 @@ def get_main_database() -> Database:
 # with above function... think of how to refactor it
 def remove_database(database: Database) -> None:
     # pylint: disable=import-outside-toplevel
-    from superset import db
+    from superset.extensions import db
 
     db.session.delete(database)
     db.session.commit()

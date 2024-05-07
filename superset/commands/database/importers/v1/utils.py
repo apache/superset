@@ -17,11 +17,13 @@
 
 from typing import Any
 
-from superset import app, db, security_manager
+from flask import current_app as app
+
 from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import json

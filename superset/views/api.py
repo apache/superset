@@ -24,11 +24,11 @@ from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import lazy_gettext as _
 
-from superset import db, event_logger
 from superset.commands.chart.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
+from superset.extensions import db, event_logger
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse

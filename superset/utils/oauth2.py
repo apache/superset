@@ -25,8 +25,8 @@ import jwt
 from flask import current_app
 from marshmallow import EXCLUDE, fields, post_load, Schema
 
-from superset import db
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
+from superset.extensions import db
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 from superset.utils.lock import KeyValueDistributedLock
 

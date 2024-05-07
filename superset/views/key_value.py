@@ -20,7 +20,7 @@ from flask_appbuilder.hooks import before_request
 from flask_appbuilder.security.decorators import has_access_api
 from werkzeug.exceptions import NotFound
 
-from superset import db, event_logger, is_feature_enabled
+from superset.extensions import db, event_logger, feature_flag_manager
 from superset.models import core as models
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
@@ -32,7 +32,7 @@ class KV(BaseSupersetView):
 
     @staticmethod
     def is_enabled() -> bool:
-        return is_feature_enabled("KV_STORE")
+        return feature_flag_manager.is_feature_enabled("KV_STORE")
 
     @before_request
     def ensure_enabled(self) -> None:

@@ -26,7 +26,7 @@ from alembic import op
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
-from superset import db
+from superset.extensions import db
 
 # revision identifiers, used by Alembic.
 revision = "b5a422d8e252"

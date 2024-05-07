@@ -22,8 +22,7 @@ from typing import cast, Optional
 
 from flask import current_app
 
-from superset import security_manager, thumbnail_cache
-from superset.extensions import celery_app
+from superset.extensions import cache_manager, celery_app, security_manager
 from superset.tasks.utils import get_executor
 from superset.utils.core import override_user
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
@@ -44,7 +43,7 @@ def cache_chart_thumbnail(
     # pylint: disable=import-outside-toplevel
     from superset.models.slice import Slice
 
-    if not thumbnail_cache:
+    if not cache_manager.thumbnail_cache:
         logger.warning("No cache set, refusing to compute")
         return None
     chart = cast(Slice, Slice.get(chart_id))
@@ -63,7 +62,7 @@ def cache_chart_thumbnail(
         screenshot = ChartScreenshot(url, chart.digest)
         screenshot.compute_and_cache(
             user=user,
-            cache=thumbnail_cache,
+            cache=cache_manager.thumbnail_cache,
             force=force,
             window_size=window_size,
             thumb_size=thumb_size,
@@ -81,7 +80,7 @@ def cache_dashboard_thumbnail(
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
 
-    if not thumbnail_cache:
+    if not cache_manager.thumbnail_cache:
         logging.warning("No cache set, refusing to compute")
         return
     dashboard = Dashboard.get(dashboard_id)
@@ -98,7 +97,7 @@ def cache_dashboard_thumbnail(
         screenshot = DashboardScreenshot(url, dashboard.digest)
         screenshot.compute_and_cache(
             user=user,
-            cache=thumbnail_cache,
+            cache=cache_manager.thumbnail_cache,
             force=force,
             thumb_size=thumb_size,
         )

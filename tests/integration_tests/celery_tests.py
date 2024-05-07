@@ -33,7 +33,8 @@ import pytest
 import flask  # noqa: F401
 from flask import current_app, has_app_context  # noqa: F401
 
-from superset import db, sql_lab
+from superset.extensions import db
+from superset import sql_lab
 from superset.common.db_query_status import QueryStatus
 from superset.result_set import SupersetResultSet
 from superset.db_engine_specs.base import BaseEngineSpec

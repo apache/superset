@@ -21,8 +21,8 @@ from uuid import uuid3
 import pytest
 from sqlalchemy.orm import Session  # noqa: F401
 
-from superset import db
 from superset.explore.permalink.schemas import ExplorePermalinkSchema
+from superset.extensions import db
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource, MarshmallowKeyValueCodec
 from superset.key_value.utils import decode_permalink_id, encode_permalink_key

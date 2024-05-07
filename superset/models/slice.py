@@ -38,14 +38,14 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 
-from superset import db, is_feature_enabled, security_manager
+from superset.extensions import db, feature_flag_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
 from superset.utils import core as utils, json
-from superset.viz import BaseViz, viz_types
+from superset.viz import BaseViz, get_viz_types
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -92,11 +92,9 @@ class Slice(  # pylint: disable=too-many-public-methods
     certification_details = Column(Text)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
-    last_saved_by = relationship(
-        security_manager.user_model, foreign_keys=[last_saved_by_fk]
-    )
+    last_saved_by = relationship("User", foreign_keys=[last_saved_by_fk])
     owners = relationship(
-        security_manager.user_model,
+        "User",
         secondary=slice_user,
         passive_deletes=True,
     )
@@ -203,7 +201,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def viz(self) -> BaseViz | None:
         form_data = json.loads(self.params)
-        viz_class = viz_types.get(self.viz_type)
+        viz_class = get_viz_types().get(self.viz_type)
         datasource = self.datasource
         if viz_class and datasource:
             return viz_class(datasource=datasource, form_data=form_data)
@@ -384,6 +382,8 @@ def event_after_chart_changed(
 sqla.event.listen(Slice, "before_insert", set_related_perm)
 sqla.event.listen(Slice, "before_update", set_related_perm)
 
-if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
+thumbs_on: bool = feature_flag_manager.is_feature_enabled("THUMBNAILS_SQLA_LISTENERS")
+
+if thumbs_on:
     sqla.event.listen(Slice, "after_insert", event_after_chart_changed)
     sqla.event.listen(Slice, "after_update", event_after_chart_changed)

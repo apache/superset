@@ -23,11 +23,11 @@ from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import types
 
-from superset import is_feature_enabled
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetException
+from superset.extensions import feature_flag_manager
 from superset.utils import core as utils, json
 
 if TYPE_CHECKING:
@@ -42,7 +42,7 @@ class DruidEngineSpec(BaseEngineSpec):
 
     engine = "druid"
     engine_name = "Apache Druid"
-    allows_joins = is_feature_enabled("DRUID_JOINS")
+    allows_joins = feature_flag_manager.is_feature_enabled("DRUID_JOINS")
     allows_subqueries = True
 
     _time_grain_expressions = {

@@ -20,8 +20,8 @@ import pandas as pd
 import pytest
 from sqlalchemy import column, Float, String
 
-from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric
+from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database

@@ -26,10 +26,10 @@ from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
-from superset import db, security_manager
 from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.utils import json

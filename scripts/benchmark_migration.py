@@ -33,7 +33,7 @@ from progress.bar import ChargingBar
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.ext.automap import automap_base
 
-from superset import db
+from superset.extensions import db
 from superset.utils.mock_data import add_sample_rows
 
 logger = logging.getLogger(__name__)

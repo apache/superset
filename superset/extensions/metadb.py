@@ -67,7 +67,8 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.sql import Select, select
 
-from superset import db, feature_flag_manager, security_manager, sql_parse
+from superset import sql_parse
+from superset.extensions import db, feature_flag_manager, security_manager
 
 
 # pylint: disable=abstract-method

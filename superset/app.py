@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 def create_app(superset_config_module: Optional[str] = None) -> Flask:
     app = SupersetApp(__name__)
+    print("in CREATE_APP")
 
     try:
         # Allow user to override our config completely

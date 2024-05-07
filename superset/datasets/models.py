@@ -28,7 +28,6 @@ import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 
-from superset import security_manager
 from superset.columns.models import Column
 from superset.models.core import Database
 from superset.models.helpers import (
@@ -92,9 +91,7 @@ class Dataset(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
         single_parent=True,
         backref="datasets",
     )
-    owners = relationship(
-        security_manager.user_model, secondary=dataset_user_association_table
-    )
+    owners = relationship("User", secondary=dataset_user_association_table)
     tables: list[Table] = relationship(
         "Table", secondary=dataset_table_association_table, backref="datasets"
     )

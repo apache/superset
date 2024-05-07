@@ -18,7 +18,7 @@ import pandas as pd
 from sqlalchemy import DateTime, inspect
 
 import superset.utils.database as database_utils
-from superset import db
+from superset.extensions import db
 from superset.sql_parse import Table
 
 from .helpers import get_example_url, get_table_connector_registry

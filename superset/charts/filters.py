@@ -21,9 +21,9 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.query import Query
 
-from superset import db, security_manager
 from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db, security_manager
 from superset.models.core import FavStar
 from superset.models.slice import Slice
 from superset.utils.core import get_user_id

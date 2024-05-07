@@ -30,7 +30,7 @@ import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
-from superset import app, db, security_manager  # noqa: F401
+from superset.extensions import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType

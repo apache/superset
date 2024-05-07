@@ -18,7 +18,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from flask import Flask
+from flask import current_app, Flask
 from flask_babel import lazy_gettext as _
 from sqlalchemy import text, TypeDecorator
 from sqlalchemy.engine import Connection, Dialect, Row
@@ -26,6 +26,10 @@ from sqlalchemy_utils import EncryptedType
 
 ENC_ADAPTER_TAG_ATTR_NAME = "__created_by_enc_field_adapter__"
 logger = logging.getLogger(__name__)
+
+
+def get_secret_key() -> str:
+    return current_app.config["SECRET_KEY"]
 
 
 class AbstractEncryptedFieldAdapter(ABC):  # pylint: disable=too-few-public-methods
@@ -39,6 +43,9 @@ class AbstractEncryptedFieldAdapter(ABC):  # pylint: disable=too-few-public-meth
         pass
 
 
+# pylint: disable-all
+
+
 class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
     AbstractEncryptedFieldAdapter
 ):
@@ -48,12 +55,16 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
         *args: list[Any],
         **kwargs: Optional[dict[str, Any]],
     ) -> TypeDecorator:
+        kwargs["key"] = get_secret_key  # type: ignore
+        return EncryptedType(*args, **kwargs)
+        """
         if app_config:
-            return EncryptedType(*args, app_config["SECRET_KEY"], **kwargs)
+            return EncryptedType(*args, secret_key=get_secret_key, **kwargs)
 
         raise Exception(  # pylint: disable=broad-exception-raised
             "Missing app_config kwarg"
         )
+        """
 
 
 class EncryptedFieldFactory:
@@ -70,6 +81,9 @@ class EncryptedFieldFactory:
     def create(
         self, *args: list[Any], **kwargs: Optional[dict[str, Any]]
     ) -> TypeDecorator:
+        return SQLAlchemyUtilsAdapter().create(self._config, *args, **kwargs)
+
+        """
         if self._concrete_type_adapter:
             adapter = self._concrete_type_adapter.create(self._config, *args, **kwargs)
             setattr(adapter, ENC_ADAPTER_TAG_ATTR_NAME, True)
@@ -78,6 +92,7 @@ class EncryptedFieldFactory:
         raise Exception(  # pylint: disable=broad-exception-raised
             "App not initialized yet. Please call init_app first"
         )
+        """
 
     @staticmethod
     def created_by_enc_field_factory(field: TypeDecorator) -> bool:
@@ -86,7 +101,7 @@ class EncryptedFieldFactory:
 
 class SecretsMigrator:
     def __init__(self, previous_secret_key: str) -> None:
-        from superset import db  # pylint: disable=import-outside-toplevel
+        from superset.extensions import db  # pylint: disable=import-outside-toplevel
 
         self._db = db
         self._previous_secret_key = previous_secret_key

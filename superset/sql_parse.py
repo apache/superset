@@ -1203,8 +1203,8 @@ def get_rls_for_table(
     Given a table name, return any associated RLS predicates.
     """
     # pylint: disable=import-outside-toplevel
-    from superset import db
     from superset.connectors.sqla.models import SqlaTable
+    from superset.extensions import db
 
     if not isinstance(candidate, Identifier):
         candidate = Identifier([Token(Name, candidate.value)])

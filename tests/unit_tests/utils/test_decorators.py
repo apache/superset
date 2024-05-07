@@ -24,8 +24,8 @@ from typing import Any, Optional
 from unittest.mock import call, Mock, patch
 
 import pytest
+from flask import current_app as app
 
-from superset import app
 from superset.utils import decorators
 from superset.utils.backports import StrEnum
 

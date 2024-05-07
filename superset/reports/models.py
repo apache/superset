@@ -35,7 +35,6 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
 
-from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
@@ -143,7 +142,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
     database = relationship(Database, foreign_keys=[database_id])
     owners = relationship(
-        security_manager.user_model,
+        "User",
         secondary=report_schedule_user,
         passive_deletes=True,
     )

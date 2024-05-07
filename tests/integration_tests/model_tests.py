@@ -29,12 +29,13 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,  # noqa: F401
 )
 
+from flask import current_app as app
 import pytest
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import DateTime  # noqa: F401
 
 import tests.integration_tests.test_app  # noqa: F401
-from superset import app, db as metadata_db
+from superset.extensions import db as metadata_db
 from superset.db_engine_specs.postgres import PostgresEngineSpec  # noqa: F401
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database

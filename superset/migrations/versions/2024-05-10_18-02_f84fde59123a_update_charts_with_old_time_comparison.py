@@ -32,7 +32,7 @@ from alembic import op
 from sqlalchemy import Column, Integer, or_, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
-from superset import db
+from superset.extensions import db
 from superset.migrations.shared.utils import paginated_update
 from superset.utils import json
 from superset.utils.date_parser import get_since_until

@@ -19,10 +19,10 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_mock import MockFixture
 
-from superset import db
 from superset.commands.dataset.exceptions import DatasetInvalidError
 from superset.commands.dataset.update import UpdateDatasetCommand
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db
 from superset.models.core import Database
 
 

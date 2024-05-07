@@ -23,7 +23,8 @@ import pytest
 from flask import g
 import prison
 
-from superset import db, security_manager, app  # noqa: F401
+from superset.extensions import db
+from superset import security_manager, app  # noqa: F401
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.security.guest_token import (
     GuestTokenResourceType,

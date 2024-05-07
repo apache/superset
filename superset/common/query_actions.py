@@ -21,7 +21,6 @@ from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import _
 
-from superset import app
 from superset.common.chart_data import ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import BaseDatasource
@@ -37,8 +36,6 @@ from superset.utils.core import (
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
-
-config = app.config
 
 
 def _get_datasource(

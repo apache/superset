@@ -20,9 +20,9 @@ import logging
 from io import BytesIO
 from typing import TYPE_CHECKING
 
-from flask import current_app
+from flask import current_app as app
 
-from superset import feature_flag_manager
+from superset.extensions import feature_flag_manager
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
@@ -53,7 +53,6 @@ if TYPE_CHECKING:
 
 
 class BaseScreenshot:
-    driver_type = current_app.config["WEBDRIVER_TYPE"]
     thumbnail_type: str = ""
     element: str = ""
     window_size: WindowSize = DEFAULT_SCREENSHOT_WINDOW_SIZE
@@ -66,9 +65,10 @@ class BaseScreenshot:
 
     def driver(self, window_size: WindowSize | None = None) -> WebDriver:
         window_size = window_size or self.window_size
+        driver_type = app.config["WEBDRIVER_TYPE"]
         if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
-            return WebDriverPlaywright(self.driver_type, window_size)
-        return WebDriverSelenium(self.driver_type, window_size)
+            return WebDriverPlaywright(driver_type, window_size)
+        return WebDriverSelenium(driver_type, window_size)
 
     def cache_key(
         self,

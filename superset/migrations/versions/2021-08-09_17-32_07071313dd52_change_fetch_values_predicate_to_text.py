@@ -32,8 +32,8 @@ import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
 from sqlalchemy import func  # noqa: E402
 
-from superset import db  # noqa: E402
 from superset.connectors.sqla.models import SqlaTable  # noqa: E402
+from superset.extensions import db  # noqa: E402
 
 
 def upgrade():

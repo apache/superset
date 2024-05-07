@@ -22,14 +22,13 @@ from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset import is_feature_enabled
 from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.dashboards.schemas import EmbeddedDashboardResponseSchema
-from superset.extensions import event_logger
+from superset.extensions import event_logger, feature_flag_manager
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.reports.logs.schemas import openapi_spec_methods_override
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
@@ -42,7 +41,7 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
 
     @before_request
     def ensure_embedded_enabled(self) -> Optional[Response]:
-        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+        if not feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
             return self.response_404()
         return None
 

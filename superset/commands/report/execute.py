@@ -21,8 +21,8 @@ from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app as app
 
-from superset import app, db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.exceptions import CommandException
@@ -51,7 +51,12 @@ from superset.daos.report import (
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetException
-from superset.extensions import feature_flag_manager, machine_auth_provider_factory
+from superset.extensions import (
+    db,
+    feature_flag_manager,
+    machine_auth_provider_factory,
+    security_manager,
+)
 from superset.reports.models import (
     ReportDataFormat,
     ReportExecutionLog,

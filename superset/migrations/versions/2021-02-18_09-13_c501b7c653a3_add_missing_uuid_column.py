@@ -36,7 +36,7 @@ from sqlalchemy.engine.reflection import Inspector  # noqa: E402
 from sqlalchemy.orm import load_only  # noqa: E402
 from sqlalchemy_utils import UUIDType  # noqa: E402
 
-from superset import db  # noqa: E402
+from superset.extensions import db  # noqa: E402
 
 add_uuid_column_to_import_mixin = import_module(
     "superset.migrations.versions."

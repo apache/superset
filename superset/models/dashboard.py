@@ -22,6 +22,7 @@ from collections import defaultdict
 from typing import Any, Callable
 
 import sqlalchemy as sqla
+from flask import current_app as app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -41,9 +42,14 @@ from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 
-from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
+from superset.extensions import db, feature_flag_manager, security_manager
+
+# Import required for sqlalchemy's order of operations
+from superset.models.embedded_dashboard import (  # pylint: disable=unused-import # noqa
+    EmbeddedDashboard,
+)
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
@@ -53,12 +59,11 @@ from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils, json
 
 metadata = Model.metadata  # pylint: disable=no-member
-config = app.config
 logger = logging.getLogger(__name__)
 
 
 def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) -> None:
-    dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
+    dashboard_id = app.config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
 
@@ -144,7 +149,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
     owners = relationship(
-        security_manager.user_model,
+        "User",
         secondary=dashboard_user,
         passive_deletes=True,
     )
@@ -159,7 +164,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
-    roles = relationship(security_manager.role_model, secondary=DashboardRoles)
+    roles = relationship("Role", secondary=DashboardRoles)
     embedded = relationship(
         "EmbeddedDashboard",
         back_populates="dashboard",
@@ -416,7 +421,7 @@ def id_or_slug_filter(id_or_slug: int | str) -> BinaryExpression:
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
 
-if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
+if feature_flag_manager.is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()  # noqa: E731
     sqla.event.listen(Dashboard, "after_insert", update_thumbnail)
     sqla.event.listen(Dashboard, "after_update", update_thumbnail)

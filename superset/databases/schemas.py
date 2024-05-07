@@ -39,7 +39,6 @@ from marshmallow.validate import Length, OneOf, Range, ValidationError
 from sqlalchemy import MetaData
 from werkzeug.datastructures import FileStorage
 
-from superset import db, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelingNotEnabledError,
@@ -50,6 +49,7 @@ from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
+from superset.extensions import db, feature_flag_manager
 from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import json
@@ -894,7 +894,7 @@ class ImportV1DatabaseSchema(Schema):
             # 2. private_key + private_key_password
             # Based on the data passed we determine what info is required.
             # You cannot mix the credentials from both methods.
-            if not is_feature_enabled("SSH_TUNNELING"):
+            if not feature_flag_manager.is_feature_enabled("SSH_TUNNELING"):
                 # You are trying to import a Database with SSH Tunnel
                 # But the Feature Flag is not enabled.
                 raise SSHTunnelingNotEnabledError()

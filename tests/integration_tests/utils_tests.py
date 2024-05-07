@@ -29,6 +29,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,  # noqa: F401
 )
 
+from flask import current_app as app
 import numpy as np
 import pandas as pd
 import pytest
@@ -37,7 +38,7 @@ import marshmallow
 from sqlalchemy.exc import ArgumentError  # noqa: F401
 
 import tests.integration_tests.test_app  # noqa: F401
-from superset import app, db, security_manager
+from superset.extensions import db, security_manager
 from superset.constants import NO_TIME_RANGE
 from superset.exceptions import CertificateException, SupersetException  # noqa: F401
 from superset.models.core import Database, Log

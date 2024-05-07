@@ -21,7 +21,7 @@ import logging
 from typing import Any, cast, TYPE_CHECKING
 
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app, g
+from flask import g
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
@@ -41,9 +41,6 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
 
 logger = logging.getLogger(__name__)
-query_timeout = current_app.config[
-    "SQLLAB_ASYNC_TIME_LIMIT_SEC"
-]  # TODO: new config key
 
 
 def set_form_data(form_data: dict[str, Any]) -> None:
@@ -73,7 +70,7 @@ def _load_user_from_job_metadata(job_metadata: dict[str, Any]) -> User:
     return user
 
 
-@celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
+@celery_app.task(name="load_chart_data_into_cache")
 def load_chart_data_into_cache(
     job_metadata: dict[str, Any],
     form_data: dict[str, Any],
@@ -107,7 +104,7 @@ def load_chart_data_into_cache(
             raise ex
 
 
-@celery_app.task(name="load_explore_json_into_cache", soft_time_limit=query_timeout)
+@celery_app.task(name="load_explore_json_into_cache")
 def load_explore_json_into_cache(  # pylint: disable=too-many-locals
     job_metadata: dict[str, Any],
     form_data: dict[str, Any],

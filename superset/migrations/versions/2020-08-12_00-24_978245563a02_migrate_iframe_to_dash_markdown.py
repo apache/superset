@@ -31,7 +31,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-from superset import db
+from superset.extensions import db
 from superset.utils import json
 
 # revision identifiers, used by Alembic.

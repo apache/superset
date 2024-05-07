@@ -40,8 +40,8 @@ logger = logging.getLogger("alembic.env")
 DATABASE_URI = current_app.config["SQLALCHEMY_DATABASE_URI"]
 if "sqlite" in DATABASE_URI:
     logger.warning(
-        "SQLite Database support for metadata databases will \
-        be removed in a future version of Superset."
+        "SQLite Database support for metadata databases will "
+        "be removed in a future version of Superset."
     )
 decoded_uri = urllib.parse.unquote(DATABASE_URI)
 config.set_main_option("sqlalchemy.url", decoded_uri)

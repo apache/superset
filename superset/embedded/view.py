@@ -21,8 +21,9 @@ from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, login_user
 from flask_wtf.csrf import same_origin
 
-from superset import event_logger, is_feature_enabled
+from superset import event_logger
 from superset.daos.dashboard import EmbeddedDashboardDAO
+from superset.extensions import feature_flag_manager
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.views.base import BaseSupersetView, common_bootstrap_payload
@@ -46,7 +47,7 @@ class EmbeddedView(BaseSupersetView):
         :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
             default value to appease pylint
         """
-        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+        if not feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
             abort(404)
 
         embedded = EmbeddedDashboardDAO.find_by_id(uuid)

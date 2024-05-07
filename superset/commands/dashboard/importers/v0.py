@@ -23,11 +23,11 @@ from typing import Any, Optional
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import make_transient
 
-from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.dataset.importers.v0 import import_dataset
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.exceptions import DashboardImportException
+from superset.extensions import db
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice

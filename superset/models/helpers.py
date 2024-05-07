@@ -35,7 +35,7 @@ import pytz
 import sqlalchemy as sa
 import sqlparse
 import yaml
-from flask import g
+from flask import current_app as app, g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
@@ -52,7 +52,6 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-from superset import app, db, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -67,7 +66,7 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
 )
-from superset.extensions import feature_flag_manager
+from superset.extensions import db, feature_flag_manager, security_manager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.sql_parse import (
     has_table_query,
@@ -103,12 +102,10 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
-config = app.config
 logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
-ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 
 def validate_adhoc_subquery(
@@ -129,7 +126,7 @@ def validate_adhoc_subquery(
     statements = []
     for statement in sqlparse.parse(sql):
         if has_table_query(statement):
-            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+            if not feature_flag_manager.is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
                 raise SupersetSecurityException(
                     SupersetError(
                         error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
@@ -827,7 +824,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 else:
                     all_filters.append(clause)
 
-            if is_feature_enabled("EMBEDDED_SUPERSET"):
+            if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
                 for rule in security_manager.get_guest_rls_filters(self):
                     clause = self.text(
                         f"({template_processor.process_template(rule['clause'])})"
@@ -1820,12 +1817,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     and feature_flag_manager.is_feature_enabled(
                         "ENABLE_ADVANCED_DATA_TYPES"
                     )
-                    and col_advanced_data_type in ADVANCED_DATA_TYPES
+                    and col_advanced_data_type in app.config["ADVANCED_DATA_TYPES"]
                 ):
                     values = eq if is_list_target else [eq]  # type: ignore
-                    bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
-                        col_advanced_data_type
-                    ].translate_type(
+                    bus_resp: AdvancedDataTypeResponse = app.config[
+                        "ADVANCED_DATA_TYPES"
+                    ][col_advanced_data_type].translate_type(
                         {
                             "type": col_advanced_data_type,
                             "values": values,
@@ -1837,9 +1834,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
 
                     where_clause_and.append(
-                        ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
-                            sqla_col, op, bus_resp["values"]
-                        )
+                        app.config["ADVANCED_DATA_TYPES"][
+                            col_advanced_data_type
+                        ].translate_filter(sqla_col, op, bus_resp["values"])
                     )
                 elif is_list_target:
                     assert isinstance(eq, (tuple, list))

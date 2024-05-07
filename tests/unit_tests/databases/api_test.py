@@ -31,7 +31,6 @@ from freezegun import freeze_time
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
-from superset import db
 from superset.commands.database.uploaders.base import UploadCommand
 from superset.commands.database.uploaders.columnar_reader import ColumnarReader
 from superset.commands.database.uploaders.csv_reader import CSVReader
@@ -39,6 +38,7 @@ from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import db
 from superset.sql_parse import Table
 from superset.utils import json
 from tests.unit_tests.fixtures.common import (

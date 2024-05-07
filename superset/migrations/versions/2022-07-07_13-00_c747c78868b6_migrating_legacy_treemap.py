@@ -25,7 +25,7 @@ Create Date: 2022-06-30 22:04:17.686635
 from alembic import op
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 
-from superset import db
+from superset.extensions import db
 from superset.migrations.shared.migrate_viz import MigrateTreeMap
 
 # revision identifiers, used by Alembic.

@@ -19,7 +19,7 @@ import pandas as pd
 import polyline
 from sqlalchemy import inspect, String, Text
 
-from superset import db
+from superset.extensions import db
 from superset.sql_parse import Table
 from superset.utils import json
 

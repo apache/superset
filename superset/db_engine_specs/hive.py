@@ -36,14 +36,13 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, db
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType

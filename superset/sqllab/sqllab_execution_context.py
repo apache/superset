@@ -24,7 +24,7 @@ from typing import Any, cast, TYPE_CHECKING
 from flask import g
 from sqlalchemy.orm.exc import DetachedInstanceError
 
-from superset import is_feature_enabled
+from superset.extensions import feature_flag_manager
 from superset.models.sql_lab import Query
 from superset.sql_parse import CtasMethod
 from superset.utils import core as utils, json
@@ -87,7 +87,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self.tab_name = cast(str, query_params.get("tab"))
         self.expand_data: bool = cast(
             bool,
-            is_feature_enabled("PRESTO_EXPAND_DATA")
+            feature_flag_manager.is_feature_enabled("PRESTO_EXPAND_DATA")
             and query_params.get("expand_data"),
         )
 

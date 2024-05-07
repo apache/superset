@@ -14,12 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import g, redirect, Response
+from flask import current_app as app, g, redirect, Response
 from flask_appbuilder.api import expose, safe
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from sqlalchemy.orm.exc import NoResultFound
 
-from superset import app
 from superset.daos.user import UserDAO
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi

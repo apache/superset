@@ -18,7 +18,7 @@ from importlib import import_module
 
 import pytest
 
-from superset import db
+from superset.extensions import db
 from superset.migrations.shared.security_converge import (
     _find_pvm,
     Permission,

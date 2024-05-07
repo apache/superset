@@ -24,18 +24,14 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any, Callable, cast, Literal, TYPE_CHECKING
+from typing import Any, Callable, cast, Literal
 
-from flask import g, request
+from flask import current_app as app, g, request
 from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.extensions import stats_logger_manager
 from superset.utils import json
 from superset.utils.core import get_user_id, LoggerLevel, to_int
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -181,7 +177,7 @@ class AbstractEventLogger(ABC):
         **payload_override: dict[str, Any] | None,
     ) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset import db
+        from superset.extensions import db
         from superset.views.core import get_form_data
 
         referrer = request.referrer[:1000] if request and request.referrer else None
@@ -228,7 +224,10 @@ class AbstractEventLogger(ABC):
         slice_id = to_int(slice_id)
 
         if log_to_statsd:
-            stats_logger_manager.instance.incr(action)
+            print("ACTION", action)
+            print("OBJ", app.stats_logger)
+            app.stats_logger.incr(action)
+            print("AFtER")
 
         try:
             # bulk insert
@@ -380,7 +379,7 @@ class DBEventLogger(AbstractEventLogger):
         **kwargs: Any,
     ) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset import db
+        from superset.extensions import db
         from superset.models.core import Log
 
         records = kwargs.get("records", [])

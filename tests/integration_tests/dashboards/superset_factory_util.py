@@ -20,8 +20,8 @@ from typing import Optional
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User
 
-from superset import db
 from superset.connectors.sqla.models import SqlaTable, sqlatable_user
+from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import (
     Dashboard,
