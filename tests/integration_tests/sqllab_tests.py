@@ -579,9 +579,6 @@ class TestSqlLab(SupersetTestCase):
             "3",
             template_params=json.dumps({"state": "CA", "extra1": "comment"}),
         )
-        print("-=" * 40)
-        print(data)
-        print("-=" * 40)
         assert data["status"] == "success"
 
         data = self.run_sql(
