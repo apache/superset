@@ -108,7 +108,7 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
-    sections.timeComparisonControls(false, false),
+    sections.timeComparisonControls(false, false, false),
   ],
   controlOverrides: {
     y_axis_format: {
