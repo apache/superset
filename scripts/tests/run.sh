@@ -138,6 +138,5 @@ fi
 
 if [ $RUN_TESTS -eq 1 ]
 then
-  #pytest --durations=0 --maxfail=1 "${TEST_MODULE}"
-  pytest --durations=0 --maxfail=1 tests/integration_tests/datasource_tests.py::test_get_samples
+  pytest --durations=0 --maxfail=1 "${TEST_MODULE}"
 fi
