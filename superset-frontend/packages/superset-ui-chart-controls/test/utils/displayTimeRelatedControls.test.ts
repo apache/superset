@@ -71,6 +71,20 @@ test('returns true when x-axis value is temporal', () => {
   ).toBeTruthy();
 });
 
+test('returns false when x-axis value without options', () => {
+  expect(
+    displayTimeRelatedControls({
+      ...mockData,
+      controls: {
+        x_axis: {
+          type: 'SelectControl' as const,
+          value: 'not_temporal',
+        },
+      },
+    }),
+  ).toBeFalsy();
+});
+
 test('returns true when x-axis is ad-hoc column', () => {
   expect(
     displayTimeRelatedControls({
