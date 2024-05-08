@@ -294,7 +294,7 @@ def apply_filter_like_df(
         # TODO: extra logic to get LIKE '%....%' type filtering
         data_datasource = form_data.get('datasource', '')
         datasource_id = data_datasource.split('__')[0]
-        if not(datasource_id == '89' and str(form_data.get('dashboardId', '')) == '15'):
+        if not (datasource_id == '89' and str(form_data.get('dashboardId', '')) == '15'):
             continue
 
         data = query["data"]
@@ -332,9 +332,9 @@ def apply_filter_like_df(
                                               form_data.get('extra_form_data', {}).get('filters', {})[0].get('val') and \
                                               form_data.get('extra_form_data', {}).get('filters', {})[0].get('val')[0]
 
-                if is_applied_filter_present:
+                if is_applied_filter_present and cross_filter_val:
                     # Assuming df has applied_filter as column
-                    df = df[df[applied_filters[0].get('column')].str.contains(cross_filter_val)]
+                    df = df[df[applied_filters[0].get('column', '')].str.contains(cross_filter_val)]
                     query["rowcount"] = len(df.index)
 
         if query["result_format"] == ChartDataResultFormat.JSON:
