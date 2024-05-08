@@ -21,15 +21,9 @@ import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import React, { ReactElement, RefObject } from 'react';
 import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
-import {
-  LabeledValue,
-  RawValue,
-  SelectOptionsType,
-  V,
-  OptionGroup,
-} from './types';
+import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 
-const { Option, OptGroup } = AntdSelect;
+const { Option } = AntdSelect;
 
 export const SELECT_ALL_VALUE: RawValue = 'Select All';
 export const selectAllOption = {
@@ -62,10 +56,6 @@ export function isEqual(a: V | LabeledValue, b: V | LabeledValue, key: string) {
   // operator to automatically convert different types
   // eslint-disable-next-line eqeqeq
   return actualA == actualB;
-}
-
-export function isOptGroup(option: V | LabeledValue): option is OptionGroup {
-  return isObject(option) && 'options' in option;
 }
 
 export function getOption(
@@ -212,13 +202,6 @@ export const hasCustomLabels = (options: SelectOptionsType) =>
 
 export const renderSelectOptions = (options: SelectOptionsType) =>
   options.map(opt => {
-    if (isOptGroup(opt)) {
-      return (
-        <OptGroup key={opt.title} label={opt.label}>
-          {renderSelectOptions(opt.options)}
-        </OptGroup>
-      );
-    }
     const isOptObject = typeof opt === 'object';
     const label = isOptObject ? opt?.label || opt.value : opt;
     const value = isOptObject ? opt.value : opt;

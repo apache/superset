@@ -25,17 +25,19 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
+import AntdSelect from 'antd/lib/select';
 import { isFunction, sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { OptionData } from 'src/components/Select/types';
+import { SelectOptionsType } from 'src/components/Select/types';
 import { StyledSelect } from 'src/components/Select/styles';
-import {
-  handleFilterOptionHelper,
-  renderSelectOptions,
-} from 'src/components/Select/utils';
+import { handleFilterOptionHelper } from 'src/components/Select/utils';
 import ColorSchemeLabel from './ColorSchemeLabel';
+
+const { Option, OptGroup } = AntdSelect;
+
+export type OptionData = SelectOptionsType[number]['options'][number];
 
 export interface ColorSchemes {
   [key: string]: ColorScheme;
@@ -198,9 +200,25 @@ const ColorSchemeControl = ({
       nonEmptyGroups.length === 1 &&
       nonEmptyGroups[0].title === ColorSchemeGroup.Other
     ) {
-      return nonEmptyGroups[0].options;
+      return nonEmptyGroups[0].options.map((opt, index) => (
+        <Option value={opt.value} label={opt.label} key={index}>
+          {opt.customLabel}
+        </Option>
+      ));
     }
-    return nonEmptyGroups;
+    return nonEmptyGroups.map((group, groupIndex) => (
+      <OptGroup label={group.label} key={groupIndex}>
+        {group.options.map((opt, optIndex) => (
+          <Option
+            value={opt.value}
+            label={opt.label}
+            key={`${groupIndex}-${optIndex}`}
+          >
+            {opt.customLabel}
+          </Option>
+        ))}
+      </OptGroup>
+    ));
   }, [choices, dashboardId, isLinear, schemes]);
 
   // We can't pass on change directly because it receives a second
@@ -240,7 +258,7 @@ const ColorSchemeControl = ({
           )
         }
       >
-        {renderSelectOptions(options)}
+        {options}
       </StyledSelect>
     </>
   );

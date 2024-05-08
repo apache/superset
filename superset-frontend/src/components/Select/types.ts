@@ -69,14 +69,6 @@ export type AntdExposedProps = Pick<
 
 export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
 
-export type OptionData = SelectOptionsType[number]['options'][number];
-
-export type OptionGroup = {
-  label?: ReactNode;
-  title?: string;
-  options: OptionData[];
-};
-
 export interface BaseSelectProps extends AntdExposedProps {
   /**
    * It enables the user to create new options.
