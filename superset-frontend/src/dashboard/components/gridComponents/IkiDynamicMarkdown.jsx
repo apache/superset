@@ -4,7 +4,11 @@ import { connect } from 'react-redux';
 import cx from 'classnames';
 
 import { t, SafeMarkdown } from '@superset-ui/core';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
+import {
+  Logger,
+  LOG_ACTIONS_RENDER_CHART,
+  LOG_ACTIONS_FORCE_REFRESH_CHART,
+} from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -19,6 +23,7 @@ import {
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
+import { refreshChart } from 'src/components/Chart/chartAction';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -29,6 +34,7 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
   ikigaiOrigin: PropTypes.string,
+  dashboardLayout: PropTypes.object,
 
   // from redux
   logEvent: PropTypes.func.isRequired,
@@ -177,6 +183,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
+      // console.log('s event.origin', event.origin, this.props.ikigaiOrigin);
       if (event.origin === this.props.ikigaiOrigin) {
         const messageObject = JSON.parse(event.data);
         if (messageObject.info && messageObject.dataType) {
@@ -226,10 +233,93 @@ class IkiDynamicMarkdown extends React.PureComponent {
                                 style="min-height: 100%;"
                             />`;
             this.handleIkiRunPipelineChange(tempIframe, true);
+          } else if (
+            messageObject.info === 'widget-to-superset/get-superset-charts-list'
+          ) {
+            const allChartElements = document.querySelectorAll(
+              '[data-test-chart-id]',
+            );
+            const chartsList = [];
+            allChartElements.forEach(chartElement => {
+              const tempChartID =
+                chartElement.getAttribute('data-test-chart-id');
+              const tempChartName = chartElement.getAttribute(
+                'data-test-chart-name',
+              );
+              chartsList.push({ value: tempChartID, label: tempChartName });
+            });
+            const messageObject = {
+              projectId: messageData.projectId,
+              data: chartsList,
+              dataType: 'object',
+            };
+
+            const componentDataString = JSON.stringify(messageObject);
+            const crossWindowMessage = {
+              info: 'superset-to-custom-html-widget/get-superset-charts-list',
+              data: componentDataString,
+              dataType: 'object',
+            };
+            const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
+            window?.parent?.postMessage(
+              crossBrowserInfoString,
+              event.origin,
+              // this.props.ikigaiOrigin,
+            );
+            console.log(
+              'superset-to-custom-html-widget/get-superset-charts-list',
+              messageObject,
+              chartsList,
+            );
+          } else if (
+            messageObject.info ===
+            'widget-to-superset/sending-charts-to-refresh'
+          ) {
+            const { selectedCharts } = messageData;
+            console.log('selectedCharts', selectedCharts);
+            this.refreshCharts(selectedCharts);
           }
         }
       }
     });
+  }
+
+  refreshCharts(selectedCharts) {
+    const layoutElements = this.props.dashboardLayout?.present
+      ? this.props.dashboardLayout?.present
+      : null;
+    if (selectedCharts) {
+      selectedCharts.forEach(selectedChart => {
+        if (selectedChart?.refresh_id) {
+          this.refreshChart(
+            selectedChart?.refresh_id,
+            this.state.dashboardId,
+            false,
+          );
+        } else {
+          let findChartEle = null;
+          if (layoutElements) {
+            Object.keys(layoutElements).forEach(ele => {
+              if (layoutElements[ele].meta?.sliceName === selectedChart.name) {
+                findChartEle = ele;
+              }
+            });
+          }
+
+          if (findChartEle) {
+            this.refreshChart(findChartEle, this.state.dashboardId, false);
+          }
+        }
+      });
+    }
+  }
+
+  refreshChart(chartId, dashboardId, isCached) {
+    this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
+      slice_id: chartId,
+      is_cached: isCached,
+    });
+    return this.props.refreshChart(chartId, true, dashboardId);
   }
 
   handleIkiRunPipelineChange(nextValue, saveToDashboard) {
@@ -480,6 +570,15 @@ function mapStateToProps(state) {
   return {
     undoLength: state.dashboardLayout.past.length,
     redoLength: state.dashboardLayout.future.length,
+    dashboardLayout: state.dashboardLayout,
   };
+}
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators(
+    {
+      refreshChart,
+    },
+    dispatch,
+  );
 }
 export default connect(mapStateToProps)(IkiDynamicMarkdown);
