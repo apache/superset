@@ -310,11 +310,12 @@ def apply_post_process(
         # LIKE Cross filter
         # TODO: change the logic to get a parameter from FE and basis that only put
         # TODO: extra logic to get LIKE '%....%' type filtering
-        datasource = form_data.get('datasource', '')
-        datasource_id = datasource.split('__')[0]
+        data_datasource = form_data.get('datasource', '')
+        datasource_id = data_datasource.split('__')[0]
         if datasource_id == '89' and str(form_data.get('dashboardId', '')) == '15':
-            print("===========PRINTING df=========")
-            print(df.show())
+            if query["result_format"] in [ChartDataResultFormat.JSON, ChartDataResultFormat.CSV]:
+                print("===========PRINTING df=========")
+                print(df.show())
 
         # convert all columns to verbose (label) name
         if datasource:
