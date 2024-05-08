@@ -1009,13 +1009,7 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:
     """
     filter_keys = ["filters", "adhoc_filters"]
     extra_form_data = form_data.pop("extra_form_data", {})
-    # append_filters: list[QueryObjectFilterClause] = extra_form_data.get("filters", None)
-    append_filters: list[QueryObjectFilterClause] = []
-    for filter_obj in extra_form_data.get("filters", []):
-        if filter_obj["op"] == "IN":
-            filter_obj["op"] = "LIKE"
-            filter_obj["val"] = "%{}%".format("%".join(filter_obj["val"]))
-        append_filters.append(filter_obj)
+    append_filters: list[QueryObjectFilterClause] = extra_form_data.get("filters", None)
 
     # merge append extras
     for key in [key for key in EXTRA_FORM_DATA_APPEND_KEYS if key not in filter_keys]:
