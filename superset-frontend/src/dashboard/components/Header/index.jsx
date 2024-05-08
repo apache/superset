@@ -443,11 +443,12 @@ class Header extends React.PureComponent {
       {
         type: MetadataType.LastModified,
         value: dashboardInfo.changed_on_delta_humanized,
-        modifiedBy: dashboardInfo.changed_by_name || t('Not available'),
+        modifiedBy:
+          getOwnerName(dashboardInfo.changed_by) || t('Not available'),
       },
       {
         type: MetadataType.Owner,
-        createdBy: dashboardInfo.created_by_name || t('Not available'),
+        createdBy: getOwnerName(dashboardInfo.created_by) || t('Not available'),
         owners:
           dashboardInfo.owners.length > 0
             ? dashboardInfo.owners.map(getOwnerName)

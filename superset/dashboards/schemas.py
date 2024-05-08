@@ -187,15 +187,14 @@ class DashboardGetResponseSchema(Schema):
     certification_details = fields.String(
         metadata={"description": certification_details_description}
     )
-    created_by_name = fields.String()
     changed_by_name = fields.String()
     changed_by = fields.Nested(UserSchema(exclude=["username"]))
     changed_on = fields.DateTime()
+    created_by = fields.Nested(UserSchema(exclude=["username"]))
     charts = fields.List(fields.String(metadata={"description": charts_description}))
     owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
     roles = fields.List(fields.Nested(RolesSchema))
     tags = fields.Nested(TagSchema, many=True)
-    created_on_humanized = fields.String(data_key="created_on_delta_humanized")
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
 

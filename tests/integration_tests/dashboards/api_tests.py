@@ -399,7 +399,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                     "first_name": "admin",
                     "last_name": "user",
                 },
-                "created_by_name": "admin user",
                 "id": dashboard.id,
                 "css": "",
                 "dashboard_title": "title",
@@ -424,13 +423,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
         self.assertIn("changed_on_delta_humanized", data["result"])
-        self.assertIn("created_on_delta_humanized", data["result"])
         for key, value in data["result"].items():
             # We can't assert timestamp values
             if key not in (
                 "changed_on",
                 "changed_on_delta_humanized",
-                "created_on_delta_humanized",
             ):
                 self.assertEqual(value, expected_result[key])
         # rollback changes
