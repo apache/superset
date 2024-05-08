@@ -210,6 +210,7 @@ describe('SaveDatasetModal', () => {
     expect(createDatasource).toHaveBeenCalledWith({
       datasourceName: 'my dataset',
       dbId: 1,
+      catalog: null,
       schema: 'main',
       sql: 'SELECT *',
       templateParams: undefined,

@@ -419,6 +419,7 @@ describe('async actions', () => {
           queryEditor: {
             name: 'Copy of Dummy query editor',
             dbId: 1,
+            catalog: query.catalog,
             schema: query.schema,
             autorun: true,
             sql: 'SELECT * FROM something',
@@ -481,6 +482,7 @@ describe('async actions', () => {
               sql: expect.stringContaining('SELECT ...'),
               name: `Untitled Query 7`,
               dbId: defaultQueryEditor.dbId,
+              catalog: defaultQueryEditor.catalog,
               schema: defaultQueryEditor.schema,
               autorun: false,
               queryLimit:
@@ -747,6 +749,7 @@ describe('async actions', () => {
     describe('addTable', () => {
       it('dispatches table state from unsaved change', () => {
         const tableName = 'table';
+        const catalogName = null;
         const schemaName = 'schema';
         const expectedDbId = 473892;
         const store = mockStore({
@@ -759,12 +762,18 @@ describe('async actions', () => {
             },
           },
         });
-        const request = actions.addTable(query, tableName, schemaName);
+        const request = actions.addTable(
+          query,
+          tableName,
+          catalogName,
+          schemaName,
+        );
         request(store.dispatch, store.getState);
         expect(store.getActions()[0]).toEqual(
           expect.objectContaining({
             table: expect.objectContaining({
               name: tableName,
+              catalog: catalogName,
               schema: schemaName,
               dbId: expectedDbId,
             }),
@@ -811,6 +820,7 @@ describe('async actions', () => {
         });
 
         const tableName = 'table';
+        const catalogName = null;
         const schemaName = 'schema';
         const store = mockStore({
           ...initialState,
@@ -829,6 +839,7 @@ describe('async actions', () => {
         const request = actions.runTablePreviewQuery({
           dbId: 1,
           name: tableName,
+          catalog: catalogName,
           schema: schemaName,
         });
         return request(store.dispatch, store.getState).then(() => {

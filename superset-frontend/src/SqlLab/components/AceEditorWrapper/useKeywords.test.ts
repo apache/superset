@@ -237,6 +237,7 @@ test('returns column keywords among selected tables', async () => {
       useKeywords({
         queryEditorId: expectQueryEditorId,
         dbId: expectDbId,
+        catalog: null,
         schema: expectSchema,
       }),
     {
