@@ -29,7 +29,7 @@ interface SearchHeaderProps extends BaseFilter {
   Header: string;
   onSubmit: (val: string) => void;
   name: string;
-  toolTipDescription: string;
+  toolTipDescription: string | undefined;
 }
 
 const Container = styled.div`
@@ -77,7 +77,9 @@ function SearchFilter(
   return (
     <Container>
       <FormLabel>{Header}</FormLabel>
-      {toolTipDescription && <InfoTooltip tooltip={toolTipDescription} />}
+      {toolTipDescription && (
+        <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
+      )}
       <StyledInput
         allowClear
         data-test="filters-search"
