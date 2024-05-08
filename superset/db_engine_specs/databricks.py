@@ -433,7 +433,7 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
     engine_name = "Databricks Python Connector"
     default_driver = "databricks-sql-python"
-    drivers = {"databricks-sql-python": "DBTEST"}
+    drivers = {"databricks-sql-python": "Databricks SQL Python"}
 
     parameters_schema = DatabricksPythonConnectorSchema()
 
