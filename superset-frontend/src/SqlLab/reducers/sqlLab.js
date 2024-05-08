@@ -412,8 +412,6 @@ export default function sqlLabReducer(state = {}, action) {
       return state;
     },
     [actions.LOAD_QUERY_EDITOR]() {
-      console.log(state);
-      console.log(state.unsavedQueryEditor);
       const mergeUnsavedState = alterInArr(
         state,
         'queryEditors',

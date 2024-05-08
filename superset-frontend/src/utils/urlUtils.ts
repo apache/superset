@@ -211,7 +211,7 @@ export function toQueryString(params: Record<string, any>): string {
   const queryParts: string[] = [];
   Object.keys(params).forEach(key => {
     const value = params[key];
-    if (value) {
+    if (value !== null && value !== undefined) {
       queryParts.push(
         `${encodeURIComponent(key)}=${encodeURIComponent(value)}`,
       );

@@ -348,7 +348,7 @@ export default function DatabaseSelector({
   function renderCatalogSelect() {
     const refreshIcon = !readOnly && (
       <RefreshLabel
-        onClick={() => refetchCatalogs()}
+        onClick={refetchCatalogs}
         tooltipContent={t('Force refresh catalog list')}
       />
     );
@@ -374,7 +374,7 @@ export default function DatabaseSelector({
   function renderSchemaSelect() {
     const refreshIcon = !readOnly && (
       <RefreshLabel
-        onClick={() => refetchSchemas()}
+        onClick={refetchSchemas}
         tooltipContent={t('Force refresh schema list')}
       />
     );

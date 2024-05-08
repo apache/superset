@@ -609,6 +609,24 @@ describe('async actions', () => {
       });
     });
 
+    describe('queryEditorSetCatalog', () => {
+      it('updates the tab state in the backend', () => {
+        expect.assertions(1);
+
+        const catalog = 'public';
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.QUERY_EDITOR_SET_CATALOG,
+            queryEditor,
+            catalog,
+          },
+        ];
+        store.dispatch(actions.queryEditorSetCatalog(queryEditor, catalog));
+        expect(store.getActions()).toEqual(expectedActions);
+      });
+    });
+
     describe('queryEditorSetSchema', () => {
       it('updates the tab state in the backend', () => {
         expect.assertions(1);
