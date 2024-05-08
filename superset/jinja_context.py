@@ -391,7 +391,7 @@ class ExtraCache:
                     self.applied_filters.append(column)
 
                 if op in (
-                    FilterOperator.LIKE.value,
+                    FilterOperator.IN.value,
                     FilterOperator.NOT_IN.value,
                 ) and not isinstance(val, list):
                     val = [val]
