@@ -22,6 +22,7 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
+import getOwnerName from 'src/utils/getOwnerName';
 import { HeaderProps } from './types';
 import Header from '.';
 
@@ -45,9 +46,17 @@ const createProps = () => ({
       },
     },
     changed_on_delta_humanized: '7 minutes ago',
-    changed_by_name: 'John Doe',
+    changed_by: {
+      id: 3,
+      first_name: 'John',
+      last_name: 'Doe',
+    },
     created_on_delta_humanized: '10 days ago',
-    created_by_name: 'Kay Mon',
+    created_by: {
+      id: 2,
+      first_name: 'Kay',
+      last_name: 'Mon',
+    },
     owners: [{ first_name: 'John', last_name: 'Doe', id: 1 }],
   },
   user: {
@@ -196,7 +205,7 @@ test('should render metadata', () => {
   const mockedProps = createProps();
   setup(mockedProps);
   expect(
-    screen.getByText(mockedProps.dashboardInfo.created_by_name),
+    screen.getByText(getOwnerName(mockedProps.dashboardInfo.created_by)),
   ).toBeInTheDocument();
   expect(
     screen.getByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
