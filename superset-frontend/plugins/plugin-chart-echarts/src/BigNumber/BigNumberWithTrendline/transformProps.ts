@@ -19,11 +19,9 @@
 import {
   extractTimegrain,
   getNumberFormatter,
-  getTimeFormatter,
   NumberFormats,
   GenericDataType,
   getMetricLabel,
-
   getXAxisLabel,
   Metric,
   getValueFormatter,
