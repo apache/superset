@@ -125,13 +125,16 @@ class TestExportDatabasesCommand(SupersetTestCase):
         command = ExportDatabasesCommand([example_db.id])
         contents = dict(command.run())
 
+        energy_dataset=filter(lambda x: x.table_name == "energy_usage", example_db.tables)[0]
+        names_dataset=filter(lambda x: x.table_name == "birth_names", example_db.tables)[0]
+
         # TODO: this list shouldn't depend on the order in which unit tests are run
         # or on the backend; for now use a stable subset
         core_files = {
             "metadata.yaml",
             "databases/examples.yaml",
-            "datasets/examples/energy_usage.yaml",
-            "datasets/examples/birth_names.yaml",
+            f"datasets/examples/energy_usage_{energy_dataset.id}.yaml",
+            f"datasets/examples/birth_names_{names_dataset.id}.yaml",
         }
         expected_extra = {
             "engine_params": {},
@@ -176,7 +179,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             }
         )
 
-        metadata = yaml.safe_load(contents["datasets/examples/birth_names.yaml"]())
+        metadata = yaml.safe_load(contents[f"datasets/examples/birth_names_{names_dataset.id}.yaml"]())
         metadata.pop("uuid")
 
         metadata["columns"].sort(key=lambda x: x["column_name"])
