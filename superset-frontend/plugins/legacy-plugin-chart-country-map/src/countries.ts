@@ -57,7 +57,6 @@ import central_african_republic from './countries/central_african_republic.geojs
 import chad from './countries/chad.geojson';
 import chile from './countries/chile.geojson';
 import china from './countries/china.geojson';
-import china from './countries/china.geojson';
 import colombia from './countries/colombia.geojson';
 import comoros from './countries/comoros.geojson';
 import cook_islands from './countries/cook_islands.geojson';
@@ -80,8 +79,6 @@ import estonia from './countries/estonia.geojson';
 import ethiopia from './countries/ethiopia.geojson';
 import fiji from './countries/fiji.geojson';
 import finland from './countries/finland.geojson';
-import finland from './countries/finland.geojson';
-import france from './countries/france.geojson';
 import france from './countries/france.geojson';
 import france_regions from './countries/france_regions.geojson';
 import french_polynesia from './countries/french_polynesia.geojson';
@@ -142,14 +139,12 @@ import namibia from './countries/namibia.geojson';
 import nauru from './countries/nauru.geojson';
 import nepal from './countries/nepal.geojson';
 import netherlands from './countries/netherlands.geojson';
-import netherlands from './countries/netherlands.geojson';
 import new_caledonia from './countries/new_caledonia.geojson';
 import new_zealand from './countries/new_zealand.geojson';
 import nicaragua from './countries/nicaragua.geojson';
 import niger from './countries/niger.geojson';
 import nigeria from './countries/nigeria.geojson';
 import northern_mariana_islands from './countries/northern_mariana_islands.geojson';
-import norway from './countries/norway.geojson';
 import norway from './countries/norway.geojson';
 import oman from './countries/oman.geojson';
 import pakistan from './countries/pakistan.geojson';
@@ -162,10 +157,8 @@ import philippines from './countries/philippines.geojson';
 import philippines_regions from './countries/philippines_regions.geojson';
 import poland from './countries/poland.geojson';
 import portugal from './countries/portugal.geojson';
-import portugal from './countries/portugal.geojson';
 import qatar from './countries/qatar.geojson';
 import romania from './countries/romania.geojson';
-import russia from './countries/russia.geojson';
 import russia from './countries/russia.geojson';
 import rwanda from './countries/rwanda.geojson';
 import saint_lucia from './countries/saint_lucia.geojson';
@@ -184,7 +177,6 @@ import slovenia from './countries/slovenia.geojson';
 import solomon_islands from './countries/solomon_islands.geojson';
 import somalia from './countries/somalia.geojson';
 import south_africa from './countries/south_africa.geojson';
-import spain from './countries/spain.geojson';
 import spain from './countries/spain.geojson';
 import sri_lanka from './countries/sri_lanka.geojson';
 import sudan from './countries/sudan.geojson';
@@ -208,14 +200,11 @@ import turkmenistan from './countries/turkmenistan.geojson';
 import turks_and_caicos_islands from './countries/turks_and_caicos_islands.geojson';
 import uganda from './countries/uganda.geojson';
 import uk from './countries/uk.geojson';
-import uk from './countries/uk.geojson';
-import ukraine from './countries/ukraine.geojson';
 import ukraine from './countries/ukraine.geojson';
 import united_arab_emirates from './countries/united_arab_emirates.geojson';
 import united_states_minor_outlying_islands from './countries/united_states_minor_outlying_islands.geojson';
 import united_states_virgin_islands from './countries/united_states_virgin_islands.geojson';
 import uruguay from './countries/uruguay.geojson';
-import usa from './countries/usa.geojson';
 import usa from './countries/usa.geojson';
 import uzbekistan from './countries/uzbekistan.geojson';
 import vanuatu from './countries/vanuatu.geojson';
@@ -267,7 +256,6 @@ export const countries = {
   chad,
   chile,
   china,
-  china,
   colombia,
   comoros,
   cook_islands,
@@ -290,8 +278,6 @@ export const countries = {
   ethiopia,
   fiji,
   finland,
-  finland,
-  france,
   france,
   france_regions,
   french_polynesia,
@@ -352,14 +338,12 @@ export const countries = {
   nauru,
   nepal,
   netherlands,
-  netherlands,
   new_caledonia,
   new_zealand,
   nicaragua,
   niger,
   nigeria,
   northern_mariana_islands,
-  norway,
   norway,
   oman,
   pakistan,
@@ -372,10 +356,8 @@ export const countries = {
   philippines_regions,
   poland,
   portugal,
-  portugal,
   qatar,
   romania,
-  russia,
   russia,
   rwanda,
   saint_lucia,
@@ -394,7 +376,6 @@ export const countries = {
   solomon_islands,
   somalia,
   south_africa,
-  spain,
   spain,
   sri_lanka,
   sudan,
@@ -418,14 +399,11 @@ export const countries = {
   turks_and_caicos_islands,
   uganda,
   uk,
-  uk,
-  ukraine,
   ukraine,
   united_arab_emirates,
   united_states_minor_outlying_islands,
   united_states_virgin_islands,
   uruguay,
-  usa,
   usa,
   uzbekistan,
   vanuatu,
