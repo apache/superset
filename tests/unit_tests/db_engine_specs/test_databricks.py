@@ -35,13 +35,13 @@ def test_get_parameters_from_uri() -> None:
     """
     from superset.db_engine_specs.databricks import (
         DatabricksNativeEngineSpec,
-        DatabricksParametersType,
+        DatabricksNativeParametersType,
     )
 
     parameters = DatabricksNativeEngineSpec.get_parameters_from_uri(
         "databricks+connector://token:abc12345@my_hostname:1234/test"
     )
-    assert parameters == DatabricksParametersType(
+    assert parameters == DatabricksNativeParametersType(
         {
             "access_token": "abc12345",
             "host": "my_hostname",
@@ -60,10 +60,10 @@ def test_build_sqlalchemy_uri() -> None:
     """
     from superset.db_engine_specs.databricks import (
         DatabricksNativeEngineSpec,
-        DatabricksParametersType,
+        DatabricksNativeParametersType,
     )
 
-    parameters = DatabricksParametersType(
+    parameters = DatabricksNativeParametersType(
         {
             "access_token": "abc12345",
             "host": "my_hostname",

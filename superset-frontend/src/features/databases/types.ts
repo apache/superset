@@ -63,6 +63,9 @@ export type DatabaseObject = {
     host?: string;
     port?: number;
     database?: string;
+    default_catalog?: string;
+    default_schema?: string;
+    http_path_field?: string;
     username?: string;
     password?: string;
     encryption?: boolean;
@@ -123,6 +126,18 @@ export type DatabaseForm = {
   parameters: {
     properties: {
       database: {
+        description: string;
+        type: string;
+      };
+      default_catalog: {
+        description: string;
+        type: string;
+      };
+      default_schema: {
+        description: string;
+        type: string;
+      };
+      http_path_field: {
         description: string;
         type: string;
       };
