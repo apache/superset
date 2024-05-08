@@ -41,8 +41,6 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   ComparisonType,
-  isAdhocColumn,
-  isPhysicalColumn,
   ensureIsArray,
   isDefined,
   NO_TIME_RANGE,
@@ -51,6 +49,7 @@ import {
 
 import {
   formatSelectOptions,
+  displayTimeRelatedControls,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
@@ -62,7 +61,6 @@ import { DEFAULT_MAX_ROW, TIME_FILTER_LABELS } from '../constants';
 import {
   SharedControlConfig,
   Dataset,
-  ColumnMeta,
   ControlState,
   ControlPanelState,
 } from '../types';
@@ -203,23 +201,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   mapStateToProps: ({ datasource }) => ({
     choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
-  visibility: ({ controls }) => {
-    if (!controls?.x_axis) {
-      return true;
-    }
-
-    const xAxis = controls?.x_axis;
-    const xAxisValue = xAxis?.value;
-    if (isAdhocColumn(xAxisValue)) {
-      return true;
-    }
-    if (isPhysicalColumn(xAxisValue)) {
-      return !!(xAxis?.options ?? []).find(
-        (col: ColumnMeta) => col?.column_name === xAxisValue,
-      )?.is_dttm;
-    }
-    return false;
-  },
+  visibility: displayTimeRelatedControls,
 };
 
 const time_range: SharedControlConfig<'DateFilterControl'> = {

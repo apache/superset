@@ -109,6 +109,7 @@ export interface ExplorePageState {
     datasource: Dataset;
     controls: ControlStateMapping;
     form_data: QueryFormData;
+    hiddenFormData?: Partial<QueryFormData>;
     slice: Slice;
     controlsTransferred: string[];
     standalone: boolean;
