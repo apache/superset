@@ -274,6 +274,79 @@ post_processors = {
 }
 
 
+def apply_filter_like_df(
+    result: dict[Any, Any],
+    form_data: Optional[dict[str, Any]] = None,
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+) -> dict[Any, Any]:
+    form_data = form_data or {}
+
+    viz_type = form_data.get("viz_type")
+    if viz_type not in post_processors:
+        return result
+
+    for query in result["queries"]:
+        if query["result_format"] not in (rf.value for rf in ChartDataResultFormat):
+            raise Exception(  # pylint: disable=broad-exception-raised
+                f"Result format {query['result_format']} not supported"
+            )
+        # TODO: change the logic to get a parameter from FE and basis that only put
+        # TODO: extra logic to get LIKE '%....%' type filtering
+        data_datasource = form_data.get('datasource', '')
+        datasource_id = data_datasource.split('__')[0]
+        if not(datasource_id == '89' and str(form_data.get('dashboardId', '')) == '15'):
+            continue
+
+        data = query["data"]
+
+        if isinstance(data, str):
+            data = data.strip()
+
+        if not data:
+            # do not try to process empty data
+            continue
+
+        if query["result_format"] == ChartDataResultFormat.JSON:
+            df = pd.DataFrame.from_dict(data)
+        elif query["result_format"] == ChartDataResultFormat.CSV:
+            df = pd.read_csv(StringIO(data))
+
+        # convert all columns to verbose (label) name
+        if datasource:
+            df.rename(columns=datasource.data["verbose_map"], inplace=True)
+
+        # LIKE Cross filter
+        # TODO: change the logic to get a parameter from FE and basis that only put
+        # TODO: extra logic to get LIKE '%....%' type filtering
+        data_datasource = form_data.get('datasource', '')
+        datasource_id = data_datasource.split('__')[0]
+        if datasource_id == '89' and str(form_data.get('dashboardId', '')) == '15':
+            if query["result_format"] in [ChartDataResultFormat.JSON, ChartDataResultFormat.CSV]:
+                print("===========PRINTING df=========")
+                print(df)
+                applied_filters = query.get('applied_filters')
+
+                is_applied_filter_present = len(applied_filters) > 0 and isinstance(applied_filters[0], dict)
+                cross_filter_val = len(form_data.get('extra_form_data', {}).get('filters', {})) > 0 and \
+                                              isinstance(form_data.get('extra_form_data', {}).get('filters', {}), list) and \
+                                              form_data.get('extra_form_data', {}).get('filters', {})[0].get('val') and \
+                                              form_data.get('extra_form_data', {}).get('filters', {})[0].get('val')[0]
+
+                if is_applied_filter_present:
+                    # Assuming df has applied_filter as column
+                    df = df[df[applied_filters[0].get('column')].str.contains(cross_filter_val)]
+                    query["rowcount"] = len(df.index)
+
+        if query["result_format"] == ChartDataResultFormat.JSON:
+            query["data"] = df.to_dict()
+        elif query["result_format"] == ChartDataResultFormat.CSV:
+            buf = StringIO()
+            df.to_csv(buf)
+            buf.seek(0)
+            query["data"] = buf.getvalue()
+    return result
+
+
 def apply_post_process(
     result: dict[Any, Any],
     form_data: Optional[dict[str, Any]] = None,
@@ -306,16 +379,6 @@ def apply_post_process(
             df = pd.DataFrame.from_dict(data)
         elif query["result_format"] == ChartDataResultFormat.CSV:
             df = pd.read_csv(StringIO(data))
-
-        # LIKE Cross filter
-        # TODO: change the logic to get a parameter from FE and basis that only put
-        # TODO: extra logic to get LIKE '%....%' type filtering
-        data_datasource = form_data.get('datasource', '')
-        datasource_id = data_datasource.split('__')[0]
-        if datasource_id == '89' and str(form_data.get('dashboardId', '')) == '15':
-            if query["result_format"] in [ChartDataResultFormat.JSON, ChartDataResultFormat.CSV]:
-                print("===========PRINTING df=========")
-                print(df)
 
         # convert all columns to verbose (label) name
         if datasource:
