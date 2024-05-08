@@ -245,3 +245,22 @@ def test_convert_dttm(
     from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_get_prequeries() -> None:
+    """
+    Test the ``get_prequeries`` method.
+    """
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    assert DatabricksNativeEngineSpec.get_prequeries() == []
+    assert DatabricksNativeEngineSpec.get_prequeries(schema="test") == [
+        "USE SCHEMA test",
+    ]
+    assert DatabricksNativeEngineSpec.get_prequeries(catalog="test") == [
+        "USE CATALOG test",
+    ]
+    assert DatabricksNativeEngineSpec.get_prequeries(catalog="foo", schema="bar") == [
+        "USE CATALOG foo",
+        "USE SCHEMA bar",
+    ]

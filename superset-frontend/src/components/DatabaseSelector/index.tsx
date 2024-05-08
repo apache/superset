@@ -143,7 +143,7 @@ export default function DatabaseSelector({
   const showCatalogSelector = !!db?.allow_multi_catalog;
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
   const [currentCatalog, setCurrentCatalog] = useState<
-    CatalogOption | undefined
+    CatalogOption | null | undefined
   >(catalog ? { label: catalog, value: catalog, title: catalog } : undefined);
   const catalogRef = useRef(catalog);
   catalogRef.current = catalog;
@@ -265,7 +265,7 @@ export default function DatabaseSelector({
 
   const schemaOptions = schemaData || EMPTY_SCHEMA_OPTIONS;
 
-  function changeCatalog(catalog: CatalogOption | undefined) {
+  function changeCatalog(catalog: CatalogOption | null | undefined) {
     setCurrentCatalog(catalog);
     setCurrentSchema(undefined);
     if (onCatalogChange && catalog?.value !== catalogRef.current) {
@@ -280,7 +280,9 @@ export default function DatabaseSelector({
   } = useCatalogs({
     dbId: currentDb?.value,
     onSuccess: (catalogs, isFetched) => {
-      if (catalogs.length === 1) {
+      if (!showCatalogSelector) {
+        changeCatalog(null);
+      } else if (catalogs.length === 1) {
         changeCatalog(catalogs[0]);
       } else if (
         !catalogs.find(
@@ -290,11 +292,15 @@ export default function DatabaseSelector({
         changeCatalog(undefined);
       }
 
-      if (isFetched) {
+      if (showCatalogSelector && isFetched) {
         addSuccessToast('List refreshed');
       }
     },
-    onError: () => handleError(t('There was an error loading the catalogs')),
+    onError: () => {
+      if (showCatalogSelector) {
+        handleError(t('There was an error loading the catalogs'));
+      }
+    },
   });
 
   const catalogOptions = catalogData || EMPTY_CATALOG_OPTIONS;
@@ -365,7 +371,7 @@ export default function DatabaseSelector({
         onChange={item => changeCatalog(item as CatalogOption)}
         options={catalogOptions}
         showSearch
-        value={currentCatalog}
+        value={currentCatalog || undefined}
       />,
       refreshIcon,
     );
