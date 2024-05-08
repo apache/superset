@@ -133,7 +133,7 @@ export interface ChartProps {
 }
 >>>>>>> fcb4d64048 (refactor: Migration of Chart.jsx to TypeScript):superset-frontend/src/components/Chart/Chart.tsx
 
-export type queryResponse = {
+export type QueryResponse = {
   errors: SupersetError[];
   message: string;
   link: string;
