@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -266,17 +268,11 @@ class IkiDynamicMarkdown extends React.PureComponent {
               event.origin,
               // this.props.ikigaiOrigin,
             );
-            console.log(
-              'superset-to-custom-html-widget/get-superset-charts-list',
-              messageObject,
-              chartsList,
-            );
           } else if (
             messageObject.info ===
             'widget-to-superset/sending-charts-to-refresh'
           ) {
             const { selectedCharts } = messageData;
-            console.log('selectedCharts', selectedCharts);
             this.refreshCharts(selectedCharts);
           }
         }
