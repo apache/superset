@@ -307,6 +307,15 @@ def apply_post_process(
         elif query["result_format"] == ChartDataResultFormat.CSV:
             df = pd.read_csv(StringIO(data))
 
+        # LIKE Cross filter
+        # TODO: change the logic to get a parameter from FE and basis that only put
+        # TODO: extra logic to get LIKE '%....%' type filtering
+        datasource = form_data.get('datasource', '')
+        datasource_id = datasource.split('__')[0]
+        if datasource_id == '89' and str(form_data.get('dashboardId', '')) == '15':
+            print("===========PRINTING df=========")
+            print(df.show())
+
         # convert all columns to verbose (label) name
         if datasource:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
