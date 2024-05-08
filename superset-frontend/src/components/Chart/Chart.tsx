@@ -116,7 +116,7 @@ export interface ChartProps {
   chartAlert?: string;
   chartStatus?: string;
   chartStackTrace?: string;
-  queriesResponse?: queryResponse[];
+  queriesResponse?: QueryResponse[];
   triggerQuery?: boolean;
   chartIsStale?: boolean;
   errorMessage?: React.ReactNode;
@@ -129,7 +129,6 @@ export interface ChartProps {
   datasetsStatus?: 'loading' | 'error' | 'complete';
   isInView?: boolean;
   emitCrossFilters?: boolean;
-  renderStartTime?: Date;
 }
 >>>>>>> fcb4d64048 (refactor: Migration of Chart.jsx to TypeScript):superset-frontend/src/components/Chart/Chart.tsx
 
@@ -156,7 +155,7 @@ const defaultProps: Partial<ChartProps> = {
   isInView: true,
 };
 
-const Styles = styled.div<{ height: number; width?: number }>`
+const Styles = styled.div<{ height: number }>`
   min-height: ${p => p.height}px;
   position: relative;
   text-align: center;
@@ -213,10 +212,6 @@ class Chart extends PureComponent {
 =======
   renderStartTime: any;
 
-  renderContainerStartTime: number;
-
-  static propTypes: any;
-
   constructor(props: ChartProps) {
 >>>>>>> fcb4d64048 (refactor: Migration of Chart.jsx to TypeScript):superset-frontend/src/components/Chart/Chart.tsx
     super(props);
@@ -270,7 +265,7 @@ class Chart extends PureComponent {
     });
   }
 
-  renderErrorMessage(queryResponse: queryResponse) {
+  renderErrorMessage(QueryResponse: QueryResponse) {
     const {
       chartId,
       chartAlert,
@@ -280,8 +275,8 @@ class Chart extends PureComponent {
       height,
       datasetsStatus,
     } = this.props;
-    const error = queryResponse?.errors?.[0];
-    const message = chartAlert || queryResponse?.message;
+    const error = QueryResponse?.errors?.[0];
+    const message = chartAlert || QueryResponse?.message;
 
     // if datasource is still loading, don't render JS errors
     if (
@@ -310,7 +305,7 @@ class Chart extends PureComponent {
         error={error}
         subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
         copyText={message}
-        link={queryResponse ? queryResponse.link : undefined}
+        link={QueryResponse ? QueryResponse.link : undefined}
         source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
         stackTrace={chartStackTrace}
       />
@@ -357,12 +352,11 @@ class Chart extends PureComponent {
       errorMessage,
       chartIsStale,
       queriesResponse = [],
-      width,
     } = this.props;
     const databaseName = datasource?.database?.name;
 
     const isLoading = chartStatus === 'loading';
-    this.renderContainerStartTime = Logger.getTimestamp();
+
     if (chartStatus === 'failed') {
       return queriesResponse.map(item => this.renderErrorMessage(item));
     }
@@ -413,7 +407,6 @@ class Chart extends PureComponent {
           className="chart-container"
           data-test="chart-container"
           height={height}
-          width={width}
         >
           {isLoading
             ? this.renderSpinner(databaseName)
