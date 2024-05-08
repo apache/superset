@@ -166,13 +166,7 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     _time_grain_expressions = time_grain_expressions
 
 
-class DatabricksODBCEngineSpec(BaseEngineSpec):
-    engine_name = "Databricks SQL Endpoint"
-
-    engine = "databricks"
-    drivers = {"pyodbc": "ODBC driver for SQL endpoint"}
-    default_driver = "pyodbc"
-
+class DatabricksBaseEngineSpec(BaseEngineSpec):
     _time_grain_expressions = time_grain_expressions
 
     @classmethod
@@ -186,8 +180,15 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
         return HiveEngineSpec.epoch_to_dttm()
 
 
-class DatabricksBaseEngineSpec(BasicParametersMixin, DatabricksODBCEngineSpec):
+class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
+    engine_name = "Databricks SQL Endpoint"
+
     engine = "databricks"
+    drivers = {"pyodbc": "ODBC driver for SQL endpoint"}
+    default_driver = "pyodbc"
+
+
+class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngineSpec):
     default_driver = ""
     encryption_parameters = {"ssl": "1"}
     required_parameters = {"access_token", "host", "port"}
@@ -348,7 +349,8 @@ class DatabricksBaseEngineSpec(BasicParametersMixin, DatabricksODBCEngineSpec):
         return errors
 
 
-class DatabricksNativeEngineSpec(DatabricksBaseEngineSpec):
+class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
+    engine = "databricks"
     engine_name = "Databricks"
     drivers = {"connector": "Native all-purpose driver"}
     default_driver = "connector"
@@ -360,12 +362,11 @@ class DatabricksNativeEngineSpec(DatabricksBaseEngineSpec):
         "databricks+connector://token:{access_token}@{host}:{port}/{database_name}"
     )
     context_key_mapping = {
-        **DatabricksBaseEngineSpec.context_key_mapping,
+        **DatabricksDynamicBaseEngineSpec.context_key_mapping,
         "database": "database",
         "username": "username",
     }
-    required_parameters_enum = DatabricksNativePropertiesType
-    required_parameters = DatabricksBaseEngineSpec.required_parameters | {
+    required_parameters = DatabricksDynamicBaseEngineSpec.required_parameters | {
         "database",
         "extra",
     }
@@ -428,7 +429,8 @@ class DatabricksNativeEngineSpec(DatabricksBaseEngineSpec):
         return spec.to_dict()["components"]["schemas"][cls.__name__]
 
 
-class DatabricksPythonConnectorEngineSpec(DatabricksBaseEngineSpec):
+class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
+    engine = "databricks"
     engine_name = "Databricks Python Connector"
     default_driver = "databricks-sql-python"
     drivers = {"databricks-sql-python": "DBTEST"}
@@ -441,14 +443,13 @@ class DatabricksPythonConnectorEngineSpec(DatabricksBaseEngineSpec):
     )
 
     context_key_mapping = {
-        **DatabricksBaseEngineSpec.context_key_mapping,
+        **DatabricksDynamicBaseEngineSpec.context_key_mapping,
         "default_catalog": "catalog",
         "default_schema": "schema",
         "http_path_field": "http_path",
     }
 
-    required_parameters_enum = DatabricksPythonConnectorPropertiesType
-    required_parameters = DatabricksBaseEngineSpec.required_parameters | {
+    required_parameters = DatabricksDynamicBaseEngineSpec.required_parameters | {
         "default_catalog",
         "default_schema",
         "http_path_field",
