@@ -34,7 +34,7 @@ import {
   IKI_RUN_PIPELINE_TYPE as IKI_RUN_PIPELINE,
   IKI_EITL_ROW_TYPE as IKI_EITL_ROW,
   IKI_EITL_COLUMN_TYPE as IKI_EITL_COLUMN,
-  IKI_DYNAMIC_MARKDOWN_TYPE,
+  IKI_DYNAMIC_MARKDOWN_TYPE as IKI_DYNAMIC_MARKDOWN,
 } from 'src/dashboard/util/componentTypes';
 
 const getIndentation = (depth: number) =>
@@ -53,7 +53,7 @@ describe('isValidChild', () => {
     const validExamples = [
       [ROOT, GRID, CHART], // chart is valid because it is wrapped in a row
       [ROOT, GRID, MARKDOWN], // markdown is valid because it is wrapped in a row
-      [ROOT, GRID, IKI_DYNAMIC_MARKDOWN_TYPE],
+      [ROOT, GRID, IKI_DYNAMIC_MARKDOWN],
       [ROOT, GRID, IKI_TABLE], // iki table is valid because it is wrapped in a row
       [ROOT, GRID, IKI_PROCESS_BUILDER], // iki process builder is valid because it is wrapped in a row
       [ROOT, GRID, IKI_RUN_PIPELINE], // iki run pipeline is valid because it is wrapped in a row
@@ -68,6 +68,7 @@ describe('isValidChild', () => {
       [ROOT, GRID, ROW, IKI_EITL_ROW],
       [ROOT, GRID, ROW, IKI_EITL_COLUMN],
       [ROOT, GRID, ROW, CHART],
+      [ROOT, GRID, ROW, IKI_DYNAMIC_MARKDOWN],
 
       [ROOT, GRID, ROW, COLUMN, HEADER],
       [ROOT, GRID, ROW, COLUMN, DIVIDER],
@@ -78,6 +79,7 @@ describe('isValidChild', () => {
       [ROOT, GRID, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, GRID, ROW, COLUMN, IKI_EITL_ROW],
       [ROOT, GRID, ROW, COLUMN, IKI_EITL_COLUMN],
+      [ROOT, GRID, ROW, COLUMN, IKI_DYNAMIC_MARKDOWN],
 
       [ROOT, GRID, ROW, COLUMN, ROW, CHART],
       [ROOT, GRID, ROW, COLUMN, ROW, MARKDOWN],
@@ -86,6 +88,7 @@ describe('isValidChild', () => {
       [ROOT, GRID, ROW, COLUMN, ROW, IKI_RUN_PIPELINE],
       [ROOT, GRID, ROW, COLUMN, ROW, IKI_EITL_ROW],
       [ROOT, GRID, ROW, COLUMN, ROW, IKI_EITL_COLUMN],
+      [ROOT, GRID, ROW, COLUMN, ROW, IKI_DYNAMIC_MARKDOWN],
 
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, CHART],
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
@@ -94,12 +97,14 @@ describe('isValidChild', () => {
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, IKI_EITL_ROW],
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, IKI_EITL_COLUMN],
+      [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, IKI_DYNAMIC_MARKDOWN],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_TABLE],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_PROCESS_BUILDER],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_EITL_ROW],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_EITL_COLUMN],
+      [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_DYNAMIC_MARKDOWN],
 
       // tab equivalents
       [ROOT, TABS, TAB, CHART],
