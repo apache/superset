@@ -315,7 +315,7 @@ def apply_post_process(
         if datasource_id == '89' and str(form_data.get('dashboardId', '')) == '15':
             if query["result_format"] in [ChartDataResultFormat.JSON, ChartDataResultFormat.CSV]:
                 print("===========PRINTING df=========")
-                print(df.show())
+                print(df)
 
         # convert all columns to verbose (label) name
         if datasource:
