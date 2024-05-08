@@ -66,6 +66,7 @@ def import_chart(
     datasource = SqlaTable.get_datasource_by_name(
         datasource_name=params["datasource_name"],
         database_name=params["database_name"],
+        catalog=params.get("catalog"),
         schema=params["schema"],
     )
     slc_to_import.datasource_id = datasource.id  # type: ignore

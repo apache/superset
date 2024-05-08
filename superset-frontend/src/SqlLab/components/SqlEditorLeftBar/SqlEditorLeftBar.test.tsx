@@ -44,6 +44,10 @@ const mockedProps = {
 
 beforeEach(() => {
   fetchMock.get('glob:*/api/v1/database/?*', { result: [] });
+  fetchMock.get('glob:*/api/v1/database/*/catalogs/?*', {
+    count: 0,
+    result: [],
+  });
   fetchMock.get('glob:*/api/v1/database/*/schemas/?*', {
     count: 2,
     result: ['main', 'new_schema'],
@@ -103,11 +107,14 @@ test('renders a TableElement', async () => {
 });
 
 test('table should be visible when expanded is true', async () => {
-  const { container, getByText, getByRole, queryAllByText } =
-    await renderAndWait(mockedProps, undefined, {
+  const { container, getByText, getByRole } = await renderAndWait(
+    mockedProps,
+    undefined,
+    {
       ...initialState,
       sqlLab: { ...initialState.sqlLab, tables: [table] },
-    });
+    },
+  );
 
   const dbSelect = getByRole('combobox', {
     name: 'Select database or type to search databases',
@@ -115,14 +122,56 @@ test('table should be visible when expanded is true', async () => {
   const schemaSelect = getByRole('combobox', {
     name: 'Select schema or type to search schemas',
   });
-  const dropdown = getByText(/Table/i);
-  const abUser = queryAllByText(/ab_user/i);
+  const dropdown = getByText(/Select table/i);
+  const abUser = getByText(/ab_user/i);
 
   expect(getByText(/Database/i)).toBeInTheDocument();
   expect(dbSelect).toBeInTheDocument();
   expect(schemaSelect).toBeInTheDocument();
   expect(dropdown).toBeInTheDocument();
-  expect(abUser).toHaveLength(2);
+  expect(abUser).toBeInTheDocument();
+  expect(
+    container.querySelector('.ant-collapse-content-active'),
+  ).toBeInTheDocument();
+  table.columns.forEach(({ name }) => {
+    expect(getByText(name)).toBeInTheDocument();
+  });
+});
+
+test('catalog selector should be visible when enabled in the database', async () => {
+  const { container, getByText, getByRole } = await renderAndWait(
+    {
+      ...mockedProps,
+      database: {
+        ...mockedProps.database,
+        allow_multi_catalog: true,
+      },
+    },
+    undefined,
+    {
+      ...initialState,
+      sqlLab: { ...initialState.sqlLab, tables: [table] },
+    },
+  );
+
+  const dbSelect = getByRole('combobox', {
+    name: 'Select database or type to search databases',
+  });
+  const catalogSelect = getByRole('combobox', {
+    name: 'Select catalog or type to search catalogs',
+  });
+  const schemaSelect = getByRole('combobox', {
+    name: 'Select schema or type to search schemas',
+  });
+  const dropdown = getByText(/Select table/i);
+  const abUser = getByText(/ab_user/i);
+
+  expect(getByText(/Database/i)).toBeInTheDocument();
+  expect(dbSelect).toBeInTheDocument();
+  expect(catalogSelect).toBeInTheDocument();
+  expect(schemaSelect).toBeInTheDocument();
+  expect(dropdown).toBeInTheDocument();
+  expect(abUser).toBeInTheDocument();
   expect(
     container.querySelector('.ant-collapse-content-active'),
   ).toBeInTheDocument();

@@ -40,6 +40,7 @@ const createProps = (): DatabaseSelectorProps => ({
   formMode: false,
   isDatabaseSelectEnabled: true,
   readOnly: false,
+  catalog: null,
   schema: 'public',
   sqlLabMode: true,
   getDbList: jest.fn(),
@@ -158,16 +159,23 @@ const fakeSchemaApiResult = {
   result: ['information_schema', 'public'],
 };
 
+const fakeCatalogApiResult = {
+  count: 0,
+  result: [],
+};
+
 const fakeFunctionNamesApiResult = {
   function_names: [],
 };
 
 const databaseApiRoute = 'glob:*/api/v1/database/?*';
+const catalogApiRoute = 'glob:*/api/v1/database/*/catalogs/?*';
 const schemaApiRoute = 'glob:*/api/v1/database/*/schemas/?*';
 const tablesApiRoute = 'glob:*/api/v1/database/*/tables/*';
 
 function setupFetchMock() {
   fetchMock.get(databaseApiRoute, fakeDatabaseApiResult);
+  fetchMock.get(catalogApiRoute, fakeCatalogApiResult);
   fetchMock.get(schemaApiRoute, fakeSchemaApiResult);
   fetchMock.get(tablesApiRoute, fakeFunctionNamesApiResult);
 }

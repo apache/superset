@@ -168,6 +168,7 @@ export interface SubMenuProps {
 export interface CustomAutoCompleteArgs {
   queryEditorId: string;
   dbId?: string | number;
+  catalog?: string | null;
   schema?: string;
 }
 

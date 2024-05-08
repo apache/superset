@@ -96,6 +96,7 @@ test('Does not render if SSH Tunnel is disabled', () => {
         engine_information: {
           disable_ssh_tunneling: true,
           supports_file_upload: false,
+          supports_dynamic_catalog: false,
         },
       }}
     />,

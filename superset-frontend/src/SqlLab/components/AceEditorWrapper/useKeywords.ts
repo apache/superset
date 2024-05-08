@@ -42,6 +42,7 @@ import { SqlLabRootState } from 'src/SqlLab/types';
 type Params = {
   queryEditorId: string | number;
   dbId?: string | number;
+  catalog?: string | null;
   schema?: string;
 };
 
@@ -58,7 +59,7 @@ const getHelperText = (value: string) =>
 const extensionsRegistry = getExtensionsRegistry();
 
 export function useKeywords(
-  { queryEditorId, dbId, schema }: Params,
+  { queryEditorId, dbId, catalog, schema }: Params,
   skip = false,
 ) {
   const useCustomKeywords = extensionsRegistry.get(
@@ -68,6 +69,7 @@ export function useKeywords(
   const customKeywords = useCustomKeywords?.({
     queryEditorId: String(queryEditorId),
     dbId,
+    catalog,
     schema,
   });
   const dispatch = useDispatch();
@@ -78,6 +80,7 @@ export function useKeywords(
   const { data: schemaOptions } = useSchemasQueryState(
     {
       dbId,
+      catalog: catalog || undefined,
       forceRefresh: false,
     },
     { skip: skipFetch || !dbId },
@@ -85,6 +88,7 @@ export function useKeywords(
   const { data: tableData } = useTablesQueryState(
     {
       dbId,
+      catalog,
       schema,
       forceRefresh: false,
     },
@@ -125,6 +129,7 @@ export function useKeywords(
           dbId && schema
             ? {
                 dbId,
+                catalog,
                 schema,
                 table,
               }
@@ -137,7 +142,7 @@ export function useKeywords(
         });
     });
     return [...columns];
-  }, [dbId, schema, apiState, tablesForColumnMetadata]);
+  }, [dbId, catalog, schema, apiState, tablesForColumnMetadata]);
 
   const insertMatch = useEffectEvent((editor: Editor, data: any) => {
     if (data.meta === 'table') {

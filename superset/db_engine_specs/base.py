@@ -2184,6 +2184,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {
             "supports_file_upload": cls.supports_file_upload,
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
+            "supports_dynamic_catalog": cls.supports_dynamic_catalog,
         }
 
     @classmethod

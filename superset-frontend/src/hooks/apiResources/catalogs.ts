@@ -20,32 +20,29 @@ import { useCallback, useEffect, useRef } from 'react';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { api, JsonResponse } from './queryApi';
 
-export type SchemaOption = {
+export type CatalogOption = {
   value: string;
   label: string;
   title: string;
 };
 
-export type FetchSchemasQueryParams = {
+export type FetchCatalogsQueryParams = {
   dbId?: string | number;
-  catalog?: string;
   forceRefresh: boolean;
-  onSuccess?: (data: SchemaOption[], isRefetched: boolean) => void;
+  onSuccess?: (data: CatalogOption[], isRefetched: boolean) => void;
   onError?: () => void;
 };
 
-type Params = Omit<FetchSchemasQueryParams, 'forceRefresh'>;
+type Params = Omit<FetchCatalogsQueryParams, 'forceRefresh'>;
 
-const schemaApi = api.injectEndpoints({
+const catalogApi = api.injectEndpoints({
   endpoints: builder => ({
-    schemas: builder.query<SchemaOption[], FetchSchemasQueryParams>({
-      providesTags: [{ type: 'Schemas', id: 'LIST' }],
-      query: ({ dbId, catalog, forceRefresh }) => ({
-        endpoint: `/api/v1/database/${dbId}/schemas/`,
-        // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
+    catalogs: builder.query<CatalogOption[], FetchCatalogsQueryParams>({
+      providesTags: [{ type: 'Catalogs', id: 'LIST' }],
+      query: ({ dbId, forceRefresh }) => ({
+        endpoint: `/api/v1/database/${dbId}/catalogs/`,
         urlParams: {
           force: forceRefresh,
-          ...(catalog !== undefined && { catalog }),
         },
         transformResponse: ({ json }: JsonResponse) =>
           json.result.sort().map((value: string) => ({
@@ -62,27 +59,27 @@ const schemaApi = api.injectEndpoints({
 });
 
 export const {
-  useLazySchemasQuery,
-  useSchemasQuery,
-  endpoints: schemaEndpoints,
-  util: schemaApiUtil,
-} = schemaApi;
+  useLazyCatalogsQuery,
+  useCatalogsQuery,
+  endpoints: catalogEndpoints,
+  util: catalogApiUtil,
+} = catalogApi;
 
-export const EMPTY_SCHEMAS = [] as SchemaOption[];
+export const EMPTY_CATALOGS = [] as CatalogOption[];
 
-export function useSchemas(options: Params) {
+export function useCatalogs(options: Params) {
   const isMountedRef = useRef(false);
-  const { dbId, catalog, onSuccess, onError } = options || {};
-  const [trigger] = useLazySchemasQuery();
-  const result = useSchemasQuery(
-    { dbId, catalog: catalog || undefined, forceRefresh: false },
+  const { dbId, onSuccess, onError } = options || {};
+  const [trigger] = useLazyCatalogsQuery();
+  const result = useCatalogsQuery(
+    { dbId, forceRefresh: false },
     {
       skip: !dbId,
     },
   );
 
   const handleOnSuccess = useEffectEvent(
-    (data: SchemaOption[], isRefetched: boolean) => {
+    (data: CatalogOption[], isRefetched: boolean) => {
       onSuccess?.(data, isRefetched);
     },
   );
@@ -91,27 +88,12 @@ export function useSchemas(options: Params) {
     onError?.();
   });
 
-  useEffect(() => {
-    if (dbId) {
-      trigger({ dbId, catalog, forceRefresh: false }).then(
-        ({ isSuccess, isError, data }) => {
-          if (isSuccess) {
-            handleOnSuccess(data || EMPTY_SCHEMAS, true);
-          }
-          if (isError) {
-            handleOnError();
-          }
-        },
-      );
-    }
-  }, [dbId, catalog, handleOnError, handleOnSuccess, trigger]);
-
   const refetch = useCallback(() => {
     if (dbId) {
-      trigger({ dbId, catalog, forceRefresh: true }).then(
+      trigger({ dbId, forceRefresh: true }).then(
         ({ isSuccess, isError, data }) => {
           if (isSuccess) {
-            handleOnSuccess(data || EMPTY_SCHEMAS, true);
+            handleOnSuccess(data || EMPTY_CATALOGS, true);
           }
           if (isError) {
             handleOnError();
@@ -119,7 +101,7 @@ export function useSchemas(options: Params) {
         },
       );
     }
-  }, [dbId, catalog, handleOnError, handleOnSuccess, trigger]);
+  }, [dbId, handleOnError, handleOnSuccess, trigger]);
 
   useEffect(() => {
     if (isMountedRef.current) {
@@ -127,7 +109,7 @@ export function useSchemas(options: Params) {
         result;
       if (!originalArgs?.forceRefresh && requestId && !isFetching) {
         if (isSuccess) {
-          handleOnSuccess(data || EMPTY_SCHEMAS, false);
+          handleOnSuccess(data || EMPTY_CATALOGS, false);
         }
         if (isError) {
           handleOnError();
@@ -136,7 +118,7 @@ export function useSchemas(options: Params) {
     } else {
       isMountedRef.current = true;
     }
-  }, [catalog, result, handleOnSuccess, handleOnError]);
+  }, [result, handleOnSuccess, handleOnError]);
 
   return {
     ...result,

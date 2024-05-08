@@ -48,7 +48,7 @@ export type QueryPayload = {
   description?: string;
   id?: string;
   remoteId?: number;
-} & Pick<QueryEditor, 'dbId' | 'schema' | 'sql'>;
+} & Pick<QueryEditor, 'dbId' | 'catalog' | 'schema' | 'sql'>;
 
 const Styles = styled.span`
   span[role='img'] {
@@ -78,6 +78,7 @@ const SaveQuery = ({
     'dbId',
     'latestQueryId',
     'queryLimit',
+    'catalog',
     'schema',
     'selectedText',
     'sql',
@@ -115,6 +116,7 @@ const SaveQuery = ({
     description,
     dbId: query.dbId ?? 0,
     sql: query.sql,
+    catalog: query.catalog,
     schema: query.schema,
     templateParams: query.templateParams,
     remoteId: query?.remoteId || undefined,
