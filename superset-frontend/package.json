@@ -195,7 +195,7 @@
     "redux-thunk": "^2.1.0",
     "redux-undo": "^1.0.0-beta9-9-7",
     "regenerator-runtime": "^0.13.5",
-    "rimraf": "^3.0.2",
+    "rimraf": "^5.0.5",
     "rison": "^0.1.1",
     "scroll-into-view-if-needed": "^2.2.28",
     "shortid": "^2.2.16",
