@@ -390,26 +390,11 @@ class ExtraCache:
                 if column not in self.applied_filters:
                     self.applied_filters.append(column)
 
-                # if op in (
-                #     FilterOperator.IN.value,
-                #     FilterOperator.NOT_IN.value,
-                # ) and not isinstance(val, list):
-                #     val = [val]
-
                 if op in (
                     FilterOperator.IN.value,
                     FilterOperator.NOT_IN.value,
-                ):
-                    if isinstance(val, list):
-                        val = [val]
-                    val = "'" + "','".join(val) + "'"
-
-                if op == FilterOperator.IN.value:
-                    op = "LIKE"
-                    val = f"%{val}%"
-                elif op == FilterOperator.NOT_IN.value:
-                    op = "NOT_LIKE"
-                    val = f"%{val}%"
+                ) and not isinstance(val, list):
+                    val = [val]
 
                 filters.append({"op": op, "col": column, "val": val})
 
