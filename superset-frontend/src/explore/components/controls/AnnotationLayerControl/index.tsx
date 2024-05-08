@@ -37,7 +37,7 @@ import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
-import { ChartState } from 'src/explore/types';
+import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Slice } from '@reduxjs/toolkit';
 import ControlPopover, {
   getSectionContainerElement,
@@ -80,22 +80,7 @@ export interface PopoverState {
   popoverVisible: Record<number | string, boolean>;
   addedAnnotationIndex: number | null;
 }
-export interface Explore {
-  can_add: boolean;
-  can_download: boolean;
-  can_overwrite: boolean;
-  isDatasourceMetaLoading: boolean;
-  isStarred: boolean;
-  triggerRender: boolean;
-  datasource: Dataset;
-  controls: ControlStateMapping;
-  form_data: QueryFormData;
-  slice: Slice;
-  controlsTransferred: string[];
-  standalone: boolean;
-  force: boolean;
-  common: JsonObject;
-}
+
 const defaultProps = {
   vizType: '',
   value: [],
@@ -299,7 +284,7 @@ function mapStateToProps({
   charts: {
     [key: string]: ChartState;
   };
-  explore: Partial<Explore>;
+  explore: Partial<ExplorePageState['explore']>;
 }) {
   const chartKey = getChartKey(explore);
 
