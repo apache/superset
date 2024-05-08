@@ -338,7 +338,7 @@ def apply_filter_like_df(
                     query["rowcount"] = len(df.index)
 
         if query["result_format"] == ChartDataResultFormat.JSON:
-            query["data"] = df.to_dict()
+            query["data"] = df.to_dict(orient='records')
         elif query["result_format"] == ChartDataResultFormat.CSV:
             buf = StringIO()
             df.to_csv(buf)
