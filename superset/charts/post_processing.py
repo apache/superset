@@ -334,6 +334,11 @@ def apply_filter_like_df(
 
                 if is_applied_filter_present and cross_filter_val:
                     # Assuming df has applied_filter as column
+
+                    print("=====applied_filters=======", applied_filters[0].get('column', ''))
+                    print("=====cross_filter_val=======", cross_filter_val)
+                    print("=====df len=======", len(df))
+
                     df = df[df[applied_filters[0].get('column', '')].str.contains(cross_filter_val)]
                     query["rowcount"] = len(df.index)
 
