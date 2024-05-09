@@ -237,6 +237,7 @@ def test_database_connection(
             "driver": "gsheets",
             "engine_information": {
                 "disable_ssh_tunneling": True,
+                "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
             },
             "expose_in_sqllab": True,
@@ -308,6 +309,7 @@ def test_database_connection(
             "driver": "gsheets",
             "engine_information": {
                 "disable_ssh_tunneling": True,
+                "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
             },
             "expose_in_sqllab": True,

@@ -243,6 +243,7 @@ class TestDatasetApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert response["count"] == 1
         expected_columns = [
+            "catalog",
             "changed_by",
             "changed_by_name",
             "changed_on_delta_humanized",
@@ -368,6 +369,7 @@ class TestDatasetApi(SupersetTestCase):
             "cache_timeout": None,
             "database": {
                 "backend": main_db.backend,
+                "allow_multi_catalog": False,
                 "database_name": "examples",
                 "id": 1,
             },
