@@ -191,12 +191,13 @@ export function scheduleQuery(query) {
 
 export function estimateQueryCost(queryEditor) {
   return (dispatch, getState) => {
-    const { dbId, schema, sql, selectedText, templateParams } =
+    const { dbId, catalog, schema, sql, selectedText, templateParams } =
       getUpToDateQuery(getState(), queryEditor);
     const requestSql = selectedText || sql;
 
     const postPayload = {
       database_id: dbId,
+      catalog,
       schema,
       sql: requestSql,
       template_params: JSON.parse(templateParams || '{}'),
