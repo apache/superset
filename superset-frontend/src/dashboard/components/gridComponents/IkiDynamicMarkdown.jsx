@@ -156,19 +156,6 @@ class IkiDynamicMarkdown extends React.PureComponent {
       setTimeout(() => {
         this.handleChangeEditorMode('preview');
       }, 500);
-      // setTimeout(() => {
-      //   const iframe = document.getElementById(
-      //     `ikirunpipeline-widget-${this.props.component.id}`,
-      //   );
-      //   if (iframe && iframe !== undefined) {
-      //     iframe.contentWindow.postMessage(
-      //       JSON.stringify({
-      //         data: 'superset-to-widget/confirm-pipeline-selection',
-      //       }),
-      //       this.props.ikigaiOrigin,
-      //     );
-      //   }
-      // }, 500);
     }
   }
 
@@ -229,7 +216,6 @@ class IkiDynamicMarkdown extends React.PureComponent {
                                   name="ikiinteractiveforecast"
                                   src="${widgetUrl}"
                                   title="Hero Section Component"
-                                  className="ikirunpipeline-widget"
                                   style="min-height: 100%;"
                               />`;
               this.handleIkiRunPipelineChange(tempIframe, true);
@@ -374,7 +360,6 @@ class IkiDynamicMarkdown extends React.PureComponent {
                       name="dynamic-markdown-${timestamp}"
                       src="${widgetUrl}"
                       title="Dynamic Markdown Component"
-                      className="ikirunpipeline-widget"
                       style="min-height: 100%;"
                     />`;
     this.handleIkiRunPipelineChange(tempIframe, true);
@@ -439,7 +424,6 @@ class IkiDynamicMarkdown extends React.PureComponent {
                   name="dynamic-markdown-${timestamp}"
                   src="${iframeSrc}"
                   title="Dynamic Markdown Component"
-                  className="ikirunpipeline-widget"
                   style="height:100%;"
                 />`;
     } else {
@@ -506,8 +490,8 @@ class IkiDynamicMarkdown extends React.PureComponent {
             <div
               data-test="dashboard-markdown-editor"
               className={cx(
-                'dashboard-component-ikirunpipeline',
-                isEditing && 'dashboard-component-ikirunpipeline--editing',
+                'dashboard-component',
+                isEditing && 'dashboard-component--editing',
               )}
               id={component.id}
             >
