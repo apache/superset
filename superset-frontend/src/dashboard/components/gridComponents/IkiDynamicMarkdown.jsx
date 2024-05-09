@@ -263,7 +263,12 @@ class IkiDynamicMarkdown extends React.PureComponent {
               dataType: 'object',
             };
             const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
-            window?.parent?.postMessage(
+            const iframe = document.getElementById(
+              `ikidynamicmarkdown-widget-${this.props.component.id}`,
+            );
+            // window?.parent?.postMessage(
+            // iframe.contentWindow is suggested way on internet to send message to iframe window (although localy it works only without contentWindow part)
+            iframe.contentWindow.postMessage(
               crossBrowserInfoString,
               event.origin,
               // this.props.ikigaiOrigin,
