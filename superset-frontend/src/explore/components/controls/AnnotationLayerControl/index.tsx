@@ -280,12 +280,7 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
 function mapStateToProps({
   charts,
   explore,
-}: {
-  charts: {
-    [key: string]: ChartState;
-  };
-  explore: Partial<ExplorePageState['explore']>;
-}) {
+}: Pick<ExplorePageState, 'charts' | 'explore'>) {
   const chartKey = getChartKey(explore);
 
   const defaultChartState: Partial<ChartState> = {
