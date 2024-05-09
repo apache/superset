@@ -20,6 +20,7 @@
 import CategoricalScheme from '../../CategoricalScheme';
 import { ColorSchemeGroup } from '../../types';
 
+// TODO: add the colors to the theme while working on SIP https://github.com/apache/superset/issues/20159
 const schemes = [
   {
     id: 'wavesOfBlue',

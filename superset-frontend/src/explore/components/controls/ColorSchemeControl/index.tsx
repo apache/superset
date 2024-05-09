@@ -24,6 +24,7 @@ import {
   SequentialScheme,
   styled,
   t,
+  useTheme,
 } from '@superset-ui/core';
 import AntdSelect from 'antd/lib/select';
 import { isFunction, sortBy } from 'lodash';
@@ -108,6 +109,7 @@ const ColorSchemeControl = ({
   isLinear,
   ...rest
 }: ColorSchemeControlProps) => {
+  const theme = useTheme();
   const currentScheme = useMemo(() => {
     if (dashboardId) {
       return 'dashboard';
@@ -240,6 +242,13 @@ const ColorSchemeControl = ({
       <StyledSelect
         css={css`
           width: 100%;
+          & .ant-select-item.ant-select-item-group {
+            padding-left: ${theme.gridUnit}px;
+            font-size: ${theme.typography.sizes.m}px;
+          }
+          & .ant-select-item-option-grouped {
+            padding-left: ${theme.gridUnit * 3}px;
+          }
         `}
         aria-label={t('Select color scheme')}
         allowClear={clearable}
