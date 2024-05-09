@@ -28,7 +28,7 @@ export interface Props {
   error?: SupersetError;
   subtitle: JSX.Element;
   copyText: string;
-  link: string | undefined;
+  link?: string;
   source: ChartSource;
   stackTrace?: string;
 }
