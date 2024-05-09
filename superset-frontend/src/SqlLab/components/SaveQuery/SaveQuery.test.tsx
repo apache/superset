@@ -42,6 +42,7 @@ const mockState = {
       {
         id: mockedProps.queryEditorId,
         dbId: 1,
+        catalog: null,
         schema: 'main',
         sql: 'SELECT * FROM t',
       },

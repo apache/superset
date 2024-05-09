@@ -21,5 +21,6 @@ export const getDatasourceAsSaveableDataset = source => ({
   name: source?.datasource_name || source?.name || 'Untitled',
   dbId: source?.database?.id || source?.dbId,
   sql: source?.sql || '',
+  catalog: source?.catalog,
   schema: source?.schema,
 });

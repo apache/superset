@@ -648,6 +648,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     engine_name = "Presto"
     allows_alias_to_source_column = False
 
+    supports_catalog = False
+
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         COLUMN_DOES_NOT_EXIST_REGEX: (
             __(
@@ -815,11 +817,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         cls,
         database: Database,
         inspector: Inspector,
-    ) -> list[str]:
+    ) -> set[str]:
         """
         Get all catalogs.
         """
-        return [catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")]
+        return {catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")}
 
     @classmethod
     def _create_column_info(

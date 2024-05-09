@@ -189,7 +189,12 @@ test('returns column keywords among selected tables', async () => {
     storeWithSqlLab.dispatch(
       tableApiUtil.upsertQueryData(
         'tableMetadata',
-        { dbId: expectDbId, schema: expectSchema, table: expectTable },
+        {
+          dbId: expectDbId,
+          catalog: null,
+          schema: expectSchema,
+          table: expectTable,
+        },
         {
           name: expectTable,
           columns: [
@@ -205,7 +210,12 @@ test('returns column keywords among selected tables', async () => {
     storeWithSqlLab.dispatch(
       tableApiUtil.upsertQueryData(
         'tableMetadata',
-        { dbId: expectDbId, schema: expectSchema, table: unexpectedTable },
+        {
+          dbId: expectDbId,
+          catalog: null,
+          schema: expectSchema,
+          table: unexpectedTable,
+        },
         {
           name: unexpectedTable,
           columns: [
@@ -227,6 +237,7 @@ test('returns column keywords among selected tables', async () => {
       useKeywords({
         queryEditorId: expectQueryEditorId,
         dbId: expectDbId,
+        catalog: null,
         schema: expectSchema,
       }),
     {

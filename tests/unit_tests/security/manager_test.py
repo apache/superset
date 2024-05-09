@@ -26,7 +26,10 @@ from superset.connectors.sqla.models import Database, SqlaTable
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
-from superset.security.manager import query_context_modified, SupersetSecurityManager
+from superset.security.manager import (
+    query_context_modified,
+    SupersetSecurityManager,
+)
 from superset.sql_parse import Table
 from superset.superset_typing import AdhocMetric
 from superset.utils.core import override_user
@@ -208,6 +211,7 @@ def test_raise_for_access_query_default_schema(
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
     query.database = database
@@ -262,6 +266,7 @@ def test_raise_for_access_jinja_sql(mocker: MockFixture, app_context: None) -> N
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
     query.database = database
@@ -531,3 +536,28 @@ def test_query_context_modified_mixed_chart(mocker: MockFixture) -> None:
     }
     query_context.queries = [QueryObject(metrics=requested_metrics)]  # type: ignore
     assert not query_context_modified(query_context)
+
+
+def test_get_catalog_perm() -> None:
+    """
+    Test the `get_catalog_perm` method.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    assert sm.get_catalog_perm("my_db", None) is None
+    assert sm.get_catalog_perm("my_db", "my_catalog") == "[my_db].[my_catalog]"
+
+
+def test_get_schema_perm() -> None:
+    """
+    Test the `get_schema_perm` method.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    assert sm.get_schema_perm("my_db", None, "my_schema") == "[my_db].[my_schema]"
+    assert (
+        sm.get_schema_perm("my_db", "my_catalog", "my_schema")
+        == "[my_db].[my_catalog].[my_schema]"
+    )
+    assert sm.get_schema_perm("my_db", None, None) is None
+    assert sm.get_schema_perm("my_db", "my_catalog", None) is None

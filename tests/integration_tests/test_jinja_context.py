@@ -121,6 +121,23 @@ def test_template_hive(app_context: AppContext, mocker: MockFixture) -> None:
     assert tp.process_template(template) == "the_latest"
 
 
+def test_template_spark(app_context: AppContext, mocker: MockFixture) -> None:
+    lp_mock = mocker.patch(
+        "superset.jinja_context.SparkTemplateProcessor.latest_partition"
+    )
+    lp_mock.return_value = "the_latest"
+    database = mock.Mock()
+    database.backend = "spark"
+    template = "{{ spark.latest_partition('my_table') }}"
+    tp = get_template_processor(database=database)
+    assert tp.process_template(template) == "the_latest"
+
+    # Backwards compatibility if migrating from Hive.
+    template = "{{ hive.latest_partition('my_table') }}"
+    tp = get_template_processor(database=database)
+    assert tp.process_template(template) == "the_latest"
+
+
 def test_template_trino(app_context: AppContext, mocker: MockFixture) -> None:
     lp_mock = mocker.patch(
         "superset.jinja_context.TrinoTemplateProcessor.latest_partition"

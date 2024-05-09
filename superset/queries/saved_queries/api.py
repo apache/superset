@@ -95,6 +95,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "description",
         "id",
         "label",
+        "catalog",
         "schema",
         "sql",
         "sql_tables",
@@ -119,6 +120,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "label",
         "last_run_delta_humanized",
         "rows",
+        "catalog",
         "schema",
         "sql",
         "sql_tables",
@@ -130,12 +132,14 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "db_id",
         "description",
         "label",
+        "catalog",
         "schema",
         "sql",
         "template_parameters",
     ]
     edit_columns = add_columns
     order_columns = [
+        "catalog",
         "schema",
         "label",
         "description",
@@ -148,7 +152,15 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "last_run_delta_humanized",
     ]
 
-    search_columns = ["id", "database", "label", "schema", "created_by", "changed_by"]
+    search_columns = [
+        "id",
+        "database",
+        "label",
+        "catalog",
+        "schema",
+        "created_by",
+        "changed_by",
+    ]
     if is_feature_enabled("TAGGING_SYSTEM"):
         search_columns += ["tags"]
     search_filters = {
@@ -170,7 +182,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     }
     base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "changed_by", "created_by"}
-    allowed_distinct_fields = {"schema"}
+    allowed_distinct_fields = {"catalog", "schema"}
 
     def pre_add(self, item: SavedQuery) -> None:
         item.user = g.user

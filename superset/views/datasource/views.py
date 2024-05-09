@@ -165,6 +165,7 @@ class Datasource(BaseSupersetView):
 
         datasource = SqlaTable.get_datasource_by_name(
             database_name=params["database_name"],
+            catalog=params.get("catalog_name"),
             schema=params["schema_name"],
             datasource_name=params["table_name"],
         )

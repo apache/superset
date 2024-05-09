@@ -301,3 +301,13 @@ def test_extra_table_metadata(mocker: MockFixture) -> None:
     )
 
     warnings.warn.assert_called()
+
+
+def test_get_default_catalog(mocker: MockFixture) -> None:
+    """
+    Test the `get_default_catalog` method.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = mocker.MagicMock()
+    assert BaseEngineSpec.get_default_catalog(database) is None

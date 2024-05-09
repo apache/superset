@@ -43,19 +43,19 @@ const dropdownItems = [
       {
         label: 'Upload a CSV',
         name: 'Upload a CSV',
-        url: '/csvtodatabaseview/form',
+        url: '#',
         perm: true,
       },
       {
         label: 'Upload a Columnar File',
         name: 'Upload a Columnar file',
-        url: '/columnartodatabaseview/form',
+        url: '#',
         perm: true,
       },
       {
         label: 'Upload Excel',
         name: 'Upload Excel',
-        url: '/exceltodatabaseview/form',
+        url: '#',
         perm: true,
       },
     ],

@@ -140,6 +140,8 @@ function DatabaseList({
     useState<boolean>(false);
   const [excelUploadDataModalOpen, setExcelUploadDataModalOpen] =
     useState<boolean>(false);
+  const [columnarUploadDataModalOpen, setColumnarUploadDataModalOpen] =
+    useState<boolean>(false);
 
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const isAdmin = isUserAdmin(fullUser);
@@ -257,9 +259,12 @@ function DatabaseList({
           disable: isDisabled,
         },
         {
-          label: t('Upload columnar file'),
+          label: t('Upload Columnar'),
           name: 'Upload columnar file',
-          url: '/columnartodatabaseview/form',
+          url: '#',
+          onClick: () => {
+            setColumnarUploadDataModalOpen(true);
+          },
           perm: canUploadColumnar && showUploads,
           disable: isDisabled,
         },
@@ -577,6 +582,7 @@ function DatabaseList({
         }}
         show={csvUploadDataModalOpen}
         allowedExtensions={CSV_EXTENSIONS}
+        type="csv"
       />
       <UploadDataModal
         addDangerToast={addDangerToast}
@@ -587,6 +593,16 @@ function DatabaseList({
         show={excelUploadDataModalOpen}
         allowedExtensions={EXCEL_EXTENSIONS}
         type="excel"
+      />
+      <UploadDataModal
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onHide={() => {
+          setColumnarUploadDataModalOpen(false);
+        }}
+        show={columnarUploadDataModalOpen}
+        allowedExtensions={COLUMNAR_EXTENSIONS}
+        type="columnar"
       />
       {databaseCurrentlyDeleting && (
         <DeleteModal

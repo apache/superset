@@ -31,7 +31,7 @@ import {
   useComponentDidMount,
   usePrevious,
 } from '@superset-ui/core';
-import { debounce, pick } from 'lodash';
+import { debounce, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';
@@ -715,8 +715,11 @@ function mapStateToProps(state) {
     user,
     saveModal,
   } = state;
-  const { controls, slice, datasource, metadata } = explore;
-  const form_data = getFormDataFromControls(controls);
+  const { controls, slice, datasource, metadata, hiddenFormData } = explore;
+  const form_data = omit(
+    getFormDataFromControls(controls),
+    Object.keys(hiddenFormData ?? {}),
+  );
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },

@@ -107,7 +107,7 @@ class Query(
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     status = Column(String(16), default=QueryStatus.PENDING)
     tab_name = Column(String(256))
-    sql_editor_id = Column(String(256))
+    sql_editor_id = Column(String(256), index=True)
     schema = Column(String(256))
     catalog = Column(String(256), nullable=True, default=None)
     sql = Column(MediumText())
@@ -514,6 +514,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
             "label": self.label,
             "active": self.active,
             "database_id": self.database_id,
+            "catalog": self.catalog,
             "schema": self.schema,
             "table_schemas": [ts.to_dict() for ts in self.table_schemas],
             "sql": self.sql,

@@ -109,6 +109,7 @@ export type DatabaseObject = {
   engine_information?: {
     supports_file_upload?: boolean;
     disable_ssh_tunneling?: boolean;
+    supports_dynamic_catalog?: boolean;
   };
 
   // SSH Tunnel information
@@ -202,6 +203,7 @@ export type DatabaseForm = {
   engine_information: {
     supports_file_upload: boolean;
     disable_ssh_tunneling: boolean;
+    supports_dynamic_catalog: boolean;
   };
 };
 
@@ -223,6 +225,7 @@ export interface ExtraJson {
   cost_estimate_enabled?: boolean; // in SQL Lab
   disable_data_preview?: boolean; // in SQL Lab
   disable_drill_to_detail?: boolean;
+  allow_multi_catalog?: boolean;
   engine_params?: {
     catalog?: Record<string, string>;
     connect_args?: {

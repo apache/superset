@@ -19,6 +19,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+from werkzeug.datastructures import FileStorage
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
 from superset.commands.database.uploaders.csv_reader import CSVReader, CSVReaderOptions
@@ -265,6 +266,23 @@ def test_csv_reader_file_to_dataframe(file, options, expected_cols, expected_val
     file.close()
 
 
+def test_csv_reader_index_column():
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(index_column="Name"),
+    )
+    df = csv_reader.file_to_dataframe(create_csv_file(CSV_DATA))
+    assert df.index.name == "Name"
+
+
+def test_csv_reader_wrong_index_column():
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(index_column="wrong"),
+    )
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_to_dataframe(create_csv_file(CSV_DATA))
+    assert str(ex.value) == "Parsing error: Index wrong invalid"
+
+
 def test_csv_reader_broken_file_no_columns():
     csv_reader = CSVReader(
         options=CSVReaderOptions(),
@@ -292,7 +310,9 @@ def test_csv_reader_invalid_file():
     )
     with pytest.raises(DatabaseUploadFailed) as ex:
         csv_reader.file_to_dataframe(
-            io.StringIO("c1,c2,c3\na,b,c\n1,2,3,4,5,6,7\n1,2,3")
+            FileStorage(
+                io.StringIO("c1,c2,c3\na,b,c\n1,2,3,4,5,6,7\n1,2,3"), filename=""
+            )
         )
     assert str(ex.value) == (
         "Parsing error: Error tokenizing data. C error:"
@@ -306,8 +326,48 @@ def test_csv_reader_invalid_encoding():
     )
     binary_data = b"col1,col2,col3\nv1,v2,\xba\nv3,v4,v5\n"
     with pytest.raises(DatabaseUploadFailed) as ex:
-        csv_reader.file_to_dataframe(io.BytesIO(binary_data))
+        csv_reader.file_to_dataframe(FileStorage(io.BytesIO(binary_data)))
     assert str(ex.value) == (
         "Parsing error: 'utf-8' codec can't decode byte 0xba in"
         " position 21: invalid start byte"
+    )
+
+
+def test_csv_reader_file_metadata():
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(),
+    )
+    file = create_csv_file(CSV_DATA)
+    metadata = csv_reader.file_metadata(file)
+    assert metadata == {
+        "items": [
+            {"column_names": ["Name", "Age", "City", "Birth"], "sheet_name": None}
+        ]
+    }
+    file.close()
+
+    file = create_csv_file(CSV_DATA, delimiter="|")
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(delimiter="|"),
+    )
+    metadata = csv_reader.file_metadata(file)
+    assert metadata == {
+        "items": [
+            {"column_names": ["Name", "Age", "City", "Birth"], "sheet_name": None}
+        ]
+    }
+    file.close()
+
+
+def test_csv_reader_file_metadata_invalid_file():
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(),
+    )
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        csv_reader.file_metadata(
+            FileStorage(io.StringIO("c1,c2,c3\na,b,c\n1,2,3,4,5,6,7\n1,2,3"))
+        )
+    assert str(ex.value) == (
+        "Parsing error: Error tokenizing data. C error:"
+        " Expected 3 fields in line 3, saw 7\n"
     )

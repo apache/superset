@@ -25,6 +25,7 @@ import {
   NumberFormats,
   ValueFormatter,
   getValueFormatter,
+  tooltipHtml,
 } from '@superset-ui/core';
 import { TreemapSeriesNodeItemOption } from 'echarts/types/src/chart/treemap/TreemapSeries';
 import { EChartsCoreOption, TreemapSeriesOption } from 'echarts';
@@ -96,14 +97,11 @@ export function formatTooltip({
       : 0;
     formattedPercent = percentFormatter(percent);
   }
-
-  // groupby1/groupby2/...
-  // metric: value (percent of parent)
-  return [
-    `<div>${treePath.join(' ▸ ')}</div>`,
-    `${metricLabel}: ${formattedValue}`,
-    formattedPercent ? ` (${formattedPercent})` : '',
-  ].join('');
+  const row = [metricLabel, formattedValue];
+  if (formattedPercent) {
+    row.push(formattedPercent);
+  }
+  return tooltipHtml([row], treePath.join(' ▸ '));
 }
 
 export default function transformProps(

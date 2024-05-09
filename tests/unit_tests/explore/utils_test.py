@@ -272,6 +272,7 @@ def test_query_no_access(mocker: MockFixture, client) -> None:
     from superset.models.sql_lab import Query
 
     database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
     database.get_default_schema_for_query.return_value = "public"
     mocker.patch(
         query_find_by_id,

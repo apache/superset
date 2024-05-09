@@ -111,6 +111,7 @@ class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
       queryId,
       dbid,
       dbname,
+      catalog,
       schema,
       autorun,
       new: isNewQuery,
@@ -149,6 +150,7 @@ class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
         const newQueryEditor = {
           name,
           dbId: databaseId,
+          catalog,
           schema,
           autorun,
           sql,
