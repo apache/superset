@@ -194,6 +194,7 @@ class TestDatabaseApi(SupersetTestCase):
             "allow_cvas",
             "allow_dml",
             "allow_file_upload",
+            "allow_multi_catalog",
             "allow_run_async",
             "allows_cost_estimate",
             "allows_subquery",
