@@ -214,7 +214,7 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
 
   render() {
     const { addedAnnotationIndex } = this.state;
-    const addedAnnotation = this.props.value[addedAnnotationIndex!];
+    const addedAnnotation = this.props.value[addedAnnotationIndex];
 
     const annotations = this.props.value.map((anno, i) => (
       <ControlPopover
