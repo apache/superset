@@ -3256,6 +3256,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": False,
                     },
                 },
@@ -3279,6 +3280,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": True,
                     },
                 },
@@ -3334,6 +3336,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                     },
                 },
@@ -3357,6 +3360,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "gsheets://",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": True,
                     },
                 },
@@ -3412,6 +3416,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                     },
                 },
@@ -3423,6 +3428,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                     },
                 },
@@ -3455,6 +3461,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                     },
                 },
@@ -3466,6 +3473,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                     },
                 },
