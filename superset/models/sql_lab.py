@@ -169,6 +169,7 @@ class Query(
             "limitingFactor": self.limiting_factor,
             "progress": self.progress,
             "rows": self.rows,
+            "catalog": self.catalog,
             "schema": self.schema,
             "ctas": self.select_as_cta,
             "serverId": self.id,
@@ -251,6 +252,7 @@ class Query(
             "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
+            "catalog": self.catalog,
             "schema": self.schema,
             "verbose_map": {},
         }
@@ -415,6 +417,7 @@ class SavedQuery(
 
     export_parent = "database"
     export_fields = [
+        "catalog",
         "schema",
         "label",
         "description",
@@ -557,6 +560,7 @@ class TableSchema(AuditMixinNullable, ExtraJSONMixin, Model):
             "id": self.id,
             "tab_state_id": self.tab_state_id,
             "database_id": self.database_id,
+            "catalog": self.catalog,
             "schema": self.schema,
             "table": self.table,
             "description": description,

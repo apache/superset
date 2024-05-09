@@ -286,6 +286,11 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         return None
 
     @property
+    def catalog(self) -> str | None:
+        """String representing the catalog of the Datasource (if it applies)"""
+        return None
+
+    @property
     def schema(self) -> str | None:
         """String representing the schema of the Datasource (if it applies)"""
         return None
@@ -330,6 +335,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "edit_url": self.url,
             "id": self.id,
             "uid": self.uid,
+            "catalog": self.catalog,
             "schema": self.schema or None,
             "name": self.name,
             "type": self.type,
@@ -384,6 +390,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "datasource_name": self.datasource_name,
             "table_name": self.datasource_name,
             "type": self.type,
+            "catalog": self.catalog,
             "schema": self.schema or None,
             "offset": self.offset,
             "cache_timeout": self.cache_timeout,
@@ -1135,7 +1142,9 @@ class SqlaTable(
     # The reason it does not physically exist is MySQL, PostgreSQL, etc. have a
     # different interpretation of uniqueness when it comes to NULL which is problematic
     # given the schema is optional.
-    __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
+    __table_args__ = (
+        UniqueConstraint("database_id", "catalog", "schema", "table_name"),
+    )
 
     table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
@@ -1166,6 +1175,7 @@ class SqlaTable(
         "database_id",
         "offset",
         "cache_timeout",
+        "catalog",
         "schema",
         "sql",
         "params",

@@ -61,6 +61,7 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
         "default_endpoint": None,
         "offset": -8,
         "cache_timeout": 3600,
+        "catalog": "public",
         "schema": "my_schema",
         "sql": None,
         "params": {
@@ -115,6 +116,7 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
     assert sqla_table.default_endpoint is None
     assert sqla_table.offset == -8
     assert sqla_table.cache_timeout == 3600
+    assert sqla_table.catalog == "public"
     assert sqla_table.schema == "my_schema"
     assert sqla_table.sql is None
     assert sqla_table.params == json.dumps(

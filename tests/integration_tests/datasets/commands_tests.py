@@ -95,6 +95,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
         assert metadata == {
             "cache_timeout": None,
+            "catalog": None,
             "columns": [
                 {
                     "column_name": "source",
@@ -224,6 +225,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "default_endpoint",
             "offset",
             "cache_timeout",
+            "catalog",
             "schema",
             "sql",
             "params",
