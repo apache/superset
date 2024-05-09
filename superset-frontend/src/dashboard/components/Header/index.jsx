@@ -26,7 +26,6 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   t,
-  getLabelsColorMap,
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
@@ -376,13 +375,6 @@ class Header extends React.PureComponent {
       dashboardInfo?.metadata?.color_namespace || colorNamespace;
     const currentColorScheme =
       dashboardInfo?.metadata?.color_scheme || colorScheme;
-    const currentLabelsColorMap = Object.fromEntries(
-      getLabelsColorMap().getColorMap(),
-    );
-    // an empty color scheme should not bring shared label colors forward
-    const labelsColorMap = currentColorScheme
-      ? currentLabelsColorMap
-      : {};
 
     const data = {
       certified_by: dashboardInfo.certified_by,
@@ -399,7 +391,6 @@ class Header extends React.PureComponent {
         color_scheme: currentColorScheme,
         positions,
         refresh_frequency: refreshFrequency,
-        shared_label_colors: labelsColorMap,
       },
     };
 

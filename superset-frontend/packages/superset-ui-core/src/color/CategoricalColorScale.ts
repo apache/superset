@@ -82,7 +82,7 @@ class CategoricalColorScale extends ExtensibleFunction {
   }
 
   /**
-   * Increments the color range with analogous colors
+   * Increment the color range with analogous colors
    */
   incrementColorRange() {
     const multiple = Math.floor(
@@ -102,14 +102,15 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   /**
    * Get the color for a given value
-   * @param value
-   * @param sliceId
-   * @returns the color for the given value
+   *
+   * @param value the value of a label to get the color for
+   * @param sliceId the ID of the current slice
+   * @returns the color or the next available color
    */
   getColor(value?: string, sliceId?: number): string {
     const cleanedValue = stringifyAndTrim(value);
-    const sharedColorMap = this.sharedColorMapInstance.getColorMap();
-    const sharedColor = sharedColorMap.get(cleanedValue);
+    const labelsColorMap = this.labelsColorMapInstance.getColorMap();
+    const sharedColor = labelsColorMap.get(cleanedValue);
     // priority: forced color (i.e. custom label colors) > shared color > scale color
     const forcedColor = this.forcedColors?.[cleanedValue] || sharedColor;
     const isExistingLabel = this.sliceMap.has(cleanedValue);
@@ -135,16 +136,17 @@ class CategoricalColorScale extends ExtensibleFunction {
 
     // store the value+color in the shared context
     if (sliceId) {
-      this.sharedColorMapInstance.addSlice(cleanedValue, color, sliceId);
+      this.labelsColorMapInstance.addSlice(cleanedValue, color, sliceId);
     }
 
     return color;
   }
 
   /**
+   * Verify if a color is used in this slice
    *
    * @param color
-   * @returns whether the color is used in this slice
+   * @returns true if the color is used in this slice
    */
   isColorUsed(color: string): boolean {
     return this.getColorUsageCount(color) > 0;
@@ -152,8 +154,9 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   /**
    * Get the count of the color usage in this slice
-   * @param sliceId
-   * @param color
+   *
+   * @param sliceId the ID of the current slice
+   * @param color the color to check
    * @returns the count of the color usage in this slice
    */
   getColorUsageCount(currentColor: string): number {
@@ -170,7 +173,7 @@ class CategoricalColorScale extends ExtensibleFunction {
    * Lower chances of color collision by returning the least used color
    * Checks across colors of current slice within LabelsColorMapSingleton
    *
-   * @param currentColor
+   * @param currentColor the current color
    * @returns the least used color that is not the excluded color
    */
   getNextAvailableColor(currentColor: string) {
@@ -206,6 +209,7 @@ class CategoricalColorScale extends ExtensibleFunction {
    *
    * @param {*} value value
    * @param {*} forcedColor forcedColor
+   * @returns {CategoricalColorScale}
    */
   setColor(value: string, forcedColor: string) {
     this.forcedColors[stringifyAndTrim(value)] = forcedColor;
@@ -214,6 +218,7 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   /**
    * Get a mapping of data values to colors
+   *
    * @returns an object where the key is the data value and the value is the hex color code
    */
   getColorMap() {
@@ -229,7 +234,10 @@ class CategoricalColorScale extends ExtensibleFunction {
   }
 
   /**
-   * Returns an exact copy of this scale. Changes to this scale will not affect the returned scale, and vice versa.
+   * Return an exact copy of this scale.
+   * Changes to this scale will not affect the returned scale and vice versa.
+   *
+   * @returns {CategoricalColorScale} A copy of this scale.
    */
   copy() {
     const copy = new CategoricalColorScale(

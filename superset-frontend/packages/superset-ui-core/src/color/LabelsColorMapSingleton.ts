@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import { CategoricalColorNamespace } from '.';
 import { makeSingleton } from '../utils';
 
 export enum LabelsColorMapSource {
   Dashboard,
   Explore,
 }
+
 export class LabelsColorMap {
   sliceLabelMap: Map<number, string[]>;
 
@@ -38,9 +38,7 @@ export class LabelsColorMap {
     this.source = LabelsColorMapSource.Dashboard;
   }
 
-  updateColorMap(colorNamespace?: string, colorScheme?: string) {
-    const categoricalNamespace =
-      CategoricalColorNamespace.getNamespace(colorNamespace);
+  updateColorMap(categoricalNamespace: any, colorScheme?: string) {
     const newColorMap = new Map();
     this.colorMap.clear();
     this.sliceLabelMap.forEach((labels, sliceId) => {
@@ -59,6 +57,7 @@ export class LabelsColorMap {
 
   addSlice(label: string, color: string, sliceId: number) {
     if (this.source !== LabelsColorMapSource.Dashboard) return;
+
     const labels = this.sliceLabelMap.get(sliceId) || [];
     if (!labels.includes(label)) {
       labels.push(label);

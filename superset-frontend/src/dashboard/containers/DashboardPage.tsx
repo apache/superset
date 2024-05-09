@@ -20,7 +20,6 @@ import React, { FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import {
-  CategoricalColorNamespace,
   getLabelsColorMap,
   LabelsColorMapSource,
   t,
@@ -60,6 +59,7 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
+import { resetLabelsColor } from '../util/colorScheme';
 
 export const DashboardPageIdContext = React.createContext('');
 
@@ -192,12 +192,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     labelsColorMap.source = LabelsColorMapSource.Dashboard;
 
     return () => {
-      // clean up label color
-      const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-        metadata?.color_namespace,
-      );
-      categoricalNamespace.resetColors();
-      labelsColorMap.clear();
+      resetLabelsColor(metadata?.color_namespace);
     };
   }, [metadata?.color_namespace]);
 

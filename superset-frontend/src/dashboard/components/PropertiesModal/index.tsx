@@ -25,12 +25,10 @@ import Button from 'src/components/Button';
 import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
 import rison from 'rison';
 import {
-  CategoricalColorNamespace,
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
   getCategoricalSchemeRegistry,
-  getLabelsColorMap,
   styled,
   SupersetClient,
   t,
@@ -51,6 +49,10 @@ import {
   OBJECT_TYPES,
 } from 'src/features/tags/tags';
 import { loadTags } from 'src/components/Tags/utils';
+import {
+  applyLabelsColor,
+  resetLabelsColor,
+} from 'src/dashboard/util/colorScheme';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -378,26 +380,12 @@ const PropertiesModal = ({
       delete metadata.color_scheme_domain;
     }
 
-    const labelsColorMap = getLabelsColorMap();
-    const categoricalNamespace =
-      CategoricalColorNamespace.getNamespace(colorNamespace);
-
-    // reset forced colors
-    categoricalNamespace.resetColors();
-
     if (currentColorScheme) {
-      // reset the shared label color map based on the current color scheme
-      labelsColorMap.updateColorMap(colorNamespace, currentColorScheme);
-      // store the shared label color map and domain in the metadata
-      metadata.shared_label_colors = Object.fromEntries(
-        labelsColorMap.getColorMap(),
-      );
-      metadata.color_scheme_domain =
-        categoricalSchemeRegistry.get(colorScheme)?.colors || [];
+      applyLabelsColor(metadata);
     } else {
-      labelsColorMap.clear();
       metadata.shared_label_colors = {};
       metadata.color_scheme_domain = [];
+      resetLabelsColor(metadata?.color_namespace);
     }
 
     currentJsonMetadata = jsonStringify(metadata);

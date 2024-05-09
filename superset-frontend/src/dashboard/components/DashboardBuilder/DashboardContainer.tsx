@@ -20,23 +20,12 @@
 // when its container size changes, due to e.g., builder side panel opening
 import React, { FC, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  Filter,
-  Filters,
-  getCategoricalSchemeRegistry,
-  SupersetClient,
-  useComponentDidUpdate,
-} from '@superset-ui/core';
+import { Filter, Filters } from '@superset-ui/core';
 import { ParentSize } from '@visx/responsive';
 import { pick } from 'lodash';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
-import {
-  DashboardInfo,
-  DashboardLayout,
-  LayoutItem,
-  RootState,
-} from 'src/dashboard/types';
+import { DashboardLayout, LayoutItem, RootState } from 'src/dashboard/types';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
@@ -44,9 +33,7 @@ import {
 import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
-import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
-import { setColorScheme, updateDashboardLabelsColor } from 'src/dashboard/actions/dashboardState';
-import jsonStringify from 'json-stringify-pretty-compact';
+import { updateDashboardLabelsColor } from 'src/dashboard/actions/dashboardState';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
 import { getRootLevelTabsComponent } from './utils';
@@ -76,9 +63,6 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
-  );
-  const dashboardInfo = useSelector<RootState, DashboardInfo>(
-    state => state.dashboardInfo,
   );
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
@@ -131,18 +115,23 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     dispatch(setInScopeStatusOfFilters(scopes));
   }, [nativeFilterScopes, dashboardLayout, dispatch]);
 
-  const verifyUpdateColorScheme = useCallback(() => {
-    dispatch(updateDashboardLabelsColor());
-  }, [dispatch]);
-
-  useComponentDidUpdate(verifyUpdateColorScheme);
-
   const childIds: string[] = topLevelTabs
     ? topLevelTabs.children
     : [DASHBOARD_GRID_ID];
   const min = Math.min(tabIndex, childIds.length - 1);
   const activeKey = min === 0 ? DASHBOARD_GRID_ID : min.toString();
   const TOP_OF_PAGE_RANGE = 220;
+
+  const verifyUpdateColorScheme = useCallback(() => {
+    // all charts must be loaded to get the final labelsColorMap
+    setTimeout(() => {
+      dispatch(updateDashboardLabelsColor());
+    }, 500);
+  }, [dispatch]);
+
+  useEffect(() => {
+    verifyUpdateColorScheme();
+  }, [directPathToChild, verifyUpdateColorScheme]);
 
   return (
     <div className="grid-container" data-test="grid-container">

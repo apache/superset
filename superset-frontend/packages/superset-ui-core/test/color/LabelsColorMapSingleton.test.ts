@@ -22,7 +22,6 @@ import {
   FeatureFlag,
   getCategoricalSchemeRegistry,
   getLabelsColorMap,
-  LabelsColorMap,
   LabelsColorMapSource,
 } from '@superset-ui/core';
 

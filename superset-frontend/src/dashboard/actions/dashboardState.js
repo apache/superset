@@ -27,6 +27,7 @@ import {
   SupersetClient,
   t,
   getClientErrorObject,
+  getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
 import {
   addChart,
@@ -64,7 +65,12 @@ import { fetchDatasourceMetadata } from './datasources';
 import { updateDirectPathToFilter } from './dashboardFilters';
 import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
 import getOverwriteItems from '../util/getOverwriteItems';
-import { isEqual } from 'lodash';
+import {
+  applyLabelsColor,
+  getFreshColorSchemeMetadata,
+  isLabelsColorMapSynced,
+  resetLabelsColor,
+} from '../util/colorScheme';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -657,90 +663,67 @@ export function setDatasetsStatus(status) {
   };
 }
 
+const updateDashboardMetadata = async (id, metadata, dispatch) => {
+  await SupersetClient.put({
+    endpoint: `/api/v1/dashboard/${id}`,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ json_metadata: JSON.stringify(metadata) }),
+  });
+  dispatch(dashboardInfoChanged({ metadata }));
+};
+
 export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
-  const { dashboardInfo } = getState();
-  const currentMetadata = dashboardInfo.metadata;
-  if (currentMetadata?.color_scheme) {
-    const metadata = { ...currentMetadata };
-    const colorScheme = metadata?.color_scheme;
-    const colorSchemeDomain = metadata?.color_scheme_domain || [];
-    const categoricalSchemes = getCategoricalSchemeRegistry();
-    const registryColorScheme =
-      categoricalSchemes.get(colorScheme, true) || undefined;
-    const registryColorSchemeDomain = registryColorScheme?.colors || [];
-    const defaultColorScheme = categoricalSchemes.defaultKey;
-    const colorSchemeExists = !!registryColorScheme;
+  const {
+    dashboardInfo: { id, metadata },
+  } = getState();
+  const categoricalSchemes = getCategoricalSchemeRegistry();
+  const colorSchemeRegistry = categoricalSchemes.get(
+    metadata?.color_scheme,
+    true,
+  );
+  const defaultScheme = categoricalSchemes.defaultKey;
+  const fallbackScheme = defaultScheme?.toString() || 'supersetColors';
+  const registryDomain = colorSchemeRegistry?.colors || [];
+  const colorSchemeDomain = metadata?.color_scheme_domain || [];
 
-    const updateDashboardData = () => {
-      SupersetClient.put({
-        endpoint: `/api/v1/dashboard/${dashboardInfo.id}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          json_metadata: jsonStringify(metadata),
-        }),
-      }).catch(e => console.log(e));
-    };
-    const updateColorScheme = (scheme) => {
-      dispatch(setColorScheme(scheme));
-    };
-    const updateDashboard = () => {
-      dispatch(
-        dashboardInfoChanged({
-          metadata,
-        }),
-      );
-      updateDashboardData();
-    };
-    // selected color scheme does not exist anymore
-    // must fallback to the available default one
-    if (!colorSchemeExists) {
-      const updatedScheme =
-        defaultColorScheme?.toString() || 'supersetColors';
-      metadata.color_scheme = updatedScheme;
-      metadata.color_scheme_domain =
-        categoricalSchemes.get(defaultColorScheme)?.colors || [];
+  let updatedMetadata = { ...metadata };
+  let updatedScheme = metadata?.color_scheme;
 
-      // reset shared_label_colors
-      // TODO: Requires regenerating the shared_label_colors after
-      // fixing a bug which affects their generation on dashboards with tabs
-      metadata.shared_label_colors = {};
-
-      updateColorScheme(updatedScheme);
-      updateDashboard();
-    } else {
-      const currentLabelsColorMap = Object.fromEntries(
-        getLabelsColorMap().getColorMap(),
-      );
-      const labelsColorMap = metadata?.shared_label_colors || {};
-
-      // if this dashboard does not have a color_scheme_domain saved
-      // must create one and store it for the first time
-      if (colorSchemeExists && !colorSchemeDomain.length) {
-        metadata.color_scheme_domain = registryColorSchemeDomain;
-        updateDashboard();
+  try {
+    // Color scheme is not set, clean up
+    if (!metadata?.color_scheme) {
+      if (metadata?.shared_label_colors || metadata?.color_scheme_domain) {
+        updatedMetadata.shared_label_colors = {};
+        updatedMetadata.color_scheme_domain = [];
+        resetLabelsColor(metadata?.color_namespace);
+        await updateDashboardMetadata(id, updatedMetadata, dispatch);
       }
-
-      // if the color_scheme_domain is not the same as the registry domain
-      // must update the existing color_scheme_domain
-      if (
-        colorSchemeExists &&
-        colorSchemeDomain.length &&
-        registryColorSchemeDomain.toString() !== colorSchemeDomain.toString()
-      ) {
-        metadata.color_scheme_domain = registryColorSchemeDomain;
-
-        updateColorScheme(colorScheme);
-        updateDashboard();
-      }
-
-      // colors map has changed
-      if (
-        colorScheme &&
-        !isEqual(labelsColorMap, currentLabelsColorMap)
-      ) {
-        metadata.shared_label_colors = currentLabelsColorMap;
-        updateDashboard();
-      }
+      return;
     }
+
+    // Color scheme does not exist anymore, fallback to default
+    if (!colorSchemeRegistry) {
+      updatedScheme = fallbackScheme;
+      dispatch(setColorScheme(updatedScheme));
+    }
+
+    if (
+      !colorSchemeRegistry ||
+      colorSchemeDomain.toString() !== registryDomain.toString() ||
+      !isLabelsColorMapSynced(metadata?.shared_label_colors || {})
+    ) {
+      // apply colors first to get fresh color metadata
+      applyLabelsColor(updatedMetadata);
+      updatedMetadata = {
+        ...updatedMetadata,
+        ...getFreshColorSchemeMetadata(
+          updatedScheme,
+          metadata?.color_namespace,
+        ),
+      };
+      await updateDashboardMetadata(id, updatedMetadata, dispatch);
+    }
+  } catch (error) {
+    console.error('Failed to update dashboard color settings:', error);
   }
 };
