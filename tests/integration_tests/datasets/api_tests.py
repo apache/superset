@@ -368,8 +368,8 @@ class TestDatasetApi(SupersetTestCase):
         expected_result = {
             "cache_timeout": None,
             "database": {
-                "backend": main_db.backend,
                 "allow_multi_catalog": False,
+                "backend": main_db.backend,
                 "database_name": "examples",
                 "id": 1,
             },
