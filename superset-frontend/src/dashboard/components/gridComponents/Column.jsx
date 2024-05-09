@@ -271,58 +271,41 @@ class Column extends React.PureComponent {
                 ) : (
                   columnItems.map((componentId, itemIndex) => (
                     <React.Fragment key={componentId}>
-                      <ResizableContainer
-                        id={columnComponent.id}
-                        adjustableWidth
-                        adjustableHeight={false}
-                        widthStep={columnWidth}
-                        widthMultiple={columnComponent.meta.width}
-                        minWidthMultiple={minColumnWidth}
-                        maxWidthMultiple={
-                          availableColumnCount +
-                          (columnComponent.meta.width || 0)
-                        }
+                      <DashboardComponent
+                        id={componentId}
+                        parentId={columnComponent.id}
+                        depth={depth + 1}
+                        index={itemIndex}
+                        availableColumnCount={columnComponent.meta.width}
+                        columnWidth={columnWidth}
                         onResizeStart={onResizeStart}
                         onResize={onResize}
                         onResizeStop={onResizeStop}
-                        editMode={editMode}
-                      >
-                        <DashboardComponent
-                          id={componentId}
-                          parentId={columnComponent.id}
-                          depth={depth + 1}
-                          index={itemIndex}
-                          availableColumnCount={columnComponent.meta.width}
-                          columnWidth={columnWidth}
-                          onResizeStart={onResizeStart}
-                          onResize={onResize}
-                          onResizeStop={onResizeStop}
-                          isComponentVisible={isComponentVisible}
-                          onChangeTab={onChangeTab}
-                        />
-                        {editMode && (
-                          <Droppable
-                            component={columnItems}
-                            parentComponent={columnComponent}
-                            depth={depth}
-                            index={itemIndex + 1}
-                            orientation="column"
-                            onDrop={handleComponentDrop}
-                            className={cx(
-                              'empty-droptarget',
-                              itemIndex === columnItems.length - 1 &&
-                                'droptarget-edge',
-                            )}
-                            editMode
-                          >
-                            {({ dropIndicatorProps }) =>
-                              dropIndicatorProps && (
-                                <div {...dropIndicatorProps} />
-                              )
-                            }
-                          </Droppable>
-                        )}
-                      </ResizableContainer>
+                        isComponentVisible={isComponentVisible}
+                        onChangeTab={onChangeTab}
+                      />
+                      {editMode && (
+                        <Droppable
+                          component={columnItems}
+                          parentComponent={columnComponent}
+                          depth={depth}
+                          index={itemIndex + 1}
+                          orientation="column"
+                          onDrop={handleComponentDrop}
+                          className={cx(
+                            'empty-droptarget',
+                            itemIndex === columnItems.length - 1 &&
+                              'droptarget-edge-last',
+                          )}
+                          editMode
+                        >
+                          {({ dropIndicatorProps }) =>
+                            dropIndicatorProps && (
+                              <div {...dropIndicatorProps} />
+                            )
+                          }
+                        </Droppable>
+                      )}
                     </React.Fragment>
                   ))
                 )}
