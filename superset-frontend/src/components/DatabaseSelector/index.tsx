@@ -278,7 +278,7 @@ export default function DatabaseSelector({
     isFetching: loadingCatalogs,
     refetch: refetchCatalogs,
   } = useCatalogs({
-    dbId: currentDb?.value,
+    dbId: showCatalogSelector ? currentDb?.value : undefined,
     onSuccess: (catalogs, isFetched) => {
       if (catalogs.length === 1) {
         changeCatalog(catalogs[0]);
