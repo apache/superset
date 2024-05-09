@@ -31,6 +31,7 @@ import {
   styled,
   t,
   SupersetError,
+  SqlaFormData,
 } from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
@@ -42,6 +43,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { isCurrentUserBot } from 'src/utils/isBot';
 import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import { Dispatch } from 'redux';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
@@ -92,8 +94,8 @@ const propTypes = {
 };
 =======
 export interface ChartProps {
-  annotationData?: object;
-  actions: any;
+  annotationData?: Object;
+  actions: Actions;
   chartId: string;
   datasource?: {
     database?: {
@@ -136,6 +138,33 @@ export type QueryResponse = {
   errors: SupersetError[];
   message: string;
   link: string;
+};
+
+export type Actions = {
+  logEvent(
+    LOG_ACTIONS_RENDER_CHART: string,
+    arg1: {
+      slice_id: string;
+      has_err: boolean;
+      error_details: string;
+      start_offset: any;
+      ts: number;
+      duration: number;
+    },
+  ): Dispatch;
+  chartRenderingFailed(
+    arg0: string,
+    chartId: string,
+    arg2: string | null,
+  ): Dispatch;
+  postChartFormData(
+    formData: SqlaFormData,
+    arg1: boolean,
+    timeout: number | undefined,
+    chartId: string,
+    dashboardId: number | undefined,
+    ownState: boolean,
+  ): Dispatch;
 };
 const BLANK = {};
 const NONEXISTENT_DATASET = t(
