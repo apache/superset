@@ -161,7 +161,7 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
 
   renderPopover = (
     popoverKey: number | string,
-    annotation: Annotation,
+    annotation: Annotation | undefined,
     error: string,
   ) => {
     const id = annotation?.name || '_new';
