@@ -217,24 +217,23 @@ class IkiDynamicMarkdown extends React.PureComponent {
           if (
             messageObject.info === 'widget-to-superset/dynamic-markdown-setup'
           ) {
-            widgetUrlQuery = new URLSearchParams(widgetUrl);
-            widgetUrlQuery.set(
-              'mode',
-              this.state.editorMode ? 'edit' : 'preview',
-            );
-            widgetUrlQuery.set('parent', 'superset');
-            widgetUrlQuery.set('project_id', messageData.projectId);
-            widgetUrlQuery.set('component_id', messageData.componentId);
-            widgetUrl.search = widgetUrlQuery.toString();
-            const tempIframe = `<iframe
-                                id="ikiinteractiveforecast-widget-${this.props.component.id}"
-                                name="ikiinteractiveforecast"
-                                src="${widgetUrl}"
-                                title="Hero Section Component"
-                                className="ikirunpipeline-widget"
-                                style="min-height: 100%;"
-                            />`;
-            this.handleIkiRunPipelineChange(tempIframe, true);
+            if (messageData.scid === this.props.component.id) {
+              widgetUrlQuery = new URLSearchParams(widgetUrl);
+              widgetUrlQuery.set('mode', 'preview');
+              widgetUrlQuery.set('parent', 'superset');
+              widgetUrlQuery.set('project_id', messageData.projectId);
+              widgetUrlQuery.set('component_id', messageData.componentId);
+              widgetUrl.search = widgetUrlQuery.toString();
+              const tempIframe = `<iframe
+                                  id="ikiinteractiveforecast-widget-${this.props.component.id}"
+                                  name="ikiinteractiveforecast"
+                                  src="${widgetUrl}"
+                                  title="Hero Section Component"
+                                  className="ikirunpipeline-widget"
+                                  style="min-height: 100%;"
+                              />`;
+              this.handleIkiRunPipelineChange(tempIframe, true);
+            }
           } else if (
             messageObject.info === 'widget-to-superset/get-superset-charts-list'
           ) {
@@ -359,31 +358,11 @@ class IkiDynamicMarkdown extends React.PureComponent {
       ...this.state,
       editorMode: mode,
     };
-    // if (mode === 'preview') {
-    //   this.updateMarkdownContent();
-    //   nextState.hasError = false;
-    // }
 
     this.setState(nextState);
-
     let widgetUrl;
-
-    if (
-      document.getElementById(
-        `ikidynamicmarkdown-widget-${this.props.component.id}`,
-      )
-    ) {
-      widgetUrl = new URL(
-        document.getElementById(
-          `ikidynamicmarkdown-widget-${this.props.component.id}`,
-        ).src,
-      );
-    } else {
-      widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
-    }
-
     const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
-    widgetUrlQuery.set('mode', mode);
+    // widgetUrlQuery.set('mode', mode);
     widgetUrl.search = widgetUrlQuery.toString();
     const tempIframe = `<iframe
                       id="ikidynamicmarkdown-widget-${this.props.component.id}"
@@ -444,10 +423,11 @@ class IkiDynamicMarkdown extends React.PureComponent {
         iframeWrapper.innerHTML = markdownSource;
         const iframeHtml = iframeWrapper.firstChild;
         const iframeSrcUrl = new URL(iframeHtml.src);
-        iframeSrcUrl.searchParams.set('mode', editMode ? 'edit' : 'preview');
+        // iframeSrcUrl.searchParams.set('mode', editMode ? 'edit' : 'preview');
+        iframeSrcUrl.searchParams.set('scid', this.props.component.id);
         iframeSrc = ikigaiOrigin + iframeSrcUrl.pathname + iframeSrcUrl.search;
       } else {
-        iframeSrc = `${ikigaiOrigin}/widget/custom?mode=edit&parent=superset`;
+        iframeSrc = `${ikigaiOrigin}/widget/custom?mode=edit&parent=superset&scid=${this.props.component.id}`;
       }
       iframe = `<iframe
                   id="ikidynamicmarkdown-widget-${this.props.component.id}"
