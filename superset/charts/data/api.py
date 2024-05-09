@@ -228,7 +228,6 @@ class ChartDataRestApi(ChartRestApi):
         json_body = None
         if request.is_json:
             json_body = request.json
-            print("============json_body========", json_body)
         elif request.form.get("form_data"):
             # CSV export submits regular form data
             with contextlib.suppress(TypeError, json.JSONDecodeError):
@@ -356,7 +355,7 @@ class ChartDataRestApi(ChartRestApi):
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
 
-        print("======result and form_data in _send_chart_response=====", str(result), str(form_data))
+        # print("======result and form_data in _send_chart_response=====", str(result), str(form_data))
         # Post-process the data so it matches the data presented in the chart.
         # This is needed for sending reports based on text charts that do the
         # post-processing of data, eg, the pivot table.
