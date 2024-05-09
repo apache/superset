@@ -148,8 +148,8 @@
       "A reference to the [Time] configuration, taking granularity into account": [
         "Una referencia a la configuración [Tiempo], teniendo en cuenta la granularidad."
       ],
-      "A reusable dataset will be saved with your chart.": [""],
-      "A screenshot of the dashboard will be sent to your email at": [""],
+      "A reusable dataset will be saved with your chart.": ["Se guardará un conjunto de datos reutilizable con su gráfico."],
+      "A screenshot of the dashboard will be sent to your email at": ["Se le enviará una captura de pantalla del cuadro de mandos a su dirección de correo electrónico"],
       "A set of parameters that become available in the query using Jinja templating syntax": [
         ""
       ],
@@ -285,9 +285,9 @@
       "Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).": [
         ""
       ],
-      "Allow columns to be rearranged": [""],
-      "Allow creation of new tables based on queries": [""],
-      "Allow creation of new views based on queries": [""],
+      "Allow columns to be rearranged": ["Permitir la reordenación de columnas"],
+      "Allow creation of new tables based on queries": ["Permitir la creación de nuevas tablas basadas en consultas"],
+      "Allow creation of new views based on queries": ["Permitir la creación de nuevas vistas basadas en consultas"],
       "Allow data manipulation language": ["Permitir manipulación de datos"],
       "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.": [
         ""
@@ -296,8 +296,8 @@
         ""
       ],
       "Allow sending multiple polygons as a filter event": [""],
-      "Allow this database to be explored": [""],
-      "Allow this database to be queried in SQL Lab": [""],
+      "Allow this database to be explored": ["Permitir la exploración de esta base de datos"],
+      "Allow this database to be queried in SQL Lab": ["Permitir la consulta de esta base de datos en SQL Lab"],
       "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab": [
         "Permitir que los usuarios ejecuten instrucciones que no sean SELECT (UPDATE, DELETE, CREATE, ...) en el laboratorio SQL"
       ],
@@ -490,13 +490,13 @@
       "Async Execution": ["Ejecución Asincrónica"],
       "Asynchronous query execution": ["Ejecución asíncrona de consultas"],
       "August": ["Agosto"],
-      "Auto Zoom": [""],
+      "Auto Zoom": ["Zoom automático"],
       "Autocomplete filters": ["Autocompletar filtros"],
       "Autocomplete query predicate": ["Autocompletar predicado de consulta"],
-      "Automatic Color": [""],
-      "Available sorting modes:": [""],
-      "BOOLEAN": [""],
-      "Back": [""],
+      "Automatic Color": ["Color automático"],
+      "Available sorting modes:": ["Modos de clasificación disponibles:"],
+      "BOOLEAN": ["BOOLEAN"],
+      "Back": ["Volver"],
       "Back to all": [""],
       "Backend": ["Backend"],
       "Bad spatial key": ["Clave espacial errónea"],
@@ -596,13 +596,13 @@
       ],
       "Cancel": ["Cancelar"],
       "Cancel query on window unload event": [""],
-      "Cannot access the query": [""],
+      "Cannot access the query": ["No se puede acceder a la consulta"],
       "Cannot have multiple credentials for the SSH Tunnel": [""],
       "Cannot parse time string [%(human_readable)s]": [""],
       "Categorical": [""],
       "Categories to group by on the x-axis.": [""],
-      "Category": [""],
-      "Category and Percentage": [""],
+      "Category": ["Categoría"],
+      "Category and Percentage": ["Categoría y porcentaje"],
       "Category of target nodes": [""],
       "Category, Value and Percentage": [""],
       "Cell Padding": [""],
@@ -1183,7 +1183,7 @@
       "Distribution - Bar Chart": ["Distribución - Gráfico de Barra"],
       "Divider": ["División"],
       "Do you want a donut or a pie?": [""],
-      "Domain": [""],
+      "Domain": ["Dominio"],
       "Download as image": ["Descargar como imagen"],
       "Download to CSV": [""],
       "Draft": ["Borrador"],
@@ -1282,13 +1282,13 @@
       ],
       "Either the username or the password is wrong.": [""],
       "Email reports active": [""],
-      "Embed code": [""],
+      "Embed code": ["Incrustar código"],
       "Embedding deactivated.": [""],
-      "Emphasis": [""],
-      "Employment and education": [""],
-      "Empty circle": [""],
+      "Emphasis": ["Énfasis"],
+      "Employment and education": ["Empleo y educación"],
+      "Empty circle": ["Círculo vacío"],
       "Empty query?": ["¿Consulta vacía?"],
-      "Empty row": [""],
+      "Empty row": ["Fila vacía"],
       "Enable 'Allow file uploads to database' in any database's settings": [
         ""
       ],
