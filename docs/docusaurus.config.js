@@ -116,8 +116,8 @@ const config = {
             from: '/docs/installation/alerts-reports',
           },
           {
-            to: 'docs/contributing/development',
-            from: 'docs/contributing/hooks-and-linting',
+            to: '/docs/contributing/development',
+            from: '/docs/contributing/hooks-and-linting',
           },
           {
             to: '/docs/intro',
