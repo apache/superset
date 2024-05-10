@@ -1,0 +1,63 @@
+name: 'Linkinator'
+author: 'Justin Beckwith'
+description: 'A GitHub Action that checks your README and other markdown for 404s.'
+branding:
+  icon: 'link'
+  color: 'purple'
+inputs:
+  paths:
+    description: 'Paths to scan for 404s. Defaults to *.md.'
+    default: '*.md'
+    required: false
+  concurrency:
+    description: 'The number of connections to make simultaneously.'
+    default: '100'
+    required: false
+  recurse:
+    description: 'Recursively follow links on the same root domain.'
+    default: 'false'
+    required: false
+  linksToSkip:
+    description: 'List of urls in regexy form to not include in the check.'
+    required: false
+  skip:
+    description: 'List of urls in regexy form to not include in the check.'
+    required: false
+  timeout:
+    description: 'Request timeout in ms.  Defaults to 0 (no timeout).'
+    default: '0'
+    required: false
+  markdown:
+    description: 'Automatically parse and scan markdown if scanning from a location on disk.'
+    default: 'true'
+    required: false
+  serverRoot:
+    description: 'When scanning a locally directory, customize the location on disk where the server is started.'
+    required: false
+  directoryListing:
+    description: 'Include an automatic directory index file when linking to a directory.'
+    default: 'false'
+    required: false
+  retry:
+    description: 'Automatically retry requests that return HTTP 429 responses and include a "retry-after" header.'
+    default: 'false'
+    required: false
+  verbosity:
+    description: 'Override the default verbosity for this command. Available options are "DEBUG", "INFO", "WARNING", "ERROR", and "NONE".  Defaults to "WARNING".'
+    default: 'WARNING'
+    required: false
+  config:
+    description: Path to a config file to use. Looks for `linkinator.config.json` by default. Options defined via the GitHub Action config will take precedence.
+    required: false
+  urlRewriteSearch:
+    description: Pattern to search for in urls.  Must be used with `urlRewriteReplace`.
+    required: false
+  urlRewriteReplace:
+    description: Expression used to replace search content.  Must be used with `urlRewriteSearch`.
+    required: false
+outputs:
+  results:
+    description: 'The full results of the scan.'
+runs:
+  using: 'node16'
+  main: 'dist/index.js'

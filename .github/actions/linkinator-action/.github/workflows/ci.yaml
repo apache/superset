@@ -1,0 +1,60 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+name: ci
+jobs:
+  linkinator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          skip: "CHANGELOG.md"
+      - uses: ./
+        with:
+          paths: test/fixtures/test.md
+          concurrency: 1
+          markdown: true
+          linksToSkip: "http://fake.local, http://fake.local/fake"
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm test
+      - uses: codecov/codecov-action@v4
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run lint
+  ncc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{github.event.pull_request.head.ref}}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
+          token: ${{ secrets.BECKWITH_ROBOT_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build
+      - name: git config
+        run: |
+          git config user.name BeckwithRobot
+          git config user.email justin.beckwith+beckwithrobot@gmail.com
+      - name: git push
+        run: |
+          git commit -a -m 'npm run build' || echo 'no changes'
+          git push

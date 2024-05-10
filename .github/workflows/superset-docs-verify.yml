@@ -16,9 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: JustinBeckwith/linkinator-action@v1
+      - uses: ./.github/actions/linkinator-action
         with:
-          paths: "*.md, *.mdx"
+            paths: "*.md, *.mdx"
   build-deploy:
     name: Build & Deploy
     runs-on: ubuntu-22.04
