@@ -1,0 +1,4 @@
+{
+  "check-leaks": true,
+  "throw-deprecation": true
+}
