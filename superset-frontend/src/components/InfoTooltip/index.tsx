@@ -83,11 +83,7 @@ export default function InfoTooltip({
       overlayStyle={overlayStyle}
       color={bgColor}
     >
-      <Icons.InfoSolidSmall
-        className="info-solid-small"
-        viewBox={viewBox}
-        iconSize="m"
-      />
+      <Icons.InfoSolidSmall className="info-solid-small" viewBox={viewBox} />
     </StyledTooltip>
   );
 }
