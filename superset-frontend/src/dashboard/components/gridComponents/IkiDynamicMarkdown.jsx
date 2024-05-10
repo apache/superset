@@ -490,7 +490,9 @@ class IkiDynamicMarkdown extends React.PureComponent {
             <div
               data-test="dashboard-markdown-editor"
               className={cx(
-                'dashboard-component',
+                this.state.markdownSource === undefined
+                  ? 'dashboard-component-ikirunpipeline'
+                  : 'dashboard-component',
                 isEditing && 'dashboard-component--editing',
               )}
               id={component.id}
