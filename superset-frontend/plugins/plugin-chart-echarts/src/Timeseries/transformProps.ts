@@ -47,7 +47,7 @@ import {
   isDerivedSeries,
 } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
-import { ZRLineType } from 'echarts/types/src/util/types';
+import { LineStyleOption } from 'echarts/types/src/util/types';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
@@ -273,10 +273,16 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
+  let offsetLineWidth = 1;
+
   rawSeries.forEach(entry => {
-    const lineStyle = isDerivedSeries(entry, chartProps.rawFormData)
-      ? { type: 'dashed' as ZRLineType }
-      : {};
+    const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
+    const lineStyle: LineStyleOption = {};
+    if (derivedSeries) {
+      lineStyle.type = 'dashed';
+      lineStyle.width = offsetLineWidth;
+      offsetLineWidth += 1;
+    }
 
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
@@ -288,6 +294,7 @@ export default function transformProps(
       colorScaleKey,
       {
         area,
+        connectNulls: derivedSeries,
         filterState,
         seriesContexts,
         markerEnabled,
