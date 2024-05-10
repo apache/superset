@@ -118,6 +118,7 @@ const config = {
           {
             to: 'docs/contributing/development',
             from: 'docs/contributing/hooks-and-linting',
+          },
           {
             to: '/docs/intro',
             from: '/docs/roadmap',
