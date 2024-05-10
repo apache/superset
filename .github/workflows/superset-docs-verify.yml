@@ -15,7 +15,7 @@ jobs:
   linkinator:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: JustinBeckwith/linkinator-action@v1
         with:
           paths: "*.md, *.mdx"
