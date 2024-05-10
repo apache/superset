@@ -302,7 +302,7 @@ test('Drill to detail modal is under featureflag', () => {
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should show "Drill to detail"', () => {
+test('Should show "Drill to detail" with `can_explore` & `can_samples` perms', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -317,7 +317,43 @@ test('Should show "Drill to detail"', () => {
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Should not show "Drill to detail"', () => {
+test('Should show "Drill to detail" with `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_drill', 'Dashboard'],
+    ],
+  });
+  expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
+
+test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: true,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_drill', 'Dashboard'],
+    ],
+  });
+  expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with neither of required perms', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -328,6 +364,21 @@ test('Should not show "Drill to detail"', () => {
   props.slice.slice_id = 18;
   renderWrapper(props, {
     Admin: [['invalid_permission', 'Dashboard']],
+  });
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" only `can_dril` perm', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_drill', 'Dashboard']],
   });
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });

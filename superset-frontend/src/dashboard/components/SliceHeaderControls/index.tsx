@@ -557,7 +557,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
   const canDatasourceSamples = useSelector((state: RootState) =>
     findPermission('can_samples', 'Datasource', state.user?.roles),
   );
-  const canDrillToDetail = canExplore && canDatasourceSamples;
+  const canDrill = useSelector((state: RootState) =>
+    findPermission('can_drill', 'Dashboard', state.user?.roles),
+  );
+  const canDrillToDetail = (canExplore || canDrill) && canDatasourceSamples;
   const canViewQuery = useSelector((state: RootState) =>
     findPermission('can_view_query', 'Dashboard', state.user?.roles),
   );
