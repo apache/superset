@@ -12,6 +12,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  linkinator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: JustinBeckwith/linkinator-action@v1
   build-deploy:
     name: Build & Deploy
     runs-on: ubuntu-22.04
