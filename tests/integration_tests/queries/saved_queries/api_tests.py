@@ -517,6 +517,7 @@ class TestSavedQueryApi(SupersetTestCase):
 
         expected_result = {
             "id": saved_query.id,
+            "catalog": None,
             "database": {"id": saved_query.database.id, "database_name": "examples"},
             "description": "cool description",
             "changed_by": None,

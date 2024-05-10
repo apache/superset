@@ -146,7 +146,9 @@ export function useKeywords(
 
   const insertMatch = useEffectEvent((editor: Editor, data: any) => {
     if (data.meta === 'table') {
-      dispatch(addTable({ id: queryEditorId, dbId }, data.value, schema));
+      dispatch(
+        addTable({ id: queryEditorId, dbId }, data.value, catalog, schema),
+      );
     }
 
     let { caption } = data;

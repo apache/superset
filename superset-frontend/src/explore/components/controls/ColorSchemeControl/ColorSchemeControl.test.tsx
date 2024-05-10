@@ -17,23 +17,37 @@
  * under the License.
  */
 import React from 'react';
+import {
+  CategoricalD3,
+  CategoricalModernSunset,
+  CategoricalScheme,
+  ColorSchemeGroup,
+  getCategoricalSchemeRegistry,
+} from '@superset-ui/core';
+import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import ColorSchemeControl, { ColorSchemes } from '.';
 
-const defaultProps = {
+const defaultProps = () => ({
   hasCustomLabelColors: false,
   label: 'Color scheme',
   labelMargin: 0,
   name: 'color',
   value: 'supersetDefault',
   clearable: true,
-  choices: [],
-  schemes: () => ({}) as ColorSchemes,
+  choices: getCategoricalSchemeRegistry()
+    .keys()
+    .map(s => [s, s]),
+  schemes: getCategoricalSchemeRegistry().getMap() as ColorSchemes,
   isLinear: false,
-};
+});
+
+afterAll(() => {
+  getCategoricalSchemeRegistry().clear();
+});
 
 const setup = (overrides?: Record<string, any>) =>
-  render(<ColorSchemeControl {...defaultProps} {...overrides} />);
+  render(<ColorSchemeControl {...defaultProps()} {...overrides} />);
 
 test('should render', async () => {
   const { container } = setup();
@@ -56,7 +70,6 @@ test('should not display an alert icon if hasCustomLabelColors=false', async () 
 
 test('should display an alert icon if hasCustomLabelColors=true', async () => {
   const hasCustomLabelColorsProps = {
-    ...defaultProps,
     hasCustomLabelColors: true,
   };
   setup(hasCustomLabelColorsProps);
@@ -64,5 +77,53 @@ test('should display an alert icon if hasCustomLabelColors=true', async () => {
     expect(
       screen.getByRole('img', { name: 'alert-solid' }),
     ).toBeInTheDocument();
+  });
+});
+
+test('displays color scheme options when only "other" group is registered', async () => {
+  [...CategoricalD3].forEach(scheme =>
+    getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
+  );
+  setup();
+  userEvent.click(
+    screen.getByLabelText('Select color scheme', { selector: 'input' }),
+  );
+  await waitFor(() => {
+    expect(screen.getByText('D3 Category 10')).toBeInTheDocument();
+    expect(screen.getByText('D3 Category 20')).toBeInTheDocument();
+    expect(screen.getByText('D3 Category 20b')).toBeInTheDocument();
+  });
+  expect(screen.queryByText('Other color palettes')).not.toBeInTheDocument();
+  expect(screen.queryByText('Featured color palettes')).not.toBeInTheDocument();
+  expect(screen.queryByText('Custom color palettes')).not.toBeInTheDocument();
+});
+
+test('displays color scheme options', async () => {
+  [
+    ...CategoricalD3,
+    ...CategoricalModernSunset,
+    {
+      id: 'customScheme',
+      label: 'Custom scheme',
+      group: ColorSchemeGroup.Custom,
+      colors: ['#0080F6', '#254081'],
+    } as CategoricalScheme,
+  ].forEach(scheme =>
+    getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
+  );
+  setup();
+  userEvent.click(
+    screen.getByLabelText('Select color scheme', { selector: 'input' }),
+  );
+  await waitFor(() => {
+    expect(screen.getByText('D3 Category 10')).toBeInTheDocument();
+    expect(screen.getByText('D3 Category 20')).toBeInTheDocument();
+    expect(screen.getByText('D3 Category 20b')).toBeInTheDocument();
+    expect(screen.getByText('Modern sunset')).toBeInTheDocument();
+    expect(screen.getByText('Custom scheme')).toBeInTheDocument();
+
+    expect(screen.getByText('Custom color palettes')).toBeInTheDocument();
+    expect(screen.getByText('Featured color palettes')).toBeInTheDocument();
+    expect(screen.getByText('Other color palettes')).toBeInTheDocument();
   });
 });

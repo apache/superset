@@ -37,6 +37,9 @@ class EstimateQueryCostSchema(Schema):
     template_params = fields.Dict(
         keys=fields.String(), metadata={"description": "The SQL query template params"}
     )
+    catalog = fields.String(
+        allow_none=True, metadata={"description": "The database catalog"}
+    )
     schema = fields.String(
         allow_none=True, metadata={"description": "The database schema"}
     )

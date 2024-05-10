@@ -35,13 +35,13 @@ def test_get_parameters_from_uri() -> None:
     """
     from superset.db_engine_specs.databricks import (
         DatabricksNativeEngineSpec,
-        DatabricksParametersType,
+        DatabricksNativeParametersType,
     )
 
     parameters = DatabricksNativeEngineSpec.get_parameters_from_uri(
         "databricks+connector://token:abc12345@my_hostname:1234/test"
     )
-    assert parameters == DatabricksParametersType(
+    assert parameters == DatabricksNativeParametersType(
         {
             "access_token": "abc12345",
             "host": "my_hostname",
@@ -60,10 +60,10 @@ def test_build_sqlalchemy_uri() -> None:
     """
     from superset.db_engine_specs.databricks import (
         DatabricksNativeEngineSpec,
-        DatabricksParametersType,
+        DatabricksNativeParametersType,
     )
 
-    parameters = DatabricksParametersType(
+    parameters = DatabricksNativeParametersType(
         {
             "access_token": "abc12345",
             "host": "my_hostname",
@@ -245,3 +245,22 @@ def test_convert_dttm(
     from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_get_prequeries() -> None:
+    """
+    Test the ``get_prequeries`` method.
+    """
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    assert DatabricksNativeEngineSpec.get_prequeries() == []
+    assert DatabricksNativeEngineSpec.get_prequeries(schema="test") == [
+        "USE SCHEMA test",
+    ]
+    assert DatabricksNativeEngineSpec.get_prequeries(catalog="test") == [
+        "USE CATALOG test",
+    ]
+    assert DatabricksNativeEngineSpec.get_prequeries(catalog="foo", schema="bar") == [
+        "USE CATALOG foo",
+        "USE SCHEMA bar",
+    ]

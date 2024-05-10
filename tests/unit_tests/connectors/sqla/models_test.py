@@ -18,10 +18,14 @@
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.session import Session
 
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.dataset import DatasetDAO
 from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
+from superset.sql_parse import Table
 from superset.superset_typing import QueryObjectDict
 
 
@@ -186,4 +190,76 @@ def test_query_datasources_by_permissions_with_catalog_schema(
         "tables.perm IN ('[my_db].[table1](id:1)') OR "
         "tables.schema_perm IN ('[my_db].[db1].[schema1]', '[my_other_db].[schema]') OR "
         "tables.catalog_perm IN ('[my_db].[db1]')"
+    )
+
+
+def test_dataset_uniqueness(session: Session) -> None:
+    """
+    Test dataset uniqueness constraints.
+    """
+    Database.metadata.create_all(session.bind)
+
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+
+    # add prod.schema.table
+    dataset = SqlaTable(
+        database=database,
+        catalog="prod",
+        schema="schema",
+        table_name="table",
+    )
+    session.add(dataset)
+    session.commit()
+
+    # add dev.schema.table
+    dataset = SqlaTable(
+        database=database,
+        catalog="dev",
+        schema="schema",
+        table_name="table",
+    )
+    session.add(dataset)
+    session.commit()
+
+    # try to add dev.schema.table again, fails
+    dataset = SqlaTable(
+        database=database,
+        catalog="dev",
+        schema="schema",
+        table_name="table",
+    )
+    session.add(dataset)
+    with pytest.raises(IntegrityError):
+        session.commit()
+    session.rollback()
+
+    # add schema.table
+    dataset = SqlaTable(
+        database=database,
+        catalog=None,
+        schema="schema",
+        table_name="table",
+    )
+    session.add(dataset)
+    session.commit()
+
+    # add schema.table again, works because in SQL `NULlL != NULL`
+    dataset = SqlaTable(
+        database=database,
+        catalog=None,
+        schema="schema",
+        table_name="table",
+    )
+    session.add(dataset)
+    session.commit()
+
+    # but the DAO enforces application logic for uniqueness
+    assert not DatasetDAO.validate_uniqueness(
+        database.id,
+        Table("table", "schema", None),
+    )
+
+    assert DatasetDAO.validate_uniqueness(
+        database.id,
+        Table("table", "schema", "some_catalog"),
     )
