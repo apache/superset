@@ -26,10 +26,15 @@ jobs:
           submodules: recursive
       - name: "Markdown Link Check - .md edition"
         uses: gaurav-nelson/github-action-markdown-link-check@1.0.15
+        with:
+          use-quiet-mode: "yes"
+          folder-path	: "docs, CHANGELOG, RELEASING, RESOURCES"
       - name: "Markdown Link Check - .mdx edition"
         uses: gaurav-nelson/github-action-markdown-link-check@1.0.15
         with:
           file-extension: "*.mdx"
+          use-quiet-mode: "yes"
+          folder-path	: "docs, CHANGELOG, RELEASING, RESOURCES"
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
