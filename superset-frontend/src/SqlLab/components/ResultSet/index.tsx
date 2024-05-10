@@ -68,6 +68,7 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
+import { findPermission } from '../../../utils/findPermission';
 
 enum LimitingFactor {
   Query = 'QUERY',
@@ -293,6 +294,12 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
+      const canExportData = findPermission(
+        'can_export_csv',
+        'SQLLab',
+        user?.roles,
+      );
+
       return (
         <ResultSetControls>
           <SaveDatasetModal
@@ -312,22 +319,31 @@ const ResultSet = ({
                 onClick={createExploreResultsOnClick}
               />
             )}
-            {csv && (
-              <Button buttonSize="small" href={getExportCsvUrl(query.id)}>
+            {csv && canExportData && (
+              <Button
+                buttonSize="small"
+                href={getExportCsvUrl(query.id)}
+                data-test="export-csv-button"
+              >
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
 
-            <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data, columns)}
-              wrapped={false}
-              copyNode={
-                <Button buttonSize="small">
-                  <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
-                </Button>
-              }
-              hideTooltip
-            />
+            {canExportData && (
+              <CopyToClipboard
+                text={prepareCopyToClipboardTabularData(data, columns)}
+                wrapped={false}
+                copyNode={
+                  <Button
+                    buttonSize="small"
+                    data-test="copy-to-clipboard-button"
+                  >
+                    <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
+                  </Button>
+                }
+                hideTooltip
+              />
+            )}
           </ResultSetButtons>
           {search && (
             <input
