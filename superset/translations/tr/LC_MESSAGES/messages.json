@@ -63,11 +63,16 @@
       "The submitted payload failed validation.": [""],
       "Invalid certificate": [""],
       "The schema of the submitted payload is invalid.": [""],
+      "The SQL is invalid and cannot be parsed.": [""],
       "File size must be less than or equal to %(max_size)s bytes": [""],
       "Unsafe return type for function %(func)s: %(value_type)s": [""],
       "Unsupported return value for method %(name)s": [""],
       "Unsafe template value for key %(key)s: %(value_type)s": [""],
       "Unsupported template value for key %(key)s": [""],
+      "Please specify the Dataset ID for the ``%(name)s`` metric in the Jinja macro.": [
+        ""
+      ],
+      "Metric ``%(metric_name)s`` not found in %(dataset_name)s.": [""],
       "Only SELECT statements are allowed against this database.": [""],
       "The query was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
         ""
@@ -81,6 +86,7 @@
       ],
       "Running statement %(statement_num)s out of %(statement_count)s": [""],
       "Statement %(statement_num)s out of %(statement_count)s": [""],
+      "You may have an error in your SQL statement. {message}": [""],
       "Viz is missing a datasource": [""],
       "Applied rolling window did not return any data. Please make sure the source query satisfies the minimum periods defined in the rolling window.": [
         ""
@@ -269,6 +275,7 @@
       "SSH Tunnel could not be deleted.": [""],
       "SSH Tunnel not found.": [""],
       "SSH Tunnel parameters are invalid.": [""],
+      "A database port is required when connecting via SSH Tunnel.": [""],
       "SSH Tunnel could not be updated.": [""],
       "Creating SSH Tunnel failed for an unknown reason": [""],
       "SSH Tunneling is not enabled": [""],
@@ -339,6 +346,7 @@
       "Report Schedule delete failed.": [""],
       "Report Schedule log prune failed.": [""],
       "Report Schedule execution failed when generating a screenshot.": [""],
+      "Report Schedule execution failed when generating a pdf.": [""],
       "Report Schedule execution failed when generating a csv.": [""],
       "Report Schedule execution failed when generating a dataframe.": [""],
       "Report Schedule execution got an unexpected error.": [""],
@@ -418,14 +426,12 @@
       "Virtual dataset query must be read-only": [
         "Sanal veriseti sorgusu read-only olmak zorunda"
       ],
-      "Error while rendering virtual dataset query: %(msg)s": [""],
-      "Virtual dataset query cannot be empty": [
-        "Sanal veriseti sorgusu boş olamaz"
-      ],
-      "Virtual dataset query cannot consist of multiple statements": [""],
       "Error in jinja expression in RLS filters: %(msg)s": [""],
       "Metric '%(metric)s' does not exist": [""],
       "Db engine did not return all queried columns": [""],
+      "Virtual dataset query cannot be empty": [
+        "Sanal veriseti sorgusu boş olamaz"
+      ],
       "Only `SELECT` statements are allowed": [""],
       "Only single queries supported": [""],
       "Columns": [""],
@@ -667,6 +673,8 @@
       "Unable to encode value": [""],
       "Unable to decode value": [""],
       "Invalid permalink key": [""],
+      "Error while rendering virtual dataset query: %(msg)s": [""],
+      "Virtual dataset query cannot consist of multiple statements": [""],
       "Datetime column not provided as part table configuration and is required by this type of chart": [
         ""
       ],
@@ -688,6 +696,7 @@
       "\n            Error: %(text)s\n            ": [""],
       "EMAIL_REPORTS_CTA": [""],
       "%(name)s.csv": [""],
+      "%(name)s.pdf": [""],
       "%(prefix)s %(title)s": [""],
       "*%(name)s*\n\n%(description)s\n\n<%(url)s|Explore in Superset>\n\n%(table)s\n": [
         ""
@@ -724,6 +733,7 @@
       "Test Connection": [""],
       "Unsupported clause type: %(clause)s": [""],
       "Invalid metric object: %(metric)s": [""],
+      "Unable to calculate such a date delta": [""],
       "Unable to find such a holiday: [%(holiday)s]": [""],
       "DB column %(col_name)s has unknown type: %(value_type)s": [""],
       "percentiles must be a list or tuple with two numeric values, of which the first is lower than the second value": [
@@ -750,7 +760,7 @@
       "DataFrame include at least one series": [""],
       "Label already exists": [""],
       "Resample operation requires DatetimeIndex": [""],
-      "Resample method should in ": [""],
+      "Resample method should be in ": [""],
       "Undefined window for rolling operation": [""],
       "Window must be > 0": [""],
       "Invalid rolling_type: %(type)s": [""],
@@ -873,7 +883,7 @@
       "Table name cannot contain a schema": [""],
       "Select a database to upload the file to": [""],
       "Column Data Types": [""],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "Select a schema if the database supports this": [""],
@@ -1309,6 +1319,19 @@
       "No Results": ["Sonuç bulunamadı"],
       "ERROR": ["HATA"],
       "Found invalid orderby options": [""],
+      "Invalid input": [""],
+      "Unexpected error: ": ["Beklenmeyen hata:"],
+      "(no description, click to see stack trace)": [""],
+      "Network error": [""],
+      "Request timed out": [""],
+      "Issue 1000 - The dataset is too large to query.": [""],
+      "Issue 1001 - The database is under an unusual load.": [""],
+      "An error occurred": ["Bir hata oluştu"],
+      "Sorry, an unknown error occurred.": [""],
+      "Sorry, there was an error saving this %s: %s": [""],
+      "You do not have permission to edit this %s": [
+        "Bu %s’i değiştirmeye yetkiniz yok"
+      ],
       "is expected to be an integer": [""],
       "is expected to be a number": [""],
       "is expected to be a Mapbox URL": [""],
@@ -1370,7 +1393,6 @@
       ],
       "Relationships between community channels": [""],
       "Chord Diagram": [""],
-      "Aesthetic": [""],
       "Circular": [""],
       "Legacy": [""],
       "Proportional": [""],
@@ -1464,9 +1486,11 @@
       ],
       "Sizes of vehicles": [""],
       "Employment and education": [""],
+      "Heatmap (legacy)": [""],
       "Density": [""],
       "Predictive": [""],
       "Single Metric": [""],
+      "Deprecated": [""],
       "to": ["ila"],
       "count": ["sayı"],
       "cumulative": [""],
@@ -1589,7 +1613,6 @@
       "Plots the individual metrics for each row in the data vertically and links them together as a line. This chart is useful for comparing multiple metrics across all of the samples or rows in the data.": [
         ""
       ],
-      "Coordinates": [""],
       "Directional": [""],
       "Time Series Options": [""],
       "Not Time Series": [""],
@@ -1749,7 +1772,6 @@
       ],
       "deck.gl Contour": [""],
       "Spatial": [""],
-      "Experimental": [""],
       "GeoJson Settings": [""],
       "Line width unit": [""],
       "meters": [""],
@@ -1952,7 +1974,6 @@
       "Continuous": [""],
       "Line": [""],
       "nvd3": [""],
-      "Deprecated": [""],
       "Series Limit Sort By": [""],
       "Metric used to order the limit if a series limit is present. If undefined reverts to the first metric (where appropriate).": [
         ""
@@ -1966,7 +1987,6 @@
       ],
       "Time-series Bar Chart (legacy)": [""],
       "Bar": [""],
-      "Vertical": [""],
       "Box Plot": [""],
       "X Log Scale": [""],
       "Use a log scale for the X-axis": [""],
@@ -2003,7 +2023,6 @@
       ],
       "Bar Chart (legacy)": [""],
       "Additive": [""],
-      "Discrete": [""],
       "Propagate": [""],
       "Send range filter events to other charts": [""],
       "Classic chart that visualizes how metrics change over time.": [""],
@@ -2113,8 +2132,13 @@
         ""
       ],
       "Filters for Comparison": [""],
+      "Percent Difference format": [""],
       "Comparison font size": [""],
       "Add color for positive/negative change": [""],
+      "color scheme for comparison": [""],
+      "Adds color to the chart symbols based on the positive or negative change from the comparison value.": [
+        ""
+      ],
       "Big Number with Time Period Comparison": [""],
       "Display settings": [""],
       "Subheader": [""],
@@ -2302,6 +2326,9 @@
       ],
       "Graph Chart": [""],
       "Structural": [""],
+      "Piecewise": [""],
+      "Hard value bounds applied for color coding.": [""],
+      "Y-Axis": [""],
       "Whether to sort descending or ascending": [""],
       "Series type": [""],
       "Smooth Line": [""],
@@ -2423,6 +2450,7 @@
       ],
       "Chart Orientation": ["Grafik Yönü"],
       "Bar orientation": [""],
+      "Vertical": [""],
       "Horizontal": [""],
       "Orientation of bar chart": [""],
       "Bar Charts are used to show metrics as a series of bars.": [""],
@@ -2616,6 +2644,7 @@
       "Total (%(aggregatorName)s)": [""],
       "Unknown input format": [""],
       "search.num_records": [""],
+      "Search %s records": [""],
       "page_size.show": [""],
       "page_size.entries": ["kayıt"],
       "No matching records found": [""],
@@ -2639,6 +2668,8 @@
       "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.": [
         ""
       ],
+      "Render columns in HTML format": [""],
+      "Render data in HTML format if applicable.": [""],
       "Customize columns": [""],
       "Further customize how to display each column": [""],
       "Apply conditional color formatting to numeric columns": [""],
@@ -2736,7 +2767,6 @@
       "Estimate cost": [""],
       "Cost estimate": [""],
       "Creating a data source and creating a new tab": [""],
-      "An error occurred": ["Bir hata oluştu"],
       "Explore the result set in the data exploration view": [""],
       "explore": [""],
       "Create Chart": ["Grafik Oluştur"],
@@ -2852,6 +2882,7 @@
       "You must run the query successfully first": [
         "Önce sorguyu başarıyla çalıştırmalısınız"
       ],
+      "Render HTML": [""],
       "Autocomplete": ["Otomatik tamamlama"],
       "CREATE TABLE AS": [""],
       "CREATE VIEW AS": [""],
@@ -2912,6 +2943,7 @@
       "Loaded from cache": ["Cacheden yüklendi"],
       "Click to force-refresh": ["Yenilemek için tıklayın"],
       "Cached": ["Cachelendi"],
+      "Waiting on %s": [""],
       "Add required control values to preview chart": [""],
       "Your chart is ready to go!": [""],
       "Click on \"Create chart\" button in the control panel on the left to preview a visualization or": [
@@ -2954,15 +2986,18 @@
         "Grafiği yüklerken hata oluştu"
       ],
       "Results %s": ["Sonuçlar %s"],
-      "Drill to detail by": [""],
       "Drill to detail": [""],
+      "Drill to detail by": [""],
+      "Drill to detail is disabled for this database. Change the database settings to enable it.": [
+        ""
+      ],
       "Drill to detail is disabled because this chart does not group data by dimension value.": [
         ""
       ],
-      "Drill to detail by value is not yet supported for this chart type.": [
+      "Right-click on a dimension value to drill to detail by that value.": [
         ""
       ],
-      "Right-click on a dimension value to drill to detail by that value.": [
+      "Drill to detail by value is not yet supported for this chart type.": [
         ""
       ],
       "Drill to detail: %s": [""],
@@ -3189,6 +3224,7 @@
       "See less": [""],
       "Copy message": ["Mesajı kopyala"],
       "Details": [""],
+      "Authorization needed": [""],
       "This was triggered by:": [""],
       "Did you mean:": [""],
       "%(suggestion)s instead of \"%(undefinedParameter)s?\"": [""],
@@ -3348,6 +3384,7 @@
       "Superset chart": [""],
       "Check out this chart in dashboard:": [""],
       "Layout elements": ["Tasarım"],
+      "An error occurred while fetching available CSS templates": [""],
       "Load a CSS template": [""],
       "Live CSS editor": [""],
       "Collapse tab content": [""],
@@ -3389,7 +3426,6 @@
       "Redo the action": [""],
       "Discard": [""],
       "Edit dashboard": ["Dashboardı düzenle"],
-      "An error occurred while fetching available CSS templates": [""],
       "Refreshing charts": ["Grafikler yenileniyor"],
       "Superset dashboard": [""],
       "Check out this dashboard: ": [""],
@@ -3763,13 +3799,13 @@
       "Samples": ["Tabloyu gör"],
       "No samples were returned for this dataset": [""],
       "No results": ["Sonuç bulunamadı"],
+      "Showing %s of %s": [""],
+      "%s ineligible item(s) are hidden": [""],
+      "Show less...": [""],
+      "Show all...": [""],
       "Search Metrics & Columns": [""],
       "Create a dataset": ["Veriseti oluştur"],
       " to edit or add columns and metrics.": [""],
-      "Showing %s of %s": [""],
-      "Show less...": [""],
-      "Show all...": [""],
-      "Show Less...": [""],
       "Unable to retrieve dashboard colors": [""],
       "Added to 1 dashboard": ["1 Dashboarda eklendi"],
       "Not added to any dashboard": [""],
@@ -3813,7 +3849,9 @@
       "A list of users who can alter the chart. Searchable by name or username.": [
         ""
       ],
-      "Limit reached": [""],
+      "The row limit set for the chart was reached. The chart may show partial data.": [
+        ""
+      ],
       "Create chart": ["Grafik oluştur"],
       "Update chart": ["Grafiği güncelle"],
       "Invalid lat/long configuration.": [""],
@@ -4127,7 +4165,6 @@
       "Column Configuration": [""],
       "Select Viz Type": [""],
       "Currently rendered: %s": [""],
-      "Recommended tags": [""],
       "Search all charts": ["Tüm grafikleri ara"],
       "No description available.": ["Açıklama bulunmuyor."],
       "Examples": ["Örnekler"],
@@ -4138,7 +4175,6 @@
       "Superset Chart": [""],
       "New chart": ["Yeni grafik"],
       "Edit chart properties": ["Grafik özelliklerini düzenle"],
-      "Dashboards added to": ["Dashboardlar eklendi"],
       "Export to original .CSV": [""],
       "Export to pivoted .CSV": [""],
       "Export to .JSON": ["JSON’a Aktar"],
@@ -4162,6 +4198,7 @@
       "Not null": [""],
       "60 days": ["60 gün"],
       "90 days": ["90 gün"],
+      "Send as PDF": [""],
       "Send as PNG": [""],
       "Send as CSV": [""],
       "Send as text": [""],
@@ -4333,6 +4370,8 @@
       "Specify the database version. This is used with Presto for query cost estimation, and Dremio for syntax changes, among others.": [
         ""
       ],
+      "Disable drill to detail": [""],
+      "Disables the drill to detail feature for this database.": [""],
       "STEP %(stepCurr)s OF %(stepLast)s": [""],
       "Enter Primary Credentials": [""],
       "Need help? Learn how to connect your database": [""],
@@ -4366,6 +4405,7 @@
       "Test connection": [""],
       "Please enter a SQLAlchemy URI to test": [""],
       "e.g. world_population": [""],
+      "Connection failed, please check your connection settings.": [""],
       "Database settings updated": ["Veritabanı ayarları güncellendi"],
       "Sorry there was an error fetching database information: %s": [""],
       "Or choose from a list of other databases we support:": [""],
@@ -4584,7 +4624,7 @@
       "Formatted CSV attached in email": [""],
       "Report Name": ["Rapor İsmi"],
       "Include a description that will be sent with your report": [""],
-      "A screenshot of the dashboard will be sent to your email at": [""],
+      "The report will be sent to your email at": [""],
       "Failed to update report": [""],
       "Failed to create report": [""],
       "Set up an email report": [""],
@@ -4642,6 +4682,7 @@
       "Single value": [""],
       "Use only a single value.": [""],
       "Range filter plugin using AntD": [""],
+      "Experimental": [""],
       " (excluded)": [""],
       "%s option": [""],
       "Check for sorting ascending": [""],
@@ -4827,18 +4868,6 @@
       "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.": [
         ""
       ],
-      "Invalid input": [""],
-      "Unexpected error: ": ["Beklenmeyen hata:"],
-      "(no description, click to see stack trace)": [""],
-      "Sorry, an unknown error occurred.": [""],
-      "Sorry, there was an error saving this %s: %s": [""],
-      "You do not have permission to edit this %s": [
-        "Bu %s’i değiştirmeye yetkiniz yok"
-      ],
-      "Network error": [""],
-      "Request timed out": [""],
-      "Issue 1000 - The dataset is too large to query.": [""],
-      "Issue 1001 - The database is under an unusual load.": [""],
       "An error occurred while fetching %s info: %s": [""],
       "An error occurred while fetching %ss: %s": [""],
       "An error occurred while creating %ss: %s": [""],
