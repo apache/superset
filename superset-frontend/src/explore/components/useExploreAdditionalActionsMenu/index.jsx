@@ -173,22 +173,26 @@ export const useExploreAdditionalActionsMenu = (
 
   const exportJson = useCallback(
     () =>
-      exportChart({
-        formData: latestQueryFormData,
-        resultType: 'results',
-        resultFormat: 'json',
-      }),
-    [latestQueryFormData],
+      canDownloadCSV
+        ? exportChart({
+            formData: latestQueryFormData,
+            resultType: 'results',
+            resultFormat: 'json',
+          })
+        : null,
+    [canDownloadCSV, latestQueryFormData],
   );
 
   const exportExcel = useCallback(
     () =>
-      exportChart({
-        formData: latestQueryFormData,
-        resultType: 'results',
-        resultFormat: 'xlsx',
-      }),
-    [latestQueryFormData],
+      canDownloadCSV
+        ? exportChart({
+            formData: latestQueryFormData,
+            resultType: 'results',
+            resultFormat: 'xlsx',
+          })
+        : null,
+    [canDownloadCSV, latestQueryFormData],
   );
 
   const copyLink = useCallback(async () => {
@@ -350,6 +354,7 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_JSON}
             icon={<Icons.FileOutlined css={iconReset} />}
+            disabled={!canDownloadCSV}
           >
             {t('Export to .JSON')}
           </Menu.Item>
@@ -362,6 +367,7 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_XLSX}
             icon={<Icons.FileOutlined css={iconReset} />}
+            disabled={!canDownloadCSV}
           >
             {t('Export to Excel')}
           </Menu.Item>
