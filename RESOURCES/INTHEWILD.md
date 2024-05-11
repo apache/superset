@@ -25,6 +25,7 @@ all you have to do is file a simple PR [like this one](https://github.com/apache
 the categorization is inaccurate, please file a PR with your correction as well.
 Join our growing community!
 
+<!-- markdown-link-check-disable -->
 
 ### Sharing Economy
 - [Airbnb](https://github.com/airbnb)
@@ -178,3 +179,5 @@ Join our growing community!
 - [Twitter](https://twitter.com/)
 - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
 - [Yahoo!](https://yahoo.com/)
+
+<!-- markdown-link-check-enable-->
