@@ -54,8 +54,9 @@ const schemaApi = api.injectEndpoints({
             title: value,
           })),
       }),
-      serializeQueryArgs: ({ queryArgs: { dbId } }) => ({
+      serializeQueryArgs: ({ queryArgs: { dbId, catalog } }) => ({
         dbId,
+        catalog,
       }),
     }),
   }),

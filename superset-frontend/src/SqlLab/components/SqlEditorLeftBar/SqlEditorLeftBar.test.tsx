@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import SqlEditorLeftBar, {
   SqlEditorLeftBarProps,
@@ -107,14 +107,11 @@ test('renders a TableElement', async () => {
 });
 
 test('table should be visible when expanded is true', async () => {
-  const { container, getByText, getByRole } = await renderAndWait(
-    mockedProps,
-    undefined,
-    {
+  const { container, getByText, getByRole, getAllByLabelText } =
+    await renderAndWait(mockedProps, undefined, {
       ...initialState,
       sqlLab: { ...initialState.sqlLab, tables: [table] },
-    },
-  );
+    });
 
   const dbSelect = getByRole('combobox', {
     name: 'Select database or type to search databases',
@@ -122,14 +119,16 @@ test('table should be visible when expanded is true', async () => {
   const schemaSelect = getByRole('combobox', {
     name: 'Select schema or type to search schemas',
   });
-  const dropdown = getByText(/Select table/i);
-  const abUser = getByText(/ab_user/i);
+  const tableSelect = getAllByLabelText(
+    /Select table or type to search tables/i,
+  )[0];
+  const tableOption = within(tableSelect).getByText(/ab_user/i);
 
   expect(getByText(/Database/i)).toBeInTheDocument();
   expect(dbSelect).toBeInTheDocument();
   expect(schemaSelect).toBeInTheDocument();
-  expect(dropdown).toBeInTheDocument();
-  expect(abUser).toBeInTheDocument();
+  expect(tableSelect).toBeInTheDocument();
+  expect(tableOption).toBeInTheDocument();
   expect(
     container.querySelector('.ant-collapse-content-active'),
   ).toBeInTheDocument();
