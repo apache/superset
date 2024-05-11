@@ -28,13 +28,14 @@ jobs:
         uses: gaurav-nelson/github-action-markdown-link-check@1.0.15
         with:
           use-quiet-mode: "yes"
-          folder-path	: "docs, CHANGELOG, RELEASING, RESOURCES"
+          folder-path	: "docs/docs, CHANGELOG, RELEASING, RESOURCES"
+          file-path	: "CHANGELOG.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md, INSTALL.md, README.md, UPDATING.md"
       - name: "Markdown Link Check - .mdx edition"
         uses: gaurav-nelson/github-action-markdown-link-check@1.0.15
         with:
           file-extension: "*.mdx"
           use-quiet-mode: "yes"
-          folder-path	: "docs, CHANGELOG, RELEASING, RESOURCES"
+          folder-path	: "docs/docs, CHANGELOG, RELEASING, RESOURCES"
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
