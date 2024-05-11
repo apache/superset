@@ -84,7 +84,7 @@ Charts on dashboards have been updated to concisely show which **filters** are i
 
 <kbd><img alt="alerts reports edit" src="media/alerts_reports_3.png" width="600"/></kbd>
 
-See related PR highlights [here](#new-features-1).
+See related PR highlights [here](#new-features).
 
 # Feature Flags
 
@@ -102,7 +102,7 @@ Some of the new features in this release are disabled by default. Each has a fea
 This release includes **hundreds** of bugfixes and stability enhancements. Future major releases will have a continued emphasis on providing a stable and bug-free experience for the user.
 
 # PR Highlights
-Below is a highlight of the PRs included in this update. The full list is much longer, and can be found [here](apache/incubator-superset/CHANGELOG.md).
+Below is a highlight of the PRs included in this update. The full list is much longer, and can be found [here](https://github.com/apache/superset/blob/master/CHANGELOG.md).
 
 ## User Experience
 - Revert "refactor: Remove usages of reactable from TimeTable (#11046)" (#[11150](https://github.com/apache/incubator-superset/pull/11150))
