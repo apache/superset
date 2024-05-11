@@ -7,7 +7,8 @@
       {"pattern": "^https://www.safaricom.co.ke/"},
       {"pattern": "^https://www.beans.fi"},
       {"pattern": "^https://trustmedis.com/"},
-      {"pattern": "^https://twitter.com/"}
+      {"pattern": "^https://twitter.com/"},
+      {"pattern": "^https://www.komoot.com/"}
     ],
     "aliveStatusCodes": [200, 206]
   }
