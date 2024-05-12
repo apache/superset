@@ -30,6 +30,12 @@ const StyledNotificationMethod = styled.div`
     textarea {
       height: auto;
     }
+
+    &.error {
+      input {
+        border-color: ${({ theme }) => theme.colors.error.base};
+      }
+    }
   }
 
   .inline-container {
@@ -56,10 +62,14 @@ interface NotificationMethodProps {
   ) => void;
   email_subject: string;
   defaultSubject: string;
+  setErrorSubject: (hasError: boolean) => void;
 }
 
 const TRANSLATIONS = {
   EMAIL_SUBJECT_NAME: t('Email subject name (optional)'),
+  EMAIL_SUBJECT_ERROR_TEXT: t(
+    'Please enter valid text. Spaces alone are not permitted.',
+  ),
 };
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
@@ -70,11 +80,13 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   onInputChange,
   email_subject,
   defaultSubject,
+  setErrorSubject,
 }) => {
   const { method, recipients, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
+  const [error, setError] = useState(false);
   const theme = useTheme();
 
   if (!setting) {
@@ -115,8 +127,16 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const onSubjectChange = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
+    const value = event.target.value;
+
     if (onInputChange) {
       onInputChange(event);
+    }
+
+    const hasError = value.length > 0 && value.trim().length === 0;
+    setError(hasError);
+    if (setErrorSubject) {
+      setErrorSubject(hasError);
     }
   };
 
@@ -166,7 +186,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   <div className="control-label">
                     {TRANSLATIONS.EMAIL_SUBJECT_NAME}
                   </div>
-                  <div className="input-container">
+                  <div className={`input-container ${error ? 'error' : ''}`}>
                     <input
                       type="text"
                       name="email_subject"
@@ -174,7 +194,17 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                       placeholder={defaultSubject}
                       onChange={onSubjectChange}
                     />
-                  </div>{' '}
+                  </div>
+                  {error && (
+                    <div
+                      style={{
+                        color: theme.colors.error.base,
+                        fontSize: theme.gridUnit * 3,
+                      }}
+                    >
+                      {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
+                    </div>
+                  )}
                 </>
               ) : null}
             </StyledInputContainer>

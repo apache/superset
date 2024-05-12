@@ -367,6 +367,7 @@ export const TRANSLATIONS = {
   CRONTAB_ERROR_TEXT: t('crontab'),
   WORKING_TIMEOUT_ERROR_TEXT: t('working timeout'),
   RECIPIENTS_ERROR_TEXT: t('recipients'),
+  EMAIL_SUBJECT_ERROR_TEXT: t('email subject'),
   ERROR_TOOLTIP_MESSAGE: t(
     'Not all required fields are complete. Please provide the following:',
   ),
@@ -492,6 +493,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     NotificationSetting[]
   >([]);
   const [emailSubject, setEmailSubject] = useState<string>('');
+  const [emailError, setEmailError] = useState(false);
 
   const onNotificationAdd = () => {
     setNotificationSettings([
@@ -1062,6 +1064,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const validateNotificationSection = () => {
     const hasErrors = !checkNotificationSettings();
     const errors = hasErrors ? [TRANSLATIONS.RECIPIENTS_ERROR_TEXT] : [];
+
+    if (emailError){
+      errors.push(TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT);
+    }
+    
     updateValidationStatus(Sections.Notification, errors);
   };
 
@@ -1217,6 +1224,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     contentType,
     notificationSettings,
     conditionNotNull,
+    emailError,
   ]);
   useEffect(() => {
     enforceValidation();
@@ -1268,6 +1276,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     } else {
       setEmailSubject('');
     }
+  };
+
+  const handleErrorUpdate = (hasError: boolean) => {
+    setEmailError(hasError);
   };
 
   return (
@@ -1720,6 +1732,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 onInputChange={onInputChange}
                 email_subject={currentAlert?.email_subject || ''}
                 defaultSubject={emailSubject || ''}
+                setErrorSubject={handleErrorUpdate}
               />
             </StyledNotificationMethodWrapper>
           ))}

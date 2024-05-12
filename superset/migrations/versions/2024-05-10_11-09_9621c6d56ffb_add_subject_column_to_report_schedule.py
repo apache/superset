@@ -16,9 +16,9 @@
 # under the License.
 """add subject column to report schedule
 
-Revision ID: 100e3853bb0c
-Revises: 5f57af97bc3f
-Create Date: 2024-05-05 17:19:37.789891
+Revision ID: 9621c6d56ffb
+Revises: 4081be5b6b74
+Create Date: 2024-05-10 11:09:12.046862
 
 """
 
@@ -26,8 +26,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "100e3853bb0c"
-down_revision = "5f57af97bc3f"
+revision = '9621c6d56ffb'
+down_revision = '4081be5b6b74'
 
 
 def upgrade():
