@@ -21,7 +21,7 @@ jobs:
   cypress-applitools:
     needs: config
     if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
