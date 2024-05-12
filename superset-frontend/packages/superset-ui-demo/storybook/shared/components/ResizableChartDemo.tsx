@@ -19,7 +19,7 @@
 
 import React, { useState, ReactNode } from 'react';
 import { styled } from '@superset-ui/core';
-import { DecoratorFunction } from '@storybook/types';
+import type { DecoratorFunction } from '@storybook/types';
 import ResizablePanel, { Size } from './ResizablePanel';
 
 export const SupersetBody = styled.div`
