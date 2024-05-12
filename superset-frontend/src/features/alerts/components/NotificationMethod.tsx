@@ -127,7 +127,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const onSubjectChange = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
-    const value = event.target.value;
+    const { value } = event.target;
 
     if (onInputChange) {
       onInputChange(event);
