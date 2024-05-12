@@ -295,7 +295,7 @@ class Column extends React.PureComponent {
                           className={cx(
                             'empty-droptarget',
                             itemIndex === columnItems.length - 1 &&
-                              'droptarget-edge',
+                              'droptarget-edge-last',
                           )}
                           editMode
                         >
