@@ -1065,10 +1065,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const hasErrors = !checkNotificationSettings();
     const errors = hasErrors ? [TRANSLATIONS.RECIPIENTS_ERROR_TEXT] : [];
 
-    if (emailError){
+    if (emailError) {
       errors.push(TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT);
     }
-    
+
     updateValidationStatus(Sections.Notification, errors);
   };
 
