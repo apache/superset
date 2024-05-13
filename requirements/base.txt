@@ -187,7 +187,7 @@ limits==3.4.0
     # via flask-limiter
 llvmlite==0.40.1
     # via numba
-mako==1.3.2
+mako==1.3.3
     # via
     #   alembic
     #   apache-superset
@@ -357,7 +357,7 @@ sshtunnel==0.4.0
     # via apache-superset
 tabulate==0.8.10
     # via apache-superset
-typing-extensions==4.10.0
+typing-extensions==4.11.0
     # via
     #   alembic
     #   apache-superset
