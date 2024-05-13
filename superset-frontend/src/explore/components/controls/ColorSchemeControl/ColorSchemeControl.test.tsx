@@ -127,3 +127,11 @@ test('displays color scheme options', async () => {
     expect(screen.getByText('Other color palettes')).toBeInTheDocument();
   });
 });
+
+test('Renders control with dashboard id', () => {
+  setup({ dashboardId: 1 });
+  expect(screen.getByText('Dashboard scheme')).toBeInTheDocument();
+  expect(
+    screen.getByLabelText('Select color scheme', { selector: 'input' }),
+  ).toBeDisabled();
+});
