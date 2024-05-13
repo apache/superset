@@ -65,6 +65,7 @@ export interface DrillByMenuItemsProps {
   onClick?: (event: MouseEvent) => void;
   openNewModal?: boolean;
   excludedColumns?: Column[];
+  canDownload: boolean;
 }
 
 export const DrillByMenuItems = ({
@@ -76,6 +77,7 @@ export const DrillByMenuItems = ({
   onClick = () => {},
   excludedColumns,
   openNewModal = true,
+  canDownload,
   ...rest
 }: DrillByMenuItemsProps) => {
   const theme = useTheme();
@@ -282,6 +284,7 @@ export const DrillByMenuItems = ({
           formData={formData}
           onHideModal={closeModal}
           dataset={{ ...dataset!, verbose_map: verboseMap }}
+          canDownload={canDownload}
         />
       )}
     </>

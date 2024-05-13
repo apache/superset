@@ -96,6 +96,9 @@ const ChartContextMenu = (
   const canDatasourceSamples = useSelector((state: RootState) =>
     findPermission('can_samples', 'Datasource', state.user?.roles),
   );
+  const canDownload = useSelector((state: RootState) =>
+    findPermission('can_csv', 'Superset', state.user?.roles),
+  );
   const canDrill = useSelector((state: RootState) =>
     findPermission('can_drill', 'Dashboard', state.user?.roles),
   );
@@ -254,6 +257,7 @@ const ChartContextMenu = (
         formData={formData}
         contextMenuY={clientY}
         submenuIndex={submenuIndex}
+        canDownload={canDownload}
         {...(additionalConfig?.drillBy || {})}
       />,
     );
