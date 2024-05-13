@@ -74,7 +74,8 @@ def contribution(
     if len(rename_columns) != len(actual_columns):
         raise InvalidPostProcessingError(
             _(
-                "`rename_columns` must have the same length as `columns` + `time_shift_columns`."
+                "`rename_columns` must have the same length as "
+                + "`columns` + `time_shift_columns`."
             )
         )
     # limit to selected columns
@@ -105,10 +106,10 @@ def get_column_groups(
     :param df: DataFrame to group columns from
     :param time_shifts: List of time shifts to group by
     :param rename_columns: List of new column names
-    :return: Dictionary with two keys: 'non_time_shift' and 'time_shifts'. 'non_time_shift'
-    maps to a tuple of original and renamed columns without a time shift. 'time_shifts' maps
-    to a dictionary where each key is a time shift and each value is a tuple of original and
-    renamed columns with that time shift.
+    :return: Dictionary with two keys: 'non_time_shift' and 'time_shifts'.
+    'non_time_shift' maps to a tuple of original and renamed columns without a time shift.
+    'time_shifts' maps to a dictionary where each key is a time shift and each value is a
+    tuple of original and renamed columns with that time shift.
     """
     result: dict[str, Any] = {
         "non_time_shift": ([], []),  # take the form of ([A, B, C], [X, Y, Z])
@@ -139,8 +140,9 @@ def calculate_row_contribution(
     """
     Calculate the contribution of each column to the row total and update the DataFrame.
 
-    This function calculates the contribution of each selected column to the total of the row,
-    and updates the DataFrame with these contribution percentages in place of the original values.
+    This function calculates the contribution of each selected column to the total of
+    the row, and updates the DataFrame with these contribution percentages in place of
+    the original values.
 
     :param df: The DataFrame to calculate contributions for.
     :param columns: A list of column names to calculate contributions for.

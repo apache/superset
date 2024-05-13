@@ -57,7 +57,13 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import get_column_name, MediumText, QueryStatus, user_label
+from superset.utils.core import (
+    get_column_name,
+    LongText,
+    MediumText,
+    QueryStatus,
+    user_label,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -107,11 +113,11 @@ class Query(
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
     schema = Column(String(256))
-    sql = Column(MediumText())
+    sql = Column(LongText())
     # Query to retrieve the results,
     # used only in case of select_as_cta_used is true.
-    select_sql = Column(MediumText())
-    executed_sql = Column(MediumText())
+    select_sql = Column(LongText())
+    executed_sql = Column(LongText())
     # Could be configured in the superset config.
     limit = Column(Integer)
     limiting_factor = Column(
