@@ -286,6 +286,11 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         return None
 
     @property
+    def catalog(self) -> str | None:
+        """String representing the catalog of the Datasource (if it applies)"""
+        return None
+
+    @property
     def schema(self) -> str | None:
         """String representing the schema of the Datasource (if it applies)"""
         return None
@@ -330,6 +335,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "edit_url": self.url,
             "id": self.id,
             "uid": self.uid,
+            "catalog": self.catalog,
             "schema": self.schema or None,
             "name": self.name,
             "type": self.type,
@@ -384,6 +390,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "datasource_name": self.datasource_name,
             "table_name": self.datasource_name,
             "type": self.type,
+            "catalog": self.catalog,
             "schema": self.schema or None,
             "offset": self.offset,
             "cache_timeout": self.cache_timeout,
@@ -698,7 +705,11 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
 
     @classmethod
     def get_datasource_by_name(
-        cls, datasource_name: str, schema: str, database_name: str
+        cls,
+        datasource_name: str,
+        catalog: str | None,
+        schema: str,
+        database_name: str,
     ) -> BaseDatasource | None:
         raise NotImplementedError()
 
@@ -1131,7 +1142,9 @@ class SqlaTable(
     # The reason it does not physically exist is MySQL, PostgreSQL, etc. have a
     # different interpretation of uniqueness when it comes to NULL which is problematic
     # given the schema is optional.
-    __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
+    __table_args__ = (
+        UniqueConstraint("database_id", "catalog", "schema", "table_name"),
+    )
 
     table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
@@ -1162,6 +1175,7 @@ class SqlaTable(
         "database_id",
         "offset",
         "cache_timeout",
+        "catalog",
         "schema",
         "sql",
         "params",
@@ -1239,6 +1253,7 @@ class SqlaTable(
     def get_datasource_by_name(
         cls,
         datasource_name: str,
+        catalog: str | None,
         schema: str | None,
         database_name: str,
     ) -> SqlaTable | None:
@@ -1248,6 +1263,7 @@ class SqlaTable(
             .join(Database)
             .filter(cls.table_name == datasource_name)
             .filter(Database.database_name == database_name)
+            .filter(cls.catalog == catalog)
         )
         # Handling schema being '' or None, which is easier to handle
         # in python than in the SQLA query in a multi-dialect way
@@ -1752,7 +1768,7 @@ class SqlaTable(
         try:
             df = self.database.get_df(
                 sql,
-                None,
+                self.catalog,
                 self.schema or None,
                 mutator=assign_column_label,
             )

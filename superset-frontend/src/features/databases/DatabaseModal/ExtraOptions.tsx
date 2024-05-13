@@ -56,6 +56,8 @@ const ExtraOptions = ({
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
   const isFileUploadSupportedByEngine =
     db?.engine_information?.supports_file_upload;
+  const supportsDynamicCatalog =
+    db?.engine_information?.supports_dynamic_catalog;
 
   // JSON.parse will deep parse engine_params
   // if it's an object, and we want to keep it a string
@@ -191,7 +193,8 @@ const ExtraOptions = ({
                 <IndeterminateCheckbox
                   id="allows_virtual_table_explore"
                   indeterminate={false}
-                  checked={!!extraJson?.allows_virtual_table_explore}
+                  // when `allows_virtual_table_explore` is not present in `extra` it defaults to true
+                  checked={extraJson?.allows_virtual_table_explore !== false}
                   onChange={onExtraInputChange}
                   labelText={t('Allow this database to be explored')}
                 />
@@ -587,6 +590,24 @@ const ExtraOptions = ({
             />
           </div>
         </StyledInputContainer>
+        {supportsDynamicCatalog && (
+          <StyledInputContainer css={no_margin_bottom}>
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="allow_multi_catalog"
+                indeterminate={false}
+                checked={!!extraJson?.allow_multi_catalog}
+                onChange={onExtraInputChange}
+                labelText={t('Allow changing catalogs')}
+              />
+              <InfoTooltip
+                tooltip={t(
+                  'Give access to multiple catalogs in a single database connection.',
+                )}
+              />
+            </div>
+          </StyledInputContainer>
+        )}
       </Collapse.Panel>
     </Collapse>
   );

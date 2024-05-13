@@ -14,10 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from flask import redirect
-from flask_appbuilder import expose, SimpleFormView
+from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
@@ -30,7 +29,12 @@ from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import CertificateException
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
-from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
+from superset.views.base import (
+    DeleteMixin,
+    deprecated,
+    SupersetModelView,
+    YamlExportMixin,
+)
 
 from .mixins import DatabaseMixin
 from .validators import sqlalchemy_uri_validator
@@ -88,6 +92,31 @@ class DatabaseView(DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixi
 
     yaml_dict_key = "databases"
 
+    @expose("/show/<pk>", methods=["GET"])
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def show(self, pk: int) -> FlaskResponse:
+        """Show database"""
+        return super().show(pk)
+
+    @expose("/add", methods=["GET", "POST"])
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def add(self) -> FlaskResponse:
+        return super().add()
+
+    @expose("/edit/<pk>", methods=["GET", "POST"])
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def edit(self, pk: int) -> FlaskResponse:
+        return super().edit(pk)
+
+    @expose("/delete/<pk>", methods=["GET", "POST"])
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def delete(self, pk: int) -> FlaskResponse:
+        return super().delete(pk)
+
     def _delete(self, pk: int) -> None:
         DeleteMixin._delete(self, pk)
 
@@ -95,48 +124,3 @@ class DatabaseView(DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixi
     @has_access
     def list(self) -> FlaskResponse:
         return super().render_app_template()
-
-
-class CustomFormView(SimpleFormView):
-    """
-    View for presenting your own forms
-    Inherit from this view to provide some base
-    processing for your customized form views.
-
-    Notice that this class inherits from BaseView
-    so all properties from the parent class can be overridden also.
-
-    Implement form_get and form_post to implement
-    your form pre-processing and post-processing
-    """
-
-    @expose("/form", methods=("GET",))
-    @has_access
-    def this_form_get(self) -> Any:
-        self._init_vars()
-        form = self.form.refresh()
-        self.form_get(form)
-        self.update_redirect()
-        return self.render_template(
-            self.form_template,
-            title=self.form_title,
-            form=form,
-            appbuilder=self.appbuilder,
-        )
-
-    @expose("/form", methods=("POST",))
-    @has_access
-    def this_form_post(self) -> Any:
-        self._init_vars()
-        form = self.form.refresh()
-        if form.validate_on_submit():
-            response = self.form_post(form)  # pylint: disable=assignment-from-no-return
-            if not response:
-                return redirect(self.get_redirect())
-            return response
-        return self.render_template(
-            self.form_template,
-            title=self.form_title,
-            form=form,
-            appbuilder=self.appbuilder,
-        )

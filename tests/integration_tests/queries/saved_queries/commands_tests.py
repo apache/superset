@@ -75,6 +75,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
             contents["queries/examples/schema1/The_answer.yaml"]()
         )
         assert metadata == {
+            "catalog": None,
             "schema": "schema1",
             "label": "The answer",
             "description": "Answer to the Ultimate Question of Life, the Universe, and Everything",
@@ -134,6 +135,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
             contents["queries/examples/schema1/The_answer.yaml"]()
         )
         assert list(metadata.keys()) == [
+            "catalog",
             "schema",
             "label",
             "description",

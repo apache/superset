@@ -44,6 +44,7 @@ SqlResults = dict[str, Any]
 @dataclass
 class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     database_id: int
+    catalog: str | None
     schema: str
     sql: str
     template_params: dict[str, Any]
@@ -73,6 +74,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
 
     def _init_from_query_params(self, query_params: dict[str, Any]) -> None:
         self.database_id = cast(int, query_params.get("database_id"))
+        self.catalog = cast(str, query_params.get("catalog"))
         self.schema = cast(str, query_params.get("schema"))
         self.sql = cast(str, query_params.get("sql"))
         self.template_params = self._get_template_params(query_params)
@@ -147,6 +149,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
             return Query(
                 database_id=self.database_id,
                 sql=self.sql,
+                catalog=self.catalog,
                 schema=self.schema,
                 select_as_cta=True,
                 ctas_method=self.create_table_as_select.ctas_method,  # type: ignore
@@ -163,6 +166,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         return Query(
             database_id=self.database_id,
             sql=self.sql,
+            catalog=self.catalog,
             schema=self.schema,
             select_as_cta=False,
             start_time=start_time,

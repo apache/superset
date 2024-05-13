@@ -61,17 +61,16 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
         database_id = self._properties["database"]
-        table_name = self._properties["table_name"]
         schema = self._properties.get("schema")
         catalog = self._properties.get("catalog")
         sql = self._properties.get("sql")
         owner_ids: Optional[list[int]] = self._properties.get("owners")
 
-        table = Table(table_name, schema, catalog)
+        table = Table(self._properties["table_name"], schema, catalog)
 
         # Validate uniqueness
         if not DatasetDAO.validate_uniqueness(database_id, table):
-            exceptions.append(DatasetExistsValidationError(table_name))
+            exceptions.append(DatasetExistsValidationError(table))
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
@@ -86,7 +85,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             and not sql
             and not DatasetDAO.validate_table_exists(database, table)
         ):
-            exceptions.append(TableNotFoundValidationError(table_name))
+            exceptions.append(TableNotFoundValidationError(table))
 
         if sql:
             try:

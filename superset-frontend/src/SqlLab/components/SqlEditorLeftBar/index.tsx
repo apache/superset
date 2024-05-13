@@ -34,6 +34,7 @@ import {
   removeTables,
   collapseTable,
   expandTable,
+  queryEditorSetCatalog,
   queryEditorSetSchema,
   setDatabases,
   addDangerToast,
@@ -115,13 +116,17 @@ const SqlEditorLeftBar = ({
     shallowEqual,
   );
   const dispatch = useDispatch();
-  const queryEditor = useQueryEditor(queryEditorId, ['dbId', 'schema']);
+  const queryEditor = useQueryEditor(queryEditorId, [
+    'dbId',
+    'catalog',
+    'schema',
+  ]);
 
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
   );
-  const { schema } = queryEditor;
+  const { catalog, schema } = queryEditor;
 
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
@@ -138,9 +143,9 @@ const SqlEditorLeftBar = ({
     }
   }, [database]);
 
-  const onEmptyResults = (searchText?: string) => {
+  const onEmptyResults = useCallback((searchText?: string) => {
     setEmptyResultsWithSearch(!!searchText);
-  };
+  }, []);
 
   const onDbChange = ({ id: dbId }: { id: number }) => {
     setEmptyState?.(false);
@@ -152,7 +157,11 @@ const SqlEditorLeftBar = ({
     [tables],
   );
 
-  const onTablesChange = (tableNames: string[], schemaName: string) => {
+  const onTablesChange = (
+    tableNames: string[],
+    catalogName: string | null,
+    schemaName: string,
+  ) => {
     if (!schemaName) {
       return;
     }
@@ -169,7 +178,7 @@ const SqlEditorLeftBar = ({
     });
 
     tablesToAdd.forEach(tableName => {
-      dispatch(addTable(queryEditor, tableName, schemaName));
+      dispatch(addTable(queryEditor, tableName, catalogName, schemaName));
     });
 
     dispatch(removeTables(currentTables));
@@ -210,6 +219,15 @@ const SqlEditorLeftBar = ({
   const shouldShowReset = window.location.search === '?reset=1';
   const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
+  const handleCatalogChange = useCallback(
+    (catalog: string | null) => {
+      if (queryEditor) {
+        dispatch(queryEditorSetCatalog(queryEditor, catalog));
+      }
+    },
+    [dispatch, queryEditor],
+  );
+
   const handleSchemaChange = useCallback(
     (schema: string) => {
       if (queryEditor) {
@@ -246,9 +264,11 @@ const SqlEditorLeftBar = ({
         getDbList={handleDbList}
         handleError={handleError}
         onDbChange={onDbChange}
+        onCatalogChange={handleCatalogChange}
+        catalog={catalog}
         onSchemaChange={handleSchemaChange}
-        onTableSelectChange={onTablesChange}
         schema={schema}
+        onTableSelectChange={onTablesChange}
         tableValue={selectedTableNames}
         sqlLabMode
       />

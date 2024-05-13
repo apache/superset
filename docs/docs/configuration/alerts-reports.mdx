@@ -195,6 +195,15 @@ Please refer to `ExecutorType` in the codebase for other executor types.
   its default value of `http://0.0.0.0:8080/`.
 
 
+It's also possible to specify a minimum interval between each report's execution through the config file:
+
+``` python
+# Set a minimum interval threshold between executions (for each Alert/Report)
+# Value should be an integer
+ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=10).total_seconds())
+REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=5).total_seconds())
+```
+
 ## Custom Dockerfile
 
 If you're running the dev version of a released Superset image, like `apache/superset:3.1.0-dev`, you should be set with the above.

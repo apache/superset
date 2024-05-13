@@ -27,6 +27,7 @@ export type InitialState = {
     label: string;
     active: boolean;
     database_id: number;
+    catalog?: string | null;
     schema?: string;
     table_schemas: {
       id: number;
@@ -38,6 +39,7 @@ export type InitialState = {
         }[];
         dataPreviewQueryId?: string;
       } & Record<string, any>;
+      catalog?: string | null;
       schema?: string;
       tab_state_id: number;
       database_id?: number;

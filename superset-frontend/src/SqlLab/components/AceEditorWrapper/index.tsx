@@ -74,6 +74,7 @@ const AceEditorWrapper = ({
     'id',
     'dbId',
     'sql',
+    'catalog',
     'schema',
     'templateParams',
     'cursorPosition',
@@ -161,6 +162,7 @@ const AceEditorWrapper = ({
 
   const { data: annotations } = useAnnotations({
     dbId: queryEditor.dbId,
+    catalog: queryEditor.catalog,
     schema: queryEditor.schema,
     sql: currentSql,
     templateParams: queryEditor.templateParams,
@@ -170,6 +172,7 @@ const AceEditorWrapper = ({
     {
       queryEditorId,
       dbId: queryEditor.dbId,
+      catalog: queryEditor.catalog,
       schema: queryEditor.schema,
     },
     !autocomplete,

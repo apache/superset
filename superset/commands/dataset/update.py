@@ -86,15 +86,21 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
-        database_id = self._properties.get("database", None)
-        table_name = self._properties.get("table_name", None)
+        database_id = self._properties.get("database")
+
+        table = Table(
+            self._properties.get("table_name"),  # type: ignore
+            self._properties.get("schema"),
+            self._properties.get("catalog"),
+        )
+
         # Validate uniqueness
         if not DatasetDAO.validate_update_uniqueness(
             self._model.database_id,
-            Table(table_name, self._model.schema, self._model.catalog),
+            table,
             self._model_id,
         ):
-            exceptions.append(DatasetExistsValidationError(table_name))
+            exceptions.append(DatasetExistsValidationError(table))
         # Validate/Populate database not allowed to change
         if database_id and database_id != self._model:
             exceptions.append(DatabaseChangeValidationError())

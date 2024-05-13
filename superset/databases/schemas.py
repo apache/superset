@@ -156,7 +156,9 @@ extra_description = markdown(
     "6. The ``disable_data_preview`` field is a boolean specifying whether or not data "
     "preview queries will be run when fetching table metadata in SQL Lab."
     "7. The ``disable_drill_to_detail`` field is a boolean specifying whether or not"
-    "drill to detail is disabled for the database.",
+    "drill to detail is disabled for the database."
+    "8. The ``allow_multi_catalog`` indicates if the database allows changing "
+    "the default catalog when running queries and creating datasets.",
     True,
 )
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -739,6 +741,7 @@ class ValidateSQLRequest(Schema):
     sql = fields.String(
         required=True, metadata={"description": "SQL statement to validate"}
     )
+    catalog = fields.String(required=False, allow_none=True)
     schema = fields.String(required=False, allow_none=True)
     template_params = fields.Dict(required=False, allow_none=True)
 
@@ -824,6 +827,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     cancel_query_on_windows_unload = fields.Boolean(required=False)
     disable_data_preview = fields.Boolean(required=False)
     disable_drill_to_detail = fields.Boolean(required=False)
+    allow_multi_catalog = fields.Boolean(required=False)
     version = fields.String(required=False, allow_none=True)
 
 
@@ -968,6 +972,20 @@ class DatabaseSchemaAccessForFileUploadResponse(Schema):
     )
 
 
+class EngineInformationSchema(Schema):
+    supports_file_upload = fields.Boolean(
+        metadata={"description": "Users can upload files to the database"}
+    )
+    disable_ssh_tunneling = fields.Boolean(
+        metadata={"description": "SSH tunnel is not available to the database"}
+    )
+    supports_dynamic_catalog = fields.Boolean(
+        metadata={
+            "description": "The database supports multiple catalogs in a single connection"
+        }
+    )
+
+
 class DatabaseConnectionSchema(Schema):
     """
     Schema with database connection information.
@@ -1001,7 +1019,7 @@ class DatabaseConnectionSchema(Schema):
     driver = fields.String(
         allow_none=True, metadata={"description": "SQLAlchemy driver to use"}
     )
-    engine_information = fields.Dict(keys=fields.String(), values=fields.Raw())
+    engine_information = fields.Nested(EngineInformationSchema)
     expose_in_sqllab = fields.Boolean(
         metadata={"description": expose_in_sqllab_description}
     )
