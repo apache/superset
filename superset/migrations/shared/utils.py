@@ -34,21 +34,40 @@ logger = logging.getLogger(__name__)
 DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 1000))
 
 
-def table_has_column(table: str, column: str) -> bool:
+def get_table_column(
+    table_name: str,
+    column_name: str,
+) -> Optional[list[dict[str, Any]]]:
     """
-    Checks if a column exists in a given table.
+    Get the specified column.
 
-    :param table: A table name
-    :param column: A column name
-    :returns: True iff the column exists in the table
+    :param table_name: The Table name
+    :param column_name: The column name
+    :returns: The column
     """
 
     insp = inspect(op.get_context().bind)
 
     try:
-        return any(col["name"] == column for col in insp.get_columns(table))
+        for column in insp.get_columns(table_name):
+            if column["name"] == column_name:
+                return column
     except NoSuchTableError:
-        return False
+        pass
+
+    return None
+
+
+def table_has_column(table_name: str, column_name: str) -> bool:
+    """
+    Checks if a column exists in a given table.
+
+    :param table_name: A table name
+    :param column_name: A column name
+    :returns: True iff the column exists in the table
+    """
+
+    return bool(get_table_column(table_name, column_name))
 
 
 def table_has_index(table: str, index: str) -> bool:

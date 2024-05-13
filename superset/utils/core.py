@@ -70,7 +70,7 @@ from markupsafe import Markup
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
 from sqlalchemy import event, exc, inspect, select, Text
-from sqlalchemy.dialects.mysql import MEDIUMTEXT
+from sqlalchemy.dialects.mysql import LONGTEXT, MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
@@ -1495,6 +1495,10 @@ def time_function(
 
 def MediumText() -> Variant:  # pylint:disable=invalid-name
     return Text().with_variant(MEDIUMTEXT(), "mysql")
+
+
+def LongText() -> Variant:  # pylint:disable=invalid-name
+    return Text().with_variant(LONGTEXT(), "mysql")
 
 
 def shortid() -> str:
