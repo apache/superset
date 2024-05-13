@@ -16,10 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          submodules: recursive
-      - uses: ./.github/actions/linkinator-action
+      - uses: JustinBeckwith/linkinator-action@v1.10.4
         with:
           paths: "*.md, *.mdx"
   build-deploy:
