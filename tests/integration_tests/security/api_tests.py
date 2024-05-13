@@ -67,6 +67,18 @@ class TestSecurityCsrfApi(SupersetTestCase):
         response = self.client.get(uri)
         self.assert401(response)
 
+    def test_login(self):
+        """
+        Security API: Test get login
+        """
+        uri = f"api/v1/{self.resource_name}/login"
+        response = self.client.post(
+            uri,
+            json={"username": ADMIN_USERNAME, "password": "general", "provider": "db"},
+        )
+        assert response.status_code == 200
+        assert "access_token" in response.json
+
 
 class TestSecurityGuestTokenApi(SupersetTestCase):
     uri = "api/v1/security/guest_token/"  # noqa: F541
