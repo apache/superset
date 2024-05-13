@@ -39,10 +39,16 @@ from flask import (
     send_file,
     session,
 )
-from flask_appbuilder import BaseView, Model, ModelView
+from flask_appbuilder import BaseView, expose, Model, ModelView
 from flask_appbuilder.actions import action
+from flask_appbuilder.baseviews import expose_api
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
+from flask_appbuilder.security.decorators import (
+    has_access,
+    has_access_api,
+    permission_name,
+)
 from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
@@ -547,6 +553,64 @@ def get_common_bootstrap_data() -> dict[str, Any]:
 
 class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
+
+
+class DeprecateModelViewMixin:
+    @expose("/add", methods=["GET", "POST"])
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def add(self) -> FlaskResponse:
+        return super().add()  # type: ignore
+
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def show(self, pk: int) -> FlaskResponse:
+        return super().show(pk)  # type: ignore
+
+    @expose("/edit/<pk>", methods=["GET", "POST"])
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def edit(self, pk: int) -> FlaskResponse:
+        return super().edit(pk)  # type: ignore
+
+    @expose("/delete/<pk>", methods=["GET", "POST"])
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def delete(self, pk: int) -> FlaskResponse:
+        return super().delete(pk)  # type: ignore
+
+    @expose_api(name="read", url="/api/read", methods=["GET"])
+    @has_access_api
+    @permission_name("list")
+    @deprecated(eol_version="5.0.0")
+    def api_read(self) -> FlaskResponse:
+        return super().api_read()  # type: ignore
+
+    @expose_api(name="get", url="/api/get/<pk>", methods=["GET"])
+    @has_access_api
+    @permission_name("show")
+    def api_get(self, pk: int) -> FlaskResponse:
+        return super().api_get(pk)  # type: ignore
+
+    @expose_api(name="create", url="/api/create", methods=["POST"])
+    @has_access_api
+    @permission_name("add")
+    def api_create(self) -> FlaskResponse:
+        return super().api_create()  # type: ignore
+
+    @expose_api(name="update", url="/api/update/<pk>", methods=["PUT"])
+    @has_access_api
+    @permission_name("write")
+    @deprecated(eol_version="5.0.0")
+    def api_update(self, pk: int) -> FlaskResponse:
+        return super().api_update(pk)  # type: ignore
+
+    @expose_api(name="delete", url="/api/delete/<pk>", methods=["DELETE"])
+    @has_access_api
+    @permission_name("delete")
+    @deprecated(eol_version="5.0.0")
+    def api_delete(self, pk: int) -> FlaskResponse:
+        return super().delete(pk)  # type: ignore
 
 
 class SupersetModelView(ModelView):
