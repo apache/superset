@@ -17,12 +17,13 @@ apsw==3.42.0.1
     # via shillelagh
 async-timeout==4.0.2
     # via redis
-attrs==23.1.0
+attrs==23.2.0
     # via
     #   cattrs
     #   jsonschema
+    #   referencing
     #   requests-cache
-babel==2.9.1
+babel==2.15.0
     # via flask-babel
 backoff==2.2.1
     # via apache-superset
@@ -30,7 +31,7 @@ bcrypt==4.0.1
     # via paramiko
 billiard==4.2.0
     # via celery
-blinker==1.7.0
+blinker==1.8.2
     # via flask
 bottleneck==1.3.7
     # via pandas
@@ -85,13 +86,13 @@ cryptography==42.0.5
     #   apache-superset
     #   paramiko
     #   pyopenssl
-deprecated==1.2.13
+deprecated==1.2.14
     # via limits
 deprecation==2.1.0
     # via apache-superset
-dnspython==2.1.0
+dnspython==2.6.1
     # via email-validator
-email-validator==1.1.3
+email-validator==2.1.1
     # via flask-appbuilder
 exceptiongroup==1.2.0
     # via cattrs
@@ -111,15 +112,15 @@ flask==2.3.3
     #   flask-wtf
 flask-appbuilder==4.4.1
     # via apache-superset
-flask-babel==1.0.0
+flask-babel==2.0.0
     # via flask-appbuilder
 flask-caching==2.1.0
     # via apache-superset
 flask-compress==1.14
     # via apache-superset
-flask-jwt-extended==4.5.3
+flask-jwt-extended==4.6.0
     # via flask-appbuilder
-flask-limiter==3.3.1
+flask-limiter==3.6.0
     # via flask-appbuilder
 flask-login==0.6.3
     # via
@@ -148,7 +149,9 @@ geopy==2.4.1
 google-auth==2.27.0
     # via shillelagh
 greenlet==3.0.3
-    # via shillelagh
+    # via
+    #   shillelagh
+    #   sqlalchemy
 gunicorn==21.2.0
     # via apache-superset
 hashids==1.3.1
@@ -157,35 +160,33 @@ holidays==0.25
     # via apache-superset
 humanize==4.9.0
     # via apache-superset
-idna==3.2
+idna==3.7
     # via
     #   email-validator
     #   requests
-importlib-metadata==6.6.0
-    # via
-    #   apache-superset
-    #   flask
-    #   markdown
-    #   shillelagh
-importlib-resources==5.12.0
+importlib-metadata==7.1.0
+    # via apache-superset
+importlib-resources==6.4.0
     # via limits
 isodate==0.6.1
     # via apache-superset
-itsdangerous==2.1.2
+itsdangerous==2.2.0
     # via
     #   flask
     #   flask-wtf
-jinja2==3.1.3
+jinja2==3.1.4
     # via
     #   flask
     #   flask-babel
-jsonschema==4.17.3
+jsonschema==4.22.0
     # via flask-appbuilder
+jsonschema-specifications==2023.12.1
+    # via jsonschema
 kombu==5.3.4
     # via celery
 korean-lunar-calendar==0.3.1
     # via holidays
-limits==3.4.0
+limits==3.12.0
     # via flask-limiter
 llvmlite==0.40.1
     # via numba
@@ -195,7 +196,7 @@ mako==1.3.2
     #   apache-superset
 markdown==3.6
     # via apache-superset
-markdown-it-py==2.2.0
+markdown-it-py==3.0.0
     # via rich
 markupsafe==2.1.5
     # via
@@ -203,11 +204,11 @@ markupsafe==2.1.5
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.19.0
+marshmallow==3.21.2
     # via
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
-marshmallow-sqlalchemy==0.23.1
+marshmallow-sqlalchemy==0.28.2
     # via flask-appbuilder
 mdurl==0.1.2
     # via markdown-it-py
@@ -233,7 +234,7 @@ numpy==1.23.5
     #   pyarrow
 ordered-set==4.1.0
     # via flask-limiter
-packaging==23.2
+packaging==24.0
     # via
     #   apache-superset
     #   apispec
@@ -241,6 +242,7 @@ packaging==23.2
     #   gunicorn
     #   limits
     #   marshmallow
+    #   marshmallow-sqlalchemy
     #   shillelagh
 pandas[performance]==2.0.3
     # via apache-superset
@@ -270,7 +272,7 @@ pyasn1-modules==0.3.0
     # via google-auth
 pycparser==2.20
     # via cffi
-pygments==2.15.0
+pygments==2.18.0
     # via rich
 pyjwt==2.8.0
     # via
@@ -283,8 +285,6 @@ pyopenssl==24.1.0
     # via shillelagh
 pyparsing==3.1.2
     # via apache-superset
-pyrsistent==0.20.0
-    # via jsonschema
 python-dateutil==2.9.0.post0
     # via
     #   apache-superset
@@ -298,9 +298,8 @@ python-dotenv==1.0.1
     # via apache-superset
 python-geohash==0.8.5
     # via apache-superset
-pytz==2021.3
+pytz==2024.1
     # via
-    #   babel
     #   croniter
     #   flask-babel
     #   pandas
@@ -310,14 +309,22 @@ pyyaml==6.0.1
     #   apispec
 redis==4.6.0
     # via apache-superset
+referencing==0.35.1
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
 requests==2.31.0
     # via
     #   requests-cache
     #   shillelagh
 requests-cache==1.1.1
     # via shillelagh
-rich==13.3.4
+rich==13.7.1
     # via flask-limiter
+rpds-py==0.18.1
+    # via
+    #   jsonschema
+    #   referencing
 rsa==4.9
     # via google-auth
 selenium==3.141.0
@@ -359,13 +366,12 @@ sshtunnel==0.4.0
     # via apache-superset
 tabulate==0.8.10
     # via apache-superset
-typing-extensions==4.10.0
+typing-extensions==4.11.0
     # via
     #   alembic
     #   apache-superset
     #   cattrs
     #   flask-limiter
-    #   kombu
     #   limits
     #   shillelagh
 tzdata==2023.3
@@ -394,7 +400,7 @@ werkzeug==3.0.3
     #   flask-appbuilder
     #   flask-jwt-extended
     #   flask-login
-wrapt==1.15.0
+wrapt==1.16.0
     # via deprecated
 wtforms==3.1.2
     # via
@@ -406,10 +412,5 @@ wtforms-json==0.3.5
     # via apache-superset
 xlsxwriter==3.0.9
     # via apache-superset
-zipp==3.15.0
-    # via
-    #   importlib-metadata
-    #   importlib-resources
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools
+zipp==3.18.1
+    # via importlib-metadata
