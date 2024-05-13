@@ -105,9 +105,78 @@ class CssEditor extends React.PureComponent {
         modalTitle={t('CSS')}
         modalBody={
           <StyledWrapper>
-            <div className="css-editor-header">
-              <h5>{t('Live CSS editor')}</h5>
-              {this.renderTemplateSelector()}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+              }}
+            >
+              <div className="css-editor-header">
+                <h5>{t('Live CSS editor')}</h5>
+                {this.renderTemplateSelector()}
+              </div>
+              <button
+                type="button"
+                style={{
+                  border: 'none',
+                  cursor: 'pointer',
+                  // eslint-disable-next-line theme-colors/no-literal-colors
+                  color: 'rgb(89, 89, 112)',
+                  // eslint-disable-next-line theme-colors/no-literal-colors
+                  backgroundColor: 'rgb(240, 240, 240)',
+                  marginLeft: 'auto',
+                  borderRadius: '4px',
+                  marginBottom: '8px',
+                  padding: '4px 8px',
+                  transition: 'all 0.2s',
+                  fontWeight: 'bold',
+                }}
+                onClick={() =>
+                  this.changeCss(`
+/* Top level  */
+.dashboard {
+  margin-left: 0 !important;
+}
+
+/* Dashboard grid */
+.grid-container {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: 100% !important;
+  background-color: #f5f7f8;
+}
+
+/* Dashboard rows */
+.grid-row {
+  padding: 0 24px;
+}
+
+/* All dashboard components */
+.dashboard-component.dashboard-component {
+  box-shadow: none !important;
+}
+
+/* Dynamic markdown components */
+.dashboard-component-ikirunpipeline {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Charts & chart headers */
+.chart-header {
+  display: none !important;
+}
+
+/* Big number chart */
+.header-line {
+  font-size: 46px !important;
+  font-weight: bold;
+}
+                `)
+                }
+              >
+                Load default template
+              </button>
             </div>
             <AceCssEditor
               className="css-editor"
