@@ -45,6 +45,7 @@ import {
   extractExtraMetrics,
   getOriginalSeries,
   isDerivedSeries,
+  getTimeOffset,
 } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import { LineStyleOption } from 'echarts/types/src/util/types';
@@ -273,15 +274,21 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
-  let offsetLineWidth = 1;
+  const offsetLineWidths = {};
 
   rawSeries.forEach(entry => {
     const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
     const lineStyle: LineStyleOption = {};
     if (derivedSeries) {
+      const offset = getTimeOffset(
+        entry,
+        ensureIsArray(chartProps.rawFormData?.time_compare),
+      )!;
+      if (!offsetLineWidths[offset]) {
+        offsetLineWidths[offset] = Object.keys(offsetLineWidths).length + 1;
+      }
       lineStyle.type = 'dashed';
-      lineStyle.width = offsetLineWidth;
-      offsetLineWidth += 1;
+      lineStyle.width = offsetLineWidths[offset];
     }
 
     const entryName = String(entry.name || '');
