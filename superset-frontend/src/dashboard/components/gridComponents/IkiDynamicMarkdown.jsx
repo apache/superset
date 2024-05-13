@@ -2,6 +2,7 @@
 /* eslint-disable no-undef */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
@@ -74,6 +75,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
       undoLength: props.undoLength,
       redoLength: props.redoLength,
       projectId: '',
+      dashboardId: null,
     };
     this.renderStartTime = Logger.getTimestamp();
 
@@ -86,6 +88,12 @@ class IkiDynamicMarkdown extends React.PureComponent {
   }
 
   componentDidMount() {
+    this.setState({
+      dashboardId: parseInt(
+        window.location.pathname.split('/dashboard/')[1].split('/')[0],
+        10,
+      ),
+    });
     this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
       viz_type: 'markdown',
       start_offset: this.renderStartTime,
@@ -172,7 +180,6 @@ class IkiDynamicMarkdown extends React.PureComponent {
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
-      // console.log('s event.origin', event.origin, this.props.ikigaiOrigin);
       if (event.origin === this.props.ikigaiOrigin) {
         const messageObject = JSON.parse(event.data);
         if (messageObject.info && messageObject.dataType) {
@@ -221,49 +228,11 @@ class IkiDynamicMarkdown extends React.PureComponent {
               this.handleIkiRunPipelineChange(tempIframe, true);
             }
           } else if (
-            messageObject.info === 'widget-to-superset/get-superset-charts-list'
-          ) {
-            const allChartElements = document.querySelectorAll(
-              '[data-test-chart-id]',
-            );
-            const chartsList = [];
-            allChartElements.forEach(chartElement => {
-              const tempChartID =
-                chartElement.getAttribute('data-test-chart-id');
-              const tempChartName = chartElement.getAttribute(
-                'data-test-chart-name',
-              );
-              chartsList.push({ value: tempChartID, label: tempChartName });
-            });
-            const messageObject = {
-              projectId: messageData.projectId,
-              data: chartsList,
-              dataType: 'object',
-            };
-
-            const componentDataString = JSON.stringify(messageObject);
-            const crossWindowMessage = {
-              info: 'superset-to-custom-html-widget/get-superset-charts-list',
-              data: componentDataString,
-              dataType: 'object',
-            };
-            const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
-            const iframe = document.getElementById(
-              `ikidynamicmarkdown-widget-${this.props.component.id}`,
-            );
-            // window?.parent?.postMessage(
-            // iframe.contentWindow is suggested way on internet to send message to iframe window (although localy it works only without contentWindow part)
-            iframe.postMessage(
-              crossBrowserInfoString,
-              event.origin,
-              // this.props.ikigaiOrigin,
-            );
-          } else if (
             messageObject.info ===
             'widget-to-superset/sending-charts-to-refresh'
           ) {
-            const { selectedCharts } = messageData;
-            this.refreshCharts(selectedCharts);
+            const { matchedChartIds } = messageData;
+            this.refreshCharts(matchedChartIds);
           }
         }
       }
@@ -271,32 +240,32 @@ class IkiDynamicMarkdown extends React.PureComponent {
   }
 
   refreshCharts(selectedCharts) {
-    const layoutElements = this.props.dashboardLayout?.present
-      ? this.props.dashboardLayout?.present
-      : null;
-    if (selectedCharts) {
-      selectedCharts.forEach(selectedChart => {
-        if (selectedChart?.refresh_id) {
-          this.refreshChart(
-            selectedChart?.refresh_id,
-            this.state.dashboardId,
-            false,
-          );
-        } else {
+    let chartIds = [];
+    if (!Array.isArray(selectedCharts)) {
+      chartIds = selectedCharts.split();
+    } else {
+      chartIds = selectedCharts;
+    }
+    if (chartIds) {
+      const layoutElements = this.props.dashboardLayout?.present
+        ? this.props.dashboardLayout?.present
+        : null;
+      if (chartIds) {
+        chartIds.forEach(chartId => {
           let findChartEle = null;
           if (layoutElements) {
             Object.keys(layoutElements).forEach(ele => {
-              if (layoutElements[ele].meta?.sliceName === selectedChart.name) {
+              const supChartId = layoutElements[ele].meta?.chartId;
+              if (supChartId && supChartId.toString() === chartId) {
                 findChartEle = ele;
               }
             });
           }
-
           if (findChartEle) {
             this.refreshChart(findChartEle, this.state.dashboardId, false);
           }
-        }
-      });
+        });
+      }
     }
   }
 
@@ -548,4 +517,4 @@ function mapDispatchToProps(dispatch) {
     dispatch,
   );
 }
-export default connect(mapStateToProps)(IkiDynamicMarkdown);
+export default connect(mapStateToProps, mapDispatchToProps)(IkiDynamicMarkdown);
