@@ -454,32 +454,31 @@ describe('Additional actions tests', () => {
       userEvent.click(exportCSVElement);
       expect(spyExportChart.callCount).toBe(1);
     });
-  });
 
-  test('Should not export to Excel if canDownload=false', async () => {
-    const props = createProps();
-    render(<ExploreHeader {...props} />, {
-      useRedux: true,
-    });
-    userEvent.click(screen.getByLabelText('Menu actions trigger'));
-    userEvent.hover(screen.getByText('Download'));
-    const exportExcelElement = await screen.findByText('Export to Excel');
-    userEvent.click(exportExcelElement);
-    expect(spyExportChart.callCount).toBe(0);
-    spyExportChart.restore();
-  });
-
-  test('Should export to Excel if canDownload=true', async () => {
-    const props = createProps();
-    props.canDownload = true;
-    render(<ExploreHeader {...props} />, {
-      useRedux: true,
+    test('Should not export to Excel if canDownload=false', async () => {
+      const props = createProps();
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportExcelElement = await screen.findByText('Export to Excel');
+      userEvent.click(exportExcelElement);
+      expect(spyExportChart.callCount).toBe(0);
+      spyExportChart.restore();
     });
 
-    userEvent.click(screen.getByLabelText('Menu actions trigger'));
-    userEvent.hover(screen.getByText('Download'));
-    const exportExcelElement = await screen.findByText('Export to Excel');
-    userEvent.click(exportExcelElement);
-    expect(spyExportChart.callCount).toBe(1);
+    test('Should export to Excel if canDownload=true', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportExcelElement = await screen.findByText('Export to Excel');
+      userEvent.click(exportExcelElement);
+      expect(spyExportChart.callCount).toBe(1);
+    });
   });
 });

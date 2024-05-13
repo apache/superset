@@ -137,6 +137,7 @@ const ExploreChartPanel = ({
   standalone,
   chartIsStale,
   chartAlert,
+  can_download: canDownload,
 }) => {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
@@ -449,6 +450,7 @@ const ExploreChartPanel = ({
           chartStatus={chart.chartStatus}
           errorMessage={errorMessage}
           actions={actions}
+          canDownload={canDownload}
         />
       </Split>
       {showDatasetModal && (
