@@ -34,7 +34,7 @@ blinker==1.8.2
     # via flask
 bottleneck==1.3.7
     # via pandas
-brotli==1.0.9
+brotli==1.1.0
     # via flask-compress
 cachelib==0.9.0
     # via
@@ -115,7 +115,7 @@ flask-babel==1.0.0
     # via flask-appbuilder
 flask-caching==2.3.0
     # via apache-superset
-flask-compress==1.14
+flask-compress==1.15
     # via apache-superset
 flask-jwt-extended==4.5.3
     # via flask-appbuilder
@@ -403,6 +403,8 @@ xlsxwriter==3.0.9
     # via apache-superset
 zipp==3.18.1
     # via importlib-metadata
+zstandard==0.22.0
+    # via flask-compress
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
