@@ -67,8 +67,6 @@ export const isLabelsColorMapSynced = (
   currentLabelsColorMap: Map<string, string>,
 ): boolean => {
   const freshLabelsColorMap = getLabelsColorMap().getColorMap();
-  console.log('------currentLabelsColorMap', currentLabelsColorMap);
-  console.log('------freshLabelsColorMap', freshLabelsColorMap);
   return Object.entries(freshLabelsColorMap).every(
     ([label, color]) =>
       currentLabelsColorMap.hasOwnProperty(label) &&
