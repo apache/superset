@@ -15,7 +15,7 @@ apispec[yaml]==6.3.0
     # via flask-appbuilder
 apsw==3.42.0.1
     # via shillelagh
-async-timeout==4.0.2
+async-timeout==4.0.3
     # via redis
 attrs==23.1.0
     # via
