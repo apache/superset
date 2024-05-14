@@ -413,7 +413,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         get:
           summary: Get dashboard's tabs
           description: >-
-            Returns a list of a dashboard's tabs.
+            Returns a list of a dashboard's tabs and dashboard's nested tree structure for associated tabs.
           parameters:
           - in: path
             schema:
@@ -431,7 +431,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                       result:
                         type: object
                         items:
-                          $ref: '#/components/schemas/TabSchema'
+                          $ref: '#/components/schemas/TabsPayloadSchema'
             400:
               $ref: '#/components/responses/400'
             401:
