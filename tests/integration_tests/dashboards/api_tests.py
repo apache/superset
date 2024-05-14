@@ -960,11 +960,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             },
         }
         admin_id = self.get_user("admin").id
-        dashboard_id = self.insert_dashboard(
+        dashboard = self.insert_dashboard(
             "title", "slug", [admin_id], position_json=json.dumps(position_data)
-        ).id
+        )
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/{dashboard_id}/tabs"
+        uri = f"api/v1/dashboard/{dashboard.id}/tabs"
         rv = self.get_assert_metric(uri, "get_tabs")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
@@ -1034,6 +1034,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(response, expected_response)
+        db.session.delete(dashboard)
+        db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_tabs_not_found(self):
