@@ -187,6 +187,10 @@ const config = {
             to: '/docs/configuration/event-logging',
             from: '/docs/installation/event-logging/',
           },
+          {
+            to: '/contributing/howtos/#contribute-translations',
+            from: '/docs/contributing/translations/',
+          },
         ],
       },
     ],
