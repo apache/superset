@@ -20,10 +20,7 @@ from pytest import fixture, mark
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
-from superset.common.query_context_processor import (
-    AGGREGATED_JOIN_COLUMN,
-    QueryContextProcessor,
-)
+from superset.common.query_context_processor import QueryContextProcessor
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import TimeGrain
 
@@ -57,21 +54,21 @@ def make_join_column_producer():
         (TimeGrain.YEAR, "2020"),
     ],
 )
-def test_aggregated_join_column(time_grain: str, expected: str):
+def test_join_column(time_grain: str, expected: str):
     df = DataFrame({"ds": [Timestamp("2020-01-07")]})
-    query_context_processor.add_aggregated_join_column(df, time_grain)
-    result = DataFrame(
-        {"ds": [Timestamp("2020-01-07")], AGGREGATED_JOIN_COLUMN: [expected]}
-    )
+    column_name = "join_column"
+    query_context_processor.add_offset_join_column(df, column_name, time_grain)
+    result = DataFrame({"ds": [Timestamp("2020-01-07")], column_name: [expected]})
     assert_frame_equal(df, result)
 
 
-def test_aggregated_join_column_producer(make_join_column_producer):
+def test_join_column_producer(make_join_column_producer):
     df = DataFrame({"ds": [Timestamp("2020-01-07")]})
-    query_context_processor.add_aggregated_join_column(
-        df, TimeGrain.YEAR, make_join_column_producer
+    column_name = "join_column"
+    query_context_processor.add_offset_join_column(
+        df, column_name, TimeGrain.YEAR, None, make_join_column_producer
     )
     result = DataFrame(
-        {"ds": [Timestamp("2020-01-07")], AGGREGATED_JOIN_COLUMN: ["CUSTOM_FORMAT"]}
+        {"ds": [Timestamp("2020-01-07")], column_name: ["CUSTOM_FORMAT"]}
     )
     assert_frame_equal(df, result)

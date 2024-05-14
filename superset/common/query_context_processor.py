@@ -339,6 +339,7 @@ class QueryContextProcessor:
 
         return query_object.extras.get("time_grain_sqla")
 
+    # pylint: disable=too-many-arguments
     def add_offset_join_column(
         self,
         df: pd.DataFrame,
@@ -521,7 +522,13 @@ class QueryContextProcessor:
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
 
-    def join_offset_dfs(self, df, offset_dfs, time_grain, join_keys):
+    def join_offset_dfs(
+        self,
+        df: pd.DataFrame,
+        offset_dfs: dict[str, pd.DataFrame],
+        time_grain: str,
+        join_keys: list[str],
+    ) -> pd.DataFrame:
         """
         Join offset DataFrames with the main DataFrame.
 
@@ -549,16 +556,21 @@ class QueryContextProcessor:
                 offset_df, column_name, time_grain, None, join_column_producer
             )
 
-            # replace the temporal column in join_keys with the offset join column
-            join_keys[0] = column_name
+            # the temporal column is the first column in the join keys
+            # so we use the join column instead of the temporal column
+            actual_join_keys = [column_name, *join_keys[1:]]
 
             # left join df with offset_df
             df = dataframe_utils.left_join_df(
                 left_df=df,
                 right_df=offset_df,
-                join_keys=join_keys,
+                join_keys=actual_join_keys,
                 rsuffix=R_SUFFIX,
             )
+
+            # move the temporal column to the first column in df
+            col = df.pop(join_keys[0])
+            df.insert(0, col.name, col)
 
             # removes columns created only for join purposes
             df.drop(
