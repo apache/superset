@@ -257,7 +257,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
             Object.keys(layoutElements).forEach(ele => {
               const supChartId = layoutElements[ele].meta?.chartId;
               if (supChartId && supChartId.toString() === chartId) {
-                findChartEle = ele;
+                findChartEle = supChartId;
               }
             });
           }
