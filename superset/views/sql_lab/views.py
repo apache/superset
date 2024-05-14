@@ -50,9 +50,7 @@ class SavedQueryView(BaseSupersetView):
         return super().render_app_template()
 
 
-class SavedQueryViewApi(
-    SupersetModelView, DeleteMixin
-):  # pylint: disable=too-many-ancestors
+class SavedQueryViewApi(SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SavedQuery)
     include_route_methods = RouteMethod.CRUD_SET
     route_base = "/savedqueryviewapi"
@@ -93,6 +91,7 @@ class TabStateView(BaseSupersetView):
             or query_editor.get("title", __("Untitled Query")),
             active=True,
             database_id=query_editor["dbId"],
+            catalog=query_editor.get("catalog"),
             schema=query_editor.get("schema"),
             sql=query_editor.get("sql", "SELECT ..."),
             query_limit=query_editor.get("queryLimit"),

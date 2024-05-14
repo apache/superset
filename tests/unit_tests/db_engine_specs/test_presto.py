@@ -24,6 +24,7 @@ from pyhive.sqlalchemy_presto import PrestoDialect
 from sqlalchemy import sql, text, types
 from sqlalchemy.engine.url import make_url
 
+from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -115,10 +116,10 @@ def test_get_schema_from_engine_params() -> None:
 @pytest.mark.parametrize(
     ["column_type", "column_value", "expected_value"],
     [
-        (types.DATE(), "2023-05-01", "DATE '2023-05-01'"),
-        (types.TIMESTAMP(), "2023-05-01", "TIMESTAMP '2023-05-01'"),
-        (types.VARCHAR(), "2023-05-01", "'2023-05-01'"),
-        (types.INT(), 1234, "1234"),
+        ("DATE", "2023-05-01", "DATE '2023-05-01'"),
+        ("TIMESTAMP", "2023-05-01", "TIMESTAMP '2023-05-01'"),
+        ("VARCHAR", "2023-05-01", "'2023-05-01'"),
+        ("INT", 1234, "1234"),
     ],
 )
 def test_where_latest_partition(
@@ -143,7 +144,10 @@ def test_where_latest_partition(
 
     expected = f"""SELECT * FROM table \nWHERE "partition_key" = {expected_value}"""
     result = spec.where_latest_partition(
-        "table", mock.MagicMock(), mock.MagicMock(), query, columns
+        mock.MagicMock(),
+        Table("table"),
+        query,
+        columns,
     )
     assert result is not None
     actual = result.compile(

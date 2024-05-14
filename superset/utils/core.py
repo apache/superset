@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Utility functions used across Superset"""
+
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
@@ -69,7 +70,7 @@ from markupsafe import Markup
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
 from sqlalchemy import event, exc, inspect, select, Text
-from sqlalchemy.dialects.mysql import MEDIUMTEXT
+from sqlalchemy.dialects.mysql import LONGTEXT, MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
@@ -506,8 +507,8 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> Any:
         return base_json_conv(obj)
     except TypeError as ex:
         if pessimistic:
+            logger.error("Failed to serialize %s", obj)
             return f"Unserializable [{type(obj)}]"
-
         raise ex
 
 
@@ -678,11 +679,13 @@ def generic_find_uq_constraint_name(
 
 
 def get_datasource_full_name(
-    database_name: str, datasource_name: str, schema: str | None = None
+    database_name: str,
+    datasource_name: str,
+    catalog: str | None = None,
+    schema: str | None = None,
 ) -> str:
-    if not schema:
-        return f"[{database_name}].[{datasource_name}]"
-    return f"[{database_name}].[{schema}].[{datasource_name}]"
+    parts = [database_name, catalog, schema, datasource_name]
+    return ".".join([f"[{part}]" for part in parts if part])
 
 
 def validate_json(obj: bytes | bytearray | str) -> None:
@@ -1050,7 +1053,8 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:
         "adhoc_filters", []
     )
     adhoc_filters.extend(
-        {"isExtra": True, **fltr} for fltr in append_adhoc_filters  # type: ignore
+        {"isExtra": True, **adhoc_filter}  # type: ignore
+        for adhoc_filter in append_adhoc_filters
     )
     if append_filters:
         for key, value in form_data.items():
@@ -1493,6 +1497,10 @@ def MediumText() -> Variant:  # pylint:disable=invalid-name
     return Text().with_variant(MEDIUMTEXT(), "mysql")
 
 
+def LongText() -> Variant:  # pylint:disable=invalid-name
+    return Text().with_variant(LONGTEXT(), "mysql")
+
+
 def shortid() -> str:
     return f"{uuid.uuid4()}"[-12:]
 
@@ -1500,6 +1508,7 @@ def shortid() -> str:
 class DatasourceName(NamedTuple):
     table: str
     schema: str
+    catalog: str | None = None
 
 
 def get_stacktrace() -> str | None:
@@ -1907,3 +1916,10 @@ def remove_extra_adhoc_filters(form_data: dict[str, Any]) -> None:
         form_data[key] = [
             filter_ for filter_ in value or [] if not filter_.get("isExtra")
         ]
+
+
+def to_int(v: Any, value_if_invalid: int = 0) -> int:
+    try:
+        return int(v)
+    except (ValueError, TypeError):
+        return value_if_invalid

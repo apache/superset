@@ -553,13 +553,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     index: number,
     setting: NotificationSetting,
   ) => {
-    // if you've changed notification method
+    const settings: NotificationSetting[] = [...notificationSettings];
+    settings[index] = setting;
+
+    // if you've changed notification method -> remove trailing methods
     if (notificationSettings[index].method !== setting.method) {
       notificationSettings[index] = setting;
 
       setNotificationSettings(
         notificationSettings.filter((_, idx) => idx <= index),
       );
+
       if (notificationSettings.length - 1 > index) {
         setNotificationAddState('active');
       }
@@ -567,6 +571,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       if (setting.method !== undefined && notificationAddState !== 'hidden') {
         setNotificationAddState('active');
       }
+    } else {
+      setNotificationSettings(settings);
     }
   };
 
@@ -1622,11 +1628,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 ariaLabel={t('Log retention')}
                 placeholder={t('Log retention')}
                 onChange={onLogRetentionChange}
-                value={
-                  typeof currentAlert?.log_retention === 'number'
-                    ? currentAlert?.log_retention
-                    : ALERT_REPORTS_DEFAULT_RETENTION
-                }
+                value={currentAlert?.log_retention}
                 options={RETENTION_OPTIONS}
                 sortComparator={propertyComparator('value')}
               />

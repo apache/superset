@@ -419,6 +419,7 @@ describe('async actions', () => {
           queryEditor: {
             name: 'Copy of Dummy query editor',
             dbId: 1,
+            catalog: query.catalog,
             schema: query.schema,
             autorun: true,
             sql: 'SELECT * FROM something',
@@ -481,6 +482,7 @@ describe('async actions', () => {
               sql: expect.stringContaining('SELECT ...'),
               name: `Untitled Query 7`,
               dbId: defaultQueryEditor.dbId,
+              catalog: defaultQueryEditor.catalog,
               schema: defaultQueryEditor.schema,
               autorun: false,
               queryLimit:
@@ -508,10 +510,11 @@ describe('async actions', () => {
     fetchMock.delete(updateTableSchemaEndpoint, {});
     fetchMock.post(updateTableSchemaEndpoint, JSON.stringify({ id: 1 }));
 
-    const getTableMetadataEndpoint = 'glob:**/api/v1/database/*/table/*/*/';
+    const getTableMetadataEndpoint =
+      'glob:**/api/v1/database/*/table_metadata/*';
     fetchMock.get(getTableMetadataEndpoint, {});
     const getExtraTableMetadataEndpoint =
-      'glob:**/api/v1/database/*/table_metadata/extra/';
+      'glob:**/api/v1/database/*/table_metadata/extra/*';
     fetchMock.get(getExtraTableMetadataEndpoint, {});
 
     let isFeatureEnabledMock;
@@ -602,6 +605,24 @@ describe('async actions', () => {
           },
         ];
         store.dispatch(actions.queryEditorSetDb(queryEditor, dbId));
+        expect(store.getActions()).toEqual(expectedActions);
+      });
+    });
+
+    describe('queryEditorSetCatalog', () => {
+      it('updates the tab state in the backend', () => {
+        expect.assertions(1);
+
+        const catalog = 'public';
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.QUERY_EDITOR_SET_CATALOG,
+            queryEditor,
+            catalog,
+          },
+        ];
+        store.dispatch(actions.queryEditorSetCatalog(queryEditor, catalog));
         expect(store.getActions()).toEqual(expectedActions);
       });
     });
@@ -746,6 +767,7 @@ describe('async actions', () => {
     describe('addTable', () => {
       it('dispatches table state from unsaved change', () => {
         const tableName = 'table';
+        const catalogName = null;
         const schemaName = 'schema';
         const expectedDbId = 473892;
         const store = mockStore({
@@ -758,12 +780,18 @@ describe('async actions', () => {
             },
           },
         });
-        const request = actions.addTable(query, tableName, schemaName);
+        const request = actions.addTable(
+          query,
+          tableName,
+          catalogName,
+          schemaName,
+        );
         request(store.dispatch, store.getState);
         expect(store.getActions()[0]).toEqual(
           expect.objectContaining({
             table: expect.objectContaining({
               name: tableName,
+              catalog: catalogName,
               schema: schemaName,
               dbId: expectedDbId,
             }),
@@ -810,6 +838,7 @@ describe('async actions', () => {
         });
 
         const tableName = 'table';
+        const catalogName = null;
         const schemaName = 'schema';
         const store = mockStore({
           ...initialState,
@@ -828,6 +857,7 @@ describe('async actions', () => {
         const request = actions.runTablePreviewQuery({
           dbId: 1,
           name: tableName,
+          catalog: catalogName,
           schema: schemaName,
         });
         return request(store.dispatch, store.getState).then(() => {

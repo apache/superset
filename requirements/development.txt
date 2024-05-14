@@ -10,6 +10,8 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
+appnope==0.1.4
+    # via ipython
 astroid==3.1.0
     # via pylint
 asttokens==2.2.1
@@ -239,6 +241,8 @@ rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rfc3986==2.0.0
     # via tableschema
+ruff==0.4.0
+    # via apache-superset
 s3transfer==0.6.1
     # via boto3
 sqlalchemy-bigquery==1.10.0

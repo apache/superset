@@ -215,7 +215,7 @@ describe('Dashboard edit', () => {
 
     it('should apply same color to same labels with color scheme set', () => {
       openProperties();
-      selectColorScheme('lyftColors');
+      selectColorScheme('blueToGreen');
       applyChanges();
       saveChanges();
 
@@ -231,7 +231,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(51, 61, 71)');
+        .should('have.css', 'fill', 'rgb(0, 234, 162)');
 
       // open 2nd main tab
       openTab(0, 1);
@@ -240,7 +240,7 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
-        .should('have.css', 'fill', 'rgb(51, 61, 71)');
+        .should('have.css', 'fill', 'rgb(0, 234, 162)');
     });
 
     it('should apply same color to same labels with no color scheme set', () => {
@@ -480,7 +480,7 @@ describe('Dashboard edit', () => {
 
     it.skip('should change color scheme multiple times', () => {
       openProperties();
-      selectColorScheme('lyftColors');
+      selectColorScheme('blueToGreen');
       applyChanges();
       saveChanges();
 
@@ -509,7 +509,7 @@ describe('Dashboard edit', () => {
 
       editDashboard();
       openProperties();
-      selectColorScheme('bnbColors');
+      selectColorScheme('modernSunset');
       applyChanges();
       saveChanges();
 
@@ -532,7 +532,7 @@ describe('Dashboard edit', () => {
 
     it.skip('should apply the color scheme across main tabs', () => {
       openProperties();
-      selectColorScheme('lyftColors');
+      selectColorScheme('blueToGreen');
       applyChanges();
       saveChanges();
 
@@ -548,7 +548,7 @@ describe('Dashboard edit', () => {
     it.skip('should apply the color scheme across main tabs for rendered charts', () => {
       waitForChartLoad({ name: 'Treemap', viz: 'treemap_v2' });
       openProperties();
-      selectColorScheme('bnbColors');
+      selectColorScheme('blueToGreen');
       applyChanges();
       saveChanges();
 
@@ -563,7 +563,7 @@ describe('Dashboard edit', () => {
       // change scheme now that charts are rendered across the main tabs
       editDashboard();
       openProperties();
-      selectColorScheme('lyftColors');
+      selectColorScheme('modernSunset');
       applyChanges();
       saveChanges();
 
@@ -574,7 +574,7 @@ describe('Dashboard edit', () => {
 
     it.skip('should apply the color scheme in nested tabs', () => {
       openProperties();
-      selectColorScheme('lyftColors');
+      selectColorScheme('blueToGreen');
       applyChanges();
       saveChanges();
 
@@ -609,7 +609,7 @@ describe('Dashboard edit', () => {
       // go to previous tab
       openTab(1, 0);
       openProperties();
-      selectColorScheme('lyftColors');
+      selectColorScheme('blueToGreen');
       applyChanges();
       saveChanges();
 
@@ -646,16 +646,16 @@ describe('Dashboard edit', () => {
     });
 
     it.skip('should overwrite the color scheme when advanced is closed', () => {
-      selectColorScheme('d3Category20b');
+      selectColorScheme('blueToGreen');
       openAdvancedProperties();
-      assertMetadata('d3Category20b');
+      assertMetadata('blueToGreen');
       applyChanges();
     });
 
     it.skip('should overwrite the color scheme when advanced is open', () => {
       openAdvancedProperties();
-      selectColorScheme('googleCategory10c');
-      assertMetadata('googleCategory10c');
+      selectColorScheme('modernSunset');
+      assertMetadata('modernSunset');
       applyChanges();
     });
 

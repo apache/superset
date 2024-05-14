@@ -469,9 +469,9 @@ def convert_to_layout(positions):
                                         root[childId], root
                                     )
                                 else:
-                                    root[childId]["meta"][
-                                        "width"
-                                    ] = reduce_component_width(root[childId])
+                                    root[childId]["meta"]["width"] = (
+                                        reduce_component_width(root[childId])
+                                    )
 
                             root[current_column]["meta"]["width"] = get_children_max(
                                 root[current_column]["children"], "width", root

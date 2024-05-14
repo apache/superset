@@ -39,7 +39,7 @@ const metadata = new ChartMetadata({
     { url: example4, caption: t('Vehicle Types') },
   ],
   label: ChartLabel.Deprecated,
-  name: t('Area Chart (legacy)'),
+  name: t('Time-series Area Chart (legacy)'),
   supportedAnnotationTypes: [ANNOTATION_TYPES.INTERVAL, ANNOTATION_TYPES.EVENT],
   tags: [
     t('Comparison'),

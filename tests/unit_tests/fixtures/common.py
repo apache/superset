@@ -20,8 +20,11 @@ from __future__ import annotations
 import csv
 from datetime import datetime
 from io import BytesIO, StringIO
+from typing import Any
 
+import pandas as pd
 import pytest
+from werkzeug.datastructures import FileStorage
 
 
 @pytest.fixture
@@ -29,7 +32,9 @@ def dttm() -> datetime:
     return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
 
 
-def create_csv_file(data: list[list[str]] | None = None) -> BytesIO:
+def create_csv_file(
+    data: list[list[str]] | None = None, delimiter=",", filename="test.csv"
+) -> FileStorage:
     data = (
         [
             ["Name", "Age", "City"],
@@ -40,9 +45,31 @@ def create_csv_file(data: list[list[str]] | None = None) -> BytesIO:
     )
 
     output = StringIO()
-    writer = csv.writer(output)
+    writer = csv.writer(output, delimiter=delimiter)
     for row in data:
         writer.writerow(row)
     output.seek(0)
-    bytes_buffer = BytesIO(output.getvalue().encode("utf-8"))
-    return bytes_buffer
+    buffer = BytesIO(output.getvalue().encode("utf-8"))
+    return FileStorage(stream=buffer, filename=filename)
+
+
+def create_excel_file(
+    data: dict[str, list[Any]] | None = None, filename="test.xls"
+) -> FileStorage:
+    data = {"Name": ["John"], "Age": [30], "City": ["New York"]} if not data else data
+    buffer = BytesIO()
+    df = pd.DataFrame(data)
+    df.to_excel(buffer, index=False)
+    buffer.seek(0)
+    return FileStorage(stream=buffer, filename=filename)
+
+
+def create_columnar_file(
+    data: dict[str, list[Any]] | None = None, filename="test.parquet"
+) -> FileStorage:
+    data = {"Name": ["John"], "Age": [30], "City": ["New York"]} if not data else data
+    buffer = BytesIO()
+    df = pd.DataFrame(data)
+    df.to_parquet(buffer, index=False)
+    buffer.seek(0)
+    return FileStorage(stream=buffer, filename=filename)

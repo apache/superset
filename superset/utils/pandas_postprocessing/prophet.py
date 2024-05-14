@@ -28,7 +28,7 @@ from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
 
 
 def _prophet_parse_seasonality(
-    input_value: Optional[Union[bool, int]]
+    input_value: Optional[Union[bool, int]],
 ) -> Union[bool, str, int]:
     if input_value is None:
         return "auto"

@@ -26,7 +26,9 @@ from superset.reports.models import (
     ReportRecipientType,
     ReportScheduleType,
 )
-from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
+from tests.integration_tests.fixtures.tabbed_dashboard import (
+    tabbed_dashboard,  # noqa: F401
+)
 
 DASHBOARD_REPORT_SCHEDULE_DEFAULTS = {
     "type": ReportScheduleType.REPORT,
@@ -45,7 +47,7 @@ DASHBOARD_REPORT_SCHEDULE_DEFAULTS = {
 
 
 @pytest.mark.usefixtures("login_as_admin")
-def test_accept_valid_tab_ids(tabbed_dashboard: Dashboard) -> None:
+def test_accept_valid_tab_ids(tabbed_dashboard: Dashboard) -> None:  # noqa: F811
     report_schedule = CreateReportScheduleCommand(
         {
             **DASHBOARD_REPORT_SCHEDULE_DEFAULTS,
@@ -62,7 +64,7 @@ def test_accept_valid_tab_ids(tabbed_dashboard: Dashboard) -> None:
 
 
 @pytest.mark.usefixtures("login_as_admin")
-def test_raise_exception_for_invalid_tab_ids(tabbed_dashboard: Dashboard) -> None:
+def test_raise_exception_for_invalid_tab_ids(tabbed_dashboard: Dashboard) -> None:  # noqa: F811
     with pytest.raises(ReportScheduleInvalidError) as exc_info:
         CreateReportScheduleCommand(
             {

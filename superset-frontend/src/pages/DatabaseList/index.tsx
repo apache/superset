@@ -49,7 +49,7 @@ import { ExtensionConfigs } from 'src/features/home/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
-import CSVUploadModal from 'src/features/databases/CSVUploadModal';
+import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { DatabaseObject } from 'src/features/databases/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
@@ -136,7 +136,12 @@ function DatabaseList({
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
-  const [csvUploadModalOpen, setCsvUploadModalOpen] = useState<boolean>(false);
+  const [csvUploadDataModalOpen, setCsvUploadDataModalOpen] =
+    useState<boolean>(false);
+  const [excelUploadDataModalOpen, setExcelUploadDataModalOpen] =
+    useState<boolean>(false);
+  const [columnarUploadDataModalOpen, setColumnarUploadDataModalOpen] =
+    useState<boolean>(false);
 
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const isAdmin = isUserAdmin(fullUser);
@@ -238,23 +243,29 @@ function DatabaseList({
           name: 'Upload CSV file',
           url: '#',
           onClick: () => {
-            setCsvUploadModalOpen(true);
+            setCsvUploadDataModalOpen(true);
           },
           perm: canUploadCSV && showUploads,
           disable: isDisabled,
         },
         {
-          label: t('Upload columnar file'),
-          name: 'Upload columnar file',
-          url: '/columnartodatabaseview/form',
-          perm: canUploadColumnar && showUploads,
+          label: t('Upload Excel'),
+          name: 'Upload Excel file',
+          url: '#',
+          onClick: () => {
+            setExcelUploadDataModalOpen(true);
+          },
+          perm: canUploadExcel && showUploads,
           disable: isDisabled,
         },
         {
-          label: t('Upload Excel file'),
-          name: 'Upload Excel file',
-          url: '/exceltodatabaseview/form',
-          perm: canUploadExcel && showUploads,
+          label: t('Upload Columnar'),
+          name: 'Upload columnar file',
+          url: '#',
+          onClick: () => {
+            setColumnarUploadDataModalOpen(true);
+          },
+          perm: canUploadColumnar && showUploads,
           disable: isDisabled,
         },
       ],
@@ -379,7 +390,7 @@ function DatabaseList({
       },
       {
         accessor: 'allow_file_upload',
-        Header: t('CSV upload'),
+        Header: t('File upload'),
         Cell: ({
           row: {
             original: { allow_file_upload: allowFileUpload },
@@ -563,14 +574,35 @@ function DatabaseList({
           refreshData();
         }}
       />
-      <CSVUploadModal
+      <UploadDataModal
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onHide={() => {
-          setCsvUploadModalOpen(false);
+          setCsvUploadDataModalOpen(false);
         }}
-        show={csvUploadModalOpen}
+        show={csvUploadDataModalOpen}
         allowedExtensions={CSV_EXTENSIONS}
+        type="csv"
+      />
+      <UploadDataModal
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onHide={() => {
+          setExcelUploadDataModalOpen(false);
+        }}
+        show={excelUploadDataModalOpen}
+        allowedExtensions={EXCEL_EXTENSIONS}
+        type="excel"
+      />
+      <UploadDataModal
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onHide={() => {
+          setColumnarUploadDataModalOpen(false);
+        }}
+        show={columnarUploadDataModalOpen}
+        allowedExtensions={COLUMNAR_EXTENSIONS}
+        type="columnar"
       />
       {databaseCurrentlyDeleting && (
         <DeleteModal

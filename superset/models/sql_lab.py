@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
+
 import builtins
 import inspect
 import logging
@@ -58,7 +59,13 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import get_column_name, MediumText, QueryStatus, user_label
+from superset.utils.core import (
+    get_column_name,
+    LongText,
+    MediumText,
+    QueryStatus,
+    user_label,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -106,13 +113,14 @@ class Query(
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     status = Column(String(16), default=QueryStatus.PENDING)
     tab_name = Column(String(256))
-    sql_editor_id = Column(String(256))
+    sql_editor_id = Column(String(256), index=True)
     schema = Column(String(256))
-    sql = Column(MediumText())
+    catalog = Column(String(256), nullable=True, default=None)
+    sql = Column(LongText())
     # Query to retrieve the results,
     # used only in case of select_as_cta_used is true.
-    select_sql = Column(MediumText())
-    executed_sql = Column(MediumText())
+    select_sql = Column(LongText())
+    executed_sql = Column(LongText())
     # Could be configured in the superset config.
     limit = Column(Integer)
     limiting_factor = Column(
@@ -167,6 +175,7 @@ class Query(
             "limitingFactor": self.limiting_factor,
             "progress": self.progress,
             "rows": self.rows,
+            "catalog": self.catalog,
             "schema": self.schema,
             "ctas": self.select_as_cta,
             "serverId": self.id,
@@ -249,6 +258,7 @@ class Query(
             "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
+            "catalog": self.catalog,
             "schema": self.schema,
             "verbose_map": {},
         }
@@ -349,7 +359,7 @@ class Query(
 
     def adhoc_column_to_sqla(
         self,
-        col: "AdhocColumn",  # type: ignore
+        col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
@@ -385,6 +395,7 @@ class SavedQuery(
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     db_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
     schema = Column(String(128))
+    catalog = Column(String(256), nullable=True, default=None)
     label = Column(String(256))
     description = Column(Text)
     sql = Column(MediumText())
@@ -412,6 +423,7 @@ class SavedQuery(
 
     export_parent = "database"
     export_fields = [
+        "catalog",
         "schema",
         "label",
         "description",
@@ -473,6 +485,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     database_id = Column(Integer, ForeignKey("dbs.id", ondelete="CASCADE"))
     database = relationship("Database", foreign_keys=[database_id])
     schema = Column(String(256))
+    catalog = Column(String(256), nullable=True, default=None)
 
     # tables that are open in the schema browser and their data previews
     table_schemas = relationship(
@@ -510,6 +523,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
             "label": self.label,
             "active": self.active,
             "database_id": self.database_id,
+            "catalog": self.catalog,
             "schema": self.schema,
             "table_schemas": [ts.to_dict() for ts in self.table_schemas],
             "sql": self.sql,
@@ -534,6 +548,7 @@ class TableSchema(AuditMixinNullable, ExtraJSONMixin, Model):
     )
     database = relationship("Database", foreign_keys=[database_id])
     schema = Column(String(256))
+    catalog = Column(String(256), nullable=True, default=None)
     table = Column(String(256))
 
     # JSON describing the schema, partitions, latest partition, etc.
@@ -551,6 +566,7 @@ class TableSchema(AuditMixinNullable, ExtraJSONMixin, Model):
             "id": self.id,
             "tab_state_id": self.tab_state_id,
             "database_id": self.database_id,
+            "catalog": self.catalog,
             "schema": self.schema,
             "table": self.table,
             "description": description,

@@ -31,10 +31,6 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outputs.python
-      - name: pylint
-        if: steps.check.outputs.python
-        # `-j 0` run Pylint in parallel
-        run: pylint -j 0 superset
 
   babel-extract:
     runs-on: ubuntu-20.04

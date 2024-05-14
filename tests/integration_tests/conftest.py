@@ -118,8 +118,8 @@ def get_or_create_user(get_user, create_user) -> ab_models.User:
 @pytest.fixture(autouse=True, scope="session")
 def setup_sample_data() -> Any:
     # TODO(john-bodley): Determine a cleaner way of setting up the sample data without
-    # relying on `tests.integration_tests.test_app.app` leveraging an  `app` fixture which is purposely
-    # scoped to the function level to ensure tests remain idempotent.
+    # relying on `tests.integration_tests.test_app.app` leveraging an `app` fixture
+    # which is purposely scoped to the function level to ensure tests remain idempotent.
     with app.app_context():
         setup_presto_if_needed()
 
@@ -135,7 +135,6 @@ def setup_sample_data() -> Any:
 
     with app.app_context():
         # drop sqlalchemy tables
-
         db.session.commit()
         from sqlalchemy.ext import declarative
 
@@ -147,7 +146,7 @@ def setup_sample_data() -> Any:
 
 
 def drop_from_schema(engine: Engine, schema_name: str):
-    schemas = engine.execute(f"SHOW SCHEMAS").fetchall()
+    schemas = engine.execute(f"SHOW SCHEMAS").fetchall()  # noqa: F541
     if schema_name not in [s[0] for s in schemas]:
         # schema doesn't exist
         return
@@ -163,12 +162,12 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
         _db: Database | None = None
 
         def __call__(self) -> Database:
-            with app.app_context():
-                if self._db is None:
+            if self._db is None:
+                with app.app_context():
                     self._db = get_example_database()
                     self._load_lazy_data_to_decouple_from_session()
 
-                return self._db
+            return self._db
 
         def _load_lazy_data_to_decouple_from_session(self) -> None:
             self._db._get_sqla_engine()  # type: ignore
@@ -305,6 +304,7 @@ def virtual_dataset():
             "SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00', 4 "
             "UNION ALL "
             "SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00', 5 "
+            "\n /* CONTAINS A RANDOM COMMENT */ \n"
             "UNION ALL "
             "SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6 "
             "UNION ALL "

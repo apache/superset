@@ -28,11 +28,8 @@ from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
 from unittest.mock import MagicMock, Mock, PropertyMock
 
-from flask import current_app, Flask
-from flask.ctx import AppContext
 from pytest import fixture
 
-from superset.app import create_app
 from tests.example_data.data_loading.pandas.pandas_data_loader import PandasDataLoader
 from tests.example_data.data_loading.pandas.pands_data_loading_conf import (
     PandasLoaderConfigurations,

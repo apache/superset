@@ -93,13 +93,12 @@ def load_world_bank_dashboard_with_slices_class_scope(load_world_bank_data):
 
 
 def create_dashboard_for_loaded_data():
-    with app.app_context():
-        table = create_table_metadata(WB_HEALTH_POPULATION, get_example_database())
-        slices = _create_world_bank_slices(table)
-        dash = _create_world_bank_dashboard(table)
-        slices_ids_to_delete = [slice.id for slice in slices]
-        dash_id_to_delete = dash.id
-        return dash_id_to_delete, slices_ids_to_delete
+    table = create_table_metadata(WB_HEALTH_POPULATION, get_example_database())
+    slices = _create_world_bank_slices(table)
+    dash = _create_world_bank_dashboard(table)
+    slices_ids_to_delete = [slice.id for slice in slices]
+    dash_id_to_delete = dash.id
+    return dash_id_to_delete, slices_ids_to_delete
 
 
 def _create_world_bank_slices(table: SqlaTable) -> list[Slice]:

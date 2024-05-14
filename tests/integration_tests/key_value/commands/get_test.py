@@ -28,7 +28,7 @@ from tests.integration_tests.key_value.commands.fixtures import (
     ID_KEY,
     JSON_CODEC,
     JSON_VALUE,
-    key_value_entry,
+    key_value_entry,  # noqa: F401
     RESOURCE,
     UUID_KEY,
 )
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from superset.key_value.models import KeyValueEntry
 
 
-def test_get_id_entry(app_context: AppContext, key_value_entry: KeyValueEntry) -> None:
+def test_get_id_entry(app_context: AppContext, key_value_entry: KeyValueEntry) -> None:  # noqa: F811
     from superset.commands.key_value.get import GetKeyValueCommand
 
     value = GetKeyValueCommand(resource=RESOURCE, key=ID_KEY, codec=JSON_CODEC).run()
@@ -45,7 +45,8 @@ def test_get_id_entry(app_context: AppContext, key_value_entry: KeyValueEntry) -
 
 
 def test_get_uuid_entry(
-    app_context: AppContext, key_value_entry: KeyValueEntry
+    app_context: AppContext,
+    key_value_entry: KeyValueEntry,  # noqa: F811
 ) -> None:
     from superset.commands.key_value.get import GetKeyValueCommand
 
@@ -55,7 +56,7 @@ def test_get_uuid_entry(
 
 def test_get_id_entry_missing(
     app_context: AppContext,
-    key_value_entry: KeyValueEntry,
+    key_value_entry: KeyValueEntry,  # noqa: F811
 ) -> None:
     from superset.commands.key_value.get import GetKeyValueCommand
 
