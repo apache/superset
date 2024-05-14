@@ -46,7 +46,7 @@ import TimezoneSelector from 'src/components/TimezoneSelector';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { AntdCheckbox, AsyncSelect, Select } from 'src/components';
+import { AntdCheckbox, AsyncSelect, Select, TreeSelect } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -57,12 +57,15 @@ import {
   ChartObject,
   DashboardObject,
   DatabaseObject,
+  Extra,
   MetaObject,
   Operator,
   Recipient,
   AlertsReportsConfig,
   ValidationObject,
   Sections,
+  TabNode,
+  SelectValue,
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -79,11 +82,6 @@ const TEXT_BASED_VISUALIZATION_TYPES = [
   'table',
   'paired_ttest',
 ];
-
-type SelectValue = {
-  value: string;
-  label: string;
-};
 
 export interface AlertReportModalProps {
   addSuccessToast: (msg: string) => void;
@@ -103,6 +101,12 @@ const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = [
   NotificationMethodOption.Email,
 ];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
+const DEFAULT_EXTRA_DASHBOARD_OPTIONS: Extra = {
+  dashboard: {
+    anchor: '',
+  },
+};
+
 const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
@@ -215,6 +219,10 @@ const StyledModal = styled(Modal)`
       flex: 1 1 auto;
     }
   }
+`;
+
+const StyledTreeSelect = styled(TreeSelect)`
+  width: 100%;
 `;
 
 const StyledSwitchContainer = styled.div`
@@ -439,6 +447,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [sourceOptions, setSourceOptions] = useState<MetaObject[]>([]);
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
+  const [tabOptions, setTabOptions] = useState<TabNode[]>([]);
+
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
     [Sections.General]: {
@@ -489,6 +499,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const isEditMode = alert !== null;
   const formatOptionEnabled =
     isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
+  const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -545,6 +556,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     active: true,
     creation_method: 'alerts_reports',
     crontab: ALERT_REPORTS_DEFAULT_CRON_VALUE,
+    extra: DEFAULT_EXTRA_DASHBOARD_OPTIONS,
     log_retention: ALERT_REPORTS_DEFAULT_RETENTION,
     working_timeout: ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
     name: '',
@@ -591,6 +603,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     settings.splice(index, 1);
     setNotificationSettings(settings);
     setNotificationAddState('active');
+  };
+
+  const updateAnchorState = (value: any) => {
+    setCurrentAlert(currentAlertData => {
+      const dashboardState = currentAlertData?.extra?.dashboard;
+      const extra = {
+        dashboard: {
+          ...dashboardState,
+          anchor: value,
+        },
+      };
+      return {
+        ...currentAlertData,
+        extra,
+      };
+    });
   };
 
   // Alert fetch logic
@@ -646,6 +674,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+      extra: contentType === 'dashboard' ? currentAlert?.extra : null,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -653,7 +682,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     data.context_markdown = 'string';
-
     if (isEditMode) {
       // Edit
       if (currentAlert?.id) {
@@ -776,6 +804,25 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     [],
   );
 
+  const dashboard = currentAlert?.dashboard;
+  useEffect(() => {
+    if (!tabsEnabled) return;
+
+    if (dashboard?.value) {
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/${dashboard.value}/tabs`,
+      }).then(response => {
+        const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
+        setTabOptions(tabTree);
+        if (currentAlert?.extra?.dashboard?.anchor) {
+          if (!(currentAlert?.extra?.dashboard?.anchor in allTabs)) {
+            updateAnchorState(undefined);
+          }
+        }
+      });
+    }
+  }, [dashboard, tabsEnabled, currentAlert?.extra]);
+
   const databaseLabel = currentAlert?.database && !currentAlert.database.label;
   useEffect(() => {
     // Find source if current alert has one set
@@ -887,6 +934,28 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/chart/${chart.value}`,
     }).then(response => setChartVizType(response.json.result.viz_type));
 
+  const updateEmailSubject = () => {
+    if (contentType === 'chart') {
+      if (currentAlert?.name || currentAlert?.chart?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.chart?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else if (contentType === 'dashboard') {
+      if (currentAlert?.name || currentAlert?.dashboard?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.dashboard?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else {
+      setEmailSubject('');
+    }
+  };
+
   // Handle input/textarea updates
   const onInputChange = (
     event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
@@ -939,6 +1008,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onDashboardChange = (dashboard: SelectValue) => {
     updateAlertState('dashboard', dashboard || undefined);
     updateAlertState('chart', null);
+    if (tabsEnabled) {
+      setTabOptions([]);
+      updateAnchorState('');
+    }
   };
 
   const onChartChange = (chart: SelectValue) => {
@@ -1277,28 +1350,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     return titleText;
   };
 
-  const updateEmailSubject = () => {
-    if (contentType === 'chart') {
-      if (currentAlert?.name || currentAlert?.chart?.label) {
-        setEmailSubject(
-          `${currentAlert?.name}: ${currentAlert?.chart?.label || ''}`,
-        );
-      } else {
-        setEmailSubject('');
-      }
-    } else if (contentType === 'dashboard') {
-      if (currentAlert?.name || currentAlert?.dashboard?.label) {
-        setEmailSubject(
-          `${currentAlert?.name}: ${currentAlert?.dashboard?.label || ''}`,
-        );
-      } else {
-        setEmailSubject('');
-      }
-    } else {
-      setEmailSubject('');
-    }
-  };
-
   const handleErrorUpdate = (hasError: boolean) => {
     setEmailError(hasError);
   };
@@ -1618,6 +1669,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </>
             )}
           </StyledInputContainer>
+          {tabsEnabled && contentType === 'dashboard' && (
+            <StyledInputContainer>
+              <>
+                <div className="control-label">{t('Select tab')}</div>
+                <StyledTreeSelect
+                  disabled={tabOptions?.length === 0}
+                  treeData={tabOptions}
+                  value={currentAlert?.extra?.dashboard?.anchor}
+                  onSelect={updateAnchorState}
+                  placeholder={t('Select a tab')}
+                />
+              </>
+            </StyledInputContainer>
+          )}
           {isScreenshot && (
             <StyledInputContainer
               css={!isReport && contentType === 'chart' && noMarginBottom}
