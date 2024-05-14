@@ -124,6 +124,8 @@ describe('DataTablesPane', () => {
             data: [{ __timestamp: 1230768000000, genre: 'Action' }],
             colnames: ['__timestamp', 'genre'],
             coltypes: [2, 1],
+            rowcount: 1,
+            sql_rowcount: 1,
           },
         ],
       },
@@ -137,7 +139,6 @@ describe('DataTablesPane', () => {
     });
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('1 row')).toBeVisible();
-
     expect(screen.queryByLabelText('Copy')).not.toBeInTheDocument();
     fetchMock.restore();
   });
