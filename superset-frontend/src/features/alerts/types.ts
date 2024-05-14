@@ -49,6 +49,12 @@ export type NotificationSetting = {
   options: NotificationMethodOption[];
 };
 
+export type TabNode = {
+  title: string;
+  value: string;
+  children?: TabNode[];
+};
+
 export type Recipient = {
   recipient_config_json: {
     target: string;
@@ -60,6 +66,15 @@ export type MetaObject = {
   id?: number;
   label?: string;
   value?: number | string;
+};
+
+export type DashboardState = {
+  activeTabs?: Array<string>;
+  dataMask?: Object;
+};
+
+export type Extra = {
+  dashboard?: DashboardState;
 };
 
 export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';
@@ -81,6 +96,7 @@ export type AlertObject = {
   description?: string;
   email_subject?: string;
   error?: string;
+  extra?: Extra;
   force_screenshot: boolean;
   grace_period?: number;
   id: number;
