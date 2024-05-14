@@ -47,7 +47,7 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         return DeleteFilterStateCommand
 
     @expose("/<int:pk>/filter_state", methods=("POST",))
-    @protect()
+    # @protect()
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
