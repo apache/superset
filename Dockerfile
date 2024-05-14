@@ -46,9 +46,12 @@ RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json
 COPY ./superset-frontend ./
 # This seems to be the most expensive step
 RUN npm run ${BUILD_CMD}
+
+# Compile translations for the frontend
+WORKDIR /app
 COPY superset/translations ./superset/translations
-COPY ./scripts/po2json.sh ./scripts/po2json.sh
-RUN ./scripts/po2json.sh
+COPY ./scripts/translations/po2json.sh ./scripts/translations/po2json.sh
+RUN ./scripts/translations/po2json.sh
 
 ######################################################################
 # Final lean image...
@@ -90,16 +93,21 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && apt-get autoremove -yqq --purge build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy the compiled frontend assets
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
+
+# Copy the compiled translations for the frontend
+COPY --chown=superset:superset --from=superset-node /app/superset/superset/translations/*/LC_MESSAGES/*.json superset/static/translations
+
 ## Lastly, let's install superset itself
 COPY --chown=superset:superset superset superset
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -e . \
-    && flask fab babel-compile --target superset/translations \
-    && chown -R superset:superset superset/translations
+    pip install -e .
 
-# Compile translations
-RUN pybabel compile -d superset/translations
+# Compile translations for the backend - this generates .mo files
+COPY ./scripts/translations/generate_po_files.sh ./scripts/translations/
+RUN ./scripts/translations/generate_po_files.sh && \
+    chown -R superset:superset superset/translations
 
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 USER superset
