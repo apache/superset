@@ -171,8 +171,8 @@ export function setEditorTabLastUpdate(timestamp) {
 export function scheduleQuery(query) {
   return dispatch =>
     SupersetClient.post({
-      endpoint: '/savedqueryviewapi/api/create',
-      postPayload: query,
+      endpoint: '/api/v1/saved_query/',
+      jsonPayload: query,
       stringify: false,
     })
       .then(() =>
@@ -1214,7 +1214,7 @@ export function popStoredQuery(urlId) {
 export function popSavedQuery(saveQueryId) {
   return function (dispatch) {
     return SupersetClient.get({
-      endpoint: `/savedqueryviewapi/api/get/${saveQueryId}`,
+      endpoint: `/api/v1/saved_query/${saveQueryId}`,
     })
       .then(({ json }) => {
         const queryEditorProps = {
@@ -1222,7 +1222,15 @@ export function popSavedQuery(saveQueryId) {
           loaded: true,
           autorun: false,
         };
-        return dispatch(addQueryEditor(queryEditorProps));
+        const tmpAdaptedProps = {
+          name: queryEditorProps.name,
+          dbId: queryEditorProps.database.id,
+          catalog: queryEditorProps.catalog,
+          schema: queryEditorProps.schema,
+          sql: queryEditorProps.sql,
+          templateParams: queryEditorProps.templateParams,
+        };
+        return dispatch(addQueryEditor(tmpAdaptedProps));
       })
       .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
