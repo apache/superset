@@ -411,6 +411,6 @@ This configuration is based on
 menu item called “Schedule” to SQL Lab. When the menu item is clicked, a modal will show up where
 the user can add the metadata required for scheduling the query.
 
-This information can then be retrieved from the endpoint `/savedqueryviewapi/api/read` and used to
-schedule the queries that have `scheduled_queries` in their JSON metadata. For schedulers other than
+This information can then be retrieved from the endpoint `/api/v1/saved_query/` and used to
+schedule the queries that have `schedule_info` in their JSON metadata. For schedulers other than
 Airflow, additional fields can be easily added to the configuration file above.
