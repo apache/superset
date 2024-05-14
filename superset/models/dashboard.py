@@ -318,7 +318,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
             new_children: list[dict[str, Any]] = []
             # new children to overwrite parent's children
-            for child_id in node["children"]:
+            for child_id in node.get("children", []):
                 child = get_node(child_id)
                 if node["type"] == "TABS":
                     # if TABS add create a new list and append children to it
@@ -334,7 +334,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
                 node["title"] = node["meta"]["text"]
                 node["value"] = node["id"]
                 all_tabs[node["id"]] = node["title"]
-            return
 
         root = get_node("ROOT_ID")
         tab_tree: list[dict[str, Any]] = []
