@@ -437,3 +437,13 @@ def test_pessimistic_json_iso_dttm_ser_nonutf8():
     json_str = json.dumps(data, default=pessimistic_json_iso_dttm_ser)
     reloaded_data = json.loads(json_str)
     assert reloaded_data["INVALID_UTF8_BYTES"] == "[bytes]"
+
+
+def test_pessimistic_json_iso_dttm_ser_utf16():
+    data = {
+        "VALID_UTF16_BYTES": b"\xff\xfeS0\x930k0a0o0\x16NLu",
+    }
+    assert isinstance(data["VALID_UTF16_BYTES"], bytes)
+    json_str = json.dumps(data, default=pessimistic_json_iso_dttm_ser)
+    reloaded_data = json.loads(json_str)
+    assert reloaded_data["VALID_UTF16_BYTES"] == "こんにちは世界"

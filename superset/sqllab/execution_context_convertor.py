@@ -52,13 +52,22 @@ class ExecutionContextConvertor:
 
     def serialize_payload(self) -> str:
         if self._exc_status == SqlJsonExecutionStatus.HAS_RESULTS:
-            return json.dumps(
-                apply_display_max_row_configuration_if_require(
-                    self.payload, self._max_row_in_display_configuration
-                ),
-                default=utils.pessimistic_json_iso_dttm_ser,
-                ignore_nan=True,
+            sql_results = apply_display_max_row_configuration_if_require(
+                self.payload, self._max_row_in_display_configuration
             )
+            try:
+                return json.dumps(
+                    sql_results,
+                    default=utils.pessimistic_json_iso_dttm_ser,
+                    ignore_nan=True,
+                )
+            except UnicodeDecodeError:
+                return json.dumps(
+                    sql_results,
+                    default=utils.pessimistic_json_iso_dttm_ser,
+                    ensure_ascii=False,
+                    ignore_nan=True,
+                )
 
         return json.dumps(
             {"query": self.payload}, default=utils.json_int_dttm_ser, ignore_nan=True
