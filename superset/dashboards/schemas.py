@@ -266,6 +266,7 @@ class DashboardDatasetSchema(Schema):
 
 
 class TabSchema(Schema):
+    # pylint: disable=W0108
     children = fields.List(fields.Nested(lambda: TabSchema()))
     value = fields.Str()
     title = fields.Str()
