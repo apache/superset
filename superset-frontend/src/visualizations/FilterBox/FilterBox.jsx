@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unused-state */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -210,6 +211,7 @@ class FilterBox extends React.PureComponent {
         if (this.props.instantFiltering) {
           this.props.onChange({ [fltr]: vals }, false);
         }
+        this.clickApply();
       },
     );
   }
@@ -450,7 +452,7 @@ class FilterBox extends React.PureComponent {
   }
 
   render() {
-    const { instantFiltering, width, height } = this.props;
+    const { width, height } = this.props;
     const { zIndex, gridUnit } = this.props.theme;
     return (
       <>
@@ -462,7 +464,7 @@ class FilterBox extends React.PureComponent {
 
             .filter_box {
               padding: ${gridUnit * 2 + 2}px 0;
-              overflow: visible !important;
+              overflow: hidden !important;
 
               &:hover {
                 z-index: ${zIndex.max};
@@ -471,10 +473,10 @@ class FilterBox extends React.PureComponent {
           `}
         />
         <div style={{ width, height, overflow: 'auto' }}>
-          {this.renderDateFilter()}
-          {this.renderDatasourceFilters()}
+          {/* {this.renderDateFilter()} */}
+          {/* {this.renderDatasourceFilters()} */}
           {this.renderFilters()}
-          {!instantFiltering && (
+          {/* {!instantFiltering && (
             <Button
               buttonSize="small"
               buttonStyle="primary"
@@ -483,7 +485,7 @@ class FilterBox extends React.PureComponent {
             >
               {t('Apply')}
             </Button>
-          )}
+          )} */}
         </div>
       </>
     );
