@@ -562,6 +562,7 @@ class DeprecateModelViewMixin:
     def add(self) -> FlaskResponse:
         return super().add()  # type: ignore
 
+    @expose("/show/<pk>", methods=["GET"])
     @has_access
     @deprecated(eol_version="5.0.0")
     def show(self, pk: int) -> FlaskResponse:
