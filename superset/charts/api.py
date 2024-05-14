@@ -323,17 +323,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """
 
         try:
-            logger.info("trying validate data to add new slice")
             item = self.add_model_schema.load(request.json)
-            logger.info("validated data to add new slice")
         # This validates custom Schema with custom validations
         except ValidationError as error:
             logger.warning("validated failed to add new slice")
             return self.response_400(message=error.messages)
         try:
-            logger.info("trying create new slice")
             new_model = CreateChartCommand(item).run()
-            logger.info("created new slice, id=", new_model.id)
             return self.response(201, id=new_model.id, result=item)
         except DashboardsForbiddenError as ex:
             return self.response(ex.status, message=ex.message)
@@ -401,17 +397,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            logger.info("trying validate data to edit slice id=", pk)
             item = self.edit_model_schema.load(request.json)
-            logger.info("validated data to edit slice id=", pk)
         # This validates custom Schema with custom validations
         except ValidationError as error:
             logger.warning("validate failed to edit slice id=", pk)
             return self.response_400(message=error.messages)
         try:
-            logger.info("trying edit slice id=", pk)
             changed_model = UpdateChartCommand(pk, item).run()
-            logger.info("slice updated, id=", pk)
             response = self.response(200, id=changed_model.id, result=item)
         except ChartNotFoundError:
             response = self.response_404()
@@ -471,9 +463,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            logger.info("trying delete slice, id=", pk)
             DeleteChartCommand([pk]).run()
-            logger.info("slice deleted, id=", pk)
             return self.response(200, message="OK")
         except ChartNotFoundError:
             return self.response_404()

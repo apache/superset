@@ -705,11 +705,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         time_grain_expressions = cls._time_grain_expressions.copy()
         grain_addon_expressions = current_app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
-        logger.info("get time grain")
         denylist: list[str] = current_app.config["TIME_GRAIN_DENYLIST"]
         for time_interval in denylist:
             time_grain_expressions.pop(time_interval, None)
-        logger.info("delete time grain")
 
         return dict(
             sorted(

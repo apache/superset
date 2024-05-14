@@ -426,21 +426,17 @@ class ChartDataRestApi(ChartRestApi):
                     return self.response_400(_("Empty query result"))
 
                 if list_of_data := result["queries"]:
-                    logger.info("get data for prepare")
                     df = pd.DataFrame()
                     for data in list_of_data:
                         try:
                             # return query results xlsx format
                             new_df = delete_tz_from_df(data)
-                            logger.info("delete tz from data")
                             keys_of_new_df = new_df.keys()
                             exist_df = df.keys()
-                            logger.info("delete duplicate columns")
                             for key in keys_of_new_df:
                                 if key in exist_df:
                                     new_df.pop(key)
                             if not new_df.empty:
-                                logger.info("join two df")
                                 df = df.join(new_df, how='right', rsuffix='2')
                         except IndexError:
                             return self.response_500(
@@ -448,10 +444,8 @@ class ChartDataRestApi(ChartRestApi):
                             )
 
                     excel_writer = io.BytesIO()
-                    logger.info("export to excel file")
                     df.to_excel(excel_writer, startrow=0, merge_cells=False,
                                 sheet_name="Sheet_1", index_label=None, index=False)
-                    logger.info("move seek to begin")
                     excel_writer.seek(0)
                     return excel_writer
 
@@ -472,23 +466,18 @@ class ChartDataRestApi(ChartRestApi):
                         try:
                             # return query results csv format
                             new_df = delete_tz_from_df(data)
-                            logger.info("delete tz from data")
                             keys_of_new_df = new_df.keys()
                             exist_df = df.keys()
-                            logger.info("delete duplicate columns")
                             for key in keys_of_new_df:
                                 if key in exist_df:
                                     new_df.pop(key)
                             if not new_df.empty:
-                                logger.info("join two df")
                                 df = df.join(new_df, how='right', rsuffix='2')
                         except IndexError:
                             return self.response_500(
                                 _("Server error occurred while exporting the file")
                             )
-                    logger.info("get config for csv")
                     config_csv = current_app.config["CSV_EXPORT"]
-                    logger.info("export data to csv")
                     return CsvResponse(df.to_csv(**config_csv),
                                        headers=generate_download_headers("csv"))
 

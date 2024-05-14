@@ -310,7 +310,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            logger.info("trying validate data to add new dataset")
             item = self.add_model_schema.load(request.json)
             logger.info("validated data to add new dataset")
         # This validates custom Schema with custom validations
@@ -319,7 +318,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         try:
-            logger.info("trying add new dataset")
             new_model = CreateDatasetCommand(item).run()
             logger.info("added new dataset, id=", new_model.id)
             return self.response(201, id=new_model.id, result=item, data=new_model.data)
@@ -466,9 +464,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            logger.info("trying delete dataset, id=", pk)
             DeleteDatasetCommand([pk]).run()
-            logger.info("deleted dataset, id=", pk)
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()
