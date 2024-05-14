@@ -19,6 +19,7 @@ jobs:
       - uses: JustinBeckwith/linkinator-action@v1.10.4
         with:
           paths: "**/*.md, **/*.mdx"
+          linksToSkip: 'https://github\\.com/apache/superset/(?:pull|issue)/\\d+'
   build-deploy:
     name: Build & Deploy
     runs-on: ubuntu-22.04
