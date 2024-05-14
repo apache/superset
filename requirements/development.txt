@@ -264,16 +264,6 @@ thrift-sasl==0.4.3
     # via
     #   apache-superset
     #   pyhive
-tomli==2.0.1
-    # via
-    #   build
-    #   coverage
-    #   pip-tools
-    #   pylint
-    #   pyproject-api
-    #   pyproject-hooks
-    #   pytest
-    #   tox
 tomlkit==0.11.8
     # via pylint
 toposort==1.10
