@@ -66,11 +66,12 @@ import { updateDirectPathToFilter } from './dashboardFilters';
 import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
 import getOverwriteItems from '../util/getOverwriteItems';
 import {
-  applyLabelsColor,
-  getFreshColorSchemeMetadata,
+  applyColors,
   isLabelsColorMapSynced,
-  resetLabelsColor,
-} from '../util/colorScheme';
+  getLabelsColorMapEntries,
+  getColorSchemeDomain,
+  getColorNamespace,
+} from '../../utils/colorScheme';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -268,7 +269,7 @@ export function saveDashboardRequest(data, id, saveType) {
       slug: slug || null,
       metadata: {
         ...data.metadata,
-        color_namespace: data.metadata?.color_namespace || undefined,
+        color_namespace: getColorNamespace(data.metadata?.color_namespace),
         color_scheme: data.metadata?.color_scheme || '',
         color_scheme_domain: data.metadata?.color_scheme_domain || [],
         expanded_slices: data.metadata?.expanded_slices || {},
@@ -678,44 +679,44 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
   );
   const defaultScheme = categoricalSchemes.defaultKey;
   const fallbackScheme = defaultScheme?.toString() || 'supersetColors';
-  const registryDomain = colorSchemeRegistry?.colors || [];
   const colorSchemeDomain = metadata?.color_scheme_domain || [];
+  const colorScheme = metadata?.color_scheme;
 
-  let updatedMetadata = { ...metadata };
-  let updatedScheme = metadata?.color_scheme;
+  if (!colorScheme) return;
 
   try {
-    // Color scheme is not set, clean up
-    if (!metadata?.color_scheme) {
-      if (metadata?.shared_label_colors || metadata?.color_scheme_domain) {
-        updatedMetadata.shared_label_colors = {};
-        updatedMetadata.color_scheme_domain = [];
-        resetLabelsColor(metadata?.color_namespace);
-        await updateDashboardMetadata(id, updatedMetadata, dispatch);
-      }
-      return;
-    }
+    const updatedMetadata = { ...metadata };
+    let updatedScheme = metadata?.color_scheme;
 
     // Color scheme does not exist anymore, fallback to default
     if (!colorSchemeRegistry) {
       updatedScheme = fallbackScheme;
+      updatedMetadata.color_scheme = updatedScheme;
+      updatedMetadata.color_scheme_domain = getColorSchemeDomain(colorScheme);
+
       dispatch(setColorScheme(updatedScheme));
+      // must re-apply colors from fresh labels color map
+      applyColors(updatedMetadata, true);
     }
 
-    if (
-      !colorSchemeRegistry ||
-      colorSchemeDomain.toString() !== registryDomain.toString() ||
-      !isLabelsColorMapSynced(metadata?.shared_label_colors || {})
-    ) {
-      // apply colors first to get fresh color metadata
-      applyLabelsColor(updatedMetadata);
-      updatedMetadata = {
-        ...updatedMetadata,
-        ...getFreshColorSchemeMetadata(
-          updatedScheme,
-          metadata?.color_namespace,
-        ),
-      };
+    // stored labels color map and applied might differ
+    const isMapSynced = isLabelsColorMapSynced(metadata);
+    if (!isMapSynced) {
+      // re-apply a fresh labels color map
+      applyColors(updatedMetadata, true);
+      // pull and store the just applied labels color map
+      updatedMetadata.shared_label_colors = getLabelsColorMapEntries();
+    }
+
+    // the stored color domain registry and fresh might differ at this point
+    const freshColorSchemeDomain = getColorSchemeDomain(colorScheme);
+    const isRegistrySynced =
+      colorSchemeDomain.toString() !== freshColorSchemeDomain.toString();
+    if (!isRegistrySynced) {
+      updatedMetadata.color_scheme_domain = freshColorSchemeDomain;
+    }
+
+    if (!colorSchemeRegistry || !isRegistrySynced || !isMapSynced) {
       await updateDashboardMetadata(id, updatedMetadata, dispatch);
     }
   } catch (error) {

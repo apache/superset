@@ -19,12 +19,7 @@
 import React, { FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import {
-  getLabelsColorMap,
-  LabelsColorMapSource,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
@@ -59,7 +54,6 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
-import { resetLabelsColor } from '../util/colorScheme';
 
 export const DashboardPageIdContext = React.createContext('');
 
@@ -101,7 +95,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
-  const { dashboard_title, css, metadata, id = 0 } = dashboard || {};
+  const { dashboard_title, css, id = 0 } = dashboard || {};
 
   useEffect(() => {
     // mark tab id as redundant when user closes browser tab - a new id will be
@@ -186,15 +180,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
     return () => {};
   }, [css]);
-
-  useEffect(() => {
-    const labelsColorMap = getLabelsColorMap();
-    labelsColorMap.source = LabelsColorMapSource.Dashboard;
-
-    return () => {
-      resetLabelsColor(metadata?.color_namespace);
-    };
-  }, [metadata?.color_namespace]);
 
   useEffect(() => {
     if (datasetsApiError) {

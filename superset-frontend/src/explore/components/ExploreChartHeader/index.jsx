@@ -21,15 +21,7 @@ import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/components/Tooltip';
-import {
-  CategoricalColorNamespace,
-  css,
-  getLabelsColorMap,
-  logging,
-  SupersetClient,
-  t,
-  tn,
-} from '@superset-ui/core';
+import { css, logging, SupersetClient, t, tn } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import Button from 'src/components/Button';
@@ -39,6 +31,7 @@ import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
+import { applyColors, resetColors } from 'src/utils/colorScheme';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 
 const propTypes = {
@@ -96,14 +89,11 @@ export const ExploreChartHeader = ({
     const { dashboards } = metadata || {};
     const dashboard =
       dashboardId && dashboards && dashboards.find(d => d.id === dashboardId);
-    const categoricalNamespace = CategoricalColorNamespace.getNamespace();
-    const labelsColorMap = getLabelsColorMap();
 
     if (!dashboard) {
       // clean up color namespace and shared color maps
       // to avoid colors spill outside of dashboard context
-      categoricalNamespace.resetColors();
-      labelsColorMap.clear();
+      resetColors(metadata?.color_namespace);
       return;
     }
 
@@ -118,20 +108,7 @@ export const ExploreChartHeader = ({
 
         // setting the chart to use the dashboard custom label colors if any
         const dashboardMetadata = JSON.parse(result.json_metadata);
-        const labelsColorMap = dashboardMetadata.shared_label_colors || {};
-        const customLabelsColor = dashboardMetadata.label_colors || {};
-        const mergedLabelsColor = {
-          ...labelsColorMap,
-          ...customLabelsColor,
-        };
-
-        Object.keys(mergedLabelsColor).forEach(label => {
-          categoricalNamespace.setColor(
-            label,
-            mergedLabelsColor[label],
-            dashboardMetadata.color_scheme,
-          );
-        });
+        applyColors(dashboardMetadata);
       } catch (error) {
         logging.info(t('Unable to retrieve dashboard colors'));
       }

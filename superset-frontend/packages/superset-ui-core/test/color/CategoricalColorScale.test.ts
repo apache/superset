@@ -72,7 +72,7 @@ describe('CategoricalColorScale', () => {
 
     beforeEach(() => {
       scale = new CategoricalColorScale(['blue', 'red', 'green']);
-      // Spy on the addSlice method of sharedColorMapInstance
+      // Spy on the addSlice method of labelsColorMapInstance
       addSliceSpy = jest.spyOn(scale.labelsColorMapInstance, 'addSlice');
       getNextAvailableColorSpy = jest
         .spyOn(scale, 'getNextAvailableColor')

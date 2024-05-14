@@ -49,10 +49,7 @@ import {
   OBJECT_TYPES,
 } from 'src/features/tags/tags';
 import { loadTags } from 'src/components/Tags/utils';
-import {
-  applyLabelsColor,
-  resetLabelsColor,
-} from 'src/dashboard/util/colorScheme';
+import { applyColors, getColorNamespace } from 'src/utils/colorScheme';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -350,7 +347,6 @@ const PropertiesModal = ({
     const { title, slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
-    let colorNamespace = '';
     let currentJsonMetadata = jsonMetadata;
 
     // validate currentJsonMetadata
@@ -368,11 +364,13 @@ const PropertiesModal = ({
       return;
     }
 
+    const copyMetadata = { ...metadata };
+    const colorNamespace = getColorNamespace(metadata?.color_namespace);
+
     // color scheme in json metadata has precedence over selection
     currentColorScheme = metadata?.color_scheme || colorScheme;
-    colorNamespace = metadata?.color_namespace;
 
-    // filter shared_label_color from user input
+    // remove information from user facing input
     if (metadata?.shared_label_colors) {
       delete metadata.shared_label_colors;
     }
@@ -380,13 +378,8 @@ const PropertiesModal = ({
       delete metadata.color_scheme_domain;
     }
 
-    if (currentColorScheme) {
-      applyLabelsColor(metadata);
-    } else {
-      metadata.shared_label_colors = {};
-      metadata.color_scheme_domain = [];
-      resetLabelsColor(metadata?.color_namespace);
-    }
+    // only apply colors, the user has not saved yet
+    applyColors(copyMetadata, true);
 
     currentJsonMetadata = jsonStringify(metadata);
 

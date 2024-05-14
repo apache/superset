@@ -109,10 +109,8 @@ class CategoricalColorScale extends ExtensibleFunction {
    */
   getColor(value?: string, sliceId?: number): string {
     const cleanedValue = stringifyAndTrim(value);
-    const labelsColorMap = this.labelsColorMapInstance.getColorMap();
-    const sharedColor = labelsColorMap.get(cleanedValue);
     // priority: forced color (i.e. custom label colors) > shared color > scale color
-    const forcedColor = this.forcedColors?.[cleanedValue] || sharedColor;
+    const forcedColor = this.forcedColors?.[cleanedValue];
     const isExistingLabel = this.sliceMap.has(cleanedValue);
     let color = forcedColor || this.scale(cleanedValue);
 
@@ -138,7 +136,6 @@ class CategoricalColorScale extends ExtensibleFunction {
     if (sliceId) {
       this.labelsColorMapInstance.addSlice(cleanedValue, color, sliceId);
     }
-
     return color;
   }
 
