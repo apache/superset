@@ -16,10 +16,22 @@ This page is meant to give new administrators an understanding of Superset's com
 A Superset installation is made up of these components:
 1. The Superset application itself
 2. A metadata database to store Superset's data about users, charts, dashboards, etc.
-3. A caching layer (optional, but required for some features)
-4. A worker & beat (optional, but required for some features)
+3. A caching layer (optional, but necessary for some features)
+4. A worker & beat (optional, but necessary for some features)
 
-No matter how you install - Kubernetes, Docker Compose, from PyPI - these are the components. Here are further details on each.
+### Optional components and associated features
+
+The optional components above are necessary to enable these features:
+- [Alerts and Reports](/docs/configuration/alerts-reports)
+- [Caching](/docs/configuration/cache)
+- [Async Queries](/docs/configuration/async-queries-celery/)
+- [Dashboard Thumbnails](/docs/configuration/cache/#caching-thumbnails)
+
+If you install with Kubernetes or Docker Compose, all of these components will be created.
+
+However, installing from PyPI only creates the application itself. Users installing from PyPI will need to configure a caching layer, worker, and beat on their own if they wish to enable the above features. Configuration of those components for a PyPI install is not currently covered in this documentation.
+
+Here are further details on each component.
 
 ### The Superset Application
 
