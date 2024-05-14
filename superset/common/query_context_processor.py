@@ -351,13 +351,13 @@ class QueryContextProcessor:
         """
         Adds an offset join column to the provided DataFrame.
 
+        The function modifies the DataFrame in-place.
+
         :param df: pandas DataFrame to which the offset join column will be added.
         :param name: The name of the new column to be added.
         :param time_grain: The time grain used to calculate the new column.
         :param time_offset: The time offset used to calculate the new column.
         :param join_column_producer: A function to generate the join column.
-
-        :return: None. The function modifies the DataFrame in-place.
         """
         if join_column_producer:
             df[name] = df.apply(lambda row: join_column_producer(row, 0), axis=1)
@@ -551,7 +551,7 @@ class QueryContextProcessor:
                 df, column_name, time_grain, offset, join_column_producer
             )
 
-            # add artifoffseticial join column to offset_df
+            # add offset join column to offset_df
             self.add_offset_join_column(
                 offset_df, column_name, time_grain, None, join_column_producer
             )
