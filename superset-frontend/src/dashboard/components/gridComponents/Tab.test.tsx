@@ -198,8 +198,8 @@ test('Drop on a tab', async () => {
 
   fireEvent.dragStart(screen.getByText('Dashboard Component'));
   fireEvent.drop(screen.getByText('Next Tab'));
-  await waitFor(() => expect(mockOnDropOnTab).toHaveBeenCalled());
-  expect(mockOnDropOnTab).toHaveBeenCalledWith(
+  await waitFor(() => expect(mockOnDropOnTab).toHaveBeenCalledTimes(2));
+  expect(mockOnDropOnTab).toHaveBeenLastCalledWith(
     expect.objectContaining({
       destination: {
         id: 'TAB-Next-',
