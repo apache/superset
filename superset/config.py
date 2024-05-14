@@ -1248,8 +1248,8 @@ DB_CONNECTION_MUTATOR = None
 def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     sql: str, **kwargs: Any
 ) -> str:
-    return sql
-
+    new_sql = sql.replace('"COUNT(*)"', "FULL_COUNT")
+    return new_sql
 
 # A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query
 # It allows for using the SQL_QUERY_MUTATOR function for more than comments

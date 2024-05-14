@@ -72,6 +72,7 @@ import {
   numberOrAutoType,
   stringOrObjectWithLabelType,
 } from './PropTypes';
+import { applyXAxisBounds } from './DodoExtensions/NVD3Vis';
 
 const NO_DATA_RENDER_DATA = [
   { text: 'No data', dy: '-.75em', class: 'header' },
@@ -241,10 +242,12 @@ const propTypes = {
   sizeField: stringOrObjectWithLabelType,
   // time-pivot only
   baseColor: rgbObjectType,
+  // DODO added #20704667
+  xAxisBounds: PropTypes.arrayOf(PropTypes.number),
+  bubbleSizeFormat: PropTypes.string,
 };
 
 const NOOP = () => {};
-const formatter = getNumberFormatter();
 
 function nvd3Vis(element, props) {
   const {
@@ -301,6 +304,9 @@ function nvd3Vis(element, props) {
     yField,
     yIsLogScale,
     sliceId,
+    // DODO added #20704667
+    xAxisBounds,
+    bubbleSizeFormat,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -496,7 +502,8 @@ function nvd3Vis(element, props) {
             sizeField,
             xFormatter: getTimeOrNumberFormatter(xAxisFormat),
             yFormatter: getTimeOrNumberFormatter(yAxisFormat),
-            sizeFormatter: formatter,
+            // sizeFormatter: formatter, // DODO commented #20704667
+            sizeFormatter: getTimeOrNumberFormatter(bubbleSizeFormat), // DODO added #20704667
           }),
         );
         chart.pointRange([5, maxBubbleSize ** 2]);
@@ -772,6 +779,15 @@ function nvd3Vis(element, props) {
       }
     };
     applyYAxisBounds();
+    // DODO added start #20704667
+    applyXAxisBounds({
+      chart,
+      xAxisBounds,
+      vizType,
+      isVizTypes,
+      data,
+    });
+    // DODO stop #20704667
 
     // Also reapply on each state change to account for enabled/disabled series
     if (chart.dispatch && chart.dispatch.stateChange) {
