@@ -43,6 +43,11 @@ export type DatabaseObject = {
 
 export type NotificationMethodOption = 'Email' | 'Slack';
 
+export type SelectValue = {
+  value: string;
+  label: string;
+};
+
 export type NotificationSetting = {
   method?: NotificationMethodOption;
   recipients: string;
@@ -71,6 +76,7 @@ export type MetaObject = {
 export type DashboardState = {
   activeTabs?: Array<string>;
   dataMask?: Object;
+  anchor?: string;
 };
 
 export type Extra = {

@@ -147,6 +147,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         if (!isDashboardHydrated.current) {
           isDashboardHydrated.current = true;
         }
+        console.log('active tabs:', activeTabs);
         dispatch(
           hydrateDashboard({
             history,
