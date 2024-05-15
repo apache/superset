@@ -217,6 +217,7 @@ class AbstractEventLogger(ABC):
                 "database_driver": database.driver,
             }
 
+        form_data: dict[str, Any] = {}
         if "form_data" in payload:
             form_data, _ = get_form_data()
             payload["form_data"] = form_data
@@ -245,7 +246,7 @@ class AbstractEventLogger(ABC):
             duration_ms=duration_ms,
             referrer=referrer,
             curated_payload=self.curate_payload(payload),
-            curated_form_data=self.curate_form_data(payload),
+            curated_form_data=self.curate_form_data(form_data),
             **database_params,
         )
 
