@@ -207,6 +207,7 @@ class AbstractEventLogger(ABC):
             slice_id=slice_id,
             duration_ms=duration_ms,
             referrer=referrer,
+            payload=payload,
             **database_params,
         )
 
