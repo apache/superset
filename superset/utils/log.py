@@ -101,6 +101,20 @@ class AbstractEventLogger(ABC):
         "queryLimit",
         "select_as_cta",
     }
+    # Similarly, parameters that are passed under the `curated_form_data` arg
+    curated_form_data_params = {
+        "dashboardId",
+        "sliceId",
+        "viz_type",
+        "force",
+        "compare_lag",
+        "forecastPeriods",
+        "granularity_sqla",
+        "legendType",
+        "legendOrientation",
+        "show_legend",
+        "time_grain_sqla",
+    }
 
     def __call__(
         self,
@@ -133,7 +147,13 @@ class AbstractEventLogger(ABC):
 
     @classmethod
     def curate_payload(cls, payload: dict[str, Any]) -> dict[str, Any]:
+        """Curate payload to only include relevant keys/safe keys"""
         return {k: v for k, v in payload.items() if k in cls.curated_payload_params}
+
+    @classmethod
+    def curate_form_data(cls, payload: dict[str, Any]) -> dict[str, Any]:
+        """Curate form_data to only include relevant keys/safe keys"""
+        return {k: v for k, v in payload.items() if k in cls.curated_form_data_params}
 
     @abstractmethod
     def log(  # pylint: disable=too-many-arguments
@@ -145,6 +165,7 @@ class AbstractEventLogger(ABC):
         slice_id: int | None,
         referrer: str | None,
         curated_payload: dict[str, Any] | None,
+        curated_form_data: dict[str, Any] | None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -224,6 +245,7 @@ class AbstractEventLogger(ABC):
             duration_ms=duration_ms,
             referrer=referrer,
             curated_payload=self.curate_payload(payload),
+            curated_form_data=self.curate_form_data(payload),
             **database_params,
         )
 
@@ -398,6 +420,7 @@ class StdOutEventLogger(AbstractEventLogger):
         slice_id: int | None,
         referrer: str | None,
         curated_payload: dict[str, Any] | None,
+        curated_form_data: dict[str, Any] | None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -409,6 +432,7 @@ class StdOutEventLogger(AbstractEventLogger):
             slice_id=slice_id,
             referrer=referrer,
             curated_payload=curated_payload,
+            curated_form_data=curated_form_data,
             **kwargs,
         )
         print("StdOutEventLogger: ", data)

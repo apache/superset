@@ -150,6 +150,7 @@ class TestEventLogger(unittest.TestCase):
                     "user_id": 2,
                     "duration": 15000,
                     "curated_payload": {},
+                    "curated_form_data": {},
                 }
             ],
         )
@@ -202,6 +203,7 @@ class TestEventLogger(unittest.TestCase):
                     "user_id": 2,
                     "duration": 5558756000,
                     "curated_payload": {},
+                    "curated_form_data": {},
                 }
             ],
         )
