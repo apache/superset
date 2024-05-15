@@ -104,11 +104,11 @@ export default function PluginFilterTimegrain(
     );
   }
 
-  const options = (data || []).map(
+  const options = ([...data] || []).map(
     (row: { name: string; duration: string }) => {
       const { name, duration } = row;
       return {
-        label: name,
+        label: t(name),
         value: duration,
       };
     },
