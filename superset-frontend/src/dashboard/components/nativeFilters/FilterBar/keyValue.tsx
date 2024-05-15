@@ -67,7 +67,13 @@ export const createFilterKey = (
   value: string,
   tabId?: string,
 ) => {
-  console.log('createFilterKey [ process.env.type => ', process.env.type, ']');
+  console.log(
+    'createFilterKey [ process.env.type => ',
+    process.env.type,
+    ']',
+    'tabId:',
+    tabId,
+  );
   if (process.env.type === undefined) {
     return SupersetClient.post({
       endpoint: assembleEndpoint(dashId, undefined, tabId),
@@ -82,7 +88,7 @@ export const createFilterKey = (
   return API_HANDLER.SupersetClient({
     method: 'post',
     url: assembleEndpoint(dashId, undefined, tabId),
-    body: { value },
+    jsonPayload: { value },
   })
     .then(r => r.key)
     .catch(err => {
