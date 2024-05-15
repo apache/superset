@@ -19830,4 +19830,3 @@ msgstr "複数の時系列グラフ (スパークラインとして) と関連�
 #, python-format
 msgid "We have the following keys: %s"
 msgstr "次のキーがあります: %s"
-
