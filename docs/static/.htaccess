@@ -65,3 +65,6 @@ RewriteRule ^docs/installation/event-logging/$ /docs/configuration/event-logging
 RewriteRule ^docs/databases.*$ /docs/configuration/databases [R=301,L]
 
 RewriteRule ^docs/configuration/setup-ssh-tunneling$ /docs/configuration/networking-settings [R=301,L]
+
+# pre-commit hooks documentation
+RewriteRule ^docs/contributing/hooks-and-linting/$ /docs/contributing/development/#git-hooks-1
