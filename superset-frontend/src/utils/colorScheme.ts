@@ -56,8 +56,8 @@ export const getColorSchemeDomain = (colorScheme: string) =>
 export const isLabelsColorMapSynced = (
   metadata: Record<string, any>,
 ): boolean => {
-  const currentLabelsColorMap = metadata?.shared_label_colors;
-  const customLabelColors = metadata?.label_colors;
+  const currentLabelsColorMap = metadata?.shared_label_colors || {};
+  const customLabelColors = metadata?.label_colors || {};
   const freshLabelsColorMap = getLabelsColorMap().getColorMap();
   const isSynced = Array.from(freshLabelsColorMap.entries()).every(
     ([label, color]) =>

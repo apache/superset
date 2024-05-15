@@ -127,10 +127,40 @@ describe('LabelsColorMap', () => {
   });
 
   describe('.updateColorMap(namespace, scheme)', () => {
+    let categoricalNamespace: any;
+    let mockedNamespace: any;
+    let labelsColorMap: any;
+
+    beforeEach(() => {
+      labelsColorMap = getLabelsColorMap();
+      categoricalNamespace = CategoricalColorNamespace.getNamespace(undefined);
+      mockedNamespace = {
+        getScale: jest.fn().mockReturnValue({
+          getColor: jest.fn(() => 'mockColor'),
+        }),
+      };
+    });
+
+    it('should use provided color scheme', () => {
+      labelsColorMap.addSlice('a', 'red', 1);
+      labelsColorMap.updateColorMap(mockedNamespace, 'testColors2');
+      expect(mockedNamespace.getScale).toHaveBeenCalledWith('testColors2');
+    });
+
+    it('should fallback to original chart color scheme if no color scheme is provided', () => {
+      labelsColorMap.addSlice('a', 'red', 1, 'originalScheme');
+      labelsColorMap.updateColorMap(mockedNamespace);
+      expect(mockedNamespace.getScale).toHaveBeenCalledWith('originalScheme');
+    });
+
+    it('should fallback to undefined if no color scheme is provided', () => {
+      labelsColorMap.addSlice('a', 'red', 1);
+      labelsColorMap.addSlice('b', 'blue', 2);
+      labelsColorMap.updateColorMap(mockedNamespace);
+      expect(mockedNamespace.getScale).toHaveBeenCalledWith(undefined);
+    });
+
     it('should update color map', () => {
-      const labelsColorMap = getLabelsColorMap();
-      const categoricalNamespace =
-        CategoricalColorNamespace.getNamespace(undefined);
       // override color with forcedItems
       categoricalNamespace.setColor('b', 'green');
       // testColors2: 'yellow', 'green', 'blue'
@@ -155,10 +185,6 @@ describe('LabelsColorMap', () => {
       window.featureFlags = {
         [FeatureFlag.UseAnalagousColors]: false,
       };
-      const labelsColorMap = getLabelsColorMap();
-      const categoricalNamespace =
-        CategoricalColorNamespace.getNamespace(undefined);
-
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 2);
       labelsColorMap.addSlice('c', 'green', 3);
@@ -173,9 +199,6 @@ describe('LabelsColorMap', () => {
       window.featureFlags = {
         [FeatureFlag.UseAnalagousColors]: true,
       };
-      const labelsColorMap = getLabelsColorMap();
-      const categoricalNamespace =
-        CategoricalColorNamespace.getNamespace(undefined);
 
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 1);
