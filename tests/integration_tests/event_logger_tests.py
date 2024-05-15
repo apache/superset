@@ -146,6 +146,7 @@ class TestEventLogger(unittest.TestCase):
                 "records": [{"path": "/", "engine": "bar"}],
                 "database_id": None,
                 "user_id": 2,
+                "payload": {"engine": "bar", "path": "/"},
                 "duration": 15000,
             }
         ]
@@ -194,6 +195,11 @@ class TestEventLogger(unittest.TestCase):
                 ],
                 "database_id": None,
                 "user_id": 2,
+                "payload": {
+                    "path": "/",
+                    "object_ref": {"baz": "food"},
+                    "payload_override": {"engine": "sqlite"},
+                },
                 "duration": 5558756000,
             }
         ]
