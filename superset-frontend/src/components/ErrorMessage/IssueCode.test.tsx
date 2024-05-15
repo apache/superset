@@ -41,6 +41,6 @@ test('should render the link', () => {
   const link = screen.getByRole('link');
   expect(link).toHaveAttribute(
     'href',
-    `https://superset.apache.org/docs/miscellaneous/issue-codes#issue-${mockedProps.code}`,
+    `https://superset.apache.org/docs/using-superset/issue-codes#issue-${mockedProps.code}`,
   );
 });

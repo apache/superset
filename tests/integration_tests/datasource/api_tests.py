@@ -153,7 +153,7 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = True
-        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")  # noqa: F841
         values_for_column_mock.assert_called_with(
             column_name="col2",
             limit=10000,
@@ -166,7 +166,7 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = True
-        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")  # noqa: F841
         denormalize_name_mock.assert_not_called()
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
@@ -175,7 +175,7 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = False
-        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")  # noqa: F841
         values_for_column_mock.assert_called_with(
             column_name="col2",
             limit=10000,
@@ -188,5 +188,5 @@ class TestDatasourceApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = False
-        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")  # noqa: F841
         denormalize_name_mock.assert_called_with(ANY, "col2")

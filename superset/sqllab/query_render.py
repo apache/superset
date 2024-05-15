@@ -60,7 +60,6 @@ class SqlQueryRenderImpl(SqlQueryRender):
 
             parsed_query = ParsedQuery(
                 query_model.sql,
-                strip_comments=True,
                 engine=query_model.database.db_engine_spec.engine,
             )
             rendered_query = sql_template_processor.process_template(

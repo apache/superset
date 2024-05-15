@@ -27,7 +27,7 @@ revision = "4b85906e5b91"
 down_revision = "317970b4400c"
 
 
-from superset.migrations.shared.constraints import ForeignKey, redefine
+from superset.migrations.shared.constraints import ForeignKey, redefine  # noqa: E402
 
 foreign_keys = [
     ForeignKey(

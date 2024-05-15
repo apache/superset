@@ -118,6 +118,7 @@ export interface MenuObjectChildProps {
   icon?: string;
   index?: number;
   url?: string;
+  onClick?: () => void;
   isFrontendRoute?: boolean;
   perm?: string | boolean;
   view?: string;

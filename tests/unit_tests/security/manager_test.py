@@ -26,7 +26,10 @@ from superset.connectors.sqla.models import Database, SqlaTable
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
-from superset.security.manager import query_context_modified, SupersetSecurityManager
+from superset.security.manager import (
+    query_context_modified,
+    SupersetSecurityManager,
+)
 from superset.sql_parse import Table
 from superset.superset_typing import AdhocMetric
 from superset.utils.core import override_user
@@ -208,6 +211,7 @@ def test_raise_for_access_query_default_schema(
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
     query.database = database
@@ -262,6 +266,7 @@ def test_raise_for_access_jinja_sql(mocker: MockFixture, app_context: None) -> N
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
     query.database = database
@@ -531,3 +536,76 @@ def test_query_context_modified_mixed_chart(mocker: MockFixture) -> None:
     }
     query_context.queries = [QueryObject(metrics=requested_metrics)]  # type: ignore
     assert not query_context_modified(query_context)
+
+
+def test_get_catalog_perm() -> None:
+    """
+    Test the `get_catalog_perm` method.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    assert sm.get_catalog_perm("my_db", None) is None
+    assert sm.get_catalog_perm("my_db", "my_catalog") == "[my_db].[my_catalog]"
+
+
+def test_get_schema_perm() -> None:
+    """
+    Test the `get_schema_perm` method.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    assert sm.get_schema_perm("my_db", None, "my_schema") == "[my_db].[my_schema]"
+    assert (
+        sm.get_schema_perm("my_db", "my_catalog", "my_schema")
+        == "[my_db].[my_catalog].[my_schema]"
+    )
+    assert sm.get_schema_perm("my_db", None, None) is None
+    assert sm.get_schema_perm("my_db", "my_catalog", None) is None
+
+
+def test_raise_for_access_catalog(
+    mocker: MockFixture,
+    app_context: None,
+) -> None:
+    """
+    Test catalog-level permissions.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "get_catalog_perm",
+        return_value="[PostgreSQL].[db1].[public]",
+    )
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = "db1"
+    database.get_default_schema_for_query.return_value = "public"
+    query = mocker.MagicMock()
+    query.database = database
+    query.sql = "SELECT * FROM ab_user"
+
+    can_access = mocker.patch.object(sm, "can_access", return_value=True)
+    sm.raise_for_access(query=query)
+    can_access.assert_called_with("catalog_access", "[PostgreSQL].[db1].[public]")
+
+    mocker.patch.object(sm, "can_access", return_value=False)
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query=query)
+    assert (
+        str(excinfo.value)
+        == """You need access to the following tables: `db1.public.ab_user`,
+            `all_database_access` or `all_datasource_access` permission"""
+    )
+
+    query.sql = "SELECT * FROM db2.public.ab_user"
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query=query)
+    assert (
+        str(excinfo.value)
+        == """You need access to the following tables: `db2.public.ab_user`,
+            `all_database_access` or `all_datasource_access` permission"""
+    )

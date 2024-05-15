@@ -137,6 +137,7 @@ SQLGLOT_DIALECTS = {
     "shillelagh": Dialects.SQLITE,
     "snowflake": Dialects.SNOWFLAKE,
     # "solr": ???
+    "spark": Dialects.SPARK,
     "sqlite": Dialects.SQLITE,
     "starrocks": Dialects.STARROCKS,
     "superset": Dialects.SQLITE,
@@ -765,8 +766,8 @@ class ParsedQuery:
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
                     message=__(
-                        f"You may have an error in your SQL statement. {message}"
-                    ),
+                        "You may have an error in your SQL statement. {message}"
+                    ).format(message=message),
                     level=ErrorLevel.ERROR,
                 )
             ) from ex
@@ -883,6 +884,7 @@ class ParsedQuery:
     def is_select(self) -> bool:
         # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
+        seen_select = False
 
         for statement in parsed:
             # Check if this is a CTE
@@ -906,6 +908,7 @@ class ParsedQuery:
                     return False
 
             if statement.get_type() == "SELECT":
+                seen_select = True
                 continue
 
             if statement.get_type() != "UNKNOWN":
@@ -919,8 +922,11 @@ class ParsedQuery:
             ):
                 return False
 
+            if imt(statement.tokens[0], m=(Keyword, "USE")):
+                continue
+
             # return false on `EXPLAIN`, `SET`, `SHOW`, etc.
-            if statement[0].ttype == Keyword:
+            if imt(statement.tokens[0], t=Keyword):
                 return False
 
             if not any(
@@ -929,7 +935,7 @@ class ParsedQuery:
             ):
                 return False
 
-        return True
+        return seen_select
 
     def get_inner_cte_expression(self, tokens: TokenList) -> TokenList | None:
         for token in tokens:
@@ -1554,16 +1560,19 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
             "latest_partition",
             "latest_sub_partition",
         ):
-            # Extract the table referenced in the macro.
-            tables.add(
-                Table(
-                    *[
-                        remove_quotes(part.strip())
-                        for part in node.args[0].value.split(".")[::-1]
-                        if len(node.args) == 1
-                    ]
+            # Try to extract the table referenced in the macro.
+            try:
+                tables.add(
+                    Table(
+                        *[
+                            remove_quotes(part.strip())
+                            for part in node.args[0].as_const().split(".")[::-1]
+                            if len(node.args) == 1
+                        ]
+                    )
                 )
-            )
+            except nodes.Impossible:
+                pass
 
             # Replace the potentially problematic Jinja macro with some benign SQL.
             node.__class__ = nodes.TemplateData

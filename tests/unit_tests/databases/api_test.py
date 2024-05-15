@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=unused-argument, import-outside-toplevel, line-too-long
+# pylint: disable=unused-argument, import-outside-toplevel, line-too-long, invalid-name
+
+from __future__ import annotations
 
 import json
 from datetime import datetime
 from io import BytesIO
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import ANY, Mock
 from uuid import UUID
 
 import pytest
@@ -31,7 +33,19 @@ from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
+from superset.commands.database.uploaders.base import UploadCommand
+from superset.commands.database.uploaders.columnar_reader import ColumnarReader
+from superset.commands.database.uploaders.csv_reader import CSVReader
+from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
+from superset.sql_parse import Table
+from tests.unit_tests.fixtures.common import (
+    create_columnar_file,
+    create_csv_file,
+    create_excel_file,
+)
 
 
 def test_filter_by_uuid(
@@ -223,6 +237,7 @@ def test_database_connection(
             "driver": "gsheets",
             "engine_information": {
                 "disable_ssh_tunneling": True,
+                "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
             },
             "expose_in_sqllab": True,
@@ -294,6 +309,7 @@ def test_database_connection(
             "driver": "gsheets",
             "engine_information": {
                 "disable_ssh_tunneling": True,
+                "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
             },
             "expose_in_sqllab": True,
@@ -562,7 +578,6 @@ def test_apply_dynamic_database_filter(
     with app.app_context():
         from superset.daos.database import DatabaseDAO
         from superset.databases.api import DatabaseRestApi
-        from superset.databases.ssh_tunnel.models import SSHTunnel
         from superset.models.core import Database
 
         DatabaseRestApi.datamodel.session = session
@@ -818,3 +833,1336 @@ def test_oauth2_error(
             }
         ]
     }
+
+
+@pytest.mark.parametrize(
+    "payload,upload_called_with,reader_called_with",
+    [
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table2",
+                "delimiter": ";",
+                "already_exists": "replace",
+                "column_dates": "col1,col2",
+            },
+            (
+                1,
+                "table2",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "already_exists": "replace",
+                    "column_dates": ["col1", "col2"],
+                    "delimiter": ";",
+                    "file": ANY,
+                    "table_name": "table2",
+                },
+            ),
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table2",
+                "delimiter": ";",
+                "already_exists": "replace",
+                "columns_read": "col1,col2",
+                "day_first": True,
+                "rows_to_read": "1",
+                "skip_blank_lines": True,
+                "skip_initial_space": True,
+                "skip_rows": "10",
+                "null_values": "None,N/A,''",
+                "column_data_types": '{"col1": "str"}',
+            },
+            (
+                1,
+                "table2",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "already_exists": "replace",
+                    "columns_read": ["col1", "col2"],
+                    "null_values": ["None", "N/A", "''"],
+                    "day_first": True,
+                    "rows_to_read": 1,
+                    "skip_blank_lines": True,
+                    "skip_initial_space": True,
+                    "skip_rows": 10,
+                    "delimiter": ";",
+                    "file": ANY,
+                    "column_data_types": {"col1": "str"},
+                    "table_name": "table2",
+                },
+            ),
+        ),
+    ],
+)
+def test_csv_upload(
+    payload: dict[str, Any],
+    upload_called_with: tuple[int, str, Any, dict[str, Any]],
+    reader_called_with: dict[str, Any],
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test CSV Upload success.
+    """
+    init_mock = mocker.patch.object(UploadCommand, "__init__")
+    init_mock.return_value = None
+    _ = mocker.patch.object(UploadCommand, "run")
+    reader_mock = mocker.patch.object(CSVReader, "__init__")
+    reader_mock.return_value = None
+    response = client.post(
+        "/api/v1/database/1/csv_upload/",
+        data=payload,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 201
+    assert response.json == {"message": "OK"}
+    init_mock.assert_called_with(*upload_called_with)
+    reader_mock.assert_called_with(*reader_called_with)
+
+
+@pytest.mark.parametrize(
+    "payload,expected_response",
+    [
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "delimiter": ",",
+                "already_exists": "fail",
+            },
+            {"message": {"table_name": ["Missing data for required field."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "",
+                "delimiter": ",",
+                "already_exists": "fail",
+            },
+            {"message": {"table_name": ["Length must be between 1 and 10000."]}},
+        ),
+        (
+            {"table_name": "table1", "delimiter": ",", "already_exists": "fail"},
+            {"message": {"file": ["Field may not be null."]}},
+        ),
+        (
+            {
+                "file": "xpto",
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+            },
+            {"message": {"file": ["Field may not be null."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "xpto",
+            },
+            {"message": {"already_exists": ["Must be one of: fail, replace, append."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "day_first": "test1",
+            },
+            {"message": {"day_first": ["Not a valid boolean."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "header_row": "test1",
+            },
+            {"message": {"header_row": ["Not a valid integer."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "rows_to_read": 0,
+            },
+            {"message": {"rows_to_read": ["Must be greater than or equal to 1."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "skip_blank_lines": "test1",
+            },
+            {"message": {"skip_blank_lines": ["Not a valid boolean."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "skip_initial_space": "test1",
+            },
+            {"message": {"skip_initial_space": ["Not a valid boolean."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "skip_rows": "test1",
+            },
+            {"message": {"skip_rows": ["Not a valid integer."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "column_data_types": "{test:1}",
+            },
+            {"message": {"_schema": ["Invalid JSON format for column_data_types"]}},
+        ),
+    ],
+)
+def test_csv_upload_validation(
+    payload: Any,
+    expected_response: dict[str, str],
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test CSV Upload validation fails.
+    """
+    _ = mocker.patch.object(UploadCommand, "run")
+
+    response = client.post(
+        "/api/v1/database/1/csv_upload/",
+        data=payload,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == expected_response
+
+
+def test_csv_upload_file_size_validation(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test CSV Upload validation fails.
+    """
+    _ = mocker.patch.object(UploadCommand, "run")
+    current_app.config["CSV_UPLOAD_MAX_SIZE"] = 5
+    response = client.post(
+        "/api/v1/database/1/csv_upload/",
+        data={
+            "file": (create_csv_file(), "out.csv"),
+            "table_name": "table1",
+            "delimiter": ",",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {
+        "message": {"file": ["File size exceeds the maximum allowed size."]}
+    }
+    current_app.config["CSV_UPLOAD_MAX_SIZE"] = None
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "out.xpto",
+        "out.exe",
+        "out",
+        "out csv",
+        "",
+        "out.csv.exe",
+        ".csv",
+        "out.",
+        ".",
+        "out csv a.exe",
+    ],
+)
+def test_csv_upload_file_extension_invalid(
+    filename: str,
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test CSV Upload validation fails.
+    """
+    _ = mocker.patch.object(UploadCommand, "run")
+    response = client.post(
+        "/api/v1/database/1/csv_upload/",
+        data={
+            "file": create_csv_file(filename=filename),
+            "table_name": "table1",
+            "delimiter": ",",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {"message": {"file": ["File extension is not allowed."]}}
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "out.csv",
+        "out.txt",
+        "out.tsv",
+        "spaced name.csv",
+        "spaced name.txt",
+        "spaced name.tsv",
+        "out.exe.csv",
+        "out.csv.csv",
+    ],
+)
+def test_csv_upload_file_extension_valid(
+    filename: str,
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test CSV Upload validation fails.
+    """
+    _ = mocker.patch.object(UploadCommand, "run")
+    response = client.post(
+        "/api/v1/database/1/csv_upload/",
+        data={
+            "file": create_csv_file(filename=filename),
+            "table_name": "table1",
+            "delimiter": ",",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 201
+
+
+@pytest.mark.parametrize(
+    "payload,upload_called_with,reader_called_with",
+    [
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table1",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "already_exists": "fail",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table2",
+                "sheet_name": "Sheet1",
+                "already_exists": "replace",
+                "column_dates": "col1,col2",
+            },
+            (
+                1,
+                "table2",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "already_exists": "replace",
+                    "column_dates": ["col1", "col2"],
+                    "sheet_name": "Sheet1",
+                    "file": ANY,
+                    "table_name": "table2",
+                },
+            ),
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table2",
+                "sheet_name": "Sheet1",
+                "already_exists": "replace",
+                "columns_read": "col1,col2",
+                "rows_to_read": "1",
+                "skip_rows": "10",
+                "null_values": "None,N/A,''",
+            },
+            (
+                1,
+                "table2",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "already_exists": "replace",
+                    "columns_read": ["col1", "col2"],
+                    "null_values": ["None", "N/A", "''"],
+                    "rows_to_read": 1,
+                    "skip_rows": 10,
+                    "sheet_name": "Sheet1",
+                    "file": ANY,
+                    "table_name": "table2",
+                },
+            ),
+        ),
+    ],
+)
+def test_excel_upload(
+    payload: dict[str, Any],
+    upload_called_with: tuple[int, str, Any, dict[str, Any]],
+    reader_called_with: dict[str, Any],
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test Excel Upload success.
+    """
+    init_mock = mocker.patch.object(UploadCommand, "__init__")
+    init_mock.return_value = None
+    _ = mocker.patch.object(UploadCommand, "run")
+    reader_mock = mocker.patch.object(ExcelReader, "__init__")
+    reader_mock.return_value = None
+    response = client.post(
+        "/api/v1/database/1/excel_upload/",
+        data=payload,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 201
+    assert response.json == {"message": "OK"}
+    init_mock.assert_called_with(*upload_called_with)
+    reader_mock.assert_called_with(*reader_called_with)
+
+
+@pytest.mark.parametrize(
+    "payload,expected_response",
+    [
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "sheet_name": "Sheet1",
+                "already_exists": "fail",
+            },
+            {"message": {"table_name": ["Missing data for required field."]}},
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "",
+                "sheet_name": "Sheet1",
+                "already_exists": "fail",
+            },
+            {"message": {"table_name": ["Length must be between 1 and 10000."]}},
+        ),
+        (
+            {"table_name": "table1", "already_exists": "fail"},
+            {"message": {"file": ["Field may not be null."]}},
+        ),
+        (
+            {
+                "file": "xpto",
+                "table_name": "table1",
+                "already_exists": "fail",
+            },
+            {"message": {"file": ["Field may not be null."]}},
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table1",
+                "already_exists": "xpto",
+            },
+            {"message": {"already_exists": ["Must be one of: fail, replace, append."]}},
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table1",
+                "already_exists": "fail",
+                "header_row": "test1",
+            },
+            {"message": {"header_row": ["Not a valid integer."]}},
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table1",
+                "already_exists": "fail",
+                "rows_to_read": 0,
+            },
+            {"message": {"rows_to_read": ["Must be greater than or equal to 1."]}},
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table1",
+                "already_exists": "fail",
+                "skip_rows": "test1",
+            },
+            {"message": {"skip_rows": ["Not a valid integer."]}},
+        ),
+    ],
+)
+def test_excel_upload_validation(
+    payload: Any,
+    expected_response: dict[str, str],
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test Excel Upload validation fails.
+    """
+    _ = mocker.patch.object(UploadCommand, "run")
+
+    response = client.post(
+        "/api/v1/database/1/excel_upload/",
+        data=payload,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == expected_response
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "out.xpto",
+        "out.exe",
+        "out",
+        "out xls",
+        "",
+        "out.slx.exe",
+        ".xls",
+        "out.",
+        ".",
+        "out xls a.exe",
+    ],
+)
+def test_excel_upload_file_extension_invalid(
+    filename: str,
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test Excel Upload file extension fails.
+    """
+    _ = mocker.patch.object(UploadCommand, "run")
+    response = client.post(
+        "/api/v1/database/1/excel_upload/",
+        data={
+            "file": create_excel_file(filename=filename),
+            "table_name": "table1",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {"message": {"file": ["File extension is not allowed."]}}
+
+
+@pytest.mark.parametrize(
+    "payload,upload_called_with,reader_called_with",
+    [
+        (
+            {
+                "file": (create_columnar_file(), "out.parquet"),
+                "table_name": "table1",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "already_exists": "fail",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            {
+                "file": (create_columnar_file(), "out.parquet"),
+                "table_name": "table2",
+                "already_exists": "replace",
+                "columns_read": "col1,col2",
+                "dataframe_index": True,
+                "index_label": "label",
+            },
+            (
+                1,
+                "table2",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "already_exists": "replace",
+                    "columns_read": ["col1", "col2"],
+                    "file": ANY,
+                    "table_name": "table2",
+                    "dataframe_index": True,
+                    "index_label": "label",
+                },
+            ),
+        ),
+    ],
+)
+def test_columnar_upload(
+    payload: dict[str, Any],
+    upload_called_with: tuple[int, str, Any, dict[str, Any]],
+    reader_called_with: dict[str, Any],
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test Excel Upload success.
+    """
+    init_mock = mocker.patch.object(UploadCommand, "__init__")
+    init_mock.return_value = None
+    _ = mocker.patch.object(UploadCommand, "run")
+    reader_mock = mocker.patch.object(ColumnarReader, "__init__")
+    reader_mock.return_value = None
+    response = client.post(
+        "/api/v1/database/1/columnar_upload/",
+        data=payload,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 201
+    assert response.json == {"message": "OK"}
+    init_mock.assert_called_with(*upload_called_with)
+    reader_mock.assert_called_with(*reader_called_with)
+
+
+@pytest.mark.parametrize(
+    "payload,expected_response",
+    [
+        (
+            {
+                "file": (create_columnar_file(), "out.parquet"),
+                "already_exists": "fail",
+            },
+            {"message": {"table_name": ["Missing data for required field."]}},
+        ),
+        (
+            {
+                "file": (create_columnar_file(), "out.parquet"),
+                "table_name": "",
+                "already_exists": "fail",
+            },
+            {"message": {"table_name": ["Length must be between 1 and 10000."]}},
+        ),
+        (
+            {"table_name": "table1", "already_exists": "fail"},
+            {"message": {"file": ["Field may not be null."]}},
+        ),
+        (
+            {
+                "file": "xpto",
+                "table_name": "table1",
+                "already_exists": "fail",
+            },
+            {"message": {"file": ["Field may not be null."]}},
+        ),
+        (
+            {
+                "file": (create_columnar_file(), "out.parquet"),
+                "table_name": "table1",
+                "already_exists": "xpto",
+            },
+            {"message": {"already_exists": ["Must be one of: fail, replace, append."]}},
+        ),
+    ],
+)
+def test_columnar_upload_validation(
+    payload: Any,
+    expected_response: dict[str, str],
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test Excel Upload validation fails.
+    """
+    _ = mocker.patch.object(UploadCommand, "run")
+
+    response = client.post(
+        "/api/v1/database/1/columnar_upload/",
+        data=payload,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == expected_response
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "out.parquet",
+        "out.zip",
+        "out.parquet.zip",
+        "out something.parquet",
+        "out something.zip",
+    ],
+)
+def test_columnar_upload_file_extension_valid(
+    filename: str,
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test Excel Upload file extension fails.
+    """
+    _ = mocker.patch.object(UploadCommand, "run")
+    response = client.post(
+        "/api/v1/database/1/columnar_upload/",
+        data={
+            "file": (create_columnar_file(), filename),
+            "table_name": "table1",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 201
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "out.xpto",
+        "out.exe",
+        "out",
+        "out zip",
+        "",
+        "out.parquet.exe",
+        ".parquet",
+        "out.",
+        ".",
+        "out parquet a.exe",
+    ],
+)
+def test_columnar_upload_file_extension_invalid(
+    filename: str,
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test Excel Upload file extension fails.
+    """
+    _ = mocker.patch.object(UploadCommand, "run")
+    response = client.post(
+        "/api/v1/database/1/columnar_upload/",
+        data={
+            "file": create_columnar_file(filename=filename),
+            "table_name": "table1",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {"message": {"file": ["File extension is not allowed."]}}
+
+
+def test_csv_metadata(mocker: MockFixture, client: Any, full_api_access: None) -> None:
+    _ = mocker.patch.object(CSVReader, "file_metadata")
+    response = client.post(
+        "/api/v1/database/csv_metadata/",
+        data={"file": create_csv_file()},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+
+
+def test_csv_metadata_bad_extension(
+    mocker: MockFixture, client: Any, full_api_access: None
+) -> None:
+    _ = mocker.patch.object(CSVReader, "file_metadata")
+    response = client.post(
+        "/api/v1/database/csv_metadata/",
+        data={"file": create_csv_file(filename="test.out")},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {"message": {"file": ["File extension is not allowed."]}}
+
+
+def test_csv_metadata_validation(
+    mocker: MockFixture, client: Any, full_api_access: None
+) -> None:
+    _ = mocker.patch.object(CSVReader, "file_metadata")
+    response = client.post(
+        "/api/v1/database/csv_metadata/",
+        data={},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {"message": {"file": ["Field may not be null."]}}
+
+
+def test_excel_metadata(
+    mocker: MockFixture, client: Any, full_api_access: None
+) -> None:
+    _ = mocker.patch.object(ExcelReader, "file_metadata")
+    response = client.post(
+        "/api/v1/database/excel_metadata/",
+        data={"file": create_excel_file()},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+
+
+def test_excel_metadata_bad_extension(
+    mocker: MockFixture, client: Any, full_api_access: None
+) -> None:
+    _ = mocker.patch.object(ExcelReader, "file_metadata")
+    response = client.post(
+        "/api/v1/database/excel_metadata/",
+        data={"file": create_excel_file(filename="test.out")},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {"message": {"file": ["File extension is not allowed."]}}
+
+
+def test_excel_metadata_validation(
+    mocker: MockFixture, client: Any, full_api_access: None
+) -> None:
+    _ = mocker.patch.object(ExcelReader, "file_metadata")
+    response = client.post(
+        "/api/v1/database/excel_metadata/",
+        data={},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {"message": {"file": ["Field may not be null."]}}
+
+
+def test_columnar_metadata(
+    mocker: MockFixture, client: Any, full_api_access: None
+) -> None:
+    _ = mocker.patch.object(ColumnarReader, "file_metadata")
+    response = client.post(
+        "/api/v1/database/columnar_metadata/",
+        data={"file": create_columnar_file()},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+
+
+def test_columnar_metadata_bad_extension(
+    mocker: MockFixture, client: Any, full_api_access: None
+) -> None:
+    _ = mocker.patch.object(ColumnarReader, "file_metadata")
+    response = client.post(
+        "/api/v1/database/columnar_metadata/",
+        data={"file": create_columnar_file(filename="test.out")},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {"message": {"file": ["File extension is not allowed."]}}
+
+
+def test_columnar_metadata_validation(
+    mocker: MockFixture, client: Any, full_api_access: None
+) -> None:
+    _ = mocker.patch.object(ColumnarReader, "file_metadata")
+    response = client.post(
+        "/api/v1/database/columnar_metadata/",
+        data={},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {"message": {"file": ["Field may not be null."]}}
+
+
+def test_table_metadata_happy_path(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.json == {"hello": "world"}
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t"),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t&schema=s")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", "s"),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t&catalog=c")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", None, "c"),
+    )
+
+    response = client.get(
+        "/api/v1/database/1/table_metadata/?name=t&schema=s&catalog=c"
+    )
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", "s", "c"),
+    )
+
+
+def test_table_metadata_no_table(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when no table name is passed.
+    """
+    database = mocker.MagicMock()
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+
+    response = client.get("/api/v1/database/1/table_metadata/?schema=s&catalog=c")
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "An error happened when validating the request",
+                "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                "level": "error",
+                "extra": {
+                    "messages": {"name": ["Missing data for required field."]},
+                    "issue_codes": [
+                        {
+                            "code": 1020,
+                            "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                        }
+                    ],
+                },
+            }
+        ]
+    }
+
+
+def test_table_metadata_slashes(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint with names that have slashes.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    client.get("/api/v1/database/1/table_metadata/?name=foo/bar")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("foo/bar"),
+    )
+
+
+def test_table_metadata_invalid_database(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when the database is invalid.
+    """
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=None)
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.status_code == 404
+    assert response.json == {
+        "errors": [
+            {
+                "message": "No such database",
+                "error_type": "DATABASE_NOT_FOUND_ERROR",
+                "level": "error",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1011,
+                            "message": "Issue 1011 - Superset encountered an unexpected error.",
+                        },
+                        {
+                            "code": 1036,
+                            "message": "Issue 1036 - The database was deleted.",
+                        },
+                    ]
+                },
+            }
+        ]
+    }
+
+
+def test_table_metadata_unauthorized(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when the user is unauthorized.
+    """
+    database = mocker.MagicMock()
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                message="You don't have access to the table",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.status_code == 404
+    assert response.json == {
+        "errors": [
+            {
+                "message": "No such table",
+                "error_type": "TABLE_NOT_FOUND_ERROR",
+                "level": "error",
+                "extra": None,
+            }
+        ]
+    }
+
+
+def test_table_extra_metadata_happy_path(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_extra_metadata` endpoint.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_extra_table_metadata.return_value = {"hello": "world"}
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
+    assert response.json == {"hello": "world"}
+    database.db_engine_spec.get_extra_table_metadata.assert_called_with(
+        database,
+        Table("t"),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t&schema=s")
+    database.db_engine_spec.get_extra_table_metadata.assert_called_with(
+        database,
+        Table("t", "s"),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t&catalog=c")
+    database.db_engine_spec.get_extra_table_metadata.assert_called_with(
+        database,
+        Table("t", None, "c"),
+    )
+
+    response = client.get(
+        "/api/v1/database/1/table_metadata/extra/?name=t&schema=s&catalog=c"
+    )
+    database.db_engine_spec.get_extra_table_metadata.assert_called_with(
+        database,
+        Table("t", "s", "c"),
+    )
+
+
+def test_table_extra_metadata_no_table(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_extra_metadata` endpoint when no table name is passed.
+    """
+    database = mocker.MagicMock()
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+
+    response = client.get("/api/v1/database/1/table_metadata/extra/?schema=s&catalog=c")
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "An error happened when validating the request",
+                "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                "level": "error",
+                "extra": {
+                    "messages": {"name": ["Missing data for required field."]},
+                    "issue_codes": [
+                        {
+                            "code": 1020,
+                            "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                        }
+                    ],
+                },
+            }
+        ]
+    }
+
+
+def test_table_extra_metadata_slashes(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_extra_metadata` endpoint with names that have slashes.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_extra_table_metadata.return_value = {"hello": "world"}
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    client.get("/api/v1/database/1/table_metadata/extra/?name=foo/bar")
+    database.db_engine_spec.get_extra_table_metadata.assert_called_with(
+        database,
+        Table("foo/bar"),
+    )
+
+
+def test_table_extra_metadata_invalid_database(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_extra_metadata` endpoint when the database is invalid.
+    """
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=None)
+
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
+    assert response.status_code == 404
+    assert response.json == {
+        "errors": [
+            {
+                "message": "No such database",
+                "error_type": "DATABASE_NOT_FOUND_ERROR",
+                "level": "error",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1011,
+                            "message": "Issue 1011 - Superset encountered an unexpected error.",
+                        },
+                        {
+                            "code": 1036,
+                            "message": "Issue 1036 - The database was deleted.",
+                        },
+                    ]
+                },
+            }
+        ]
+    }
+
+
+def test_table_extra_metadata_unauthorized(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_extra_metadata` endpoint when the user is unauthorized.
+    """
+    database = mocker.MagicMock()
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                message="You don't have access to the table",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
+    assert response.status_code == 404
+    assert response.json == {
+        "errors": [
+            {
+                "message": "No such table",
+                "error_type": "TABLE_NOT_FOUND_ERROR",
+                "level": "error",
+                "extra": None,
+            }
+        ]
+    }
+
+
+def test_catalogs(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `catalogs` endpoint.
+    """
+    database = mocker.MagicMock()
+    database.get_all_catalog_names.return_value = {"db1", "db2"}
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")
+    DatabaseDAO.find_by_id.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_catalogs_accessible_by_user.return_value = {"db2"}
+
+    response = client.get("/api/v1/database/1/catalogs/")
+    assert response.status_code == 200
+    assert response.json == {"result": ["db2"]}
+    database.get_all_catalog_names.assert_called_with(
+        cache=database.catalog_cache_enabled,
+        cache_timeout=database.catalog_cache_timeout,
+        force=False,
+    )
+    security_manager.get_catalogs_accessible_by_user.assert_called_with(
+        database,
+        {"db1", "db2"},
+    )
+
+    response = client.get("/api/v1/database/1/catalogs/?q=(force:!t)")
+    database.get_all_catalog_names.assert_called_with(
+        cache=database.catalog_cache_enabled,
+        cache_timeout=database.catalog_cache_timeout,
+        force=True,
+    )
+
+
+def test_schemas(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `schemas` endpoint.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.return_value = {"schema1", "schema2"}
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_schemas_accessible_by_user.return_value = {"schema2"}
+
+    response = client.get("/api/v1/database/1/schemas/")
+    assert response.status_code == 200
+    assert response.json == {"result": ["schema2"]}
+    database.get_all_schema_names.assert_called_with(
+        catalog=None,
+        cache=database.schema_cache_enabled,
+        cache_timeout=database.schema_cache_timeout,
+        force=False,
+    )
+    security_manager.get_schemas_accessible_by_user.assert_called_with(
+        database,
+        None,
+        {"schema1", "schema2"},
+    )
+
+    response = client.get("/api/v1/database/1/schemas/?q=(force:!t)")
+    database.get_all_schema_names.assert_called_with(
+        catalog=None,
+        cache=database.schema_cache_enabled,
+        cache_timeout=database.schema_cache_timeout,
+        force=True,
+    )
+
+    response = client.get("/api/v1/database/1/schemas/?q=(force:!t,catalog:catalog2)")
+    database.get_all_schema_names.assert_called_with(
+        catalog="catalog2",
+        cache=database.schema_cache_enabled,
+        cache_timeout=database.schema_cache_timeout,
+        force=True,
+    )
+    security_manager.get_schemas_accessible_by_user.assert_called_with(
+        database,
+        "catalog2",
+        {"schema1", "schema2"},
+    )

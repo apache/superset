@@ -322,7 +322,7 @@ export default function DataSourcePanel({
             </StyledInfoboxWrapper>
           )}
           <AutoSizer>
-            {({ height }) => (
+            {({ height }: { height: number }) => (
               <List
                 width={width - BORDER_WIDTH}
                 height={height}

@@ -315,6 +315,7 @@ const FilterControl = ({
           <div>
             <FormItem
               label={label}
+              aria-label={name}
               required={filter?.controlValues?.enableEmptyFilter}
               validateStatus={validateStatus}
             >

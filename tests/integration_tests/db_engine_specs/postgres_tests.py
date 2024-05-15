@@ -530,8 +530,8 @@ def test_get_catalog_names(app_context: AppContext) -> None:
     if database.backend != "postgresql":
         return
 
-    with database.get_inspector_with_context() as inspector:
-        assert PostgresEngineSpec.get_catalog_names(database, inspector) == [
+    with database.get_inspector() as inspector:
+        assert PostgresEngineSpec.get_catalog_names(database, inspector) == {
             "postgres",
             "superset",
-        ]
+        }

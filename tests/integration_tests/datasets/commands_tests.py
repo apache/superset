@@ -42,12 +42,12 @@ from superset.utils.core import get_example_default_schema, override_user
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
 )
 from tests.integration_tests.fixtures.importexport import (
     database_config,
@@ -58,8 +58,8 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_ui_export,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 
@@ -95,6 +95,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
         assert metadata == {
             "cache_timeout": None,
+            "catalog": None,
             "columns": [
                 {
                     "column_name": "source",
@@ -224,6 +225,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "default_endpoint",
             "offset",
             "cache_timeout",
+            "catalog",
             "schema",
             "sql",
             "params",
@@ -563,7 +565,7 @@ class TestCreateDatasetCommand(SupersetTestCase):
 
     def test_create_dataset_command(self):
         examples_db = get_example_database()
-        with examples_db.get_sqla_engine_with_context() as engine:
+        with examples_db.get_sqla_engine() as engine:
             engine.execute("DROP TABLE IF EXISTS test_create_dataset_command")
             engine.execute(
                 "CREATE TABLE test_create_dataset_command AS SELECT 2 as col"
@@ -585,7 +587,7 @@ class TestCreateDatasetCommand(SupersetTestCase):
             self.assertEqual([owner.username for owner in table.owners], ["admin"])
 
         db.session.delete(table)
-        with examples_db.get_sqla_engine_with_context() as engine:
+        with examples_db.get_sqla_engine() as engine:
             engine.execute("DROP TABLE test_create_dataset_command")
         db.session.commit()
 

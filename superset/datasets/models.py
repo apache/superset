@@ -24,7 +24,6 @@ dataset, new models for columns, metrics, and tables were also introduced.
 These models are not fully implemented, and shouldn't be used yet.
 """
 
-
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship

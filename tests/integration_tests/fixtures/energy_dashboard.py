@@ -38,7 +38,7 @@ ENERGY_USAGE_TBL_NAME = "energy_usage"
 def load_energy_table_data():
     with app.app_context():
         database = get_example_database()
-        with database.get_sqla_engine_with_context() as engine:
+        with database.get_sqla_engine() as engine:
             df = _get_dataframe()
             df.to_sql(
                 ENERGY_USAGE_TBL_NAME,
@@ -52,7 +52,7 @@ def load_energy_table_data():
             )
     yield
     with app.app_context():
-        with get_example_database().get_sqla_engine_with_context() as engine:
+        with get_example_database().get_sqla_engine() as engine:
             engine.execute("DROP TABLE IF EXISTS energy_usage")
 
 

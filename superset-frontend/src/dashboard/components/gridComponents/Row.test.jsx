@@ -32,8 +32,10 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Draggable: ({ children }) => (
     <div data-test="mock-draggable">{children({})}</div>
   ),
-  Droppable: ({ children }) => (
-    <div data-test="mock-droppable">{children({})}</div>
+  Droppable: ({ children, depth }) => (
+    <div data-test="mock-droppable" depth={depth}>
+      {children({})}
+    </div>
   ),
 }));
 jest.mock(
@@ -125,7 +127,7 @@ test('should render a WithPopoverMenu', () => {
 });
 
 test('should render a HoverMenu in editMode', () => {
-  const { container, getAllByTestId } = setup({
+  const { container, getAllByTestId, getByTestId } = setup({
     component: rowWithoutChildren,
     editMode: true,
   });
@@ -133,6 +135,12 @@ test('should render a HoverMenu in editMode', () => {
 
   // Droppable area enabled in editMode
   expect(getAllByTestId('mock-droppable').length).toBe(1);
+
+  // pass the same depth of its droppable area
+  expect(getByTestId('mock-droppable')).toHaveAttribute(
+    'depth',
+    `${props.depth}`,
+  );
 });
 
 test('should render a DeleteComponentButton in editMode', () => {

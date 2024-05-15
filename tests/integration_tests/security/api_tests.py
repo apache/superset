@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Tests for security api methods"""
+
 import json
 
 import jwt
@@ -29,8 +30,8 @@ from superset.utils.urls import get_url_host
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 
 
@@ -66,9 +67,21 @@ class TestSecurityCsrfApi(SupersetTestCase):
         response = self.client.get(uri)
         self.assert401(response)
 
+    def test_login(self):
+        """
+        Security API: Test get login
+        """
+        uri = f"api/v1/{self.resource_name}/login"
+        response = self.client.post(
+            uri,
+            json={"username": ADMIN_USERNAME, "password": "general", "provider": "db"},
+        )
+        assert response.status_code == 200
+        assert "access_token" in response.json
+
 
 class TestSecurityGuestTokenApi(SupersetTestCase):
-    uri = f"api/v1/security/guest_token/"
+    uri = "api/v1/security/guest_token/"  # noqa: F541
 
     def test_post_guest_token_unauthenticated(self):
         """

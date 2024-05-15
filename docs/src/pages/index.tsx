@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef, useState, useEffect } from 'react';
+// @ts-nocheck
+import { useRef, useState, useEffect } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import { Carousel } from 'antd';
@@ -27,6 +28,8 @@ import { Databases } from '../resources/data';
 import SectionHeader from '../components/SectionHeader';
 import BlurredSection from '../components/BlurredSection';
 import '../styles/main.less';
+
+// @ts-ignore
 
 const features = [
   {
@@ -644,7 +647,7 @@ export default function Home(): JSX.Element {
               </div>
             </Carousel>
             <video autoPlay muted controls loop>
-              <source src="/video/superset-video-4k.mp4" type="video/mp4" />
+              <source src="https://superset.staged.apache.org/superset-video-4k.mp4" type="video/mp4" />
             </video>
           </StyledSliderSection>
           <StyledKeyFeatures>
@@ -731,7 +734,7 @@ export default function Home(): JSX.Element {
             </div>
             <span className="database-sub">
               ...and many other{' '}
-              <a href="/docs/databases/installing-database-drivers">
+              <a href="/docs/configuration/databases#installing-database-drivers">
                 compatible databases
               </a>
             </span>

@@ -18,7 +18,7 @@ import io
 
 import pandas as pd
 import pyarrow as pa
-import pytest
+import pytest  # noqa: F401
 
 from superset.utils import csv
 

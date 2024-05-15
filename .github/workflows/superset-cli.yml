@@ -16,9 +16,6 @@ concurrency:
 jobs:
   test-load-examples:
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.10"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config

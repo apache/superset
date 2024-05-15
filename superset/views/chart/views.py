@@ -23,12 +23,12 @@ from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
-from superset.views.base import DeleteMixin, SupersetModelView
+from superset.views.base import DeleteMixin, DeprecateModelViewMixin, SupersetModelView
 from superset.views.chart.mixin import SliceMixin
 
 
 class SliceModelView(
-    SliceMixin, SupersetModelView, DeleteMixin
+    DeprecateModelViewMixin, SliceMixin, SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
     route_base = "/chart"
     datamodel = SQLAInterface(Slice)
