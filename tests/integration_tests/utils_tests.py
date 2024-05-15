@@ -127,7 +127,8 @@ class TestUtils(SupersetTestCase):
         assert isinstance(base_json_conv(time()), str)
         assert isinstance(base_json_conv(timedelta(0)), str)
         assert isinstance(base_json_conv(b""), str)
-        assert base_json_conv(bytes("", encoding="utf-16")) == "[bytes]"
+        assert isinstance(base_json_conv(b"\xff\xfe"), str)
+        assert base_json_conv(b"\xff") == "[bytes]"
 
         with pytest.raises(TypeError):
             base_json_conv(np.datetime64())
