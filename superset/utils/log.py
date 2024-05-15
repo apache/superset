@@ -91,6 +91,17 @@ def get_logger_from_status(
 
 
 class AbstractEventLogger(ABC):
+    # Parameters that are passed under the `curated_payload` arg to the log method
+    curated_payload_params = {
+        "force",
+        "standalone",
+        "runAsync",
+        "json",
+        "csv",
+        "queryLimit",
+        "select_as_cta",
+    }
+
     def __call__(
         self,
         action: str,
@@ -120,6 +131,10 @@ class AbstractEventLogger(ABC):
             **self.payload_override,
         )
 
+    @classmethod
+    def curate_payload(cls, payload: dict[str, Any]) -> dict[str, Any]:
+        return {k: v for k, v in payload.items() if k in cls.curated_payload_params}
+
     @abstractmethod
     def log(  # pylint: disable=too-many-arguments
         self,
@@ -129,6 +144,7 @@ class AbstractEventLogger(ABC):
         duration_ms: int | None,
         slice_id: int | None,
         referrer: str | None,
+        curated_payload: dict[str, Any] | None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -207,7 +223,7 @@ class AbstractEventLogger(ABC):
             slice_id=slice_id,
             duration_ms=duration_ms,
             referrer=referrer,
-            payload=payload,
+            curated_payload=self.curate_payload(payload),
             **database_params,
         )
 
@@ -381,6 +397,7 @@ class StdOutEventLogger(AbstractEventLogger):
         duration_ms: int | None,
         slice_id: int | None,
         referrer: str | None,
+        curated_payload: dict[str, Any] | None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -391,6 +408,7 @@ class StdOutEventLogger(AbstractEventLogger):
             duration_ms=duration_ms,
             slice_id=slice_id,
             referrer=referrer,
+            curated_payload=curated_payload,
             **kwargs,
         )
         print("StdOutEventLogger: ", data)
