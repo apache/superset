@@ -553,18 +553,17 @@ class QueryContextProcessor:
             join_column_producer or time_grain in AGGREGATED_JOIN_GRAINS
         )
 
-        if use_aggregated_join_column:
-            if not time_grain:
-                raise QueryObjectValidationError(
-                    _("Time Grain must be specified when using Time Shift.")
-                )
+        if use_aggregated_join_column and not time_grain:
+            raise QueryObjectValidationError(
+                _("Time Grain must be specified when using Time Shift.")
+            )
 
         # iterate on offset_dfs, left join each with df
         for offset, offset_df in offset_dfs.items():
             # defines a column name for the offset join column
             column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
 
-            if use_aggregated_join_column:
+            if time_grain:
                 # add offset join column to df
                 self.add_offset_join_column(
                     df, column_name, time_grain, offset, join_column_producer
@@ -593,7 +592,7 @@ class QueryContextProcessor:
                     rsuffix=R_SUFFIX,
                 )
 
-            if use_aggregated_join_column:
+            if time_grain:
                 # move the temporal column to the first column in df
                 col = df.pop(join_keys[0])
                 df.insert(0, col.name, col)
