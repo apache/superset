@@ -64,7 +64,7 @@ const typeToDefaultMetaData = {
     background: BACKGROUND_TRANSPARENT,
   },
   [MARKDOWN_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
-  [IKI_DYNAMIC_MARKDOWN_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
+  [IKI_DYNAMIC_MARKDOWN_TYPE]: { width: 12, height: 50 },
   [IKI_TABLE_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [IKI_PROCESS_BUILDER_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [IKI_RUN_PIPELINE_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },

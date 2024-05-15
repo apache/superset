@@ -138,6 +138,10 @@ class CssEditor extends React.PureComponent {
   margin-left: 0 !important;
 }
 
+.dashboard--editing .grid-container {
+  margin: 0 0 0 32px !important;
+}
+
 /* Dashboard grid */
 .grid-container {
   padding: 0 !important;
@@ -147,13 +151,19 @@ class CssEditor extends React.PureComponent {
 }
 
 /* Dashboard rows */
-.grid-row {
-  padding: 0 24px;
-}
+.grid-row {}
 
 /* All dashboard components */
 .dashboard-component.dashboard-component {
   box-shadow: none !important;
+}
+
+/* Dashboard components */
+.dragdroppable:first-of-type .resizable-container {
+  padding-left: 24px;
+}
+.dragdroppable:last-of-type .resizable-container {
+  padding-right: 24px;
 }
 
 /* Dynamic markdown components */
