@@ -25,15 +25,15 @@ export enum LabelsColorMapSource {
 }
 
 export class LabelsColorMap {
-  sliceLabelMap: Map<number, string[]>;
+  chartsLabelsMap: Map<number, { labels: string[]; scheme?: string }>;
 
   colorMap: Map<string, string>;
 
   source: LabelsColorMapSource;
 
   constructor() {
-    // { sliceId1: [label1, label2, ...], sliceId2: [label1, label2, ...] }
-    this.sliceLabelMap = new Map();
+    // holds labels and original color schemes for each chart in context
+    this.chartsLabelsMap = new Map();
     this.colorMap = new Map();
     this.source = LabelsColorMapSource.Dashboard;
   }
@@ -41,8 +41,11 @@ export class LabelsColorMap {
   updateColorMap(categoricalNamespace: any, colorScheme?: string) {
     const newColorMap = new Map();
     this.colorMap.clear();
-    this.sliceLabelMap.forEach((labels, sliceId) => {
-      const colorScale = categoricalNamespace.getScale(colorScheme);
+    this.chartsLabelsMap.forEach((chartConfig, sliceId) => {
+      const { labels, scheme: originalChartColorScheme } = chartConfig;
+      const currentColorScheme = colorScheme || originalChartColorScheme;
+      const colorScale = categoricalNamespace.getScale(currentColorScheme);
+
       labels.forEach(label => {
         const newColor = colorScale.getColor(label, sliceId);
         newColorMap.set(label, newColor);
@@ -55,22 +58,37 @@ export class LabelsColorMap {
     return this.colorMap;
   }
 
-  addSlice(label: string, color: string, sliceId: number) {
+  addSlice(
+    label: string,
+    color: string,
+    sliceId: number,
+    colorScheme?: string,
+  ) {
     if (this.source !== LabelsColorMapSource.Dashboard) return;
 
-    const labels = this.sliceLabelMap.get(sliceId) || [];
+    const chartConfig = this.chartsLabelsMap.get(sliceId) || {
+      labels: [],
+      scheme: '',
+    };
+    const { labels } = chartConfig;
     if (!labels.includes(label)) {
       labels.push(label);
-      this.sliceLabelMap.set(sliceId, labels);
+      this.chartsLabelsMap.set(sliceId, {
+        labels,
+        scheme: colorScheme,
+      });
     }
     this.colorMap.set(label, color);
   }
 
   removeSlice(sliceId: number) {
     if (this.source !== LabelsColorMapSource.Dashboard) return;
-    this.sliceLabelMap.delete(sliceId);
+
+    this.chartsLabelsMap.delete(sliceId);
     const newColorMap = new Map();
-    this.sliceLabelMap.forEach(labels => {
+
+    this.chartsLabelsMap.forEach(chartConfig => {
+      const { labels } = chartConfig;
       labels.forEach(label => {
         newColorMap.set(label, this.colorMap.get(label));
       });
@@ -79,7 +97,7 @@ export class LabelsColorMap {
   }
 
   clear() {
-    this.sliceLabelMap.clear();
+    this.chartsLabelsMap.clear();
     this.colorMap.clear();
   }
 }

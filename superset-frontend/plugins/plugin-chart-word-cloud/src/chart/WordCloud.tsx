@@ -66,6 +66,7 @@ export interface WordCloudProps extends WordCloudVisualProps {
   height: number;
   width: number;
   sliceId: number;
+  colorScheme: string;
 }
 
 export interface WordCloudState {
@@ -224,7 +225,7 @@ class WordCloud extends React.PureComponent<
 
   render() {
     const { scaleFactor } = this.state;
-    const { width, height, encoding, sliceId } = this.props;
+    const { width, height, encoding, sliceId, colorScheme } = this.props;
     const { words } = this.state;
 
     // @ts-ignore
@@ -252,7 +253,11 @@ class WordCloud extends React.PureComponent<
               fontSize={`${w.size}px`}
               fontWeight={w.weight}
               fontFamily={w.font}
-              fill={colorFn(getValueFromDatum(w) as string, sliceId)}
+              fill={colorFn(
+                getValueFromDatum(w) as string,
+                sliceId,
+                colorScheme,
+              )}
               textAnchor="middle"
               transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
             >

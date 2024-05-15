@@ -63,7 +63,7 @@ describe('CategoricalColorScale', () => {
     let scale: CategoricalColorScale;
     let addSliceSpy: jest.SpyInstance<
       void,
-      [label: string, color: string, sliceId: number]
+      [label: string, color: string, sliceId: number, colorScheme?: string]
     >;
     let getNextAvailableColorSpy: jest.SpyInstance<
       string,
@@ -143,24 +143,26 @@ describe('CategoricalColorScale', () => {
       scale.getColor('goat');
       expect(scale.range()).toHaveLength(9);
     });
-    it('adds the color and value to sliceMap and calls addSlice', () => {
+    it('adds the color and value to chartLabelsColorMap and calls addSlice', () => {
       const value = 'testValue';
       const sliceId = 123;
+      const colorScheme = 'preset';
 
-      expect(scale.sliceMap.has(value)).toBe(false);
+      expect(scale.chartLabelsColorMap.has(value)).toBe(false);
 
-      scale.getColor(value, sliceId);
+      scale.getColor(value, sliceId, colorScheme);
 
-      expect(scale.sliceMap.has(value)).toBe(true);
-      expect(scale.sliceMap.get(value)).toBeDefined();
+      expect(scale.chartLabelsColorMap.has(value)).toBe(true);
+      expect(scale.chartLabelsColorMap.get(value)).toBeDefined();
 
       expect(addSliceSpy).toHaveBeenCalledWith(
         value,
         expect.any(String),
         sliceId,
+        colorScheme,
       );
 
-      const expectedColor = scale.sliceMap.get(value);
+      const expectedColor = scale.chartLabelsColorMap.get(value);
       const returnedColor = scale.getColor(value, sliceId);
       expect(returnedColor).toBe(expectedColor);
     });

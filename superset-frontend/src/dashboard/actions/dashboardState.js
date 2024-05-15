@@ -673,6 +673,7 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
     dashboardInfo: { id, metadata },
   } = getState();
   const categoricalSchemes = getCategoricalSchemeRegistry();
+  const colorScheme = metadata?.color_scheme;
   const colorSchemeRegistry = categoricalSchemes.get(
     metadata?.color_scheme,
     true,
@@ -680,16 +681,13 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
   const defaultScheme = categoricalSchemes.defaultKey;
   const fallbackScheme = defaultScheme?.toString() || 'supersetColors';
   const colorSchemeDomain = metadata?.color_scheme_domain || [];
-  const colorScheme = metadata?.color_scheme;
-
-  if (!colorScheme) return;
 
   try {
     const updatedMetadata = { ...metadata };
     let updatedScheme = metadata?.color_scheme;
 
     // Color scheme does not exist anymore, fallback to default
-    if (!colorSchemeRegistry) {
+    if (colorScheme && !colorSchemeRegistry) {
       updatedScheme = fallbackScheme;
       updatedMetadata.color_scheme = updatedScheme;
       updatedMetadata.color_scheme_domain = getColorSchemeDomain(colorScheme);
@@ -712,11 +710,14 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
     const freshColorSchemeDomain = getColorSchemeDomain(colorScheme);
     const isRegistrySynced =
       colorSchemeDomain.toString() !== freshColorSchemeDomain.toString();
-    if (!isRegistrySynced) {
+    if (colorScheme && !isRegistrySynced) {
       updatedMetadata.color_scheme_domain = freshColorSchemeDomain;
     }
 
-    if (!colorSchemeRegistry || !isRegistrySynced || !isMapSynced) {
+    if (
+      (colorScheme && (!colorSchemeRegistry || !isRegistrySynced)) ||
+      !isMapSynced
+    ) {
       await updateDashboardMetadata(id, updatedMetadata, dispatch);
     }
   } catch (error) {

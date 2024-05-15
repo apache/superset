@@ -28,7 +28,7 @@ import { FeatureFlag, isFeatureEnabled } from '../utils';
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
 interface CategoricalColorScale {
-  (x: { toString(): string }, y?: number): string;
+  (x: { toString(): string }, y?: number, w?: string): string;
 }
 
 class CategoricalColorScale extends ExtensibleFunction {
@@ -42,7 +42,7 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   labelsColorMapInstance: ReturnType<typeof getLabelsColorMap>;
 
-  sliceMap: Map<string, string>;
+  chartLabelsColorMap: Map<string, string>;
 
   multiple: number;
 
@@ -53,13 +53,15 @@ class CategoricalColorScale extends ExtensibleFunction {
    * (usually CategoricalColorNamespace)
    */
   constructor(colors: string[], forcedColors: ColorsInitLookup = {}) {
-    super((value: string, sliceId?: number) => this.getColor(value, sliceId));
+    super((value: string, sliceId?: number, colorScheme?: string) =>
+      this.getColor(value, sliceId, colorScheme),
+    );
     // holds original color scheme colors
     this.originColors = colors;
     // holds the extended color range (includes analagous colors)
     this.colors = colors;
     // holds the values of this specific slice (label+color)
-    this.sliceMap = new Map();
+    this.chartLabelsColorMap = new Map();
     // shared color map instance (when context is shared, i.e. dashboard)
     this.labelsColorMapInstance = getLabelsColorMap();
     // holds the multiple value for analogous colors range
@@ -104,14 +106,15 @@ class CategoricalColorScale extends ExtensibleFunction {
    * Get the color for a given value
    *
    * @param value the value of a label to get the color for
-   * @param sliceId the ID of the current slice
+   * @param sliceId the ID of the current chart
+   * @param colorScheme the original color scheme of the chart
    * @returns the color or the next available color
    */
-  getColor(value?: string, sliceId?: number): string {
+  getColor(value?: string, sliceId?: number, colorScheme?: string): string {
     const cleanedValue = stringifyAndTrim(value);
     // priority: forced color (i.e. custom label colors) > shared color > scale color
     const forcedColor = this.forcedColors?.[cleanedValue];
-    const isExistingLabel = this.sliceMap.has(cleanedValue);
+    const isExistingLabel = this.chartLabelsColorMap.has(cleanedValue);
     let color = forcedColor || this.scale(cleanedValue);
 
     // a forced color will always be used independently of the usage count
@@ -130,11 +133,16 @@ class CategoricalColorScale extends ExtensibleFunction {
     }
 
     // keep track of values in this slice
-    this.sliceMap.set(cleanedValue, color);
+    this.chartLabelsColorMap.set(cleanedValue, color);
 
-    // store the value+color in the shared context
+    // store the value+color in the LabelsColorMapSingleton
     if (sliceId) {
-      this.labelsColorMapInstance.addSlice(cleanedValue, color, sliceId);
+      this.labelsColorMapInstance.addSlice(
+        cleanedValue,
+        color,
+        sliceId,
+        colorScheme,
+      );
     }
     return color;
   }
@@ -158,7 +166,7 @@ class CategoricalColorScale extends ExtensibleFunction {
    */
   getColorUsageCount(currentColor: string): number {
     let count = 0;
-    this.sliceMap.forEach(color => {
+    this.chartLabelsColorMap.forEach(color => {
       if (color === currentColor) {
         count += 1;
       }

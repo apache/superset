@@ -18,11 +18,13 @@
  */
 
 import {
+  CategoricalColorNamespace,
   CategoricalScheme,
   FeatureFlag,
   getCategoricalSchemeRegistry,
   getLabelsColorMap,
   LabelsColorMapSource,
+  LabelsColorMap,
 } from '@superset-ui/core';
 
 const actual = jest.requireActual('../../src/color/utils');
@@ -55,16 +57,16 @@ describe('LabelsColorMap', () => {
   });
 
   it('has default value out-of-the-box', () => {
-    expect(getLabelsColorMap()).toBeInstanceOf(LabelsColorMapSource);
+    expect(getLabelsColorMap()).toBeInstanceOf(LabelsColorMap);
   });
 
   describe('.addSlice(value, color, sliceId)', () => {
     it('should add to sliceLabelColorMap when first adding label', () => {
       const labelsColorMap = getLabelsColorMap();
-      labelsColorMap.addSlice('a', 'red', 1);
-      expect(labelsColorMap.sliceLabelMap.has(1)).toEqual(true);
-      const labels = labelsColorMap.sliceLabelMap.get(1);
-      expect(labels?.includes('a')).toEqual(true);
+      labelsColorMap.addSlice('a', 'red', 1, 'preset');
+      expect(labelsColorMap.chartsLabelsMap.has(1)).toEqual(true);
+      const chartConfig = labelsColorMap.chartsLabelsMap.get(1);
+      expect(chartConfig?.labels?.includes('a')).toEqual(true);
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).toEqual({ a: 'red' });
     });
@@ -73,8 +75,8 @@ describe('LabelsColorMap', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 1);
-      const labels = labelsColorMap.sliceLabelMap.get(1);
-      expect(labels?.includes('b')).toEqual(true);
+      const chartConfig = labelsColorMap.chartsLabelsMap.get(1);
+      expect(chartConfig?.labels?.includes('b')).toEqual(true);
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).toEqual({ a: 'red', b: 'blue' });
     });
@@ -83,9 +85,9 @@ describe('LabelsColorMap', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('b', 'blue', 1);
       labelsColorMap.addSlice('b', 'green', 1);
-      const labels = labelsColorMap.sliceLabelMap.get(1);
-      expect(labels?.includes('b')).toEqual(true);
-      expect(labels?.length).toEqual(1);
+      const chartConfig = labelsColorMap.chartsLabelsMap.get(1);
+      expect(chartConfig?.labels?.includes('b')).toEqual(true);
+      expect(chartConfig?.labels?.length).toEqual(1);
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).toEqual({ b: 'green' });
     });
@@ -94,7 +96,7 @@ describe('LabelsColorMap', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.source = LabelsColorMapSource.Explore;
       labelsColorMap.addSlice('a', 'red', 1);
-      expect(Object.fromEntries(labelsColorMap.sliceLabelMap)).toEqual({});
+      expect(Object.fromEntries(labelsColorMap.chartsLabelsMap)).toEqual({});
     });
   });
 
@@ -103,7 +105,7 @@ describe('LabelsColorMap', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.removeSlice(1);
-      expect(labelsColorMap.sliceLabelMap.has(1)).toEqual(false);
+      expect(labelsColorMap.chartsLabelsMap.has(1)).toEqual(false);
     });
 
     it('should update colorMap', () => {
@@ -120,18 +122,27 @@ describe('LabelsColorMap', () => {
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.source = LabelsColorMapSource.Explore;
       labelsColorMap.removeSlice(1);
-      expect(labelsColorMap.sliceLabelMap.has(1)).toEqual(true);
+      expect(labelsColorMap.chartsLabelsMap.has(1)).toEqual(true);
     });
   });
 
   describe('.updateColorMap(namespace, scheme)', () => {
     it('should update color map', () => {
       const labelsColorMap = getLabelsColorMap();
+      const categoricalNamespace =
+        CategoricalColorNamespace.getNamespace(undefined);
+      // override color with forcedItems
+      categoricalNamespace.setColor('b', 'green');
+      // testColors2: 'yellow', 'green', 'blue'
+      // first-time label, gets color, yellow
       labelsColorMap.addSlice('a', 'red', 1);
+      // overridden, gets green
       labelsColorMap.addSlice('b', 'pink', 1);
+      // overridden, gets green
       labelsColorMap.addSlice('b', 'green', 2);
+      // first-time slice label, gets color, yellow
       labelsColorMap.addSlice('c', 'blue', 2);
-      labelsColorMap.updateColorMap('', 'testColors2');
+      labelsColorMap.updateColorMap(categoricalNamespace, 'testColors2');
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).toEqual({
         a: 'yellow',
@@ -145,11 +156,14 @@ describe('LabelsColorMap', () => {
         [FeatureFlag.UseAnalagousColors]: false,
       };
       const labelsColorMap = getLabelsColorMap();
+      const categoricalNamespace =
+        CategoricalColorNamespace.getNamespace(undefined);
+
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 2);
       labelsColorMap.addSlice('c', 'green', 3);
       labelsColorMap.addSlice('d', 'red', 4);
-      labelsColorMap.updateColorMap('', 'testColors');
+      labelsColorMap.updateColorMap(categoricalNamespace, 'testColors');
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).not.toEqual({});
       expect(getAnalogousColorsSpy).not.toBeCalled();
@@ -160,11 +174,14 @@ describe('LabelsColorMap', () => {
         [FeatureFlag.UseAnalagousColors]: true,
       };
       const labelsColorMap = getLabelsColorMap();
+      const categoricalNamespace =
+        CategoricalColorNamespace.getNamespace(undefined);
+
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 1);
       labelsColorMap.addSlice('c', 'green', 1);
       labelsColorMap.addSlice('d', 'red', 1);
-      labelsColorMap.updateColorMap('', 'testColors');
+      labelsColorMap.updateColorMap(categoricalNamespace, 'testColors');
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).not.toEqual({});
       expect(getAnalogousColorsSpy).toBeCalled();

@@ -114,9 +114,7 @@ export const applyColors = (metadata: Record<string, any>, fresh = false) => {
   const colorScheme = metadata?.color_scheme;
   const customLabelColors = metadata?.label_colors || {};
   // when scheme unset, update only custom label colors
-  const labelsColorMap = metadata?.color_scheme
-    ? metadata?.shared_label_colors || {}
-    : {};
+  const labelsColorMap = metadata?.shared_label_colors || {};
 
   // reset forced colors (custom labels + labels color map)
   categoricalNamespace.resetColors();
