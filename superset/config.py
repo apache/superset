@@ -416,7 +416,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # editor no longer shows. Currently this is set to false so that the editor
     # option does show, but we will be depreciating it.
     "DISABLE_LEGACY_DATASOURCE_EDITOR": True,
-    "ENABLE_TEMPLATE_PROCESSING": False,
+    "ENABLE_TEMPLATE_PROCESSING": True,
     # Allow for javascript controls components
     # this enables programmers to customize certain charts (like the
     # geospatial ones) by inputting javascript in controls. This exposes
