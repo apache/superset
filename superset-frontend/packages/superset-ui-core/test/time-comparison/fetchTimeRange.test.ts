@@ -27,7 +27,7 @@ import {
 
 afterEach(fetchMock.restore);
 
-it('generates proper time range string', () => {
+test('generates proper time range string', () => {
   expect(
     buildTimeRangeString('2010-07-30T00:00:00', '2020-07-30T00:00:00'),
   ).toBe('2010-07-30T00:00:00 : 2020-07-30T00:00:00');
@@ -37,7 +37,7 @@ it('generates proper time range string', () => {
   expect(buildTimeRangeString('', '')).toBe(' : ');
 });
 
-it('generates a readable time range', () => {
+test('generates a readable time range', () => {
   expect(formatTimeRange('Last 7 days')).toBe('Last 7 days');
   expect(formatTimeRange('No filter')).toBe('No filter');
   expect(formatTimeRange('Yesterday : Tomorrow')).toBe(
@@ -54,7 +54,7 @@ it('generates a readable time range', () => {
   );
 });
 
-it('returns a formatted time range from response', async () => {
+test('returns a formatted time range from response', async () => {
   fetchMock.get("glob:*/api/v1/time_range/?q='Last+day'", {
     result: [
       {
@@ -71,7 +71,7 @@ it('returns a formatted time range from response', async () => {
   });
 });
 
-it('returns a formatted time range from empty response', async () => {
+test('returns a formatted time range from empty response', async () => {
   fetchMock.get("glob:*/api/v1/time_range/?q='Last+day'", {
     result: [],
   });
@@ -82,7 +82,7 @@ it('returns a formatted time range from empty response', async () => {
   });
 });
 
-it('returns a formatted error message from response', async () => {
+test('returns a formatted error message from response', async () => {
   fetchMock.getOnce("glob:*/api/v1/time_range/?q='Last+day'", {
     throws: new Response(JSON.stringify({ message: 'Network error' })),
   });
@@ -118,7 +118,7 @@ it('returns a formatted error message from response', async () => {
   });
 });
 
-it('fetchTimeRange with shift', async () => {
+test('fetchTimeRange with shift', async () => {
   fetchMock.getOnce(
     "glob:*/api/v1/time_range/?q=!((timeRange:'Last+day'),(shift%3A'last%20month'%2CtimeRange%3A'Last%20day'))",
     {
@@ -150,7 +150,7 @@ it('fetchTimeRange with shift', async () => {
   });
 });
 
-it('formatTimeRangeComparison', () => {
+test('formatTimeRangeComparison', () => {
   expect(
     formatTimeRangeComparison(
       '2021-04-13T00:00:00 : 2021-04-14T00:00:00',

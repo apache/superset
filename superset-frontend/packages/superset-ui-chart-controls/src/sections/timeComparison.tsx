@@ -48,15 +48,20 @@ const reducedKeys = new Set([
 // Filter fullChoices to get only the entries whose keys are in reducedKeys
 const reducedChoices = fullChoices.filter(choice => reducedKeys.has(choice[0]));
 
-export const timeComparisonControls: (
-  multi?: boolean,
-  showCalculationType?: boolean,
-  showFullChoices?: boolean,
-) => ControlPanelSectionConfig = (
+type TimeComparisonControlsType = {
+  multi?: boolean;
+  showCalculationType?: boolean;
+  showFullChoices?: boolean;
+};
+export const timeComparisonControls: ({
+  multi,
+  showCalculationType,
+  showFullChoices,
+}: TimeComparisonControlsType) => ControlPanelSectionConfig = ({
   multi = true,
   showCalculationType = true,
   showFullChoices = true,
-) => ({
+}) => ({
   label: t('Time Comparison'),
   tabOverride: 'data',
   description: t('Compare results with other time periods.'),
