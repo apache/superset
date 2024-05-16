@@ -303,7 +303,7 @@ wheel==0.40.0
     # via pip-tools
 xlrd==2.0.1
     # via dataflows-tabulator
-zope-event==4.5.0
+zope-event==5.0
     # via gevent
 zope-interface==5.4.0
     # via gevent
