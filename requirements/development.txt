@@ -70,7 +70,7 @@ flask-cors==4.0.0
     # via apache-superset
 flask-testing==0.8.1
     # via apache-superset
-fonttools==4.43.0
+fonttools==4.51.0
     # via matplotlib
 freezegun==1.4.0
     # via apache-superset
@@ -303,7 +303,7 @@ wheel==0.40.0
     # via pip-tools
 xlrd==2.0.1
     # via dataflows-tabulator
-zope-event==4.5.0
+zope-event==5.0
     # via gevent
 zope-interface==5.4.0
     # via gevent
