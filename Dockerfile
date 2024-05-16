@@ -104,8 +104,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -e .
 
 # Compile translations for the backend - this generates .mo files
-COPY ./scripts/translations/generate_po_files.sh ./scripts/translations/
-RUN ./scripts/translations/generate_po_files.sh && \
+COPY ./scripts/translations/generate_mo_files.sh ./scripts/translations/
+RUN ./scripts/translations/generate_mo_files.sh && \
     chown -R superset:superset superset/translations
 
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
