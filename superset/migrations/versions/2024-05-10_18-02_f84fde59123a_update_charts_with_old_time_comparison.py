@@ -17,7 +17,7 @@
 """Update charts with old time comparison controls
 
 Revision ID: f84fde59123a
-Revises: 4081be5b6b74
+Revises: 9621c6d56ffb
 Create Date: 2024-05-10 18:02:38.891060
 
 """
@@ -39,7 +39,7 @@ from superset.utils.date_parser import get_since_until
 
 # revision identifiers, used by Alembic.
 revision = "f84fde59123a"
-down_revision = "4081be5b6b74"
+down_revision = "9621c6d56ffb"
 
 logger = logging.getLogger(__name__)
 Base = declarative_base()
