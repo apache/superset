@@ -549,21 +549,19 @@ class QueryContextProcessor:
             time_grain
         )
 
-        use_aggregated_join_column = (
-            join_column_producer or time_grain in AGGREGATED_JOIN_GRAINS
-        )
-
-        if use_aggregated_join_column and not time_grain:
+        if join_column_producer and not time_grain:
             raise QueryObjectValidationError(
                 _("Time Grain must be specified when using Time Shift.")
             )
 
         # iterate on offset_dfs, left join each with df
         for offset, offset_df in offset_dfs.items():
-            # defines a column name for the offset join column
-            column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
+            actual_join_keys = join_keys
 
             if time_grain:
+                # defines a column name for the offset join column
+                column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
+
                 # add offset join column to df
                 self.add_offset_join_column(
                     df, column_name, time_grain, offset, join_column_producer
@@ -574,9 +572,9 @@ class QueryContextProcessor:
                     offset_df, column_name, time_grain, None, join_column_producer
                 )
 
-            # the temporal column is the first column in the join keys
-            # so we use the join column instead of the temporal column
-            actual_join_keys = [column_name, *join_keys[1:]]
+                # the temporal column is the first column in the join keys
+                # so we use the join column instead of the temporal column
+                actual_join_keys = [column_name, *join_keys[1:]]
 
             if join_keys:
                 df = dataframe_utils.left_join_df(
@@ -597,12 +595,12 @@ class QueryContextProcessor:
                 col = df.pop(join_keys[0])
                 df.insert(0, col.name, col)
 
-            # removes columns created only for join purposes
-            df.drop(
-                list(df.filter(regex=f"{OFFSET_JOIN_COLUMN_SUFFIX}|{R_SUFFIX}")),
-                axis=1,
-                inplace=True,
-            )
+                # removes columns created only for join purposes
+                df.drop(
+                    list(df.filter(regex=f"{OFFSET_JOIN_COLUMN_SUFFIX}|{R_SUFFIX}")),
+                    axis=1,
+                    inplace=True,
+                )
         return df
 
     @staticmethod
