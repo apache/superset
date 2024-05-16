@@ -20,8 +20,7 @@
 # This script generates .json files from .po translation files
 # these json files are used by the frontend to load translations
 
-npm install -g po2json prettier
-for file in $( find superset/translations/** -name '*.po' );
+for file in $( find ../superset/translations/** -name '*.po' );
 do
   extension=${file##*.}
   filename="${file%.*}"

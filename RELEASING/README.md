@@ -445,10 +445,11 @@ Create the distribution
 ```bash
 cd superset-frontend/
 npm ci && npm run build
+# Compile translations for the frontend
+npm run build-translation
+
 cd ../
 
-# Compile translations for the frontend
-./scripts/translations/po2json.sh
 
 # Compile translations for the backend
 ./scripts/translations/generate_po_files.sh

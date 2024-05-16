@@ -43,7 +43,7 @@ jobs:
         if: steps.check.outputs.frontend
         working-directory: ./superset-frontend
         run: |
-          npm run check-translation
+          npm run build-translation
 
   babel-extract:
     runs-on: ubuntu-20.04

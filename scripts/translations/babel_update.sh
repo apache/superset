@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd ../.. && pwd )"
 LICENSE_TMP=$(mktemp)
 cat <<'EOF'> "$LICENSE_TMP"
 # Licensed to the Apache Software Foundation (ASF) under one

@@ -44,14 +44,12 @@ RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json
     npm ci
 
 COPY ./superset-frontend ./
+COPY superset/translations ./superset/translations
 # This seems to be the most expensive step
-RUN npm run ${BUILD_CMD}
+RUN npm run build-translation && npm run ${BUILD_CMD}
 
 # Compile translations for the frontend
 WORKDIR /app
-COPY superset/translations ./superset/translations
-COPY ./scripts/translations/po2json.sh ./scripts/translations/po2json.sh
-RUN ./scripts/translations/po2json.sh
 
 ######################################################################
 # Final lean image...
@@ -95,6 +93,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # Copy the compiled frontend assets
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
+COPY --chown=superset:superset --from=superset-node /app/superset/translations superset/translations
 
 # Copy the compiled translations for the frontend
 COPY --chown=superset:superset --from=superset-node /app/superset/superset/translations/*/LC_MESSAGES/*.json superset/static/translations
