@@ -123,16 +123,12 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
                 level=ErrorLevel.ERROR,
             )
         )
-    return get_columns_description(
-        dataset.database,
-        dataset.catalog,
-        dataset.schema,
-        statements[0],
-    )
-
     try:
         column_description = get_columns_description(
-            dataset.database, dataset.schema, statements[0]
+            dataset.database,
+            dataset.catalog,
+            dataset.schema,
+            statements[0],
         )
         return column_description
 
