@@ -173,6 +173,8 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
 
     extra: ReportScheduleExtra  # type: ignore
 
+    email_subject = Column(String(255))
+
     def __repr__(self) -> str:
         return str(self.name)
 

@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Enable catalog in Databricks
+"""Enable catalog in BigQuery/Presto/Trino/Snowflake
 
-Revision ID: 4081be5b6b74
-Revises: 645bb206f96c
-Create Date: 2024-05-08 19:33:18.311411
+Revision ID: 87ffc36f9842
+Revises: 4081be5b6b74
+Create Date: 2024-05-09 18:44:43.289445
 
 """
 
@@ -28,13 +28,13 @@ from superset.migrations.shared.catalogs import (
 )
 
 # revision identifiers, used by Alembic.
-revision = "4081be5b6b74"
-down_revision = "645bb206f96c"
+revision = "87ffc36f9842"
+down_revision = "4081be5b6b74"
 
 
 def upgrade():
-    upgrade_catalog_perms(engines={"databricks"})
+    upgrade_catalog_perms(engines={"trino", "presto", "bigquery", "snowflake"})
 
 
 def downgrade():
-    downgrade_catalog_perms(engines={"databricks"})
+    downgrade_catalog_perms(engines={"trino", "presto", "bigquery", "snowflake"})

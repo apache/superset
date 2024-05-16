@@ -263,9 +263,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         )
 
     if time_shift:
-        time_delta = parse_past_timedelta(time_shift)
-        _since = _since if _since is None else (_since - time_delta)
-        _until = _until if _until is None else (_until - time_delta)
+        time_delta_since = parse_past_timedelta(time_shift, _since)
+        time_delta_until = parse_past_timedelta(time_shift, _until)
+        _since = _since if _since is None else (_since - time_delta_since)
+        _until = _until if _until is None else (_until - time_delta_until)
 
     if instant_time_comparison_range:
         # This is only set using the new time comparison controls

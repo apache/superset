@@ -16,20 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/core';
 import {
-  AdhocFilter,
-  ComparisonTimeRangeType,
-  SimpleAdhocFilter,
-  t,
-  validateTimeComparisonRangeValues,
-} from '@superset-ui/core';
-import {
-  ColumnMeta,
   ControlPanelConfig,
-  ControlPanelState,
-  ControlState,
   getStandardizedControls,
   sharedControls,
+  sections,
 } from '@superset-ui/chart-controls';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 import { ColorSchemeEnum } from './types';
@@ -42,70 +34,6 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['metric'],
         ['adhoc_filters'],
-        [
-          {
-            name: 'time_comparison',
-            config: {
-              type: 'SelectControl',
-              label: t('Range for Comparison'),
-              default: 'r',
-              choices: [
-                ['r', 'Inherit range from time filters'],
-                ['y', 'Year'],
-                ['m', 'Month'],
-                ['w', 'Week'],
-                ['c', 'Custom'],
-              ],
-              rerender: ['adhoc_custom'],
-              description: t(
-                'Set the time range that will be used for the comparison metrics. ' +
-                  'For example, "Year" will compare to the same dates one year earlier. ' +
-                  'Use "Inherit range from time filters" to shift the comparison time range' +
-                  'by the same length as your time range and use "Custom" to set a custom comparison range.',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: `adhoc_custom`,
-            config: {
-              ...sharedControls.adhoc_filters,
-              label: t('Filters for Comparison'),
-              description:
-                'This only applies when selecting the Range for Comparison Type: Custom',
-              visibility: ({ controls }) =>
-                controls?.time_comparison?.value ===
-                ComparisonTimeRangeType.Custom,
-              mapStateToProps: (
-                state: ControlPanelState,
-                controlState: ControlState,
-              ) => {
-                const originalMapStateToPropsRes =
-                  sharedControls.adhoc_filters.mapStateToProps?.(
-                    state,
-                    controlState,
-                  ) || {};
-                const columns = originalMapStateToPropsRes.columns.filter(
-                  (col: ColumnMeta) =>
-                    col.is_dttm &&
-                    (state.controls.adhoc_filters.value as AdhocFilter[]).some(
-                      (val: SimpleAdhocFilter) =>
-                        val.subject === col.column_name,
-                    ),
-                );
-                return {
-                  ...originalMapStateToPropsRes,
-                  columns,
-                  externalValidationErrors: validateTimeComparisonRangeValues(
-                    state.controls?.time_comparison?.value,
-                    controlState.value,
-                  ),
-                };
-              },
-            },
-          },
-        ],
         [
           {
             name: 'row_limit',
@@ -180,13 +108,15 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    sections.timeComparisonControls({
+      multi: false,
+      showCalculationType: false,
+      showFullChoices: false,
+    }),
   ],
   controlOverrides: {
     y_axis_format: {
       label: t('Number format'),
-    },
-    adhoc_filters: {
-      rerender: ['adhoc_custom'],
     },
   },
   formDataOverrides: formData => ({
