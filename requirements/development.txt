@@ -10,12 +10,12 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.4
-    # via ipython
 astroid==3.1.0
     # via pylint
 asttokens==2.2.1
     # via stack-data
+async-timeout==4.0.3
+    # via redis
 backcall==0.2.0
     # via ipython
 boto3==1.26.130
@@ -44,7 +44,7 @@ cycler==0.11.0
     # via matplotlib
 dataflows-tabulator==1.54.3
     # via tableschema
-db-dtypes==1.1.1
+db-dtypes==1.2.0
     # via pandas-gbq
 decorator==5.1.1
     # via ipython
@@ -56,6 +56,10 @@ docker==7.0.0
     # via apache-superset
 et-xmlfile==1.1.0
     # via openpyxl
+exceptiongroup==1.2.1
+    # via
+    #   cattrs
+    #   pytest
 executing==1.2.0
     # via stack-data
 filelock==3.12.2
@@ -264,6 +268,16 @@ thrift-sasl==0.4.3
     # via
     #   apache-superset
     #   pyhive
+tomli==2.0.1
+    # via
+    #   build
+    #   coverage
+    #   pip-tools
+    #   pylint
+    #   pyproject-api
+    #   pyproject-hooks
+    #   pytest
+    #   tox
 tomlkit==0.11.8
     # via pylint
 toposort==1.10
