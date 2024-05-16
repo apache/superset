@@ -49,7 +49,7 @@ const typeToWrapChildLookup = {
     [IKI_RUN_PIPELINE_TYPE]: true,
     [IKI_FORECAST_MODULE_TYPE]: true,
     [IKI_DATASET_DOWNLOAD_TYPE]: true,
-    // [IKI_DYNAMIC_MARKDOWN_TYPE]: true,
+    [IKI_DYNAMIC_MARKDOWN_TYPE]: true,
   },
 };
 
