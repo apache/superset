@@ -312,7 +312,7 @@ requests==2.31.0
     # via
     #   requests-cache
     #   shillelagh
-requests-cache==1.1.1
+requests-cache==1.2.0
     # via shillelagh
 rich==13.3.4
     # via flask-limiter
