@@ -73,6 +73,9 @@ const StyledFilterCount = styled.div`
     .incompatible-count {
       font-size: ${theme.typography.sizes.s}px;
     }
+    &:focus-visible {
+      outline: 2px solid ${theme.colors.primary.dark2};
+    }
   `}
 `;
 
@@ -160,7 +163,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   useEffect(() => {
     if (popoverVisible) {
       setTimeout(() => {
-        popoverContentRef?.current?.focus();
+        popoverContentRef?.current?.focus({ preventScroll: true });
       });
     }
   }, [popoverVisible]);
