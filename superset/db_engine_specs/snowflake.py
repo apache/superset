@@ -85,7 +85,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     sqlalchemy_uri_placeholder = "snowflake://"
 
     supports_dynamic_schema = True
-    supports_catalog = False
+    supports_catalog = supports_dynamic_catalog = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -144,12 +144,19 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> tuple[URL, dict[str, Any]]:
-        database = uri.database
-        if "/" in database:
-            database = database.split("/")[0]
-        if schema:
-            schema = parse.quote(schema, safe="")
-            uri = uri.set(database=f"{database}/{schema}")
+        if "/" in uri.database:
+            current_catalog, current_schema = uri.database.split("/", 1)
+        else:
+            current_catalog, current_schema = uri.database, None
+
+        adjusted_database = "/".join(
+            [
+                catalog or current_catalog,
+                schema or current_schema or "",
+            ]
+        ).rstrip("/")
+
+        uri = uri.set(database=adjusted_database)
 
         return uri, connect_args
 
@@ -168,6 +175,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             return None
 
         return parse.unquote(database.split("/")[1])
+
+    @classmethod
+    def get_default_catalog(cls, database: "Database") -> Optional[str]:
+        """
+        Return the default catalog.
+        """
+        return database.url_object.database.split("/")[0]
 
     @classmethod
     def get_catalog_names(
