@@ -17,7 +17,7 @@
 """add subject column to report schedule
 
 Revision ID: 9621c6d56ffb
-Revises: 4081be5b6b74
+Revises: 87ffc36f9842
 Create Date: 2024-05-10 11:09:12.046862
 
 """
@@ -27,7 +27,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "9621c6d56ffb"
-down_revision = "4081be5b6b74"
+down_revision = "87ffc36f9842"
 
 
 def upgrade():
