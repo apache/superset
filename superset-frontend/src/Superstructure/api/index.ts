@@ -5,6 +5,10 @@ import { APIStore } from './store/index';
 import { API_V1, SUPERSET_ENDPOINT } from '../constants';
 import { logger, handleCsrfToken } from './utils';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type JsonObject = { [member: string]: any };
+export type Payload = JsonObject | string | null;
+
 export const API_HANDLER = {
   errorObject: null,
 
@@ -152,17 +156,30 @@ export const API_HANDLER = {
     method,
     url,
     body,
+    jsonPayload,
     headers,
     responseType,
   }: {
     method: AxiosRequestConfig['method'];
     url: AxiosRequestConfig['url'];
     body?: Record<string, any> | string;
+    jsonPayload?: Payload;
     headers?: AxiosRequestHeaders;
     responseType?: string;
   }) {
     const APIState = APIStore.getState();
     const { ORIGIN_URL } = APIState.configReducer;
+
+    let finalBody;
+    let finalHeaders;
+
+    if (jsonPayload !== undefined) {
+      finalBody = JSON.stringify(jsonPayload);
+      finalHeaders = {
+        ...headers,
+        'Content-Type': 'application/json',
+      };
+    }
 
     try {
       if (url) {
@@ -170,8 +187,9 @@ export const API_HANDLER = {
           `${ORIGIN_URL}`,
           url,
           method,
-          body,
-          headers,
+          body || finalBody,
+          // @ts-ignore
+          headers || finalHeaders,
           responseType,
         );
       }

@@ -203,7 +203,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
         <FilterBarEmptyStateContainer>
           <EmptyStateSmall
             title={t('No global filters are currently added')}
-            image="filter.svg"
+            image={process.env.type === undefined ? 'filter.svg' : null}
             description={
               canEdit &&
               t(

@@ -154,12 +154,11 @@ const FilterValue: React.FC<FilterControlProps> = ({
         return;
       }
       setIsRefreshing(true);
-      // DODO added
+      // DODO added 33605679
       if (process.env.type === undefined) {
         getChartDataRequest({
           formData: newFormData,
           force: false,
-          requestParams: { dashboardId: 0 },
           ownState: filterOwnState,
         })
           .then(({ response, json }) => {
@@ -205,42 +204,20 @@ const FilterValue: React.FC<FilterControlProps> = ({
           force: false,
           ownState: filterOwnState,
         })
-          .then(({ response, json }) => {
-            if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
-              // deal with getChartDataRequest transforming the response data
-              const result = 'result' in json ? json.result[0] : json;
-
-              if (response.status === 200) {
-                setState([result]);
-                handleFilterLoadFinish();
-              } else if (response.status === 202) {
-                waitForAsyncData(result)
-                  .then((asyncResult: ChartDataResponseResult[]) => {
-                    setState(asyncResult);
-                    handleFilterLoadFinish();
-                  })
-                  .catch((error: Response) => {
-                    getClientErrorObject(error).then(clientErrorObject => {
-                      setError(clientErrorObject);
-                      handleFilterLoadFinish();
-                    });
-                  });
-              } else {
-                throw new Error(
-                  `Received unexpected response status (${response.status}) while fetching chart data`,
-                );
-              }
-            } else {
-              setState(json.result);
-              setError(undefined);
-              handleFilterLoadFinish();
-            }
+          // DODO added 33605679
+          .then(({ result }) => {
+            setState(result);
+            setError(undefined);
+            setIsRefreshing(false);
+            setIsLoading(false);
           })
           .catch((error: Response) => {
             getClientErrorObject(error).then(clientErrorObject => {
               setError(clientErrorObject);
               handleFilterLoadFinish();
             });
+            setIsRefreshing(false);
+            setIsLoading(false);
           });
       }
     }
