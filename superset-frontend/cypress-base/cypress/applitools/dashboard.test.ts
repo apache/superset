@@ -18,7 +18,7 @@
  */
 import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 import { waitForChartLoad } from 'cypress/utils';
-import { WORLD_HEALTH_CHARTS } from '../dashboard/utils';
+import { WORLD_HEALTH_CHARTS } from '../e2e/dashboard/utils';
 
 describe('Dashboard load', () => {
   beforeEach(() => {

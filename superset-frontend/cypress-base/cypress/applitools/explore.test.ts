@@ -19,7 +19,7 @@
 import {
   FORM_DATA_DEFAULTS,
   NUM_METRIC,
-} from '../explore/visualizations/shared.helper';
+} from '../e2e/explore/visualizations/shared.helper';
 
 describe('explore view', () => {
   beforeEach(() => {
