@@ -179,6 +179,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "external_url",
         "encrypted_extra",
         "impersonate_user",
+        "allow_multi_catalog",
     ]
     export_children = ["tables"]
 
