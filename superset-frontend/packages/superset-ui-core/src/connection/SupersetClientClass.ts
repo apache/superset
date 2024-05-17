@@ -199,6 +199,10 @@ export default class SupersetClientClass {
     ...rest
   }: RequestConfig & { parseMethod?: T }) {
     await this.ensureAuth();
+
+    console.log(`SupersetClientClass.request this.headers`, this.headers);
+    console.log(`SupersetClientClass.request headers`, headers);
+
     return callApiAndParseWithTimeout({
       ...rest,
       credentials: credentials ?? this.credentials,
