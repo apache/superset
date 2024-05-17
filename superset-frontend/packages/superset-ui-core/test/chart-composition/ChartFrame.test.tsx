@@ -18,110 +18,115 @@
  */
 
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { ChartFrame } from '@superset-ui/core';
 
-describe('TooltipFrame', () => {
+type Props = {
+  contentWidth?: number;
+  contentHeight?: number;
+  height: number;
+  renderContent?: ({
+    height,
+    width,
+  }: {
+    height: number;
+    width: number;
+  }) => React.ReactNode;
+  width: number;
+};
+
+const renderChartFrame = (props: Props) => render(<ChartFrame {...props} />);
+
+describe('ChartFrame', () => {
   it('renders content that requires smaller space than frame', () => {
-    const wrapper = shallow(
-      <ChartFrame
-        width={400}
-        height={400}
-        contentWidth={300}
-        contentHeight={300}
-        renderContent={({ width, height }) => (
-          <div>
-            {width}/{height}
-          </div>
-        )}
-      />,
-    );
-    expect(wrapper.find('div').text()).toEqual('400/400');
+    const { getByText } = renderChartFrame({
+      width: 400,
+      height: 400,
+      contentWidth: 300,
+      contentHeight: 300,
+      renderContent: ({ width, height }) => (
+        <div>
+          {width}/{height}
+        </div>
+      ),
+    });
+    expect(getByText('400/400')).toBeInTheDocument();
   });
 
   it('renders content without specifying content size', () => {
-    const wrapper = shallow(
-      <ChartFrame
-        width={400}
-        height={400}
-        renderContent={({ width, height }) => (
-          <div>
-            {width}/{height}
-          </div>
-        )}
-      />,
-    );
-    expect(wrapper.find('div').text()).toEqual('400/400');
+    const { getByText } = renderChartFrame({
+      width: 400,
+      height: 400,
+      renderContent: ({ width, height }) => (
+        <div>
+          {width}/{height}
+        </div>
+      ),
+    });
+    expect(getByText('400/400')).toBeInTheDocument();
   });
 
   it('renders content that requires same size with frame', () => {
-    const wrapper = shallow(
-      <ChartFrame
-        width={400}
-        height={400}
-        contentWidth={400}
-        contentHeight={400}
-        renderContent={({ width, height }) => (
-          <div>
-            {width}/{height}
-          </div>
-        )}
-      />,
-    );
-    expect(wrapper.find('div').text()).toEqual('400/400');
+    const { getByText } = renderChartFrame({
+      width: 400,
+      height: 400,
+      contentWidth: 400,
+      contentHeight: 400,
+      renderContent: ({ width, height }) => (
+        <div>
+          {width}/{height}
+        </div>
+      ),
+    });
+    expect(getByText('400/400')).toBeInTheDocument();
   });
 
   it('renders content that requires space larger than frame', () => {
-    const wrapper = shallow(
-      <ChartFrame
-        width={400}
-        height={400}
-        contentWidth={500}
-        contentHeight={500}
-        renderContent={({ width, height }) => (
-          <div className="chart">
-            {width}/{height}
-          </div>
-        )}
-      />,
-    );
-    expect(wrapper.find('div.chart').text()).toEqual('500/500');
+    const { getByText } = renderChartFrame({
+      width: 400,
+      height: 400,
+      contentWidth: 500,
+      contentHeight: 500,
+      renderContent: ({ width, height }) => (
+        <div className="chart">
+          {width}/{height}
+        </div>
+      ),
+    });
+    expect(getByText('500/500')).toBeInTheDocument();
   });
 
   it('renders content that width is larger than frame', () => {
-    const wrapper = shallow(
-      <ChartFrame
-        width={400}
-        height={400}
-        contentWidth={500}
-        renderContent={({ width, height }) => (
-          <div className="chart">
-            {width}/{height}
-          </div>
-        )}
-      />,
-    );
-    expect(wrapper.find('div.chart').text()).toEqual('500/400');
+    const { getByText } = renderChartFrame({
+      width: 400,
+      height: 400,
+      contentWidth: 500,
+      renderContent: ({ width, height }) => (
+        <div className="chart">
+          {width}/{height}
+        </div>
+      ),
+    });
+    expect(getByText('500/400')).toBeInTheDocument();
   });
 
   it('renders content that height is larger than frame', () => {
-    const wrapper = shallow(
-      <ChartFrame
-        width={400}
-        height={400}
-        contentHeight={600}
-        renderContent={({ width, height }) => (
-          <div className="chart">
-            {width}/{height}
-          </div>
-        )}
-      />,
-    );
-    expect(wrapper.find('div.chart').text()).toEqual('400/600');
+    const { getByText } = renderChartFrame({
+      width: 400,
+      height: 400,
+      contentHeight: 600,
+      renderContent: ({ width, height }) => (
+        <div className="chart">
+          {width}/{height}
+        </div>
+      ),
+    });
+    expect(getByText('400/600')).toBeInTheDocument();
   });
 
-  it('renders an empty frame when renderContent is not given', () => {
-    const wrapper = shallow(<ChartFrame width={400} height={400} />);
-    expect(wrapper.find('div')).toHaveLength(0);
+  it('renders an empty container if renderContent is not provided', () => {
+    const { container } = render(<ChartFrame width={400} height={300} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

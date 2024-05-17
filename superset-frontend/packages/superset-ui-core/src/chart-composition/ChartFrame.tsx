@@ -28,7 +28,7 @@ type Props = {
   contentWidth?: number;
   contentHeight?: number;
   height: number;
-  renderContent: ({
+  renderContent?: ({
     height,
     width,
   }: {
@@ -40,12 +40,16 @@ type Props = {
 
 export default class ChartFrame extends PureComponent<Props, {}> {
   static defaultProps = {
-    renderContent() {},
+    renderContent: () => null,
   };
 
   render() {
     const { contentWidth, contentHeight, width, height, renderContent } =
       this.props;
+
+    if (!renderContent) {
+      return null;
+    }
 
     const overflowX = checkNumber(contentWidth) && contentWidth > width;
     const overflowY = checkNumber(contentHeight) && contentHeight > height;
