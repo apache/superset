@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 
@@ -47,7 +47,7 @@ import {
   ContentWrapper,
 } from './styles';
 
-import { getNavigationConfig, APP_VERSION } from '../parseEnvFile/index';
+import { getNavigationConfig, APP_VERSION } from '../parseEnvFile';
 import { serializeValue } from '../parseEnvFile/utils';
 import { addSlash, logConfigs } from './helpers';
 
@@ -510,6 +510,8 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
     padding-top: 8px;
   `;
 
+  const closeLeftNavigation = useCallback(() => setIsVisible(false), []); // DODO added #33605679
+
   return (
     <div>
       <Version appVersion={APP_VERSION} />
@@ -527,6 +529,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
                 stylesConfig={stylesConfig}
                 language={userLanguage}
                 isVisible={isVisible}
+                onNavigate={closeLeftNavigation} // DODO added #33605679
               />
               <DashboardComponentWrapper
                 withNavigation={

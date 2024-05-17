@@ -43,7 +43,10 @@ export const useNativeFilters = () => {
 
   const nativeFiltersEnabled =
     isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-    (canEdit || (!canEdit && filterValues.length !== 0));
+    (canEdit ||
+      (!canEdit && filterValues.length !== 0) ||
+      process.env.type ===
+        'plugin'); /*  DODO added || condition for plugin #33605679   */
 
   const requiredFirstFilter = filterValues.filter(
     filter => filter.requiredFirst,

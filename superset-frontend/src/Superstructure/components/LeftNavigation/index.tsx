@@ -14,9 +14,10 @@ const LeftNavigation = (props: {
   stylesConfig: StylesConfig;
   language: string;
   isVisible: boolean;
+  onNavigate?: () => void; // DODO added #33605679
 }) => {
   const allAvailableRoutes = props.routesConfig.filter(route => !route.hidden);
-  const { isVisible } = props;
+  const { isVisible, onNavigate } = props; // DODO changed #33605679
   const { businessId } = props.stylesConfig;
 
   return (
@@ -31,6 +32,7 @@ const LeftNavigation = (props: {
                 <StyledLink
                   activeClassName={`active-link active-link-${businessId}`}
                   to={link}
+                  onClick={onNavigate} // DODO added #33605679
                 >
                   {props.language === 'ru'
                     ? route.nameRU || route.name
