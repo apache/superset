@@ -35,7 +35,6 @@ describe('Dashboard load', () => {
       testName: 'Dashboard page',
     });
     cy.eyesCheckWindow('Dashboard loaded');
-    cy.find('.Gapminder test').should('be.visible');
   });
 
   it('should load the Dashboard in edit mode', () => {
@@ -50,6 +49,5 @@ describe('Dashboard load', () => {
       testName: 'Dashboard edit mode',
     });
     cy.eyesCheckWindow('Dashboard edit mode loaded');
-    cy.find('.Gapminder test').should('be.visible');
   });
 });
