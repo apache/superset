@@ -48,8 +48,11 @@ class CreateFilterStateCommand(CreateTemporaryCacheCommand):
         value = cast(str, cmd_params.value)  # schema ensures that value is not optional
         logger.debug(f"value = {value}")
         check_access(resource_id)
+        logger.debug(f"after check_access")
         entry: Entry = {"owner": get_user_id(), "value": value}
         logger.debug(f"entry = {entry.items()}")
         cache_manager.filter_state_cache.set(cache_key(resource_id, key), entry)
+        logger.debug(f"after filter_state_cache-1")
         cache_manager.filter_state_cache.set(contextual_key, key)
+        logger.debug(f"after filter_state_cache-2")        
         return key
