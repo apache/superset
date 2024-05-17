@@ -76,6 +76,9 @@ export default function PopKPI(props: PopKPIProps) {
     headerFontSize,
     subheaderFontSize,
     comparisonColorEnabled,
+    previousPeriodValueEnabled,
+    valueDifferenceEnabled,
+    percentDifferenceEnabled,
     comparisonColorScheme,
     percentDifferenceNumber,
     currentTimeRangeFilter,
@@ -183,29 +186,50 @@ export default function PopKPI(props: PopKPIProps) {
     percentDifferenceNumber,
   ]);
 
+  const perviousPeriodSymbol = previousPeriodValueEnabled
+    ? [
+        {
+          symbol: '#',
+          value: prevNumber,
+          tooltipText: t('Data for %s', comparisonRange || 'previous range'),
+        },
+      ]
+    : [];
+
+  const valueDifferenceSymbol = valueDifferenceEnabled
+    ? [
+        {
+          symbol: '△',
+          value: valueDifference,
+          tooltipText: t('Value difference between the time periods'),
+        },
+      ]
+    : [];
+
+  const percentDifferenceSymbol = percentDifferenceEnabled
+    ? [
+        {
+          symbol: '%',
+          value: percentDifferenceFormattedString,
+          tooltipText: t('Percentage difference between the time periods'),
+        },
+      ]
+    : [];
+
   const SYMBOLS_WITH_VALUES = useMemo(
     () => [
-      {
-        symbol: '#',
-        value: prevNumber,
-        tooltipText: t('Data for %s', comparisonRange || 'previous range'),
-      },
-      {
-        symbol: '△',
-        value: valueDifference,
-        tooltipText: t('Value difference between the time periods'),
-      },
-      {
-        symbol: '%',
-        value: percentDifferenceFormattedString,
-        tooltipText: t('Percentage difference between the time periods'),
-      },
+      ...perviousPeriodSymbol,
+      ...valueDifferenceSymbol,
+      ...percentDifferenceSymbol,
     ],
     [
       comparisonRange,
       prevNumber,
       valueDifference,
       percentDifferenceFormattedString,
+      perviousPeriodSymbol,
+      valueDifferenceSymbol,
+      percentDifferenceSymbol,
     ],
   );
 

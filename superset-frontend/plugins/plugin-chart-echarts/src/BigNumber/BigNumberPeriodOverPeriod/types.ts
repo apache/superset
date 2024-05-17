@@ -31,6 +31,9 @@ export interface PopKPIStylesProps {
   subheaderFontSize: keyof typeof supersetTheme.typography.sizes;
   boldText: boolean;
   comparisonColorEnabled: boolean;
+  previousPeriodValueEnabled: boolean;
+  valueDifferenceEnabled: boolean;
+  percentDifferenceEnabled: boolean;
 }
 
 interface PopKPICustomizeProps {
