@@ -62,6 +62,8 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from tests.common.query_context_generator import ANNOTATION_LAYERS
 from tests.integration_tests.fixtures.query_context import get_query_context
 
+from tests.integration_tests.test_app import app
+
 
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
@@ -77,6 +79,13 @@ INCOMPATIBLE_ADHOC_COLUMN_FIXTURE: AdhocColumn = {
     "label": "exciting_or_boring",
     "sqlExpression": "case when genre = 'Action' then 'Exciting' else 'Boring' end",
 }
+
+
+@pytest.fixture(autouse=True)
+def skip_by_backend():
+    with app.app_context():
+        if backend() == "hive":
+            pytest.skip("Skipping tests for Hive backend")
 
 
 class BaseTestChartDataApi(SupersetTestCase):
@@ -498,6 +507,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Ensure prophet post transformation works
         """
+        if backend() == "hive":
+            return
+
         time_grain = "P1Y"
         self.query_context_payload["queries"][0]["is_timeseries"] = True
         self.query_context_payload["queries"][0]["groupby"] = []
@@ -532,6 +544,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Ensure incorrect post processing returns correct response
         """
+        if backend() == "hive":
+            return
+
         query_context = self.query_context_payload
         query = query_context["queries"][0]
         query["columns"] = ["name", "gender"]

@@ -36,7 +36,7 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import { Input } from 'src/components/Input';
+import { InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import Collapse from 'src/components/Collapse';
@@ -50,6 +50,7 @@ import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   NotificationMethodOption,
+  NotificationSetting,
   AlertObject,
   ChartObject,
   DashboardObject,
@@ -391,12 +392,6 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
   );
 };
 
-type NotificationSetting = {
-  method?: NotificationMethodOption;
-  recipients: string;
-  options: NotificationMethodOption[];
-};
-
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addDangerToast,
   onAdd,
@@ -497,15 +492,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     NotificationSetting[]
   >([]);
   const onNotificationAdd = () => {
-    const settings: NotificationSetting[] = notificationSettings.slice();
-    settings.push({
-      recipients: '',
-      options: allowedNotificationMethods,
-    });
+    setNotificationSettings([
+      ...notificationSettings,
+      {
+        recipients: '',
+        // options shown in the newly added notification method
+        options: allowedNotificationMethods.filter(
+          // are filtered such that
+          option =>
+            // options are not included
+            !notificationSettings.reduce(
+              // when it exists in previous notificationSettings
+              (accum, setting) => accum || option === setting.method,
+              false,
+            ),
+        ),
+      },
+    ]);
 
-    setNotificationSettings(settings);
     setNotificationAddState(
-      settings.length === allowedNotificationMethods.length
+      notificationSettings.length === allowedNotificationMethods.length
         ? 'hidden'
         : 'disabled',
     );
@@ -547,13 +553,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     index: number,
     setting: NotificationSetting,
   ) => {
-    const settings = notificationSettings.slice();
-
+    const settings: NotificationSetting[] = [...notificationSettings];
     settings[index] = setting;
-    setNotificationSettings(settings);
 
-    if (setting.method !== undefined && notificationAddState !== 'hidden') {
-      setNotificationAddState('active');
+    // if you've changed notification method -> remove trailing methods
+    if (notificationSettings[index].method !== setting.method) {
+      notificationSettings[index] = setting;
+
+      setNotificationSettings(
+        notificationSettings.filter((_, idx) => idx <= index),
+      );
+
+      if (notificationSettings.length - 1 > index) {
+        setNotificationAddState('active');
+      }
+
+      if (setting.method !== undefined && notificationAddState !== 'hidden') {
+        setNotificationAddState('active');
+      }
+    } else {
+      setNotificationSettings(settings);
     }
   };
 
@@ -611,6 +630,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
       dashboard:
         contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
+      custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
         owner => (owner as MetaObject).value || owner.id,
@@ -873,6 +893,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState(name, parsedValue);
   };
 
+  const onCustomWidthChange = (value: number | null | undefined) => {
+    updateAlertState('custom_width', value);
+  };
+
   const onTimeoutVerifyChange = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
@@ -881,7 +905,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     // Need to make sure grace period is not lower than TIMEOUT_MIN
     if (value === 0) {
-      updateAlertState(target.name, null);
+      updateAlertState(target.name, undefined);
     } else {
       updateAlertState(
         target.name,
@@ -1412,7 +1436,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledInputContainer>
               <StyledInputContainer css={noMarginBottom}>
                 <div className="control-label">
-                  {t('Value')} <span className="required">*</span>
+                  {t('Value')}{' '}
+                  {!conditionNotNull && <span className="required">*</span>}
                 </div>
                 <div className="input-container">
                   <input
@@ -1421,7 +1446,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     disabled={conditionNotNull}
                     value={
                       currentAlert?.validator_config_json?.threshold !==
-                      undefined
+                        undefined && !conditionNotNull
                         ? currentAlert.validator_config_json.threshold
                         : ''
                     }
@@ -1542,12 +1567,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             >
               <div className="control-label">{t('Screenshot width')}</div>
               <div className="input-container">
-                <Input
+                <InputNumber
                   type="number"
                   name="custom_width"
-                  value={currentAlert?.custom_width || ''}
+                  value={currentAlert?.custom_width || undefined}
+                  min={600}
+                  max={2400}
                   placeholder={t('Input custom width in pixels')}
-                  onChange={onInputChange}
+                  onChange={onCustomWidthChange}
                 />
               </div>
             </StyledInputContainer>
@@ -1604,11 +1631,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 ariaLabel={t('Log retention')}
                 placeholder={t('Log retention')}
                 onChange={onLogRetentionChange}
-                value={
-                  typeof currentAlert?.log_retention === 'number'
-                    ? currentAlert?.log_retention
-                    : ALERT_REPORTS_DEFAULT_RETENTION
-                }
+                value={currentAlert?.log_retention}
                 options={RETENTION_OPTIONS}
                 sortComparator={propertyComparator('value')}
               />

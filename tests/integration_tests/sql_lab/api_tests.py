@@ -57,7 +57,6 @@ class TestSqlLabApi(SupersetTestCase):
         data = json.loads(resp.data.decode("utf-8"))
         result = data.get("result")
         assert result["active_tab"] == None
-        assert result["queries"] == {}
         assert result["tab_state_ids"] == []
         self.assertEqual(len(result["databases"]), 0)
 
@@ -87,7 +86,6 @@ class TestSqlLabApi(SupersetTestCase):
         data = json.loads(resp.data.decode("utf-8"))
         result = data.get("result")
         assert result["active_tab"] == None
-        assert result["queries"] == {}
         assert result["tab_state_ids"] == []
 
     @mock.patch.dict(
@@ -95,7 +93,7 @@ class TestSqlLabApi(SupersetTestCase):
         {"SQLLAB_BACKEND_PERSISTENCE": True},
         clear=True,
     )
-    def test_get_from_bootstrap_data_with_queries(self):
+    def test_get_from_bootstrap_data_with_latest_query(self):
         username = "admin"
         self.login(username)
 
@@ -115,27 +113,70 @@ class TestSqlLabApi(SupersetTestCase):
         resp = self.get_json_resp("/tabstateview/", data=data)
         tab_state_id = resp["id"]
 
-        # run a query in the created tab
-        self.run_sql(
-            "SELECT name FROM birth_names",
-            "client_id_1",
-            username=username,
-            raise_on_error=True,
-            sql_editor_id=str(tab_state_id),
-        )
-        # run an orphan query (no tab)
-        self.run_sql(
-            "SELECT name FROM birth_names",
-            "client_id_2",
-            username=username,
-            raise_on_error=True,
-        )
-
         # we should have only 1 query returned, since the second one is not
         # associated with any tabs
         resp = self.get_json_resp("/api/v1/sqllab/")
         result = resp["result"]
-        self.assertEqual(len(result["queries"]), 1)
+        self.assertEqual(result["active_tab"]["id"], tab_state_id)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": True},
+        clear=True,
+    )
+    def test_deleted_tab(self):
+        username = "admin"
+        self.login(username)
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 2",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+        resp = self.client.delete("/tabstateview/" + str(tab_state_id))
+        assert resp.status_code == 200
+        resp = self.client.get("/tabstateview/" + str(tab_state_id))
+        assert resp.status_code == 404
+        resp = self.client.put(
+            "/tabstateview/" + str(tab_state_id),
+            json=data,
+        )
+        assert resp.status_code == 404
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": True},
+        clear=True,
+    )
+    def test_delete_tab_already_removed(self):
+        username = "admin"
+        self.login(username)
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 3",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+        resp = self.client.delete("/tabstateview/" + str(tab_state_id))
+        assert resp.status_code == 200
+        resp = self.client.delete("/tabstateview/" + str(tab_state_id))
+        assert resp.status_code == 404
 
     def test_get_access_denied(self):
         new_role = Role(name="Dummy Role", permissions=[])

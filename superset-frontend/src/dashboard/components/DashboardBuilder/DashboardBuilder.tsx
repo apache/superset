@@ -186,6 +186,11 @@ const DashboardContentWrapper = styled.div`
         pointer-events: none;
       }
 
+      .grid-row.grid-row--hovered:after,
+      .dashboard-component-tabs > .grid-row--hovered:after {
+        border: 2px dashed ${theme.colors.primary.base};
+      }
+
       .resizable-container {
         & .dashboard-component-chart-holder {
           .dashboard-chart {
@@ -407,6 +412,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
       dispatch(setDirectPathToChild(pathToTabIndex));
+      window.scrollTo(0, 0);
     },
     [dispatch],
   );

@@ -87,10 +87,11 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         database_id = self._properties.get("database", None)
         table_name = self._properties.get("table_name", None)
+        schema_name = self._properties.get("schema_name", None)
         # Validate uniqueness
         if not DatasetDAO.validate_update_uniqueness(
             self._model.database_id,
-            self._model.schema,
+            schema_name,
             self._model_id,
             table_name,
         ):
@@ -100,7 +101,10 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             exceptions.append(DatabaseChangeValidationError())
         # Validate/Populate owner
         try:
-            owners = self.populate_owners(owner_ids)
+            owners = self.compute_owners(
+                self._model.owners,
+                owner_ids,
+            )
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

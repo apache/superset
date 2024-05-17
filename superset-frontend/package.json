@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "keywords": [
     "big",
@@ -266,6 +266,7 @@
     "@types/react-table": "^7.7.19",
     "@types/react-transition-group": "^4.4.10",
     "@types/react-ultimate-pagination": "^1.2.0",
+    "@types/react-virtualized-auto-sizer": "^1.0.4",
     "@types/react-window": "^1.8.5",
     "@types/redux-localstorage": "^1.0.8",
     "@types/redux-mock-store": "^1.0.2",

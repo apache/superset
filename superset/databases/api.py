@@ -47,6 +47,7 @@ from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.database.importers.dispatcher import ImportDatabasesCommand
 from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
+    SSHTunnelDatabasePortError,
     SSHTunnelDeleteFailedError,
     SSHTunnelingNotEnabledError,
 )
@@ -415,7 +416,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except SSHTunnelingNotEnabledError as ex:
+        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
             return self.response_400(message=str(ex))
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
@@ -500,7 +501,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except SSHTunnelingNotEnabledError as ex:
+        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
             return self.response_400(message=str(ex))
 
     @expose("/<int:pk>", methods=("DELETE",))
@@ -864,7 +865,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("init", self.select_star.__name__)
         try:
             result = database.select_star(
-                table_name, schema_name, latest_partition=True, show_cols=True
+                table_name, schema_name, latest_partition=True
             )
         except NoSuchTableError:
             self.incr_stats("error", self.select_star.__name__)
@@ -918,7 +919,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             TestConnectionDatabaseCommand(item).run()
             return self.response(200, message="OK")
-        except SSHTunnelingNotEnabledError as ex:
+        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
             return self.response_400(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=("GET",))

@@ -736,9 +736,58 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("add_dashboard_to_chart")
+    def test_update_chart_preserve_ownership(self):
+        """
+        Chart API: Test update chart preserves owner list (if un-changed)
+        """
+        chart_data = {
+            "slice_name": "title1_changed",
+        }
+        admin = self.get_user("admin")
+        self.login(username="admin")
+        uri = f"api/v1/chart/{self.chart.id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual([admin], self.chart.owners)
+
+    @pytest.mark.usefixtures("add_dashboard_to_chart")
+    def test_update_chart_clear_owner_list(self):
+        """
+        Chart API: Test update chart admin can clear owner list
+        """
+        chart_data = {"slice_name": "title1_changed", "owners": []}
+        admin = self.get_user("admin")
+        self.login(username="admin")
+        uri = f"api/v1/chart/{self.chart.id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual([], self.chart.owners)
+
+    def test_update_chart_populate_owner(self):
+        """
+        Chart API: Test update admin can update chart with
+        no owners to a different owner
+        """
+        gamma = self.get_user("gamma")
+        admin = self.get_user("admin")
+        chart_id = self.insert_chart("title", [], 1).id
+        model = db.session.query(Slice).get(chart_id)
+        self.assertEqual(model.owners, [])
+        chart_data = {"owners": [gamma.id]}
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        model_updated = db.session.query(Slice).get(chart_id)
+        self.assertNotIn(admin, model_updated.owners)
+        self.assertIn(gamma, model_updated.owners)
+        db.session.delete(model_updated)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("add_dashboard_to_chart")
     def test_update_chart_new_dashboards(self):
         """
-        Chart API: Test update set new owner to current user
+        Chart API: Test update chart associating it with new dashboard
         """
         chart_data = {
             "slice_name": "title1_changed",
@@ -754,7 +803,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("add_dashboard_to_chart")
     def test_not_update_chart_none_dashboards(self):
         """
-        Chart API: Test update set new owner to current user
+        Chart API: Test update chart without changing dashboards configuration
         """
         chart_data = {"slice_name": "title1_changed_again"}
         self.login(username="admin")

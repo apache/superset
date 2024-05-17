@@ -16,21 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import { RowCount } from '.';
 
-test('Render a RowCount with a single row', () => {
-  render(<RowCount data={[{}]} loading={false} />);
-  expect(screen.getByText('1 row')).toBeInTheDocument();
-});
+import React, { useMemo } from 'react';
+import { ensureIsArray } from '@superset-ui/core';
+import { ChartLinkedDashboard } from 'src/types/Chart';
+import CrossLinks from './CrossLinks';
 
-test('Render a RowCount with multiple rows', () => {
-  render(<RowCount data={[{}, {}, {}]} loading={false} />);
-  expect(screen.getByText('3 rows')).toBeInTheDocument();
-});
-
-test('Render a RowCount on loading', () => {
-  render(<RowCount data={[{}, {}, {}]} loading />);
-  expect(screen.getByText('Loading...')).toBeInTheDocument();
-});
+export const DashboardCrossLinks = React.memo(
+  ({ dashboards }: { dashboards: ChartLinkedDashboard[] }) => {
+    const crossLinks = useMemo(
+      () =>
+        ensureIsArray(dashboards).map((d: ChartLinkedDashboard) => ({
+          title: d.dashboard_title,
+          id: d.id,
+        })),
+      [dashboards],
+    );
+    return <CrossLinks crossLinks={crossLinks} />;
+  },
+);

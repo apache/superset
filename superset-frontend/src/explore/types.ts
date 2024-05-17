@@ -68,6 +68,7 @@ export type Datasource = Dataset & {
   datasource?: string;
   schema?: string;
   is_sqllab_view?: boolean;
+  extra?: string;
 };
 
 export interface ExplorePageInitialData {
@@ -108,6 +109,7 @@ export interface ExplorePageState {
     datasource: Dataset;
     controls: ControlStateMapping;
     form_data: QueryFormData;
+    hiddenFormData?: Partial<QueryFormData>;
     slice: Slice;
     controlsTransferred: string[];
     standalone: boolean;

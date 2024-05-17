@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "master"
+      - "[0-9].[0-9]"
     paths:
       - "superset-frontend/**"
   pull_request:
@@ -83,6 +84,8 @@ jobs:
         working-directory: ./superset-frontend/packages/generator-superset
         run: npx jest
       - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        working-directory: ./superset-frontend
-        run: ../.github/workflows/codecov.sh -c -F javascript
+        uses: codecov/codecov-action@v4
+        with:
+          flags: javascript
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true

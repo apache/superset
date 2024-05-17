@@ -795,7 +795,7 @@
         "Ali resnično želite shraniti in uporabiti spremembe?"
       ],
       "Area Chart": ["Ploščinski grafikon"],
-      "Area Chart (legacy)": ["Ploščinski grafikon (zastarelo)"],
+      "Time-series Area Chart (legacy)": ["Ploščinski grafikon (zastarelo)"],
       "Area chart": ["Ploščinski grafikon"],
       "Area chart opacity": ["Prosojnost ploščinskega grafikona"],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
@@ -2804,7 +2804,7 @@
       ],
       "Line": ["Črta"],
       "Line Chart": ["Črtni grafikon"],
-      "Line Chart (legacy)": ["Črtni grafikon (zastarelo)"],
+      "Time-series Line Chart (legacy)": ["Črtni grafikon (zastarelo)"],
       "Line Style": ["Slog črte"],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         "Črtni grafikon se uporablja se za vizualizacijo meritev zajetih skozi čas. Posamezne točke so med seboj povezane z ravnimi črtami."

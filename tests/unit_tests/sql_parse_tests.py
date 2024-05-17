@@ -17,6 +17,7 @@
 # pylint: disable=invalid-name, redefined-outer-name, too-many-lines
 
 from typing import Optional
+from unittest.mock import Mock
 
 import pytest
 import sqlparse
@@ -25,10 +26,14 @@ from sqlalchemy import text
 from sqlparse.sql import Identifier, Token, TokenList
 from sqlparse.tokens import Name
 
-from superset.exceptions import QueryClauseValidationException
+from superset.exceptions import (
+    QueryClauseValidationException,
+    SupersetSecurityException,
+)
 from superset.sql_parse import (
     add_table_name,
     extract_table_references,
+    extract_tables_from_jinja_sql,
     get_rls_for_table,
     has_table_query,
     insert_rls_as_subquery,
@@ -265,13 +270,38 @@ def test_extract_tables_illdefined() -> None:
     """
     Test that ill-defined tables return an empty set.
     """
-    assert extract_tables("SELECT * FROM schemaname.") == set()
-    assert extract_tables("SELECT * FROM catalogname.schemaname.") == set()
-    assert extract_tables("SELECT * FROM catalogname..") == set()
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM schemaname.")
+    assert (
+        str(excinfo.value)
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:25"
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM catalogname.schemaname.")
+    assert (
+        str(excinfo.value)
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:37"
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM catalogname..")
+    assert (
+        str(excinfo.value)
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:27"
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables('SELECT * FROM "tbname')
+    assert (
+        str(excinfo.value)
+        == "You may have an error in your SQL statement. Error tokenizing 'SELECT * FROM \"tbnam'"
+    )
+
+    # odd edge case that works
     assert extract_tables("SELECT * FROM catalogname..tbname") == {
         Table(table="tbname", schema=None, catalog="catalogname")
     }
-    assert extract_tables('SELECT * FROM "tbname') == set()
 
 
 def test_extract_tables_show_tables_from() -> None:
@@ -1850,3 +1880,55 @@ WITH t AS (
 )
 SELECT * FROM t"""
     ).is_select()
+    assert not ParsedQuery("").is_select()
+    assert not ParsedQuery("USE foo").is_select()
+    assert ParsedQuery("USE foo; SELECT * FROM bar").is_select()
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "hive",
+        "presto",
+        "trino",
+    ],
+)
+@pytest.mark.parametrize(
+    "macro,expected",
+    [
+        (
+            "latest_partition('foo.bar')",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition(' foo.bar ')",  # Non-atypical user error which works
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format('bar'))",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_sub_partition('foo.bar', baz='qux')",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format(str('bar')))",
+            set(),
+        ),
+        (
+            "latest_partition('foo.{}'.format('bar'))",
+            set(),
+        ),
+    ],
+)
+def test_extract_tables_from_jinja_sql(
+    engine: str, macro: str, expected: set[Table]
+) -> None:
+    assert (
+        extract_tables_from_jinja_sql(
+            sql=f"'{{{{ {engine}.{macro} }}}}'",
+            database=Mock(),
+        )
+        == expected
+    )

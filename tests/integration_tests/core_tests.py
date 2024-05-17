@@ -539,7 +539,9 @@ class TestCore(SupersetTestCase):
             database=get_example_database(),
         )
         rendered_query = str(table.get_from_clause()[0])
-        self.assertEqual(clean_query, rendered_query)
+        assert "comment 1" in rendered_query
+        assert "comment 2" in rendered_query
+        assert "FROM tbl" in rendered_query
 
     def test_slice_payload_no_datasource(self):
         form_data = {
@@ -1184,6 +1186,21 @@ class TestCore(SupersetTestCase):
             example_db.has_table_by_name(table_name="birth_names", schema="public")
             is True
         )
+
+    @mock.patch("superset.views.core.request")
+    @mock.patch(
+        "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run"
+    )
+    def test_dashboard_permalink(self, get_dashboard_permalink_mock, request_mock):
+        request_mock.query_string = b"standalone=3"
+        get_dashboard_permalink_mock.return_value = {"dashboardId": 1}
+        self.login()
+        resp = self.client.get("superset/dashboard/p/123/")
+
+        expected_url = "/superset/dashboard/1?permalink_key=123&standalone=3"
+
+        self.assertEqual(resp.headers["Location"], expected_url)
+        assert resp.status_code == 302
 
 
 if __name__ == "__main__":

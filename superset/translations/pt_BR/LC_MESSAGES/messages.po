@@ -2460,7 +2460,7 @@ msgid "Area Chart"
 msgstr "Gráfico de área"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:42
-msgid "Area Chart (legacy)"
+msgid "Time-series Area Chart (legacy)"
 msgstr "Gráfico de área (legado)"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:177

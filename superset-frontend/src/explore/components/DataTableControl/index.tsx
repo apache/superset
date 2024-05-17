@@ -44,7 +44,6 @@ import Button from 'src/components/Button';
 import Popover from 'src/components/Popover';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import RowCountLabel from 'src/explore/components/RowCountLabel';
 import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
@@ -117,14 +116,6 @@ export const FilterInput = ({
     />
   );
 };
-
-export const RowCount = ({
-  data,
-  loading,
-}: {
-  data?: Record<string, any>[];
-  loading: boolean;
-}) => <RowCountLabel rowcount={data?.length ?? 0} loading={loading} />;
 
 enum FormatPickerValue {
   Formatted = 'formatted',
