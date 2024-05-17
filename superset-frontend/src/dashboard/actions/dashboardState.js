@@ -603,6 +603,13 @@ export function setActiveTab(tabId, prevTabId) {
   return { type: SET_ACTIVE_TAB, tabId, prevTabId };
 }
 
+// Even though SET_ACTIVE_TABS is not being called from Superset's codebase,
+// it is being used by Preset extensions.
+export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
+export function setActiveTabs(activeTabs) {
+  return { type: SET_ACTIVE_TABS, activeTabs };
+}
+
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';
 export function setFocusedFilterField(chartId, column) {
   return { type: SET_FOCUSED_FILTER_FIELD, chartId, column };

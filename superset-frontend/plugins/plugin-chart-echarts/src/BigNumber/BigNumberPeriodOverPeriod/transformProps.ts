@@ -22,7 +22,9 @@ import {
   getMetricLabel,
   getValueFormatter,
   getNumberFormatter,
-  formatTimeRange,
+  SimpleAdhocFilter,
+  ensureIsArray,
+  getTimeOffset,
 } from '@superset-ui/core';
 import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
@@ -87,17 +89,49 @@ export default function transformProps(chartProps: ChartProps) {
     percentDifferenceFormat,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
-  const {
-    data: dataB = [],
-    from_dttm: comparisonFromDatetime,
-    to_dttm: comparisonToDatetime,
-  } = queriesData[1];
   const data = dataA;
   const metricName = getMetricLabel(metric);
+  const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
+  const startDateOffset = chartProps.rawFormData?.start_date_offset;
+  const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
+    (adhoc_filter: SimpleAdhocFilter) =>
+      adhoc_filter.operator === 'TEMPORAL_RANGE',
+  )?.[0];
+  const isCustomOrInherit =
+    timeComparison === 'custom' || timeComparison === 'inherit';
+  let dataOffset: string[] = [];
+  if (isCustomOrInherit) {
+    dataOffset = getTimeOffset(
+      currentTimeRangeFilter,
+      ensureIsArray(timeComparison),
+      startDateOffset || '',
+    );
+  }
+
+  const { value1, value2 } = data.reduce(
+    (acc: { value1: number; value2: number }, curr: { [x: string]: any }) => {
+      Object.keys(curr).forEach(key => {
+        if (
+          key.includes(
+            `${metricName}__${
+              !isCustomOrInherit ? timeComparison : dataOffset[0]
+            }`,
+          )
+        ) {
+          acc.value2 += curr[key];
+        } else if (key.includes(metricName)) {
+          acc.value1 += curr[key];
+        }
+      });
+      return acc;
+    },
+    { value1: 0, value2: 0 },
+  );
+
   let bigNumber: number | string =
-    data.length === 0 ? 0 : parseMetricValue(data[0][metricName]);
+    data.length === 0 ? 0 : parseMetricValue(value1);
   let prevNumber: number | string =
-    data.length === 0 ? 0 : parseMetricValue(dataB[0][metricName]);
+    data.length === 0 ? 0 : parseMetricValue(value2);
 
   const numberFormatter = getValueFormatter(
     metric,
@@ -133,10 +167,6 @@ export default function transformProps(chartProps: ChartProps) {
   prevNumber = numberFormatter(prevNumber);
   valueDifference = numberFormatter(valueDifference);
   const percentDifference: string = formatPercentChange(percentDifferenceNum);
-  const comparatorText = formatTimeRange('%Y-%m-%d', [
-    comparisonFromDatetime,
-    comparisonToDatetime,
-  ]);
 
   return {
     width,
@@ -155,6 +185,8 @@ export default function transformProps(chartProps: ChartProps) {
     comparisonColorEnabled,
     comparisonColorScheme,
     percentDifferenceNumber: percentDifferenceNum,
-    comparatorText,
+    currentTimeRangeFilter,
+    startDateOffset,
+    shift: timeComparison,
   };
 }

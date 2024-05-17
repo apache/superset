@@ -482,7 +482,10 @@ def base_json_conv(obj: Any) -> Any:
         try:
             return obj.decode("utf-8")
         except Exception:  # pylint: disable=broad-except
-            return "[bytes]"
+            try:
+                return obj.decode("utf-16")
+            except Exception:  # pylint: disable=broad-except
+                return "[bytes]"
 
     raise TypeError(f"Unserializable object {obj} of type {type(obj)}")
 

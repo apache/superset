@@ -33,6 +33,7 @@ from superset.utils.core import get_user_id
 from superset.views.base import (
     BaseSupersetView,
     DeleteMixin,
+    DeprecateModelViewMixin,
     json_success,
     SupersetModelView,
 )
@@ -40,7 +41,7 @@ from superset.views.base import (
 logger = logging.getLogger(__name__)
 
 
-class SavedQueryView(BaseSupersetView):
+class SavedQueryView(DeprecateModelViewMixin, BaseSupersetView):
     route_base = "/savedqueryview"
     class_permission_name = "SavedQuery"
 
@@ -50,7 +51,7 @@ class SavedQueryView(BaseSupersetView):
         return super().render_app_template()
 
 
-class SavedQueryViewApi(SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
+class SavedQueryViewApi(DeprecateModelViewMixin, SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SavedQuery)
     include_route_methods = RouteMethod.CRUD_SET
     route_base = "/savedqueryviewapi"

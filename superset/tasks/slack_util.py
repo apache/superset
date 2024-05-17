@@ -48,7 +48,7 @@ def deliver_slack_msg(
     if file:
         response = cast(
             SlackResponse,
-            client.files_upload(
+            client.files_upload_v2(
                 channels=slack_channel, file=file, initial_comment=body, title=subject
             ),
         )

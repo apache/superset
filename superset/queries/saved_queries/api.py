@@ -136,6 +136,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "template_parameters",
+        "extra_json",
     ]
     edit_columns = add_columns
     order_columns = [
