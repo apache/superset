@@ -180,6 +180,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "encrypted_extra",
         "impersonate_user",
         "allow_multi_catalog",
+        "disable_drill_to_detail",
     ]
     export_children = ["tables"]
 
