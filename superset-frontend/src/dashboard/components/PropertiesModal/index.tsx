@@ -44,12 +44,7 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import TagType from 'src/types/TagType';
-import {
-  addTag,
-  deleteTaggedObjects,
-  fetchTags,
-  OBJECT_TYPES,
-} from 'src/features/tags/tags';
+import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import { loadTags } from 'src/components/Tags/utils';
 
 const StyledFormItem = styled(FormItem)`
@@ -309,41 +304,6 @@ const PropertiesModal = ({
     setColorScheme(colorScheme);
   };
 
-  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
-    // update the tags for this object
-    // add tags that are in new tags, but not in old tags
-    // eslint-disable-next-line array-callback-return
-    newTags.map((tag: TagType) => {
-      if (!oldTags.some(t => t.name === tag.name)) {
-        addTag(
-          {
-            objectType: OBJECT_TYPES.DASHBOARD,
-            objectId: dashboardId,
-            includeTypes: false,
-          },
-          tag.name,
-          () => {},
-          () => {},
-        );
-      }
-    });
-    // delete tags that are in old tags, but not in new tags
-    // eslint-disable-next-line array-callback-return
-    oldTags.map((tag: TagType) => {
-      if (!newTags.some(t => t.name === tag.name)) {
-        deleteTaggedObjects(
-          {
-            objectType: OBJECT_TYPES.DASHBOARD,
-            objectId: dashboardId,
-          },
-          tag,
-          () => {},
-          () => {},
-        );
-      }
-    });
-  };
-
   const onFinish = () => {
     const { title, slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
@@ -401,30 +361,14 @@ const PropertiesModal = ({
       updateMetadata: false,
     });
 
-    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
-      // update tags
-      try {
-        fetchTags(
-          {
-            objectType: OBJECT_TYPES.DASHBOARD,
-            objectId: dashboardId,
-            includeTypes: false,
-          },
-          (currentTags: TagType[]) => updateTags(currentTags, tags),
-          error => {
-            handleErrorResponse(error);
-          },
-        );
-      } catch (error) {
-        handleErrorResponse(error);
-      }
-    }
-
     const moreOnSubmitProps: { roles?: Roles } = {};
-    const morePutProps: { roles?: number[] } = {};
+    const morePutProps: { roles?: number[]; tags?: string[] } = {};
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
+    }
+    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+      morePutProps.tags = (tags || []).map(r => r.name);
     }
     const onSubmitProps = {
       id: dashboardId,

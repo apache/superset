@@ -34,12 +34,7 @@ import {
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tags/utils';
-import {
-  addTag,
-  deleteTaggedObjects,
-  fetchTags,
-  OBJECT_TYPES,
-} from 'src/features/tags/tags';
+import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
 
 export type PropertiesModalProps = {
@@ -144,41 +139,6 @@ function PropertiesModal({
     [],
   );
 
-  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
-    // update the tags for this object
-    // add tags that are in new tags, but not in old tags
-    // eslint-disable-next-line array-callback-return
-    newTags.map((tag: TagType) => {
-      if (!oldTags.some(t => t.name === tag.name)) {
-        addTag(
-          {
-            objectType: OBJECT_TYPES.CHART,
-            objectId: slice.slice_id,
-            includeTypes: false,
-          },
-          tag.name,
-          () => {},
-          () => {},
-        );
-      }
-    });
-    // delete tags that are in old tags, but not in new tags
-    // eslint-disable-next-line array-callback-return
-    oldTags.map((tag: TagType) => {
-      if (!newTags.some(t => t.name === tag.name)) {
-        deleteTaggedObjects(
-          {
-            objectType: OBJECT_TYPES.CHART,
-            objectId: slice.slice_id,
-          },
-          tag,
-          () => {},
-          () => {},
-        );
-      }
-    });
-  };
-
   const onSubmit = async (values: {
     certified_by?: string;
     certification_details?: string;
@@ -209,22 +169,7 @@ function PropertiesModal({
       ).map(o => o.value);
     }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
-      // update tags
-      try {
-        fetchTags(
-          {
-            objectType: OBJECT_TYPES.CHART,
-            objectId: slice.slice_id,
-            includeTypes: false,
-          },
-          (currentTags: TagType[]) => updateTags(currentTags, tags),
-          error => {
-            showError(error);
-          },
-        );
-      } catch (error) {
-        showError(error);
-      }
+      payload.tags = tags.map(tag => tag.name);
     }
 
     try {

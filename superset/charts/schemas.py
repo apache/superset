@@ -122,6 +122,7 @@ description_markeddown_description = "Sanitized HTML version of the chart descri
 owners_name_description = "Name of an owner of the chart."
 certified_by_description = "Person or group that has certified this chart"
 certification_details_description = "Details of the certification"
+tags_description = "Tags to be associated with the chart"
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get a chart detail information"}},
@@ -284,7 +285,9 @@ class ChartPutSchema(Schema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
-    tags = fields.Nested(TagSchema, many=True)
+    tags = fields.List(
+        fields.String(metadata={"description": tags_description}, allow_none=True)
+    )
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
