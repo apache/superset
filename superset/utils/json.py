@@ -33,38 +33,6 @@ logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def dumps(
-    obj: Any,
-    default: Optional[Callable[[Any], Any]] = None,
-    ignore_nan: bool = True,
-    sort_keys: bool = False,
-) -> str:
-    """
-    Dumps object to compatible JSON format
-
-    :param obj: The serializable object
-    :param default: function that should return a serializable version of obj
-    :param ignore_nan: when set to True nan values will be ignored
-    :param sort_keys: when set to True keys will be sorted
-    :returns: String object in the JSON compatible form
-    """
-
-    results_string = ""
-    try:
-        results_string = simplejson.dumps(
-            obj, default=default, ignore_nan=ignore_nan, sort_keys=sort_keys
-        )
-    except UnicodeDecodeError:
-        results_string = simplejson.dumps(  # type: ignore[call-overload]
-            obj,
-            default=default,
-            ignore_nan=ignore_nan,
-            sort_keys=sort_keys,
-            encoding=None,
-        )
-    return results_string
-
-
 class DashboardEncoder(json.JSONEncoder):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -209,3 +177,35 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
         except Exception as ex:
             logger.error("JSON is not valid %s", str(ex), exc_info=True)
             raise SupersetException("JSON is not valid") from ex
+
+
+def dumps(
+    obj: Any,
+    default: Optional[Callable[[Any], Any]] = json_iso_dttm_ser,
+    ignore_nan: bool = True,
+    sort_keys: bool = False,
+) -> str:
+    """
+    Dumps object to compatible JSON format
+
+    :param obj: The serializable object
+    :param default: function that should return a serializable version of obj
+    :param ignore_nan: when set to True nan values will be ignored
+    :param sort_keys: when set to True keys will be sorted
+    :returns: String object in the JSON compatible form
+    """
+
+    results_string = ""
+    try:
+        results_string = simplejson.dumps(
+            obj, default=default, ignore_nan=ignore_nan, sort_keys=sort_keys
+        )
+    except UnicodeDecodeError:
+        results_string = simplejson.dumps(  # type: ignore[call-overload]
+            obj,
+            default=default,
+            ignore_nan=ignore_nan,
+            sort_keys=sort_keys,
+            encoding=None,
+        )
+    return results_string
