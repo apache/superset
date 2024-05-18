@@ -76,6 +76,7 @@ def cache_dashboard_thumbnail(
     current_user: Optional[str],
     dashboard_id: int,
     force: bool = False,
+    window_size: Optional[WindowSize] = None,
     thumb_size: Optional[WindowSize] = None,
 ) -> None:
     # pylint: disable=import-outside-toplevel
@@ -100,5 +101,6 @@ def cache_dashboard_thumbnail(
             user=user,
             cache=thumbnail_cache,
             force=force,
+            window_size=window_size,
             thumb_size=thumb_size,
         )

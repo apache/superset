@@ -31,7 +31,19 @@ thumbnail_query_schema = {
     "type": "object",
     "properties": {"force": {"type": "boolean"}},
 }
-
+width_height_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+}
+screenshot_query_schema = {
+    "type": "object",
+    "properties": {
+        "force": {"type": "boolean"},
+        "permalink": {"type": "string"},
+        "window_size": width_height_schema,
+        "thumb_size": width_height_schema,
+    },
+}
 dashboard_title_description = "A title for the dashboard."
 slug_description = "Unique identifying part for the web address of the dashboard."
 owners_description = (
@@ -413,3 +425,13 @@ class EmbeddedDashboardResponseSchema(Schema):
     dashboard_id = fields.String()
     changed_on = fields.DateTime()
     changed_by = fields.Nested(UserSchema)
+
+
+class DashboardCacheScreenshotResponseSchema(Schema):
+    cache_key = fields.String(metadata={"description": "The cache key"})
+    dashboard_url = fields.String(
+        metadata={"description": "The url to render the dashboard"}
+    )
+    image_url = fields.String(
+        metadata={"description": "The url to fetch the screenshot"}
+    )
