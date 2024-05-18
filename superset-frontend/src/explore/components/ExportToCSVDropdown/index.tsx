@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactChild, useCallback } from 'react';
+import { ReactChild, useCallback } from 'react';
+
+import * as React from 'react';
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdDropdown } from 'src/components';

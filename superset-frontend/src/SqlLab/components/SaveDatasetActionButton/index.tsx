@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { t, useTheme, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';

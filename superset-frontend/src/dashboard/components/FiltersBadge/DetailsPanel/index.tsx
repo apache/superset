@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject, useEffect, useRef } from 'react';
+import { RefObject, useEffect, useRef } from 'react';
+
+import * as React from 'react';
 import { useSelector } from 'react-redux';
 import { Global, css } from '@emotion/react';
 import { t } from '@superset-ui/core';

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ChangeEvent } from 'react';
+import { useState, ChangeEvent } from 'react';
 
 interface NumberInputProps {
   timeUnit: string;

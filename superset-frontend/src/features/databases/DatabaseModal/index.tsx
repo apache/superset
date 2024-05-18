@@ -22,7 +22,8 @@ import {
   SupersetTheme,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import React, {
+
+import {
   FunctionComponent,
   useEffect,
   useRef,
@@ -31,6 +32,8 @@ import React, {
   Reducer,
   useCallback,
 } from 'react';
+
+import * as React from 'react';
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';

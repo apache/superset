@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { AntdForm, Col, Row } from 'src/components';
 import { Form, FormLabel } from 'src/components/Form';

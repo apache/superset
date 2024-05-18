@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import * as React from 'react';
 import InfoTooltip from 'src/components/InfoTooltip';
 import { StyledFormItem } from './styles';
 

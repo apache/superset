@@ -20,7 +20,7 @@ import {
   CustomControlItem,
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
-import React from 'react';
+import * as React from 'react';
 import { AntdCheckbox, FormInstance } from 'src/components';
 import {
   Filter,

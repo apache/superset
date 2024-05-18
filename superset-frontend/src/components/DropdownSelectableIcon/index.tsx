@@ -17,7 +17,8 @@
  * under the License.
  */
 import { styled, useTheme } from '@superset-ui/core';
-import React, { RefObject, useMemo } from 'react';
+import { RefObject, useMemo } from 'react';
+import * as React from 'react';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { DropdownButtonProps } from 'antd/lib/dropdown';

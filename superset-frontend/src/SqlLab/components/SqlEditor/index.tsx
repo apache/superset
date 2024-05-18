@@ -18,7 +18,7 @@
  */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
-import React, {
+import {
   useState,
   useEffect,
   useMemo,
@@ -26,6 +26,8 @@ import React, {
   useCallback,
   ChangeEvent,
 } from 'react';
+
+import * as React from 'react';
 import type AceEditor from 'react-ace';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { CSSTransition } from 'react-transition-group';

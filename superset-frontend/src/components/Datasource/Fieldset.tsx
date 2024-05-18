@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { Form } from 'src/components/Form';
 
 import { recurseReactClone } from './utils';

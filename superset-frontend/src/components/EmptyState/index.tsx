@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import React, { ReactNode, SyntheticEvent } from 'react';
+import { ReactNode, SyntheticEvent } from 'react';
+
+import * as React from 'react';
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import { Empty } from 'src/components';
 import Button from 'src/components/Button';

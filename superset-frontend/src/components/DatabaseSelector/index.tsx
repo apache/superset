@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useMemo, useEffect, useRef } from 'react';
+import { ReactNode, useState, useMemo, useEffect, useRef } from 'react';
+
+import * as React from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 import { AsyncSelect, Select } from 'src/components';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { NativeFilterType, styled } from '@superset-ui/core';
-import React from 'react';
+import * as React from 'react';
 import FilterTitlePane from './FilterTitlePane';
 import { FilterRemoval } from './types';
 

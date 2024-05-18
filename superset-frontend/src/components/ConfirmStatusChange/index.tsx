@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
+
+import * as React from 'react';
 import DeleteModal from 'src/components/DeleteModal';
 
 export type Callback = (...args: any[]) => void;

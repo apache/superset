@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, Dispatch, useReducer } from 'react';
+import { useEffect, Dispatch, useReducer } from 'react';
+
+import * as React from 'react';
 import { styled } from '@superset-ui/core';
 import { useDragDropManager } from 'react-dnd';
 import { DatasourcePanelDndItem } from '../DatasourcePanel/types';

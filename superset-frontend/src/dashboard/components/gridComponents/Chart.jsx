@@ -17,7 +17,7 @@
  * under the License.
  */
 import cx from 'classnames';
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { styled, t, logging } from '@superset-ui/core';
 import { debounce, isEqual } from 'lodash';
@@ -121,7 +121,7 @@ const SliceContainer = styled.div`
   max-height: 100%;
 `;
 
-class Chart extends React.Component {
+class Chart extends Component {
   constructor(props) {
     super(props);
     this.state = {

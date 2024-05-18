@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  createRef,
-  forwardRef,
-  useImperativeHandle,
-  useMemo,
-} from 'react';
+import { createRef, forwardRef, useImperativeHandle, useMemo } from 'react';
+
+import * as React from 'react';
 import { withTheme } from '@superset-ui/core';
 
 import {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   ChangeEventHandler,
   ReactElement,
   useCallback,
@@ -25,6 +25,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
+
+import * as React from 'react';
 import Fuse from 'fuse.js';
 import cx from 'classnames';
 import {

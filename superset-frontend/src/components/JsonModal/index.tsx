@@ -36,7 +36,7 @@
  * under the License.
  */
 import JSONbig from 'json-bigint';
-import React from 'react';
+import * as React from 'react';
 import { JSONTree } from 'react-json-tree';
 import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
 import Button from '../Button';

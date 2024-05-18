@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 
 import { t } from '@superset-ui/core';
 import { Dataset, isTemporalColumn } from '@superset-ui/chart-controls';

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import * as React from 'react';
 import { FeatureFlag } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { act, render, screen, within } from 'spec/helpers/testing-library';

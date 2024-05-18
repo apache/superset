@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import * as React from 'react';
 import { SupersetError } from '@superset-ui/core';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';

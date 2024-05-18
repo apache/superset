@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
+
+import * as React from 'react';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import { styled, t } from '@superset-ui/core';
 

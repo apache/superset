@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React from 'react';
+import * as React from 'react';
 import { Dispatch } from 'redux';
 import rison from 'rison';
 import { connect } from 'react-redux';

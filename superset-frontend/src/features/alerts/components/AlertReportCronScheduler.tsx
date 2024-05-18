@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useCallback, useRef, FocusEvent } from 'react';
+import { useState, useCallback, useRef, FocusEvent } from 'react';
+
+import * as React from 'react';
 import { t, useTheme } from '@superset-ui/core';
 
 import { AntdInput, Select } from 'src/components';

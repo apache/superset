@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import React, { lazy } from 'react';
+import { lazy } from 'react';
+import * as React from 'react';
 
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';

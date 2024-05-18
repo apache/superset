@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
 import { Collapse as AntdCollapse } from 'antd';
 import { CollapsePanelProps } from 'antd/lib/collapse';

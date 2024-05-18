@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { TableInstance, Row } from 'react-table';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';

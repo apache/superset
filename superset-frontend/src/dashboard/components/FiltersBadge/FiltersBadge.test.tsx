@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { Store } from 'redux';
 import { render } from 'spec/helpers/testing-library';
 import {

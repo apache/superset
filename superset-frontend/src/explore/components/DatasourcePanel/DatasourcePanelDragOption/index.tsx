@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { useDrag } from 'react-dnd';
 import { css, Metric, styled } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';

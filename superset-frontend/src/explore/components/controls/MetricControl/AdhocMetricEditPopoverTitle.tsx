@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   ChangeEventHandler,
   FocusEvent,
   KeyboardEvent,
   useCallback,
   useState,
 } from 'react';
+
+import * as React from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Tooltip } from 'src/components/Tooltip';

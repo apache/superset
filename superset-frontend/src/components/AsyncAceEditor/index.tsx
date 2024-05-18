@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { forwardRef, useEffect } from 'react';
+import { forwardRef, useEffect } from 'react';
+
+import * as React from 'react';
 import {
   Editor as OrigEditor,
   IEditSession,

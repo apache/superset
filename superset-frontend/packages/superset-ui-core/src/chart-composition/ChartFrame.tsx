@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import React, { PureComponent } from 'react';
+import { PureComponent } from 'react';
+
+import * as React from 'react';
 import { isDefined } from '../utils';
 
 function checkNumber(input: unknown): input is number {

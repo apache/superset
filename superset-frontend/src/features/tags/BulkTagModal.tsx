@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+
+import * as React from 'react';
 import { t, styled, SupersetClient } from '@superset-ui/core';
 import { FormLabel } from 'src/components/Form';
 import Modal from 'src/components/Modal';

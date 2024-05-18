@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useState,
-  useEffect,
-  useReducer,
-  useCallback,
-  useMemo,
-} from 'react';
+import { useState, useEffect, useReducer, useCallback, useMemo } from 'react';
+
+import * as React from 'react';
 import { t, SupersetTheme, getClientErrorObject } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import {

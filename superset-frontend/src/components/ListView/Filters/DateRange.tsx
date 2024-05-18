@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useState,
-  useMemo,
-  forwardRef,
-  useImperativeHandle,
-} from 'react';
+import { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
+
+import * as React from 'react';
 import moment, { Moment } from 'moment';
 import { styled, t } from '@superset-ui/core';
 import { RangePicker } from 'src/components/DatePicker';

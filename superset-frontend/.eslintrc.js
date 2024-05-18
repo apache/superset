@@ -184,6 +184,7 @@ module.exports = {
         'react/no-unused-class-component-methods': 0,
         'import/no-relative-packages': 0,
         'prefer-exponentiation-operator': 0,
+        'react/react-in-jsx-scope': 0,
       },
       settings: {
         'import/resolver': {
@@ -369,6 +370,7 @@ module.exports = {
     'default-case-last': 0,
     'no-promise-executor-return': 0,
     'react/no-unused-class-component-methods': 0,
+    'react/react-in-jsx-scope': 0,
   },
   ignorePatterns,
 };

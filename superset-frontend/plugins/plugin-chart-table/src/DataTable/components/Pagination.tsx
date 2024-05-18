@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties, forwardRef } from 'react';
+import { CSSProperties, forwardRef } from 'react';
+
+import * as React from 'react';
 
 export interface PaginationProps {
   pageCount: number; // number of pages

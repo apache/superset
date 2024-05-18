@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import React, { useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
+
+import * as React from 'react';
 import { css, t, styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';

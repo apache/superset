@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   CSSProperties,
   forwardRef,
   ReactElement,
@@ -29,6 +29,8 @@ import React, {
   useRef,
   ReactNode,
 } from 'react';
+
+import * as React from 'react';
 import { Global } from '@emotion/react';
 import { css, t, useTheme, usePrevious } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import * as React from 'react';
 import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';

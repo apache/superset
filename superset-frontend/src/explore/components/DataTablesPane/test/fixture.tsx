@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { DatasourceType } from '@superset-ui/core';
 import { exploreActions } from 'src/explore/actions/exploreActions';
 import { ChartStatus } from 'src/explore/types';

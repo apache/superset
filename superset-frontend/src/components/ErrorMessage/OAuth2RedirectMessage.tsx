@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+
+import * as React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { ExplorePageState } from 'src/explore/types';

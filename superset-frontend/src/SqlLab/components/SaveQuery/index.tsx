@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+
+import * as React from 'react';
 import type { DatabaseObject } from 'src/features/databases/types';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import * as React from 'react';
 import { Route } from 'react-router-dom';
 import { getExtensionsRegistry, ThemeProvider } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';

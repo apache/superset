@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ChangeEvent, useState, useEffect } from 'react';
+import { ChangeEvent, useState, useEffect } from 'react';
+
+import * as React from 'react';
 import rison from 'rison';
 import Modal from 'src/components/Modal';
 import AsyncSelect from 'src/components/Select/AsyncSelect';

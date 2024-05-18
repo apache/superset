@@ -23,7 +23,8 @@ import AntTable, {
 } from 'antd/lib/table';
 import classNames from 'classnames';
 import { useResizeDetector } from 'react-resize-detector';
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import * as React from 'react';
 import { VariableSizeGrid as Grid } from 'react-window';
 import { useTheme, styled, safeHtmlSpan } from '@superset-ui/core';
 

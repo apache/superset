@@ -17,7 +17,7 @@
  * under the License.
  */
 import { renderHook } from '@testing-library/react-hooks';
-import React from 'react';
+import * as React from 'react';
 import useCSSTextTruncation from './useCSSTextTruncation';
 
 afterEach(() => {

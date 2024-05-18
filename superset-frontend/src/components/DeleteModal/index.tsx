@@ -17,7 +17,8 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import React, { useState } from 'react';
+import { useState } from 'react';
+import * as React from 'react';
 import { Input } from 'src/components/Input';
 import Modal from 'src/components/Modal';
 import { FormLabel } from 'src/components/Form';

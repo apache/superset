@@ -18,7 +18,6 @@
  */
 
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { ErrorSource, ErrorTypeEnum, ErrorLevel } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import TimeoutErrorMessage from './TimeoutErrorMessage';

@@ -17,7 +17,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactElement, ReactNode, ReactText } from 'react';
+import { ReactElement, ReactNode, ReactText } from 'react';
+
+import * as React from 'react';
 import type {
   AdhocColumn,
   Column,

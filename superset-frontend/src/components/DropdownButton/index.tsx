@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
+
+import * as React from 'react';
 import { AntdDropdown, AntdTooltip } from 'src/components';
 import { styled } from '@superset-ui/core';
 import { kebabCase } from 'lodash';

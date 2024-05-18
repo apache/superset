@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { styled, t, css } from '@superset-ui/core';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { detectOS } from 'src/utils/common';

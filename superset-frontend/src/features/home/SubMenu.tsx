@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
+
+import * as React from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { styled, SupersetTheme, css, t } from '@superset-ui/core';
 import cx from 'classnames';

@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
+
+import * as React from 'react';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 

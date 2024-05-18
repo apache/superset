@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Children, ReactElement, ReactNode } from 'react';
+import { Children, ReactElement, ReactNode } from 'react';
+
+import * as React from 'react';
 import { mix } from 'polished';
 import cx from 'classnames';
 import { AntdButton } from 'src/components';

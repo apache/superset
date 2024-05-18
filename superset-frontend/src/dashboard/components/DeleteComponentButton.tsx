@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEventHandler } from 'react';
+import { MouseEventHandler } from 'react';
+
+import * as React from 'react';
 import Icons from 'src/components/Icons';
 import IconButton from './IconButton';
 

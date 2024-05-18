@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import React, { forwardRef, ReactNode, RefObject } from 'react';
+import { forwardRef, ReactNode, RefObject } from 'react';
+
+import * as React from 'react';
 import { css, styled, useTheme, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 

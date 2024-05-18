@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, MouseEventHandler } from 'react';
+import { ReactNode, MouseEventHandler } from 'react';
+
+import * as React from 'react';
 import type { Editor } from 'brace';
 
 /**

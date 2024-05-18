@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import React, { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
+
+import * as React from 'react';
 import { styled, t, useTruncation } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
 

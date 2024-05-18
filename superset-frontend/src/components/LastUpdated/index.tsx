@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, FunctionComponent } from 'react';
+import { useEffect, useState, FunctionComponent } from 'react';
+
+import * as React from 'react';
 import moment, { Moment, MomentInput } from 'moment';
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';

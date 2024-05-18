@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useState,
-  useMemo,
-  forwardRef,
-  useImperativeHandle,
-} from 'react';
+import { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
+
+import * as React from 'react';
 import { t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { Filter, SelectOption } from 'src/components/ListView/types';

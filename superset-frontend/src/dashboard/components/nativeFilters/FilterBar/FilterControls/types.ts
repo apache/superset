@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject } from 'react';
+import { RefObject } from 'react';
+
+import * as React from 'react';
 import { DataMask, DataMaskStateWithId, Filter } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
 

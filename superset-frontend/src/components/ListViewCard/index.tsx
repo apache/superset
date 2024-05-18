@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { styled, useTheme } from '@superset-ui/core';
 import { Skeleton, AntdCard } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';

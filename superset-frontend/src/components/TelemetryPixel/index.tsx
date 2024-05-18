@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import * as React from 'react';
 
 interface TelemetryPixelProps {
   version?: string;

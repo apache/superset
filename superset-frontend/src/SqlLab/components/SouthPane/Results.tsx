@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import Alert from 'src/components/Alert';
 import { EmptyStateMedium } from 'src/components/EmptyState';

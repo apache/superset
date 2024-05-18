@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { Tag as AntdTag } from 'antd';
 import { styled, useCSSTextTruncation } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';

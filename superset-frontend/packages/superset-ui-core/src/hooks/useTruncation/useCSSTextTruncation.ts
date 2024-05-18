@@ -18,7 +18,8 @@
  */
 
 import { css } from '@emotion/react';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import * as React from 'react';
 
 /**
  * Importable CSS that enables text truncation on fixed-width block

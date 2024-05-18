@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AntdIcon from '@ant-design/icons';
 import { styled } from '@superset-ui/core';
 import TransparentIcon from 'src/assets/images/icons/transparent.svg';

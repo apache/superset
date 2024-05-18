@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   useCallback,
   useRef,
   ReactNode,
@@ -24,6 +24,8 @@ import React, {
   MutableRefObject,
   CSSProperties,
 } from 'react';
+
+import * as React from 'react';
 import {
   useTable,
   usePagination,

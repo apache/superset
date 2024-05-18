@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   CSSProperties,
   useEffect,
   useState,
   RefObject,
   forwardRef,
 } from 'react';
+
+import * as React from 'react';
 import Loading from '../Loading';
 
 export type PlaceholderProps = {

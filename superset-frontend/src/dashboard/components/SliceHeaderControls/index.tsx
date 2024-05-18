@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   MouseEvent,
   Key,
   ReactChild,
@@ -25,6 +25,8 @@ import React, {
   RefObject,
   useCallback,
 } from 'react';
+
+import * as React from 'react';
 import { RouteComponentProps, useHistory, withRouter } from 'react-router-dom';
 import moment from 'moment';
 import {

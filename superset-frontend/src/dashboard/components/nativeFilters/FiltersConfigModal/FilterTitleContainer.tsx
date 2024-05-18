@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
+
+import * as React from 'react';
 import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { FilterRemoval } from './types';

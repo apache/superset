@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, {
+import {
   CSSProperties,
   ReactNode,
   useEffect,
@@ -26,6 +26,8 @@ import React, {
   useState,
   PropsWithChildren,
 } from 'react';
+
+import * as React from 'react';
 import { t, isFeatureEnabled, FeatureFlag, css } from '@superset-ui/core';
 import ImageLoader from 'src/components/ListViewCard/ImageLoader';
 import { usePluginContext } from 'src/components/DynamicPlugins';

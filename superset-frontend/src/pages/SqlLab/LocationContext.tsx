@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import React, { createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
+
+import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 
 export type LocationState = {

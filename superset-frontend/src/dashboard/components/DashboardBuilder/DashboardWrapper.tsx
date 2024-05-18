@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
+
+import * as React from 'react';
 import { FAST_DEBOUNCE, css, styled } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';

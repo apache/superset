@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { forwardRef, useImperativeHandle, useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
+
+import * as React from 'react';
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdInput } from 'src/components';

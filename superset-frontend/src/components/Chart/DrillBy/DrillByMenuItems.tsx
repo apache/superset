@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, {
+import {
   ChangeEvent,
   ReactNode,
   useCallback,

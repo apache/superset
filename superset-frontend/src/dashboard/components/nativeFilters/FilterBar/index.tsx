@@ -18,13 +18,9 @@
  */
 
 /* eslint-disable no-param-reassign */
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  createContext,
-  useRef,
-} from 'react';
+import { useEffect, useState, useCallback, createContext, useRef } from 'react';
+
+import * as React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   DataMaskStateWithId,

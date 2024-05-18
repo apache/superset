@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { FormItem } from 'src/components/Form';
 import { Input, TextArea } from 'src/components/Input';
 import { NativeFilterType, styled, t } from '@superset-ui/core';

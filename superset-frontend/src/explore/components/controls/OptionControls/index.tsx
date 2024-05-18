@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef } from 'react';
+import { useRef } from 'react';
+
+import * as React from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { styled, t, useTheme, keyframes, css } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';

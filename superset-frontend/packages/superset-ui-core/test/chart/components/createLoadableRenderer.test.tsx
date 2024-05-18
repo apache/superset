@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import * as React from 'react';
 import { shallow } from 'enzyme';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import createLoadableRenderer, {

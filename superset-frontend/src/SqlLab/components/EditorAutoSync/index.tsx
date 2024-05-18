@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
+
+import * as React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logging } from '@superset-ui/core';
 import {

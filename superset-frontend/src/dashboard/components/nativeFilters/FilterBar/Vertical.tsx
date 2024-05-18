@@ -19,7 +19,7 @@
 
 /* eslint-disable no-param-reassign */
 import { throttle } from 'lodash';
-import React, {
+import {
   useEffect,
   useState,
   useCallback,
@@ -27,6 +27,7 @@ import React, {
   useRef,
   createContext,
 } from 'react';
+import * as React from 'react';
 import cx from 'classnames';
 import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';

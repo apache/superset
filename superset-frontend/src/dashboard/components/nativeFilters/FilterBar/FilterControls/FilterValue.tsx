@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import * as React from 'react';
 import {
   ChartDataResponseResult,
   Behavior,

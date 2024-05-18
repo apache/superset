@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
+
+import * as React from 'react';
 import { pick } from 'lodash';
 import { shallowEqual, useSelector } from 'react-redux';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';

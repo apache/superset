@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { css, QueryState, styled } from '@superset-ui/core';
 import Icons, { IconType } from 'src/components/Icons';
 

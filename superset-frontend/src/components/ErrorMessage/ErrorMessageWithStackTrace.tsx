@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import { ErrorSource, t, SupersetError } from '@superset-ui/core';
 import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
 import ErrorAlert from './ErrorAlert';

@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
+
+import * as React from 'react';
 import Modal from 'src/components/Modal';
 import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';

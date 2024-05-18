@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   FunctionComponent,
   useState,
   useRef,
   useEffect,
   useCallback,
 } from 'react';
+
+import * as React from 'react';
 import Alert from 'src/components/Alert';
 import {
   SupersetClient,

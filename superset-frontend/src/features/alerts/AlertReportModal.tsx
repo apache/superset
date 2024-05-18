@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   FunctionComponent,
   useState,
   useEffect,
@@ -24,6 +24,8 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
+
+import * as React from 'react';
 import {
   css,
   isFeatureEnabled,

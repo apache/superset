@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   CSSProperties,
   useCallback,
   useLayoutEffect,
@@ -24,6 +24,8 @@ import React, {
   useState,
   MouseEvent,
 } from 'react';
+
+import * as React from 'react';
 import {
   ColumnInstance,
   ColumnWithLooseAccessor,

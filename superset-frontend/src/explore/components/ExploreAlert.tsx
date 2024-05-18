@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import React, { forwardRef, RefObject } from 'react';
+import { forwardRef, RefObject } from 'react';
+
+import * as React from 'react';
 import { css, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 

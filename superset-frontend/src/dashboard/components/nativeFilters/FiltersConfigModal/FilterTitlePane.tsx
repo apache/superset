@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef } from 'react';
+import { useRef } from 'react';
+
+import * as React from 'react';
 import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
 import { AntdDropdown } from 'src/components';
 import { MainNav as Menu } from 'src/components/Menu';

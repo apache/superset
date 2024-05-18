@@ -19,7 +19,6 @@
 
 // TODO: These tests should be made atomic in separate files
 
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import {

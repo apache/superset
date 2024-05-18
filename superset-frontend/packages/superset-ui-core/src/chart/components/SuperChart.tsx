@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import React, { ReactNode, RefObject } from 'react';
+import { ReactNode, RefObject } from 'react';
+
+import * as React from 'react';
 import ErrorBoundary, {
   ErrorBoundaryProps,
   FallbackProps,

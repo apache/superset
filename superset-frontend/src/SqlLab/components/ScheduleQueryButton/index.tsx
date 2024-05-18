@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useRef } from 'react';
+import { FunctionComponent, useState, useRef } from 'react';
+
+import * as React from 'react';
 import SchemaForm, { FormProps, FormValidation } from 'react-jsonschema-form';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';

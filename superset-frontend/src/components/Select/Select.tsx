@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   forwardRef,
   ReactElement,
   RefObject,
@@ -26,6 +26,8 @@ import React, {
   useCallback,
   ClipboardEvent,
 } from 'react';
+
+import * as React from 'react';
 import {
   ensureIsArray,
   formatNumber,

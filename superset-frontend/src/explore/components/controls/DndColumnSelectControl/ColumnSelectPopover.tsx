@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import React, {
+import {
   Dispatch,
   SetStateAction,
   useCallback,
