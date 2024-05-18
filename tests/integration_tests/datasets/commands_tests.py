@@ -26,6 +26,7 @@ from superset import db, security_manager
 from superset.commands.database.importers.v1 import ImportDatabasesCommand
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.exceptions import (
+    DatasetCreateFailedError,
     DatasetInvalidError,
     DatasetNotFoundError,
     WarmUpCacheTableNotFoundError,
@@ -598,6 +599,18 @@ class TestCreateDatasetCommand(SupersetTestCase):
                 _ = CreateDatasetCommand(
                     {
                         "sql": "select * from ab_user",
+                        "database": examples_db.id,
+                        "table_name": "exp1",
+                    }
+                ).run()
+
+    def test_create_dataset_invalid_sql(self):
+        examples_db = get_example_database()
+        with override_user(security_manager.find_user("admin")):
+            with self.assertRaises(DatasetCreateFailedError):
+                CreateDatasetCommand(
+                    {
+                        "sql": "select * from invalid_table",
                         "database": examples_db.id,
                         "table_name": "exp1",
                     }
