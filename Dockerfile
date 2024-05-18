@@ -46,6 +46,9 @@ RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json
 COPY ./superset-frontend ./
 # This seems to be the most expensive step
 RUN npm run ${BUILD_CMD}
+COPY superset/translations ./superset/translations
+COPY ./scripts/po2json.sh ./scripts/po2json.sh
+RUN ./scripts/po2json.sh
 
 ######################################################################
 # Final lean image...
@@ -94,6 +97,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -e . \
     && flask fab babel-compile --target superset/translations \
     && chown -R superset:superset superset/translations
+
+# Compile translations
+RUN pybabel compile -d superset/translations
 
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 USER superset

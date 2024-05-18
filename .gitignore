@@ -107,7 +107,8 @@ apache-superset-*.tar.gz*
 release.json
 
 # Translation binaries
-messages.mo
+superset/translations/**/messages.json
+superset/translations/**/messages.mo
 
 docker/requirements-local.txt
 
