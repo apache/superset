@@ -2,12 +2,12 @@
   "domain": "superset",
   "locale_data": {
     "superset": {
-      "22": [""],
       "": {
         "domain": "superset",
         "plural_forms": "nplurals=2; plural=(n != 1)",
         "lang": "en"
-      }
+      },
+      "Error message": [""]
     }
   }
 }
