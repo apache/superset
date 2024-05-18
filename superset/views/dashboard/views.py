@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import builtins
-import json
 from typing import Callable, Union
 
 from flask import g, redirect, request, Response
@@ -35,7 +34,7 @@ from superset import db, event_logger, is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.dashboard import Dashboard as DashboardModel
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils
+from superset.utils import json as json_utils
 from superset.views.base import (
     BaseSupersetView,
     common_bootstrap_payload,
@@ -160,8 +159,8 @@ class Dashboard(BaseSupersetView):
         return self.render_template(
             "superset/spa.html",
             entry="embedded",
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+            bootstrap_data=json_utils.dumps(
+                bootstrap_data, default=json_utils.pessimistic_json_iso_dttm_ser
             ),
         )
 
