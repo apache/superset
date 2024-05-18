@@ -46,10 +46,8 @@ export default class Translator {
   locale: Locale;
 
   constructor(config: TranslatorConfig = {}) {
-    console.log('config', config);
     const { languagePack = DEFAULT_LANGUAGE_PACK } = config;
     this.i18n = new UntypedJed(languagePack) as Jed;
-    //console.log('this.i18n', this.i18n);
     this.locale = this.i18n.options.locale_data.superset[''].lang as Locale;
   }
 
