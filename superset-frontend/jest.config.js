@@ -60,5 +60,4 @@ module.exports = {
     __DEV__: true,
     caches: true,
   },
-  bail: true,
 };
