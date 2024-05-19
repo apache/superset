@@ -14,8 +14,6 @@ astroid==3.1.0
     # via pylint
 asttokens==2.2.1
     # via stack-data
-async-timeout==4.0.3
-    # via redis
 backcall==0.2.0
     # via ipython
 boto3==1.26.130
@@ -24,7 +22,7 @@ botocore==1.29.130
     # via
     #   boto3
     #   s3transfer
-build==0.10.0
+build==1.2.1
     # via pip-tools
 cached-property==1.5.2
     # via tableschema
@@ -56,10 +54,6 @@ docker==7.0.0
     # via apache-superset
 et-xmlfile==1.1.0
     # via openpyxl
-exceptiongroup==1.2.1
-    # via
-    #   cattrs
-    #   pytest
 executing==1.2.0
     # via stack-data
 filelock==3.12.2
@@ -175,7 +169,7 @@ pillow==10.3.0
     #   matplotlib
 pip-compile-multi==2.6.3
     # via apache-superset
-pip-tools==7.3.0
+pip-tools==7.4.1
     # via pip-compile-multi
 playwright==1.42.0
     # via apache-superset
@@ -223,7 +217,9 @@ pylint==3.1.0
 pyproject-api==1.5.2
     # via tox
 pyproject-hooks==1.0.0
-    # via build
+    # via
+    #   build
+    #   pip-tools
 pytest==7.4.4
     # via
     #   apache-superset
