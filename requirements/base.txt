@@ -403,7 +403,7 @@ wtforms-json==0.3.5
     # via apache-superset
 xlsxwriter==3.0.9
     # via apache-superset
-zipp==3.18.1
+zipp==3.18.2
     # via importlib-metadata
 zstandard==0.22.0
     # via flask-compress
