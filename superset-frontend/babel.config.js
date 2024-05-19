@@ -39,16 +39,10 @@ module.exports = {
       {
         development: process.env.BABEL_ENV === 'development',
         runtime: 'automatic',
+        importSource: '@emotion/react',
       },
     ],
     '@babel/preset-typescript',
-    [
-      '@emotion/babel-preset-css-prop',
-      {
-        autoLabel: 'dev-only',
-        labelFormat: '[local]',
-      },
-    ],
   ],
   plugins: [
     'lodash',
@@ -61,6 +55,13 @@ module.exports = {
     // only used in packages/superset-ui-core/src/chart/components/reactify.tsx
     ['babel-plugin-typescript-to-proptypes', { loose: true }],
     'react-hot-loader/babel',
+    [
+      '@emotion/babel-plugin',
+      {
+        autoLabel: 'dev-only',
+        labelFormat: '[local]',
+      },
+    ],
   ],
   env: {
     // Setup a different config for tests as they run in node instead of a browser
@@ -77,7 +78,6 @@ module.exports = {
             targets: { node: 'current' },
           },
         ],
-        ['@emotion/babel-preset-css-prop'],
       ],
       plugins: ['babel-plugin-dynamic-import-node'],
     },
