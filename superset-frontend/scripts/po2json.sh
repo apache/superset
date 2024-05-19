@@ -20,6 +20,8 @@
 # This script generates .json files from .po translation files
 # these json files are used by the frontend to load translations
 
+set -e
+
 for file in $( find ../superset/translations/** -name '*.po' );
 do
   extension=${file##*.}
