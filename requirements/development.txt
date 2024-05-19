@@ -14,8 +14,6 @@ astroid==3.1.0
     # via pylint
 asttokens==2.2.1
     # via stack-data
-async-timeout==4.0.3
-    # via redis
 backcall==0.2.0
     # via ipython
 boto3==1.26.130
@@ -56,10 +54,6 @@ docker==7.0.0
     # via apache-superset
 et-xmlfile==1.1.0
     # via openpyxl
-exceptiongroup==1.2.1
-    # via
-    #   cattrs
-    #   pytest
 executing==1.2.0
     # via stack-data
 filelock==3.12.2
