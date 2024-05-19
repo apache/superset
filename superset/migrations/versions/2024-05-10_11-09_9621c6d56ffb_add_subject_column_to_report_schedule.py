@@ -14,27 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Enable catalog in Databricks
+"""add subject column to report schedule
 
-Revision ID: 4081be5b6b74
-Revises: 645bb206f96c
-Create Date: 2024-05-08 19:33:18.311411
+Revision ID: 9621c6d56ffb
+Revises: 87ffc36f9842
+Create Date: 2024-05-10 11:09:12.046862
 
 """
 
-from superset.migrations.shared.catalogs import (
-    downgrade_catalog_perms,
-    upgrade_catalog_perms,
-)
+import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "4081be5b6b74"
-down_revision = "645bb206f96c"
+revision = "9621c6d56ffb"
+down_revision = "87ffc36f9842"
 
 
 def upgrade():
-    upgrade_catalog_perms(engines={"databricks"})
+    op.add_column(
+        "report_schedule",
+        sa.Column("email_subject", sa.String(length=255), nullable=True),
+    )
 
 
 def downgrade():
-    downgrade_catalog_perms(engines={"databricks"})
+    op.drop_column("report_schedule", "email_subject")

@@ -46,6 +46,7 @@ get_time_range_schema = {
         "type": "object",
         "properties": {
             "timeRange": {"type": "string"},
+            "shift": {"type": "string"},
         },
     },
 }
@@ -110,12 +111,16 @@ class Api(BaseSupersetView):
 
             rv = []
             for time_range in time_ranges:
-                since, until = get_since_until(time_range["timeRange"])
+                since, until = get_since_until(
+                    time_range=time_range["timeRange"],
+                    time_shift=time_range.get("shift"),
+                )
                 rv.append(
                     {
                         "since": since.isoformat() if since else "",
                         "until": until.isoformat() if until else "",
                         "timeRange": time_range["timeRange"],
+                        "shift": time_range.get("shift"),
                     }
                 )
             return self.json_response({"result": rv})
