@@ -314,7 +314,7 @@ requests==2.31.0
     #   shillelagh
 requests-cache==1.2.0
     # via shillelagh
-rich==13.3.4
+rich==13.7.1
     # via flask-limiter
 rsa==4.9
     # via google-auth
