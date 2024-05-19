@@ -48,7 +48,7 @@ db-dtypes==1.1.1
     # via pandas-gbq
 decorator==5.1.1
     # via ipython
-dill==0.3.6
+dill==0.3.8
     # via pylint
 distlib==0.3.6
     # via virtualenv
