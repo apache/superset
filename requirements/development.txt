@@ -147,7 +147,7 @@ mccabe==0.7.0
     # via pylint
 mysqlclient==2.2.4
     # via apache-superset
-nodeenv==1.7.0
+nodeenv==1.8.0
     # via pre-commit
 oauthlib==3.2.2
     # via requests-oauthlib
