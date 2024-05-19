@@ -93,10 +93,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # Copy the compiled frontend assets
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
-COPY --chown=superset:superset --from=superset-node /app/superset/translations superset/translations
 
 # Copy the compiled translations for the frontend
-COPY --chown=superset:superset --from=superset-node /app/superset/translations/*/LC_MESSAGES/*.json superset/static/translations
+COPY --chown=superset:superset --from=superset-node /app/superset/translations superset/translations
 
 ## Lastly, let's install superset itself
 COPY --chown=superset:superset superset superset
