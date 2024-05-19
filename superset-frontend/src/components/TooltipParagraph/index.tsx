@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useState, FC } from 'react';
 
-import * as React from 'react';
 import { Tooltip, Typography } from 'antd';
 import { ParagraphProps } from 'antd/es/typography/Paragraph';
 
-const TooltipParagraph: React.FC<ParagraphProps> = ({
+const TooltipParagraph: FC<ParagraphProps> = ({
   children,
   ellipsis,
   ...props

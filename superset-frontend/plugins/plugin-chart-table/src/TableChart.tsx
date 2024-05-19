@@ -23,9 +23,9 @@ import {
   useMemo,
   useState,
   MouseEvent,
+  KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 
-import * as React from 'react';
 import {
   ColumnInstance,
   ColumnWithLooseAccessor,
@@ -606,7 +606,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               ...sharedStyle,
               ...style,
             }}
-            onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
+            onKeyDown={(e: ReactKeyboardEvent<HTMLElement>) => {
               // programatically sort column on keypress
               if (Object.values(ACTION_KEYS).includes(e.key)) {
                 col.toggleSortBy();

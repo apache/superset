@@ -22,9 +22,9 @@ import {
   KeyboardEvent,
   useCallback,
   useState,
+  FC,
 } from 'react';
 
-import * as React from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Tooltip } from 'src/components/Tooltip';
@@ -49,9 +49,11 @@ export interface AdhocMetricEditPopoverTitleProps {
   onChange: ChangeEventHandler<HTMLInputElement>;
 }
 
-const AdhocMetricEditPopoverTitle: React.FC<
-  AdhocMetricEditPopoverTitleProps
-> = ({ title, isEditDisabled, onChange }) => {
+const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
+  title,
+  isEditDisabled,
+  onChange,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 

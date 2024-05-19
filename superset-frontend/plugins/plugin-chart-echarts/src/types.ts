@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject } from 'react';
+import { RefObject, Ref } from 'react';
 
-import * as React from 'react';
 import {
   ChartDataResponseResult,
   ChartProps,
@@ -43,7 +42,7 @@ export type EchartsStylesProps = {
 };
 
 export type Refs = {
-  echartRef?: React.Ref<EchartsHandler>;
+  echartRef?: Ref<EchartsHandler>;
   divRef?: RefObject<HTMLDivElement>;
 };
 

@@ -22,9 +22,9 @@ import {
   useRef,
   useEffect,
   useCallback,
+  ChangeEvent,
 } from 'react';
 
-import * as React from 'react';
 import Alert from 'src/components/Alert';
 import {
   SupersetClient,
@@ -171,7 +171,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     show,
   ]);
 
-  const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const changeSearch = (event: ChangeEvent<HTMLInputElement>) => {
     const searchValue = event.target.value ?? '';
     setFilter(searchValue);
     setPageIndex(0);

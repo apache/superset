@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, FC } from 'react';
 
-import * as React from 'react';
 import { useDispatch } from 'react-redux';
 import { setStashFormData } from 'src/explore/actions/exploreActions';
 import useEffectEvent from 'src/hooks/useEffectEvent';
@@ -28,7 +27,7 @@ type Props = {
   fieldNames: ReadonlyArray<string>;
 };
 
-const StashFormDataContainer: React.FC<Props> = ({
+const StashFormDataContainer: FC<Props> = ({
   shouldStash,
   fieldNames,
   children,

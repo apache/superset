@@ -17,9 +17,8 @@
  * under the License.
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, MouseEvent } from 'react';
 
-import * as React from 'react';
 import { css, t, styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -52,7 +51,7 @@ const FaveStar = ({
   }, [fetchFaveStar, itemId]);
 
   const onClick = useCallback(
-    (e: React.MouseEvent) => {
+    (e: MouseEvent) => {
       e.preventDefault();
       saveFaveStar(itemId, !!isStarred);
     },

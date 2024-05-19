@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useState, ChangeEvent } from 'react';
 
-import * as React from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
@@ -60,7 +59,7 @@ interface NotificationMethodProps {
   onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
   onRemove?: (index: number) => void;
   onInputChange?: (
-    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => void;
   email_subject: string;
   defaultSubject: string;
@@ -109,9 +108,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   };
 
-  const onRecipientsChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement>,
-  ) => {
+  const onRecipientsChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const { target } = event;
 
     setRecipientValue(target.value);
@@ -127,7 +124,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   };
 
   const onSubjectChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
     const { value } = event.target;
 

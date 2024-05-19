@@ -17,9 +17,8 @@
  * under the License.
  */
 
-import { PureComponent } from 'react';
+import { PureComponent, ReactNode } from 'react';
 
-import * as React from 'react';
 import { isDefined } from '../utils';
 
 function checkNumber(input: unknown): input is number {
@@ -36,7 +35,7 @@ type Props = {
   }: {
     height: number;
     width: number;
-  }) => React.ReactNode;
+  }) => ReactNode;
   width: number;
 };
 

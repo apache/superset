@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactElement } from 'react';
 
-import * as React from 'react';
 import {
   ensureIsArray,
   styled,
@@ -48,7 +47,7 @@ export const useResultsPane = ({
   actions,
   isVisible,
   dataSize = 50,
-}: ResultsPaneProps): React.ReactElement[] => {
+}: ResultsPaneProps): ReactElement[] => {
   const metadata = getChartMetadataRegistry().get(
     queryFormData?.viz_type || queryFormData?.vizType,
   );

@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, DetailedHTMLProps, HTMLAttributes } from 'react';
 
-import * as React from 'react';
 import { styled, logging } from '@superset-ui/core';
 
 export type BackgroundPosition = 'top' | 'bottom';
@@ -37,10 +36,7 @@ const ImageContainer = styled.div<ImageContainerProps>`
   margin: 1px 1px 0 1px;
 `;
 interface ImageLoaderProps
-  extends React.DetailedHTMLProps<
-    React.HTMLAttributes<HTMLDivElement>,
-    HTMLDivElement
-  > {
+  extends DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   fallback: string;
   src: string;
   isLoading?: boolean;

@@ -17,8 +17,7 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import { useState } from 'react';
-import * as React from 'react';
+import { useState, ReactNode, ChangeEvent } from 'react';
 import { Input } from 'src/components/Input';
 import Modal from 'src/components/Modal';
 import { FormLabel } from 'src/components/Form';
@@ -38,11 +37,11 @@ const DescriptionContainer = styled.div`
 `;
 
 interface DeleteModalProps {
-  description: React.ReactNode;
+  description: ReactNode;
   onConfirm: () => void;
   onHide: () => void;
   open: boolean;
-  title: React.ReactNode;
+  title: ReactNode;
 }
 
 export default function DeleteModal({
@@ -65,7 +64,7 @@ export default function DeleteModal({
     onConfirm();
   };
 
-  const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onChange = (event: ChangeEvent<HTMLInputElement>) => {
     const targetValue = event.target.value ?? '';
     setDisableChange(targetValue.toUpperCase() !== t('DELETE'));
     setConfirmation(targetValue);

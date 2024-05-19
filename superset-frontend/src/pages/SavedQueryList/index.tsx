@@ -24,8 +24,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { useCallback, useMemo, useState } from 'react';
-import * as React from 'react';
+import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
@@ -387,7 +386,7 @@ function SavedQueryList({
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };
-          const handleEdit = ({ metaKey }: React.MouseEvent) =>
+          const handleEdit = ({ metaKey }: MouseEvent) =>
             openInSqlLab(original.id, Boolean(metaKey));
           const handleCopy = () => copyQueryLink(original.id);
           const handleExport = () => handleBulkSavedQueryExport([original]);

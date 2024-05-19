@@ -17,9 +17,7 @@
  * under the License.
  */
 
-import { PureComponent } from 'react';
-
-import * as React from 'react';
+import { PureComponent, ReactNode } from 'react';
 
 const defaultProps = {
   className: '',
@@ -27,7 +25,7 @@ const defaultProps = {
 
 type Props = {
   className?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 } & Readonly<typeof defaultProps>;
 
 const CONTAINER_STYLE = { padding: 8 };

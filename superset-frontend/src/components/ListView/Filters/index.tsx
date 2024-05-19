@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createRef, forwardRef, useImperativeHandle, useMemo } from 'react';
+import {
+  createRef,
+  forwardRef,
+  useImperativeHandle,
+  useMemo,
+  RefObject,
+} from 'react';
 
-import * as React from 'react';
 import { withTheme } from '@superset-ui/core';
 
 import {
@@ -40,7 +45,7 @@ interface UIFiltersProps {
 
 function UIFilters(
   { filters, internalFilters = [], updateFilterValue }: UIFiltersProps,
-  ref: React.RefObject<{ clearFilters: () => void }>,
+  ref: RefObject<{ clearFilters: () => void }>,
 ) {
   const filterRefs = useMemo(
     () =>

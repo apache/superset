@@ -17,9 +17,8 @@
  * under the License.
  */
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, FC } from 'react';
 
-import * as React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logging } from '@superset-ui/core';
 import {
@@ -56,7 +55,7 @@ export function filterUnsavedQueryEditorList(
     .filter(queryEditor => hasUnsavedChanges(queryEditor, lastSavedTimestamp));
 }
 
-const EditorAutoSync: React.FC = () => {
+const EditorAutoSync: FC = () => {
   const queryEditors = useSelector<SqlLabRootState, QueryEditor[]>(
     state => state.sqlLab.queryEditors,
   );

@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useRef, useEffect, useState } from 'react';
-
-import * as React from 'react';
+import React, { FC, useCallback, useRef, useEffect, useState } from 'react';
 
 import Popover, {
   PopoverProps as BasePopoverProps,
@@ -43,7 +41,7 @@ export type PopoverProps = BasePopoverProps & {
   getVisibilityRatio?: typeof getElementYVisibilityRatioOnContainer;
 };
 
-const ControlPopover: React.FC<PopoverProps> = ({
+const ControlPopover: FC<PopoverProps> = ({
   getPopupContainer,
   getVisibilityRatio = getElementYVisibilityRatioOnContainer,
   visible: visibleProp,

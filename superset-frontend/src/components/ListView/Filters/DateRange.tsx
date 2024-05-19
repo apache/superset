@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
+import {
+  useState,
+  useMemo,
+  forwardRef,
+  useImperativeHandle,
+  RefObject,
+} from 'react';
 
-import * as React from 'react';
 import moment, { Moment } from 'moment';
 import { styled, t } from '@superset-ui/core';
 import { RangePicker } from 'src/components/DatePicker';
@@ -42,7 +47,7 @@ const RangeFilterContainer = styled.div`
 
 function DateRangeFilter(
   { Header, initialValue, onSubmit }: DateRangeFilterProps,
-  ref: React.RefObject<FilterHandler>,
+  ref: RefObject<FilterHandler>,
 ) {
   const [value, setValue] = useState<ValueState | null>(initialValue ?? null);
   const momentValue = useMemo((): [Moment, Moment] | null => {

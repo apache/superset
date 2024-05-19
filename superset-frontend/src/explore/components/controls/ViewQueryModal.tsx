@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 
-import * as React from 'react';
 import {
   styled,
   ensureIsArray,
@@ -44,7 +43,7 @@ const ViewQueryModalContainer = styled.div`
   flex-direction: column;
 `;
 
-const ViewQueryModal: React.FC<Props> = props => {
+const ViewQueryModal: FC<Props> = props => {
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

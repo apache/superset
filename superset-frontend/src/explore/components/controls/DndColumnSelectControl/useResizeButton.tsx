@@ -17,9 +17,13 @@
  * under the License.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useState,
+  MouseEvent as ReactMouseEvent,
+} from 'react';
 
-import * as React from 'react';
 import { throttle } from 'lodash';
 import {
   POPOVER_INITIAL_HEIGHT,
@@ -52,7 +56,7 @@ export default function useResizeButton(
     setIsDragging(false);
   }, []);
 
-  const onDragDown = useCallback((ev: React.MouseEvent): void => {
+  const onDragDown = useCallback((ev: ReactMouseEvent): void => {
     setDragStartX(ev.clientX);
     setDragStartY(ev.clientY);
     setIsDragging(true);

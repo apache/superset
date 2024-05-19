@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useMemo, ReactNode } from 'react';
 
-import * as React from 'react';
 import {
   css,
   ColorScheme,
@@ -163,7 +162,7 @@ const ColorSchemeControl = ({
               label={currentScheme.label}
               colors={colors}
             />
-          ) as React.ReactNode,
+          ) as ReactNode,
           label: schemesObject?.[value]?.label || value,
           value,
         };

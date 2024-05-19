@@ -18,6 +18,7 @@
  */
 import {
   ChangeEventHandler,
+  FC,
   ReactElement,
   useCallback,
   useEffect,
@@ -26,7 +27,6 @@ import {
   useState,
 } from 'react';
 
-import * as React from 'react';
 import Fuse from 'fuse.js';
 import cx from 'classnames';
 import {
@@ -388,7 +388,7 @@ interface ThumbnailProps {
   onDoubleClick: () => void;
 }
 
-const Thumbnail: React.FC<ThumbnailProps> = ({
+const Thumbnail: FC<ThumbnailProps> = ({
   entry,
   selectedViz,
   setSelectedViz,
@@ -441,7 +441,7 @@ interface ThumbnailGalleryProps {
 }
 
 /** A list of viz thumbnails, used within the viz picker modal */
-const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
+const ThumbnailGallery: FC<ThumbnailGalleryProps> = ({
   vizEntries,
   ...props
 }) => (
@@ -452,7 +452,7 @@ const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
   </IconsPane>
 );
 
-const Selector: React.FC<{
+const Selector: FC<{
   selector: string;
   sectionId: string;
   icon: ReactElement;

@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, ReactNode, useLayoutEffect } from 'react';
-
-import * as React from 'react';
+import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
 import { css, styled, SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
@@ -34,7 +32,7 @@ import { SQLPopover } from './SQLPopover';
 export type ColumnOptionProps = {
   column: ColumnMeta;
   showType?: boolean;
-  labelRef?: React.RefObject<any>;
+  labelRef?: RefObject<any>;
 };
 
 const StyleOverrides = styled.span`

@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
+import {
+  useState,
+  useMemo,
+  forwardRef,
+  useImperativeHandle,
+  type RefObject,
+} from 'react';
 
-import * as React from 'react';
 import { t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { Filter, SelectOption } from 'src/components/ListView/types';
@@ -43,7 +48,7 @@ function SelectFilter(
     onSelect,
     selects = [],
   }: SelectFilterProps,
-  ref: React.RefObject<FilterHandler>,
+  ref: RefObject<FilterHandler>,
 ) {
   const [selectedOption, setSelectedOption] = useState(initialValue);
 

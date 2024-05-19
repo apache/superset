@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useState, useEffect } from 'react';
+import { ChangeEvent, useState, useEffect, FC } from 'react';
 
-import * as React from 'react';
 import rison from 'rison';
 import Modal from 'src/components/Modal';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
@@ -61,7 +60,7 @@ interface TagModalProps {
   editTag?: Tag | null;
 }
 
-const TagModal: React.FC<TagModalProps> = ({
+const TagModal: FC<TagModalProps> = ({
   show,
   onHide,
   editTag,

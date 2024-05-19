@@ -25,9 +25,9 @@ import {
   useRef,
   useCallback,
   ChangeEvent,
+  FC,
 } from 'react';
 
-import * as React from 'react';
 import type AceEditor from 'react-ace';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { CSSTransition } from 'react-transition-group';
@@ -236,7 +236,7 @@ const elementStyle = (
   }px)`,
 });
 
-const SqlEditor: React.FC<Props> = ({
+const SqlEditor: FC<Props> = ({
   queryEditor,
   defaultQueryLimit,
   maxRow,

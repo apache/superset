@@ -18,7 +18,6 @@
  */
 import { ReactNode, useState, useMemo, useEffect, useRef } from 'react';
 
-import * as React from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 import { AsyncSelect, Select } from 'src/components';
@@ -77,7 +76,7 @@ const LabelStyle = styled.div`
 `;
 
 type DatabaseValue = {
-  label: React.ReactNode;
+  label: ReactNode;
   value: number;
   id: number;
   database_name: string;

@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, FunctionComponent } from 'react';
 
-import * as React from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { styled, SupersetTheme, css, t } from '@superset-ui/core';
 import cx from 'classnames';
@@ -213,7 +212,7 @@ export interface SubMenuProps {
 
 const { SubMenu } = DropdownMenu;
 
-const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
+const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const [navRightStyle, setNavRightStyle] = useState('nav-right');
 

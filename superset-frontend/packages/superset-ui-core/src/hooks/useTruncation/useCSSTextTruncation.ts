@@ -18,8 +18,7 @@
  */
 
 import { css } from '@emotion/react';
-import { useEffect, useRef, useState } from 'react';
-import * as React from 'react';
+import { useEffect, useRef, useState, RefObject } from 'react';
 
 /**
  * Importable CSS that enables text truncation on fixed-width block
@@ -38,7 +37,7 @@ export const truncationCSS = css`
  * element and a boolean for whether that element is currently truncated.
  */
 const useCSSTextTruncation = <T extends HTMLElement>(): [
-  React.RefObject<T>,
+  RefObject<T>,
   boolean,
 ] => {
   const [isTruncated, setIsTruncated] = useState(true);

@@ -18,6 +18,7 @@
  */
 import {
   forwardRef,
+  FocusEvent,
   ReactElement,
   RefObject,
   useEffect,
@@ -27,7 +28,6 @@ import {
   ClipboardEvent,
 } from 'react';
 
-import * as React from 'react';
 import {
   ensureIsArray,
   formatNumber,
@@ -444,7 +444,7 @@ const Select = forwardRef(
       [selectAllEligible],
     );
 
-    const handleOnBlur = (event: React.FocusEvent<HTMLElement>) => {
+    const handleOnBlur = (event: FocusEvent<HTMLElement>) => {
       setInputValue('');
       onBlur?.(event);
     };

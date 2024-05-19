@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import {
+  ReactNode,
+  DetailedHTMLProps,
+  TdHTMLAttributes,
+  PureComponent,
+} from 'react';
 
-import * as React from 'react';
 import shortid from 'shortid';
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -43,8 +47,8 @@ interface CRUDCollectionProps {
     val: unknown,
     label: string,
     record: any,
-  ) => React.DetailedHTMLProps<
-    React.TdHTMLAttributes<HTMLTableCellElement>,
+  ) => DetailedHTMLProps<
+    TdHTMLAttributes<HTMLTableCellElement>,
     HTMLTableCellElement
   >)[];
   itemRenderers?: ((
@@ -151,7 +155,7 @@ const StyledButtonWrapper = styled.span`
   `}
 `;
 
-export default class CRUDCollection extends React.PureComponent<
+export default class CRUDCollection extends PureComponent<
   CRUDCollectionProps,
   CRUDCollectionState
 > {

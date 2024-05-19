@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { FC, useEffect, useState } from 'react';
 
-import * as React from 'react';
 import { FAST_DEBOUNCE, css, styled } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
@@ -108,12 +107,12 @@ const StyledDiv = styled.div`
 
 type Props = {};
 
-const DashboardWrapper: React.FC<Props> = ({ children }) => {
+const DashboardWrapper: FC<Props> = ({ children }) => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
   const dragDropManager = useDragDropManager();
-  const [isDragged, setIsDragged] = React.useState(
+  const [isDragged, setIsDragged] = useState(
     dragDropManager.getMonitor().isDragging(),
   );
 
