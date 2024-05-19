@@ -131,7 +131,7 @@ jmespath==1.0.1
     #   botocore
 jsonlines==3.1.0
     # via dataflows-tabulator
-jsonschema-spec==0.1.4
+jsonschema-spec==0.1.6
     # via openapi-spec-validator
 kiwisolver==1.4.4
     # via matplotlib
