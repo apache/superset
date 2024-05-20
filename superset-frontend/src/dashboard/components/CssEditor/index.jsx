@@ -1,3 +1,4 @@
+/* eslint-disable theme-colors/no-literal-colors */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -120,9 +121,7 @@ class CssEditor extends React.PureComponent {
                 style={{
                   border: 'none',
                   cursor: 'pointer',
-                  // eslint-disable-next-line theme-colors/no-literal-colors
                   color: 'rgb(89, 89, 112)',
-                  // eslint-disable-next-line theme-colors/no-literal-colors
                   backgroundColor: 'rgb(240, 240, 240)',
                   marginLeft: 'auto',
                   borderRadius: '4px',
@@ -147,11 +146,12 @@ class CssEditor extends React.PureComponent {
   padding: 0 !important;
   margin: 0 !important;
   max-width: 100% !important;
-  background-color: #f5f7f8;
 }
 
 /* Dashboard rows */
-.grid-row {}
+.grid-row {
+  margin: 0 !important;
+}
 
 /* All dashboard components */
 .dashboard-component.dashboard-component {
@@ -166,6 +166,11 @@ class CssEditor extends React.PureComponent {
   padding-right: 24px;
 }
 
+/* Targets dynamic markdown components */
+[id*="DYNAMIC"] .resizable-container {
+  padding: 0 !important;
+}
+
 /* Dynamic markdown components */
 .dashboard-component-ikirunpipeline {
   border-radius: 0 !important;
@@ -177,11 +182,14 @@ class CssEditor extends React.PureComponent {
   display: none !important;
 }
 
-/* Big number chart */
+/* Big # chart */
 .header-line {
   font-size: 46px !important;
   font-weight: bold;
 }
+
+/* Big # subheader text */
+.subheader-line {}
                 `)
                 }
               >
