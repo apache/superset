@@ -33,12 +33,13 @@ logger = logging.getLogger(__name__)
 
 class CreateFilterStateCommand(CreateTemporaryCacheCommand):
     def create(self, cmd_params: CommandParameters) -> str:
+        logger.error("CreateFilterStateCommand.create")
         resource_id = cmd_params.resource_id
-        logger.debug(f"resource_id = {resource_id}")
+        logger.error(f"resource_id = {resource_id}")
         tab_id = cmd_params.tab_id
-        logger.debug(f"tab_id = {tab_id}")
+        logger.error(f"tab_id = {tab_id}")
         contextual_key = cache_key(session.get("_id"), tab_id, resource_id)
-        logger.debug(f"contextual_key = {contextual_key}")
+        logger.error(f"contextual_key = {contextual_key}")
         key = cache_manager.filter_state_cache.get(contextual_key)
         logger.debug(f"key = {key}")
         if not key or not tab_id:
