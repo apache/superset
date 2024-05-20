@@ -37,6 +37,7 @@ class CreateFilterStateCommand(CreateTemporaryCacheCommand):
         logger.error(f"CreateFilterStateCommand.create resource_id = {resource_id}")
         tab_id = cmd_params.tab_id
         logger.error(f"CreateFilterStateCommand.create tab_id = {tab_id}")
+        logger.error(f"CreateFilterStateCommand.create session= {session.items()}")
         contextual_key = cache_key(session.get("_id", ''), tab_id, resource_id)
         logger.error(
             f"CreateFilterStateCommand.create contextual_key = {contextual_key}")
