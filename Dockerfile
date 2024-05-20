@@ -27,7 +27,8 @@ FROM --platform=${BUILDPLATFORM} node:18-bullseye-slim AS superset-node
 ARG NPM_BUILD_CMD="build"
 
 RUN apt-get update -qq \
-    && apt-get install -yqq --no-install-recommends \
+    && apt-get install \
+        -yqq --no-install-recommends \
         build-essential \
         python3
 
@@ -44,9 +45,17 @@ RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json
     npm ci
 
 COPY ./superset-frontend ./
+
+# This copies the .po files needed for translation
 COPY superset/translations ./superset/translations
-# This seems to be the most expensive step
-RUN npm run build-translation && npm run ${BUILD_CMD}
+
+# Runs the webpack build process
+RUN npm run ${BUILD_CMD}
+
+# Compiles .json files from the .po files, then deletes the .po files
+RUN npm run build-translation && \
+    rm ./superset/translations/*/LC_MESSAGES/*.po && \
+    rm ./superset/translations/messages.pot
 
 # Compile translations for the frontend
 WORKDIR /app
@@ -94,18 +103,20 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Copy the compiled frontend assets
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
 
-# Copy the compiled translations for the frontend
-COPY --chown=superset:superset --from=superset-node /app/superset/translations superset/translations
-
 ## Lastly, let's install superset itself
 COPY --chown=superset:superset superset superset
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -e .
 
-# Compile translations for the backend - this generates .mo files
+# Copy the .json translations from the frontend layer
+COPY --chown=superset:superset --from=superset-node /app/superset/translations superset/translations
+
+# Compile translations for the backend - this generates .mo files, then deletes the .po files
 COPY ./scripts/translations/generate_mo_files.sh ./scripts/translations/
-RUN ./scripts/translations/generate_mo_files.sh && \
-    chown -R superset:superset superset/translations
+RUN ./scripts/translations/generate_mo_files.sh \
+    && chown -R superset:superset superset/translations \
+    && rm superset/translations/messages.pot \
+    && rm superset/translations/*/LC_MESSAGES/*.po
 
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 USER superset
