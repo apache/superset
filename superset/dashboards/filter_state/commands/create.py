@@ -34,19 +34,18 @@ class CreateFilterStateCommand(CreateTemporaryCacheCommand):
     def create(self, cmd_params: CommandParameters) -> str:
         resource_id = cmd_params.resource_id
         tab_id = cmd_params.tab_id
-        contextual_key = cache_key(session.get("_id", ''), tab_id, resource_id)
+        # contextual_key = cache_key(session.get("_id", ''), tab_id, resource_id) // DODO commented #33605679
+        contextual_key = cache_key(get_user_id(), tab_id, resource_id) # DODO added #33605679
         key = cache_manager.filter_state_cache.get(contextual_key)
         if not key or not tab_id:
             key = random_key()
         value = cast(str, cmd_params.value)  # schema ensures that value is not optional
         check_access(resource_id)
         entry: Entry = {"owner": get_user_id(), "value": value}
-
         logger.info(f"CreateFilterStateCommand.create session = {session.items()}")
         logger.info(f"CreateFilterStateCommand.create get_user_id() = {get_user_id()}")
         logger.info(f"CreateFilterStateCommand.create contextual_key = {contextual_key}")
         logger.info(f"CreateFilterStateCommand.create value = {value}")
-
         cache_manager.filter_state_cache.set(cache_key(resource_id, key), entry)
         cache_manager.filter_state_cache.set(contextual_key, key)
         return key
