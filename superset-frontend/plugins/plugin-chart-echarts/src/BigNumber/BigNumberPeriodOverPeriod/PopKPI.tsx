@@ -186,7 +186,7 @@ export default function PopKPI(props: PopKPIProps) {
     percentDifferenceNumber,
   ]);
 
-  const perviousPeriodSymbol = previousPeriodValueEnabled
+  const previousPeriodSymbol = previousPeriodValueEnabled
     ? [
         {
           symbol: '#',
@@ -218,7 +218,7 @@ export default function PopKPI(props: PopKPIProps) {
 
   const SYMBOLS_WITH_VALUES = useMemo(
     () => [
-      ...perviousPeriodSymbol,
+      ...previousPeriodSymbol,
       ...valueDifferenceSymbol,
       ...percentDifferenceSymbol,
     ],
@@ -227,7 +227,7 @@ export default function PopKPI(props: PopKPIProps) {
       prevNumber,
       valueDifference,
       percentDifferenceFormattedString,
-      perviousPeriodSymbol,
+      previousPeriodSymbol,
       valueDifferenceSymbol,
       percentDifferenceSymbol,
     ],
