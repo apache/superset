@@ -30,8 +30,8 @@ from werkzeug.wrappers import Response
 from superset import db
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
-from superset.utils.core import json_int_dttm_ser
 from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger

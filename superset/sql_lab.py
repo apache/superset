@@ -24,7 +24,6 @@ from typing import Any, cast, Optional, Union
 
 import backoff
 import msgpack
-import simplejson as json
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as __
 
@@ -59,8 +58,8 @@ from superset.sql_parse import (
 )
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
+from superset.utils import json as json_utils
 from superset.utils.core import (
-    json_iso_dttm_ser,
     override_user,
     QuerySource,
     zlib_compress,
@@ -349,9 +348,13 @@ def _serialize_payload(
 ) -> Union[bytes, str]:
     logger.debug("Serializing to msgpack: %r", use_msgpack)
     if use_msgpack:
-        return msgpack.dumps(payload, default=json_iso_dttm_ser, use_bin_type=True)
+        return msgpack.dumps(
+            payload, default=json_utils.json_iso_dttm_ser, use_bin_type=True
+        )
 
-    return json.dumps(payload, default=json_iso_dttm_ser, ignore_nan=True)
+    return json_utils.dumps(
+        payload, default=json_utils.json_iso_dttm_ser, ignore_nan=True
+    )
 
 
 def _serialize_and_expand_data(
