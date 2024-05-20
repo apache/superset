@@ -27,7 +27,6 @@ from superset.temporary_cache.commands.parameters import CommandParameters
 from superset.temporary_cache.utils import cache_key
 from superset.utils.core import get_user_id
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -38,8 +37,9 @@ class CreateFilterStateCommand(CreateTemporaryCacheCommand):
         logger.error(f"CreateFilterStateCommand.create resource_id = {resource_id}")
         tab_id = cmd_params.tab_id
         logger.error(f"CreateFilterStateCommand.create tab_id = {tab_id}")
-        contextual_key = cache_key(session.get("_id"), tab_id, resource_id)
-        logger.error(f"CreateFilterStateCommand.create contextual_key = {contextual_key}")
+        contextual_key = cache_key(session.get("_id", ''), tab_id, resource_id)
+        logger.error(
+            f"CreateFilterStateCommand.create contextual_key = {contextual_key}")
         key = cache_manager.filter_state_cache.get(contextual_key)
         logger.debug(f"CreateFilterStateCommand.create key = {key}")
         if not key or not tab_id:
