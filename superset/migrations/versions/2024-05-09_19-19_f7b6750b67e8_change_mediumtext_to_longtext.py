@@ -16,13 +16,13 @@
 # under the License.
 """change_mediumtext_to_longtext
 Revision ID: f7b6750b67e8
-Revises: 4081be5b6b74
+Revises: f84fde59123a
 Create Date: 2024-05-09 19:19:46.630140
 """
 
 # revision identifiers, used by Alembic.
 revision = "f7b6750b67e8"
-down_revision = "4081be5b6b74"
+down_revision = "f84fde59123a"
 
 from alembic import op  # noqa: E402
 from sqlalchemy.dialects.mysql import MEDIUMTEXT  # noqa: E402
