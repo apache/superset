@@ -746,8 +746,16 @@ function DashboardList(props: DashboardListProps) {
                 count={dashboardCount}
                 data={dashboards}
                 disableBulkSelect={toggleBulkSelect}
-                fetchData={fetchData}
-                refreshData={refreshData}
+                fetchData={config =>
+                  fetchData({
+                    ...config,
+                    selectColumns: ['dashboard_title'],
+                  })
+                }
+                refreshData={config => refreshData({
+                    ...config,
+                    selectColumns: ['dashboard_title'],
+                  })}
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}

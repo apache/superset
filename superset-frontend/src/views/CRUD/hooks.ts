@@ -133,6 +133,7 @@ export function useListViewResource<D extends object = any>(
       pageSize,
       sortBy,
       filters: filterValues,
+      selectColumns = [],
     }: FetchDataConfig) => {
       // set loading state, cache the last config for refreshing data.
       updateState({
@@ -141,6 +142,7 @@ export function useListViewResource<D extends object = any>(
           pageIndex,
           pageSize,
           sortBy,
+          selectColumns,
         },
         loading: true,
       });
@@ -162,6 +164,7 @@ export function useListViewResource<D extends object = any>(
         page: pageIndex,
         page_size: pageSize,
         ...(filterExps.length ? { filters: filterExps } : {}),
+        ...(selectColumns.length ? { select_columns: selectColumns } : {}),
       });
 
       return SupersetClient.get({
