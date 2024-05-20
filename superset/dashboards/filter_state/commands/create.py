@@ -32,29 +32,16 @@ logger = logging.getLogger(__name__)
 
 class CreateFilterStateCommand(CreateTemporaryCacheCommand):
     def create(self, cmd_params: CommandParameters) -> str:
-        logger.error("CreateFilterStateCommand.create")
         resource_id = cmd_params.resource_id
-        logger.error(f"CreateFilterStateCommand.create resource_id = {resource_id}")
         tab_id = cmd_params.tab_id
-        logger.error(f"CreateFilterStateCommand.create tab_id = {tab_id}")
-        logger.error(f"CreateFilterStateCommand.create session= {session.items()}")
+        logger.debug(f"CreateFilterStateCommand.create session= {session.items()}")
         contextual_key = cache_key(session.get("_id", ''), tab_id, resource_id)
-        logger.error(
-            f"CreateFilterStateCommand.create contextual_key = {contextual_key}")
         key = cache_manager.filter_state_cache.get(contextual_key)
-        logger.debug(f"CreateFilterStateCommand.create key = {key}")
         if not key or not tab_id:
-            logger.debug(f"CreateFilterStateCommand.create we dont have key or tab_id")
             key = random_key()
-            logger.debug(f"CreateFilterStateCommand.create new_key = {key}")
         value = cast(str, cmd_params.value)  # schema ensures that value is not optional
-        logger.debug(f"CreateFilterStateCommand.create value = {value}")
         check_access(resource_id)
-        logger.debug(f"CreateFilterStateCommand.create after check_access")
-        entry: Entry = {"CreateFilterStateCommand.create owner": get_user_id(), "value": value}
-        logger.debug(f"CreateFilterStateCommand.create entry = {entry.items()}")
+        entry: Entry = {"owner": get_user_id(), "value": value}
         cache_manager.filter_state_cache.set(cache_key(resource_id, key), entry)
-        logger.debug(f"CreateFilterStateCommand.create after filter_state_cache-1")
         cache_manager.filter_state_cache.set(contextual_key, key)
-        logger.debug(f"CreateFilterStateCommand.create after filter_state_cache-2")
         return key
