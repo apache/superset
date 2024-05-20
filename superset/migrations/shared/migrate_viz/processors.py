@@ -212,6 +212,7 @@ class MigrateBarChart(TimeseriesChart):
 class MigrateDistBarChart(TimeseriesChart):
     source_viz_type = "dist_bar"
     target_viz_type = "echarts_timeseries_bar"
+    has_x_axis_control = False
 
     def _pre_action(self) -> None:
         super()._pre_action()
@@ -219,12 +220,12 @@ class MigrateDistBarChart(TimeseriesChart):
         groupby = self.data.get("groupby") or []
         columns = self.data.get("columns") or []
         if len(groupby) > 0:
-            # granularity_sqla will be converted to x-axis
-            # which supports only one value
-            self.data["granularity_sqla"] = groupby[0]
+            # x-axis supports only one value
+            self.data["x_axis"] = groupby[0]
 
         self.data["groupby"] = []
         if len(groupby) > 1:
+            # rest of groupby will go into dimensions
             self.data["groupby"] += groupby[1:]
         if len(columns) > 0:
             self.data["groupby"] += columns

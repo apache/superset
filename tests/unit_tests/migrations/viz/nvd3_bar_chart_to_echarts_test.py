@@ -53,21 +53,11 @@ def test_dist_bar_migration() -> None:
 
     target_form_data: dict[str, Any] = {
         "form_data_bak": source_form_data,
-        "adhoc_filters": [
-            {
-                "clause": "WHERE",
-                "comparator": "No filter",
-                "expressionType": "SIMPLE",
-                "operator": "TEMPORAL_RANGE",
-                "subject": "column_a",
-            }
-        ],
         "viz_type": "echarts_timeseries_bar",
         "show_value": True,
         "stack": "Stack",
         "x_axis": "column_a",
         "groupby": ["column_b", "column_c", "column_d"],
-        "time_grain_sqla": "P1D",
     }
     source_form_data.update(TIMESERIES_SOURCE_FORM_DATA)
     target_form_data.update(TIMESERIES_TARGET_FORM_DATA)
