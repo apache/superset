@@ -234,7 +234,7 @@ test('formatForecastTooltipSeries should apply format to value', () => {
       observation: 10.1,
       formatter,
     }),
-  ).toEqual('<img>abc: 10');
+  ).toEqual(['<img>abc', '10']);
 });
 
 test('formatForecastTooltipSeries should show falsy value', () => {
@@ -245,7 +245,7 @@ test('formatForecastTooltipSeries should show falsy value', () => {
       observation: 0,
       formatter,
     }),
-  ).toEqual('<img>abc: 0');
+  ).toEqual(['<img>abc', '0']);
 });
 
 test('formatForecastTooltipSeries should format full forecast', () => {
@@ -259,7 +259,7 @@ test('formatForecastTooltipSeries should format full forecast', () => {
       forecastUpper: 7.1,
       formatter,
     }),
-  ).toEqual('<img>qwerty: 10, ŷ = 20 (5, 12)');
+  ).toEqual(['<img>qwerty', '10, ŷ = 20 (5, 12)']);
 });
 
 test('formatForecastTooltipSeries should format forecast without observation', () => {
@@ -272,7 +272,7 @@ test('formatForecastTooltipSeries should format forecast without observation', (
       forecastUpper: 7,
       formatter,
     }),
-  ).toEqual('<img>qwerty: ŷ = 20 (5, 12)');
+  ).toEqual(['<img>qwerty', 'ŷ = 20 (5, 12)']);
 });
 
 test('formatForecastTooltipSeries should format forecast without point estimate', () => {
@@ -285,7 +285,7 @@ test('formatForecastTooltipSeries should format forecast without point estimate'
       forecastUpper: 7,
       formatter,
     }),
-  ).toEqual('<img>qwerty: 10 (6, 13)');
+  ).toEqual(['<img>qwerty', '10 (6, 13)']);
 });
 
 test('formatForecastTooltipSeries should format forecast with only confidence band', () => {
@@ -297,5 +297,5 @@ test('formatForecastTooltipSeries should format forecast with only confidence ba
       forecastUpper: 8,
       formatter,
     }),
-  ).toEqual('<img>qwerty: (7, 15)');
+  ).toEqual(['<img>qwerty', '(7, 15)']);
 });

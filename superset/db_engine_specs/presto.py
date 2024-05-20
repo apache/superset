@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 # pylint: disable=too-many-lines
+
 from __future__ import annotations
 
 import contextlib
@@ -165,6 +167,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     """
 
     supports_dynamic_schema = True
+    supports_catalog = supports_dynamic_catalog = True
 
     column_type_mappings = (
         (
@@ -296,6 +299,24 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return "from_unixtime({col})"
 
     @classmethod
+    def get_default_catalog(cls, database: "Database") -> str | None:
+        """
+        Return the default catalog.
+        """
+        return database.url_object.database.split("/")[0]
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> set[str]:
+        """
+        Get all catalogs.
+        """
+        return {catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")}
+
+    @classmethod
     def adjust_engine_params(
         cls,
         uri: URL,
@@ -303,14 +324,22 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         catalog: str | None = None,
         schema: str | None = None,
     ) -> tuple[URL, dict[str, Any]]:
-        database = uri.database
-        if schema and database:
+        if uri.database and "/" in uri.database:
+            current_catalog, current_schema = uri.database.split("/", 1)
+        else:
+            current_catalog, current_schema = uri.database, None
+
+        if schema:
             schema = parse.quote(schema, safe="")
-            if "/" in database:
-                database = database.split("/")[0] + "/" + schema
-            else:
-                database += "/" + schema
-            uri = uri.set(database=database)
+
+        adjusted_database = "/".join(
+            [
+                catalog or current_catalog or "",
+                schema or current_schema or "",
+            ]
+        ).rstrip("/")
+
+        uri = uri.set(database=adjusted_database)
 
         return uri, connect_args
 
@@ -507,7 +536,10 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         }
 
         for col_name, value in zip(col_names, values):
-            col_type = column_type_by_name.get(col_name)
+            col_type = None
+            if col_type_name := column_type_by_name.get(col_name):
+                if col_type_class := getattr(types, col_type_name, None):
+                    col_type = col_type_class()
 
             if isinstance(col_type, types.DATE):
                 col_type = Date()
@@ -647,8 +679,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     engine = "presto"
     engine_name = "Presto"
     allows_alias_to_source_column = False
-
-    supports_catalog = False
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         COLUMN_DOES_NOT_EXIST_REGEX: (
@@ -811,17 +841,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             cursor.execute(sql, params)
             results = cursor.fetchall()
             return {row[0] for row in results}
-
-    @classmethod
-    def get_catalog_names(
-        cls,
-        database: Database,
-        inspector: Inspector,
-    ) -> set[str]:
-        """
-        Get all catalogs.
-        """
-        return {catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")}
 
     @classmethod
     def _create_column_info(
@@ -1248,7 +1267,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 ),
             }
 
-        # flake8 is not matching `Optional[str]` to `Any` for some reason...
         metadata["view"] = cast(
             Any,
             cls.get_create_view(database, table.schema, table.table),

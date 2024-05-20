@@ -33,6 +33,7 @@ const sqlEditorApi = api.injectEndpoints({
           version = LatestQueryEditorVersion,
           id,
           dbId,
+          catalog,
           schema,
           queryLimit,
           sql,
@@ -50,6 +51,7 @@ const sqlEditorApi = api.injectEndpoints({
         postPayload: pickBy(
           {
             database_id: dbId,
+            catalog,
             schema,
             sql,
             label: name,

@@ -376,7 +376,10 @@ export interface ControlPanelSectionConfig {
   expanded?: boolean;
   tabOverride?: TabOverride;
   controlSetRows: ControlSetRow[];
-  visibility?: (props: ControlPanelsContainerProps) => boolean;
+  visibility?: (
+    props: ControlPanelsContainerProps,
+    controlData: AnyDict,
+  ) => boolean;
 }
 
 export interface StandardizedControls {

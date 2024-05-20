@@ -59,7 +59,13 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import get_column_name, MediumText, QueryStatus, user_label
+from superset.utils.core import (
+    get_column_name,
+    LongText,
+    MediumText,
+    QueryStatus,
+    user_label,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -110,11 +116,11 @@ class Query(
     sql_editor_id = Column(String(256), index=True)
     schema = Column(String(256))
     catalog = Column(String(256), nullable=True, default=None)
-    sql = Column(MediumText())
+    sql = Column(LongText())
     # Query to retrieve the results,
     # used only in case of select_as_cta_used is true.
-    select_sql = Column(MediumText())
-    executed_sql = Column(MediumText())
+    select_sql = Column(LongText())
+    executed_sql = Column(LongText())
     # Could be configured in the superset config.
     limit = Column(Integer)
     limiting_factor = Column(
@@ -169,6 +175,7 @@ class Query(
             "limitingFactor": self.limiting_factor,
             "progress": self.progress,
             "rows": self.rows,
+            "catalog": self.catalog,
             "schema": self.schema,
             "ctas": self.select_as_cta,
             "serverId": self.id,
@@ -251,6 +258,7 @@ class Query(
             "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
+            "catalog": self.catalog,
             "schema": self.schema,
             "verbose_map": {},
         }
@@ -415,6 +423,7 @@ class SavedQuery(
 
     export_parent = "database"
     export_fields = [
+        "catalog",
         "schema",
         "label",
         "description",
@@ -514,6 +523,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
             "label": self.label,
             "active": self.active,
             "database_id": self.database_id,
+            "catalog": self.catalog,
             "schema": self.schema,
             "table_schemas": [ts.to_dict() for ts in self.table_schemas],
             "sql": self.sql,
@@ -556,6 +566,7 @@ class TableSchema(AuditMixinNullable, ExtraJSONMixin, Model):
             "id": self.id,
             "tab_state_id": self.tab_state_id,
             "database_id": self.database_id,
+            "catalog": self.catalog,
             "schema": self.schema,
             "table": self.table,
             "description": description,

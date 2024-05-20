@@ -25,8 +25,8 @@ import {
   css,
   ensureIsArray,
   fetchTimeRange,
-  SimpleAdhocFilter,
   getTimeOffset,
+  SimpleAdhocFilter,
   t,
 } from '@superset-ui/core';
 import ControlHeader, {
@@ -71,12 +71,12 @@ export const ComparisonRangeLabel = ({
       setLabels([]);
     } else if (!isEmpty(shifts) || startDate) {
       const promises = currentTimeRangeFilters.map(filter => {
-        const newShifts = getTimeOffset(filter, shifts, startDate);
+        const newShifts = getTimeOffset(filter, shiftsArray, startDate);
 
         return fetchTimeRange(
           filter.comparator,
           filter.subject,
-          multi ? shiftsArray : ensureIsArray(newShifts),
+          ensureIsArray(newShifts),
         );
       });
       Promise.all(promises).then(res => {

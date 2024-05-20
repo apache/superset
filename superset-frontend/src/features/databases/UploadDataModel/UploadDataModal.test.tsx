@@ -47,6 +47,10 @@ fetchMock.get(
   },
 );
 
+fetchMock.get('glob:*api/v1/database/*/catalogs/', {
+  result: [],
+});
+
 fetchMock.get('glob:*api/v1/database/1/schemas/', {
   result: ['information_schema', 'public'],
 });

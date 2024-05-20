@@ -27,7 +27,7 @@ import {
 
 afterEach(fetchMock.restore);
 
-it('generates proper time range string', () => {
+test('generates proper time range string', () => {
   expect(
     buildTimeRangeString('2010-07-30T00:00:00', '2020-07-30T00:00:00'),
   ).toBe('2010-07-30T00:00:00 : 2020-07-30T00:00:00');
@@ -37,7 +37,7 @@ it('generates proper time range string', () => {
   expect(buildTimeRangeString('', '')).toBe(' : ');
 });
 
-it('generates a readable time range', () => {
+test('generates a readable time range', () => {
   expect(formatTimeRange('Last 7 days')).toBe('Last 7 days');
   expect(formatTimeRange('No filter')).toBe('No filter');
   expect(formatTimeRange('Yesterday : Tomorrow')).toBe(
@@ -55,7 +55,7 @@ it('generates a readable time range', () => {
   expect(formatTimeRange('')).toBe('');
 });
 
-it('returns a formatted time range from response', async () => {
+test('returns a formatted time range from response', async () => {
   fetchMock.get("glob:*/api/v1/time_range/?q='Last+day'", {
     result: [
       {
@@ -72,7 +72,7 @@ it('returns a formatted time range from response', async () => {
   });
 });
 
-it('returns a formatted time range from empty response', async () => {
+test('returns a formatted time range from empty response', async () => {
   fetchMock.get("glob:*/api/v1/time_range/?q='Last+day'", {
     result: [],
   });
@@ -83,7 +83,7 @@ it('returns a formatted time range from empty response', async () => {
   });
 });
 
-it('returns a formatted error message from response', async () => {
+test('returns a formatted error message from response', async () => {
   fetchMock.getOnce("glob:*/api/v1/time_range/?q='Last+day'", {
     throws: new Response(JSON.stringify({ message: 'Network error' })),
   });
@@ -119,76 +119,53 @@ it('returns a formatted error message from response', async () => {
   });
 });
 
-it('generates a readable time range comparison', () => {
-  expect(
-    formatTimeRangeComparison(
-      '2021-04-13T00:00:00 : 2021-04-14T00:00:00',
-      '2021-04-15T00:00:00 : 2021-04-16T00:00:00',
-      'col',
-    )
-      .replace(/\s+/g, ' ')
-      .trim(),
-  ).toBe('col: 2021-04-13 to 2021-04-14 vs 2021-04-15 to 2021-04-16');
-});
-
-it('uses default column placeholder when none is provided', () => {
-  const initialTimeRange = '2021-04-13T00:00:00 : 2021-04-14T00:00:00';
-  const shiftedTimeRange = '2021-04-15T00:00:00 : 2021-04-16T00:00:00';
-  const expectedOutput =
-    'col: 2021-04-13 to 2021-04-14 vs 2021-04-15 to 2021-04-16';
-
-  // Call the function without the third parameter
-  const actualOutput = formatTimeRangeComparison(
-    initialTimeRange,
-    shiftedTimeRange,
-  )
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  expect(actualOutput).toBe(expectedOutput);
-});
-
-it('returns a comparison of formatted time ranges with shifts', async () => {
-  // Correcting the fetchMock to properly mock the API request and response
-  fetchMock.get('glob:*/api/v1/time_range/?q=*', {
-    body: {
+test('fetchTimeRange with shift', async () => {
+  fetchMock.getOnce(
+    "glob:*/api/v1/time_range/?q=!((timeRange:'Last+day'),(shift%3A'last%20month'%2CtimeRange%3A'Last%20day'))",
+    {
       result: [
-        { since: '2022-01-01T00:00:00', until: '2022-01-02T00:00:00' },
-        { since: '2022-01-03T00:00:00', until: '2022-01-04T00:00:00' },
+        {
+          since: '2021-04-13T00:00:00',
+          until: '2021-04-14T00:00:00',
+          timeRange: 'Last day',
+          shift: null,
+        },
+        {
+          since: '2021-03-13T00:00:00',
+          until: '2021-03-14T00:00:00',
+          timeRange: 'Last day',
+          shift: 'last month',
+        },
       ],
     },
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-  const shifts = ['1 day', '2 days']; // Define shifts if your implementation requires them
-  const timeRange = await fetchTimeRange(
-    '2022-01-01T00:00:00 : 2022-01-02T00:00:00',
-    'col',
-    shifts,
   );
 
-  // Since `fetchTimeRange` might be returning multiple comparisons, ensure the test checks this correctly.
-  // Assuming `fetchTimeRange` returns an object with an array in `value`, representing each comparison
+  const timeRange = await fetchTimeRange('Last day', 'temporal_col', [
+    'last month',
+  ]);
+
   expect(timeRange).toEqual({
     value: [
-      `col: 2022-01-01 to 2022-01-02 vs
-  2022-01-03 to 2022-01-04`,
+      'temporal_col: 2021-04-13 to 2021-04-14 vs\n  2021-03-13 to 2021-03-14',
     ],
   });
 });
 
-it('returns a formatted error message from response with shifts', async () => {
-  fetchMock.getOnce('glob:*/api/v1/time_range/?q=*', {
-    throws: new Response(JSON.stringify({ message: 'Network error' })),
-  });
+test('formatTimeRangeComparison', () => {
+  expect(
+    formatTimeRangeComparison(
+      '2021-04-13T00:00:00 : 2021-04-14T00:00:00',
+      '2021-03-13T00:00:00 : 2021-03-14T00:00:00',
+    ),
+  ).toEqual('col: 2021-04-13 to 2021-04-14 vs\n  2021-03-13 to 2021-03-14');
 
-  const shifts = ['1 day', '2 days']; // Define shifts if your implementation requires them
-  const timeRange = await fetchTimeRange(
-    '2022-01-01T00:00:00 : 2022-01-02T00:00:00',
-    'col',
-    shifts,
+  expect(
+    formatTimeRangeComparison(
+      '2021-04-13T00:00:00 : 2021-04-14T00:00:00',
+      '2021-03-13T00:00:00 : 2021-03-14T00:00:00',
+      'col_name',
+    ),
+  ).toEqual(
+    'col_name: 2021-04-13 to 2021-04-14 vs\n  2021-03-13 to 2021-03-14',
   );
-  expect(timeRange).toEqual({
-    error: 'Network error',
-  });
 });

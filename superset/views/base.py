@@ -25,7 +25,6 @@ from datetime import datetime
 from importlib.resources import files
 from typing import Any, Callable, cast
 
-import simplejson as json
 import yaml
 from babel import Locale
 from flask import (
@@ -39,20 +38,25 @@ from flask import (
     send_file,
     session,
 )
-from flask_appbuilder import BaseView, Model, ModelView
+from flask_appbuilder import BaseView, expose, Model, ModelView
 from flask_appbuilder.actions import action
+from flask_appbuilder.baseviews import expose_api
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
+from flask_appbuilder.security.decorators import (
+    has_access,
+    has_access_api,
+    permission_name,
+)
 from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
-from flask_babel import get_locale, gettext as __, lazy_gettext as _
+from flask_babel import get_locale, gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
 from sqlalchemy import exc
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import HTTPException
-from wtforms import Form
 from wtforms.fields.core import Field, UnboundField
 
 from superset import (
@@ -79,7 +83,7 @@ from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
-from superset.utils import core as utils
+from superset.utils import core as utils, json as json_utils
 from superset.utils.filters import get_dataset_access_filters
 
 from .utils import bootstrap_user_data
@@ -149,7 +153,9 @@ def json_error_response(
     payload = payload or {"error": f"{msg}"}
 
     return Response(
-        json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
+        json_utils.dumps(
+            payload, default=json_utils.json_iso_dttm_ser, ignore_nan=True
+        ),
         status=status,
         mimetype="application/json",
     )
@@ -164,7 +170,9 @@ def json_errors_response(
 
     payload["errors"] = [dataclasses.asdict(error) for error in errors]
     return Response(
-        json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
+        json_utils.dumps(
+            payload, default=json_utils.json_iso_dttm_ser, ignore_nan=True
+        ),
         status=status,
         mimetype="application/json; charset=utf-8",
     )
@@ -286,7 +294,9 @@ class BaseSupersetView(BaseView):
     @staticmethod
     def json_response(obj: Any, status: int = 200) -> FlaskResponse:
         return Response(
-            json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
+            json_utils.dumps(
+                obj, default=json_utils.json_int_dttm_ser, ignore_nan=True
+            ),
             status=status,
             mimetype="application/json",
         )
@@ -302,8 +312,8 @@ class BaseSupersetView(BaseView):
         return self.render_template(
             "superset/spa.html",
             entry="spa",
-            bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
+            bootstrap_data=json_utils.dumps(
+                payload, default=json_utils.pessimistic_json_iso_dttm_ser
             ),
         )
 
@@ -537,9 +547,9 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 @superset_app.context_processor
 def get_common_bootstrap_data() -> dict[str, Any]:
     def serialize_bootstrap_data() -> str:
-        return json.dumps(
+        return json_utils.dumps(
             {"common": common_bootstrap_payload()},
-            default=utils.pessimistic_json_iso_dttm_ser,
+            default=json_utils.pessimistic_json_iso_dttm_ser,
         )
 
     return {"bootstrap_data": serialize_bootstrap_data}
@@ -547,6 +557,65 @@ def get_common_bootstrap_data() -> dict[str, Any]:
 
 class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
+
+
+class DeprecateModelViewMixin:
+    @expose("/add", methods=["GET", "POST"])
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def add(self) -> FlaskResponse:
+        return super().add()  # type: ignore
+
+    @expose("/show/<pk>", methods=["GET"])
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def show(self, pk: int) -> FlaskResponse:
+        return super().show(pk)  # type: ignore
+
+    @expose("/edit/<pk>", methods=["GET", "POST"])
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def edit(self, pk: int) -> FlaskResponse:
+        return super().edit(pk)  # type: ignore
+
+    @expose("/delete/<pk>", methods=["GET", "POST"])
+    @has_access
+    @deprecated(eol_version="5.0.0")
+    def delete(self, pk: int) -> FlaskResponse:
+        return super().delete(pk)  # type: ignore
+
+    @expose_api(name="read", url="/api/read", methods=["GET"])
+    @has_access_api
+    @permission_name("list")
+    @deprecated(eol_version="5.0.0")
+    def api_read(self) -> FlaskResponse:
+        return super().api_read()  # type: ignore
+
+    @expose_api(name="get", url="/api/get/<pk>", methods=["GET"])
+    @has_access_api
+    @permission_name("show")
+    def api_get(self, pk: int) -> FlaskResponse:
+        return super().api_get(pk)  # type: ignore
+
+    @expose_api(name="create", url="/api/create", methods=["POST"])
+    @has_access_api
+    @permission_name("add")
+    def api_create(self) -> FlaskResponse:
+        return super().api_create()  # type: ignore
+
+    @expose_api(name="update", url="/api/update/<pk>", methods=["PUT"])
+    @has_access_api
+    @permission_name("write")
+    @deprecated(eol_version="5.0.0")
+    def api_update(self, pk: int) -> FlaskResponse:
+        return super().api_update(pk)  # type: ignore
+
+    @expose_api(name="delete", url="/api/delete/<pk>", methods=["DELETE"])
+    @has_access_api
+    @permission_name("delete")
+    @deprecated(eol_version="5.0.0")
+    def api_delete(self, pk: int) -> FlaskResponse:
+        return super().delete(pk)  # type: ignore
 
 
 class SupersetModelView(ModelView):
@@ -561,8 +630,8 @@ class SupersetModelView(ModelView):
         return self.render_template(
             "superset/spa.html",
             entry="spa",
-            bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
+            bootstrap_data=json_utils.dumps(
+                payload, default=json_utils.pessimistic_json_iso_dttm_ser
             ),
         )
 
@@ -573,16 +642,6 @@ class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-me
     Works in conjunction with the `checkbox` view."""
 
     template = "superset/fab_overrides/list_with_checkboxes.html"
-
-
-def validate_json(form: Form, field: Field) -> None:  # pylint: disable=unused-argument
-    try:
-        json.loads(field.data)
-    except Exception as ex:
-        logger.exception(ex)
-        raise Exception(  # pylint: disable=broad-exception-raised
-            _("json isn't valid")
-        ) from ex
 
 
 class YamlExportMixin:  # pylint: disable=too-few-public-methods

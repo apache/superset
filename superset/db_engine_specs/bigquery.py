@@ -35,6 +35,7 @@ from marshmallow.exceptions import ValidationError
 from sqlalchemy import column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import sqltypes
 
 from superset import sql_parse
@@ -127,7 +128,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     allows_hidden_cc_in_orderby = True
 
-    supports_catalog = False
+    supports_catalog = supports_dynamic_catalog = True
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -460,6 +461,24 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             ]
 
     @classmethod
+    def get_default_catalog(cls, database: Database) -> str | None:
+        """
+        Get the default catalog.
+        """
+        url = database.url_object
+
+        # The SQLAlchemy driver accepts both `bigquery://project` (where the project is
+        # technically a host) and `bigquery:///project` (where it's a database). But
+        # both can be missing, and the project is inferred from the authentication
+        # credentials.
+        if project := url.host or url.database:
+            return project
+
+        with database.get_sqla_engine() as engine:
+            client = cls._get_client(engine)
+            return client.project
+
+    @classmethod
     def get_catalog_names(
         cls,
         database: Database,
@@ -476,6 +495,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             projects = client.list_projects()
 
         return {project.project_id for project in projects}
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        if catalog:
+            uri = uri.set(host=catalog, database="")
+
+        return uri, connect_args
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:

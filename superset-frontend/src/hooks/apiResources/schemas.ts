@@ -28,6 +28,7 @@ export type SchemaOption = {
 
 export type FetchSchemasQueryParams = {
   dbId?: string | number;
+  catalog?: string;
   forceRefresh: boolean;
   onSuccess?: (data: SchemaOption[], isRefetched: boolean) => void;
   onError?: () => void;
@@ -39,21 +40,23 @@ const schemaApi = api.injectEndpoints({
   endpoints: builder => ({
     schemas: builder.query<SchemaOption[], FetchSchemasQueryParams>({
       providesTags: [{ type: 'Schemas', id: 'LIST' }],
-      query: ({ dbId, forceRefresh }) => ({
+      query: ({ dbId, catalog, forceRefresh }) => ({
         endpoint: `/api/v1/database/${dbId}/schemas/`,
         // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
         urlParams: {
           force: forceRefresh,
+          ...(catalog !== undefined && { catalog }),
         },
         transformResponse: ({ json }: JsonResponse) =>
-          json.result.map((value: string) => ({
+          json.result.sort().map((value: string) => ({
             value,
             label: value,
             title: value,
           })),
       }),
-      serializeQueryArgs: ({ queryArgs: { dbId } }) => ({
+      serializeQueryArgs: ({ queryArgs: { dbId, catalog } }) => ({
         dbId,
+        catalog,
       }),
     }),
   }),
@@ -70,10 +73,10 @@ export const EMPTY_SCHEMAS = [] as SchemaOption[];
 
 export function useSchemas(options: Params) {
   const isMountedRef = useRef(false);
-  const { dbId, onSuccess, onError } = options || {};
+  const { dbId, catalog, onSuccess, onError } = options || {};
   const [trigger] = useLazySchemasQuery();
   const result = useSchemasQuery(
-    { dbId, forceRefresh: false },
+    { dbId, catalog: catalog || undefined, forceRefresh: false },
     {
       skip: !dbId,
     },
@@ -89,9 +92,9 @@ export function useSchemas(options: Params) {
     onError?.();
   });
 
-  const refetch = useCallback(() => {
+  useEffect(() => {
     if (dbId) {
-      trigger({ dbId, forceRefresh: true }).then(
+      trigger({ dbId, catalog, forceRefresh: false }).then(
         ({ isSuccess, isError, data }) => {
           if (isSuccess) {
             handleOnSuccess(data || EMPTY_SCHEMAS, true);
@@ -102,7 +105,22 @@ export function useSchemas(options: Params) {
         },
       );
     }
-  }, [dbId, handleOnError, handleOnSuccess, trigger]);
+  }, [dbId, catalog, handleOnError, handleOnSuccess, trigger]);
+
+  const refetch = useCallback(() => {
+    if (dbId) {
+      trigger({ dbId, catalog, forceRefresh: true }).then(
+        ({ isSuccess, isError, data }) => {
+          if (isSuccess) {
+            handleOnSuccess(data || EMPTY_SCHEMAS, true);
+          }
+          if (isError) {
+            handleOnError();
+          }
+        },
+      );
+    }
+  }, [dbId, catalog, handleOnError, handleOnSuccess, trigger]);
 
   useEffect(() => {
     if (isMountedRef.current) {
@@ -119,7 +137,7 @@ export function useSchemas(options: Params) {
     } else {
       isMountedRef.current = true;
     }
-  }, [result, handleOnSuccess, handleOnError]);
+  }, [catalog, result, handleOnSuccess, handleOnError]);
 
   return {
     ...result,

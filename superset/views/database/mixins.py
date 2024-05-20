@@ -149,7 +149,9 @@ class DatabaseMixin:
             "not data preview queries will be run when fetching table metadata in"
             "SQL Lab."
             "7. The ``disable_drill_to_detail`` field is a boolean specifying whether or"
-            "not drill to detail is disabled for the database.",
+            "not drill to detail is disabled for the database."
+            "8. The ``allow_multi_catalog`` indicates if the database allows changing "
+            "the default catalog when running queries and creating datasets.",
             True,
         ),
         "encrypted_extra": utils.markdown(

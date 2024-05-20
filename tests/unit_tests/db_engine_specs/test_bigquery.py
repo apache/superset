@@ -24,6 +24,7 @@ from typing import Optional
 import pytest
 from pytest_mock import MockFixture
 from sqlalchemy import select
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
 
@@ -333,3 +334,96 @@ def test_convert_dttm(
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_get_default_catalog(mocker: MockFixture) -> None:
+    """
+    Test that we get the default catalog from the connection URI.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.core import Database
+
+    mocker.patch.object(Database, "get_sqla_engine")
+    get_client = mocker.patch.object(BigQueryEngineSpec, "_get_client")
+    get_client().project = "project"
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="bigquery://project",
+    )
+    assert BigQueryEngineSpec.get_default_catalog(database) == "project"
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="bigquery:///project",
+    )
+    assert BigQueryEngineSpec.get_default_catalog(database) == "project"
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="bigquery://",
+    )
+    assert BigQueryEngineSpec.get_default_catalog(database) == "project"
+
+
+def test_adjust_engine_params_catalog_as_host() -> None:
+    """
+    Test passing a custom catalog.
+
+    In this test, the original URI has the catalog as the host.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    url = make_url("bigquery://project")
+
+    uri = BigQueryEngineSpec.adjust_engine_params(url, {})[0]
+    assert str(uri) == "bigquery://project"
+
+    uri = BigQueryEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="other-project",
+    )[0]
+    assert str(uri) == "bigquery://other-project/"
+
+
+def test_adjust_engine_params_catalog_as_database() -> None:
+    """
+    Test passing a custom catalog.
+
+    In this test, the original URI has the catalog as the database.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    url = make_url("bigquery:///project")
+
+    uri = BigQueryEngineSpec.adjust_engine_params(url, {})[0]
+    assert str(uri) == "bigquery:///project"
+
+    uri = BigQueryEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="other-project",
+    )[0]
+    assert str(uri) == "bigquery://other-project/"
+
+
+def test_adjust_engine_params_no_catalog() -> None:
+    """
+    Test passing a custom catalog.
+
+    In this test, the original URI has no catalog.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    url = make_url("bigquery://")
+
+    uri = BigQueryEngineSpec.adjust_engine_params(url, {})[0]
+    assert str(uri) == "bigquery://"
+
+    uri = BigQueryEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="other-project",
+    )[0]
+    assert str(uri) == "bigquery://other-project/"

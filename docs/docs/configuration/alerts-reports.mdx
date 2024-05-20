@@ -160,7 +160,7 @@ WEBDRIVER_OPTION_ARGS = [
 ]
 
 # This is for internal use, you can keep http
-WEBDRIVER_BASEURL = "http://superset:8088"
+WEBDRIVER_BASEURL = "http://superset:8088" # When running using docker compose use "http://superset_app:8088'
 # This is the link sent to the recipient. Change to your domain, e.g. https://superset.mydomain.com
 WEBDRIVER_BASEURL_USER_FRIENDLY = "http://localhost:8088"
 ```
@@ -194,6 +194,15 @@ Please refer to `ExecutorType` in the codebase for other executor types.
 - Adjust `WEBDRIVER_BASEURL` in your configuration file if celery workers can’t access Superset via
   its default value of `http://0.0.0.0:8080/`.
 
+
+It's also possible to specify a minimum interval between each report's execution through the config file:
+
+``` python
+# Set a minimum interval threshold between executions (for each Alert/Report)
+# Value should be an integer
+ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=10).total_seconds())
+REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=5).total_seconds())
+```
 
 ## Custom Dockerfile
 
@@ -402,6 +411,6 @@ This configuration is based on
 menu item called “Schedule” to SQL Lab. When the menu item is clicked, a modal will show up where
 the user can add the metadata required for scheduling the query.
 
-This information can then be retrieved from the endpoint `/savedqueryviewapi/api/read` and used to
-schedule the queries that have `scheduled_queries` in their JSON metadata. For schedulers other than
+This information can then be retrieved from the endpoint `/api/v1/saved_query/` and used to
+schedule the queries that have `schedule_info` in their JSON metadata. For schedulers other than
 Airflow, additional fields can be easily added to the configuration file above.

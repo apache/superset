@@ -26,6 +26,7 @@ from superset.utils.core import DatasourceType
 class ExternalMetadataParams(TypedDict):
     datasource_type: str
     database_name: str
+    catalog_name: Optional[str]
     schema_name: str
     table_name: str
     normalize_columns: Optional[bool]
@@ -45,6 +46,7 @@ get_external_metadata_schema = {
 class ExternalMetadataSchema(Schema):
     datasource_type = fields.Str(required=True)
     database_name = fields.Str(required=True)
+    catalog_name = fields.Str(allow_none=True)
     schema_name = fields.Str(allow_none=True)
     table_name = fields.Str(required=True)
     normalize_columns = fields.Bool(allow_none=True)
@@ -60,6 +62,7 @@ class ExternalMetadataSchema(Schema):
         return ExternalMetadataParams(
             datasource_type=data["datasource_type"],
             database_name=data["database_name"],
+            catalog_name=data.get("catalog_name"),
             schema_name=data.get("schema_name", ""),
             table_name=data["table_name"],
             normalize_columns=data["normalize_columns"],

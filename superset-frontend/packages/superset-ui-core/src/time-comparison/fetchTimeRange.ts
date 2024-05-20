@@ -17,8 +17,12 @@
  * under the License.
  */
 import rison from 'rison';
-import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { isEmpty } from 'lodash';
+import {
+  SupersetClient,
+  getClientErrorObject,
+  ensureIsArray,
+} from '@superset-ui/core';
 
 export const SEPARATOR = ' : ';
 
@@ -63,8 +67,8 @@ export const fetchTimeRange = async (
 ) => {
   let query;
   let endpoint;
-  if (shifts && !isEmpty(shifts)) {
-    const timeRanges = shifts?.map(shift => ({
+  if (!isEmpty(shifts)) {
+    const timeRanges = ensureIsArray(shifts).map(shift => ({
       timeRange,
       shift,
     }));

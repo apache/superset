@@ -61,6 +61,7 @@ const fakeFunctionNamesApiResult = {
 };
 
 const expectDbId = 1;
+const expectCatalog = null;
 const expectSchema = 'schema1';
 
 beforeEach(() => {
@@ -189,7 +190,12 @@ test('returns column keywords among selected tables', async () => {
     storeWithSqlLab.dispatch(
       tableApiUtil.upsertQueryData(
         'tableMetadata',
-        { dbId: expectDbId, schema: expectSchema, table: expectTable },
+        {
+          dbId: expectDbId,
+          catalog: null,
+          schema: expectSchema,
+          table: expectTable,
+        },
         {
           name: expectTable,
           columns: [
@@ -205,7 +211,12 @@ test('returns column keywords among selected tables', async () => {
     storeWithSqlLab.dispatch(
       tableApiUtil.upsertQueryData(
         'tableMetadata',
-        { dbId: expectDbId, schema: expectSchema, table: unexpectedTable },
+        {
+          dbId: expectDbId,
+          catalog: null,
+          schema: expectSchema,
+          table: unexpectedTable,
+        },
         {
           name: unexpectedTable,
           columns: [
@@ -218,7 +229,12 @@ test('returns column keywords among selected tables', async () => {
       ),
     );
     storeWithSqlLab.dispatch(
-      addTable({ id: expectQueryEditorId }, expectTable, expectSchema),
+      addTable(
+        { id: expectQueryEditorId },
+        expectTable,
+        expectCatalog,
+        expectSchema,
+      ),
     );
   });
 
@@ -227,6 +243,7 @@ test('returns column keywords among selected tables', async () => {
       useKeywords({
         queryEditorId: expectQueryEditorId,
         dbId: expectDbId,
+        catalog: null,
         schema: expectSchema,
       }),
     {
@@ -256,7 +273,12 @@ test('returns column keywords among selected tables', async () => {
 
   act(() => {
     storeWithSqlLab.dispatch(
-      addTable({ id: expectQueryEditorId }, unexpectedTable, expectSchema),
+      addTable(
+        { id: expectQueryEditorId },
+        unexpectedTable,
+        expectCatalog,
+        expectSchema,
+      ),
     );
   });
 

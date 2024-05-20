@@ -65,8 +65,11 @@ export default eyesPlugin(
         return require('./cypress/plugins/index.js')(on, config);
       },
       baseUrl: 'http://localhost:8088',
-      excludeSpecPattern: ['**/*.applitools.test.ts'],
-      specPattern: ['cypress/e2e/**/*.{js,jsx,ts,tsx}'],
+      excludeSpecPattern: [],
+      specPattern: [
+        'cypress/e2e/**/*.{js,jsx,ts,tsx}',
+        'cypress/applitools/**/*.{js,jsx,ts,tsx}',
+      ],
     },
   }),
 );

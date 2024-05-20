@@ -28,11 +28,12 @@ from superset import db
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils
+from superset.utils import json as json_utils
 from superset.utils.core import get_user_id
 from superset.views.base import (
     BaseSupersetView,
     DeleteMixin,
+    DeprecateModelViewMixin,
     json_success,
     SupersetModelView,
 )
@@ -40,7 +41,7 @@ from superset.views.base import (
 logger = logging.getLogger(__name__)
 
 
-class SavedQueryView(BaseSupersetView):
+class SavedQueryView(DeprecateModelViewMixin, BaseSupersetView):
     route_base = "/savedqueryview"
     class_permission_name = "SavedQuery"
 
@@ -50,7 +51,7 @@ class SavedQueryView(BaseSupersetView):
         return super().render_app_template()
 
 
-class SavedQueryViewApi(SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
+class SavedQueryViewApi(DeprecateModelViewMixin, SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SavedQuery)
     include_route_methods = RouteMethod.CRUD_SET
     route_base = "/savedqueryviewapi"
@@ -91,6 +92,7 @@ class TabStateView(BaseSupersetView):
             or query_editor.get("title", __("Untitled Query")),
             active=True,
             database_id=query_editor["dbId"],
+            catalog=query_editor.get("catalog"),
             schema=query_editor.get("schema"),
             sql=query_editor.get("sql", "SELECT ..."),
             query_limit=query_editor.get("queryLimit"),
@@ -138,7 +140,7 @@ class TabStateView(BaseSupersetView):
         if tab_state is None:
             return Response(status=404)
         return json_success(
-            json.dumps(tab_state.to_dict(), default=utils.json_iso_dttm_ser)
+            json.dumps(tab_state.to_dict(), default=json_utils.json_iso_dttm_ser)
         )
 
     @has_access_api

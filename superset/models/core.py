@@ -76,7 +76,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import Table
 from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
-from superset.utils import cache as cache_util, core as utils
+from superset.utils import cache as cache_util, core as utils, json as json_utils
 from superset.utils.backports import StrEnum
 from superset.utils.core import DatasourceName, get_username
 from superset.utils.oauth2 import get_oauth2_access_token
@@ -236,6 +236,10 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return self.get_extra().get("disable_drill_to_detail", False) is True
 
     @property
+    def allow_multi_catalog(self) -> bool:
+        return self.get_extra().get("allow_multi_catalog", False)
+
+    @property
     def schema_options(self) -> dict[str, Any]:
         """Additional schema display config for engines with complex schemas"""
         return self.get_extra().get("schema_options", {})
@@ -255,6 +259,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             "parameters": self.parameters,
             "disable_data_preview": self.disable_data_preview,
             "disable_drill_to_detail": self.disable_drill_to_detail,
+            "allow_multi_catalog": self.allow_multi_catalog,
             "parameters_schema": self.parameters_schema,
             "engine_information": self.engine_information,
         }
@@ -596,7 +601,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         for col, coltype in df.dtypes.to_dict().items():
             if coltype == numpy.object_ and column_needs_conversion(df[col]):
-                df[col] = df[col].apply(utils.json_dumps_w_dates)
+                df[col] = df[col].apply(json_utils.json_dumps_w_dates)
         return df
 
     @property
@@ -952,7 +957,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
             def _convert(value: Any) -> Any:
                 try:
-                    return utils.base_json_conv(value)
+                    return json_utils.base_json_conv(value)
                 except TypeError:
                     return None
 

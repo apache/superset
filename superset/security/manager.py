@@ -486,7 +486,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return (
             self.can_access_all_datasources()
             or self.can_access_database(datasource.database)
-            or self.can_access_catalog(datasource.database, datasource.catalog)
+            or (
+                datasource.catalog
+                and self.can_access_catalog(datasource.database, datasource.catalog)
+            )
             or self.can_access("schema_access", datasource.schema_perm or "")
         )
 
@@ -964,6 +967,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_sqllab", "Superset")
         self.add_permission_view_menu("can_view_query", "Dashboard")
         self.add_permission_view_menu("can_view_chart_as_table", "Dashboard")
+        self.add_permission_view_menu("can_drill", "Dashboard")
 
     def create_missing_perms(self) -> None:
         """
