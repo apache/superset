@@ -26,7 +26,7 @@ type Props = {
   contentWidth?: number;
   contentHeight?: number;
   height: number;
-  renderContent?: ({
+  renderContent: ({
     height,
     width,
   }: {
@@ -66,7 +66,7 @@ it('renders content without specifying content size', () => {
   expect(getByText('400/400')).toBeInTheDocument();
 });
 
-it('renders content that requires same size with frame', () => {
+it('renders content that requires equivalent size to frame', () => {
   const { getByText } = renderChartFrame({
     width: 400,
     height: 400,
@@ -82,7 +82,7 @@ it('renders content that requires same size with frame', () => {
 });
 
 it('renders content that requires space larger than frame', () => {
-  const { getByText } = renderChartFrame({
+  const { getByText, container } = renderChartFrame({
     width: 400,
     height: 400,
     contentWidth: 500,
@@ -94,10 +94,12 @@ it('renders content that requires space larger than frame', () => {
     ),
   });
   expect(getByText('500/500')).toBeInTheDocument();
+  const containerDiv = container.firstChild as HTMLElement;
+  expect(containerDiv).toHaveStyle({ overflowX: 'auto', overflowY: 'auto' });
 });
 
-it('renders content that width is larger than frame', () => {
-  const { getByText } = renderChartFrame({
+it('renders content when width is larger than frame', () => {
+  const { getByText, container } = renderChartFrame({
     width: 400,
     height: 400,
     contentWidth: 500,
@@ -108,10 +110,12 @@ it('renders content that width is larger than frame', () => {
     ),
   });
   expect(getByText('500/400')).toBeInTheDocument();
+  const containerDiv = container.firstChild as HTMLElement;
+  expect(containerDiv).toHaveStyle({ overflowX: 'auto', overflowY: 'hidden' });
 });
 
-it('renders content that height is larger than frame', () => {
-  const { getByText } = renderChartFrame({
+it('renders content when height is larger than frame', () => {
+  const { getByText, container } = renderChartFrame({
     width: 400,
     height: 400,
     contentHeight: 600,
@@ -122,9 +126,6 @@ it('renders content that height is larger than frame', () => {
     ),
   });
   expect(getByText('400/600')).toBeInTheDocument();
-});
-
-it('renders an empty container if renderContent is not provided', () => {
-  const { container } = render(<ChartFrame width={400} height={300} />);
-  expect(container).toBeEmptyDOMElement();
+  const containerDiv = container.firstChild as HTMLElement;
+  expect(containerDiv).toHaveStyle({ overflowX: 'hidden', overflowY: 'auto' });
 });
