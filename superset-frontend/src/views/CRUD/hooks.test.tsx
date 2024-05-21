@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { renderHook } from '@testing-library/react-hooks';
 import { JsonResponse, SupersetClient } from '@superset-ui/core';
 
