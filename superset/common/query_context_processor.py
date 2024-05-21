@@ -568,7 +568,6 @@ class QueryContextProcessor:
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
             result = csv.df_to_escaped_csv(df)
-            logger.error(result)
             return result or ""
 
         return df.to_dict(orient="records")

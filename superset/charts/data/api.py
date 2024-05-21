@@ -458,7 +458,6 @@ class ChartDataRestApi(ChartRestApi):
 
                 if not result["queries"]:
                     return self.response_400(_("Empty query result"))
-                logger.error(result)
                 if list_of_data := result["queries"]:
                     logger.info("get data for prepare")
                     df = pd.DataFrame()
