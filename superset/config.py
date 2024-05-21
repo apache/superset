@@ -196,6 +196,13 @@ SQLALCHEMY_DATABASE_URI = (
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
+# The default MySQL isolation level is REPEATABLE READ whereas the default PostgreSQL
+# isolation level is READ COMMITTED. All backends should use READ COMMITTED (or similar)
+# to help ensure consistent behavior.
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "isolation_level": "SERIALIZABLE",  # SQLite does not support READ COMMITTED.
+}
+
 # In order to hook up a custom password store for all SQLALCHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
 # returns a password and set SQLALCHEMY_CUSTOM_PASSWORD_STORE.
