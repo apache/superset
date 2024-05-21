@@ -10,12 +10,12 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
+appnope==0.1.4
+    # via ipython
 astroid==3.1.0
     # via pylint
 asttokens==2.2.1
     # via stack-data
-async-timeout==4.0.3
-    # via redis
 backcall==0.2.0
     # via ipython
 boto3==1.26.130
@@ -56,10 +56,6 @@ docker==7.0.0
     # via apache-superset
 et-xmlfile==1.1.0
     # via openpyxl
-exceptiongroup==1.2.1
-    # via
-    #   cattrs
-    #   pytest
 executing==1.2.0
     # via stack-data
 filelock==3.12.2
@@ -205,7 +201,9 @@ ptyprocess==0.7.0
 pure-eval==0.2.2
     # via stack-data
 pure-sasl==0.6.2
-    # via thrift-sasl
+    # via
+    #   pyhive
+    #   thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
 pydruid==0.6.6
@@ -214,7 +212,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.3.5
     # via apache-superset
-pyhive[presto]==0.7.0
+pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
@@ -260,19 +258,12 @@ tableschema==1.20.10
 thrift==0.16.0
     # via
     #   apache-superset
+    #   pyhive
     #   thrift-sasl
 thrift-sasl==0.4.3
-    # via apache-superset
-tomli==2.0.1
     # via
-    #   build
-    #   coverage
-    #   pip-tools
-    #   pylint
-    #   pyproject-api
-    #   pyproject-hooks
-    #   pytest
-    #   tox
+    #   apache-superset
+    #   pyhive
 tomlkit==0.11.8
     # via pylint
 toposort==1.10

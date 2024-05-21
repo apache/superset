@@ -116,13 +116,20 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
   'dashboard_title',
   'published',
   'url',
+  'slug',
   'changed_by',
   'changed_on_delta_humanized',
+  'owners.id',
+  'owners.first_name',
+  'owners.last_name',
   'owners',
-  'tags',
+  'tags.id',
+  'tags.name',
+  'tags.type',
   'status',
   'certified_by',
   'certification_details',
+  'changed_on',
 ];
 
 function DashboardList(props: DashboardListProps) {
