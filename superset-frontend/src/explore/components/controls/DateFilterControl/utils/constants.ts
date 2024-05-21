@@ -25,11 +25,16 @@ import {
   PreviousCalendarYear,
   CommonRangeType,
   CalendarRangeType,
+  CurrentCalendarRangeType,
+  CurrentCalendarWeek,
+  CurrentCalendarMonth,
+  CurrentCalendarYear,
 } from 'src/explore/components/controls/DateFilterControl/types';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },
   { value: 'Calendar', label: t('Previous') },
+  { value: 'Current', label: t('Current') },
   { value: 'Custom', label: t('Custom') },
   { value: 'Advanced', label: t('Advanced') },
   { value: 'No filter', label: t('No filter') },
@@ -55,6 +60,18 @@ export const CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
   { value: PreviousCalendarYear, label: t('previous calendar year') },
 ];
 export const CALENDAR_RANGE_VALUES_SET = new Set(
+  CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
+);
+
+export const CURRENT_CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
+  { value: CurrentCalendarWeek, label: t('current calendar week') },
+  {
+    value: CurrentCalendarMonth,
+    label: t('current calendar month'),
+  },
+  { value: CurrentCalendarYear, label: t('current calendar year') },
+];
+export const CURRENT_CALENDAR_RANGE_VALUES_SET = new Set(
   CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
 );
 
@@ -105,6 +122,12 @@ export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([
   PreviousCalendarWeek,
   PreviousCalendarMonth,
   PreviousCalendarYear,
+]);
+
+export const CURRENT_CALENDAR_RANGE_SET: Set<CurrentCalendarRangeType> = new Set([
+  CurrentCalendarWeek,
+  CurrentCalendarMonth,
+  CurrentCalendarYear,
 ]);
 
 export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';

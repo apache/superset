@@ -53,6 +53,7 @@ import {
   AdvancedFrame,
   DateLabel,
 } from './components';
+import { CurrentCalendarFrame } from './components/CurrentCalendarFrame';
 
 const StyledRangeType = styled(Select)`
   width: 272px;
@@ -282,9 +283,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const overlayContent = (
     <ContentStyleWrapper>
-      <div className="control-label">{t('RANGE TYPE')}</div>
+      <div className="control-label">{t('RANGE TYPE TIME DEMO')}</div>
       <StyledRangeType
-        ariaLabel={t('RANGE TYPE')}
+        ariaLabel={t('RANGE TYPE DEMO TIME')}
         options={FRAME_OPTIONS}
         value={frame}
         onChange={onChangeFrame}
@@ -295,6 +296,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       )}
       {frame === 'Calendar' && (
         <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+      )}
+      {frame === 'Current' && (
+        <CurrentCalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
       {frame === 'Advanced' && (
         <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />

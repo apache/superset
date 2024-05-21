@@ -24,6 +24,7 @@ export type SelectOptionType = {
 export type FrameType =
   | 'Common'
   | 'Calendar'
+  | 'Current'
   | 'Custom'
   | 'Advanced'
   | 'No filter';
@@ -85,6 +86,14 @@ export type CalendarRangeType =
   | typeof PreviousCalendarMonth
   | typeof PreviousCalendarYear;
 
+export const CurrentCalendarWeek = 'current calendar week';
+export const CurrentCalendarMonth = 'current calendar month';
+export const CurrentCalendarYear = 'current calendar year';
+export type CurrentCalendarRangeType =
+  | typeof CurrentCalendarWeek
+  | typeof CurrentCalendarMonth
+  | typeof CurrentCalendarYear;
+  
 export type FrameComponentProps = {
   onChange: (timeRange: string) => void;
   value: string;

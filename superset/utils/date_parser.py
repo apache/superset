@@ -207,6 +207,24 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         and separator not in time_range
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # pylint: disable=line-too-long,useless-suppression
+    if (
+        time_range
+        and time_range.startswith("current calendar week")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, WEEK), WEEK) : DATETRUNC(DATETIME('today'), DAY)"  # pylint: disable=line-too-long,useless-suppression
+    if (
+        time_range
+        and time_range.startswith("current calendar month")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, MONTH), MONTH) : DATETRUNC(DATETIME('today'), DAY)"  # pylint: disable=line-too-long,useless-suppression
+    if (
+        time_range
+        and time_range.startswith("current calendar year")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, YEAR), YEAR) : DATETRUNC(DATETIME('today'), DAY)"  # pylint: disable=line-too-long,useless-suppression
 
     if time_range and separator in time_range:
         time_range_lookup = [
