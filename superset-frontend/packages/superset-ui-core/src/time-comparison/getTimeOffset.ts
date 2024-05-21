@@ -89,16 +89,19 @@ export const parseDttmToDate = (dttm: string): Date => {
     }
     return now;
   }
-  const parts = dttm.split('-');
-  const parsed = new Date(
-    Date.UTC(
-      parseInt(parts[0], 10),
-      parseInt(parts[1], 10) - 1,
-      parseInt(parts[2], 10),
-    ),
-  );
-  parsed.setUTCHours(0, 0, 0, 0);
-  return parsed;
+  const parts = dttm?.split('-');
+  if (parts) {
+    const parsed = new Date(
+      Date.UTC(
+        parseInt(parts[0], 10),
+        parseInt(parts[1], 10) - 1,
+        parseInt(parts[2], 10),
+      ),
+    );
+    parsed.setUTCHours(0, 0, 0, 0);
+    return parsed;
+  }
+  return now;
 };
 
 export const getTimeOffset = (

@@ -131,3 +131,10 @@ test('should parse valid moment strings', () => {
   const parsedDate = parseDttmToDate('2023-01-01');
   expect(parsedDate).toEqual(specificDate);
 });
+
+test('handles default now case when non-date string is passed', () => {
+  const result = parseDttmToDate(undefined as any);
+  const expected = new Date();
+  expected.setUTCHours(0, 0, 0, 0);
+  expect(result).toEqual(expected);
+});
