@@ -25,13 +25,15 @@ test('should handle "now"', () => {
   expect(expected).toEqual(now);
 });
 
-test('should handle "today" and "No filter"', () => {
+test('should handle "today",  "No filter" and ""', () => {
   const today = parseDttmToDate('today');
   const noFilter = parseDttmToDate('No filter');
+  const emptyString = parseDttmToDate('');
   const expected = new Date();
   expected.setUTCHours(0, 0, 0, 0);
   expect(today).toEqual(expected);
   expect(noFilter).toEqual(expected);
+  expect(emptyString).toEqual(expected);
 });
 
 test('should handle relative time strings', () => {

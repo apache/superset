@@ -23,7 +23,12 @@ export const parseDttmToDate = (dttm: string): Date => {
   const now = new Date();
   now.setUTCHours(0, 0, 0, 0);
 
-  if (dttm === 'now' || dttm === 'today' || dttm === 'No filter') {
+  if (
+    dttm === 'now' ||
+    dttm === 'today' ||
+    dttm === 'No filter' ||
+    dttm === ''
+  ) {
     return now;
   }
   if (dttm === 'Last week') {
@@ -84,7 +89,14 @@ export const parseDttmToDate = (dttm: string): Date => {
     }
     return now;
   }
-  const parsed = new Date(dttm);
+  const parts = dttm.split('-');
+  const parsed = new Date(
+    Date.UTC(
+      parseInt(parts[0], 10),
+      parseInt(parts[1], 10) - 1,
+      parseInt(parts[2], 10),
+    ),
+  );
   parsed.setUTCHours(0, 0, 0, 0);
   return parsed;
 };
