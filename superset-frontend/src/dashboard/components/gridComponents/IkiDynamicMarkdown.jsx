@@ -233,27 +233,6 @@ class IkiDynamicMarkdown extends React.PureComponent {
           ) {
             const { matchedChartIds } = messageData;
             this.refreshCharts(matchedChartIds);
-          } else if (
-            messageObject.info === 'widget-to-superset/send-to-editor'
-          ) {
-            // Create post message for redirection to editor of the markdown we are looking at
-            const parent = widgetUrl.searchParams.get('parent');
-            const mode = widgetUrl.searchParams.get('mode');
-            if (parent === 'superset' && mode === 'preview') {
-              const crossWindowMessage = {
-                info: 'widget-to-parent/redirect-to-markdown-editor',
-                dataType: 'object',
-                data: {
-                  component_id: widgetUrl.searchParams.get('component_id'),
-                  project_id: widgetUrl.searchParams.get('project_id'),
-                },
-              };
-              const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
-              window.parent.postMessage(
-                crossBrowserInfoString,
-                this.props.ikigaiOrigin,
-              );
-            }
           }
         }
       }
