@@ -382,7 +382,10 @@ class IkiDynamicMarkdown extends React.PureComponent {
         iframeWrapper.innerHTML = markdownSource;
         const iframeHtml = iframeWrapper.firstChild;
         const iframeSrcUrl = new URL(iframeHtml.src);
-        // iframeSrcUrl.searchParams.set('mode', editMode ? 'edit' : 'preview');
+        iframeSrcUrl.searchParams.set(
+          'dashboard_mode',
+          editMode ? 'edit' : 'preview',
+        );
         iframeSrcUrl.searchParams.set('scid', this.props.component.id);
         iframeSrc = ikigaiOrigin + iframeSrcUrl.pathname + iframeSrcUrl.search;
       } else {
