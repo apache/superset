@@ -111,6 +111,20 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const DASHBOARD_COLUMNS_TO_FETCH = [
+  'id',
+  'dashboard_title',
+  'published',
+  'url',
+  'changed_by',
+  'changed_on_delta_humanized',
+  'owners',
+  'tags',
+  'status',
+  'certified_by',
+  'certification_details',
+];
+
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
 
@@ -135,6 +149,11 @@ function DashboardList(props: DashboardListProps) {
     'dashboard',
     t('dashboard'),
     addDangerToast,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    DASHBOARD_COLUMNS_TO_FETCH,
   );
   const dashboardIds = useMemo(() => dashboards.map(d => d.id), [dashboards]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
@@ -746,16 +765,8 @@ function DashboardList(props: DashboardListProps) {
                 count={dashboardCount}
                 data={dashboards}
                 disableBulkSelect={toggleBulkSelect}
-                fetchData={config =>
-                  fetchData({
-                    ...config,
-                    selectColumns: ['dashboard_title'],
-                  })
-                }
-                refreshData={config => refreshData({
-                    ...config,
-                    selectColumns: ['dashboard_title'],
-                  })}
+                fetchData={fetchData}
+                refreshData={refreshData}
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}
