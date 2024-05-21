@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2024-05-19 17:38+0400\n"
-"PO-Revision-Date: 2024-05-19 18:56+0400\n"
+"PO-Revision-Date: 2024-05-20 19:59+0400\n"
 "Last-Translator: Daniel Checheta\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -2641,7 +2641,8 @@ msgstr "На основе меры"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:55
 msgid "Based on granularity, number of time periods to compare against"
 msgstr ""
-"Основываясь на группировке времени, количество периодов времени для сравнения"
+"Точка, с которой будет сравниваться текущее значение, будет отставать на это "
+"количество периодов"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:230
 msgid "Based on what should series be ordered on the chart and legend"
@@ -13524,8 +13525,7 @@ msgid ""
 "Select a time grain for the visualization. The grain is the time interval "
 "represented by a single point on the chart."
 msgstr ""
-"Периодичность - это интервал времени, который будет представлен в виде одной "
-"точки на диаграмме"
+"Периодичность определяет интервал времени, соответствующий одной точке на графике"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:133
 msgid "Select a visualization type"
@@ -14989,9 +14989,8 @@ msgid "TABLES"
 msgstr "ТАБЛИЦЫ"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:283
-#, fuzzy
 msgid "TEMPORAL X-AXIS"
-msgstr "Ось X с датами"
+msgstr "Ось дат"
 
 #: superset-frontend/src/explore/constants.ts:89
 #, fuzzy
@@ -16148,7 +16147,7 @@ msgstr "В этом дашборде нет фильтров"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/Footer.tsx:45
 msgid "There are unsaved changes."
-msgstr "У вас есть несохраненные изменения."
+msgstr "Есть несохраненные изменения"
 
 #: superset/errors.py:108
 msgid ""
@@ -16235,9 +16234,9 @@ msgid "There was an issue deleting %s: %s"
 msgstr "Произошла ошибка при удалении %s: %s"
 
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:113
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting rules: %s"
-msgstr "Произошла ошибка при удалении %s: %s"
+msgstr "Произошла ошибка при удалении правил: %s"
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:203
 #, python-format
@@ -16433,7 +16432,6 @@ msgid "This column must contain date/time information."
 msgstr "В этом столбце должны быть данные в формате дата/время"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:212
-#, fuzzy
 msgid ""
 "This control filters the whole chart based on the selected time range. All "
 "relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated "
@@ -16510,7 +16508,7 @@ msgstr "Дашборд опубликован. Нажмите, чтобы сде
 msgid ""
 "This dashboard is ready to embed. In your application, pass the following id to "
 "the SDK:"
-msgstr ""
+msgstr "Этот дашборд можно встроить. Передайте в SDK в вашем приложении этот ID:"
 
 #: superset-frontend/src/dashboard/actions/dashboardState.js:309
 #: superset-frontend/src/dashboard/actions/dashboardState.js:348
@@ -16556,7 +16554,6 @@ msgstr ""
 "диаграммы. Также оно используется в качестве алиаса в SQL-запросе."
 
 #: superset/connectors/sqla/views.py:353
-#, fuzzy
 msgid ""
 "This fields acts a Superset view, meaning that Superset will run a query against "
 "this string as a subquery."
@@ -16622,7 +16619,6 @@ msgid "This metric might be incompatible with current dataset"
 msgstr "Эта мера может быть несовместима с этим датасетом"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:658
-#, fuzzy
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -17037,9 +17033,8 @@ msgid "Tooltip"
 msgstr "Всплывающая подсказка"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:142
-#, fuzzy
 msgid "Tooltip Contents"
-msgstr "Содержимое ячейки"
+msgstr "Содержимое подсказки"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:203
 msgid "Tooltip sort by metric"
@@ -18101,9 +18096,8 @@ msgid "Waiting on %s"
 msgstr "Ожидается %s"
 
 #: superset-frontend/src/components/Chart/Chart.jsx:254
-#, fuzzy
 msgid "Waiting on database..."
-msgstr "Управляйте своими базами данных"
+msgstr "Ожидание ответа от базы данных…"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1050
 msgid "Want to add a new database?"
@@ -18278,14 +18272,12 @@ msgstr[2] ""
 "%s секунд."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:133
-#, fuzzy
 msgid "What should be shown as the label"
-msgstr "Текст, отображаемый на метке"
+msgstr "Что отобразить на метке"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:159
-#, fuzzy
 msgid "What should be shown as the tooltip label"
-msgstr "Текст, отображаемый на метке"
+msgstr "Что отобразить на подсказке для метки"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:60
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:110
@@ -18381,7 +18373,7 @@ msgstr "При включении этой опции нельзя устано�
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:254
 msgid "Whether the progress bar overlaps when there are multiple groups of data"
-msgstr "Индикатор прогресса накладывается при наличии нескольких групп данных"
+msgstr "Накладывать индикатор прогресса при наличии нескольких групп данных"
 
 #: superset/connectors/sqla/views.py:372
 msgid "Whether the table was generated by the 'Visualize' flow in SQL Lab"
@@ -18398,7 +18390,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/ColumnConfigControl/constants.tsx:123
 msgid "Whether to align positive and negative values in cell bar chart at 0"
-msgstr "Выравнивание гистограммы внутри ячеек по горизонтали слева"
+msgstr "Общий ноль для столбиков с отрицательными и положительными значениями"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:933
 msgid "Whether to always show the annotation label"
@@ -18422,9 +18414,8 @@ msgid "Whether to colorize numeric values by if they are positive or negative"
 msgstr "Окрашивать ячейки с числами в зависимости от их знака"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:434
-#, fuzzy
 msgid "Whether to colorize numeric values by whether they are positive or negative"
-msgstr "Окрашивать ячейки с числами в зависимости от их знака"
+msgstr "Окрашивать числа в зависимости от их знака"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:408
 #: superset-frontend/src/explore/components/controls/ColumnConfigControl/constants.tsx:115
@@ -18492,19 +18483,19 @@ msgstr "Отображать минимальное и максимальное 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx:264
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:194
 msgid "Whether to display the numerical values within the cells"
-msgstr "Отображение числовых значений в ячейках"
+msgstr "Отображать числовые значения в ячейках"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:262
 msgid "Whether to display the stroke"
-msgstr "Отображение обводки"
+msgstr "Отображать обводку"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:149
 msgid "Whether to display the time range interactive selector"
-msgstr "Отображение интерактивного селектора временного интервала"
+msgstr "Отображать селектор временного интервала"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:79
 msgid "Whether to display the timestamp"
-msgstr "Отображение временную метку"
+msgstr "Отображать временную метку"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:198
 #, fuzzy
@@ -18513,12 +18504,12 @@ msgstr "Отображать метки"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:91
 msgid "Whether to display the trend line"
-msgstr "Отображение трендовой линии"
+msgstr "Отображать линию тренда"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:170
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:277
 msgid "Whether to enable changing graph position and scaling."
-msgstr ""
+msgstr "Включить возможность изменения положения и масштаба диаграммы"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:144
 msgid "Whether to enable node dragging in force layout mode."
@@ -18534,17 +18525,17 @@ msgstr "Игнорировать локации, которые не содер�
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:398
 msgid "Whether to include a client-side search box"
-msgstr "Отображение строки поиска"
+msgstr "Отображать строку поиска"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:292
 #: superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx:249
 msgid "Whether to include the percentage in the tooltip"
-msgstr "Отображение процентной доли во всплывающей подсказке"
+msgstr "Отображать процентную долю во всплывающей подсказке"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/includeTime.ts:28
 msgid "Whether to include the time granularity as defined in the time section"
 msgstr ""
-"Добавляет столбец даты/времени с группировкой дат, как определено в разделе Время"
+"Добавлять столбец даты/времени с группировкой дат, как определено в разделе Время"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:274
 msgid "Whether to make the grid 3D"
@@ -18555,7 +18546,6 @@ msgid "Whether to make the histogram cumulative"
 msgstr "Сделать гистограмму нарастающей"
 
 #: superset/connectors/sqla/views.py:111
-#, fuzzy
 msgid ""
 "Whether to make this column available as a [Time Granularity] option, column has "
 "to be DATETIME or DATETIME-like"
@@ -18588,19 +18578,19 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:203
 msgid "Whether to show minor ticks on the axis"
-msgstr "Отображение промежуточных делений на оси"
+msgstr "Отображать промежуточные деления на оси"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:176
 msgid "Whether to show the pointer"
-msgstr "Отображение указателя"
+msgstr "Отображать указатель"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:242
 msgid "Whether to show the progress of gauge chart"
-msgstr ""
+msgstr "Показать прогресс на индикаторной диаграмме"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:215
 msgid "Whether to show the split lines on the axis"
-msgstr "Отображение линий разделения на оси"
+msgstr "Отображать линии разделения на оси"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:155
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:208
@@ -18611,12 +18601,12 @@ msgstr "Сортировка основной оси по убыванию ил�
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/orderBy.tsx:48
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:155
 msgid "Whether to sort descending or ascending"
-msgstr "Сортировка по убыванию или по возрастанию"
+msgstr "Сортировать по убыванию или по возрастанию"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/controlPanel.ts:75
 msgid "Whether to sort descending or ascending if a series limit is present"
 msgstr ""
-"Сортировка по убыванию или по возрастанию, если есть ограничение на количество "
+"Сортировать по убыванию или по возрастанию, если есть ограничение на количество "
 "категорий"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:42
@@ -18639,7 +18629,7 @@ msgstr "Сортировка по убыванию во всплывающей �
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:345
 msgid "Whether to truncate metrics"
 msgstr ""
-"Убирает меру (например, AVG(...)) с легенды рядом с именем измерения и из таблицы "
+"Убрать меру (например, AVG(...)) с легенды рядом с именем измерения и из таблицы "
 "результатов"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/controlPanel.ts:42
