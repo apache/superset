@@ -72,7 +72,7 @@ export const CURRENT_CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
   { value: CurrentCalendarYear, label: t('current calendar year') },
 ];
 export const CURRENT_CALENDAR_RANGE_VALUES_SET = new Set(
-  CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
+  CURRENT_CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
 );
 
 const GRAIN_OPTIONS = [
