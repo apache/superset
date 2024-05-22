@@ -117,7 +117,7 @@ export const getFilterValue = (
     method: 'get',
     url: assembleEndpoint(dashId, key),
   })
-    .then(response => response.value)
+    .then(response => JSON.parse(response.value)) // DODO changed #29567468
     .catch(err => {
       logging.error(err);
       return null;

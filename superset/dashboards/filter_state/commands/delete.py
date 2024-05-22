@@ -36,7 +36,8 @@ class DeleteFilterStateCommand(DeleteTemporaryCacheCommand):
             if entry["owner"] != get_user_id():
                 raise TemporaryCacheAccessDeniedError()
             tab_id = cmd_params.tab_id
-            contextual_key = cache_key(session.get("_id"), tab_id, resource_id)
+            #contextual_key = cache_key(session.get("_id"), tab_id, resource_id) # DODO commented #29567468
+            contextual_key = cache_key(get_user_id(), tab_id, resource_id)  # DODO changed #29567468
             cache_manager.filter_state_cache.delete(contextual_key)
             return cache_manager.filter_state_cache.delete(key)
         return False
