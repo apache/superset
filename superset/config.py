@@ -1231,8 +1231,9 @@ DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
 DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
     "postgresql": {"version", "query_to_xml", "inet_server_addr", "inet_client_addr"},
     "clickhouse": {"url"},
-    "mysql": {"version"}
+    "mysql": {"version"},
 }
+
 
 # A function that intercepts the SQL to be executed and can alter it.
 # A common use case for this is around adding some sort of comment header to the SQL
