@@ -23,6 +23,8 @@ import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import handleCanvasChange from 'src/utils/canvasRepaint';
+
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
 
@@ -90,8 +92,6 @@ class Dashboard extends React.PureComponent {
     this.appliedFilters = props.activeFilters ?? {};
     this.appliedOwnDataCharts = props.ownDataCharts ?? {};
     this.onVisibilityChange = this.onVisibilityChange.bind(this);
-    this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
-    this.repaintCanvas = this.repaintCanvas.bind(this);
   }
 
   componentDidMount() {
@@ -194,24 +194,6 @@ class Dashboard extends React.PureComponent {
     this.props.actions.clearDataMaskState();
   }
 
-  repaintCanvas(canvas, ctx, imageBitmap) {
-    // Clear the canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw the copied content
-    ctx.drawImage(imageBitmap, 0, 0);
-  }
-
-  handleVisibilityChange() {
-    this.canvases.forEach(canvas => {
-      const ctx = canvas.getContext('2d');
-      createImageBitmap(canvas).then(imageBitmap => {
-        // Call the repaintCanvas function with canvas, ctx, and imageBitmap
-        this.repaintCanvas(canvas, ctx, imageBitmap);
-      });
-    });
-  }
-
   onVisibilityChange() {
     if (document.visibilityState === 'hidden') {
       // from visible to hidden
@@ -228,7 +210,7 @@ class Dashboard extends React.PureComponent {
         duration: Logger.getTimestamp() - logStart,
       });
       // for chrome to ensure that the canvas doesn't disappear
-      this.handleVisibilityChange();
+      handleCanvasChange(this.canvases);
     }
   }
 

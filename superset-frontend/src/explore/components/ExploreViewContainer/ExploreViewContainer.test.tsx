@@ -24,8 +24,9 @@ import {
   ChartMetadata,
 } from '@superset-ui/core';
 import { MemoryRouter, Route } from 'react-router-dom';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+import * as canvasChange from 'src/utils/canvasRepaint';
 import ExploreViewContainer from '.';
 
 const reduxState = {
@@ -221,4 +222,30 @@ test('preserves unknown parameters', async () => {
     expect.stringMatching(unknownParam),
   );
   replaceState.mockRestore();
+});
+
+test('onVisiblityChange hidden checks the canvases on the page', async () => {
+  // stores canvases when visibility is hidden
+  const canvases = [{ getContext: jest.fn() }, { getContext: jest.fn() }];
+  const querySelectorAllMock = jest.fn().mockReturnValue(canvases);
+  await waitFor(() => renderWithRouter());
+
+  Object.defineProperty(global.document, 'querySelectorAll', {
+    value: querySelectorAllMock,
+    writable: true,
+    configurable: true,
+  });
+  Object.defineProperty(global.document, 'visibilityState', {
+    value: 'hidden',
+    writable: true,
+    configurable: true,
+  });
+  act(() => {
+    window.dispatchEvent(new Event('visibilitychange'));
+  });
+
+  await waitFor(() => {
+    expect(querySelectorAllMock).toHaveBeenCalledWith('canvas');
+  });
+  jest.restoreAllMocks();
 });

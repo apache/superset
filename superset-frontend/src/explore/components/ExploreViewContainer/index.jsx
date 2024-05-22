@@ -260,6 +260,7 @@ function ExploreViewContainer(props) {
   const [width, setWidth] = useState(
     getSidebarWidths(LocalStorageKeys.DatasourceWidth),
   );
+  const [canvases, setCanvases] = useState(null);
   const tabId = useTabId();
 
   const theme = useTheme();
@@ -354,8 +355,21 @@ function ExploreViewContainer(props) {
     setIsCollapsed(!isCollapsed);
   }
 
+  function onVisibilityChange() {
+    if (document.visibilityState === 'hidden') {
+      setCanvases(document.querySelectorAll('canvas'));
+    } else if (document.visibilityState === 'visible' && canvases) {
+      handleCanvasChange(canvases);
+    }
+  }
+
   useComponentDidMount(() => {
     props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
+    window.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      // on unmount
+      window.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   });
 
   useChangeEffect(tabId, (previous, current) => {
