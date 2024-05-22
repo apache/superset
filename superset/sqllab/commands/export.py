@@ -125,7 +125,7 @@ class SqlResultExportCommand(BaseCommand):
                 limit -= 1
             df = self._query.database.get_df(sql, self._query.schema)[:limit]
 
-        csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
+        csv_data = csv.df_to_escaped_csv(df, **config["CSV_EXPORT"], from_sqllab=True)
 
         return {
             "query": self._query,
