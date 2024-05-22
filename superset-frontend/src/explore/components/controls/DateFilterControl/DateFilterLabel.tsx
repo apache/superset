@@ -283,9 +283,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const overlayContent = (
     <ContentStyleWrapper>
-      <div className="control-label">{t('RANGE TYPE TIME DEMO')}</div>
+      <div className="control-label">{t('RANGE TYPE')}</div>
       <StyledRangeType
-        ariaLabel={t('RANGE TYPE DEMO TIME')}
+        ariaLabel={t('RANGE TYPE')}
         options={FRAME_OPTIONS}
         value={frame}
         onChange={onChangeFrame}
