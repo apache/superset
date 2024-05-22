@@ -37,11 +37,17 @@ test('should handle "today",  "No filter" and ""', () => {
 });
 
 test('should handle relative time strings', () => {
+  const lastDay = parseDttmToDate('Last day');
   const lastWeek = parseDttmToDate('Last week');
   const lastMonth = parseDttmToDate('Last month');
   const lastQuarter = parseDttmToDate('Last quarter');
   const lastYear = parseDttmToDate('Last year');
   let now = new Date();
+  now.setUTCHours(0, 0, 0, 0);
+  now.setUTCDate(now.getUTCDate() - 1);
+  expect(lastDay).toEqual(now);
+
+  now = new Date();
   now.setUTCHours(0, 0, 0, 0);
   now.setUTCDate(now.getUTCDate() - 7);
   expect(lastWeek).toEqual(now);
@@ -49,19 +55,16 @@ test('should handle relative time strings', () => {
   now = new Date();
   now.setUTCHours(0, 0, 0, 0);
   now.setUTCMonth(now.getUTCMonth() - 1);
-  now.setUTCDate(1);
   expect(lastMonth).toEqual(now);
 
   now = new Date();
   now.setUTCHours(0, 0, 0, 0);
   now.setUTCMonth(now.getUTCMonth() - 3);
-  now.setUTCDate(1);
   expect(lastQuarter).toEqual(now);
 
   now = new Date();
   now.setUTCHours(0, 0, 0, 0);
   now.setUTCFullYear(now.getUTCFullYear() - 1);
-  now.setUTCDate(1);
   expect(lastYear).toEqual(now);
 });
 
@@ -134,7 +137,5 @@ test('should parse valid moment strings', () => {
 
 test('handles default now case when non-date string is passed', () => {
   const result = parseDttmToDate(undefined as any);
-  const expected = new Date();
-  expected.setUTCHours(0, 0, 0, 0);
-  expect(result).toEqual(expected);
+  expect(result.getTime()).toBeNaN();
 });

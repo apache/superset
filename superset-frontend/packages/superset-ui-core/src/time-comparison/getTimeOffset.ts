@@ -31,23 +31,24 @@ export const parseDttmToDate = (dttm: string): Date => {
   ) {
     return now;
   }
+  if (dttm === 'Last day') {
+    now.setUTCDate(now.getUTCDate() - 1);
+    return now;
+  }
   if (dttm === 'Last week') {
     now.setUTCDate(now.getUTCDate() - 7);
     return now;
   }
   if (dttm === 'Last month') {
     now.setUTCMonth(now.getUTCMonth() - 1);
-    now.setUTCDate(1);
     return now;
   }
   if (dttm === 'Last quarter') {
     now.setUTCMonth(now.getUTCMonth() - 3);
-    now.setUTCDate(1);
     return now;
   }
   if (dttm === 'Last year') {
     now.setUTCFullYear(now.getUTCFullYear() - 1);
-    now.setUTCDate(1);
     return now;
   }
   if (dttm === 'previous calendar week') {
@@ -90,7 +91,7 @@ export const parseDttmToDate = (dttm: string): Date => {
     return now;
   }
   const parts = dttm?.split('-');
-  if (parts) {
+  if (parts && parts.length > 1) {
     const parsed = new Date(
       Date.UTC(
         parseInt(parts[0], 10),
@@ -101,7 +102,9 @@ export const parseDttmToDate = (dttm: string): Date => {
     parsed.setUTCHours(0, 0, 0, 0);
     return parsed;
   }
-  return now;
+  const parsed = new Date(dttm);
+  parsed.setUTCHours(0, 0, 0, 0);
+  return parsed;
 };
 
 export const getTimeOffset = (
@@ -112,12 +115,27 @@ export const getTimeOffset = (
   const isCustom = shifts?.includes('custom');
   const isInherit = shifts?.includes('inherit');
   const customStartDate = isCustom && parseDttmToDate(startDate).getTime();
-  const filterStartDate = parseDttmToDate(
-    timeRangeFilter?.comparator.split(' : ')[0],
-  ).getTime();
-  const filterEndDate = parseDttmToDate(
-    timeRangeFilter?.comparator.split(' : ')[1],
-  ).getTime();
+  const [startStr, endStr] = (timeRangeFilter?.comparator ?? '')
+    .split(' : ')
+    .map((date: string) => date.trim());
+  const filterStartDate = parseDttmToDate(startStr).getTime();
+  let filterEndDate = parseDttmToDate(endStr).getTime();
+  // Handle single relative date
+  if (Number.isNaN(filterEndDate)) {
+    const end = new Date();
+    end.setUTCHours(0, 0, 0, 0);
+    end.setUTCDate(end.getUTCDate());
+    if (startStr === 'previous calendar week') {
+      end.setUTCDate(end.getUTCDate() - (end.getUTCDay() + 7));
+    }
+    if (startStr === 'previous calendar month') {
+      end.setUTCMonth(end.getUTCMonth(), 1);
+    }
+    if (startStr === 'previous calendar year') {
+      end.setUTCFullYear(end.getUTCFullYear(), 0, 1);
+    }
+    filterEndDate = end.getTime();
+  }
 
   const customShift =
     customStartDate &&

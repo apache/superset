@@ -44,3 +44,33 @@ test('handles no custom or inherit shifts', () => {
   const result = getTimeOffset(timeRangeFilter, shifts, startDate);
   expect(result).toEqual(['1 week ago']);
 });
+
+test('handles single relative dates: Last, Previous, Previous, Previous', () => {
+  const shifts = ['1 week ago'];
+  const startDate = '';
+  const timeRangeFilters = [
+    { comparator: 'Last year' },
+    { comparator: 'previous calendar week' },
+    { comparator: 'previous calendar month' },
+    { comparator: 'previous calendar year' },
+  ];
+
+  const results = timeRangeFilters.map(timeRangeFilter =>
+    getTimeOffset(timeRangeFilter, shifts, startDate),
+  );
+  expect(results.flat()).toEqual([
+    '1 week ago',
+    '1 week ago',
+    '1 week ago',
+    '1 week ago',
+  ]);
+});
+
+test('handles no timeRange filter', () => {
+  const shifts = ['1 week ago'];
+  const startDate = '';
+  const timeRangeFilter = undefined;
+
+  const result = getTimeOffset(timeRangeFilter, shifts, startDate);
+  expect(result).toEqual(['1 week ago']);
+});
