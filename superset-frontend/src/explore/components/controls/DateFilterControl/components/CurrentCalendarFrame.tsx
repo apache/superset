@@ -20,23 +20,19 @@ import React, { useEffect } from 'react';
 import { t } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import {
-  CURRENT_CALENDAR_RANGE_OPTIONS,
+  CURRENT_RANGE_OPTIONS,
   CURRENT_CALENDAR_RANGE_SET,
 } from 'src/explore/components/controls/DateFilterControl/utils';
-import {
-  CurrentCalendarRangeType,
-  CurrentCalendarWeek,
-  FrameComponentProps,
-} from '../types';
+import { CurrentRangeType, CurrentWeek, FrameComponentProps } from '../types';
 
 export function CurrentCalendarFrame({ onChange, value }: FrameComponentProps) {
   useEffect(() => {
-    if (!CURRENT_CALENDAR_RANGE_SET.has(value as CurrentCalendarRangeType)) {
-      onChange(CurrentCalendarWeek);
+    if (!CURRENT_CALENDAR_RANGE_SET.has(value as CurrentRangeType)) {
+      onChange(CurrentWeek);
     }
-  }, [onChange, value]);
+  }, [value]);
 
-  if (!CURRENT_CALENDAR_RANGE_SET.has(value as CurrentCalendarRangeType)) {
+  if (!CURRENT_CALENDAR_RANGE_SET.has(value as CurrentRangeType)) {
     return null;
   }
 
@@ -47,9 +43,18 @@ export function CurrentCalendarFrame({ onChange, value }: FrameComponentProps) {
       </div>
       <Radio.Group
         value={value}
-        onChange={(e: any) => onChange(e.target.value)}
+        onChange={(e: any) => {
+          let newValue = e.target.value;
+          // Sanitization: Trim whitespace
+          newValue = newValue.trim();
+          // Validation: Check if the value is non-empty
+          if (newValue === '') {
+            return;
+          }
+          onChange(newValue);
+        }}
       >
-        {CURRENT_CALENDAR_RANGE_OPTIONS.map(({ value, label }) => (
+        {CURRENT_RANGE_OPTIONS.map(({ value, label }) => (
           <Radio key={value} value={value} className="vertical-radio">
             {label}
           </Radio>

@@ -86,14 +86,18 @@ export type CalendarRangeType =
   | typeof PreviousCalendarMonth
   | typeof PreviousCalendarYear;
 
-export const CurrentCalendarWeek = 'current calendar week';
-export const CurrentCalendarMonth = 'current calendar month';
-export const CurrentCalendarYear = 'current calendar year';
-export type CurrentCalendarRangeType =
-  | typeof CurrentCalendarWeek
-  | typeof CurrentCalendarMonth
-  | typeof CurrentCalendarYear;
-  
+export const CurrentDay = 'Current day';
+export const CurrentWeek = 'Current week';
+export const CurrentMonth = 'Current month';
+export const CurrentYear = 'Current year';
+export const CurrentQuarter = 'Current quarter';
+export type CurrentRangeType =
+  | typeof CurrentDay
+  | typeof CurrentWeek
+  | typeof CurrentMonth
+  | typeof CurrentQuarter
+  | typeof CurrentYear;
+
 export type FrameComponentProps = {
   onChange: (timeRange: string) => void;
   value: string;

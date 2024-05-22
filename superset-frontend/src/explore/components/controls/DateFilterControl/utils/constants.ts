@@ -25,10 +25,12 @@ import {
   PreviousCalendarYear,
   CommonRangeType,
   CalendarRangeType,
-  CurrentCalendarRangeType,
-  CurrentCalendarWeek,
-  CurrentCalendarMonth,
-  CurrentCalendarYear,
+  CurrentRangeType,
+  CurrentWeek,
+  CurrentMonth,
+  CurrentYear,
+  CurrentQuarter,
+  CurrentDay,
 } from 'src/explore/components/controls/DateFilterControl/types';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
@@ -63,16 +65,18 @@ export const CALENDAR_RANGE_VALUES_SET = new Set(
   CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
 );
 
-export const CURRENT_CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
-  { value: CurrentCalendarWeek, label: t('current calendar week') },
+export const CURRENT_RANGE_OPTIONS: SelectOptionType[] = [
+  { value: CurrentDay, label: t('Current day') },
+  { value: CurrentWeek, label: t('Current week') },
   {
-    value: CurrentCalendarMonth,
-    label: t('current calendar month'),
+    value: CurrentMonth,
+    label: t('Current month'),
   },
-  { value: CurrentCalendarYear, label: t('current calendar year') },
+  { value: CurrentQuarter, label: t('Current quarter') },
+  { value: CurrentYear, label: t('Current year') },
 ];
-export const CURRENT_CALENDAR_RANGE_VALUES_SET = new Set(
-  CURRENT_CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
+export const CURRENT_RANGE_VALUES_SET = new Set(
+  CURRENT_RANGE_OPTIONS.map(({ value }) => value),
 );
 
 const GRAIN_OPTIONS = [
@@ -124,10 +128,12 @@ export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([
   PreviousCalendarYear,
 ]);
 
-export const CURRENT_CALENDAR_RANGE_SET: Set<CurrentCalendarRangeType> = new Set([
-  CurrentCalendarWeek,
-  CurrentCalendarMonth,
-  CurrentCalendarYear,
+export const CURRENT_CALENDAR_RANGE_SET: Set<CurrentRangeType> = new Set([
+  CurrentDay,
+  CurrentWeek,
+  CurrentMonth,
+  CurrentQuarter,
+  CurrentYear,
 ]);
 
 export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';

@@ -299,7 +299,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
       {frame === 'Current' && (
-        <CurrentCalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+        <CurrentCalendarFrame
+          value={timeRangeValue}
+          onChange={setTimeRangeValue}
+        />
       )}
       {frame === 'Advanced' && (
         <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />
