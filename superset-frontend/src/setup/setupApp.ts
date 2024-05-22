@@ -97,17 +97,6 @@ export default function setupApp() {
         window.location.reload();
       }
     });
-    const origin = console.error;
-    console.error = error => {
-      if (/Loading chunk [\d]+ failed/.test(error.message)) {
-        alert(
-          'A new version released. Need to reload the page to apply changes.',
-        );
-        window.location.reload();
-      } else {
-        origin(error);
-      }
-    };
   });
 
   // A set of hacks to allow apps to run within a FAB template

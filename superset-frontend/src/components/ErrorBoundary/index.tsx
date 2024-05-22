@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { t } from '@superset-ui/core';
+import 'antd/dist/antd.css';
+import { Modal } from 'antd';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 
 export interface ErrorBoundaryProps {
@@ -56,6 +58,26 @@ export default class ErrorBoundary extends React.Component<
       const messageString = `${t('Unexpected error')}${
         firstLine ? `: ${firstLine}` : ''
       }`;
+      if (/Loading chunk [\d]+ failed/.test(firstLine)) {
+        this.setState({ modalVisible: true });
+        return (
+          <Modal
+            title="Modal Title"
+            visible={this.state.modalVisible}
+            onOk={() => {
+              this.setState({ modalVisible: false });
+            }}
+            onCancel={() => {
+              this.setState({ modalVisible: false });
+            }}
+          >
+            <p>
+              'A new version released. Need to reload the page to apply
+              changes.',
+            </p>
+          </Modal>
+        );
+      }
       const messageElement = (
         <span>
           <strong>{t('Unexpected error')}</strong>
