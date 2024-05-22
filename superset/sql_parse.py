@@ -760,7 +760,11 @@ class ParsedQuery:
     def _check_functions_exist_in_token(
         self, token: Token, functions: set[str]
     ) -> bool:
-        if isinstance(token, Function) and token.get_name().lower() in functions:
+        if (
+            isinstance(token, Function)
+            and token.get_name() is not None
+            and token.get_name().lower() in functions
+        ):
             return True
         if hasattr(token, "tokens"):
             for inner_token in token.tokens:
