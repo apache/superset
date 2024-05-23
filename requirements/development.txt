@@ -44,7 +44,7 @@ cycler==0.11.0
     # via matplotlib
 dataflows-tabulator==1.54.3
     # via tableschema
-db-dtypes==1.1.1
+db-dtypes==1.2.0
     # via pandas-gbq
 decorator==5.1.1
     # via ipython
