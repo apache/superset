@@ -945,35 +945,23 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
 
-        # def trigger_celery() -> WerkzeugResponse:
-        #     logger.info("Triggering screenshot ASYNC")
-        #     cache_dashboard_thumbnail.delay(
-        #         current_user=get_current_user(),
-        #         dashboard_id=dashboard.id,
-        #         force=True,
-        #         window_size=window_size,
-        #         thumb_size=thumb_size,
-        #     )
-        #     return self.response(
-        #         202, cache_key=cache_key, dashboard_url=dashboard_url, image_url=image_url
-        #     )
-        # return trigger_celery()
+        def trigger_celery() -> WerkzeugResponse:
+            logger.info("Triggering screenshot ASYNC")
+            cache_dashboard_thumbnail.delay(
+                current_user=get_current_user(),
+                dashboard_id=dashboard.id,
+                force=True,
+                window_size=window_size,
+                thumb_size=thumb_size,
+            )
+            return self.response(
+                202,
+                cache_key=cache_key,
+                dashboard_url=dashboard_url,
+                image_url=image_url,
+            )
 
-        # return self.response(
-        #     202, cache_key=cache_key, dashboard_url=dashboard_url, image_url=image_url
-        # )
-
-        screenshot_obj.compute_and_cache(
-            user=get_current_user(),
-            cache=thumbnail_cache,
-            force=True,
-            window_size=window_size,
-            thumb_size=thumb_size,
-        )
-
-        return self.response(
-            202, cache_key=cache_key, dashboard_url=dashboard_url, image_url=image_url
-        )
+        return trigger_celery()
 
     # TODO:Update Dashboard screenshot endpoint
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
