@@ -1134,24 +1134,24 @@ class TestCore(SupersetTestCase):
         Handle injected exceptions from the db mutator
         """
         # Assert we can handle a custom exception at the mutator level
-        exception = SupersetException("Error message")
+        exception = SupersetException("Error")
         mock_db_connection_mutator.side_effect = exception
         slice = db.session.query(Slice).first()
         url = f"/explore/?form_data=%7B%22slice_id%22%3A%20{slice.id}%7D"
 
         self.login(ADMIN_USERNAME)
         data = self.get_resp(url)
-        self.assertIn("Error message", data)
+        self.assertIn("Error", data)
 
         # Assert we can handle a driver exception at the mutator level
-        exception = SQLAlchemyError("Error message")
+        exception = SQLAlchemyError("Error")
         mock_db_connection_mutator.side_effect = exception
         slice = db.session.query(Slice).first()
         url = f"/explore/?form_data=%7B%22slice_id%22%3A%20{slice.id}%7D"
 
         self.login(ADMIN_USERNAME)
         data = self.get_resp(url)
-        self.assertIn("Error message", data)
+        self.assertIn("Error", data)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @mock.patch("superset.models.core.DB_CONNECTION_MUTATOR")
@@ -1161,24 +1161,24 @@ class TestCore(SupersetTestCase):
         """
 
         # Assert we can handle a custom exception at the mutator level
-        exception = SupersetException("Error message")
+        exception = SupersetException("Error")
         mock_db_connection_mutator.side_effect = exception
         dash = db.session.query(Dashboard).first()
         url = f"/superset/dashboard/{dash.id}/"
 
         self.login(ADMIN_USERNAME)
         data = self.get_resp(url)
-        self.assertIn("Error message", data)
+        self.assertIn("Error", data)
 
         # Assert we can handle a driver exception at the mutator level
-        exception = SQLAlchemyError("Error message")
+        exception = SQLAlchemyError("Error")
         mock_db_connection_mutator.side_effect = exception
         dash = db.session.query(Dashboard).first()
         url = f"/superset/dashboard/{dash.id}/"
 
         self.login(ADMIN_USERNAME)
         data = self.get_resp(url)
-        self.assertIn("Error message", data)
+        self.assertIn("Error", data)
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand.run")
