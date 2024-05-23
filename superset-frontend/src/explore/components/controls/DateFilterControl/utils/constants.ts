@@ -55,10 +55,7 @@ export const COMMON_RANGE_VALUES_SET = new Set(
 
 export const CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
   { value: PreviousCalendarWeek, label: t('previous calendar week') },
-  {
-    value: PreviousCalendarMonth,
-    label: t('previous calendar month'),
-  },
+  { value: PreviousCalendarMonth, label: t('previous calendar month') },
   { value: PreviousCalendarYear, label: t('previous calendar year') },
 ];
 export const CALENDAR_RANGE_VALUES_SET = new Set(
@@ -68,10 +65,7 @@ export const CALENDAR_RANGE_VALUES_SET = new Set(
 export const CURRENT_RANGE_OPTIONS: SelectOptionType[] = [
   { value: CurrentDay, label: t('Current day') },
   { value: CurrentWeek, label: t('Current week') },
-  {
-    value: CurrentMonth,
-    label: t('Current month'),
-  },
+  { value: CurrentMonth, label: t('Current month') },
   { value: CurrentQuarter, label: t('Current quarter') },
   { value: CurrentYear, label: t('Current year') },
 ];
