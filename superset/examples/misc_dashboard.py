@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import textwrap
 
 from superset import db
 from superset.models.dashboard import Dashboard
+from superset.utils import json
 
 from .helpers import update_slice_ids
 

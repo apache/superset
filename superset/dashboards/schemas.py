@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import re
 from typing import Any, Union
 
@@ -22,9 +21,8 @@ from marshmallow import fields, post_dump, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
 from superset import security_manager
-from superset.exceptions import SupersetException
 from superset.tags.models import TagType
-from superset.utils import json as json_utils
+from superset.utils import json
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -89,8 +87,8 @@ openapi_spec_methods_override = {
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
-        json_utils.validate_json(value)
-    except SupersetException as ex:
+        json.validate_json(value)
+    except json.JSONDecodeError as ex:
         raise ValidationError("JSON not valid") from ex
 
 
@@ -99,7 +97,7 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
         return
     try:
         value_obj = json.loads(value)
-    except json.decoder.JSONDecodeError as ex:
+    except json.JSONDecodeError as ex:
         raise ValidationError("JSON not valid") from ex
     errors = DashboardJSONMetadataSchema().validate(value_obj, partial=False)
     if errors:

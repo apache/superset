@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Optional
 
@@ -37,6 +36,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.tags.models import ObjectType
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 

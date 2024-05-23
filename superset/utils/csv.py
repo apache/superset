@@ -22,8 +22,8 @@ from urllib.error import URLError
 
 import numpy as np
 import pandas as pd
-import simplejson
 
+from superset.utils import json
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ def get_chart_dataframe(
     if content is None:
         return None
 
-    result = simplejson.loads(content.decode("utf-8"))
+    result = json.loads(content.decode("utf-8"))
     # need to convert float value to string to show full long number
     pd.set_option("display.float_format", lambda x: str(x))
     df = pd.DataFrame.from_dict(result["result"][0]["data"])

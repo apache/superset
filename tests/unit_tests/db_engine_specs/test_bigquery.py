@@ -17,7 +17,6 @@
 
 # pylint: disable=line-too-long, import-outside-toplevel, protected-access, invalid-name
 
-import json
 from datetime import datetime
 from typing import Optional
 
@@ -30,6 +29,7 @@ from sqlalchemy_bigquery import BigQueryDialect
 
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
+from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 

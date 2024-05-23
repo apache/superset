@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any, TYPE_CHECKING
 from urllib import parse
@@ -45,7 +44,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
@@ -289,7 +288,7 @@ class Slice(  # pylint: disable=too-many-public-methods
                 return self.get_query_context_factory().create(
                     **json.loads(self.query_context)
                 )
-            except json.decoder.JSONDecodeError as ex:
+            except json.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)
                 logger.exception(ex)
         return None

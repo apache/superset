@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 import copy
-import json
 from datetime import datetime
 from typing import Any, Optional
 from unittest.mock import MagicMock, Mock, patch
@@ -41,6 +40,7 @@ from superset.db_engine_specs.exceptions import (
 )
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType, SQLType
+from superset.utils import json
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,

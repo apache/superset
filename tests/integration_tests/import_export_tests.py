@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
-import json
 import unittest
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -43,6 +42,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
+from superset.utils import json
 
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME

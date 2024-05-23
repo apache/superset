@@ -26,7 +26,6 @@ Create Date: 2022-04-01 14:38:09.499483
 revision = "a9422eeaae74"
 down_revision = "ad07e4fdbaba"
 
-import json  # noqa: E402
 import os  # noqa: E402
 from datetime import datetime  # noqa: E402
 from typing import Optional, Union  # noqa: E402
@@ -50,6 +49,7 @@ from superset.connectors.sqla.utils import (  # noqa: E402
 from superset.extensions import encrypted_field_factory  # noqa: E402
 from superset.migrations.shared.utils import assign_uuids  # noqa: E402
 from superset.sql_parse import extract_table_references, Table  # noqa: E402
+from superset.utils import json  # noqa: E402
 from superset.utils.core import MediumText  # noqa: E402
 
 Base = declarative_base()
@@ -579,7 +579,7 @@ def postprocess_datasets(session: Session) -> None:
             if schema:
                 try:
                     extra_json = json.loads(extra) if extra else {}
-                except json.decoder.JSONDecodeError:
+                except json.JSONDecodeError:
                     extra_json = {}
                 extra_json["schema"] = schema
                 updates["extra_json"] = json.dumps(extra_json)
@@ -771,7 +771,7 @@ def postprocess_columns(session: Session) -> None:
         ) in session.execute(query):
             try:
                 extra = json.loads(extra_json) if extra_json else {}
-            except json.decoder.JSONDecodeError:
+            except json.JSONDecodeError:
                 extra = {}
             updated_extra = {**extra}
             updates = {}

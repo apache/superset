@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
-import json
 from io import BytesIO
 from time import sleep
 from unittest.mock import ANY, patch
@@ -38,6 +37,7 @@ from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.tags.models import Tag, TaggedObject, TagType, ObjectType
 from superset.utils.core import backend, override_user
+from superset.utils import json
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
