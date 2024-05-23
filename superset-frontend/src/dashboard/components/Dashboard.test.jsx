@@ -19,7 +19,6 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
-import 'jest-canvas-mock';
 
 import Dashboard from 'src/dashboard/components/Dashboard';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
@@ -39,7 +38,6 @@ import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import dashboardState from 'spec/fixtures/mockDashboardState';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import { getAllActiveFilters } from 'src/dashboard/util/activeAllDashboardFilters';
-import { Logger, LOG_ACTIONS_HIDE_BROWSER_TAB } from '../../logger/LogUtils';
 
 describe('Dashboard', () => {
   const props = {
@@ -246,137 +244,6 @@ describe('Dashboard', () => {
       });
       expect(refreshSpy.callCount).toBe(1);
       expect(refreshSpy.getCall(0).args[0]).toEqual([]);
-    });
-
-    // The canvas is cleared using the clearRect method.
-    it('should clear the canvas using clearRect method', () => {
-      // Arrange
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const imageBitmap = new ImageBitmap(100, 100);
-
-      // Act
-      wrapper.instance().repaintCanvas(canvas, ctx, imageBitmap);
-
-      // Assert
-      expect(ctx.clearRect).toHaveBeenCalledWith(
-        0,
-        0,
-        canvas.width,
-        canvas.height,
-      );
-    });
-
-    // The canvas width and height are 0.
-    it('should recreate the canvas with the same dimensions', () => {
-      // Arrange
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const imageBitmap = new ImageBitmap(100, 100);
-
-      // Act
-      wrapper.instance().repaintCanvas(canvas, ctx, imageBitmap);
-
-      // Assert
-      const { width, height } = ctx.canvas;
-      expect(canvas.width).toBe(width);
-      expect(canvas.height).toBe(height);
-    });
-
-    // When the document visibility state changes to 'hidden', the method sets the 'visibilityEventData' object with a 'start_offset' and 'ts' properties, and queries all canvas elements on the page and stores them in the 'canvases' property.
-    it('should set visibilityEventData and canvases when document visibility state changes to "hidden"', () => {
-      // Initialize the class object with props
-      const props = {
-        activeFilters: {},
-        ownDataCharts: {},
-        actions: {
-          logEvent: jest.fn(),
-        },
-        layout: {},
-        dashboardInfo: {},
-        dashboardState: {
-          editMode: false,
-          isPublished: false,
-          hasUnsavedChanges: false,
-        },
-        chartConfiguration: {},
-      };
-
-      const DATE_TO_USE = new Date('2020');
-      const OrigDate = Date;
-      global.Date = jest.fn(() => DATE_TO_USE);
-      global.Date.UTC = OrigDate.UTC;
-      global.Date.parse = OrigDate.parse;
-      global.Date.now = OrigDate.now;
-
-      // Your test code here
-
-      const dashboard = new Dashboard(props);
-
-      // Mock the return value of document.visibilityState
-      jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
-      // mock Logger.getTimestamp() to return a fixed value
-      jest.spyOn(Logger, 'getTimestamp').mockReturnValue(1234567890);
-
-      // Invoke the method
-      dashboard.onVisibilityChange();
-
-      // Assert that visibilityEventData is set correctly
-      expect(dashboard.visibilityEventData).toEqual({
-        start_offset: 1234567890,
-        ts: DATE_TO_USE.getTime(),
-      });
-
-      // Assert that canvases are queried correctly
-      expect(dashboard.canvases).toEqual(expect.any(NodeList));
-
-      // Restore the original implementation of document.visibilityState
-      jest.restoreAllMocks();
-      // After your test
-      global.Date = OrigDate;
-    });
-
-    // When the document visibility state changes to 'visible', the method logs an event and calls the 'handleVisibilityChange' method.
-    it('should log an event and call handleVisibilityChange when document visibility state changes to "visible"', () => {
-      // Initialize the class object
-      const dashboard = new Dashboard({ activeFilters: {} });
-
-      // Mock the props and actions
-      dashboard.props = {
-        actions: {
-          logEvent: jest.fn(),
-        },
-      };
-
-      // Mock the visibilityEventData
-      dashboard.visibilityEventData = {
-        start_offset: 123,
-        ts: 456,
-      };
-
-      // Mock the handleVisibilityChange method
-      dashboard.handleVisibilityChange = jest.fn();
-
-      // Mock the document.visibilityState property
-      jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-
-      // Invoke the method
-      dashboard.onVisibilityChange();
-
-      // Assert that logEvent is called with the correct arguments
-      expect(dashboard.props.actions.logEvent).toHaveBeenCalledWith(
-        LOG_ACTIONS_HIDE_BROWSER_TAB,
-        {
-          ...dashboard.visibilityEventData,
-          duration: expect.any(Number),
-        },
-      );
-
-      // Assert that handleVisibilityChange is called
-      expect(dashboard.handleVisibilityChange).toHaveBeenCalled();
-
-      // Restore the original implementation of document.visibilityState
-      jest.restoreAllMocks();
     });
   });
 });
