@@ -9,7 +9,32 @@ runs:
   using: 'composite'
   steps:
 
-    - name: Test bash run
+    - name: Setup Node Env
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install supersetbot from npm
+      if: ${{ inputs.from-npm == 'true' }}
       shell: bash
+      run: npm install -g supersetbot
+
+    - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+      if: ${{ inputs.from-npm == 'false' }}
+      uses: actions/checkout@v4
+      with:
+        repository: apache-superset/supersetbot
+        path: supersetbot
+
+    - name: Setup supersetbot from repo
+      if: ${{ inputs.from-npm == 'false' }}
+      shell: bash
+      working-directory: supersetbot
       run: |
-        ls -ls
+        # simple trick to install globally with dependencies
+        npm pack
+        npm install -g ./supersetbot*.tgz
+
+    - name: echo supersetbot version
+      shell: bash
+      run: supersetbot version
