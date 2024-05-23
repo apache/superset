@@ -16,10 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as sharedControls } from './sharedControls';
-// React control components
-export { default as sharedControlComponents } from './components';
-export * from './components';
-export * from './customControls';
-export * from './mixins';
-export * from './dndControls';
+import { buildQueryContext } from '@superset-ui/core';
+import { histogramOperator } from '@superset-ui/chart-controls';
+import { HistogramFormData } from './types';
+
+export default function buildQuery(formData: HistogramFormData) {
+  const { column, groupby = [] } = formData;
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      columns: [...groupby, column],
+      post_processing: [histogramOperator(formData, baseQueryObject)],
+    },
+  ]);
+}

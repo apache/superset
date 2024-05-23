@@ -16,10 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as sharedControls } from './sharedControls';
-// React control components
-export { default as sharedControlComponents } from './components';
-export * from './components';
-export * from './customControls';
-export * from './mixins';
-export * from './dndControls';
+import { QueryFormColumn, QueryFormData } from '@superset-ui/core';
+import { BaseChartProps, BaseTransformedProps } from '../types';
+
+export type HistogramFormData = QueryFormData & {
+  bins: number;
+  column: QueryFormColumn;
+  colorScheme?: string;
+  sliceId: number;
+  showLegend: boolean;
+  showValue: boolean;
+};
+
+export interface HistogramChartProps extends BaseChartProps<HistogramFormData> {
+  formData: HistogramFormData;
+}
+
+export type HistogramTransformedProps = BaseTransformedProps<HistogramFormData>;

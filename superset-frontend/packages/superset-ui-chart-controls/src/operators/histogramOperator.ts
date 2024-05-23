@@ -13,13 +13,26 @@
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
+ * specific language governing permissions and limitationsxw
  * under the License.
  */
-export { default as sharedControls } from './sharedControls';
-// React control components
-export { default as sharedControlComponents } from './components';
-export * from './components';
-export * from './customControls';
-export * from './mixins';
-export * from './dndControls';
+import { PostProcessingHistogram, getColumnLabel } from '@superset-ui/core';
+import { PostProcessingFactory } from './types';
+
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export const histogramOperator: PostProcessingFactory<
+  PostProcessingHistogram
+> = (formData, queryObject) => {
+  // ensure bins is a number or it can be cast to a number, otherwise default to 5
+  const bins = Number.isNaN(Number(formData.bins)) ? 5 : Number(formData.bins);
+  const column = getColumnLabel(formData.column);
+  const groupby = formData.groupby!.map(getColumnLabel);
+  return {
+    operation: 'histogram',
+    options: {
+      column,
+      groupby,
+      bins,
+    },
+  };
+};

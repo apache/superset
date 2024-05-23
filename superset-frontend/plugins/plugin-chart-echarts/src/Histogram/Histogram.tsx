@@ -16,10 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as sharedControls } from './sharedControls';
-// React control components
-export { default as sharedControlComponents } from './components';
-export * from './components';
-export * from './customControls';
-export * from './mixins';
-export * from './dndControls';
+import React from 'react';
+import { HistogramTransformedProps } from './types';
+import Echart from '../components/Echart';
+import { EventHandlers } from '../types';
+
+export default function Histogram(props: HistogramTransformedProps) {
+  const { height, width, echartOptions, onLegendStateChanged, refs } = props;
+
+  const eventHandlers: EventHandlers = {
+    legendselectchanged: payload => {
+      onLegendStateChanged?.(payload.selected);
+    },
+    legendselectall: payload => {
+      onLegendStateChanged?.(payload.selected);
+    },
+    legendinverseselect: payload => {
+      onLegendStateChanged?.(payload.selected);
+    },
+  };
+
+  return (
+    <Echart
+      refs={refs}
+      height={height}
+      width={width}
+      echartOptions={echartOptions}
+      eventHandlers={eventHandlers}
+    />
+  );
+}
