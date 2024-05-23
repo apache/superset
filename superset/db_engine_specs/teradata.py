@@ -23,7 +23,7 @@ class TeradataEngineSpec(BaseEngineSpec):
 
     engine = "teradatasql"
     engine_name = "Teradata"
-    limit_method = LimitMethod.WRAP_SQL
+    limit_method = LimitMethod.FORCE_LIMIT
     max_column_name_length = 30  # since 14.10 this is 128
     allow_limit_clause = False
     select_keywords = {"SELECT", "SEL"}

@@ -32,7 +32,7 @@ import sqlparse
 from flask_babel import gettext as __
 from jinja2 import nodes
 from sqlalchemy import and_
-from sqlglot import exp, parse, parse_one
+from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect, Dialects
 from sqlglot.errors import ParseError, SqlglotError
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
@@ -308,7 +308,7 @@ def extract_tables_from_statement(
             return set()
 
         try:
-            pseudo_query = parse_one(f"SELECT {literal.this}", dialect=dialect)
+            pseudo_query = sqlglot.parse_one(f"SELECT {literal.this}", dialect=dialect)
         except ParseError:
             return set()
         sources = pseudo_query.find_all(exp.Table)
@@ -433,7 +433,7 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
-    def format(self, comments: bool = True) -> str:
+    def format(self, comments: bool = True, strip: bool = False) -> str:
         """
         Format the statement, optionally ommitting comments.
         """
@@ -451,8 +451,91 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def apply_rls(
+        self,
+        catalog: str | None,
+        schema: str | None,
+    ) -> InternalRepresentation:
+        """
+        Apply Row Level Security to the SQL.
+
+        :param database: The database where the SQL will run
+        :param catalog: The default catalog for non-qualified table names
+        :param schema: The default schema for non-qualified table names
+        :return: The SQL with RLS applied
+        """
+        raise NotImplementedError()
+
     def __str__(self) -> str:
         return self.format()
+
+
+class RLSAsPredicate:
+    """
+    Apply Row Level Security role as a predicate.
+
+    This transformer will apply any RLS predicates to the relevant tables. For example,
+    given the RLS rule:
+
+        table: some_table
+        clause: id = 42
+
+    If a user subject to the rule runs the following query:
+
+        SELECT foo FROM some_table WHERE bar = 'baz'
+
+    The query will be modified to:
+
+        SELECT foo FROM some_table WHERE bar = 'baz' AND id = 42
+
+    This approach is probably less secure than using subqueries, so it's only used for
+    databases without support for subqueries.
+    """
+
+    def __init__(self, rules: dict[Table, str]) -> None:
+        self.rules = rules
+
+    def __call__(self, node: exp.Expression) -> exp.Expression:
+        if not isinstance(node, exp.Select):
+            return node
+
+        table_node = node.find(exp.Table)
+        if not table_node:
+            return node
+
+        table = Table(
+            str(table_node.this),
+            str(table_node.db) if table_node.db else None,
+            str(table_node.catalog) if table_node.catalog else None,
+        )
+        if predicate := self.rules.get(table):
+            if where := node.args.get("where"):
+                predicate = exp.And(this=predicate, expression=where.this)
+
+            node.set("where", exp.Where(this=predicate))
+
+        return node
+
+
+class RLSAsSubquery:
+    def __init__(self, rules: dict[Table, str]) -> None:
+        self.rules = rules
+
+    def __call__(self, node: exp.Expression) -> exp.Expression:
+        if not isinstance(node, exp.Table):
+            return node
+
+        table = Table(
+            str(node.this),
+            str(node.db) if node.db else None,
+            str(node.catalog) if node.catalog else None,
+        )
+        if predicate := self.rules.get(table):
+            alias = node.alias
+            node.set("alias", None)
+            return f"(SELECT * FROM {node} WHERE {predicate}) AS {alias}"
+
+        return node
 
 
 class SQLStatement(BaseSQLStatement[exp.Expression]):
@@ -521,12 +604,19 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         dialect = SQLGLOT_DIALECTS.get(engine)
         return extract_tables_from_statement(parsed, dialect)
 
-    def format(self, comments: bool = True) -> str:
+    def format(self, comments: bool = True, strip: bool = False) -> str:
         """
         Pretty-format the SQL statement.
         """
         write = Dialect.get_or_raise(self._dialect)
-        return write.generate(self._parsed, copy=False, comments=comments, pretty=True)
+        output = write.generate(
+            self._parsed,
+            copy=False,
+            comments=comments,
+            pretty=True,
+        )
+
+        return output.strip(" \t\r\n;") if strip else output
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -542,6 +632,186 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             for set_item in self._parsed.find_all(exp.SetItem)
             for eq in set_item.find_all(exp.EQ)
         }
+
+    def apply_rls(
+        self,
+        catalog: str | None,
+        schema: str | None,
+    ) -> SQLStatement:
+        """
+        Apply Row Level Security to the SQL.
+
+        :param catalog: The default catalog for non-qualified table names
+        :param schema: The default schema for non-qualified table names
+        :return: The SQL with RLS applied
+        """
+        from superset.db_engine_specs import load_engine_specs
+
+        statement = self._parsed.copy()
+
+        # collect all relevant RLS rules
+        rules = {}
+        for table in self.tables:
+            if rls := self._get_rls_for_table(table, catalog, schema):
+                rules[table] = rls
+
+        if not rules:
+            return statement
+
+        use_subquery = all(
+            engine_spec.allows_subqueries
+            for engine_spec in load_engine_specs()
+            if engine_spec.engine == self.engine
+        )
+        transformer = RLSAsSubquery(rules) if use_subquery else RLSAsPredicate(rules)
+
+        return SQLStatement(statement.transform(transformer), self.engine)
+
+    def _get_rls_for_table(
+        self,
+        database: Database,
+        table: Table,
+        catalog: str | None,
+        schema: str | None,
+    ) -> exp.Expression | None:
+        """
+        Get the RLS for a table.
+
+        :param table: The table to get the RLS for
+        :param catalog: The default catalog for non-qualified table names
+        :param schema: The default schema for non-qualified table names
+        :return: The RLS for the table
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset import db
+        from superset.connectors.sqla.models import SqlaTable
+
+        dataset = db.session.query(SqlaTable).filter(
+            and_(
+                SqlaTable.database_id == database.id,
+                SqlaTable.catalog == table.catalog or catalog,
+                SqlaTable.schema == table.schema or schema,
+                SqlaTable.table_name == table.table,
+            ).one_or_none()
+        )
+        if not dataset:
+            return None
+
+        filters = dataset.get_sqla_row_level_filters()
+        if not filters:
+            return None
+
+        rls = and_(*filters).compile(
+            dialect=database.get_dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+
+        return sqlglot.parse_one(str(rls), dialect=self._dialect)
+
+    def is_dml(self) -> bool:
+        """
+        Check if the statement is DML.
+
+        :return: True if the statement is DML
+        """
+        for node in self._parsed.walk():
+            if isinstance(
+                node,
+                (
+                    exp.Insert,
+                    exp.Update,
+                    exp.Delete,
+                    exp.Merge,
+                    exp.Create,
+                    exp.Alter,
+                    exp.Drop,
+                    exp.TruncateTable,
+                ),
+            ):
+                return True
+
+        return False
+
+    def as_create_table(self, table: Table, method: CtasMethod) -> SQLStatement:
+        """
+        Convert the statement to a CREATE TABLE statement.
+        """
+        create_table = exp.Create(
+            this=sqlglot.parse_one(table, into=exp.Table),
+            kind=method.value,
+            expression=self._parsed.copy(),
+        )
+
+        return SQLStatement(create_table, self.engine)
+
+    def is_select(self) -> bool:
+        """
+        Check if the statement is a SELECT statement.
+
+        :return: True if the statement is a SELECT statement
+        """
+        return isinstance(self._parsed, exp.Select)
+
+    def apply_limit(self, limit: int, force: bool = False) -> SQLStatement:
+        """
+        Apply a limit to the SQL.
+
+        There are 3 strategies to limit queries, defined in the DB engine spec:
+
+            1. `FORCE_LIMIT`: a limit is added to the query, or the existing one is
+                replaced. This is the most efficient, since the database will produce at
+                most the number of rows that Superset will display.
+            2. `WRAP_SQL`: the query is wrapped in a subquery, and the limit is applied
+                to the outer query. This might be inneficient, since the database
+                optimizer might not be able to push the limit down to the inner query.
+            3. `FETCH_MANY`: no limit is applied, but only `LIMIT` rows are fetched from
+                the database. This is the least efficient, unless the database computes
+                rows as they are read by the cursor, which is unlikely.
+
+        :param limit: The limit to apply
+        :param force: Apply limit even when a lower one is present
+        :return: The SQL with the limit applied
+        """
+        from superset.db_engine_specs import load_engine_specs
+        from superset.db_engine_specs.base import LimitMethod
+
+        methods = {
+            engine_spec.limit_method
+            for engine_spec in load_engine_specs()
+            if engine_spec.engine == self.engine
+        }
+        if not methods:
+            methods = {LimitMethod.FETCH_MANY}
+
+        # When multiple methods are supported, we prefer the more generic one --
+        # usually less efficient.
+        preference = [
+            LimitMethod.FETCH_MANY,
+            LimitMethod.WRAP_SQL,
+            LimitMethod.FORCE_LIMIT,
+        ]
+        method = sorted(methods, key=preference.index)[0]
+
+        if not self.is_select() or method == LimitMethod.FETCH_MANY:
+            return SQLStatement(self._parsed.copy(), self.engine)
+
+        if method == LimitMethod.WRAP_SQL:
+            limited = exp.Select(
+                expressions=[exp.Star()],
+                from_=exp.Subquery(subquery=self._parsed.copy(), alias="inner_qry"),
+                limit=exp.Literal.number(limit),
+            )
+            return SQLStatement(limited, self.engine)
+
+        current_limit: int | None = None
+        for node in self._parsed.find_all(exp.Limit):
+            current_limit = int(node.expression.this)
+            break
+
+        if force or current_limit is None or limit < current_limit:
+            return SQLStatement(self._parsed.limit(limit), self.engine)
+
+        return SQLStatement(self._parsed.copy(), self.engine)
 
 
 class KQLSplitState(enum.Enum):
@@ -666,11 +936,11 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         )
         return set()
 
-    def format(self, comments: bool = True) -> str:
+    def format(self, comments: bool = True, strip: bool = False) -> str:
         """
         Pretty-format the SQL statement.
         """
-        return self._parsed
+        return self._parsed.strip(" \t\r\n;") if strip else self._parsed
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -712,7 +982,10 @@ class SQLScript:
         """
         Pretty-format the SQL query.
         """
-        return ";\n".join(statement.format(comments) for statement in self.statements)
+        return (
+            ";\n".join(statement.format(comments) for statement in self.statements)
+            + ";"
+        )
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -792,7 +1065,7 @@ class ParsedQuery:
         Note: this uses sqlglot, since it's better at catching more edge cases.
         """
         try:
-            statements = parse(self.stripped(), dialect=self._dialect)
+            statements = sqlglot.parse(self.stripped(), dialect=self._dialect)
         except SqlglotError as ex:
             logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
 
@@ -846,7 +1119,7 @@ class ParsedQuery:
                 return set()
 
             try:
-                pseudo_query = parse_one(
+                pseudo_query = sqlglot.parse_one(
                     f"SELECT {literal.this}",
                     dialect=self._dialect,
                 )

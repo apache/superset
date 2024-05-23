@@ -53,9 +53,8 @@ from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import (
     CtasMethod,
-    insert_rls_as_subquery,
-    insert_rls_in_predicate,
     ParsedQuery,
+    SQLStatement,
     Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
@@ -205,67 +204,49 @@ def execute_sql_statement(  # pylint: disable=too-many-statements
     database: Database = query.database
     db_engine_spec = database.db_engine_spec
 
-    parsed_query = ParsedQuery(sql_statement, engine=db_engine_spec.engine)
+    parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
+
     if is_feature_enabled("RLS_IN_SQLLAB"):
-        # There are two ways to insert RLS: either replacing the table with a subquery
-        # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
-        # safer, but not supported in all databases.
-        insert_rls = (
-            insert_rls_as_subquery
-            if database.db_engine_spec.allows_subqueries
-            and database.db_engine_spec.allows_alias_in_select
-            else insert_rls_in_predicate
-        )
+        default_schema = database.get_default_schema_for_query(query)
+        parsed_statement = parsed_statement.apply_rls(query.catalog, default_schema)
 
-        # Insert any applicable RLS predicates
-        parsed_query = ParsedQuery(
-            str(
-                insert_rls(
-                    parsed_query._parsed[0],  # pylint: disable=protected-access
-                    database.id,
-                    query.schema,
-                )
-            ),
-            engine=db_engine_spec.engine,
-        )
-
-    sql = parsed_query.stripped()
-
-    # This is a test to see if the query is being
-    # limited by either the dropdown or the sql.
-    # We are testing to see if more rows exist than the limit.
-    increased_limit = None if query.limit is None else query.limit + 1
-
-    if not db_engine_spec.is_readonly_query(parsed_query) and not database.allow_dml:
+    if parsed_statement.is_dml() and not database.allow_dml:
         raise SupersetErrorException(
             SupersetError(
-                message=__("Only SELECT statements are allowed against this database."),
+                message=__("DML statements are not allowed in this database."),
                 error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
                 level=ErrorLevel.ERROR,
             )
         )
+
     if apply_ctas:
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
             query.tmp_table_name = (
                 f'tmp_{query.user_id}_table_{start_dttm.strftime("%Y_%m_%d_%H_%M_%S")}'
             )
-        sql = parsed_query.as_create_table(
-            query.tmp_table_name,
-            schema_name=query.tmp_schema_name,
+        parsed_statement = parsed_statement.as_create_table(
+            Table(query.tmp_table_name, query.tmp_schema_name, query.catalog),
             method=query.ctas_method,
         )
         query.select_as_cta_used = True
 
+    increased_limit = None if query.limit is None else query.limit + 1
+
     # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
-    if db_engine_spec.is_select_query(parsed_query) and not (
+    if parsed_statement.is_select() and not (
         query.select_as_cta_used and SQLLAB_CTAS_NO_LIMIT
     ):
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
             query.limit = SQL_MAX_ROW
-        sql = apply_limit_if_exists(database, increased_limit, query, sql)
+
+        if query.limit:
+            # Increase limit by one so we can test if there are more rows when the
+            # database returns exactly the number of rows requested by the user.
+            parsed_statement = parsed_statement.apply_limit(increased_limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
+    sql = parsed_statement.format(strip=True)
     sql = database.mutate_sql_based_on_config(sql)
     try:
         query.executed_sql = sql
@@ -331,19 +312,6 @@ def execute_sql_statement(  # pylint: disable=too-many-statements
     logger.debug("Query %d: Fetching cursor description", query.id)
     cursor_description = cursor.description
     return SupersetResultSet(data, cursor_description, db_engine_spec)
-
-
-def apply_limit_if_exists(
-    database: Database, increased_limit: Optional[int], query: Query, sql: str
-) -> str:
-    if query.limit and increased_limit:
-        # We are fetching one more than the requested limit in order
-        # to test whether there are more rows than the limit. According to the DB
-        # Engine support it will choose top or limit parse
-        # Later, the extra row will be dropped before sending
-        # the results back to the user.
-        sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
-    return sql
 
 
 def _serialize_payload(

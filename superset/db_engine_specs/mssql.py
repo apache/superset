@@ -49,7 +49,7 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 class MssqlEngineSpec(BaseEngineSpec):
     engine = "mssql"
     engine_name = "Microsoft SQL Server"
-    limit_method = LimitMethod.WRAP_SQL
+    limit_method = LimitMethod.FORCE_LIMIT
     max_column_name_length = 128
     allows_cte_in_subquery = False
     allow_limit_clause = False

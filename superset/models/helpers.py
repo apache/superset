@@ -17,6 +17,8 @@
 # pylint: disable=too-many-lines
 """a collection of model-related helper classes and functions"""
 
+from __future__ import annotations
+
 import builtins
 import dataclasses
 import logging
@@ -806,7 +808,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_sqla_row_level_filters(
         self,
-        template_processor: Optional[BaseTemplateProcessor] = None,
+        template_processor: BaseTemplateProcessor | None = None,
     ) -> list[TextClause]:
         """
         Return the appropriate row level security filters for this table and the
