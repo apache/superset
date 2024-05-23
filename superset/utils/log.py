@@ -91,6 +91,31 @@ def get_logger_from_status(
 
 
 class AbstractEventLogger(ABC):
+    # Parameters that are passed under the `curated_payload` arg to the log method
+    curated_payload_params = {
+        "force",
+        "standalone",
+        "runAsync",
+        "json",
+        "csv",
+        "queryLimit",
+        "select_as_cta",
+    }
+    # Similarly, parameters that are passed under the `curated_form_data` arg
+    curated_form_data_params = {
+        "dashboardId",
+        "sliceId",
+        "viz_type",
+        "force",
+        "compare_lag",
+        "forecastPeriods",
+        "granularity_sqla",
+        "legendType",
+        "legendOrientation",
+        "show_legend",
+        "time_grain_sqla",
+    }
+
     def __call__(
         self,
         action: str,
@@ -120,6 +145,16 @@ class AbstractEventLogger(ABC):
             **self.payload_override,
         )
 
+    @classmethod
+    def curate_payload(cls, payload: dict[str, Any]) -> dict[str, Any]:
+        """Curate payload to only include relevant keys/safe keys"""
+        return {k: v for k, v in payload.items() if k in cls.curated_payload_params}
+
+    @classmethod
+    def curate_form_data(cls, payload: dict[str, Any]) -> dict[str, Any]:
+        """Curate form_data to only include relevant keys/safe keys"""
+        return {k: v for k, v in payload.items() if k in cls.curated_form_data_params}
+
     @abstractmethod
     def log(  # pylint: disable=too-many-arguments
         self,
@@ -129,6 +164,8 @@ class AbstractEventLogger(ABC):
         duration_ms: int | None,
         slice_id: int | None,
         referrer: str | None,
+        curated_payload: dict[str, Any] | None,
+        curated_form_data: dict[str, Any] | None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -180,6 +217,7 @@ class AbstractEventLogger(ABC):
                 "database_driver": database.driver,
             }
 
+        form_data: dict[str, Any] = {}
         if "form_data" in payload:
             form_data, _ = get_form_data()
             payload["form_data"] = form_data
@@ -207,6 +245,8 @@ class AbstractEventLogger(ABC):
             slice_id=slice_id,
             duration_ms=duration_ms,
             referrer=referrer,
+            curated_payload=self.curate_payload(payload),
+            curated_form_data=self.curate_form_data(form_data),
             **database_params,
         )
 
@@ -380,6 +420,8 @@ class StdOutEventLogger(AbstractEventLogger):
         duration_ms: int | None,
         slice_id: int | None,
         referrer: str | None,
+        curated_payload: dict[str, Any] | None,
+        curated_form_data: dict[str, Any] | None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -390,6 +432,8 @@ class StdOutEventLogger(AbstractEventLogger):
             duration_ms=duration_ms,
             slice_id=slice_id,
             referrer=referrer,
+            curated_payload=curated_payload,
+            curated_form_data=curated_form_data,
             **kwargs,
         )
         print("StdOutEventLogger: ", data)
