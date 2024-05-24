@@ -66,7 +66,7 @@ flask-testing==0.8.1
     # via apache-superset
 fonttools==4.51.0
     # via matplotlib
-freezegun==1.4.0
+freezegun==1.5.1
     # via apache-superset
 future==0.18.3
     # via pyhive
@@ -107,7 +107,7 @@ grpcio==1.62.1
     #   grpcio-status
 grpcio-status==1.60.1
     # via google-api-core
-identify==2.5.24
+identify==2.5.36
     # via pre-commit
 ijson==3.2.3
     # via dataflows-tabulator
@@ -127,9 +127,9 @@ jsonlines==4.0.0
     # via dataflows-tabulator
 jsonschema-spec==0.1.6
     # via openapi-spec-validator
-kiwisolver==1.4.4
+kiwisolver==1.4.5
     # via matplotlib
-lazy-object-proxy==1.9.0
+lazy-object-proxy==1.10.0
     # via openapi-spec-validator
 linear-tsv==1.1.0
     # via dataflows-tabulator
@@ -159,7 +159,7 @@ parso==0.8.4
     # via jedi
 pathable==0.4.3
     # via jsonschema-spec
-pexpect==4.8.0
+pexpect==4.9.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
@@ -202,7 +202,7 @@ pure-sasl==0.6.2
     # via thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
-pydruid==0.6.6
+pydruid==0.6.9
     # via apache-superset
 pyee==11.0.1
     # via playwright
@@ -214,7 +214,7 @@ pyinstrument==4.4.0
     # via apache-superset
 pylint==3.1.0
     # via apache-superset
-pyproject-api==1.5.2
+pyproject-api==1.6.1
     # via tox
 pyproject-hooks==1.0.0
     # via
@@ -231,8 +231,6 @@ pytest-mock==3.10.0
     # via apache-superset
 python-ldap==3.4.4
     # via apache-superset
-pytz-deprecation-shim==0.1.0.post0
-    # via tzlocal
 requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 rfc3339-validator==0.1.4
@@ -261,10 +259,12 @@ thrift-sasl==0.4.3
     # via apache-superset
 tomli==2.0.1
     # via
+    #   apache-superset
     #   build
     #   coverage
     #   pip-tools
     #   pylint
+    #   pyhive
     #   pyproject-api
     #   pyproject-hooks
     #   pytest
@@ -279,13 +279,13 @@ tqdm==4.66.4
     # via
     #   cmdstanpy
     #   prophet
-traitlets==5.9.0
+traitlets==5.14.3
     # via
     #   ipython
     #   matplotlib-inline
 trino==0.328.0
     # via apache-superset
-tzlocal==4.3
+tzlocal==5.2
     # via trino
 unicodecsv==0.14.1
     # via
@@ -295,7 +295,7 @@ virtualenv==20.23.1
     # via
     #   pre-commit
     #   tox
-wheel==0.40.0
+wheel==0.43.0
     # via pip-tools
 xlrd==2.0.1
     # via dataflows-tabulator
