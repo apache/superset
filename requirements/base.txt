@@ -85,7 +85,7 @@ cryptography==42.0.7
     #   apache-superset
     #   paramiko
     #   pyopenssl
-deprecated==1.2.13
+deprecated==1.2.14
     # via limits
 deprecation==2.1.0
     # via apache-superset

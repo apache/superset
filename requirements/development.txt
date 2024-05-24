@@ -129,13 +129,13 @@ jmespath==1.0.1
     # via
     #   boto3
     #   botocore
-jsonlines==3.1.0
+jsonlines==4.0.0
     # via dataflows-tabulator
 jsonschema-spec==0.1.6
     # via openapi-spec-validator
 kiwisolver==1.4.4
     # via matplotlib
-lazy-object-proxy==1.9.0
+lazy-object-proxy==1.10.0
     # via openapi-spec-validator
 linear-tsv==1.1.0
     # via dataflows-tabulator
@@ -237,8 +237,6 @@ pytest-mock==3.10.0
     # via apache-superset
 python-ldap==3.4.4
     # via apache-superset
-pytz-deprecation-shim==0.1.0.post0
-    # via tzlocal
 requests-oauthlib==1.3.1
     # via google-auth-oauthlib
 rfc3339-validator==0.1.4
@@ -268,11 +266,11 @@ thrift-sasl==0.4.3
 tomli==2.0.1
     # via
     #   apache-superset
-    #   pyhive
     #   build
     #   coverage
     #   pip-tools
     #   pylint
+    #   pyhive
     #   pyproject-api
     #   pyproject-hooks
     #   pytest
@@ -294,7 +292,7 @@ traitlets==5.9.0
     #   matplotlib-inline
 trino==0.328.0
     # via apache-superset
-tzlocal==4.3
+tzlocal==5.2
     # via trino
 unicodecsv==0.14.1
     # via
