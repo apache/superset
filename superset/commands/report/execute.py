@@ -391,16 +391,19 @@ class BaseReportState:
         ):
             embedded_data = self._get_embedded_data()
 
-        if self._report_schedule.chart:
-            name = (
-                f"{self._report_schedule.name}: "
-                f"{self._report_schedule.chart.slice_name}"
-            )
+        if self._report_schedule.email_subject:
+            name = self._report_schedule.email_subject
         else:
-            name = (
-                f"{self._report_schedule.name}: "
-                f"{self._report_schedule.dashboard.dashboard_title}"
-            )
+            if self._report_schedule.chart:
+                name = (
+                    f"{self._report_schedule.name}: "
+                    f"{self._report_schedule.chart.slice_name}"
+                )
+            else:
+                name = (
+                    f"{self._report_schedule.name}: "
+                    f"{self._report_schedule.dashboard.dashboard_title}"
+                )
 
         return NotificationContent(
             name=name,

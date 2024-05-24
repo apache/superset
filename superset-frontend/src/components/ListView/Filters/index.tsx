@@ -71,6 +71,7 @@ function UIFilters(
             input,
             paginate,
             selects,
+            toolTipDescription,
             onFilterUpdate,
           },
           index,
@@ -111,6 +112,7 @@ function UIFilters(
                 initialValue={initialValue}
                 key={key}
                 name={id}
+                toolTipDescription={toolTipDescription}
                 onSubmit={(value: string) => {
                   if (onFilterUpdate) {
                     onFilterUpdate(value);

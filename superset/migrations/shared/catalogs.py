@@ -86,7 +86,7 @@ class Slice(Base):
     schema_perm = sa.Column(sa.String(1000))
 
 
-def upgrade_catalog_perms(engine: str | None = None) -> None:
+def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
     """
     Update models when catalogs are introduced in a DB engine spec.
 
@@ -102,7 +102,7 @@ def upgrade_catalog_perms(engine: str | None = None) -> None:
     for database in session.query(Database).all():
         db_engine_spec = database.db_engine_spec
         if (
-            engine and db_engine_spec.engine != engine
+            engines and db_engine_spec.engine not in engines
         ) or not db_engine_spec.supports_catalog:
             continue
 
@@ -166,7 +166,7 @@ def upgrade_catalog_perms(engine: str | None = None) -> None:
     session.commit()
 
 
-def downgrade_catalog_perms(engine: str | None = None) -> None:
+def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
     """
     Reverse the process of `upgrade_catalog_perms`.
     """
@@ -175,7 +175,7 @@ def downgrade_catalog_perms(engine: str | None = None) -> None:
     for database in session.query(Database).all():
         db_engine_spec = database.db_engine_spec
         if (
-            engine and db_engine_spec.engine != engine
+            engines and db_engine_spec.engine not in engines
         ) or not db_engine_spec.supports_catalog:
             continue
 

@@ -19,7 +19,7 @@ from typing import Any, Union
 from marshmallow import validate, ValidationError
 
 from superset.exceptions import SupersetException
-from superset.utils import core as utils
+from superset.utils import json as json_utils
 
 
 class OneOfCaseInsensitive(validate.OneOf):
@@ -49,6 +49,6 @@ def validate_json(value: Union[bytes, bytearray, str]) -> None:
     :param value: an object that should be parseable to JSON
     """
     try:
-        utils.validate_json(value)
+        json_utils.validate_json(value)
     except SupersetException as ex:
         raise ValidationError("JSON not valid") from ex
