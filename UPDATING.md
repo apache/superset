@@ -84,6 +84,7 @@ assists people when migrating to a new version.
 ### Potential Downtime
 
 - [26416](https://github.com/apache/superset/pull/26416): Adds two database indexes to the `report_execution_log` table and one database index to the `report_recipient` to improve performance. Scheduled downtime may be required for large deployments.
+- [28482](https://github.com/apache/superset/pull/28482): Potentially augments the `query.executed_sql` and `query.select_sql` columns for MySQL from `MEDIUMTEXT` to `LONGTEXT`. Potential downtime may be required for large deployments which previously ran [27119](https://github.com/apache/superset/pull/27119).
 
 ## 3.1.0
 

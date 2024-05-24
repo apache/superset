@@ -51,7 +51,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
-from superset.utils import core as utils
+from superset.utils import core as utils, json as json_utils
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
@@ -372,7 +372,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
         return json.dumps(
             {"dashboards": copied_dashboards, "datasources": eager_datasources},
-            cls=utils.DashboardEncoder,
+            cls=json_utils.DashboardEncoder,
             indent=4,
         )
 
