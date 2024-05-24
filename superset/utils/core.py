@@ -979,7 +979,8 @@ def simple_filter_to_adhoc(
         "clause": clause.upper(),
         "expressionType": "SIMPLE",
         "comparator": filter_clause.get("val"),
-        "operator": filter_clause.get("op", "LIKE"),
+        # "operator": filter_clause["op"],
+        "operator": "LIKE",
         "subject": cast(str, filter_clause["col"]),
     }
     if filter_clause.get("isExtra"):
