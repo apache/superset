@@ -66,7 +66,7 @@ flask-testing==0.8.1
     # via apache-superset
 fonttools==4.51.0
     # via matplotlib
-freezegun==1.4.0
+freezegun==1.5.1
     # via apache-superset
 future==0.18.3
     # via pyhive
