@@ -308,7 +308,7 @@ pyyaml==6.0.1
     #   apispec
 redis==4.6.0
     # via apache-superset
-requests==2.31.0
+requests==2.32.2
     # via
     #   requests-cache
     #   shillelagh
