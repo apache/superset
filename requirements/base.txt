@@ -22,17 +22,17 @@ attrs==23.1.0
     #   cattrs
     #   jsonschema
     #   requests-cache
-babel==2.9.1
+babel==2.15.0
     # via flask-babel
 backoff==2.2.1
     # via apache-superset
-bcrypt==4.0.1
+bcrypt==4.1.3
     # via paramiko
 billiard==4.2.0
     # via celery
 blinker==1.8.2
     # via flask
-bottleneck==1.3.7
+bottleneck==1.3.8
     # via pandas
 brotli==1.1.0
     # via flask-compress
@@ -42,13 +42,13 @@ cachelib==0.9.0
     #   flask-session
 cachetools==5.3.2
     # via google-auth
-cattrs==23.2.1
+cattrs==23.2.3
     # via requests-cache
 celery==5.3.6
     # via apache-superset
 certifi==2023.7.22
     # via requests
-cffi==1.15.1
+cffi==1.16.0
     # via
     #   cryptography
     #   pynacl
@@ -64,13 +64,13 @@ click==8.1.7
     #   click-repl
     #   flask
     #   flask-appbuilder
-click-didyoumean==0.3.0
+click-didyoumean==0.3.1
     # via celery
 click-option-group==0.5.6
     # via apache-superset
 click-plugins==1.1.1
     # via celery
-click-repl==0.2.0
+click-repl==0.3.0
     # via celery
 colorama==0.4.6
     # via
@@ -177,7 +177,7 @@ jinja2==3.1.4
     #   flask-babel
 jsonschema==4.17.3
     # via flask-appbuilder
-kombu==5.3.4
+kombu==5.3.7
     # via celery
 korean-lunar-calendar==0.3.1
     # via holidays
@@ -199,7 +199,7 @@ markupsafe==2.1.5
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.19.0
+marshmallow==3.21.2
     # via
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
@@ -296,7 +296,6 @@ python-geohash==0.8.5
     # via apache-superset
 pytz==2021.3
     # via
-    #   babel
     #   croniter
     #   flask-babel
     #   pandas
@@ -306,7 +305,7 @@ pyyaml==6.0.1
     #   apispec
 redis==4.6.0
     # via apache-superset
-requests==2.31.0
+requests==2.32.2
     # via
     #   requests-cache
     #   shillelagh
@@ -326,7 +325,6 @@ simplejson==3.19.2
     # via apache-superset
 six==1.16.0
     # via
-    #   click-repl
     #   isodate
     #   prison
     #   python-dateutil
@@ -355,7 +353,7 @@ sshtunnel==0.4.0
     # via apache-superset
 tabulate==0.8.10
     # via apache-superset
-typing-extensions==4.11.0
+typing-extensions==4.12.0
     # via
     #   alembic
     #   apache-superset
