@@ -177,7 +177,7 @@ pluggy==1.4.0
     # via
     #   pytest
     #   tox
-pre-commit==3.7.0
+pre-commit==3.7.1
     # via apache-superset
 progress==1.6
     # via apache-superset
