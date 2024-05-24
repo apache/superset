@@ -1568,7 +1568,7 @@ USER_SK_REDIS_CONFIG = {
     "port": 6379,
     "host": "10.70.52.123",
     "password": "",
-    "db": 3,
+    "db": 2,
     "ssl": False,
 }
 
