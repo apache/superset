@@ -44,7 +44,7 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     if (
       isPhysicalColumn(col) &&
       time_grain_sqla &&
-      hasGenericChartAxes &&
+      (hasGenericChartAxes || process.env.type !== undefined) && // DODO changed #33889226 for plugin
       /* Charts created before `GENERIC_CHART_AXES` is enabled have a different
        * form data, with `granularity_sqla` set instead.
        */
