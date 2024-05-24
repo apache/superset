@@ -253,7 +253,7 @@ stack-data==0.6.2
     # via ipython
 statsd==4.0.1
     # via apache-superset
-tableschema==1.20.10
+tableschema==1.20.11
     # via apache-superset
 thrift==0.16.0
     # via
