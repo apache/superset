@@ -280,7 +280,7 @@ toposort==1.10
     # via pip-compile-multi
 tox==4.6.4
     # via apache-superset
-tqdm==4.65.0
+tqdm==4.66.4
     # via
     #   cmdstanpy
     #   prophet
