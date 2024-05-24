@@ -109,7 +109,7 @@ grpcio-status==1.60.1
     # via google-api-core
 identify==2.5.24
     # via pre-commit
-ijson==3.2.0.post0
+ijson==3.2.3
     # via dataflows-tabulator
 iniconfig==2.0.0
     # via pytest
