@@ -107,7 +107,7 @@ grpcio==1.62.1
     #   grpcio-status
 grpcio-status==1.60.1
     # via google-api-core
-identify==2.5.24
+identify==2.5.36
     # via pre-commit
 ijson==3.2.3
     # via dataflows-tabulator
