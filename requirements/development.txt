@@ -127,7 +127,7 @@ jsonlines==4.0.0
     # via dataflows-tabulator
 jsonschema-spec==0.1.6
     # via openapi-spec-validator
-kiwisolver==1.4.4
+kiwisolver==1.4.5
     # via matplotlib
 lazy-object-proxy==1.10.0
     # via openapi-spec-validator
