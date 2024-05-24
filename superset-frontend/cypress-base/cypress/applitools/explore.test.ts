@@ -16,38 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
-import { waitForChartLoad } from 'cypress/utils';
-import { WORLD_HEALTH_CHARTS } from './utils';
+import {
+  FORM_DATA_DEFAULTS,
+  NUM_METRIC,
+} from '../e2e/explore/visualizations/shared.helper';
 
-describe('Dashboard load', () => {
+describe('explore view', () => {
   beforeEach(() => {
-    cy.visit(WORLD_HEALTH_DASHBOARD);
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   afterEach(() => {
     cy.eyesClose();
   });
 
-  it('should load the Dashboard', () => {
+  it('should load Explore', () => {
+    const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
+    const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
+    cy.visitChartByParams(formData);
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
     cy.eyesOpen({
-      testName: 'Dashboard page',
+      testName: 'Explore page',
     });
-    cy.eyesCheckWindow('Dashboard loaded');
-  });
-
-  it('should load the Dashboard in edit mode', () => {
-    cy.get('.header-with-actions')
-      .find('[aria-label="Edit dashboard"]')
-      .click();
-    // wait for a chart to appear
-    cy.get('[data-test="grid-container"]').find('.box_plot', {
-      timeout: 10000,
-    });
-    cy.eyesOpen({
-      testName: 'Dashboard edit mode',
-    });
-    cy.eyesCheckWindow('Dashboard edit mode loaded');
+    cy.eyesCheckWindow('Explore loaded');
   });
 });

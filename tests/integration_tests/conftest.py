@@ -29,8 +29,8 @@ from sqlalchemy.engine import Engine
 
 from superset import db, security_manager
 from superset.extensions import feature_flag_manager
-from superset.utils.core import json_dumps_w_dates
 from superset.utils.database import get_example_database, remove_database
+from superset.utils.json import json_dumps_w_dates
 from tests.integration_tests.test_app import app, login
 
 if TYPE_CHECKING:
@@ -304,7 +304,6 @@ def virtual_dataset():
             "SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00', 4 "
             "UNION ALL "
             "SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00', 5 "
-            "\n /* CONTAINS A RANDOM COMMENT */ \n"
             "UNION ALL "
             "SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6 "
             "UNION ALL "

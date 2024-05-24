@@ -17,16 +17,16 @@
 
 import logging
 
-import simplejson as json
 from flask_appbuilder import expose
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from werkzeug.exceptions import NotFound
 
-from superset import db, is_feature_enabled, utils
+from superset import db, is_feature_enabled
 from superset.superset_typing import FlaskResponse
 from superset.tags.models import Tag
+from superset.utils import json as json_utils
 from superset.views.base import SupersetModelView
 
 from .base import BaseSupersetView, json_success
@@ -74,4 +74,6 @@ class TagView(BaseSupersetView):
             }
             for obj in query
         ]
-        return json_success(json.dumps(results, default=utils.core.json_int_dttm_ser))
+        return json_success(
+            json_utils.dumps(results, default=json_utils.json_int_dttm_ser)
+        )

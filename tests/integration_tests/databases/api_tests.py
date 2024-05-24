@@ -3281,7 +3281,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                     "engine_information": {
                         "supports_file_upload": True,
-                        "supports_dynamic_catalog": False,
+                        "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": True,
                     },
                 },

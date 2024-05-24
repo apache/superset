@@ -367,6 +367,7 @@ export const TRANSLATIONS = {
   CRONTAB_ERROR_TEXT: t('crontab'),
   WORKING_TIMEOUT_ERROR_TEXT: t('working timeout'),
   RECIPIENTS_ERROR_TEXT: t('recipients'),
+  EMAIL_SUBJECT_ERROR_TEXT: t('email subject'),
   ERROR_TOOLTIP_MESSAGE: t(
     'Not all required fields are complete. Please provide the following:',
   ),
@@ -491,6 +492,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [notificationSettings, setNotificationSettings] = useState<
     NotificationSetting[]
   >([]);
+  const [emailSubject, setEmailSubject] = useState<string>('');
+  const [emailError, setEmailError] = useState(false);
+
   const onNotificationAdd = () => {
     setNotificationSettings([
       ...notificationSettings,
@@ -543,6 +547,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     owners: [],
     recipients: [],
     sql: '',
+    email_subject: '',
     validator_config_json: {},
     validator_type: '',
     force_screenshot: false,
@@ -888,6 +893,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const parsedValue = type === 'number' ? parseInt(value, 10) || null : value;
 
     updateAlertState(name, parsedValue);
+
+    if (name === 'name') {
+      updateEmailSubject();
+    }
   };
 
   const onCustomWidthChange = (value: number | null | undefined) => {
@@ -1058,6 +1067,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const validateNotificationSection = () => {
     const hasErrors = !checkNotificationSettings();
     const errors = hasErrors ? [TRANSLATIONS.RECIPIENTS_ERROR_TEXT] : [];
+
+    if (emailError) {
+      errors.push(TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT);
+    }
+
     updateValidationStatus(Sections.Notification, errors);
   };
 
@@ -1199,6 +1213,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentAlertSafe = currentAlert || {};
   useEffect(() => {
     validateAll();
+    updateEmailSubject();
   }, [
     currentAlertSafe.name,
     currentAlertSafe.owners,
@@ -1212,6 +1227,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     contentType,
     notificationSettings,
     conditionNotNull,
+    emailError,
   ]);
   useEffect(() => {
     enforceValidation();
@@ -1241,6 +1257,32 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     return titleText;
+  };
+
+  const updateEmailSubject = () => {
+    if (contentType === 'chart') {
+      if (currentAlert?.name || currentAlert?.chart?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.chart?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else if (contentType === 'dashboard') {
+      if (currentAlert?.name || currentAlert?.dashboard?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.dashboard?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else {
+      setEmailSubject('');
+    }
+  };
+
+  const handleErrorUpdate = (hasError: boolean) => {
+    setEmailError(hasError);
   };
 
   return (
@@ -1690,6 +1732,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
+                onInputChange={onInputChange}
+                email_subject={currentAlert?.email_subject || ''}
+                defaultSubject={emailSubject || ''}
+                setErrorSubject={handleErrorUpdate}
               />
             </StyledNotificationMethodWrapper>
           ))}

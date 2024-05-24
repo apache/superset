@@ -26,6 +26,7 @@ import pytest
 from pytest_mock import MockerFixture
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from sqlalchemy import types
+from sqlalchemy.engine.url import make_url
 from trino.exceptions import TrinoExternalError, TrinoInternalError, TrinoUserError
 from trino.sqlalchemy import datatype
 
@@ -556,3 +557,91 @@ def test_get_dbapi_exception_mapping():
     assert mapping.get(TrinoExternalError) == SupersetDBAPIOperationalError
     assert mapping.get(RequestsConnectionError) == SupersetDBAPIConnectionError
     assert mapping.get(Exception) is None
+
+
+def test_adjust_engine_params_fully_qualified() -> None:
+    """
+    Test the ``adjust_engine_params`` method when the URL has catalog and schema.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://user:pass@localhost:8080/system/default")
+
+    uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
+    assert str(uri) == "trino://user:pass@localhost:8080/system/default"
+
+    uri = TrinoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        schema="new_schema",
+    )[0]
+    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+
+    uri = TrinoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+    )[0]
+    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/default"
+
+    uri = TrinoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+        schema="new_schema",
+    )[0]
+    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+
+
+def test_adjust_engine_params_catalog_only() -> None:
+    """
+    Test the ``adjust_engine_params`` method when the URL has only the catalog.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://user:pass@localhost:8080/system")
+
+    uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
+    assert str(uri) == "trino://user:pass@localhost:8080/system"
+
+    uri = TrinoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        schema="new_schema",
+    )[0]
+    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+
+    uri = TrinoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+    )[0]
+    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog"
+
+    uri = TrinoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+        schema="new_schema",
+    )[0]
+    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+
+
+def test_get_default_catalog() -> None:
+    """
+    Test the ``get_default_catalog`` method.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://user:pass@localhost:8080/system",
+    )
+    assert TrinoEngineSpec.get_default_catalog(database) == "system"
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://user:pass@localhost:8080/system/default",
+    )
+    assert TrinoEngineSpec.get_default_catalog(database) == "system"
