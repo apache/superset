@@ -159,7 +159,7 @@ parso==0.8.4
     # via jedi
 pathable==0.4.3
     # via jsonschema-spec
-pexpect==4.8.0
+pexpect==4.9.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
