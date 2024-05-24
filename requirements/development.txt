@@ -202,7 +202,7 @@ pure-sasl==0.6.2
     # via thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
-pydruid==0.6.6
+pydruid==0.6.9
     # via apache-superset
 pyee==11.0.1
     # via playwright
