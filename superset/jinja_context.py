@@ -262,8 +262,8 @@ class ExtraCache:
 
     def filter_values(
         self, column: str, default: Optional[str] = None, remove_filter: bool = False
-    ) -> list[Any]:
-        """Gets a values for a particular filter as a list
+    ) -> str:
+        """Gets a values for a particular filter as a string
 
         This is useful if:
             - you want to use a filter component to filter a query where the name of
@@ -276,7 +276,7 @@ class ExtraCache:
             SELECT action, count(*) as times
             FROM logs
             WHERE
-                action in ({{ "'" + "','".join(filter_values('action_type')) + "'" }})
+                action LIKE {{ filter_values('action_type') }}
             GROUP BY action
 
         :param column: column/filter name to lookup
@@ -284,20 +284,20 @@ class ExtraCache:
         :param remove_filter: When set to true, mark the filter as processed,
             removing it from the outer query. Useful when a filter should
             only apply to the inner query
-        :return: returns a list of filter values
+        :return: returns a string of filter values
         """
-        return_val: list[Any] = []
+        return_val: str = ''
         filters = self.get_filters(column, remove_filter)
         for flt in filters:
             val = flt.get("val")
             if isinstance(val, list):
-                return_val.extend(val)
+                return_val += '%' + '%'.join(val) + '%'
             elif val:
-                return_val.append(val)
+                return_val += '%' + val + '%'
 
         if (not return_val) and default:
             # If no values are found, return the default provided.
-            return_val = [default]
+            return_val = '%' + default + '%'
 
         return return_val
 
