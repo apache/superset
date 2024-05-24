@@ -279,7 +279,7 @@ tqdm==4.66.4
     # via
     #   cmdstanpy
     #   prophet
-traitlets==5.9.0
+traitlets==5.14.3
     # via
     #   ipython
     #   matplotlib-inline
