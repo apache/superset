@@ -48,7 +48,7 @@ decorator==5.1.1
     # via ipython
 dill==0.3.8
     # via pylint
-distlib==0.3.6
+distlib==0.3.8
     # via virtualenv
 docker==7.0.0
     # via apache-superset
