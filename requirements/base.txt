@@ -89,7 +89,7 @@ deprecated==1.2.14
     # via limits
 deprecation==2.1.0
     # via apache-superset
-dnspython==2.1.0
+dnspython==2.6.1
     # via email-validator
 email-validator==2.1.1
     # via flask-appbuilder
