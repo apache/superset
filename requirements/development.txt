@@ -199,9 +199,7 @@ ptyprocess==0.7.0
 pure-eval==0.2.2
     # via stack-data
 pure-sasl==0.6.2
-    # via
-    #   pyhive
-    #   thrift-sasl
+    # via thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
 pydruid==0.6.6
@@ -210,7 +208,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.3.5
     # via apache-superset
-pyhive[hive_pure_sasl]==0.7.0
+pyhive[presto]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
@@ -258,12 +256,9 @@ tableschema==1.20.10
 thrift==0.16.0
     # via
     #   apache-superset
-    #   pyhive
     #   thrift-sasl
 thrift-sasl==0.4.3
-    # via
-    #   apache-superset
-    #   pyhive
+    # via apache-superset
 tomli==2.0.1
     # via
     #   build
@@ -300,7 +295,7 @@ virtualenv==20.23.1
     # via
     #   pre-commit
     #   tox
-wheel==0.40.0
+wheel==0.43.0
     # via pip-tools
 xlrd==2.0.1
     # via dataflows-tabulator
