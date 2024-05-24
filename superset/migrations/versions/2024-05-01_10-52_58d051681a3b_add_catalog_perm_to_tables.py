@@ -44,10 +44,10 @@ def upgrade():
         "slices",
         sa.Column("catalog_perm", sa.String(length=1000), nullable=True),
     )
-    upgrade_catalog_perms(engine="postgresql")
+    upgrade_catalog_perms(engines={"postgresql"})
 
 
 def downgrade():
     op.drop_column("slices", "catalog_perm")
     op.drop_column("tables", "catalog_perm")
-    downgrade_catalog_perms(engine="postgresql")
+    downgrade_catalog_perms(engines={"postgresql"})

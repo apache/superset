@@ -26,7 +26,7 @@ from flask_babel import gettext as _
 
 from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.types import KeyValueFilter, KeyValueResource
-from superset.utils.core import json_dumps_w_dates
+from superset.utils.json import json_dumps_w_dates
 
 HASHIDS_MIN_LENGTH = 11
 

@@ -15561,12 +15561,10 @@ msgid "Download"
 msgstr "Télécharger"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:267
-#, fuzzy
 msgid "Export to PDF"
-msgstr "Exporter au format YAML"
+msgstr "Exporter en PDF"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:268
-#, fuzzy
 msgid "Download as Image"
 msgstr "Télécharger comme image"
 
