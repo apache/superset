@@ -24,9 +24,7 @@ from superset.models.annotations import AnnotationLayer
 from superset.views.base import BaseFilter
 
 
-class AnnotationLayerAllTextFilter(
-    BaseFilter
-):  # pylint: disable=too-few-public-methods
+class AnnotationLayerAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("All Text")
     arg_name = "annotation_layer_all_text"
 

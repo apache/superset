@@ -30,7 +30,7 @@ from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
 )
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -49,7 +49,9 @@ from tests.unit_tests.fixtures.common import dttm
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.postgres import PostgresEngineSpec as spec
 
@@ -173,3 +175,33 @@ SELECT * FROM some_table;
         str(excinfo.value)
         == "Users are not allowed to set a search path for security reasons."
     )
+
+
+def test_adjust_engine_params() -> None:
+    """
+    Test `adjust_engine_params`.
+
+    The method can be used to adjust the catalog (database) dynamically.
+    """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    adjusted = PostgresEngineSpec.adjust_engine_params(
+        make_url("postgresql://user:password@host:5432/dev"),
+        {},
+        catalog="prod",
+    )
+    assert adjusted == (make_url("postgresql://user:password@host:5432/prod"), {})
+
+
+def test_get_default_catalog() -> None:
+    """
+    Test `get_default_catalog`.
+    """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="postgres",
+        sqlalchemy_uri="postgresql://user:password@host:5432/dev",
+    )
+    assert PostgresEngineSpec.get_default_catalog(database) == "dev"

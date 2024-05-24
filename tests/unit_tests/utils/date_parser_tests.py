@@ -189,6 +189,27 @@ def test_get_since_until() -> None:
     expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
     assert result == expected
 
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        time_shift="1 year ago",
+    )
+    expected = datetime(1999, 1, 1), datetime(2017, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        time_shift="1 month ago",
+    )
+    expected = datetime(1999, 12, 1), datetime(2017, 12, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        time_shift="1 week ago",
+    )
+    expected = datetime(1999, 12, 25), datetime(2017, 12, 25)
+    assert result == expected
+
     with pytest.raises(ValueError):
         get_since_until(time_range="tomorrow : yesterday")
 

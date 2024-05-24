@@ -40,6 +40,7 @@ from superset.db_engine_specs.exceptions import (
 )
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
+from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
 
@@ -58,19 +59,17 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     allows_alias_to_source_column = False
 
     @classmethod
-    def extra_table_metadata(
+    def get_extra_table_metadata(
         cls,
         database: Database,
-        table_name: str,
-        schema_name: str | None,
+        table: Table,
     ) -> dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table_name, schema_name):
+        if indexes := database.get_indexes(table):
             col_names, latest_parts = cls.latest_partition(
-                table_name,
-                schema_name,
                 database,
+                table,
                 show_first=True,
                 indexes=indexes,
             )
@@ -91,17 +90,20 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 ),
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": cls._partition_query(
-                    table_name=table_name,
-                    schema=schema_name,
+                    table=table,
                     indexes=indexes,
                     database=database,
                 ),
             }
 
-        if database.has_view_by_name(table_name, schema_name):
-            with database.get_inspector_with_context() as inspector:
+        if database.has_view(Table(table.table, table.schema)):
+            with database.get_inspector(
+                catalog=table.catalog,
+                schema=table.schema,
+            ) as inspector:
                 metadata["view"] = inspector.get_view_definition(
-                    table_name, schema_name
+                    table.table,
+                    table.schema,
                 )
 
         return metadata
@@ -413,8 +415,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     def get_columns(
         cls,
         inspector: Inspector,
-        table_name: str,
-        schema: str | None,
+        table: Table,
         options: dict[str, Any] | None = None,
     ) -> list[ResultSetColumnType]:
         """
@@ -422,7 +423,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         "schema_options", expand the schema definition out to show all
         subfields of nested ROWs as their appropriate dotted paths.
         """
-        base_cols = super().get_columns(inspector, table_name, schema, options)
+        base_cols = super().get_columns(inspector, table, options)
         if not (options or {}).get("expand_rows"):
             return base_cols
 
@@ -433,8 +434,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         cls,
         database: Database,
         inspector: Inspector,
-        table_name: str,
-        schema: str | None,
+        table: Table,
     ) -> list[dict[str, Any]]:
         """
         Get the indexes associated with the specified schema/table.
@@ -443,11 +443,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         :param database: The database to inspect
         :param inspector: The SQLAlchemy inspector
-        :param table_name: The table to inspect
-        :param schema: The schema to inspect
+        :param table: The table instance to inspect
         :returns: The indexes
         """
         try:
-            return super().get_indexes(database, inspector, table_name, schema)
+            return super().get_indexes(database, inspector, table)
         except NoSuchTableError:
             return []

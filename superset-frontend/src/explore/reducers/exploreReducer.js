@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { ensureIsArray } from '@superset-ui/core';
+import { omit, pick } from 'lodash';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -243,6 +244,30 @@ export default function exploreReducer(state = {}, action) {
         can_add: action.can_add,
         can_download: action.can_download,
         can_overwrite: action.can_overwrite,
+      };
+    },
+    [actions.SET_STASH_FORM_DATA]() {
+      const { form_data, hiddenFormData } = state;
+      const { fieldNames, isHidden } = action;
+      if (isHidden) {
+        return {
+          ...state,
+          hiddenFormData: {
+            ...hiddenFormData,
+            ...pick(form_data, fieldNames),
+          },
+          form_data: omit(form_data, fieldNames),
+        };
+      }
+
+      const restoredField = pick(hiddenFormData, fieldNames);
+      return {
+        ...state,
+        form_data: {
+          ...form_data,
+          ...restoredField,
+        },
+        hiddenFormData,
       };
     },
     [actions.SLICE_UPDATED]() {

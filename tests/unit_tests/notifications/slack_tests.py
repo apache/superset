@@ -18,7 +18,6 @@ import uuid
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-from flask import g
 
 
 @patch("superset.reports.notifications.slack.g")
@@ -31,7 +30,8 @@ def test_send_slack(
     # requires app context
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
-    from superset.reports.notifications.slack import SlackNotification, WebClient
+    from superset.reports.notifications.slack import SlackNotification
+    from superset.utils.slack import WebClient
 
     execution_id = uuid.uuid4()
     flask_global_mock.logs_context = {"execution_id": execution_id}

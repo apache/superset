@@ -84,6 +84,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
+    catalog_perm = Column(String(1000), nullable=True, default=None)
     # the last time a user has saved the chart, changed_on is referencing
     # when the database row was last written
     last_saved_at = Column(DateTime, nullable=True)

@@ -26,10 +26,11 @@ from superset.commands.exceptions import (
     ImportFailedError,
     UpdateFailedError,
 )
+from superset.sql_parse import Table
 
 
-def get_dataset_exist_error_msg(full_name: str) -> str:
-    return _("Dataset %(name)s already exists", name=full_name)
+def get_dataset_exist_error_msg(table: Table) -> str:
+    return _("Dataset %(table)s already exists", table=table)
 
 
 class DatabaseNotFoundValidationError(ValidationError):
@@ -55,10 +56,8 @@ class DatasetExistsValidationError(ValidationError):
     Marshmallow validation error for dataset already exists
     """
 
-    def __init__(self, table_name: str) -> None:
-        super().__init__(
-            [get_dataset_exist_error_msg(table_name)], field_name="table_name"
-        )
+    def __init__(self, table: Table) -> None:
+        super().__init__([get_dataset_exist_error_msg(table)], field_name="table")
 
 
 class DatasetColumnNotFoundValidationError(ValidationError):
@@ -124,18 +123,18 @@ class TableNotFoundValidationError(ValidationError):
     Marshmallow validation error when a table does not exist on the database
     """
 
-    def __init__(self, table_name: str) -> None:
+    def __init__(self, table: Table) -> None:
         super().__init__(
             [
                 _(
-                    "Table [%(table_name)s] could not be found, "
+                    "Table [%(table)s] could not be found, "
                     "please double check your "
                     "database connection, schema, and "
                     "table name",
-                    table_name=table_name,
+                    table=table,
                 )
             ],
-            field_name="table_name",
+            field_name="table",
         )
 
 

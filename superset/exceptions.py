@@ -362,3 +362,29 @@ class CreateKeyValueDistributedLockFailedException(Exception):
     """
     Exception to signalize failure to acquire lock.
     """
+
+
+class DatabaseNotFoundException(SupersetErrorException):
+    status = 404
+
+    def __init__(self, message: str):
+        super().__init__(
+            SupersetError(
+                message=message,
+                error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+
+class TableNotFoundException(SupersetErrorException):
+    status = 404
+
+    def __init__(self, message: str):
+        super().__init__(
+            SupersetError(
+                message=message,
+                error_type=SupersetErrorType.TABLE_NOT_FOUND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )

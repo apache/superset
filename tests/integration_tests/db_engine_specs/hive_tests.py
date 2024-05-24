@@ -23,7 +23,7 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
-from superset.sql_parse import Table, ParsedQuery
+from superset.sql_parse import ParsedQuery, Table
 from tests.integration_tests.test_app import app
 
 
@@ -31,18 +31,14 @@ def test_0_progress():
     log = """
         17/02/07 18:26:27 INFO log.PerfLogger: <PERFLOG method=compile from=org.apache.hadoop.hive.ql.Driver>
         17/02/07 18:26:27 INFO log.PerfLogger: <PERFLOG method=parse from=org.apache.hadoop.hive.ql.Driver>
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 0
 
 
 def test_number_of_jobs_progress():
     log = """
         17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 0
 
 
@@ -50,9 +46,7 @@ def test_job_1_launched_progress():
     log = """
         17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
         17/02/07 19:15:55 INFO ql.Driver: Launching Job 1 out of 2
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 0
 
 
@@ -61,9 +55,7 @@ def test_job_1_launched_stage_1():
         17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
         17/02/07 19:15:55 INFO ql.Driver: Launching Job 1 out of 2
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 0
 
 
@@ -73,9 +65,7 @@ def test_job_1_launched_stage_1_map_40_progress():  # pylint: disable=invalid-na
         17/02/07 19:15:55 INFO ql.Driver: Launching Job 1 out of 2
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 40%,  reduce = 0%
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 10
 
 
@@ -86,9 +76,7 @@ def test_job_1_launched_stage_1_map_80_reduce_40_progress():  # pylint: disable=
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 40%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 80%,  reduce = 40%
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 30
 
 
@@ -101,9 +89,7 @@ def test_job_1_launched_stage_2_stages_progress():  # pylint: disable=invalid-na
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 80%,  reduce = 40%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-2 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 100%,  reduce = 0%
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 12
 
 
@@ -115,9 +101,7 @@ def test_job_2_launched_stage_2_stages_progress():  # pylint: disable=invalid-na
         17/02/07 19:15:55 INFO ql.Driver: Launching Job 2 out of 2
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 40%,  reduce = 0%
-    """.split(
-        "\n"
-    )
+    """.split("\n")
     assert HiveEngineSpec.progress(log) == 60
 
 
@@ -187,13 +171,13 @@ def test_df_to_sql_if_exists_fail_with_schema(mock_g):
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3")
 def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
     config = app.config.copy()
-    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""
+    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""  # noqa: F722
     mock_upload_to_s3.return_value = "mock-location"
     mock_g.user = True
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
     mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine_with_context.return_value.__enter__.return_value.execute = (
+    mock_database.get_sqla_engine.return_value.__enter__.return_value.execute = (
         mock_execute
     )
     table_name = "foobar"
@@ -214,13 +198,13 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3")
 def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
     config = app.config.copy()
-    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""
+    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""  # noqa: F722
     mock_upload_to_s3.return_value = "mock-location"
     mock_g.user = True
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
     mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine_with_context.return_value.__enter__.return_value.execute = (
+    mock_database.get_sqla_engine.return_value.__enter__.return_value.execute = (
         mock_execute
     )
     table_name = "foobar"
@@ -301,7 +285,7 @@ def test_upload_to_s3_success(client):
 
     with app.app_context():
         location = upload_to_s3("filename", "prefix", Table("table"))
-        assert f"s3a://bucket/prefix/table" == location
+        assert "s3a://bucket/prefix/table" == location  # noqa: F541
 
     app.config = config
 
@@ -344,7 +328,10 @@ def test_where_latest_partition(mock_method):
     columns = [{"name": "ds"}, {"name": "hour"}]
     with app.app_context():
         result = HiveEngineSpec.where_latest_partition(
-            "test_table", "test_schema", database, select(), columns
+            database,
+            Table("test_table", "test_schema"),
+            select(),
+            columns,
         )
     query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
     assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
@@ -357,7 +344,10 @@ def test_where_latest_partition_super_method_exception(mock_method):
     columns = [{"name": "ds"}, {"name": "hour"}]
     with app.app_context():
         result = HiveEngineSpec.where_latest_partition(
-            "test_table", "test_schema", database, select(), columns
+            database,
+            Table("test_table", "test_schema"),
+            select(),
+            columns,
         )
     assert result is None
     mock_method.assert_called()
@@ -369,7 +359,9 @@ def test_where_latest_partition_no_columns_no_values(mock_method):
     db = mock.Mock()
     with app.app_context():
         result = HiveEngineSpec.where_latest_partition(
-            "test_table", "test_schema", db, select()
+            db,
+            Table("test_table", "test_schema"),
+            select(),
         )
     assert result is None
 

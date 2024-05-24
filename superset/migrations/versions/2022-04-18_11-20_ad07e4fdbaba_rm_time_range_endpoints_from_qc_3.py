@@ -26,13 +26,13 @@ Create Date: 2022-04-18 11:20:47.390901
 revision = "ad07e4fdbaba"
 down_revision = "cecc6bf46990"
 
-import json
+import json  # noqa: E402
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db
+from superset import db  # noqa: E402
 
 Base = declarative_base()
 

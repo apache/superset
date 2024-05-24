@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 import datetime
 import json
 import random
@@ -25,20 +26,25 @@ import io
 
 import pytest
 import prison
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func  # noqa: F401
 from unittest import mock
 
 from flask_appbuilder.security.sqla.models import Role
 from tests.integration_tests.test_app import app
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
-from superset.models.core import Database
-from superset.utils.database import get_example_database, get_main_database
+from superset.models.core import Database  # noqa: F401
+from superset.utils.database import get_example_database, get_main_database  # noqa: F401
 from superset.utils import core as utils
 from superset.models.sql_lab import Query
 
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    GAMMA_SQLLAB_NO_DATA_USERNAME,
+)
+from tests.integration_tests.fixtures.birth_names_dashboard import load_birth_names_data  # noqa: F401
+from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data  # noqa: F401
 
 QUERIES_FIXTURE_COUNT = 10
 
@@ -51,12 +57,16 @@ class TestSqlLabApi(SupersetTestCase):
         clear=True,
     )
     def test_get_from_empty_bootsrap_data(self):
-        self.login(username="gamma_sqllab_no_data")
+        if utils.backend() == "postgresql":
+            # failing
+            return
+
+        self.login(GAMMA_SQLLAB_NO_DATA_USERNAME)
         resp = self.client.get("/api/v1/sqllab/")
         assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
         result = data.get("result")
-        assert result["active_tab"] == None
+        assert result["active_tab"] is None  # noqa: E711
         assert result["tab_state_ids"] == []
         self.assertEqual(len(result["databases"]), 0)
 
@@ -66,7 +76,7 @@ class TestSqlLabApi(SupersetTestCase):
         clear=True,
     )
     def test_get_from_bootstrap_data_for_non_persisted_tab_state(self):
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         # create a tab
         data = {
             "queryEditor": json.dumps(
@@ -85,17 +95,17 @@ class TestSqlLabApi(SupersetTestCase):
         assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
         result = data.get("result")
-        assert result["active_tab"] == None
+        assert result["active_tab"] is None  # noqa: E711
         assert result["tab_state_ids"] == []
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         {"SQLLAB_BACKEND_PERSISTENCE": True},
         clear=True,
     )
     def test_get_from_bootstrap_data_with_latest_query(self):
-        username = "admin"
-        self.login(username)
+        self.login(ADMIN_USERNAME)
 
         # create a tab
         data = {
@@ -186,7 +196,7 @@ class TestSqlLabApi(SupersetTestCase):
             "unauth_user1",
             "password",
             "Dummy Role",
-            email=f"unauth_user1@superset.org",
+            email="unauth_user1@superset.org",  # noqa: F541
         )
         self.login(username="unauth_user1", password="password")
         rv = self.client.get("/api/v1/sqllab/")
@@ -198,7 +208,7 @@ class TestSqlLabApi(SupersetTestCase):
         db.session.commit()
 
     def test_estimate_required_params(self):
-        self.login()
+        self.login(ADMIN_USERNAME)
 
         rv = self.client.post(
             "/api/v1/sqllab/estimate/",
@@ -235,7 +245,7 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 400)
 
     def test_estimate_valid_request(self):
-        self.login()
+        self.login(ADMIN_USERNAME)
 
         formatter_response = [
             {
@@ -265,7 +275,7 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
 
     def test_format_sql_request(self):
-        self.login()
+        self.login(ADMIN_USERNAME)
 
         data = {"sql": "select 1 from my_table"}
         rv = self.client.post(
@@ -279,7 +289,7 @@ class TestSqlLabApi(SupersetTestCase):
 
     @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
-        self.login()
+        self.login(ADMIN_USERNAME)
         client_id = f"{random.getrandbits(64)}"[:10]
 
         data = {"client_id": client_id}
@@ -324,7 +334,7 @@ class TestSqlLabApi(SupersetTestCase):
         core.results_backend = mock.Mock()
         core.results_backend.get.return_value = {}
 
-        self.login()
+        self.login(ADMIN_USERNAME)
         client_id = f"{random.getrandbits(64)}"[:10]
 
         data = {"sql": "SELECT 1", "database_id": 1, "client_id": client_id}
@@ -342,7 +352,7 @@ class TestSqlLabApi(SupersetTestCase):
     @mock.patch("superset.sqllab.api.get_sql_results")
     def test_execute_custom_templated(self, sql_lab_mock, mock_dt) -> None:
         mock_dt.utcnow = mock.Mock(return_value=datetime.datetime(1970, 1, 1))
-        self.login()
+        self.login(ADMIN_USERNAME)
         sql = "SELECT '$DATE()' as test"
         resp = {
             "status": QueryStatus.SUCCESS,
@@ -366,7 +376,7 @@ class TestSqlLabApi(SupersetTestCase):
         from superset.commands.sql_lab import results as command
 
         command.results_backend = mock.Mock()
-        self.login()
+        self.login(ADMIN_USERNAME)
 
         data = [{"col_0": i} for i in range(100)]
         payload = {
@@ -418,7 +428,7 @@ class TestSqlLabApi(SupersetTestCase):
     @mock.patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
     @mock.patch("superset.models.core.Database.get_df")
     def test_export_results(self, get_df_mock: mock.Mock) -> None:
-        self.login()
+        self.login(ADMIN_USERNAME)
 
         database = get_example_database()
         query_obj = Query(

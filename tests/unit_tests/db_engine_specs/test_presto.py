@@ -24,6 +24,7 @@ from pyhive.sqlalchemy_presto import PrestoDialect
 from sqlalchemy import sql, text, types
 from sqlalchemy.engine.url import make_url
 
+from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -143,7 +144,10 @@ def test_where_latest_partition(
 
     expected = f"""SELECT * FROM table \nWHERE "partition_key" = {expected_value}"""
     result = spec.where_latest_partition(
-        "table", mock.MagicMock(), mock.MagicMock(), query, columns
+        mock.MagicMock(),
+        Table("table"),
+        query,
+        columns,
     )
     assert result is not None
     actual = result.compile(
@@ -151,3 +155,91 @@ def test_where_latest_partition(
     )
 
     assert str(actual) == expected
+
+
+def test_adjust_engine_params_fully_qualified() -> None:
+    """
+    Test the ``adjust_engine_params`` method when the URL has catalog and schema.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    url = make_url("presto://localhost:8080/hive/default")
+
+    uri = PrestoEngineSpec.adjust_engine_params(url, {})[0]
+    assert str(uri) == "presto://localhost:8080/hive/default"
+
+    uri = PrestoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        schema="new_schema",
+    )[0]
+    assert str(uri) == "presto://localhost:8080/hive/new_schema"
+
+    uri = PrestoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+    )[0]
+    assert str(uri) == "presto://localhost:8080/new_catalog/default"
+
+    uri = PrestoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+        schema="new_schema",
+    )[0]
+    assert str(uri) == "presto://localhost:8080/new_catalog/new_schema"
+
+
+def test_adjust_engine_params_catalog_only() -> None:
+    """
+    Test the ``adjust_engine_params`` method when the URL has only the catalog.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    url = make_url("presto://localhost:8080/hive")
+
+    uri = PrestoEngineSpec.adjust_engine_params(url, {})[0]
+    assert str(uri) == "presto://localhost:8080/hive"
+
+    uri = PrestoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        schema="new_schema",
+    )[0]
+    assert str(uri) == "presto://localhost:8080/hive/new_schema"
+
+    uri = PrestoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+    )[0]
+    assert str(uri) == "presto://localhost:8080/new_catalog"
+
+    uri = PrestoEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+        schema="new_schema",
+    )[0]
+    assert str(uri) == "presto://localhost:8080/new_catalog/new_schema"
+
+
+def test_get_default_catalog() -> None:
+    """
+    Test the ``get_default_catalog`` method.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="presto://localhost:8080/hive",
+    )
+    assert PrestoEngineSpec.get_default_catalog(database) == "hive"
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="presto://localhost:8080/hive/default",
+    )
+    assert PrestoEngineSpec.get_default_catalog(database) == "hive"

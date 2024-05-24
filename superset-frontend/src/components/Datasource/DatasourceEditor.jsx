@@ -758,6 +758,7 @@ class DatasourceEditor extends React.PureComponent {
       datasource_type: datasource.type || datasource.datasource_type,
       database_name:
         datasource.database.database_name || datasource.database.name,
+      catalog_name: datasource.catalog,
       schema_name: datasource.schema,
       table_name: datasource.table_name,
       normalize_columns: datasource.normalize_columns,
@@ -1090,7 +1091,12 @@ class DatasourceEditor extends React.PureComponent {
                         <div css={{ marginTop: 8 }}>
                           <DatabaseSelector
                             db={datasource?.database}
+                            catalog={datasource.catalog}
                             schema={datasource.schema}
+                            onCatalogChange={catalog =>
+                              this.state.isEditMode &&
+                              this.onDatasourcePropChange('catalog', catalog)
+                            }
                             onSchemaChange={schema =>
                               this.state.isEditMode &&
                               this.onDatasourcePropChange('schema', schema)
@@ -1164,9 +1170,16 @@ class DatasourceEditor extends React.PureComponent {
                         }}
                         dbId={datasource.database?.id}
                         handleError={this.props.addDangerToast}
+                        catalog={datasource.catalog}
                         schema={datasource.schema}
                         sqlLabMode={false}
                         tableValue={datasource.table_name}
+                        onCatalogChange={
+                          this.state.isEditMode
+                            ? catalog =>
+                                this.onDatasourcePropChange('catalog', catalog)
+                            : undefined
+                        }
                         onSchemaChange={
                           this.state.isEditMode
                             ? schema =>

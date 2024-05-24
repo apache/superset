@@ -45,5 +45,4 @@ class UpdateTemporaryCacheCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def update(self, cmd_params: CommandParameters) -> Optional[str]:
-        ...
+    def update(self, cmd_params: CommandParameters) -> Optional[str]: ...

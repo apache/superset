@@ -46,7 +46,6 @@ from superset.utils.database import get_example_database
 
 
 class ImportExamplesCommand(ImportModelsCommand):
-
     """Import examples"""
 
     dao = BaseDAO

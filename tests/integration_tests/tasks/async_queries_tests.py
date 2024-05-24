@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for async query celery jobs in Superset"""
+
 from unittest import mock
 from uuid import uuid4
 
@@ -27,11 +28,13 @@ from superset.exceptions import SupersetException
 from superset.extensions import async_query_manager, security_manager
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.query_context import get_query_context
-from tests.integration_tests.fixtures.tags import with_tagging_system_feature
+from tests.integration_tests.fixtures.tags import (
+    with_tagging_system_feature,  # noqa: F401
+)
 from tests.integration_tests.test_app import app
 
 

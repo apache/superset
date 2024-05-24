@@ -28,6 +28,27 @@ import * as actions from 'src/components/Chart/chartAction';
 import * as asyncEvent from 'src/middleware/asyncEvent';
 import { handleChartDataResponse } from 'src/components/Chart/chartAction';
 
+import configureMockStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import { initialState } from 'src/SqlLab/fixtures';
+
+const middlewares = [thunk];
+const mockStore = configureMockStore(middlewares);
+
+const mockGetState = () => ({
+  charts: {
+    chartKey: {
+      latestQueryFormData: {
+        time_grain_sqla: 'P1D',
+        granularity_sqla: 'Date',
+      },
+    },
+  },
+  common: {
+    conf: {},
+  },
+});
+
 describe('chart actions', () => {
   const MOCK_URL = '/mockURL';
   let dispatch;
@@ -94,7 +115,7 @@ describe('chart actions', () => {
 
     it('should query with the built query', async () => {
       const actionThunk = actions.postChartFormData({}, null);
-      await actionThunk(dispatch);
+      await actionThunk(dispatch, mockGetState);
 
       expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
       expect(fetchMock.calls(MOCK_URL)[0][1].body).toBe(
@@ -165,7 +186,7 @@ describe('chart actions', () => {
     it('should dispatch CHART_UPDATE_STARTED action before the query', () => {
       const actionThunk = actions.postChartFormData({});
 
-      return actionThunk(dispatch).then(() => {
+      return actionThunk(dispatch, mockGetState).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -175,7 +196,7 @@ describe('chart actions', () => {
 
     it('should dispatch TRIGGER_QUERY action with the query', () => {
       const actionThunk = actions.postChartFormData({});
-      return actionThunk(dispatch).then(() => {
+      return actionThunk(dispatch, mockGetState).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -185,7 +206,7 @@ describe('chart actions', () => {
 
     it('should dispatch UPDATE_QUERY_FORM_DATA action with the query', () => {
       const actionThunk = actions.postChartFormData({});
-      return actionThunk(dispatch).then(() => {
+      return actionThunk(dispatch, mockGetState).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -195,7 +216,7 @@ describe('chart actions', () => {
 
     it('should dispatch logEvent async action', () => {
       const actionThunk = actions.postChartFormData({});
-      return actionThunk(dispatch).then(() => {
+      return actionThunk(dispatch, mockGetState).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -209,7 +230,7 @@ describe('chart actions', () => {
 
     it('should dispatch CHART_UPDATE_SUCCEEDED action upon success', () => {
       const actionThunk = actions.postChartFormData({});
-      return actionThunk(dispatch).then(() => {
+      return actionThunk(dispatch, mockGetState).then(() => {
         // chart update, trigger query, update form data, success
         expect(dispatch.callCount).toBe(5);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -226,7 +247,7 @@ describe('chart actions', () => {
       const timeoutInSec = 1 / 1000;
       const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
 
-      return actionThunk(dispatch).then(() => {
+      return actionThunk(dispatch, mockGetState).then(() => {
         // chart update, trigger query, update form data, fail
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
         expect(dispatch.callCount).toBe(5);
@@ -245,7 +266,7 @@ describe('chart actions', () => {
       const timeoutInSec = 100; // Set to a time that is longer than the time this will take to fail
       const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
 
-      return actionThunk(dispatch).then(() => {
+      return actionThunk(dispatch, mockGetState).then(() => {
         // chart update, trigger query, update form data, fail
         expect(dispatch.callCount).toBe(5);
         const updateFailedAction = dispatch.args[4][0];
@@ -278,17 +299,6 @@ describe('chart actions', () => {
 
   describe('runAnnotationQuery', () => {
     const mockDispatch = jest.fn();
-    const mockGetState = () => ({
-      charts: {
-        chartKey: {
-          latestQueryFormData: {
-            time_grain_sqla: 'P1D',
-            granularity_sqla: 'Date',
-          },
-        },
-      },
-    });
-
     beforeEach(() => {
       jest.clearAllMocks();
     });
@@ -340,5 +350,74 @@ describe('chart actions', () => {
         resultType: 'full',
       });
     });
+  });
+});
+
+describe('chart actions timeout', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should use the timeout from arguments when given', () => {
+    const postSpy = jest.spyOn(SupersetClient, 'post');
+    postSpy.mockImplementation(() => Promise.resolve({ json: { result: [] } }));
+    const timeout = 10; // Set the timeout value here
+    const formData = { datasource: 'table__1' }; // Set the formData here
+    const key = 'chartKey'; // Set the chart key here
+
+    const store = mockStore(initialState);
+    store.dispatch(
+      actions.runAnnotationQuery({
+        annotation: {
+          value: 'annotationValue',
+          sourceType: 'Event',
+          overrides: {},
+        },
+        timeout,
+        formData,
+        key,
+      }),
+    );
+
+    const expectedPayload = {
+      url: expect.any(String),
+      signal: expect.any(AbortSignal),
+      timeout: timeout * 1000,
+      headers: { 'Content-Type': 'application/json' },
+      jsonPayload: expect.any(Object),
+    };
+
+    expect(postSpy).toHaveBeenCalledWith(expectedPayload);
+  });
+
+  it('should use the timeout from common.conf when not passed as an argument', () => {
+    const postSpy = jest.spyOn(SupersetClient, 'post');
+    postSpy.mockImplementation(() => Promise.resolve({ json: { result: [] } }));
+    const formData = { datasource: 'table__1' }; // Set the formData here
+    const key = 'chartKey'; // Set the chart key here
+
+    const store = mockStore(initialState);
+    store.dispatch(
+      actions.runAnnotationQuery({
+        annotation: {
+          value: 'annotationValue',
+          sourceType: 'Event',
+          overrides: {},
+        },
+        undefined,
+        formData,
+        key,
+      }),
+    );
+
+    const expectedPayload = {
+      url: expect.any(String),
+      signal: expect.any(AbortSignal),
+      timeout: initialState.common.conf.SUPERSET_WEBSERVER_TIMEOUT * 1000,
+      headers: { 'Content-Type': 'application/json' },
+      jsonPayload: expect.any(Object),
+    };
+
+    expect(postSpy).toHaveBeenCalledWith(expectedPayload);
   });
 });

@@ -89,6 +89,8 @@ EOF
 setup-mysql() {
   say "::group::Initialize database"
   mysql -h 127.0.0.1 -P 13306 -u root --password=root <<-EOF
+    SET GLOBAL transaction_isolation='READ-COMMITTED';
+    SET GLOBAL TRANSACTION ISOLATION LEVEL READ COMMITTED;
     DROP DATABASE IF EXISTS superset;
     CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
     DROP DATABASE IF EXISTS sqllab_test_db;
@@ -112,12 +114,6 @@ testdata() {
   superset load_test_users
   superset load_examples --load-test-data
   superset init
-  say "::endgroup::"
-}
-
-codecov() {
-  say "::group::Upload code coverage"
-  bash ".github/workflows/codecov.sh" "$@"
   say "::endgroup::"
 }
 
@@ -189,11 +185,6 @@ cypress-run-all() {
 
   cypress-run "sqllab/*" "Backend persist"
 
-  # Upload code coverage separately so each page can have separate flags
-  # -c will clean existing coverage reports, -F means add flags
-  # || true to prevent CI failure on codecov upload
-  codecov -c -F "cypress" || true
-
   say "::group::Flask log for backend persist"
   cat "$flasklog"
   say "::endgroup::"
@@ -221,9 +212,7 @@ cypress-run-applitools() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  $cypress --spec "cypress/e2e/*/**/*.applitools.test.ts" --browser "$browser" --headless --config ignoreTestFiles="[]"
-
-  codecov -c -F "cypress" || true
+  $cypress --spec "cypress/applitools/**/*" --browser "$browser" --headless
 
   say "::group::Flask log for default run"
   cat "$flasklog"

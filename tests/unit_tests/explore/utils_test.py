@@ -28,8 +28,6 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
-    DatasourceTypeInvalidError,
-    OwnersNotFoundValidationError,
     QueryNotFoundValidationError,
 )
 from superset.exceptions import SupersetSecurityException
@@ -242,11 +240,11 @@ def test_dataset_has_access(mocker: MockFixture) -> None:
     mocker.patch(is_owner, return_value=False)
     mocker.patch(can_access, return_value=True)
     assert (
-        check_datasource_access(
+        check_datasource_access(  # noqa: E712
             datasource_id=1,
             datasource_type=DatasourceType.TABLE,
         )
-        == True
+        is True
     )
 
 
@@ -260,21 +258,21 @@ def test_query_has_access(mocker: MockFixture) -> None:
     mocker.patch(is_owner, return_value=False)
     mocker.patch(can_access, return_value=True)
     assert (
-        check_datasource_access(
+        check_datasource_access(  # noqa: E712
             datasource_id=1,
             datasource_type=DatasourceType.QUERY,
         )
-        == True
+        is True
     )
 
 
 def test_query_no_access(mocker: MockFixture, client) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_datasource_access
-    from superset.models.core import Database
     from superset.models.sql_lab import Query
 
     database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
     database.get_default_schema_for_query.return_value = "public"
     mocker.patch(
         query_find_by_id,

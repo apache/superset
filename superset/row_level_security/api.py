@@ -299,7 +299,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except RLSRuleNotFoundError as ex:
+        except RLSRuleNotFoundError:
             return self.response_404()
 
     @expose("/", methods=("DELETE",))

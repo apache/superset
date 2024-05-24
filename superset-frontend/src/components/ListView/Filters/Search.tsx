@@ -22,12 +22,14 @@ import Icons from 'src/components/Icons';
 import { AntdInput } from 'src/components';
 import { SELECT_WIDTH } from 'src/components/ListView/utils';
 import { FormLabel } from 'src/components/Form';
+import InfoTooltip from 'src/components/InfoTooltip';
 import { BaseFilter, FilterHandler } from './Base';
 
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
   onSubmit: (val: string) => void;
   name: string;
+  toolTipDescription: string | undefined;
 }
 
 const Container = styled.div`
@@ -43,7 +45,13 @@ const StyledInput = styled(AntdInput)`
 `;
 
 function SearchFilter(
-  { Header, name, initialValue, onSubmit }: SearchHeaderProps,
+  {
+    Header,
+    name,
+    initialValue,
+    toolTipDescription,
+    onSubmit,
+  }: SearchHeaderProps,
   ref: React.RefObject<FilterHandler>,
 ) {
   const [value, setValue] = useState(initialValue || '');
@@ -69,6 +77,9 @@ function SearchFilter(
   return (
     <Container>
       <FormLabel>{Header}</FormLabel>
+      {toolTipDescription && (
+        <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
+      )}
       <StyledInput
         allowClear
         data-test="filters-search"

@@ -43,6 +43,12 @@ export type DatabaseObject = {
 
 export type NotificationMethodOption = 'Email' | 'Slack';
 
+export type NotificationSetting = {
+  method?: NotificationMethodOption;
+  recipients: string;
+  options: NotificationMethodOption[];
+};
+
 export type Recipient = {
   recipient_config_json: {
     target: string;
@@ -73,6 +79,7 @@ export type AlertObject = {
   dashboard_id?: number;
   database?: MetaObject;
   description?: string;
+  email_subject?: string;
   error?: string;
   force_screenshot: boolean;
   grace_period?: number;

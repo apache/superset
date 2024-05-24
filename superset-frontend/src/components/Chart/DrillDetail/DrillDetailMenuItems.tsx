@@ -17,7 +17,13 @@
  * under the License.
  */
 
-import React, { ReactNode, useCallback, useMemo, useState } from 'react';
+import React, {
+  ReactNode,
+  RefObject,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
 import { isEmpty } from 'lodash';
 import {
   Behavior,
@@ -98,6 +104,9 @@ export type DrillDetailMenuItemsProps = {
   onSelection?: () => void;
   onClick?: (event: MouseEvent) => void;
   submenuIndex?: number;
+  showModal: boolean;
+  setShowModal: (show: boolean) => void;
+  drillToDetailMenuRef?: RefObject<any>;
 };
 
 const DrillDetailMenuItems = ({
@@ -109,6 +118,9 @@ const DrillDetailMenuItems = ({
   onSelection = () => null,
   onClick = () => null,
   submenuIndex = 0,
+  showModal,
+  setShowModal,
+  drillToDetailMenuRef,
   ...props
 }: DrillDetailMenuItemsProps) => {
   const drillToDetailDisabled = useSelector<RootState, boolean | undefined>(
@@ -120,7 +132,6 @@ const DrillDetailMenuItems = ({
     [],
   );
 
-  const [showModal, setShowModal] = useState(false);
   const openModal = useCallback(
     (filters, event) => {
       onClick(event);
@@ -191,6 +202,7 @@ const DrillDetailMenuItems = ({
       {...props}
       key="drill-to-detail"
       onClick={openModal.bind(null, [])}
+      ref={drillToDetailMenuRef}
     >
       {DRILL_TO_DETAIL}
     </Menu.Item>

@@ -50,6 +50,7 @@ import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   NotificationMethodOption,
+  NotificationSetting,
   AlertObject,
   ChartObject,
   DashboardObject,
@@ -366,6 +367,7 @@ export const TRANSLATIONS = {
   CRONTAB_ERROR_TEXT: t('crontab'),
   WORKING_TIMEOUT_ERROR_TEXT: t('working timeout'),
   RECIPIENTS_ERROR_TEXT: t('recipients'),
+  EMAIL_SUBJECT_ERROR_TEXT: t('email subject'),
   ERROR_TOOLTIP_MESSAGE: t(
     'Not all required fields are complete. Please provide the following:',
   ),
@@ -393,12 +395,6 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
         : t('Add delivery method')}
     </StyledNotificationAddButton>
   );
-};
-
-type NotificationSetting = {
-  method?: NotificationMethodOption;
-  recipients: string;
-  options: NotificationMethodOption[];
 };
 
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
@@ -496,16 +492,30 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [notificationSettings, setNotificationSettings] = useState<
     NotificationSetting[]
   >([]);
-  const onNotificationAdd = () => {
-    const settings: NotificationSetting[] = notificationSettings.slice();
-    settings.push({
-      recipients: '',
-      options: allowedNotificationMethods,
-    });
+  const [emailSubject, setEmailSubject] = useState<string>('');
+  const [emailError, setEmailError] = useState(false);
 
-    setNotificationSettings(settings);
+  const onNotificationAdd = () => {
+    setNotificationSettings([
+      ...notificationSettings,
+      {
+        recipients: '',
+        // options shown in the newly added notification method
+        options: allowedNotificationMethods.filter(
+          // are filtered such that
+          option =>
+            // options are not included
+            !notificationSettings.reduce(
+              // when it exists in previous notificationSettings
+              (accum, setting) => accum || option === setting.method,
+              false,
+            ),
+        ),
+      },
+    ]);
+
     setNotificationAddState(
-      settings.length === allowedNotificationMethods.length
+      notificationSettings.length === allowedNotificationMethods.length
         ? 'hidden'
         : 'disabled',
     );
@@ -537,6 +547,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     owners: [],
     recipients: [],
     sql: '',
+    email_subject: '',
     validator_config_json: {},
     validator_type: '',
     force_screenshot: false,
@@ -547,13 +558,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     index: number,
     setting: NotificationSetting,
   ) => {
-    const settings = notificationSettings.slice();
-
+    const settings: NotificationSetting[] = [...notificationSettings];
     settings[index] = setting;
-    setNotificationSettings(settings);
 
-    if (setting.method !== undefined && notificationAddState !== 'hidden') {
-      setNotificationAddState('active');
+    // if you've changed notification method -> remove trailing methods
+    if (notificationSettings[index].method !== setting.method) {
+      notificationSettings[index] = setting;
+
+      setNotificationSettings(
+        notificationSettings.filter((_, idx) => idx <= index),
+      );
+
+      if (notificationSettings.length - 1 > index) {
+        setNotificationAddState('active');
+      }
+
+      if (setting.method !== undefined && notificationAddState !== 'hidden') {
+        setNotificationAddState('active');
+      }
+    } else {
+      setNotificationSettings(settings);
     }
   };
 
@@ -869,6 +893,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const parsedValue = type === 'number' ? parseInt(value, 10) || null : value;
 
     updateAlertState(name, parsedValue);
+
+    if (name === 'name') {
+      updateEmailSubject();
+    }
   };
 
   const onCustomWidthChange = (value: number | null | undefined) => {
@@ -1039,6 +1067,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const validateNotificationSection = () => {
     const hasErrors = !checkNotificationSettings();
     const errors = hasErrors ? [TRANSLATIONS.RECIPIENTS_ERROR_TEXT] : [];
+
+    if (emailError) {
+      errors.push(TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT);
+    }
+
     updateValidationStatus(Sections.Notification, errors);
   };
 
@@ -1180,6 +1213,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentAlertSafe = currentAlert || {};
   useEffect(() => {
     validateAll();
+    updateEmailSubject();
   }, [
     currentAlertSafe.name,
     currentAlertSafe.owners,
@@ -1193,6 +1227,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     contentType,
     notificationSettings,
     conditionNotNull,
+    emailError,
   ]);
   useEffect(() => {
     enforceValidation();
@@ -1222,6 +1257,32 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     return titleText;
+  };
+
+  const updateEmailSubject = () => {
+    if (contentType === 'chart') {
+      if (currentAlert?.name || currentAlert?.chart?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.chart?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else if (contentType === 'dashboard') {
+      if (currentAlert?.name || currentAlert?.dashboard?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.dashboard?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else {
+      setEmailSubject('');
+    }
+  };
+
+  const handleErrorUpdate = (hasError: boolean) => {
+    setEmailError(hasError);
   };
 
   return (
@@ -1609,11 +1670,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 ariaLabel={t('Log retention')}
                 placeholder={t('Log retention')}
                 onChange={onLogRetentionChange}
-                value={
-                  typeof currentAlert?.log_retention === 'number'
-                    ? currentAlert?.log_retention
-                    : ALERT_REPORTS_DEFAULT_RETENTION
-                }
+                value={currentAlert?.log_retention}
                 options={RETENTION_OPTIONS}
                 sortComparator={propertyComparator('value')}
               />
@@ -1675,6 +1732,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
+                onInputChange={onInputChange}
+                email_subject={currentAlert?.email_subject || ''}
+                defaultSubject={emailSubject || ''}
+                setErrorSubject={handleErrorUpdate}
               />
             </StyledNotificationMethodWrapper>
           ))}

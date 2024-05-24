@@ -603,7 +603,7 @@ For some databases the `df_to_sql` classmethod needs to be implemented. For exam
 
 ### Extra table metadata
 
-DB engine specs can return additional metadata associated with a table. This is done via the `extra_table_metadata` class method. Trino uses this to return information about the latest partition, for example, and Bigquery returns clustering information. This information is then surfaced in the SQL Lab UI, when browsing tables in the metadata explorer (on the left panel).
+DB engine specs can return additional metadata associated with a table. This is done via the `get_extra_table_metadata` class method. Trino uses this to return information about the latest partition, for example, and Bigquery returns clustering information. This information is then surfaced in the SQL Lab UI, when browsing tables in the metadata explorer (on the left panel).
 
 ### DB API exception mapping
 
@@ -660,7 +660,7 @@ This way, when a user selects a column that doesn't exist Superset can return a 
 
 ### Dynamic schema
 
-In SQL Lab it's possible to select a database, and then a schema in that database. Ideally, when running a query in SQL Lab, any unqualified table names (eg, `table`, instead of `schema.table`) should be in the selected schema. For example, if the user select `dev` as the schema and then runs the following query:
+In SQL Lab it's possible to select a database, and then a schema in that database. Ideally, when running a query in SQL Lab, any unqualified table names (eg, `table`, instead of `schema.table`) should be in the selected schema. For example, if the user selects `dev` as the schema and then runs the following query:
 
 ```sql
 SELECT * FROM my_table
@@ -674,7 +674,7 @@ Implementing this method is also important for usability. When the method is not
 
 ### Catalog
 
-In general, databases support a hierarchy of concepts of one-to-many concepts:
+In general, databases support a hierarchy of one-to-many concepts:
 
 1. Database
 2. Catalog
@@ -692,7 +692,7 @@ These concepts have different names depending on the database. For example, Post
 
 BigQuery, on the other hand:
 
-1. Bigquery (database)
+1. BigQuery (database)
 2. Project (catalog)
 3. Schema (namespace)
 4. Table
@@ -706,29 +706,11 @@ Hive and Trino:
 4. Table
 5. Column
 
-If the database supports catalogs, then the DB engine spec should have the `supports_catalog` class attribute set to true.
+If the database supports catalogs, then the DB engine spec should have the `supports_catalog` class attribute set to true. It should also implement the `get_default_catalog` method, so that the proper permissions can be created when datasets are added.
 
 ### Dynamic catalog
 
-Superset has no support for multiple catalogs. A given SQLAlchemy URI connects to a single catalog, and it's impossible to browse other catalogs, or change the catalog. This means that datasets can only be added for the main catalog of the database. For example, with this Postgres SQLAlchemy URI:
-
-```
-postgresql://admin:password123@db.example.org:5432/db
-```
-
-Here, datasets can only be added to the `db` catalog (which Postgres calls a "database").
-
-One confusing problem is that many databases allow querying across catalogs in SQL Lab. For example, with BigQuery one can write:
-
-```sql
-SELECT * FROM project.schema.table
-```
-
-This means that **even though the database is configured for a given catalog (project), users can query other projects**. This is a common workaround for creating datasets in catalogs other than the catalog configured in the database: just create a virtual dataset.
-
-Ideally we would want users to be able to choose the catalog when using SQL Lab and when creating datasets. In order to do that, DB engine specs need to implement a method that rewrites the SQLAlchemy URI depending on the desired catalog. This method already exists, and is the same method used for dynamic schemas, `adjust_engine_params`, but currently there are no UI affordances for choosing a catalog.
-
-Before the UI is implemented Superset still needs to implement support for catalogs in its security manager. But in the meantime, it's possible for DB engine spec developers to support dynamic catalogs, by setting `supports_dynamic_catalog` to true and implementing `adjust_engine_params` to handle a catalog.
+Superset support for multiple catalogs. Since, in general, a given SQLAlchemy URI connects only to a single catalog, it requires DB engine specs to implement the `adjust_engine_params` method to rewrite the URL to connect to a different catalog, similar to how dynamic schemas work. Additionally, DB engine specs should also implement the `get_catalog_names` method, so that users can browse the available catalogs.
 
 ### SSH tunneling
 

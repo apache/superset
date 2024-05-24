@@ -16,9 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  css,
+  ensureIsArray,
+  fetchTimeRange,
+  getTimeOffset,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { Tooltip } from '@superset-ui/chart-controls';
+import { isEmpty } from 'lodash';
 import {
   ColorSchemeEnum,
   PopKPIComparisonSymbolStyleProps,
@@ -69,8 +78,37 @@ export default function PopKPI(props: PopKPIProps) {
     comparisonColorEnabled,
     comparisonColorScheme,
     percentDifferenceNumber,
-    comparatorText,
+    currentTimeRangeFilter,
+    startDateOffset,
+    shift,
   } = props;
+
+  const [comparisonRange, setComparisonRange] = useState<string>('');
+
+  useEffect(() => {
+    if (!currentTimeRangeFilter || (!shift && !startDateOffset)) {
+      setComparisonRange('');
+    } else if (!isEmpty(shift) || startDateOffset) {
+      const newShift = getTimeOffset(
+        currentTimeRangeFilter,
+        ensureIsArray(shift),
+        startDateOffset || '',
+      );
+      const promise: any = fetchTimeRange(
+        (currentTimeRangeFilter as any).comparator,
+        currentTimeRangeFilter.subject,
+        newShift || [],
+      );
+      Promise.resolve(promise).then((res: any) => {
+        const response: string[] = ensureIsArray(res.value);
+        const firstRange: string = response.flat()[0];
+        const rangeText = firstRange.split('vs\n');
+        setComparisonRange(
+          rangeText.length > 1 ? rangeText[1].trim() : rangeText[0],
+        );
+      });
+    }
+  }, [currentTimeRangeFilter, shift, startDateOffset]);
 
   const theme = useTheme();
   const flexGap = theme.gridUnit * 5;
@@ -150,7 +188,7 @@ export default function PopKPI(props: PopKPIProps) {
       {
         symbol: '#',
         value: prevNumber,
-        tooltipText: t('Data for %s', comparatorText),
+        tooltipText: t('Data for %s', comparisonRange || 'previous range'),
       },
       {
         symbol: '△',
@@ -164,7 +202,7 @@ export default function PopKPI(props: PopKPIProps) {
       },
     ],
     [
-      comparatorText,
+      comparisonRange,
       prevNumber,
       valueDifference,
       percentDifferenceFormattedString,

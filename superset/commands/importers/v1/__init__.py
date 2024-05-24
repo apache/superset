@@ -16,9 +16,9 @@
 # under the License.
 from typing import Any, Optional
 
-from marshmallow import Schema, validate
+from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -26,12 +26,12 @@ from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.commands.importers.v1.utils import (
     load_configs,
     load_metadata,
-    load_yaml,
-    METADATA_FILE_NAME,
+    load_yaml,  # noqa: F401
+    METADATA_FILE_NAME,  # noqa: F401
     validate_metadata_type,
 )
 from superset.daos.base import BaseDAO
-from superset.models.core import Database
+from superset.models.core import Database  # noqa: F401
 
 
 class ImportModelsCommand(BaseCommand):
@@ -81,7 +81,7 @@ class ImportModelsCommand(BaseCommand):
             db.session.rollback()
             raise self.import_error() from ex
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # noqa: F811
         exceptions: list[ValidationError] = []
 
         # verify that the metadata file is present and valid

@@ -20,7 +20,7 @@ from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Length
 
 from superset.exceptions import SupersetException
-from superset.utils import core as utils
+from superset.utils import json as json_utils
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get an annotation layer"}},
@@ -51,7 +51,7 @@ annotation_json_metadata = "JSON metadata"
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
-        utils.validate_json(value)
+        json_utils.validate_json(value)
     except SupersetException as ex:
         raise ValidationError("JSON not valid") from ex
 

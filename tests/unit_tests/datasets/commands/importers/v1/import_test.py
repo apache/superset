@@ -31,7 +31,6 @@ from sqlalchemy.orm.session import Session
 from superset import db
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenDataURI,
-    ImportFailedError,
 )
 from superset.commands.dataset.importers.v1.utils import validate_data_uri
 
@@ -62,6 +61,7 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
         "default_endpoint": None,
         "offset": -8,
         "cache_timeout": 3600,
+        "catalog": "public",
         "schema": "my_schema",
         "sql": None,
         "params": {
@@ -116,6 +116,7 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
     assert sqla_table.default_endpoint is None
     assert sqla_table.offset == -8
     assert sqla_table.cache_timeout == 3600
+    assert sqla_table.catalog == "public"
     assert sqla_table.schema == "my_schema"
     assert sqla_table.sql is None
     assert sqla_table.params == json.dumps(
@@ -156,7 +157,6 @@ def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) 
     Test importing a dataset with a column that already exists.
     """
     from superset import security_manager
-    from superset.columns.models import Column as NewColumn
     from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.core import Database
@@ -283,7 +283,7 @@ def test_import_column_extra_is_string(mocker: MockFixture, session: Session) ->
     """
     from superset import security_manager
     from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
@@ -420,7 +420,7 @@ def test_import_dataset_extra_empty_string(
     dataset_config["database_id"] = database.id
     sqla_table = import_dataset(dataset_config)
 
-    assert sqla_table.extra == None
+    assert sqla_table.extra is None  # noqa: E711
 
 
 @patch("superset.commands.dataset.importers.v1.utils.request")

@@ -43,10 +43,10 @@ from superset.utils.core import (
     get_column_names,
     get_metric_names,
     is_adhoc_metric,
-    json_int_dttm_ser,
     QueryObjectFilterClause,
 )
 from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -190,7 +190,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return isinstance(metric, str) or is_adhoc_metric(metric)
 
         self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"] for x in metrics  # type: ignore
+            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
+            for x in metrics
         ]
 
     def _set_post_processing(
