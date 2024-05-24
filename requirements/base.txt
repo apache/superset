@@ -22,7 +22,7 @@ attrs==23.1.0
     #   cattrs
     #   jsonschema
     #   requests-cache
-babel==2.9.1
+babel==2.15.0
     # via flask-babel
 backoff==2.2.1
     # via apache-superset
@@ -298,7 +298,6 @@ python-geohash==0.8.5
     # via apache-superset
 pytz==2021.3
     # via
-    #   babel
     #   croniter
     #   flask-babel
     #   pandas
