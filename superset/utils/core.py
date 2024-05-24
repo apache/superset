@@ -226,7 +226,7 @@ class FilterOperator(StrEnum):
     ILIKE = "ILIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
-    IN = "IN"
+    IN = "LIKE"
     NOT_IN = "NOT IN"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
