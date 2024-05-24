@@ -299,6 +299,7 @@ class ExtraCache:
             # If no values are found, return the default provided.
             return_val = '%' + default + '%'
 
+        print("==========Return Value==========", return_val)
         return return_val
 
     def get_filters(self, column: str, remove_filter: bool = False) -> list[Filter]:
