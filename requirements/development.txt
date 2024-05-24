@@ -295,7 +295,7 @@ virtualenv==20.23.1
     # via
     #   pre-commit
     #   tox
-wheel==0.40.0
+wheel==0.43.0
     # via pip-tools
 xlrd==2.0.1
     # via dataflows-tabulator
