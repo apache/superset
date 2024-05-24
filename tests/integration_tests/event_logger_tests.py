@@ -141,14 +141,19 @@ class TestEventLogger(unittest.TestCase):
             with logger(action="foo", engine="bar"):
                 pass
 
-        assert logger.records == [
-            {
-                "records": [{"path": "/", "engine": "bar"}],
-                "database_id": None,
-                "user_id": 2,
-                "duration": 15000,
-            }
-        ]
+        self.assertEquals(
+            logger.records,
+            [
+                {
+                    "records": [{"path": "/", "engine": "bar"}],
+                    "database_id": None,
+                    "user_id": 2,
+                    "duration": 15000,
+                    "curated_payload": {},
+                    "curated_form_data": {},
+                }
+            ],
+        )
 
     @patch("superset.utils.core.g", spec={})
     def test_context_manager_log_with_context(self, mock_g):
@@ -183,20 +188,25 @@ class TestEventLogger(unittest.TestCase):
                 payload_override={"engine": "sqlite"},
             )
 
-        assert logger.records == [
-            {
-                "records": [
-                    {
-                        "path": "/",
-                        "object_ref": {"baz": "food"},
-                        "payload_override": {"engine": "sqlite"},
-                    }
-                ],
-                "database_id": None,
-                "user_id": 2,
-                "duration": 5558756000,
-            }
-        ]
+        self.assertEquals(
+            logger.records,
+            [
+                {
+                    "records": [
+                        {
+                            "path": "/",
+                            "object_ref": {"baz": "food"},
+                            "payload_override": {"engine": "sqlite"},
+                        }
+                    ],
+                    "database_id": None,
+                    "user_id": 2,
+                    "duration": 5558756000,
+                    "curated_payload": {},
+                    "curated_form_data": {},
+                }
+            ],
+        )
 
     @patch("superset.utils.core.g", spec={})
     def test_log_with_context_user_null(self, mock_g):

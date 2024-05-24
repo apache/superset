@@ -22,7 +22,7 @@ botocore==1.29.130
     # via
     #   boto3
     #   s3transfer
-build==0.10.0
+build==1.2.1
     # via pip-tools
 cached-property==1.5.2
     # via tableschema
@@ -42,13 +42,13 @@ cycler==0.11.0
     # via matplotlib
 dataflows-tabulator==1.54.3
     # via tableschema
-db-dtypes==1.1.1
+db-dtypes==1.2.0
     # via pandas-gbq
 decorator==5.1.1
     # via ipython
 dill==0.3.8
     # via pylint
-distlib==0.3.6
+distlib==0.3.8
     # via virtualenv
 docker==7.0.0
     # via apache-superset
@@ -94,7 +94,7 @@ google-cloud-core==2.3.2
     # via google-cloud-bigquery
 google-crc32c==1.5.0
     # via google-resumable-media
-google-resumable-media==2.5.0
+google-resumable-media==2.7.0
     # via google-cloud-bigquery
 googleapis-common-protos==1.59.0
     # via
@@ -109,7 +109,7 @@ grpcio-status==1.60.1
     # via google-api-core
 identify==2.5.24
     # via pre-commit
-ijson==3.2.0.post0
+ijson==3.2.3
     # via dataflows-tabulator
 iniconfig==2.0.0
     # via pytest
@@ -155,7 +155,7 @@ pandas-gbq==0.19.1
     # via apache-superset
 parameterized==0.9.0
     # via apache-superset
-parso==0.8.3
+parso==0.8.4
     # via jedi
 pathable==0.4.3
     # via jsonschema-spec
@@ -169,7 +169,7 @@ pillow==10.3.0
     #   matplotlib
 pip-compile-multi==2.6.3
     # via apache-superset
-pip-tools==7.3.0
+pip-tools==7.4.1
     # via pip-compile-multi
 playwright==1.42.0
     # via apache-superset
@@ -177,7 +177,7 @@ pluggy==1.4.0
     # via
     #   pytest
     #   tox
-pre-commit==3.7.0
+pre-commit==3.7.1
     # via apache-superset
 progress==1.6
     # via apache-superset
@@ -201,6 +201,9 @@ pure-eval==0.2.2
 pure-sasl==0.6.2
     # via thrift-sasl
 pydata-google-auth==1.8.2
+    # via
+    #   pyhive
+    #   thrift-sasl
     # via pandas-gbq
 pydruid==0.6.6
     # via apache-superset
@@ -208,7 +211,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.3.5
     # via apache-superset
-pyhive[presto]==0.7.0
+pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
@@ -217,7 +220,9 @@ pylint==3.1.0
 pyproject-api==1.5.2
     # via tox
 pyproject-hooks==1.0.0
-    # via build
+    # via
+    #   build
+    #   pip-tools
 pytest==7.4.4
     # via
     #   apache-superset
@@ -237,11 +242,11 @@ rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rfc3986==2.0.0
     # via tableschema
-ruff==0.4.0
+ruff==0.4.4
     # via apache-superset
 s3transfer==0.6.1
     # via boto3
-sqlalchemy-bigquery==1.10.0
+sqlalchemy-bigquery==1.11.0
     # via apache-superset
 sqloxide==0.1.43
     # via apache-superset
@@ -254,9 +259,12 @@ tableschema==1.20.10
 thrift==0.16.0
     # via
     #   apache-superset
+    #   pyhive
     #   thrift-sasl
 thrift-sasl==0.4.3
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   pyhive
 tomli==2.0.1
     # via
     #   build
@@ -267,13 +275,13 @@ tomli==2.0.1
     #   pyproject-hooks
     #   pytest
     #   tox
-tomlkit==0.11.8
+tomlkit==0.12.5
     # via pylint
 toposort==1.10
     # via pip-compile-multi
 tox==4.6.4
     # via apache-superset
-tqdm==4.65.0
+tqdm==4.66.4
     # via
     #   cmdstanpy
     #   prophet

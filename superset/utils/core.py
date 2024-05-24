@@ -21,9 +21,7 @@ from __future__ import annotations
 
 import _thread
 import collections
-import decimal
 import errno
-import json
 import logging
 import os
 import platform
@@ -40,7 +38,7 @@ import zlib
 from collections.abc import Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import timedelta
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -56,7 +54,6 @@ from zipfile import ZipFile
 
 import markdown as md
 import nh3
-import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
@@ -65,7 +62,6 @@ from flask import current_app, g, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
-from flask_babel.speaklater import LazyString
 from markupsafe import Markup
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
@@ -103,7 +99,6 @@ from superset.superset_typing import (
 from superset.utils.backports import StrEnum
 from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
-from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
 if TYPE_CHECKING:
@@ -418,136 +413,6 @@ def cast_to_boolean(value: Any) -> bool | None:
     return False
 
 
-class DashboardEncoder(json.JSONEncoder):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.sort_keys = True
-
-    def default(self, o: Any) -> dict[Any, Any] | str:
-        if isinstance(o, uuid.UUID):
-            return str(o)
-        try:
-            vals = {k: v for k, v in o.__dict__.items() if k != "_sa_instance_state"}
-            return {f"__{o.__class__.__name__}__": vals}
-        except Exception:  # pylint: disable=broad-except
-            if isinstance(o, datetime):
-                return {"__datetime__": o.replace(microsecond=0).isoformat()}
-            return json.JSONEncoder(sort_keys=True).default(o)
-
-
-def format_timedelta(time_delta: timedelta) -> str:
-    """
-    Ensures negative time deltas are easily interpreted by humans
-
-    >>> td = timedelta(0) - timedelta(days=1, hours=5,minutes=6)
-    >>> str(td)
-    '-2 days, 18:54:00'
-    >>> format_timedelta(td)
-    '-1 day, 5:06:00'
-    """
-    if time_delta < timedelta(0):
-        return "-" + str(abs(time_delta))
-
-    # Change this to format positive time deltas the way you want
-    return str(time_delta)
-
-
-def base_json_conv(obj: Any) -> Any:
-    """
-    Tries to convert additional types to JSON compatible forms.
-
-    :param obj: The serializable object
-    :returns: The JSON compatible form
-    :raises TypeError: If the object cannot be serialized
-    :see: https://docs.python.org/3/library/json.html#encoders-and-decoders
-    """
-
-    if isinstance(obj, memoryview):
-        obj = obj.tobytes()
-    if isinstance(obj, np.int64):
-        return int(obj)
-    if isinstance(obj, np.bool_):
-        return bool(obj)
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, set):
-        return list(obj)
-    if isinstance(obj, decimal.Decimal):
-        return float(obj)
-    if isinstance(obj, (uuid.UUID, time, LazyString)):
-        return str(obj)
-    if isinstance(obj, timedelta):
-        return format_timedelta(obj)
-    if isinstance(obj, bytes):
-        try:
-            return obj.decode("utf-8")
-        except Exception:  # pylint: disable=broad-except
-            try:
-                return obj.decode("utf-16")
-            except Exception:  # pylint: disable=broad-except
-                return "[bytes]"
-
-    raise TypeError(f"Unserializable object {obj} of type {type(obj)}")
-
-
-def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> Any:
-    """
-    A JSON serializer that deals with dates by serializing them to ISO 8601.
-
-        >>> json.dumps({'dttm': datetime(1970, 1, 1)}, default=json_iso_dttm_ser)
-        '{"dttm": "1970-01-01T00:00:00"}'
-
-    :param obj: The serializable object
-    :param pessimistic: Whether to be pessimistic regarding serialization
-    :returns: The JSON compatible form
-    :raises TypeError: If the non-pessimistic object cannot be serialized
-    """
-
-    if isinstance(obj, (datetime, date, pd.Timestamp)):
-        return obj.isoformat()
-
-    try:
-        return base_json_conv(obj)
-    except TypeError as ex:
-        if pessimistic:
-            logger.error("Failed to serialize %s", obj)
-            return f"Unserializable [{type(obj)}]"
-        raise ex
-
-
-def pessimistic_json_iso_dttm_ser(obj: Any) -> Any:
-    """Proxy to call json_iso_dttm_ser in a pessimistic way
-
-    If one of object is not serializable to json, it will still succeed"""
-    return json_iso_dttm_ser(obj, pessimistic=True)
-
-
-def json_int_dttm_ser(obj: Any) -> Any:
-    """
-    A JSON serializer that deals with dates by serializing them to EPOCH.
-
-        >>> json.dumps({'dttm': datetime(1970, 1, 1)}, default=json_int_dttm_ser)
-        '{"dttm": 0.0}'
-
-    :param obj: The serializable object
-    :returns: The JSON compatible form
-    :raises TypeError: If the object cannot be serialized
-    """
-
-    if isinstance(obj, (datetime, pd.Timestamp)):
-        return datetime_to_epoch(obj)
-
-    if isinstance(obj, date):
-        return (obj - EPOCH.date()).total_seconds() * 1000
-
-    return base_json_conv(obj)
-
-
-def json_dumps_w_dates(payload: dict[Any, Any], sort_keys: bool = False) -> str:
-    """Dumps payload to JSON with Datetime objects properly converted"""
-    return json.dumps(payload, default=json_int_dttm_ser, sort_keys=sort_keys)
-
-
 def error_msg_from_exception(ex: Exception) -> str:
     """Translate exception into error message
 
@@ -689,15 +554,6 @@ def get_datasource_full_name(
 ) -> str:
     parts = [database_name, catalog, schema, datasource_name]
     return ".".join([f"[{part}]" for part in parts if part])
-
-
-def validate_json(obj: bytes | bytearray | str) -> None:
-    if obj:
-        try:
-            json.loads(obj)
-        except Exception as ex:
-            logger.error("JSON is not valid %s", str(ex), exc_info=True)
-            raise SupersetException("JSON is not valid") from ex
 
 
 class SigalrmTimeout:

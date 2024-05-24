@@ -21,7 +21,6 @@ import json
 import logging
 from typing import Any, TYPE_CHECKING
 
-import simplejson
 from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
@@ -47,11 +46,11 @@ from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.models.sql_lab import Query
+from superset.utils import json as json_utils
 from superset.utils.core import (
     create_zip,
     DatasourceType,
     get_user_id,
-    json_int_dttm_ser,
 )
 from superset.utils.decorators import logs_context
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
@@ -396,9 +395,9 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         if result_format == ChartDataResultFormat.JSON:
-            response_data = simplejson.dumps(
+            response_data = json_utils.dumps(
                 {"result": result["queries"]},
-                default=json_int_dttm_ser,
+                default=json_utils.json_int_dttm_ser,
                 ignore_nan=True,
             )
             resp = make_response(response_data, 200)

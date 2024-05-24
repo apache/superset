@@ -13,7 +13,7 @@ amqp==5.2.0
     # via kombu
 apispec[yaml]==6.3.0
     # via flask-appbuilder
-apsw==3.42.0.1
+apsw==3.45.3.0
     # via shillelagh
 async-timeout==4.0.3
     # via redis
@@ -111,7 +111,7 @@ flask==2.3.3
     #   flask-wtf
 flask-appbuilder==4.4.1
     # via apache-superset
-flask-babel==1.0.0
+flask-babel==2.0.0
     # via flask-appbuilder
 flask-caching==2.3.0
     # via apache-superset
@@ -159,7 +159,7 @@ holidays==0.25
     # via apache-superset
 humanize==4.9.0
     # via apache-superset
-idna==3.2
+idna==3.7
     # via
     #   email-validator
     #   requests
@@ -266,7 +266,7 @@ pyasn1==0.5.1
     #   rsa
 pyasn1-modules==0.4.0
     # via google-auth
-pycparser==2.20
+pycparser==2.22
     # via cffi
 pygments==2.15.0
     # via rich
@@ -365,7 +365,7 @@ typing-extensions==4.11.0
     #   flask-limiter
     #   limits
     #   shillelagh
-tzdata==2023.3
+tzdata==2024.1
     # via
     #   celery
     #   pandas
@@ -403,7 +403,7 @@ wtforms-json==0.3.5
     # via apache-superset
 xlsxwriter==3.0.9
     # via apache-superset
-zipp==3.18.1
+zipp==3.18.2
     # via importlib-metadata
 zstandard==0.22.0
     # via flask-compress

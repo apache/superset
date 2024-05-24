@@ -536,10 +536,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         }
 
         for col_name, value in zip(col_names, values):
-            col_type = None
-            if col_type_name := column_type_by_name.get(col_name):
-                if col_type_class := getattr(types, col_type_name, None):
-                    col_type = col_type_class()
+            col_type = column_type_by_name.get(col_name)
 
             if isinstance(col_type, types.DATE):
                 col_type = Date()
