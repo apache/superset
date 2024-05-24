@@ -123,7 +123,7 @@ jmespath==1.0.1
     # via
     #   boto3
     #   botocore
-jsonlines==3.1.0
+jsonlines==4.0.0
     # via dataflows-tabulator
 jsonschema-spec==0.1.6
     # via openapi-spec-validator
