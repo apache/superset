@@ -245,7 +245,7 @@ ruff==0.4.4
     # via apache-superset
 s3transfer==0.6.1
     # via boto3
-sqlalchemy-bigquery==1.10.0
+sqlalchemy-bigquery==1.11.0
     # via apache-superset
 sqloxide==0.1.43
     # via apache-superset
