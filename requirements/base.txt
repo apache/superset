@@ -111,7 +111,7 @@ flask==2.3.3
     #   flask-wtf
 flask-appbuilder==4.4.1
     # via apache-superset
-flask-babel==1.0.0
+flask-babel==2.0.0
     # via flask-appbuilder
 flask-caching==2.3.0
     # via apache-superset
