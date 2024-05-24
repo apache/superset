@@ -42,7 +42,7 @@ cachelib==0.9.0
     #   flask-session
 cachetools==5.3.2
     # via google-auth
-cattrs==23.2.1
+cattrs==23.2.3
     # via requests-cache
 celery==5.3.6
     # via apache-superset
