@@ -1423,7 +1423,7 @@ TALISMAN_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
         "default-src": ["'self'"],
-        "img-src": ["'self'", "blob:", "data:", "https://i.ibb.co", "https://images.unsplash.com"],
+        "img-src": ["'self'", "blob:", "data:", "https://i.ibb.co", "https://images.unsplash.com" ,"https://pexels.com"],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",

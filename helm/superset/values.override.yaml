@@ -62,7 +62,7 @@ configOverrides:
     TALISMAN_CONFIG = {
     "content_security_policy": {
         "default-src": ["'self'"],
-        "img-src": ["'self'", "blob:", "data:", "https://i.ibb.co", "https://images.unsplash.com"],
+        "img-src": ["'self'", "blob:", "data:", "https://i.ibb.co", "https://images.unsplash.com","https://pexels.com"],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
@@ -75,6 +75,7 @@ configOverrides:
             "'unsafe-inline'",
         ],
         "script-src": ["'self'", "'strict-dynamic'"],
+        "frame-src" : ["'self'", "https://pexels.com" ,"https://www.youtube.com"],
     },
     "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
