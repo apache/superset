@@ -70,7 +70,7 @@ click-option-group==0.5.6
     # via apache-superset
 click-plugins==1.1.1
     # via celery
-click-repl==0.2.0
+click-repl==0.3.0
     # via celery
 colorama==0.4.6
     # via
@@ -328,7 +328,6 @@ simplejson==3.19.2
     # via apache-superset
 six==1.16.0
     # via
-    #   click-repl
     #   isodate
     #   prison
     #   python-dateutil
