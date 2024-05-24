@@ -16,9 +16,9 @@ asttokens==2.2.1
     # via stack-data
 backcall==0.2.0
     # via ipython
-boto3==1.26.130
+boto3==1.34.112
     # via dataflows-tabulator
-botocore==1.29.130
+botocore==1.34.112
     # via
     #   boto3
     #   s3transfer
@@ -243,7 +243,7 @@ rfc3986==2.0.0
     # via tableschema
 ruff==0.4.4
     # via apache-superset
-s3transfer==0.6.1
+s3transfer==0.10.1
     # via boto3
 sqlalchemy-bigquery==1.11.0
     # via apache-superset
