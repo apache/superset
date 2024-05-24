@@ -83,7 +83,6 @@ def df_to_escaped_xlsx(df: pd.DataFrame, **kwargs: Any) -> io.BytesIO:
     df = df.rename(columns=escape_values)
 
     excel_writer = io.BytesIO()
-
     # Escape xlsx values
     for name, column in df.items():
         if column.dtype == np.dtype(object):

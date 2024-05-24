@@ -16,14 +16,16 @@
 # under the License.
 from __future__ import annotations
 
+import io
 import logging
-from typing import Any, cast, TypedDict
+from typing import Any, cast, TypedDict, Union
 
 import pandas as pd
 from flask_babel import gettext as __
 
 from superset import app, db, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
+from superset.common.chart_data import ChartDataResultFormat
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
 from superset.models.sql_lab import Query
@@ -46,12 +48,15 @@ class SqlExportResult(TypedDict):
 class SqlResultExportCommand(BaseCommand):
     _client_id: str
     _query: Query
+    result_format: None
 
     def __init__(
         self,
         client_id: str,
+        result_format=None
     ) -> None:
         self._client_id = client_id
+        self.result_format = result_format
 
     def validate(self) -> None:
         self._query = (
@@ -83,8 +88,8 @@ class SqlResultExportCommand(BaseCommand):
             ) from ex
 
     def run(
-        self,
-    ) -> SqlExportResult:
+        self
+    ) -> Union[SqlExportResult, io.BytesIO]:
         self.validate()
         blob = None
         if results_backend and self._query.results_key:
@@ -124,7 +129,9 @@ class SqlResultExportCommand(BaseCommand):
                 # remove extra row from `increased_limit`
                 limit -= 1
             df = self._query.database.get_df(sql, self._query.schema)[:limit]
-
+        if self.result_format == ChartDataResultFormat.XLSX:
+            xlsx_data = csv.df_to_escaped_xlsx(df)
+            return xlsx_data
         csv_data = csv.df_to_escaped_csv(df, **config["CSV_EXPORT"], from_sqllab=True)
 
         return {

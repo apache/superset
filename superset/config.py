@@ -374,7 +374,7 @@ LANGUAGES = {
     "ru": {"flag": "ru", "name": "Russian"},
 }
 
-
+XLSX_EXPORT = {"encoding": "utf-8", "index": False}
 # Override the default d3 locale format
 # Default values are equivalent to
 # D3_FORMAT = {
