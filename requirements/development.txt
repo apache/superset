@@ -22,7 +22,7 @@ botocore==1.29.130
     # via
     #   boto3
     #   s3transfer
-build==0.10.0
+build==1.2.1
     # via pip-tools
 cached-property==1.5.2
     # via tableschema
@@ -169,7 +169,7 @@ pillow==10.3.0
     #   matplotlib
 pip-compile-multi==2.6.3
     # via apache-superset
-pip-tools==7.3.0
+pip-tools==7.4.1
     # via pip-compile-multi
 playwright==1.42.0
     # via apache-superset
@@ -219,7 +219,9 @@ pylint==3.1.0
 pyproject-api==1.5.2
     # via tox
 pyproject-hooks==1.0.0
-    # via build
+    # via
+    #   build
+    #   pip-tools
 pytest==7.4.4
     # via
     #   apache-superset
