@@ -48,7 +48,7 @@ celery==5.3.6
     # via apache-superset
 certifi==2023.7.22
     # via requests
-cffi==1.15.1
+cffi==1.16.0
     # via
     #   cryptography
     #   pynacl
