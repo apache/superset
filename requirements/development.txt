@@ -96,7 +96,7 @@ google-crc32c==1.5.0
     # via google-resumable-media
 google-resumable-media==2.7.0
     # via google-cloud-bigquery
-googleapis-common-protos==1.59.0
+googleapis-common-protos==1.63.0
     # via
     #   google-api-core
     #   grpcio-status
