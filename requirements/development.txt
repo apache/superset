@@ -237,7 +237,7 @@ rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rfc3986==2.0.0
     # via tableschema
-ruff==0.4.4
+ruff==0.4.5
     # via apache-superset
 s3transfer==0.6.1
     # via boto3
