@@ -31,7 +31,48 @@ from tests.integration_tests.test_app import app
 )
 @mock.patch("superset.tasks.cache.request.Request")
 @mock.patch("superset.tasks.cache.request.urlopen")
-def test_fetch_url(mock_urlopen, mock_request_cls, base_url):
+def test_fetch_csrf_token(mock_urlopen, mock_request_cls, base_url, app_context):
+    from superset.tasks.cache import fetch_csrf_token
+
+    mock_request = mock.MagicMock()
+    mock_request_cls.return_value = mock_request
+
+    mock_response = mock.MagicMock()
+    mock_urlopen.return_value.__enter__.return_value = mock_response
+
+    mock_response.code = 200
+    mock_response.read.return_value = b'{"result": "csrf_token"}'
+    mock_response.headers.get.return_value = "new_session_cookie"
+
+    app.config["WEBDRIVER_BASEURL"] = base_url
+    headers = {"Cookie": "original_session_cookie"}
+
+    result_headers = fetch_csrf_token(headers)
+
+    mock_request_cls.assert_called_with(
+        "http://base-url/api/v1/security/csrf_token/",
+        headers=headers,
+        method="GET",
+    )
+
+    assert result_headers["X-CSRF-Token"] == "csrf_token"
+    assert result_headers["Cookie"] == "new_session_cookie"
+    # assert the same Request object is used
+    mock_urlopen.assert_called_once_with(mock_request, timeout=mock.ANY)
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "http://base-url",
+        "http://base-url/",
+    ],
+    ids=["Without trailing slash", "With trailing slash"],
+)
+@mock.patch("superset.tasks.cache.fetch_csrf_token")
+@mock.patch("superset.tasks.cache.request.Request")
+@mock.patch("superset.tasks.cache.request.urlopen")
+def test_fetch_url(mock_urlopen, mock_request_cls, mock_fetch_csrf_token, base_url):
     from superset.tasks.cache import fetch_url
 
     mock_request = mock.MagicMock()
@@ -40,18 +81,22 @@ def test_fetch_url(mock_urlopen, mock_request_cls, base_url):
     mock_urlopen.return_value = mock.MagicMock()
     mock_urlopen.return_value.code = 200
 
+    initial_headers = {"Cookie": "cookie", "key": "value"}
+    csrf_headers = initial_headers | {"X-CSRF-Token": "csrf_token"}
+    mock_fetch_csrf_token.return_value = csrf_headers
+
     app.config["WEBDRIVER_BASEURL"] = base_url
-    headers = {"key": "value"}
     data = "data"
     data_encoded = b"data"
 
-    result = fetch_url(data, headers)
+    result = fetch_url(data, initial_headers)
 
     assert data == result["success"]
+    mock_fetch_csrf_token.assert_called_once_with(initial_headers)
     mock_request_cls.assert_called_once_with(
-        "http://base-url/superset/warm_up_cache/",
+        "http://base-url/api/v1/chart/warm_up_cache",
         data=data_encoded,
-        headers=headers,
+        headers=csrf_headers,
         method="PUT",
     )
     # assert the same Request object is used

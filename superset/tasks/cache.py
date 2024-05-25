@@ -221,7 +221,7 @@ def fetch_csrf_token(headers: dict[str, str]) -> dict[str, str]:
     """
     url = get_url_path("SecurityRestApi.csrf_token")
     logger.info("Fetching %s", url)
-    req = request.Request(url, headers=headers)
+    req = request.Request(url, headers=headers, method="GET")
     with request.urlopen(req, timeout=600) as response:
         body = response.read().decode("utf-8")
         session_cookie = response.headers.get("Set-Cookie")
