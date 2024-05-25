@@ -25,12 +25,9 @@ from superset.utils.core import DatasourceType
 
 @pytest.fixture
 def session_with_data(session: Session) -> Iterator[Session]:
-    from superset.columns.models import Column
     from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.datasets.models import Dataset
     from superset.models.core import Database
     from superset.models.sql_lab import Query, SavedQuery
-    from superset.tables.models import Table
 
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -65,32 +62,6 @@ def session_with_data(session: Session) -> Iterator[Session]:
 
     saved_query = SavedQuery(database=database, sql="select * from foo")
 
-    table = Table(
-        name="my_table",
-        schema="my_schema",
-        catalog="my_catalog",
-        database=database,
-        columns=[],
-    )
-
-    dataset = Dataset(
-        database=table.database,
-        name="positions",
-        expression="""
-SELECT array_agg(array[longitude,latitude]) AS position
-FROM my_catalog.my_schema.my_table
-""",
-        tables=[table],
-        columns=[
-            Column(
-                name="position",
-                expression="array_agg(array[longitude,latitude])",
-            ),
-        ],
-    )
-
-    session.add(dataset)
-    session.add(table)
     session.add(saved_query)
     session.add(query_obj)
     session.add(database)
