@@ -138,36 +138,9 @@ def test_get_datasource_saved_query(session_with_data: Session) -> None:
     assert isinstance(result, SavedQuery)
 
 
-def test_get_datasource_sl_table(session_with_data: Session) -> None:
-    from superset.daos.datasource import DatasourceDAO
-    from superset.tables.models import Table
-
-    result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.SLTABLE,
-        datasource_id=1,
-    )
-
-    assert result.id == 1
-    assert isinstance(result, Table)
-
-
-def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
-    from superset.daos.datasource import DatasourceDAO
-    from superset.datasets.models import Dataset
-
-    result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.DATASET,
-        datasource_id=1,
-    )
-
-    assert result.id == 1
-    assert isinstance(result, Dataset)
-
-
 def test_get_datasource_w_str_param(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.datasource import DatasourceDAO
-    from superset.tables.models import Table
 
     assert isinstance(
         DatasourceDAO.get_datasource(
@@ -175,14 +148,6 @@ def test_get_datasource_w_str_param(session_with_data: Session) -> None:
             datasource_id=1,
         ),
         SqlaTable,
-    )
-
-    assert isinstance(
-        DatasourceDAO.get_datasource(
-            datasource_type="sl_table",
-            datasource_id=1,
-        ),
-        Table,
     )
 
 
