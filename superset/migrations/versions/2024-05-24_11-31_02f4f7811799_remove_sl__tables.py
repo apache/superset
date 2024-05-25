@@ -31,13 +31,13 @@ down_revision = "f7b6750b67e8"
 
 
 def upgrade():
-    op.drop_table("sl_columns")
+    op.drop_table("sl_dataset_columns")
     op.drop_table("sl_table_columns")
     op.drop_table("sl_dataset_tables")
-    op.drop_table("sl_dataset_columns")
+    op.drop_table("sl_columns")
     op.drop_table("sl_tables")
-    op.drop_table("sl_datasets")
     op.drop_table("sl_dataset_users")
+    op.drop_table("sl_datasets")
 
 
 def downgrade():
