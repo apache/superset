@@ -245,7 +245,7 @@ sqlalchemy-bigquery==1.11.0
     # via apache-superset
 sqloxide==0.1.43
     # via apache-superset
-stack-data==0.6.2
+stack-data==0.6.3
     # via ipython
 statsd==4.0.1
     # via apache-superset
