@@ -148,9 +148,7 @@ geopy==2.4.1
 google-auth==2.27.0
     # via shillelagh
 greenlet==3.0.3
-    # via
-    #   shillelagh
-    #   sqlalchemy
+    # via shillelagh
 gunicorn==22.0.0
     # via apache-superset
 hashids==1.3.1
