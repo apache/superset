@@ -133,7 +133,7 @@ lazy-object-proxy==1.10.0
     # via openapi-spec-validator
 linear-tsv==1.1.0
     # via dataflows-tabulator
-matplotlib==3.7.1
+matplotlib==3.9.0
     # via prophet
 matplotlib-inline==0.1.6
     # via ipython
