@@ -284,7 +284,7 @@ export default function transformProps(
       type: 'pie',
       ...chartPadding,
       animation: false,
-      roseType,
+      roseType: roseType || undefined,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
       center: ['50%', '50%'],
       avoidLabelOverlap: true,

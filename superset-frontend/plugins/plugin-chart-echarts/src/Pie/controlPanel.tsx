@@ -99,7 +99,7 @@ const config: ControlPanelConfig = {
               choices: [
                 ['area', t('Area')],
                 ['radius', t('Radius')],
-                [false, t('None')],
+                [null, t('None')],
               ],
               description: t('Whether to show as Nightingale chart.'),
             },
