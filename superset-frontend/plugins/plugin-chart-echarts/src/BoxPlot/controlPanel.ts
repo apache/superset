@@ -35,6 +35,7 @@ import {
   ControlPanelState,
   getTemporalColumns,
   sharedControls,
+  DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -150,7 +151,7 @@ const config: ControlPanelConfig = {
               label: t('Date format'),
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
-              default: 'smart_date',
+              default: DEFAULT_TIME_FORMAT,
               description: D3_FORMAT_DOCS,
             },
           },
