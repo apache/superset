@@ -43,10 +43,10 @@ from superset.utils.core import (
     get_column_names,
     get_metric_names,
     is_adhoc_metric,
-    json_int_dttm_ser,
     QueryObjectFilterClause,
 )
 from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource

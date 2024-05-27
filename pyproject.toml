@@ -178,7 +178,6 @@ development = [
     "freezegun",
     "greenlet>=2.0.2",
     "grpcio>=1.55.3",
-    "ipython",
     "openapi-spec-validator",
     "parameterized",
     "pip-compile-multi",

@@ -45,20 +45,16 @@ from superset.models.core import Database, Log
 from superset.models.dashboard import Dashboard  # noqa: F401
 from superset.models.slice import Slice  # noqa: F401
 from superset.utils.core import (
-    base_json_conv,
     cast_to_num,
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
     DTTM_ALIAS,
     extract_dataframe_dtypes,
-    format_timedelta,
     GenericDataType,
     get_form_data_token,
     as_list,
     get_email_address_list,
     get_stacktrace,
-    json_int_dttm_ser,
-    json_iso_dttm_ser,
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
@@ -66,10 +62,16 @@ from superset.utils.core import (
     parse_ssl_cert,
     parse_js_uri_path_item,
     split,
-    validate_json,
     zlib_compress,
     zlib_decompress,
     DateColumn,
+)
+from superset.utils.json import (
+    base_json_conv,
+    format_timedelta,
+    json_int_dttm_ser,
+    json_iso_dttm_ser,
+    validate_json,
 )
 from superset.utils.database import get_or_create_db
 from superset.utils import schema
