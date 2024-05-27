@@ -113,7 +113,7 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
 
 # security
-ALLOW_ORIGINS = ["https://development.cloudadmin.io", "http://localhost:8001"]
+ALLOW_ORIGINS = ["https://cloudadmin.io", "https://development.cloudadmin.io", "http://localhost:8001"]
 ENABLE_CORS = True
 CORS_OPTIONS = {
     "supports_credentials": True,
@@ -131,7 +131,7 @@ TALISMAN_CONFIG = {
     "frame_options": "ALLOWFROM",
     "frame_options_allow_from": "*"
 }
-WTF_CSRF_ENABLED = True
+WTF_CSRF_ENABLED = False
 WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.log",
     "superset.views.core.explore_json",
