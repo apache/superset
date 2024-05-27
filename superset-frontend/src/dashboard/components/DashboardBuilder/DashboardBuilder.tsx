@@ -71,6 +71,7 @@ import { bootstrapData } from 'src/preamble';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
+import { useAlertsMessages } from '../../../DodoExtensions/dashboard/components/DashboardBuilder/DashboardBuilderAlerts';
 
 type DashboardBuilderProps = {};
 
@@ -570,6 +571,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     currentTopLevelTabs.current = topLevelTabs;
   }, [topLevelTabs]);
 
+  const { alerts } = useAlertsMessages();
+
   const renderDraggableContent = useCallback(
     ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
       <div>
@@ -688,6 +691,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         >
           {renderDraggableContent}
         </DragDroppable>
+
+        {alerts}
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
         <Global

@@ -1,6 +1,8 @@
 import React from 'react';
-import { RowWrapper, ColumnWrapper } from '../index';
-import { IPanelMsgObj } from '../../types/global';
+
+import { RowWrapper } from '../Wrappers/RowWrapper';
+import { ColumnWrapper } from '../Wrappers/ColumnWrapper';
+import { IPanelMsgObj } from '../../global';
 
 const WarningPanelInner = ({ msgObj }: { msgObj: IPanelMsgObj }) => (
   <RowWrapper>

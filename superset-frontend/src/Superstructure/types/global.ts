@@ -59,18 +59,6 @@ export interface InitConfig {
   token?: string;
 }
 
-export interface WarningMsgParams {
-  title?: string;
-  subTitle?: string;
-  body?: string;
-  extra?: string;
-  children?: React.ReactNode;
-  colors?: {
-    backgroundColor: string;
-    textColor: string;
-  };
-}
-
 export interface PanelMsgParams {
   title?: string;
   subTitle?: string;

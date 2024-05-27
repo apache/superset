@@ -16,8 +16,6 @@ import {
   FullConfiguration,
   Dashboard,
   AnnotationLayer,
-  SingleAnnotation,
-  InitializedResponse,
 } from '../types/global';
 import { composeAPIConfig } from '../config';
 
@@ -33,7 +31,6 @@ import {
   getDashboardsData,
   getAnnotationLayersData,
   getSingleAnnotationLayerIdsData,
-  getSingleAnnotationData,
   dirtyHackDodoIs,
   defineNavigation,
   sortDashboards,
@@ -57,9 +54,12 @@ import {
   STYLES_DODOPIZZA,
   STYLES_DRINKIT,
   STYLES_DONER42,
-  ALERT_PREFIX,
   SORTING_PREFIX,
 } from '../constants';
+import {
+  handleAnnotationsRequest,
+  loadAnnotations,
+} from '../../DodoExtensions/utils/annotationUtils';
 
 setupClient();
 
@@ -159,43 +159,6 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
     return csrfResponse;
   };
 
-  const handleAnnotationLayersRequest = async () => {
-    const annotationsResponse = await getAnnotationLayersData();
-
-    if (annotationsResponse.loaded && annotationsResponse.data) {
-      const filteredAnnotationLayers = annotationsResponse.data.filter(
-        (layer: AnnotationLayer) => layer.name.includes(ALERT_PREFIX),
-      );
-
-      const foundAnnotationLayer = filteredAnnotationLayers[0] || null;
-
-      if (foundAnnotationLayer) {
-        const idsResponse = await getSingleAnnotationLayerIdsData(
-          foundAnnotationLayer.id,
-        );
-
-        if (
-          idsResponse?.loaded &&
-          idsResponse.data?.ids &&
-          idsResponse.data?.ids.length
-        ) {
-          const dataWithIds = {
-            layerId: idsResponse.data.layerId,
-            ids: idsResponse.data.ids,
-          };
-
-          return dataWithIds;
-        }
-
-        return null;
-      }
-
-      return null;
-    }
-
-    return null;
-  };
-
   const handleAnnotationLayersRequestSorting = async () => {
     const annotationsResponse = await getAnnotationLayersData();
 
@@ -232,22 +195,6 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
 
     return null;
   };
-
-  const handleAnnotationsRequest = async ({
-    layerId,
-    ids,
-  }: {
-    layerId: number;
-    ids: number[];
-  }): Promise<InitializedResponse<{ result: SingleAnnotation } | null>[]> =>
-    Promise.all(
-      ids.map(
-        async (
-          id,
-        ): Promise<InitializedResponse<{ result: SingleAnnotation } | null>> =>
-          getSingleAnnotationData(layerId, id),
-      ),
-    );
 
   const handleDashboardsRequest = async (business: string) => {
     const dashboardsResponse = await getDashboardsData();
@@ -411,16 +358,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
         if (csrf?.data?.result) {
           const dashboards = await handleDashboardsRequest(params.business);
 
-          const annotationIds = await handleAnnotationLayersRequest();
-          if (annotationIds) {
-            const annotations = await handleAnnotationsRequest(annotationIds);
-            if (annotations?.length) {
-              const filteredAnnotations = annotations.filter(annotation =>
-                annotation?.data?.result.short_descr.includes(ALERT_PREFIX),
-              );
-              setAnnotationsObjects(filteredAnnotations);
-            }
-          }
+          setAnnotationsObjects(await loadAnnotations());
 
           if (dashboards?.data?.length) {
             let SORTING_IDS = [] as any[];
