@@ -38,6 +38,8 @@ This may take a moment as Docker Compose will fetch the underlying
 container images and will load up some examples. Once all containers
 are downloaded and the output settles, you're ready to log in.
 
+⚠️ If you get an error message like `validating superset\docker-compose-image-tag.yml: services.superset-worker-beat.env_file.0 must be a string`, you need to update your version of `docker-compose`.
+
 ### 3. Log into Superset
 Now head over to [http://localhost:8088](http://localhost:8088) and log in with the default created account:
 ```bash

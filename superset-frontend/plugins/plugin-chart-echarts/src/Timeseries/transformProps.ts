@@ -633,6 +633,18 @@ export default function transformProps(
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
             yAxisIndex: isHorizontal ? 0 : undefined,
           },
+          {
+            type: 'inside',
+            yAxisIndex: 0,
+            zoomOnMouseWheel: false,
+            moveOnMouseWheel: true,
+          },
+          {
+            type: 'inside',
+            xAxisIndex: 0,
+            zoomOnMouseWheel: false,
+            moveOnMouseWheel: true,
+          },
         ]
       : [],
   };
