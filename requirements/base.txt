@@ -15,8 +15,6 @@ apispec[yaml]==6.3.0
     # via flask-appbuilder
 apsw==3.46.0.0
     # via shillelagh
-async-timeout==4.0.3
-    # via redis
 attrs==23.2.0
     # via
     #   cattrs
@@ -93,8 +91,6 @@ dnspython==2.6.1
     # via email-validator
 email-validator==2.1.1
     # via flask-appbuilder
-exceptiongroup==1.2.1
-    # via cattrs
 flask==2.3.3
     # via
     #   apache-superset
@@ -109,7 +105,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.4.1
+flask-appbuilder==4.5.0
     # via apache-superset
 flask-babel==2.0.0
     # via flask-appbuilder
@@ -360,7 +356,6 @@ typing-extensions==4.12.0
     # via
     #   alembic
     #   apache-superset
-    #   cattrs
     #   flask-limiter
     #   limits
     #   shillelagh
