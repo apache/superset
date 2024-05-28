@@ -17,7 +17,7 @@ apsw==3.46.0.0
     # via shillelagh
 async-timeout==4.0.3
     # via redis
-attrs==23.1.0
+attrs==23.2.0
     # via
     #   cattrs
     #   jsonschema
