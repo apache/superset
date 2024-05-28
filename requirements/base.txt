@@ -193,7 +193,7 @@ mako==1.3.5
     #   apache-superset
 markdown==3.6
     # via apache-superset
-markdown-it-py==2.2.0
+markdown-it-py==3.0.0
     # via rich
 markupsafe==2.1.5
     # via
