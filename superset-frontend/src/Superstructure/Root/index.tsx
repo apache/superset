@@ -56,6 +56,7 @@ import {
   STYLES_DONER42,
   SORTING_PREFIX,
 } from '../constants';
+import { getDefaultDashboard } from '../utils/getDefaultDashboard';
 import {
   handleAnnotationsRequest,
   loadAnnotations,
@@ -64,6 +65,8 @@ import {
 setupClient();
 
 export const RootComponent = (incomingParams: MicrofrontendParams) => {
+  const businessId = incomingParams.businessId || 'dodopizza';
+
   // TODO: DODO: duplicated logic in src/Superstructure/store.ts
   function getPageLanguage(): string | null {
     if (!document) {
@@ -300,7 +303,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
         ? addSlash(incomingParams.basename)
         : '/',
       frontendLogger: incomingParams.frontendLogger || true,
-      business: incomingParams.businessId || 'dodopizza',
+      business: businessId,
     };
 
     // Superset API works only with port 3000
@@ -316,7 +319,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
     console.log('Checked and altered parameters: ', parameters);
 
     return parameters;
-  }, [incomingParams]);
+  }, [businessId, incomingParams]);
 
   const IS_UNAVAILABLE = serializeValue(process.env.isUnavailable) === 'true';
 
@@ -450,6 +453,11 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
 
   const closeLeftNavigation = useCallback(() => setIsVisible(false), []); // DODO added #33605679
 
+  const startDashboard = getDefaultDashboard({
+    businessId,
+    routes: FULL_CONFIG.navigation.routes,
+  });
+
   return (
     <div>
       <Version appVersion={APP_VERSION} />
@@ -488,6 +496,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
                   basename={FULL_CONFIG.basename}
                   stylesConfig={stylesConfig}
                   annotationMessages={annotationsObjects}
+                  startDashboardId={startDashboard}
                 />
               </DashboardComponentWrapper>
             </Router>

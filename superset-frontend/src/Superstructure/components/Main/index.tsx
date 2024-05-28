@@ -7,6 +7,7 @@ export default function Main({
   navigation,
   store,
   basename,
+  startDashboardId = 0,
 }: MainComponentProps) {
   window.featureFlags = {
     ...window.featureFlags,
@@ -32,7 +33,7 @@ export default function Main({
             />
           </Route>
         ))}
-        <Redirect to={`${basename}209`} />
+        <Redirect to={`${basename}${startDashboardId}`} />
       </Switch>
     </>
   ) : (

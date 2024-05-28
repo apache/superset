@@ -42,6 +42,8 @@ export type AnnotationMessages = InitializedResponse<{
   result: SingleAnnotation;
 }>[];
 
+export type BusinessId = 'dodopizza' | 'drinkit' | 'doner42';
+
 export interface MainComponentProps {
   navigation: MicrofrontendNavigation;
   store: any;
@@ -49,6 +51,7 @@ export interface MainComponentProps {
   basename: string;
   stylesConfig: StylesConfig;
   annotationMessages: AnnotationMessages;
+  startDashboardId?: string | number;
 }
 
 export interface InitConfig {
