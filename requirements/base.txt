@@ -183,7 +183,7 @@ kombu==5.3.7
     # via celery
 korean-lunar-calendar==0.3.1
     # via holidays
-limits==3.4.0
+limits==3.12.0
     # via flask-limiter
 llvmlite==0.42.0
     # via numba
@@ -406,6 +406,3 @@ zipp==3.18.2
     # via importlib-metadata
 zstandard==0.22.0
     # via flask-compress
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools
