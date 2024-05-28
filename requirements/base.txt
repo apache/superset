@@ -148,7 +148,9 @@ geopy==2.4.1
 google-auth==2.27.0
     # via shillelagh
 greenlet==3.0.3
-    # via shillelagh
+    # via
+    #   shillelagh
+    #   sqlalchemy
 gunicorn==22.0.0
     # via apache-superset
 hashids==1.3.1
@@ -399,7 +401,7 @@ wtforms-json==0.3.5
     # via apache-superset
 xlsxwriter==3.0.9
     # via apache-superset
-zipp==3.18.2
+zipp==3.19.0
     # via importlib-metadata
 zstandard==0.22.0
     # via flask-compress
