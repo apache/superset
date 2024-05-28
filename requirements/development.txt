@@ -50,11 +50,6 @@ docker==7.0.0
     # via apache-superset
 et-xmlfile==1.1.0
     # via openpyxl
-<<<<<<< HEAD
-executing==1.2.0
-    # via stack-data
-=======
->>>>>>> master
 filelock==3.12.2
     # via
     #   tox
@@ -241,11 +236,6 @@ thrift==0.16.0
     #   thrift-sasl
 thrift-sasl==0.4.3
     # via
-<<<<<<< HEAD
-    #   apache-superset
-    #   pyhive
-tomlkit==0.11.8
-=======
     #   build
     #   coverage
     #   pip-tools
@@ -255,7 +245,6 @@ tomlkit==0.11.8
     #   pytest
     #   tox
 tomlkit==0.12.5
->>>>>>> master
     # via pylint
 toposort==1.10
     # via pip-compile-multi
