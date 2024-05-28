@@ -333,7 +333,7 @@ six==1.16.0
     #   python-dateutil
     #   url-normalize
     #   wtforms-json
-slack-sdk==3.21.3
+slack-sdk==3.27.2
     # via apache-superset
 sqlalchemy==1.4.52
     # via
