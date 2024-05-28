@@ -1727,35 +1727,36 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   ) {
     return (
       <Modal
+        centered
         css={(theme: SupersetTheme) => [
           antDModalNoPaddingStyles,
           antDModalStyles(theme),
           formHelperStyles(theme),
           formStyles(theme),
         ]}
+        footer={renderModalFooter()}
+        maskClosable={false}
         name="database"
-        onHandledPrimaryAction={onSave}
         onHide={onClose}
+        onHandledPrimaryAction={onSave}
         primaryButtonName={t('Connect')}
-        width="500px"
-        centered
         show={show}
         title={<h4>{t('Connect a database')}</h4>}
-        footer={renderModalFooter()}
+        width="500px"
       >
         <ModalHeader
-          isLoading={isLoading}
-          isEditMode={isEditMode}
-          useSqlAlchemyForm={useSqlAlchemyForm}
-          hasConnectedDb={hasConnectedDb}
           db={db}
           dbName={dbName}
           dbModel={dbModel}
           fileList={fileList}
+          hasConnectedDb={hasConnectedDb}
+          isEditMode={isEditMode}
+          isLoading={isLoading}
+          useSqlAlchemyForm={useSqlAlchemyForm}
         />
-        {passwordNeededField()}
         {confirmOverwriteField()}
         {importingErrorAlert()}
+        {passwordNeededField()}
       </Modal>
     );
   }
@@ -1783,6 +1784,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
       footer={modalFooter}
+      maskClosable={false}
     >
       <StyledStickyHeader>
         <TabHeader>
@@ -1942,6 +1944,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       show={show}
       title={<h4>{t('Connect a database')}</h4>}
       footer={renderModalFooter()}
+      maskClosable={false}
     >
       {!isLoading && hasConnectedDb ? (
         <>
