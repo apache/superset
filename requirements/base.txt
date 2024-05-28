@@ -257,7 +257,7 @@ polyline==2.0.2
     # via apache-superset
 prison==0.2.1
     # via flask-appbuilder
-prompt-toolkit==3.0.38
+prompt-toolkit==3.0.44
     # via click-repl
 pyarrow==14.0.2
     # via apache-superset
