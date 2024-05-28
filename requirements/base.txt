@@ -260,7 +260,7 @@ prompt-toolkit==3.0.38
     # via click-repl
 pyarrow==14.0.2
     # via apache-superset
-pyasn1==0.5.1
+pyasn1==0.6.0
     # via
     #   pyasn1-modules
     #   rsa
