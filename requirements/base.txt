@@ -145,7 +145,7 @@ geographiclib==2.0
     # via geopy
 geopy==2.4.1
     # via apache-superset
-google-auth==2.27.0
+google-auth==2.29.0
     # via shillelagh
 greenlet==3.0.3
     # via
