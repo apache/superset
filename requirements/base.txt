@@ -251,7 +251,7 @@ parsedatetime==2.6
     # via apache-superset
 pgsanity==0.2.9
     # via apache-superset
-platformdirs==3.8.1
+platformdirs==4.2.2
     # via requests-cache
 polyline==2.0.2
     # via apache-superset
