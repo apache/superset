@@ -297,7 +297,7 @@ python-dotenv==1.0.1
     # via apache-superset
 python-geohash==0.8.5
     # via apache-superset
-pytz==2021.3
+pytz==2024.1
     # via
     #   croniter
     #   flask-babel
