@@ -554,9 +554,9 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         # query without cache
-        query_context.processing_time_offsets(df, query_object)
+        query_context.processing_time_offsets(df.copy(), query_object)
         # query with cache
-        rv = query_context.processing_time_offsets(df, query_object)
+        rv = query_context.processing_time_offsets(df.copy(), query_object)
         cache_keys = rv["cache_keys"]
         cache_keys__1_year_ago = cache_keys[0]
         cache_keys__1_year_later = cache_keys[1]
@@ -568,7 +568,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_offsets"] = ["1 year later", "1 year ago"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        rv = query_context.processing_time_offsets(df, query_object)
+        rv = query_context.processing_time_offsets(df.copy(), query_object)
         cache_keys = rv["cache_keys"]
         self.assertEqual(cache_keys__1_year_ago, cache_keys[1])
         self.assertEqual(cache_keys__1_year_later, cache_keys[0])
@@ -578,10 +578,11 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         rv = query_context.processing_time_offsets(
-            df,
+            df.copy(),
             query_object,
         )
-        self.assertIs(rv["df"], df)
+
+        self.assertEqual(rv["df"].shape, df.shape)
         self.assertEqual(rv["queries"], [])
         self.assertEqual(rv["cache_keys"], [])
 

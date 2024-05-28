@@ -32,6 +32,7 @@ import DragDroppable, {
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
+import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -137,6 +138,10 @@ class Tab extends React.PureComponent {
         },
       });
     }
+  }
+
+  shouldDropToChild(item) {
+    return item.type !== TAB_TYPE;
   }
 
   renderTabContent() {
@@ -275,6 +280,7 @@ class Tab extends React.PureComponent {
         onDrop={this.handleDrop}
         onHover={this.handleOnHover}
         editMode={editMode}
+        dropToChild={this.shouldDropToChild}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <TabTitleContainer

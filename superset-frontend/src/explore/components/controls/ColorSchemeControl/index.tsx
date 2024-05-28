@@ -125,13 +125,9 @@ const ColorSchemeControl = ({
   const options = useMemo(() => {
     if (dashboardId) {
       return [
-        {
-          value: 'dashboard',
-          label: t('dashboard'),
-          customLabel: (
-            <Tooltip title={DASHBOARD_ALERT}>{t('Dashboard scheme')}</Tooltip>
-          ),
-        },
+        <Option value="dashboard" label={t('dashboard')} key="dashboard">
+          <Tooltip title={DASHBOARD_ALERT}>{t('Dashboard scheme')}</Tooltip>
+        </Option>,
       ];
     }
     const schemesObject = isFunction(schemes) ? schemes() : schemes;

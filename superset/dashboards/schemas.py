@@ -24,7 +24,7 @@ from marshmallow.validate import Length, ValidationError
 from superset import security_manager
 from superset.exceptions import SupersetException
 from superset.tags.models import TagType
-from superset.utils import core as utils
+from superset.utils import json as json_utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -88,7 +88,7 @@ openapi_spec_methods_override = {
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
-        utils.validate_json(value)
+        json_utils.validate_json(value)
     except SupersetException as ex:
         raise ValidationError("JSON not valid") from ex
 

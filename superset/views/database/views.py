@@ -31,7 +31,7 @@ from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
     DeleteMixin,
-    deprecated,
+    DeprecateModelViewMixin,
     SupersetModelView,
     YamlExportMixin,
 )
@@ -75,7 +75,13 @@ def upload_stream_write(form_file_field: "FileStorage", path: str) -> None:
             file_description.write(chunk)
 
 
-class DatabaseView(DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin):  # pylint: disable=too-many-ancestors
+class DatabaseView(
+    DeprecateModelViewMixin,
+    DatabaseMixin,
+    SupersetModelView,
+    DeleteMixin,
+    YamlExportMixin,
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Database)
 
     class_permission_name = "Database"
@@ -91,34 +97,6 @@ class DatabaseView(DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixi
     }
 
     yaml_dict_key = "databases"
-
-    @expose("/show/<pk>", methods=["GET"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def show(self, pk: int) -> FlaskResponse:
-        """Show database"""
-        return super().show(pk)
-
-    @expose("/add", methods=["GET", "POST"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def add(self) -> FlaskResponse:
-        return super().add()
-
-    @expose("/edit/<pk>", methods=["GET", "POST"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def edit(self, pk: int) -> FlaskResponse:
-        return super().edit(pk)
-
-    @expose("/delete/<pk>", methods=["GET", "POST"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def delete(self, pk: int) -> FlaskResponse:
-        return super().delete(pk)
-
-    def _delete(self, pk: int) -> None:
-        DeleteMixin._delete(self, pk)
 
     @expose("/list/")
     @has_access

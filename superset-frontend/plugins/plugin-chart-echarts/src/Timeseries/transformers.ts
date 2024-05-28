@@ -143,6 +143,7 @@ export function transformSeries(
   colorScaleKey: string,
   opts: {
     area?: boolean;
+    connectNulls?: boolean;
     filterState?: FilterState;
     seriesContexts?: { [key: string]: ForecastSeriesEnum[] };
     markerEnabled?: boolean;
@@ -170,6 +171,7 @@ export function transformSeries(
   const { name } = series;
   const {
     area,
+    connectNulls,
     filterState,
     seriesContexts = {},
     markerEnabled,
@@ -268,6 +270,7 @@ export function transformSeries(
       : { ...opts.lineStyle, opacity };
   return {
     ...series,
+    connectNulls,
     queryIndex,
     yAxisIndex,
     name: forecastSeries.name,
