@@ -165,7 +165,7 @@ idna==3.7
     #   requests
 importlib-metadata==7.1.0
     # via apache-superset
-importlib-resources==5.12.0
+importlib-resources==6.4.0
     # via limits
 isodate==0.6.1
     # via apache-superset
