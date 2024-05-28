@@ -22,7 +22,14 @@ import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
 
 export default function Histogram(props: HistogramTransformedProps) {
-  const { height, width, echartOptions, onLegendStateChanged, refs } = props;
+  const {
+    height,
+    width,
+    echartOptions,
+    onFocusedSeries,
+    onLegendStateChanged,
+    refs,
+  } = props;
 
   const eventHandlers: EventHandlers = {
     legendselectchanged: payload => {
@@ -33,6 +40,12 @@ export default function Histogram(props: HistogramTransformedProps) {
     },
     legendinverseselect: payload => {
       onLegendStateChanged?.(payload.selected);
+    },
+    mouseout: () => {
+      onFocusedSeries(undefined);
+    },
+    mouseover: params => {
+      onFocusedSeries(params.seriesIndex);
     },
   };
 

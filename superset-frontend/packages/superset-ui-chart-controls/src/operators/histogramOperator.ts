@@ -23,16 +23,18 @@ import { PostProcessingFactory } from './types';
 export const histogramOperator: PostProcessingFactory<
   PostProcessingHistogram
 > = (formData, queryObject) => {
-  // ensure bins is a number or it can be cast to a number, otherwise default to 5
-  const bins = Number.isNaN(Number(formData.bins)) ? 5 : Number(formData.bins);
-  const column = getColumnLabel(formData.column);
-  const groupby = formData.groupby!.map(getColumnLabel);
+  const { bins, column, cumulative, groupby, normalize } = formData;
+  const parsedBins = Number.isNaN(Number(bins)) ? 5 : Number(bins);
+  const parsedColumn = getColumnLabel(column);
+  const parsedGroupBy = groupby!.map(getColumnLabel);
   return {
     operation: 'histogram',
     options: {
-      column,
-      groupby,
-      bins,
+      column: parsedColumn,
+      groupby: parsedGroupBy,
+      bins: parsedBins,
+      cumulative,
+      normalize,
     },
   };
 };

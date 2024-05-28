@@ -17,13 +17,21 @@
  * under the License.
  */
 import { BarSeriesOption, EChartsOption } from 'echarts';
+import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { isEmpty } from 'lodash';
-import { CategoricalColorNamespace, getColumnLabel } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  NumberFormats,
+  getColumnLabel,
+  getNumberFormatter,
+  tooltipHtml,
+} from '@superset-ui/core';
 import { HistogramChartProps, HistogramTransformedProps } from './types';
 import { LegendOrientation, LegendType, Refs } from '../types';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { getLegendProps } from '../utils/series';
 import { getDefaultTooltip } from '../utils/tooltip';
+import { getPercentFormatter } from '../utils/formatters';
 
 const TOTAL_SERIES = 'total';
 
@@ -31,6 +39,7 @@ export default function transformProps(
   chartProps: HistogramChartProps,
 ): HistogramTransformedProps {
   const refs: Refs = {};
+  let focusedSeries: number | undefined;
   const {
     formData,
     height,
@@ -45,12 +54,19 @@ export default function transformProps(
     colorScheme,
     column,
     groupby = [],
+    normalize,
     showLegend,
     showValue,
     sliceId,
+    xAxisTitle,
+    yAxisTitle,
   } = formData;
   const { data } = queriesData[0];
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
+  const formatter = getNumberFormatter(
+    normalize ? NumberFormats.FLOAT_3_POINT : NumberFormats.INTEGER,
+  );
+  const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const xAxisData: string[] = Object.keys(data[0]).filter(
     key => groupby.includes(key) === false,
   );
@@ -85,19 +101,20 @@ export default function transformProps(
       name: TOTAL_SERIES,
       type: 'bar',
       stack: 'stack',
+      silent: true,
       label: {
         show: true,
         position: 'top',
         formatter: params => {
           const { dataIndex } = params;
-          // TODO: Format number
-          return barSeries
-            .filter(series => legendState[series.name!])
-            .reduce(
-              (acc, series) => acc + (series.data![dataIndex] as number),
-              0,
-            )
-            .toFixed(2);
+          return formatter.format(
+            barSeries
+              .filter(series => legendState[series.name!])
+              .reduce(
+                (acc, series) => acc + (series.data![dataIndex] as number),
+                0,
+              ),
+          );
         },
       },
       data: barSeries[0].data!.map(() => 0),
@@ -107,19 +124,26 @@ export default function transformProps(
   const echartOptions: EChartsOption = {
     grid: {
       ...defaultGrid,
-      bottom: 0,
-      left: 0,
-      right: 0,
+      bottom: 30,
+      left: 30,
+      right: 30,
     },
     xAxis: {
       data: xAxisData,
+      name: xAxisTitle,
+      nameGap: 35,
       type: 'category',
       nameLocation: 'middle',
     },
     yAxis: {
       ...defaultYAxis,
+      name: yAxisTitle,
+      nameGap: 45,
       type: 'value',
       nameLocation: 'middle',
+      axisLabel: {
+        formatter: (value: number) => formatter.format(value),
+      },
     },
     series: barSeries,
     legend: {
@@ -135,7 +159,39 @@ export default function transformProps(
     },
     tooltip: {
       ...getDefaultTooltip(refs),
+      trigger: 'axis',
+      formatter: (params: CallbackDataParams[]) => {
+        const title = params[0].name;
+        const array = params.filter(param => param.seriesName !== TOTAL_SERIES);
+        const rows = array.map(param => {
+          const { marker, seriesName, value } = param;
+          return [`${marker}${seriesName}`, formatter.format(value as number)];
+        });
+        if (groupby.length > 0) {
+          const total = array.reduce(
+            (acc, param) => acc + (param.value as number),
+            0,
+          );
+          rows.forEach((row, i) =>
+            row.push(
+              percentFormatter.format(
+                (params[i].value as number) / (total || 1),
+              ),
+            ),
+          );
+          rows.push([
+            'Total',
+            formatter.format(total),
+            percentFormatter.format(1),
+          ]);
+        }
+        return tooltipHtml(rows, title, focusedSeries);
+      },
     },
+  };
+
+  const onFocusedSeries = (index?: number | undefined) => {
+    focusedSeries = index;
   };
 
   return {
@@ -144,6 +200,7 @@ export default function transformProps(
     width,
     height,
     echartOptions,
+    onFocusedSeries,
     onLegendStateChanged,
   };
 }

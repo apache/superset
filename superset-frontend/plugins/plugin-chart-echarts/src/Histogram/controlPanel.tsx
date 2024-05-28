@@ -44,6 +44,8 @@ const config: ControlPanelConfig = {
           },
         ],
         ['groupby'],
+        ['adhoc_filters'],
+        ['row_limit'],
         [
           {
             name: 'bins',
@@ -58,8 +60,28 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['adhoc_filters'],
-        ['row_limit'],
+        [
+          {
+            name: 'normalize',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Normalize'),
+              description: t('Whether to normalize the histogram'),
+              default: false,
+            },
+          },
+        ],
+        [
+          {
+            name: 'cumulative',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Cumulative'),
+              description: t('Whether to make the histogram cumulative'),
+              default: false,
+            },
+          },
+        ],
       ],
     },
     {
@@ -69,6 +91,30 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         [showValueControl],
         [showLegendControl],
+        [
+          {
+            name: 'x_axis_title',
+            config: {
+              type: 'TextControl',
+              label: t('X Axis Title'),
+              renderTrigger: true,
+              default: '',
+              description: t('Changing this control takes effect instantly'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_axis_title',
+            config: {
+              type: 'TextControl',
+              label: t('Y Axis Title'),
+              renderTrigger: true,
+              default: '',
+              description: t('Changing this control takes effect instantly'),
+            },
+          },
+        ],
       ],
     },
   ],

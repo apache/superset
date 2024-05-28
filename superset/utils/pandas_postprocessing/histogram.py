@@ -18,7 +18,15 @@ import numpy as np
 from pandas import DataFrame, Series
 
 
-def histogram(df: DataFrame, column: str, groupby: list[str], bins=5) -> DataFrame:
+# pylint: disable=too-many-arguments
+def histogram(
+    df: DataFrame,
+    column: str,
+    groupby: list[str],
+    bins=5,
+    cumulative=False,
+    normalize=False,
+) -> DataFrame:
     """
     Generate a histogram DataFrame from a given DataFrame.
 
@@ -27,6 +35,7 @@ def histogram(df: DataFrame, column: str, groupby: list[str], bins=5) -> DataFra
     column (str): The column of the DataFrame to calculate the histogram on.
     groupby (list[str]): The columns to group by. If empty, no grouping is performed.
     bins (int): The number of bins to use for the histogram. Default is 5.
+    cumulative (bool): Whether to calculate a cumulative histogram. Default is False.
 
     Returns:
     DataFrame: A DataFrame where each row corresponds to a group (or the entire DataFrame if no grouping is performed),
@@ -42,16 +51,19 @@ def histogram(df: DataFrame, column: str, groupby: list[str], bins=5) -> DataFra
         for i in range(len(bin_edges) - 1)
     ]
 
+    def hist_values(series: Series):
+        result = np.histogram(series, bins=bin_edges, density=normalize)[0]
+        return result if not cumulative else np.cumsum(result)
+
     if not groupby:
         # without grouping
-        hist_values = np.histogram(df[column], bins=bin_edges)[0]
-        hist_dict = {edge: counts for edge, counts in zip(bin_edges_str, hist_values)}
+        hist_dict = dict(zip(bin_edges_str, hist_values(df[column])))
         histogram_df = DataFrame(hist_dict, index=[0])
     else:
         # with grouping
         histogram_df = (
             df.groupby(groupby)[column]
-            .apply(lambda x: Series(np.histogram(x, bins=bin_edges)[0]))
+            .apply(lambda x: Series(hist_values(x)))
             .unstack(fill_value=0)
         )
         histogram_df.columns = bin_edges_str
