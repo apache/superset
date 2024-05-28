@@ -30,7 +30,6 @@ from typing import Any, cast, Optional, TYPE_CHECKING
 from urllib import parse
 
 import pandas as pd
-import simplejson as json
 from flask import current_app
 from flask_babel import gettext as __, lazy_gettext as _
 from packaging.version import Version
@@ -60,7 +59,7 @@ from superset.models.sql_types.presto_sql_types import (
 )
 from superset.result_set import destringify
 from superset.superset_typing import ResultSetColumnType
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:

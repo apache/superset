@@ -17,7 +17,6 @@
 
 # pylint: disable=invalid-name, import-outside-toplevel, unused-argument
 
-import json
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -26,6 +25,7 @@ from zipfile import is_zipfile, ZipFile
 from pytest_mock import MockFixture
 
 from superset import security_manager
+from superset.utils import json
 
 
 def test_export_assets(

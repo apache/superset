@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import functools
 import inspect
-import json
 import logging
 import textwrap
 from abc import ABC, abstractmethod
@@ -32,6 +31,7 @@ from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.extensions import stats_logger_manager
+from superset.utils import json
 from superset.utils.core import get_user_id, LoggerLevel, to_int
 
 if TYPE_CHECKING:

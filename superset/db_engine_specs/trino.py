@@ -22,7 +22,6 @@ import threading
 import time
 from typing import Any, TYPE_CHECKING
 
-import simplejson as json
 from flask import current_app
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -42,7 +41,7 @@ from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 
 if TYPE_CHECKING:
     from superset.models.core import Database

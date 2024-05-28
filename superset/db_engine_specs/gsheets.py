@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import logging
 import re
 from re import Pattern
@@ -43,6 +42,7 @@ from superset.databases.schemas import encrypted_field_properties, EncryptedStri
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
+from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.models.core import Database

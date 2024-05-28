@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=too-many-lines
 import functools
-import json
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -84,6 +83,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
+from superset.utils import json
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (

@@ -17,7 +17,6 @@
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import, invalid-name
 
 import copy
-import json
 import re
 import uuid
 from typing import Any
@@ -33,6 +32,7 @@ from superset.commands.dataset.exceptions import (
     DatasetForbiddenDataURI,
 )
 from superset.commands.dataset.importers.v1.utils import validate_data_uri
+from superset.utils import json
 
 
 def test_import_dataset(mocker: MockFixture, session: Session) -> None:

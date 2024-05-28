@@ -19,14 +19,12 @@ from __future__ import annotations
 
 import builtins
 import dataclasses
-import json
 import logging
 import re
 from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from json.decoder import JSONDecodeError
 from typing import Any, Callable, cast
 
 import dateutil.parser
@@ -118,7 +116,7 @@ from superset.superset_typing import (
     QueryObjectDict,
     ResultSetColumnType,
 )
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import GenericDataType, MediumText
 
@@ -1051,7 +1049,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     def currency_json(self) -> dict[str, str | None] | None:
         try:
             return json.loads(self.currency or "{}") or None
-        except (TypeError, JSONDecodeError) as exc:
+        except (TypeError, json.JSONDecodeError) as exc:
             logger.error(
                 "Unable to load currency json: %r. Leaving empty.", exc, exc_info=True
             )

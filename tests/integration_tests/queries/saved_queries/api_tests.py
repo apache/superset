@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
-import json
 from datetime import datetime
 from io import BytesIO
 from typing import Optional
@@ -34,6 +33,7 @@ from superset.models.core import Database
 from superset.models.core import FavStar
 from superset.models.sql_lab import SavedQuery
 from superset.utils.database import get_example_database
+from superset.utils import json
 
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_SQLLAB_USERNAME

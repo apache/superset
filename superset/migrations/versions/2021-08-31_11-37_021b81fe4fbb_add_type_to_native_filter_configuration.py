@@ -26,7 +26,6 @@ Create Date: 2021-08-31 11:37:40.604081
 revision = "021b81fe4fbb"
 down_revision = "07071313dd52"
 
-import json  # noqa: E402
 import logging  # noqa: E402
 
 import sqlalchemy as sa  # noqa: E402
@@ -34,6 +33,7 @@ from alembic import op  # noqa: E402
 from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 

@@ -25,7 +25,6 @@ Create Date: 2018-07-05 15:19:14.609299
 # revision identifiers, used by Alembic.
 
 import datetime
-import json
 
 import isodate
 from alembic import op
@@ -33,6 +32,7 @@ from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 from superset.utils.date_parser import parse_human_timedelta
 
 revision = "3dda56f1c4c6"

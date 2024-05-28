@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import uuid
 from collections.abc import Iterator
@@ -28,6 +27,7 @@ from typing import Any, cast, TypeVar, Union
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.key_value.types import KeyValueResource, PickleKeyValueCodec
+from superset.utils import json
 
 LOCK_EXPIRATION = timedelta(seconds=30)
 logger = logging.getLogger(__name__)

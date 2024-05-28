@@ -21,7 +21,6 @@ from unittest import mock
 
 import pytest
 from flask import g
-import json
 import prison
 
 from superset import db, security_manager, app  # noqa: F401
@@ -30,6 +29,7 @@ from superset.security.guest_token import (
     GuestTokenResourceType,
     GuestUser,
 )
+from superset.utils import json
 from flask_babel import lazy_gettext as _  # noqa: F401
 from flask_appbuilder.models.sqla import filters
 from tests.integration_tests.base_tests import SupersetTestCase
