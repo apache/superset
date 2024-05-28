@@ -78,7 +78,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         exceptions: list[ValidationError] = []
         dashboard_ids = self._properties.get("dashboards")
         owner_ids: Optional[list[int]] = self._properties.get("owners")
-        tag_names: Optional[list[str]] = self._properties.get("tags")
+        tag_ids: Optional[list[int]] = self._properties.get("tags")
 
         # Validate if datasource_id is provided datasource_type is required
         datasource_id = self._properties.get("datasource_id")
@@ -109,7 +109,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
         # validate tags
         try:
-            validate_tags(self._model.__class__.__name__, self._model.tags, tag_names)
+            validate_tags(ObjectType.chart, self._model.tags, tag_ids)
         except ValidationError as ex:
             exceptions.append(ex)
 

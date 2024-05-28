@@ -371,7 +371,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     tags = fields.List(
-        fields.String(metadata={"description": tags_description}, allow_none=True)
+        fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
 
 

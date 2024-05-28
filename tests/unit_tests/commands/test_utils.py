@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+
 from unittest.mock import call, MagicMock, patch
 
 import pytest
@@ -31,8 +32,7 @@ from superset.commands.utils import (
 )
 from superset.tags.models import ObjectType
 
-OBJECT_TYPES = {"Chart", "Dashboard"}
-TAG_OBJECT_TYPES = {ObjectType.chart, ObjectType.chart}
+OBJECT_TYPES = {ObjectType.chart, ObjectType.chart}
 MOCK_TAGS = [
     Tag(
         id=1,
@@ -200,7 +200,7 @@ def test_compute_owner_list_no_owners_handle_none(mock_populate_owner_list):
 
 @pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.security_manager")
-def test_validate_tags_no_new_tags(mock_sm, object_type):
+def test_validate_tags_new_tags_is_none(mock_sm, object_type):
     """
     Test the ``validate_tags`` method when new_tags is None.
     """
@@ -210,10 +210,10 @@ def test_validate_tags_no_new_tags(mock_sm, object_type):
 
 @pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.security_manager")
-def test_validate_tags_empty_list_admin_user(mock_sm, object_type):
+def test_validate_tags_empty_list_can_write_on_tag(mock_sm, object_type):
     """
     Test the ``validate_tags`` method when new_tags is an empty list and
-    user has perm to create tags.
+    user has permission to write on tag.
     """
     mock_sm.can_access = MagicMock(return_value=True)
     validate_tags(object_type, MOCK_TAGS, [])
@@ -222,174 +222,231 @@ def test_validate_tags_empty_list_admin_user(mock_sm, object_type):
 
 @pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.security_manager")
-def test_validate_tags_empty_list_perm_to_tag_dash(mock_sm, object_type):
+def test_validate_tags_empty_list_can_tag_on_object(mock_sm, object_type):
     """
     Test the ``validate_tags`` method when new_tags is an empty list and
-    user has perm to tag objects.
+    user has permission to tag objects.
     """
     mock_sm.can_access = MagicMock(side_effect=[False, True])
     validate_tags(object_type, MOCK_TAGS, [])
     mock_sm.can_access.assert_has_calls(
-        [call("can_write", "Tag"), call("can_tag", object_type)]
+        [call("can_write", "Tag"), call("can_tag", object_type.name.capitalize())]
     )
 
 
 @pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.security_manager")
-def test_validate_tags_empty_list_no_perm(mock_sm, object_type):
+def test_validate_tags_empty_list_missing_permission(mock_sm, object_type):
     """
     Test the ``validate_tags`` method when new_tags is an empty list and
-    the user doens't have the required perms.
+    the user doesn't have the required permission.
     """
     mock_sm.can_access = MagicMock(side_effect=[False, False])
     with pytest.raises(TagForbiddenError):
         validate_tags(object_type, MOCK_TAGS, [])
     mock_sm.can_access.assert_has_calls(
-        [call("can_write", "Tag"), call("can_tag", object_type)]
-    )
-
-
-@patch("superset.commands.utils.security_manager")
-def test_validate_tags_class_override(mock_sm):
-    """
-    Test the ``validate_tags`` method when asset_type is `Slice`.
-    """
-    mock_sm.can_access = MagicMock(side_effect=[False, True])
-    validate_tags("Slice", MOCK_TAGS, [])
-    mock_sm.can_access.assert_has_calls(
-        [call("can_write", "Tag"), call("can_tag", "Chart")]
+        [call("can_write", "Tag"), call("can_tag", object_type.name.capitalize())]
     )
 
 
 @pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.security_manager")
-def test_validate_tags_no_changes_admin_user(mock_sm, object_type):
+def test_validate_tags_no_changes_can_write_on_tag(mock_sm, object_type):
     """
     Test the ``validate_tags`` method when new_tags is equal to existing tags
-    and user has admin perm.
+    and user has permission to write on tag.
     """
-    new_tags = [tag.name for tag in MOCK_TAGS if tag.type == TagType.custom]
-    mock_sm.can_access = MagicMock(return_value=True)
+    new_tags = [tag.id for tag in MOCK_TAGS if tag.type == TagType.custom]
     validate_tags(object_type, MOCK_TAGS, new_tags)
-    mock_sm.can_access.assert_called_once_with("can_write", "Tag")
+    mock_sm.can_access.assert_not_called()
 
 
 @pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.security_manager")
-def test_validate_tags_no_changes_perm_to_tag(mock_sm, object_type):
+def test_validate_tags_no_changes_can_tag_on_object(mock_sm, object_type):
     """
     Test the ``validate_tags`` method when new_tags is equal to existing tags
-    and user has perm to tag objects.
+    and user has permission to tag objects.
     """
-    new_tags = [tag.name for tag in MOCK_TAGS if tag.type == TagType.custom]
-    mock_sm.can_access = MagicMock(side_effect=[False])
+    new_tags = [tag.id for tag in MOCK_TAGS if tag.type == TagType.custom]
     validate_tags(object_type, MOCK_TAGS, new_tags)
-    mock_sm.can_access.assert_called_once_with("can_write", "Tag")
+    mock_sm.can_access.assert_not_called()
 
 
 @pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.security_manager")
-def test_validate_tags_no_changes_no_perm(mock_sm, object_type):
+def test_validate_tags_no_changes_missing_permission(mock_sm, object_type):
     """
     Test the ``validate_tags`` method when new_tags is equal to existing tags
     the user doens't have the required perms.
     """
-    new_tags = [tag.name for tag in MOCK_TAGS if tag.type == TagType.custom]
-    mock_sm.can_access = MagicMock(return_value=False)
+    new_tags = [tag.id for tag in MOCK_TAGS if tag.type == TagType.custom]
     validate_tags(object_type, MOCK_TAGS, new_tags)
-    mock_sm.can_access.assert_called_once_with("can_write", "Tag")
+    mock_sm.can_access.assert_not_called()
 
 
 @pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.security_manager")
-@patch("superset.commands.utils.TagDAO.find_by_name")
-def test_validate_tags_add_new_tags_admin(mock_tag_find_by_name, mock_sm, object_type):
-    """
-    Test the ``validate_tags`` method when new_tags are added and user is admin.
-    """
-    new_tags = ["new_tag_1"]
-    mock_sm.can_access = MagicMock(return_value=True)
-    mock_tag_find_by_name.return_value = None
-    validate_tags(object_type, MOCK_TAGS, new_tags)
-    mock_sm.can_access.assert_called_once_with("can_write", "Tag")
-
-
-@pytest.mark.parametrize("object_type", OBJECT_TYPES)
-@patch("superset.commands.utils.security_manager")
-@patch("superset.commands.utils.TagDAO.find_by_name")
-def test_validate_tags_add_new_tags_perm_to_tag(
-    mock_tag_find_by_name, mock_sm, object_type
+@patch("superset.commands.utils.TagDAO.find_by_id")
+def test_validate_tags_add_new_tags_can_write_on_tag(
+    mock_tag_find_by_id, mock_sm, object_type
 ):
     """
-    Test the ``validate_tags`` method when new_tags are added and user has perm
-    to tag objects.
+    Test the ``validate_tags`` method when new_tags are added and user has
+    permission to write on tag.
     """
-    new_tags = ["new_tag_1"]
+    new_tag_ids = [tag.id for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tag = {
+        "id": 10,
+        "name": "New test tag",
+        "type": TagType.custom,
+    }
+    new_tag_ids.append(new_tag["id"])
+
+    mock_tag_find_by_id.return_value = new_tag
+    mock_sm.can_access = MagicMock(return_value=True)
+
+    validate_tags(object_type, MOCK_TAGS, new_tag_ids)
+
+    mock_sm.can_access.assert_called_once_with("can_write", "Tag")
+
+
+@pytest.mark.parametrize("object_type", OBJECT_TYPES)
+@patch("superset.commands.utils.security_manager")
+@patch("superset.commands.utils.TagDAO.find_by_id")
+def test_validate_tags_add_new_tags_can_tag_on_object(
+    mock_tag_find_by_id, mock_sm, object_type
+):
+    """
+    Test the ``validate_tags`` method when new_tags are added and user has
+    permission to tag objects.
+    """
+    current_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tag = current_tags.pop()
+    new_tag_ids = [tag.id for tag in current_tags]
+    new_tag_ids.append(new_tag.id)
+
     mock_sm.can_access = MagicMock(side_effect=[False, True])
-    mock_tag_find_by_name.return_value = None
-    with pytest.raises(TagNotFoundValidationError):
-        validate_tags(object_type, MOCK_TAGS, new_tags)
+    mock_tag_find_by_id.return_value = new_tag
+
+    validate_tags(object_type, current_tags, new_tag_ids)
+
     mock_sm.can_access.assert_has_calls(
-        [call("can_write", "Tag"), call("can_tag", object_type)]
+        [call("can_write", "Tag"), call("can_tag", object_type.name.capitalize())]
     )
 
 
-@pytest.mark.parametrize("object_type", TAG_OBJECT_TYPES)
+@pytest.mark.parametrize("object_type", OBJECT_TYPES)
+@patch("superset.commands.utils.security_manager")
+@patch("superset.commands.utils.TagDAO.find_by_name")
+def test_validate_tags_can_write_on_tag_unable_to_find_tag(
+    mock_tag_find_by_id, mock_sm, object_type
+):
+    """
+    Test the ``validate_tags`` method when an un-existing tag is being
+    added and user has permission to write on tag.
+    """
+    fake_id = 100
+    mock_sm.can_access = MagicMock(return_value=True)
+    mock_tag_find_by_id.return_value = None
+    with pytest.raises(TagNotFoundValidationError):
+        validate_tags(object_type, MOCK_TAGS, [fake_id])
+    mock_sm.can_access.assert_called_once_with("can_write", "Tag")
+
+
+@pytest.mark.parametrize("object_type", OBJECT_TYPES)
+@patch("superset.commands.utils.security_manager")
+@patch("superset.commands.utils.TagDAO.find_by_name")
+def test_validate_tags_can_tag_on_object_unable_to_find_tag(
+    mock_tag_find_by_id, mock_sm, object_type
+):
+    """
+    Test the ``validate_tags`` method when an un-existing tag is being
+    added and user has permission to tag on object.
+    """
+    fake_id = 100
+    mock_sm.can_access = MagicMock(side_effect=[False, True])
+    mock_tag_find_by_id.return_value = None
+    with pytest.raises(TagNotFoundValidationError):
+        validate_tags(object_type, MOCK_TAGS, [fake_id])
+    mock_sm.can_access.assert_has_calls(
+        [call("can_write", "Tag"), call("can_tag", object_type.name.capitalize())]
+    )
+
+
+@pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.TagDAO")
 def test_update_tags_adding_tags(mock_tag_dao, object_type):
     """
     Test the ``update_tags`` method when adding tags.
     """
-    new_tags = [tag.name for tag in MOCK_TAGS if tag.type == TagType.custom]
-    new_tags.append("new_tag")
-    new_tags.append("another_one")
-    update_tags(object_type, 1, MOCK_TAGS, new_tags)
+    current_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tag = current_tags.pop()
+    new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tag_ids = [tag.id for tag in new_tags]
+
+    mock_tag_dao.find_by_ids.return_value = [new_tag]
+
+    update_tags(object_type, 1, current_tags, new_tag_ids)
+
+    mock_tag_dao.find_by_ids.assert_called_once_with([new_tag.id])
     mock_tag_dao.delete_tagged_object.assert_not_called()
     mock_tag_dao.create_custom_tagged_objects.assert_called_once_with(
-        object_type, 1, ["new_tag", "another_one"]
+        object_type, 1, [new_tag.name]
     )
 
 
-@pytest.mark.parametrize("object_type", TAG_OBJECT_TYPES)
+@pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.TagDAO")
 def test_update_tags_removing_tags(mock_tag_dao, object_type):
     """
     Test the ``update_tags`` method when removing existing tags.
     """
-    new_tags = [tag.name for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
     tag_to_be_removed = new_tags.pop()
-    update_tags(object_type, 1, MOCK_TAGS, new_tags)
+    new_tag_ids = [tag.id for tag in new_tags]
+
+    update_tags(object_type, 1, MOCK_TAGS, new_tag_ids)
+
     mock_tag_dao.delete_tagged_object.assert_called_once_with(
-        object_type, 1, tag_to_be_removed
+        object_type, 1, tag_to_be_removed.name
     )
     mock_tag_dao.create_custom_tagged_objects.assert_not_called()
 
 
-@pytest.mark.parametrize("object_type", TAG_OBJECT_TYPES)
+@pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.TagDAO")
 def test_update_tags_adding_and_removing_tags(mock_tag_dao, object_type):
     """
     Test the ``update_tags`` method when adding and removing existing tags.
     """
-    new_tags = [tag.name for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
     tag_to_be_removed = new_tags.pop()
-    new_tags.append("blah")
-    update_tags(object_type, 1, MOCK_TAGS, new_tags)
+    new_tag = Tag(id=10, name="my new tag", type=TagType.custom)
+    new_tags.append(new_tag)
+    new_tag_ids = [tag.id for tag in new_tags]
+
+    mock_tag_dao.find_by_ids.return_value = [new_tag]
+
+    update_tags(object_type, 1, MOCK_TAGS, new_tag_ids)
+
     mock_tag_dao.delete_tagged_object.assert_called_once_with(
-        object_type, 1, tag_to_be_removed
+        object_type, 1, tag_to_be_removed.name
     )
+    mock_tag_dao.find_by_ids.assert_called_once_with([new_tag.id])
     mock_tag_dao.create_custom_tagged_objects.assert_called_once_with(
-        object_type, 1, ["blah"]
+        object_type, 1, ["my new tag"]
     )
 
 
-@pytest.mark.parametrize("object_type", TAG_OBJECT_TYPES)
+@pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.TagDAO")
 def test_update_tags_removing_all_tags(mock_tag_dao, object_type):
     """
     Test the ``update_tags`` method when removing all tags.
     """
     update_tags(object_type, 1, MOCK_TAGS, [])
+
     mock_tag_dao.delete_tagged_object.assert_has_calls(
         [
             call(object_type, 1, tag.name)
@@ -400,7 +457,7 @@ def test_update_tags_removing_all_tags(mock_tag_dao, object_type):
     mock_tag_dao.create_custom_tagged_objects.assert_not_called()
 
 
-@pytest.mark.parametrize("object_type", TAG_OBJECT_TYPES)
+@pytest.mark.parametrize("object_type", OBJECT_TYPES)
 @patch("superset.commands.utils.TagDAO")
 def test_update_tags_no_tags(mock_tag_dao, object_type):
     """
@@ -408,8 +465,15 @@ def test_update_tags_no_tags(mock_tag_dao, object_type):
     """
     system_tags = [tag for tag in MOCK_TAGS if tag.type != TagType.custom]
     new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
-    update_tags(object_type, 1, system_tags, new_tags)
+    new_tag_ids = [tag.id for tag in new_tags]
+    new_tag_names = [tag.name for tag in new_tags]
+
+    mock_tag_dao.find_by_ids.return_value = new_tags
+
+    update_tags(object_type, 1, system_tags, new_tag_ids)
+
     mock_tag_dao.delete_tagged_object.assert_not_called()
+    mock_tag_dao.find_by_ids.assert_called_once_with(new_tag_ids)
     mock_tag_dao.create_custom_tagged_objects.assert_called_once_with(
-        object_type, 1, new_tags
+        object_type, 1, new_tag_names
     )

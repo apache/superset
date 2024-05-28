@@ -2050,9 +2050,10 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             }
 
     @pytest.mark.usefixtures("create_chart_with_tag")
-    def test_update_chart_add_tags_admin(self):
+    def test_update_chart_add_tags_can_write_on_tag(self):
         """
-        Validates an admin can add tags while updating a chart
+        Validates a user with can write on tag permission can
+        add tags while updating a chart
         """
         self.login(ADMIN_USERNAME)
 
@@ -2062,8 +2063,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
 
         # get existing tag and add a new one
-        new_tags = [tag.name for tag in chart.tags if tag.type == TagType.custom]
-        new_tags.append(new_tag.name)
+        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
         update_payload = {"tags": new_tags}
 
         uri = f"api/v1/chart/{chart.id}"
@@ -2072,13 +2073,14 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         model = db.session.query(Slice).get(chart.id)
 
         # Clean up system tags
-        tag_list = [tag.name for tag in model.tags if tag.type == TagType.custom]
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
         self.assertEqual(tag_list, new_tags)
 
     @pytest.mark.usefixtures("create_chart_with_tag")
-    def test_update_chart_remove_tags_admin(self):
+    def test_update_chart_remove_tags_can_write_on_tag(self):
         """
-        Validates an admin can remove tags while updating a chart
+        Validates a user with can write on tag permission can
+        remove tags while updating a chart
         """
         self.login(ADMIN_USERNAME)
 
@@ -2087,7 +2089,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         )
 
         # get existing tag and add a new one
-        new_tags = [tag.name for tag in chart.tags if tag.type == TagType.custom]
+        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
         new_tags.pop()
 
         update_payload = {"tags": new_tags}
@@ -2098,13 +2100,14 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         model = db.session.query(Slice).get(chart.id)
 
         # Clean up system tags
-        tag_list = [tag.name for tag in model.tags if tag.type == TagType.custom]
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
         self.assertEqual(tag_list, new_tags)
 
     @pytest.mark.usefixtures("create_chart_with_tag")
-    def test_update_chart_add_tags_can_tag_perm(self):
+    def test_update_chart_add_tags_can_tag_on_chart(self):
         """
-        Validates an owner can add tags while updating a chart with the `can_tag` perm
+        Validates an owner with can tag on chart permission can
+        add tags while updating a chart
         """
         self.login(ALPHA_USERNAME)
 
@@ -2119,8 +2122,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
 
         # get existing tag and add a new one
-        new_tags = [tag.name for tag in chart.tags if tag.type == TagType.custom]
-        new_tags.append(new_tag.name)
+        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
         update_payload = {"tags": new_tags}
 
         uri = f"api/v1/chart/{chart.id}"
@@ -2129,15 +2132,16 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         model = db.session.query(Slice).get(chart.id)
 
         # Clean up system tags
-        tag_list = [tag.name for tag in model.tags if tag.type == TagType.custom]
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
         self.assertEqual(tag_list, new_tags)
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
 
     @pytest.mark.usefixtures("create_chart_with_tag")
-    def test_update_chart_remove_tags_can_tag_perm(self):
+    def test_update_chart_remove_tags_can_tag_on_chart(self):
         """
-        Validates an owner can remove tags from a chart with the `can_tag` perm
+        Validates an owner with can tag on chart permission can
+        remove tags from a chart
         """
         self.login(ALPHA_USERNAME)
 
@@ -2158,15 +2162,16 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         model = db.session.query(Slice).get(chart.id)
 
         # Clean up system tags
-        tag_list = [tag.name for tag in model.tags if tag.type == TagType.custom]
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
         self.assertEqual(tag_list, [])
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
 
     @pytest.mark.usefixtures("create_chart_with_tag")
-    def test_update_chart_add_tags_missing_perm(self):
+    def test_update_chart_add_tags_missing_permission(self):
         """
-        Validates an owner can't add tags from a chart if they don't permission to it
+        Validates an owner can't add tags to a chart if they don't
+        have permission to it
         """
         self.login(ALPHA_USERNAME)
 
@@ -2182,8 +2187,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
 
         # get existing tag and add a new one
-        new_tags = [tag.name for tag in chart.tags if tag.type == TagType.custom]
-        new_tags.append(new_tag.name)
+        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
         update_payload = {"tags": new_tags}
 
         uri = f"api/v1/chart/{chart.id}"
@@ -2198,9 +2203,10 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         security_manager.add_permission_role(alpha_role, tag_charts_perm)
 
     @pytest.mark.usefixtures("create_chart_with_tag")
-    def test_update_chart_remove_tags_missing_perm(self):
+    def test_update_chart_remove_tags_missing_permission(self):
         """
-        Validates an owner can't remove tags from a chart if they don't permission to it
+        Validates an owner can't remove tags from a chart if they don't
+        have permission to it
         """
         self.login(ALPHA_USERNAME)
 
@@ -2223,6 +2229,33 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             rv.json["message"],
             "You do not have permission to manage tags on charts",
         )
+
+        security_manager.add_permission_role(alpha_role, write_tags_perm)
+        security_manager.add_permission_role(alpha_role, tag_charts_perm)
+
+    @pytest.mark.usefixtures("create_chart_with_tag")
+    def test_update_chart_no_tag_changes(self):
+        """
+        Validates an owner without permission to change tags is able to
+        update a chart when tags haven't changed
+        """
+        self.login(ALPHA_USERNAME)
+
+        alpha_role = security_manager.find_role("Alpha")
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        tag_charts_perm = security_manager.add_permission_view_menu("can_tag", "Chart")
+        security_manager.del_permission_role(alpha_role, write_tags_perm)
+        security_manager.del_permission_role(alpha_role, tag_charts_perm)
+
+        chart = (
+            db.session.query(Slice).filter(Slice.slice_name == "chart with tag").first()
+        )
+        existing_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
+        update_payload = {"tags": existing_tags}
+
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
         security_manager.add_permission_role(alpha_role, tag_charts_perm)

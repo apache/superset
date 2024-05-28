@@ -77,7 +77,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         owner_ids: Optional[list[int]] = self._properties.get("owners")
         roles_ids: Optional[list[int]] = self._properties.get("roles")
         slug: Optional[str] = self._properties.get("slug")
-        tag_names: Optional[list[str]] = self._properties.get("tags")
+        tag_ids: Optional[list[int]] = self._properties.get("tags")
 
         # Validate/populate model exists
         self._model = DashboardDAO.find_by_id(self._model_id)
@@ -105,7 +105,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
         # validate tags
         try:
-            validate_tags(self._model.__class__.__name__, self._model.tags, tag_names)
+            validate_tags(ObjectType.dashboard, self._model.tags, tag_ids)
         except ValidationError as ex:
             exceptions.append(ex)
 
