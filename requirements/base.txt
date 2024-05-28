@@ -205,7 +205,7 @@ marshmallow==3.21.2
     # via
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
-marshmallow-sqlalchemy==0.23.1
+marshmallow-sqlalchemy==0.28.2
     # via flask-appbuilder
 mdurl==0.1.2
     # via markdown-it-py
@@ -239,6 +239,7 @@ packaging==23.2
     #   gunicorn
     #   limits
     #   marshmallow
+    #   marshmallow-sqlalchemy
     #   shillelagh
 pandas[performance]==2.0.3
     # via apache-superset
