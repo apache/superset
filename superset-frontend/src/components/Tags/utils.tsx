@@ -37,17 +37,17 @@ const cachedSupersetGet = cacheWrapper(
 );
 
 type SelectTagsValue = {
-  value: string | number | undefined;
-  label: string;
-  key: string | number | undefined;
+  value: number | undefined;
+  label: string | undefined;
+  key: number | undefined;
 };
 
 export const tagToSelectOption = (
-  item: Tag & { table_name: string },
+  tag: Tag & { table_name: string },
 ): SelectTagsValue => ({
-  value: item.name,
-  label: item.name,
-  key: item.id,
+  value: tag.id,
+  label: tag.name,
+  key: tag.id,
 });
 
 export const loadTags = async (

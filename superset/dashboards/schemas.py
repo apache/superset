@@ -68,6 +68,7 @@ charts_description = (
 )
 certified_by_description = "Person or group that has certified this dashboard"
 certification_details_description = "Details of the certification"
+tags_description = "Tags to be associated with the dashboard"
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get a dashboard detail information"}},
@@ -369,6 +370,9 @@ class DashboardPutSchema(BaseDashboardSchema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    tags = fields.List(
+        fields.Integer(metadata={"description": tags_description}, allow_none=True)
+    )
 
 
 class ChartFavStarResponseResult(Schema):

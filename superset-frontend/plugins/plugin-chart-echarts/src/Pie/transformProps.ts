@@ -156,6 +156,7 @@ export default function transformProps(
     showLabelsThreshold,
     sliceId,
     showTotal,
+    roseType,
   }: EchartsPieFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_PIE_FORM_DATA,
@@ -283,6 +284,7 @@ export default function transformProps(
       type: 'pie',
       ...chartPadding,
       animation: false,
+      roseType: roseType || undefined,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
       center: ['50%', '50%'],
       avoidLabelOverlap: true,
