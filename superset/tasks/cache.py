@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from http.client import HTTPResponse
 from typing import Any, Optional, Union
 from urllib import request
 from urllib.error import URLError
@@ -222,14 +223,18 @@ def fetch_csrf_token(headers: dict[str, str]) -> dict[str, str]:
     url = get_url_path("SecurityRestApi.csrf_token")
     logger.info("Fetching %s", url)
     req = request.Request(url, headers=headers, method="GET")
+    response: HTTPResponse
     with request.urlopen(req, timeout=600) as response:
         body = response.read().decode("utf-8")
         session_cookie = response.headers.get("Set-Cookie")
-        if response.code == 200:
+        if response.status == 200:
             data = json.loads(body)
-            return {"Cookie": session_cookie, "X-CSRF-Token": data["result"]}
+            res = {"X-CSRF-Token": data["result"]}
+            if session_cookie is not None:
+                res["Cookie"] = session_cookie
+            return res
 
-    logger.error("Error fetching CSRF token, status code: %s", response.code)
+    logger.error("Error fetching CSRF token, status code: %s", response.status)
     return {}
 
 
