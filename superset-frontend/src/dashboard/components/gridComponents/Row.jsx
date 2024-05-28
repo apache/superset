@@ -384,7 +384,7 @@ class Row extends React.PureComponent {
                           'empty-droptarget--vertical',
                           remainColumnCount === 0 &&
                             itemIndex === rowItems.length - 1 &&
-                            'droptarget-side',
+                            'droptarget-side-last',
                         )}
                         editMode
                         style={{
