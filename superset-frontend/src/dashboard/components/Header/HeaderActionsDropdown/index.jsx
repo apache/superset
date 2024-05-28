@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
+import { connect } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
@@ -34,7 +35,8 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { MenuKeys } from 'src/dashboard/types';
+import { MenuKeys, RootState } from 'src/dashboard/types';
+
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -76,6 +78,10 @@ const defaultProps = {
   refreshLimit: 0,
   refreshWarning: null,
 };
+
+const mapStateToProps = (state) => ({
+  directPathToChild: state.dashboardState.directPathToChild,
+})
 
 class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {
@@ -173,6 +179,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       addDangerToast,
       setIsDropdownVisible,
       isDropdownVisible,
+      directPathToChild,
       ...rest
     } = this.props;
 
@@ -187,9 +194,11 @@ class HeaderActionsDropdown extends React.PureComponent {
       filters: getActiveFilters(),
       hash: window.location.hash,
     });
-
+  
     const refreshIntervalOptions =
       dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
+
+    const dashboardComponentId = [...directPathToChild].pop();
 
     return (
       <Menu selectable={false} data-test="header-actions-menu" {...rest}>
@@ -286,6 +295,7 @@ class HeaderActionsDropdown extends React.PureComponent {
               addSuccessToast={addSuccessToast}
               addDangerToast={addDangerToast}
               dashboardId={dashboardId}
+              dashboardComponentId={dashboardComponentId}
             />
           </Menu.SubMenu>
         )}
@@ -354,4 +364,4 @@ class HeaderActionsDropdown extends React.PureComponent {
 HeaderActionsDropdown.propTypes = propTypes;
 HeaderActionsDropdown.defaultProps = defaultProps;
 
-export default HeaderActionsDropdown;
+export default connect(mapStateToProps)(HeaderActionsDropdown);
