@@ -390,7 +390,7 @@ werkzeug==3.0.3
     #   flask-appbuilder
     #   flask-jwt-extended
     #   flask-login
-wrapt==1.15.0
+wrapt==1.16.0
     # via deprecated
 wtforms==3.1.2
     # via
