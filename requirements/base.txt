@@ -380,7 +380,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-wcwidth==0.2.5
+wcwidth==0.2.13
     # via prompt-toolkit
 werkzeug==3.0.3
     # via
