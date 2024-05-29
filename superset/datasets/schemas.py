@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from datetime import datetime
 from typing import Any
 
@@ -24,6 +23,7 @@ from marshmallow import fields, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 
 from superset.exceptions import SupersetMarshmallowValidationError
+from superset.utils import json
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}

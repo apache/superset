@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import decimal
-import json
 import logging
 import uuid
 from datetime import date, datetime, time, timedelta
@@ -25,20 +24,20 @@ import numpy as np
 import pandas as pd
 import simplejson
 from flask_babel.speaklater import LazyString
+from simplejson import JSONDecodeError  # noqa: F401 # pylint: disable=unused-import
 
-from superset.exceptions import SupersetException
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class DashboardEncoder(json.JSONEncoder):
+class DashboardEncoder(simplejson.JSONEncoder):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.sort_keys = True
 
-    def default(self, o: Any) -> Union[dict[Any, Any], str]:
+    def default(self, o: Any) -> Union[dict[Any, Any], str]:  # type: ignore
         if isinstance(o, uuid.UUID):
             return str(o)
         try:
@@ -47,7 +46,7 @@ class DashboardEncoder(json.JSONEncoder):
         except Exception:  # pylint: disable=broad-except
             if isinstance(o, datetime):
                 return {"__datetime__": o.replace(microsecond=0).isoformat()}
-            return json.JSONEncoder(sort_keys=True).default(o)
+            return simplejson.JSONEncoder(sort_keys=True).default(o)
 
 
 def format_timedelta(time_delta: timedelta) -> str:
@@ -172,40 +171,82 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
     :param obj: an object that should be parseable to JSON
     """
     if obj:
-        try:
-            json.loads(obj)
-        except Exception as ex:
-            logger.error("JSON is not valid %s", str(ex), exc_info=True)
-            raise SupersetException("JSON is not valid") from ex
+        loads(obj)
 
 
-def dumps(
+def dumps(  # pylint: disable=too-many-arguments
     obj: Any,
     default: Optional[Callable[[Any], Any]] = json_iso_dttm_ser,
+    allow_nan: bool = False,
     ignore_nan: bool = True,
     sort_keys: bool = False,
+    indent: Union[str, int, None] = None,
+    separators: Union[tuple[str, str], None] = None,
+    cls: Union[type[simplejson.JSONEncoder], None] = None,
 ) -> str:
     """
     Dumps object to compatible JSON format
 
     :param obj: The serializable object
     :param default: function that should return a serializable version of obj
+    :param allow_nan: when set to True NaN values will be serialized
     :param ignore_nan: when set to True nan values will be ignored
     :param sort_keys: when set to True keys will be sorted
+    :param indent: when set elements and object members will be pretty-printed
+    :param separators: when specified dumps will use (item_separator, key_separator)
+    :param cls: custom `JSONEncoder` subclass
     :returns: String object in the JSON compatible form
     """
 
     results_string = ""
     try:
         results_string = simplejson.dumps(
-            obj, default=default, ignore_nan=ignore_nan, sort_keys=sort_keys
+            obj,
+            default=default,
+            allow_nan=allow_nan,
+            ignore_nan=ignore_nan,
+            sort_keys=sort_keys,
+            indent=indent,
+            separators=separators,
+            cls=cls,
         )
     except UnicodeDecodeError:
         results_string = simplejson.dumps(  # type: ignore[call-overload]
             obj,
             default=default,
+            allow_nan=allow_nan,
             ignore_nan=ignore_nan,
             sort_keys=sort_keys,
+            indent=indent,
+            separators=separators,
+            cls=cls,
             encoding=None,
         )
     return results_string
+
+
+def loads(
+    obj: Union[bytes, bytearray, str],
+    encoding: Union[str, None] = None,
+    allow_nan: bool = False,
+    object_hook: Union[Callable[[dict[Any, Any]], Any], None] = None,
+) -> Any:
+    """
+    deserializable instance to a Python object.
+
+    :param obj: The deserializable object
+    :param encoding: determines the encoding used to interpret the obj
+    :param allow_nan: if True it will allow the parser to accept nan values
+    :param object_hook: function that will be called to decode objects values
+    :returns: A Python object deserialized from string
+    """
+    try:
+        return simplejson.loads(
+            obj,
+            encoding=encoding,
+            allow_nan=allow_nan,
+            object_hook=object_hook,
+        )
+    except JSONDecodeError as ex:
+        logger.error("JSON is not valid %s", str(ex), exc_info=True)
+        raise ex

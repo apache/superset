@@ -17,7 +17,6 @@
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 
-import json
 import logging
 import re
 import time
@@ -69,6 +68,7 @@ from superset.security.guest_token import (
 )
 from superset.sql_parse import extract_tables_from_jinja_sql, Table
 from superset.superset_typing import Metric
+from superset.utils import json
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
@@ -968,6 +968,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_view_query", "Dashboard")
         self.add_permission_view_menu("can_view_chart_as_table", "Dashboard")
         self.add_permission_view_menu("can_drill", "Dashboard")
+        self.add_permission_view_menu("can_tag", "Chart")
+        self.add_permission_view_menu("can_tag", "Dashboard")
 
     def create_missing_perms(self) -> None:
         """

@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import logging
 from dataclasses import dataclass
 from typing import Any, cast, TYPE_CHECKING
@@ -28,7 +27,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 from superset import is_feature_enabled
 from superset.models.sql_lab import Query
 from superset.sql_parse import CtasMethod
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import apply_max_row_limit, get_user_id
 from superset.utils.dates import now_as_float
 from superset.views.utils import get_cta_schema_name

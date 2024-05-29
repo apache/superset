@@ -14,9 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 # pylint: disable=too-many-lines
-
 from __future__ import annotations
 
 import contextlib
@@ -32,7 +30,6 @@ from typing import Any, cast, Optional, TYPE_CHECKING
 from urllib import parse
 
 import pandas as pd
-import simplejson as json
 from flask import current_app
 from flask_babel import gettext as __, lazy_gettext as _
 from packaging.version import Version
@@ -62,7 +59,7 @@ from superset.models.sql_types.presto_sql_types import (
 )
 from superset.result_set import destringify
 from superset.superset_typing import ResultSetColumnType
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
@@ -118,7 +115,7 @@ def get_children(column: ResultSetColumnType) -> list[ResultSetColumnType]:
     pattern = re.compile(r"(?P<type>\w+)\((?P<children>.*)\)")
     if not column["type"]:
         raise ValueError
-    match = pattern.match(column["type"])
+    match = pattern.match(cast(str, column["type"]))
     if not match:
         raise Exception(  # pylint: disable=broad-exception-raised
             f"Unable to parse column type {column['type']}"
@@ -537,6 +534,10 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
         for col_name, value in zip(col_names, values):
             col_type = column_type_by_name.get(col_name)
+
+            if isinstance(col_type, str):
+                col_type_class = getattr(types, col_type, None)
+                col_type = col_type_class() if col_type_class else None
 
             if isinstance(col_type, types.DATE):
                 col_type = Date()

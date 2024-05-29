@@ -16,8 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useMemo, useEffect, useRef } from 'react';
+import React, {
+  ReactNode,
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
+import type { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import rison from 'rison';
 import { AsyncSelect, Select } from 'src/components';
 import Label from 'src/components/Label';
@@ -124,6 +132,10 @@ const SelectLabel = ({
 const EMPTY_CATALOG_OPTIONS: CatalogOption[] = [];
 const EMPTY_SCHEMA_OPTIONS: SchemaOption[] = [];
 
+interface AntdLabeledValueWithOrder extends AntdLabeledValue {
+  order: number;
+}
+
 export default function DatabaseSelector({
   db,
   formMode = false,
@@ -153,6 +165,11 @@ export default function DatabaseSelector({
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
   const { addSuccessToast } = useToasts();
+  const sortComparator = useCallback(
+    (itemA: AntdLabeledValueWithOrder, itemB: AntdLabeledValueWithOrder) =>
+      itemA.order - itemB.order,
+    [],
+  );
 
   const loadDatabases = useMemo(
     () =>
@@ -165,7 +182,7 @@ export default function DatabaseSelector({
         totalCount: number;
       }> => {
         const queryParams = rison.encode({
-          order_columns: 'database_name',
+          order_column: 'database_name',
           order_direction: 'asc',
           page,
           page_size: pageSize,
@@ -191,7 +208,8 @@ export default function DatabaseSelector({
           if (result.length === 0) {
             if (onEmptyResults) onEmptyResults(search);
           }
-          const options = result.map((row: DatabaseObject) => ({
+
+          const options = result.map((row: DatabaseObject, order: number) => ({
             label: (
               <SelectLabel
                 backend={row.backend}
@@ -203,6 +221,7 @@ export default function DatabaseSelector({
             database_name: row.database_name,
             backend: row.backend,
             allow_multi_catalog: row.allow_multi_catalog,
+            order,
           }));
 
           return {
@@ -346,6 +365,7 @@ export default function DatabaseSelector({
         placeholder={t('Select database or type to search databases')}
         disabled={!isDatabaseSelectEnabled || readOnly}
         options={loadDatabases}
+        sortComparator={sortComparator}
       />,
       null,
     );

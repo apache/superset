@@ -10,15 +10,13 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
+appnope==0.1.4
+    # via ipython
 astroid==3.1.0
     # via pylint
-asttokens==2.2.1
-    # via stack-data
-backcall==0.2.0
-    # via ipython
-boto3==1.26.130
+boto3==1.34.112
     # via dataflows-tabulator
-botocore==1.29.130
+botocore==1.34.112
     # via
     #   boto3
     #   s3transfer
@@ -44,8 +42,6 @@ dataflows-tabulator==1.54.3
     # via tableschema
 db-dtypes==1.2.0
     # via pandas-gbq
-decorator==5.1.1
-    # via ipython
 dill==0.3.8
     # via pylint
 distlib==0.3.8
@@ -54,8 +50,6 @@ docker==7.0.0
     # via apache-superset
 et-xmlfile==1.1.0
     # via openpyxl
-executing==1.2.0
-    # via stack-data
 filelock==3.12.2
     # via
     #   tox
@@ -66,7 +60,7 @@ flask-testing==0.8.1
     # via apache-superset
 fonttools==4.51.0
     # via matplotlib
-freezegun==1.4.0
+freezegun==1.5.1
     # via apache-superset
 future==0.18.3
     # via pyhive
@@ -96,7 +90,7 @@ google-crc32c==1.5.0
     # via google-resumable-media
 google-resumable-media==2.7.0
     # via google-cloud-bigquery
-googleapis-common-protos==1.59.0
+googleapis-common-protos==1.63.0
     # via
     #   google-api-core
     #   grpcio-status
@@ -107,18 +101,14 @@ grpcio==1.62.1
     #   grpcio-status
 grpcio-status==1.60.1
     # via google-api-core
-identify==2.5.24
+identify==2.5.36
     # via pre-commit
 ijson==3.2.3
     # via dataflows-tabulator
 iniconfig==2.0.0
     # via pytest
-ipython==8.12.2
-    # via apache-superset
 isort==5.12.0
     # via pylint
-jedi==0.18.2
-    # via ipython
 jmespath==1.0.1
     # via
     #   boto3
@@ -127,16 +117,14 @@ jsonlines==4.0.0
     # via dataflows-tabulator
 jsonschema-spec==0.1.6
     # via openapi-spec-validator
-kiwisolver==1.4.4
+kiwisolver==1.4.5
     # via matplotlib
 lazy-object-proxy==1.10.0
     # via openapi-spec-validator
 linear-tsv==1.1.0
     # via dataflows-tabulator
-matplotlib==3.7.1
+matplotlib==3.9.0
     # via prophet
-matplotlib-inline==0.1.6
-    # via ipython
 mccabe==0.7.0
     # via pylint
 mysqlclient==2.2.4
@@ -155,14 +143,8 @@ pandas-gbq==0.19.1
     # via apache-superset
 parameterized==0.9.0
     # via apache-superset
-parso==0.8.4
-    # via jedi
 pathable==0.4.3
     # via jsonschema-spec
-pexpect==4.8.0
-    # via ipython
-pickleshare==0.7.5
-    # via ipython
 pillow==10.3.0
     # via
     #   apache-superset
@@ -194,27 +176,25 @@ protobuf==4.23.0
     #   proto-plus
 psycopg2-binary==2.9.6
     # via apache-superset
-ptyprocess==0.7.0
-    # via pexpect
-pure-eval==0.2.2
-    # via stack-data
 pure-sasl==0.6.2
-    # via thrift-sasl
+    # via
+    #   pyhive
+    #   thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
-pydruid==0.6.6
+pydruid==0.6.9
     # via apache-superset
 pyee==11.0.1
     # via playwright
 pyfakefs==5.3.5
     # via apache-superset
-pyhive[presto]==0.7.0
+pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
 pylint==3.1.0
     # via apache-superset
-pyproject-api==1.5.2
+pyproject-api==1.6.1
     # via tox
 pyproject-hooks==1.0.0
     # via
@@ -231,22 +211,20 @@ pytest-mock==3.10.0
     # via apache-superset
 python-ldap==3.4.4
     # via apache-superset
-requests-oauthlib==1.3.1
+requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rfc3986==2.0.0
     # via tableschema
-ruff==0.4.4
+ruff==0.4.5
     # via apache-superset
-s3transfer==0.6.1
+s3transfer==0.10.1
     # via boto3
 sqlalchemy-bigquery==1.11.0
     # via apache-superset
 sqloxide==0.1.43
     # via apache-superset
-stack-data==0.6.2
-    # via ipython
 statsd==4.0.1
     # via apache-superset
 tableschema==1.20.10
@@ -254,17 +232,14 @@ tableschema==1.20.10
 thrift==0.16.0
     # via
     #   apache-superset
+    #   pyhive
     #   thrift-sasl
 thrift-sasl==0.4.3
-    # via apache-superset
-tomli==2.0.1
     # via
-    #   apache-superset
     #   build
     #   coverage
     #   pip-tools
     #   pylint
-    #   pyhive
     #   pyproject-api
     #   pyproject-hooks
     #   pytest
@@ -279,9 +254,8 @@ tqdm==4.66.4
     # via
     #   cmdstanpy
     #   prophet
-traitlets==5.9.0
+traitlets==5.14.3
     # via
-    #   ipython
     #   matplotlib-inline
 trino==0.328.0
     # via apache-superset
@@ -295,7 +269,7 @@ virtualenv==20.23.1
     # via
     #   pre-commit
     #   tox
-wheel==0.40.0
+wheel==0.43.0
     # via pip-tools
 xlrd==2.0.1
     # via dataflows-tabulator

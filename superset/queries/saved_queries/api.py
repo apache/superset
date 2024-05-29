@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -54,6 +53,7 @@ from superset.queries.saved_queries.schemas import (
     get_export_ids_schema,
     openapi_spec_methods_override,
 )
+from superset.utils import json
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,

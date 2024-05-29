@@ -26,7 +26,6 @@ Create Date: 2021-04-29 15:32:21.939018
 revision = "f1410ed7ec95"
 down_revision = "d416d0d715cc"
 
-import json  # noqa: E402
 from collections.abc import Iterable  # noqa: E402
 from typing import Any  # noqa: E402
 
@@ -35,6 +34,7 @@ from sqlalchemy import Column, Integer, Text  # noqa: E402
 from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 

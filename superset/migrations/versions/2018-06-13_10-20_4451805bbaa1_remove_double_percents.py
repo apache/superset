@@ -27,8 +27,6 @@ revision = "4451805bbaa1"
 down_revision = "bddc498dd179"
 
 
-import json  # noqa: E402
-
 from alembic import op  # noqa: E402
 from sqlalchemy import (  # noqa: E402
     Column,
@@ -41,6 +39,7 @@ from sqlalchemy import (  # noqa: E402
 from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 

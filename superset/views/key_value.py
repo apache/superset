@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import simplejson as json
 from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.hooks import before_request
@@ -24,7 +23,7 @@ from werkzeug.exceptions import NotFound
 from superset import db, event_logger, is_feature_enabled
 from superset.models import core as models
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.views.base import BaseSupersetView, deprecated, json_error_response
 
 

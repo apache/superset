@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 import logging
 from typing import Any
 
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.models.dashboard import Dashboard
+from superset.utils import json
 from superset.utils.core import get_user
 
 logger = logging.getLogger(__name__)

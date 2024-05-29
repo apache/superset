@@ -27,7 +27,6 @@ revision = "4ea966691069"
 down_revision = "7e67aecbf3f1"
 
 import copy  # noqa: E402
-import json  # noqa: E402
 import logging  # noqa: E402
 
 import sqlalchemy as sa  # noqa: E402
@@ -36,6 +35,7 @@ from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.migrations.shared.utils import paginated_update  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 logger = logging.getLogger(__name__)
