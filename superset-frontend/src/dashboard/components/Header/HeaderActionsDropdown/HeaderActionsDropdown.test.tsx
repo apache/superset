@@ -26,7 +26,7 @@ import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import HeaderActionsDropdown from '.';
 
-const createProps = () => ({
+const createProps = (): HeaderDropdownProps => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
   customCss: '.ant-menu {margin-left: 100px;}',
@@ -67,6 +67,7 @@ const createProps = () => ({
   userCanCurate: false,
   lastModifiedTime: 0,
   isDropdownVisible: true,
+  manageEmbedded: jest.fn(),
   dataMask: {},
   logEvent: jest.fn(),
 });
