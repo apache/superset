@@ -47,6 +47,12 @@ const StyledDiv = styled.div`
       & .grid-row:after {
         border-style: hidden;
       }
+      & .droptarget-side:last-child {
+        inset-inline-end: 0;
+      }
+      & .droptarget-edge:last-child {
+        inset-block-end: 0;
+      }
     }
 
     /* A row within a column has inset hover menu */
