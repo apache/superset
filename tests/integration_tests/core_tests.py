@@ -1127,6 +1127,9 @@ class TestCore(SupersetTestCase):
             "my_col"
         ]
 
+    @pytest.mark.skip(
+        "TODO This test was wrong - 'Error message' was in the language pack"
+    )
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @mock.patch("superset.models.core.DB_CONNECTION_MUTATOR")
     def test_explore_injected_exceptions(self, mock_db_connection_mutator):
@@ -1153,6 +1156,9 @@ class TestCore(SupersetTestCase):
         data = self.get_resp(url)
         self.assertIn("Error message", data)
 
+    @pytest.mark.skip(
+        "TODO This test was wrong - 'Error message' was in the language pack"
+    )
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @mock.patch("superset.models.core.DB_CONNECTION_MUTATOR")
     def test_dashboard_injected_exceptions(self, mock_db_connection_mutator):
