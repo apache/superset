@@ -143,6 +143,7 @@ export default function transformProps(
     labelsOutside,
     labelLine,
     labelType,
+    labelTemplate,
     legendMargin,
     legendOrientation,
     legendType,
@@ -268,7 +269,10 @@ export default function transformProps(
   };
 
   const defaultLabel = {
-    formatter,
+    formatter:
+      labelType === EchartsPieLabelType.Template
+        ? labelTemplate?.replaceAll('\\n', '\n') || ''
+        : formatter,
     show: showLabels,
     color: theme.colors.grayscale.dark2,
   };
