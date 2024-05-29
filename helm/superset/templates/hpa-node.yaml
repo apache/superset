@@ -17,7 +17,7 @@
 
 */}}
 
-{{- if .Values.supersetNode.autoscaling.enabled }}
+{{- if .Values.supersetNode.autoscaling.enabled and not .Values.supersetNode.autoscaling.custom }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
