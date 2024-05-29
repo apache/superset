@@ -84,6 +84,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
+from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils import json
 from superset.utils.screenshots import (
     DashboardScreenshot,
@@ -1012,11 +1013,35 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         print("THUMBNAIL_CACHE: ", dir(thumbnail_cache))
         print("THUMBNAIL CACHE: ", thumbnail_cache.cache)
         print("DIGEST", digest)
+
+        download_format = request.args.get(
+            "download_format", "png"
+        )  # Default to png if not specified
+
         # fetch the dashboard screenshot using the current user and cache if set
+
         if img := DashboardScreenshot.get_from_cache_key(thumbnail_cache, digest):
-            return Response(
-                FileWrapper(img), mimetype="image/png", direct_passthrough=True
-            )
+            # Ensure img is a bytes-like object
+            # if isinstance(img, BytesIO):
+            #     img = img.getvalue()
+
+            if download_format == "pdf":
+                pdf_img = img.getvalue()
+                # Convert the screenshot to PDF
+                pdf_data = build_pdf_from_screenshots([pdf_img])
+
+                return Response(
+                    pdf_data,
+                    mimetype="application/pdf",
+                    headers={"Content-Disposition": "inline; filename=dashboard.pdf"},
+                    direct_passthrough=True,
+                )
+            if download_format == "png":
+                return Response(
+                    FileWrapper(img),
+                    mimetype="image/png",
+                    direct_passthrough=True,
+                )
 
         return self.response_404()
 
