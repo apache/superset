@@ -246,6 +246,18 @@ const v1ChartDataRequest = async (
       ownState,
     });
 
+    // DODO added start 33901821
+    payload.queries?.forEach(query => {
+      const timeFilter = query?.filters
+        ?.reverse()
+        .find(filter => filter.op === 'TEMPORAL_RANGE');
+      if (query.time_range === undefined && timeFilter) {
+        // set time range to enforce jinja work
+        query.time_range = timeFilter.val;
+      }
+    });
+    // DODO added stop 33901821
+
     // The dashboard id is added to query params for tracking purposes
     const { slice_id: sliceId } = formData;
     const { dashboard_id: dashboardId } = requestParams;
