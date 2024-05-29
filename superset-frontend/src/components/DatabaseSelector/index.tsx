@@ -16,8 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useMemo, useEffect, useRef } from 'react';
+import React, {
+  ReactNode,
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
+import type { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import rison from 'rison';
 import { AsyncSelect, Select } from 'src/components';
 import Label from 'src/components/Label';
@@ -150,9 +158,15 @@ export default function DatabaseSelector({
   const [currentSchema, setCurrentSchema] = useState<SchemaOption | undefined>(
     schema ? { label: schema, value: schema, title: schema } : undefined,
   );
+  const dbIdSeqMap = useRef<Record<number, number>>();
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
   const { addSuccessToast } = useToasts();
+  const sortComparator = useCallback(
+    (itemA: AntdLabeledValue, itemB: AntdLabeledValue) =>
+      dbIdSeqMap.current?.[itemA.value] - dbIdSeqMap.current?.[itemB.value],
+    [],
+  );
 
   const loadDatabases = useMemo(
     () =>
@@ -165,7 +179,7 @@ export default function DatabaseSelector({
         totalCount: number;
       }> => {
         const queryParams = rison.encode({
-          order_columns: 'database_name',
+          order_column: 'database_name',
           order_direction: 'asc',
           page,
           page_size: pageSize,
@@ -191,6 +205,10 @@ export default function DatabaseSelector({
           if (result.length === 0) {
             if (onEmptyResults) onEmptyResults(search);
           }
+
+          dbIdSeqMap.current = Object.fromEntries<number>(
+            result.map(({ id }: DatabaseObject, seq: number) => [id, seq]),
+          );
           const options = result.map((row: DatabaseObject) => ({
             label: (
               <SelectLabel
@@ -346,6 +364,7 @@ export default function DatabaseSelector({
         placeholder={t('Select database or type to search databases')}
         disabled={!isDatabaseSelectEnabled || readOnly}
         options={loadDatabases}
+        sortComparator={sortComparator}
       />,
       null,
     );
