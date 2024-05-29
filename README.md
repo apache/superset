@@ -119,7 +119,7 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/postgresql.png" alt="postgresql" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/mssql-server.png" alt="mssql-server" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/imb-db2.svg" alt="db2" border="0" width="220" />
+  <img src="https://superset.apache.org/img/databases/ibm-db2.svg" alt="db2" border="0" width="220" />
   <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/sybase.png" alt="sybase" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="200" />
