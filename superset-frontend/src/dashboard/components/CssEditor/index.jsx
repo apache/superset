@@ -151,6 +151,7 @@ class CssEditor extends React.PureComponent {
 /* Dashboard rows */
 .grid-row {
   margin: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 /* All dashboard components */
