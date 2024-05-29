@@ -328,7 +328,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
                       id="ikidynamicmarkdown-widget-${this.props.component.id}"
                       name="dynamic-markdown-${timestamp}"
                       src="${widgetUrl}"
-                      title="Dynamic Markdown Component"
+                      title="Custom Component"
                       style="min-height: 100%;"
                     />`;
     this.handleIkiRunPipelineChange(tempIframe, true);
@@ -395,7 +395,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
                   id="ikidynamicmarkdown-widget-${this.props.component.id}"
                   name="dynamic-markdown-${timestamp}"
                   src="${iframeSrc}"
-                  title="Dynamic Markdown Component"
+                  title="Custom Component"
                   style="height:100%;"
                 />`;
     } else {

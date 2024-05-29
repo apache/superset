@@ -158,21 +158,9 @@ class CssEditor extends React.PureComponent {
   box-shadow: none !important;
 }
 
-/* Dashboard components */
-.dragdroppable:first-of-type .resizable-container {
-  padding-left: 24px;
-}
-.dragdroppable:last-of-type .resizable-container {
-  padding-right: 24px;
-}
-
-/* Targets dynamic markdown components */
+/* Custom Components */
 [id*="DYNAMIC"] .resizable-container {
   padding: 0 !important;
-}
-
-/* Dynamic markdown components */
-.dashboard-component-ikirunpipeline {
   border-radius: 0 !important;
   box-shadow: none !important;
 }

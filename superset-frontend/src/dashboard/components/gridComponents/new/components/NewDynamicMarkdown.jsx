@@ -28,7 +28,7 @@ export default function DraggableNewDivider() {
     <DraggableNewComponent
       id={NEW_DYNAMIC_COMPONENT}
       type={IKI_DYNAMIC_MARKDOWN_TYPE}
-      label={t('Dynamic Markdown')}
+      label={t('Custom Component')}
       description="Construct custom layout with powerful features"
       className="fa fa-mouse-pointer"
     />
