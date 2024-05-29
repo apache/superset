@@ -132,6 +132,10 @@ const SelectLabel = ({
 const EMPTY_CATALOG_OPTIONS: CatalogOption[] = [];
 const EMPTY_SCHEMA_OPTIONS: SchemaOption[] = [];
 
+interface AntdLabeledValueWithOrder extends AntdLabeledValue {
+  order: number;
+}
+
 export default function DatabaseSelector({
   db,
   formMode = false,
@@ -158,13 +162,12 @@ export default function DatabaseSelector({
   const [currentSchema, setCurrentSchema] = useState<SchemaOption | undefined>(
     schema ? { label: schema, value: schema, title: schema } : undefined,
   );
-  const dbIdSeqMap = useRef<Record<number, number>>();
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
   const { addSuccessToast } = useToasts();
   const sortComparator = useCallback(
-    (itemA: AntdLabeledValue, itemB: AntdLabeledValue) =>
-      dbIdSeqMap.current?.[itemA.value] - dbIdSeqMap.current?.[itemB.value],
+    (itemA: AntdLabeledValueWithOrder, itemB: AntdLabeledValueWithOrder) =>
+      itemA.order - itemB.order,
     [],
   );
 
@@ -206,10 +209,7 @@ export default function DatabaseSelector({
             if (onEmptyResults) onEmptyResults(search);
           }
 
-          dbIdSeqMap.current = Object.fromEntries<number>(
-            result.map(({ id }: DatabaseObject, seq: number) => [id, seq]),
-          );
-          const options = result.map((row: DatabaseObject) => ({
+          const options = result.map((row: DatabaseObject, order: number) => ({
             label: (
               <SelectLabel
                 backend={row.backend}
@@ -221,6 +221,7 @@ export default function DatabaseSelector({
             database_name: row.database_name,
             backend: row.backend,
             allow_multi_catalog: row.allow_multi_catalog,
+            order,
           }));
 
           return {
