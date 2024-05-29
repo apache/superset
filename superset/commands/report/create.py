@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Optional
 
@@ -40,6 +39,7 @@ from superset.reports.models import (
     ReportScheduleType,
 )
 from superset.reports.types import ReportScheduleExtra
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 

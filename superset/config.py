@@ -79,6 +79,8 @@ STATS_LOGGER = DummyStatsLogger()
 
 # By default will log events to the metadata database with `DBEventLogger`
 # Note that you can use `StdOutEventLogger` for debugging
+# Note that you can write your own event logger by extending `AbstractEventLogger`
+# https://github.com/apache/superset/blob/master/superset/utils/log.py
 EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True

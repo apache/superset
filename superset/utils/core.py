@@ -714,6 +714,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
         msg["CC"] = ", ".join(smtp_mail_cc)
         recipients = recipients + smtp_mail_cc
 
+    smtp_mail_bcc = []
     if bcc:
         # don't add bcc in header
         smtp_mail_bcc = get_email_address_list(bcc)
@@ -764,6 +765,11 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     msg_mutator = config["EMAIL_HEADER_MUTATOR"]
     # the base notification returns the message without any editing.
     new_msg = msg_mutator(msg, **(header_data or {}))
+    new_to = new_msg["To"].split(", ") if "To" in new_msg else []
+    new_cc = new_msg["Cc"].split(", ") if "Cc" in new_msg else []
+    new_recipients = new_to + new_cc + smtp_mail_bcc
+    if set(new_recipients) != set(recipients):
+        recipients = new_recipients
     send_mime_email(smtp_mail_from, recipients, new_msg, config, dryrun=dryrun)
 
 

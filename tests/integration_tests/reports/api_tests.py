@@ -19,7 +19,6 @@
 
 from datetime import datetime, timedelta
 from unittest.mock import patch
-import json
 
 import pytz
 
@@ -42,6 +41,7 @@ from superset.reports.models import (
     ReportState,
 )
 from superset.utils.database import get_example_database
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME

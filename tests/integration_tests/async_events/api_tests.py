@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from typing import Optional
 from unittest import mock
 
 from superset.extensions import async_query_manager
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.test_app import app

@@ -19,7 +19,6 @@
 
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from io import BytesIO
 from typing import Any
@@ -41,6 +40,7 @@ from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.sql_parse import Table
+from superset.utils import json
 from tests.unit_tests.fixtures.common import (
     create_columnar_file,
     create_csv_file,

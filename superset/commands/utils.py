@@ -16,7 +16,8 @@
 # under the License.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections import Counter
+from typing import Optional, TYPE_CHECKING
 
 from flask import g
 from flask_appbuilder.security.sqla.models import Role, User
@@ -26,9 +27,13 @@ from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     OwnersNotFoundValidationError,
     RolesNotFoundValidationError,
+    TagForbiddenError,
+    TagNotFoundValidationError,
 )
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
+from superset.daos.tag import TagDAO
+from superset.tags.models import ObjectType, Tag, TagType
 from superset.utils.core import DatasourceType, get_user_id
 
 if TYPE_CHECKING:
@@ -102,3 +107,81 @@ def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDataso
         )
     except DatasourceNotFound as ex:
         raise DatasourceNotFoundValidationError() from ex
+
+
+def validate_tags(
+    object_type: ObjectType,
+    current_tags: list[Tag],
+    new_tag_ids: Optional[list[int]],
+) -> None:
+    """
+    Helper function for update commands, to validate the tags list. Users
+    with `can_write` on `Tag` are allowed to both create new tags and manage
+    tag association with objects. Users with `can_tag` on `object_type` are
+    only allowed to manage existing existing tags' associations with the object.
+
+    :param current_tags: list of current tags
+    :param new_tag_ids: list of tags specified in the update payload
+    """
+
+    # `tags` not part of the update payload
+    if new_tag_ids is None:
+        return
+
+    # No changes in the list
+    current_custom_tags = [tag.id for tag in current_tags if tag.type == TagType.custom]
+    if Counter(current_custom_tags) == Counter(new_tag_ids):
+        return
+
+    # No perm to tags assets
+    if not (
+        security_manager.can_access("can_write", "Tag")
+        or security_manager.can_access("can_tag", object_type.name.capitalize())
+    ):
+        validation_error = (
+            f"You do not have permission to manage tags on {object_type.name}s"
+        )
+        raise TagForbiddenError(validation_error)
+
+    # Validate if new tags already exist
+    additional_tags = [tag for tag in new_tag_ids if tag not in current_custom_tags]
+    for tag_id in additional_tags:
+        if not TagDAO.find_by_id(tag_id):
+            validation_error = f"Tag ID {tag_id} not found"
+            raise TagNotFoundValidationError(validation_error)
+
+    return
+
+
+def update_tags(
+    object_type: ObjectType,
+    object_id: int,
+    current_tags: list[Tag],
+    new_tag_ids: list[int],
+) -> None:
+    """
+    Helper function for update commands, to update the tag relationship.
+
+    :param object_id: The object (dashboard, chart, etc) ID
+    :param object_type: The object type
+    :param current_tags: list of current tags
+    :param new_tag_ids: list of tags specified in the update payload
+    """
+
+    current_custom_tags = [tag for tag in current_tags if tag.type == TagType.custom]
+    current_custom_tag_ids = [
+        tag.id for tag in current_tags if tag.type == TagType.custom
+    ]
+
+    tags_to_delete = [tag for tag in current_custom_tags if tag.id not in new_tag_ids]
+    for tag in tags_to_delete:
+        TagDAO.delete_tagged_object(object_type, object_id, tag.name)
+
+    tag_ids_to_add = [
+        tag_id for tag_id in new_tag_ids if tag_id not in current_custom_tag_ids
+    ]
+    if tag_ids_to_add:
+        tags_to_add = TagDAO.find_by_ids(tag_ids_to_add)
+        TagDAO.create_custom_tagged_objects(
+            object_type, object_id, [tag.name for tag in tags_to_add]
+        )

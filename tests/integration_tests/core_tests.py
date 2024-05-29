@@ -19,7 +19,6 @@
 import datetime
 import doctest
 import html
-import json
 import logging
 import random
 import unittest
@@ -51,7 +50,7 @@ from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import Table
-from superset.utils import core as utils, json as json_utils
+from superset.utils import core as utils, json
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from superset.views.database.views import DatabaseView
@@ -502,7 +501,7 @@ class TestCore(SupersetTestCase):
         results = SupersetResultSet(list(data), [["data"]], BaseEngineSpec)
         df = results.to_pandas_df()
         data = dataframe.df_to_records(df)
-        json_str = json.dumps(data, default=json_utils.pessimistic_json_iso_dttm_ser)
+        json_str = json.dumps(data, default=json.pessimistic_json_iso_dttm_ser)
         self.assertDictEqual(
             data[0], {"data": pd.Timestamp("2017-11-18 21:53:00.219225+0100", tz=tz)}
         )
@@ -943,7 +942,7 @@ class TestCore(SupersetTestCase):
 
         encoded = json.dumps(
             {"FOO": lambda x: 1, "super": "set"},
-            default=json_utils.pessimistic_json_iso_dttm_ser,
+            default=json.pessimistic_json_iso_dttm_ser,
         )
         html_string = (
             html.escape(encoded, quote=False)

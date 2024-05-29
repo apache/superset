@@ -17,7 +17,6 @@
 
 # pylint: disable=import-outside-toplevel
 
-import json
 from datetime import datetime
 from typing import Optional
 from unittest import mock
@@ -27,6 +26,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 

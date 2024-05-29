@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from collections.abc import Sequence
 from io import IOBase
@@ -43,6 +42,7 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
     NotificationUnprocessableException,
 )
+from superset.utils import json
 from superset.utils.core import get_email_address_list
 from superset.utils.decorators import statsd_gauge
 from superset.utils.slack import get_slack_client

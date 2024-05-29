@@ -16,7 +16,6 @@
 # under the License.
 """Unit tests for Superset"""
 
-import json
 import unittest
 from io import BytesIO
 from typing import Optional
@@ -43,6 +42,7 @@ from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.sql_parse import Table
+from superset.utils import json
 from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict

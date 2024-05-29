@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
-import simplejson as json
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison
@@ -33,7 +32,7 @@ from superset.commands.chart.exceptions import (
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
-from superset.utils import json as json_utils
+from superset.utils import json
 from superset.utils.date_parser import get_since_until
 from superset.views.base import api, BaseSupersetView, handle_api_exception
 
@@ -73,9 +72,7 @@ class Api(BaseSupersetView):
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
-        return json_utils.dumps(
-            payload_json, default=json_utils.json_int_dttm_ser, ignore_nan=True
-        )
+        return json.dumps(payload_json, default=json.json_int_dttm_ser, ignore_nan=True)
 
     @event_logger.log_this
     @api

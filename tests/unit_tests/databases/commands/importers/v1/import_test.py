@@ -17,7 +17,6 @@
 # pylint: disable=unused-argument, import-outside-toplevel, invalid-name
 
 import copy
-import json
 
 import pytest
 from pytest_mock import MockFixture
@@ -25,6 +24,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import db
 from superset.commands.exceptions import ImportFailedError
+from superset.utils import json
 
 
 def test_import_database(mocker: MockFixture, session: Session) -> None:

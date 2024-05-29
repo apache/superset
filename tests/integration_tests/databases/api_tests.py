@@ -18,7 +18,6 @@
 """Unit tests for Superset"""
 
 import dataclasses
-import json
 from collections import defaultdict
 from io import BytesIO
 from unittest import mock
@@ -49,6 +48,7 @@ from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.utils.database import get_example_database, get_main_database
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -1013,13 +1013,13 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
             "message": {
+                "extra": [
+                    "Field cannot be decoded by JSON. Expecting ',' "
+                    "delimiter or ']': line 1 column 5 (char 4)"
+                ],
                 "masked_encrypted_extra": [
                     "Field cannot be decoded by JSON. Expecting ':' "
                     "delimiter: line 1 column 15 (char 14)"
-                ],
-                "extra": [
-                    "Field cannot be decoded by JSON. Expecting ','"
-                    " delimiter: line 1 column 5 (char 4)"
                 ],
             }
         }

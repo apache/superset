@@ -16,7 +16,6 @@
 # under the License.
 """Unit tests for Superset"""
 
-import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from unittest import mock
@@ -36,6 +35,7 @@ from superset.constants import CacheRegion
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
+from superset.utils import json
 from superset.utils.core import backend, get_example_default_schema  # noqa: F401
 from superset.utils.database import (  # noqa: F401
     get_example_database,
