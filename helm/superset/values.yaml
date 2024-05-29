@@ -250,6 +250,7 @@ supersetNode:
   replicaCount: 1
   autoscaling:
     enabled: false
+    custom: false
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
@@ -367,6 +368,7 @@ supersetWorker:
   replicaCount: 1
   autoscaling:
     enabled: false
+    custom: false
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
