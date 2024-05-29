@@ -295,3 +295,18 @@ class SupersetMarshmallowValidationError(SupersetErrorException):
             extra={"messages": exc.messages, "payload": payload},
         )
         super().__init__(error)
+
+
+class DisallowedSQLFunction(SupersetErrorException):
+    """
+    Disallowed function found on SQL statement
+    """
+
+    def __init__(self, functions: set[str]):
+        super().__init__(
+            SupersetError(
+                message=f"SQL statement contains disallowed function(s): {functions}",
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
