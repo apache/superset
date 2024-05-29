@@ -286,6 +286,8 @@ def apply_filter_like_df(
         return result
 
     for query in result["queries"]:
+        if not query.get("result_format"):
+            continue
         if query["result_format"] not in (rf.value for rf in ChartDataResultFormat):
             raise Exception(  # pylint: disable=broad-exception-raised
                 f"Result format {query['result_format']} not supported"
