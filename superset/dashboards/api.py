@@ -1014,17 +1014,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         print("THUMBNAIL CACHE: ", thumbnail_cache.cache)
         print("DIGEST", digest)
 
-        download_format = request.args.get(
-            "download_format", "png"
-        )  # Default to png if not specified
+        download_format = request.args.get("download_format", "png")
 
         # fetch the dashboard screenshot using the current user and cache if set
 
         if img := DashboardScreenshot.get_from_cache_key(thumbnail_cache, digest):
-            # Ensure img is a bytes-like object
-            # if isinstance(img, BytesIO):
-            #     img = img.getvalue()
-
             if download_format == "pdf":
                 pdf_img = img.getvalue()
                 # Convert the screenshot to PDF
