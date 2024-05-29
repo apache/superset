@@ -35,8 +35,7 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { MenuKeys, RootState } from 'src/dashboard/types';
-
+import { MenuKeys } from 'src/dashboard/types';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -79,9 +78,9 @@ const defaultProps = {
   refreshWarning: null,
 };
 
-const mapStateToProps = (state) => ({
+const mapStateToProps = state => ({
   directPathToChild: state.dashboardState.directPathToChild,
-})
+});
 
 class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {
@@ -194,7 +193,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       filters: getActiveFilters(),
       hash: window.location.hash,
     });
-  
+
     const refreshIntervalOptions =
       dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
 
