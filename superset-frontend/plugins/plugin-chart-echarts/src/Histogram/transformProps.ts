@@ -67,8 +67,9 @@ export default function transformProps(
     normalize ? NumberFormats.FLOAT_3_POINT : NumberFormats.INTEGER,
   );
   const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
+  const groupbySet = new Set(groupby);
   const xAxisData: string[] = Object.keys(data[0]).filter(
-    key => groupby.includes(key) === false,
+    key => groupbySet.has(key) === false,
   );
   const barSeries: BarSeriesOption[] = data.map(datum => {
     const seriesName =
@@ -76,7 +77,7 @@ export default function transformProps(
         ? groupby.map(key => datum[getColumnLabel(key)]).join(', ')
         : getColumnLabel(column);
     const seriesData = Object.keys(datum)
-      .filter(key => groupby.includes(key) === false)
+      .filter(key => groupbySet.has(key) === false)
       .map(key => datum[key] as number);
     return {
       name: seriesName,
@@ -121,6 +122,32 @@ export default function transformProps(
     });
   }
 
+  const tooltipFormatter = (params: CallbackDataParams[]) => {
+    const title = params[0].name;
+    const array = params.filter(param => param.seriesName !== TOTAL_SERIES);
+    const rows = array.map(param => {
+      const { marker, seriesName, value } = param;
+      return [`${marker}${seriesName}`, formatter.format(value as number)];
+    });
+    if (groupby.length > 0) {
+      const total = array.reduce(
+        (acc, param) => acc + (param.value as number),
+        0,
+      );
+      rows.forEach((row, i) =>
+        row.push(
+          percentFormatter.format((params[i].value as number) / (total || 1)),
+        ),
+      );
+      rows.push(['Total', formatter.format(total), percentFormatter.format(1)]);
+    }
+    return tooltipHtml(rows, title, focusedSeries);
+  };
+
+  const onFocusedSeries = (index?: number | undefined) => {
+    focusedSeries = index;
+  };
+
   const echartOptions: EChartsOption = {
     grid: {
       ...defaultGrid,
@@ -138,7 +165,7 @@ export default function transformProps(
     yAxis: {
       ...defaultYAxis,
       name: yAxisTitle,
-      nameGap: 45,
+      nameGap: normalize ? 55 : 40,
       type: 'value',
       nameLocation: 'middle',
       axisLabel: {
@@ -160,38 +187,8 @@ export default function transformProps(
     tooltip: {
       ...getDefaultTooltip(refs),
       trigger: 'axis',
-      formatter: (params: CallbackDataParams[]) => {
-        const title = params[0].name;
-        const array = params.filter(param => param.seriesName !== TOTAL_SERIES);
-        const rows = array.map(param => {
-          const { marker, seriesName, value } = param;
-          return [`${marker}${seriesName}`, formatter.format(value as number)];
-        });
-        if (groupby.length > 0) {
-          const total = array.reduce(
-            (acc, param) => acc + (param.value as number),
-            0,
-          );
-          rows.forEach((row, i) =>
-            row.push(
-              percentFormatter.format(
-                (params[i].value as number) / (total || 1),
-              ),
-            ),
-          );
-          rows.push([
-            'Total',
-            formatter.format(total),
-            percentFormatter.format(1),
-          ]);
-        }
-        return tooltipHtml(rows, title, focusedSeries);
-      },
+      formatter: tooltipFormatter,
     },
-  };
-
-  const onFocusedSeries = (index?: number | undefined) => {
-    focusedSeries = index;
   };
 
   return {

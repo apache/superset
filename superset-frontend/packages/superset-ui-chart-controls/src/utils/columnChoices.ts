@@ -16,17 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryResponse } from '@superset-ui/core';
-import { Dataset, isDataset, isQueryResponse } from '../types';
+import { QueryColumn, QueryResponse } from '@superset-ui/core';
+import { ColumnMeta, Dataset, isDataset, isQueryResponse } from '../types';
 
 /**
  * Convert Datasource columns to column choices
  */
 export default function columnChoices(
   datasource?: Dataset | QueryResponse | null,
+  filter: (col: ColumnMeta | QueryColumn) => boolean = () => true,
 ): [string, string][] {
   if (isDataset(datasource) || isQueryResponse(datasource)) {
     return datasource.columns
+      .filter(filter)
       .map((col): [string, string] => [
         col.column_name,
         'verbose_name' in col

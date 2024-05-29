@@ -16,10 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateInteger, validateNonEmpty } from '@superset-ui/core';
+import {
+  GenericDataType,
+  t,
+  validateInteger,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  dndGroupByControl,
+  columnChoices,
   formatSelectOptionsForRange,
 } from '@superset-ui/chart-controls';
 import { showLegendControl, showValueControl } from '../controls';
@@ -34,12 +39,18 @@ const config: ControlPanelConfig = {
           {
             name: 'column',
             config: {
-              ...dndGroupByControl,
+              type: 'SelectControl',
               label: t('Numeric column'),
               multi: false,
               description: t('Select the numeric column to draw the histogram'),
               default: null,
               validators: [validateNonEmpty],
+              mapStateToProps: ({ datasource }) => ({
+                choices: columnChoices(
+                  datasource,
+                  col => col.type_generic === GenericDataType.Numeric,
+                ),
+              }),
             },
           },
         ],

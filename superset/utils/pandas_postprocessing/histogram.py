@@ -23,9 +23,9 @@ def histogram(
     df: DataFrame,
     column: str,
     groupby: list[str],
-    bins=5,
-    cumulative=False,
-    normalize=False,
+    bins: int = 5,
+    cumulative: bool = False,
+    normalize: bool = False,
 ) -> DataFrame:
     """
     Generate a histogram DataFrame from a given DataFrame.
@@ -36,11 +36,16 @@ def histogram(
     groupby (list[str]): The columns to group by. If empty, no grouping is performed.
     bins (int): The number of bins to use for the histogram. Default is 5.
     cumulative (bool): Whether to calculate a cumulative histogram. Default is False.
+    normalize (bool): Whether to normalize the histogram. Default is False.
 
     Returns:
     DataFrame: A DataFrame where each row corresponds to a group (or the entire DataFrame if no grouping is performed),
                and each column corresponds to a histogram bin. The values are the counts in each bin.
     """
+
+    # check if the column is numeric
+    if not np.issubdtype(df[column].dtype, np.number):
+        raise ValueError(f"The column '{column}' must be numeric.")
 
     # calculate the histogram bin edges
     bin_edges = np.histogram_bin_edges(df[column], bins=bins)
@@ -51,7 +56,7 @@ def histogram(
         for i in range(len(bin_edges) - 1)
     ]
 
-    def hist_values(series: Series):
+    def hist_values(series: Series) -> np.ndarray:
         result = np.histogram(series, bins=bin_edges, density=normalize)[0]
         return result if not cumulative else np.cumsum(result)
 
