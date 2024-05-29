@@ -416,9 +416,8 @@ class SavedQuery(
         "Tag",
         secondary="tagged_object",
         overlaps="tags",
-        primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
-        "TaggedObject.object_type == 'query')",
+        primaryjoin="and_(SavedQuery.id == TaggedObject.object_id, TaggedObject.object_type == 'query')",
+        secondaryjoin="and_(TaggedObject.tag_id == Tag.id)",
     )
 
     export_parent = "database"
