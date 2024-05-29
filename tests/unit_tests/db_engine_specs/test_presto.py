@@ -24,7 +24,6 @@ from pyhive.sqlalchemy_presto import PrestoDialect
 from sqlalchemy import sql, text, types
 from sqlalchemy.engine.url import make_url
 
-from superset.sql_parse import Table
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -135,7 +134,7 @@ def test_where_latest_partition(
         str(
             PrestoEngineSpec.where_latest_partition(  # type: ignore
                 database=mock.MagicMock(),
-                table=Table("table"),
+                table_name="table",
                 query=sql.select(text("* FROM table")),
                 columns=[
                     {
