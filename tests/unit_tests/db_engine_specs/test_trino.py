@@ -401,7 +401,7 @@ def test_handle_cursor_early_cancel(
         assert cancel_query_mock.call_args is None
 
 
-def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
+def test_execute_with_cursor_in_parallel(app, mocker: MockerFixture):
     """Test that `execute_with_cursor` fetches query ID from the cursor"""
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
@@ -416,16 +416,20 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
         mock_cursor.query_id = query_id
 
     mock_cursor.execute.side_effect = _mock_execute
+    with patch.dict(
+        "superset.config.DISALLOWED_SQL_FUNCTIONS",
+        {},
+        clear=True,
+    ):
+        TrinoEngineSpec.execute_with_cursor(
+            cursor=mock_cursor,
+            sql="SELECT 1 FROM foo",
+            query=mock_query,
+        )
 
-    TrinoEngineSpec.execute_with_cursor(
-        cursor=mock_cursor,
-        sql="SELECT 1 FROM foo",
-        query=mock_query,
-    )
-
-    mock_query.set_extra_json_key.assert_called_once_with(
-        key=QUERY_CANCEL_KEY, value=query_id
-    )
+        mock_query.set_extra_json_key.assert_called_once_with(
+            key=QUERY_CANCEL_KEY, value=query_id
+        )
 
 
 def test_get_columns(mocker: MockerFixture):

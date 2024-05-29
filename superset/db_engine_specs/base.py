@@ -62,7 +62,7 @@ from superset import sql_parse
 from superset.constants import TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
 from superset.sql_parse import ParsedQuery, SQLScript, Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
@@ -1818,6 +1818,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if not cls.allows_sql_comments:
             query = sql_parse.strip_comments_from_sql(query, engine=cls.engine)
+        disallowed_functions = current_app.config["DISALLOWED_SQL_FUNCTIONS"].get(
+            cls.engine, set()
+        )
+        if sql_parse.check_sql_functions_exist(query, disallowed_functions, cls.engine):
+            raise DisallowedSQLFunction(disallowed_functions)
 
         if cls.arraysize:
             cursor.arraysize = cls.arraysize

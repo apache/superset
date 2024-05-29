@@ -39,6 +39,7 @@ from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
 from sqlparse.sql import (
+    Function,
     Identifier,
     IdentifierList,
     Parenthesis,
@@ -221,6 +222,19 @@ def get_cte_remainder_query(sql: str) -> tuple[str | None, str]:
     cte = f"WITH {token.value}"
 
     return cte, remainder
+
+
+def check_sql_functions_exist(
+    sql: str, function_list: set[str], engine: str | None = None
+) -> bool:
+    """
+    Check if the SQL statement contains any of the specified functions.
+
+    :param sql: The SQL statement
+    :param function_list: The list of functions to search for
+    :param engine: The engine to use for parsing the SQL statement
+    """
+    return ParsedQuery(sql, engine=engine).check_functions_exist(function_list)
 
 
 def strip_comments_from_sql(statement: str, engine: str | None = None) -> str:
@@ -742,6 +756,34 @@ class ParsedQuery:
         if not self._tables:
             self._tables = self._extract_tables_from_sql()
         return self._tables
+
+    def _check_functions_exist_in_token(
+        self, token: Token, functions: set[str]
+    ) -> bool:
+        if (
+            isinstance(token, Function)
+            and token.get_name() is not None
+            and token.get_name().lower() in functions
+        ):
+            return True
+        if hasattr(token, "tokens"):
+            for inner_token in token.tokens:
+                if self._check_functions_exist_in_token(inner_token, functions):
+                    return True
+        return False
+
+    def check_functions_exist(self, functions: set[str]) -> bool:
+        """
+        Check if the SQL statement contains any of the specified functions.
+
+        :param functions: A set of functions to search for
+        :return: True if the statement contains any of the specified functions
+        """
+        for statement in self._parsed:
+            for token in statement.tokens:
+                if self._check_functions_exist_in_token(token, functions):
+                    return True
+        return False
 
     def _extract_tables_from_sql(self) -> set[Table]:
         """
