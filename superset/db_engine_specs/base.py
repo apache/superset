@@ -1133,9 +1133,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cte = None
         sql_remainder = None
         sql = sql.strip(" \t\n;")
-        sql_statement = sqlparse.format(sql, strip_comments=True)
         query_limit: int | None = sql_parse.extract_top_from_query(
-            sql_statement, cls.top_keywords
+            sql, cls.top_keywords
         )
         if not limit:
             final_limit = query_limit
@@ -1144,7 +1143,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         else:
             final_limit = limit
         if not cls.allows_cte_in_subquery:
-            cte, sql_remainder = sql_parse.get_cte_remainder_query(sql_statement)
+            cte, sql_remainder = sql_parse.get_cte_remainder_query(sql)
         if cte:
             str_statement = str(sql_remainder)
             cte = cte + "\n"
