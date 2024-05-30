@@ -25,10 +25,9 @@ fi
 
 if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
     cd /app/superset-frontend
-    npm install -f --no-optional --global webpack webpack-cli
-    npm install -f --no-optional
+    RUN if [ ! -d "node_modules" ]; then npm install; fi
 
-    echo "Running frontend"
+    echo "Running webpack in watch mode..."
     npm run dev
 else
     echo "Skipping frontend build steps - YOU RUN IT MANUALLY ON THE HOST!"

@@ -496,7 +496,7 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
-  devtool: 'source-map',
+  devtool: isDevMode ? 'source-map' : false,
 };
 
 // find all the symlinked plugins and use their source code for imports

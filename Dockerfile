@@ -20,9 +20,12 @@
 ######################################################################
 ARG PY_VER=3.10-slim-bookworm
 
+# For development purposes, we can skip the node build stage
+ARG INCLUDE_NODE=true
+
 # if BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
-FROM --platform=${BUILDPLATFORM} node:18-bullseye-slim AS superset-node
+FROM --platform=${BUILDPLATFORM} node:18-bullseye-slim AS superset-node-base
 
 ARG NPM_BUILD_CMD="build"
 
@@ -39,6 +42,8 @@ ENV BUILD_CMD=${NPM_BUILD_CMD} \
 
 RUN --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.sh \
     /frontend-mem-nag.sh
+
+FROM superset-node-base AS superset-node
 
 WORKDIR /app/superset-frontend
 RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json \
@@ -97,8 +102,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && apt-get autoremove -yqq --purge build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the compiled frontend assets
-COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
+# Conditionally copy from the superset-node stage if INCLUDE_NODE is true
+# as we don't need the frontend build for dev (docker-compose)
+RUN if [ "${INCLUDE_NODE}" = "true" ]; then \
+      COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets; \
+    fi
 
 ## Lastly, let's install superset itself
 COPY --chown=superset:superset superset superset
