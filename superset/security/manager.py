@@ -2718,3 +2718,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return current_app.config["AUTH_ROLE_ADMIN"] in [
             role.name for role in self.get_user_roles()
         ]
+
+    def is_certifier(self) -> bool:
+        """
+        Returns True if the current user is a certifier, False otherwise.
+
+        :returns: Whether the current user is a certifier
+        """
+
+        if not current_app.config.get("ROLE_CERTIFIER"):
+            return False
+        return current_app.config["ROLE_CERTIFIER"] in [
+            role.name for role in self.get_user_roles()
+        ]

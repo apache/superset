@@ -27,7 +27,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset import event_logger
+from superset import event_logger, is_feature_enabled, security_manager
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.delete import DeleteDatasetCommand
 from superset.commands.dataset.duplicate import DuplicateDatasetCommand
@@ -327,6 +327,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.add_model_schema.load(request.json)
+            if (
+                "extra" in item
+                and "certification" in item["extra"]
+                and is_feature_enabled("LIMIT_CERTIFICATION")
+                and not security_manager.is_certifier()
+            ):
+                item["extra"].pop("certification")
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -406,6 +413,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         )
         try:
             item = self.edit_model_schema.load(request.json)
+            if (
+                "extra" in item
+                and "certification" in item["extra"]
+                and is_feature_enabled("LIMIT_CERTIFICATION")
+                and not security_manager.is_certifier()
+            ):
+                item["extra"].pop("certification")
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -598,6 +612,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.duplicate_model_schema.load(request.json)
+            if (
+                "extra" in item
+                and "certification" in item["extra"]
+                and is_feature_enabled("LIMIT_CERTIFICATION")
+                and not security_manager.is_certifier()
+            ):
+                item["extra"].pop("certification")
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)

@@ -352,6 +352,14 @@ AUTH_TYPE = AUTH_DB
 PUBLIC_ROLE_LIKE: str | None = None
 
 # ---------------------------------------------------
+# Certification config
+# ---------------------------------------------------
+# Allows the limiting of users who can certify datasets based on the role.
+# Requires the creation of a role within Superset with the matching name
+# and the setting of the LIMIT_CERTIFICATION feature flag to True.
+# ROLE_CERTIFIER: str = "certifier"
+
+# ---------------------------------------------------
 # Babel config for translations
 # ---------------------------------------------------
 # Setup default language
@@ -496,6 +504,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
     "CHART_PLUGINS_EXPERIMENTAL": False,
+    # Set to True to limit the number of users who can certify datasets
+    "LIMIT_CERTIFICATION": False,
 }
 
 # ------------------------------
