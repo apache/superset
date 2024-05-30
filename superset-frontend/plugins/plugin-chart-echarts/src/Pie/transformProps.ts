@@ -253,8 +253,8 @@ export default function transformProps(
     rawParams: CallbackDataParams,
   ) => {
     // This function supports two forms of template variables:
-    // 1. {name}, {value}, {percent} - These are placeholders for values formatted by Superset number formatter.
-    // 2. {ab}, {b}, {c}, {d} - These are placeholders compatible with ECharts formatter.
+    // 1. {name}, {value}, {percent}, for values formatted by number formatter.
+    // 2. {a}, {b}, {c}, {d}, compatible with ECharts formatter.
     //
     // \n is supported to represent a new line.
 
