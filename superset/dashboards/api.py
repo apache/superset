@@ -885,6 +885,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         )
 
     # TODO: cache_dashboard_screenshot endpoint
+    # Change to POST
+    # Add state to payload
+    #     dataMask: Optional[dict[str, Any]]
+    # activeTabs: Optional[list[str]]
+    # anchor: Optional[str]
+    # urlParams: Optional[list[tuple[str, str]]]
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
     # @protect()
     @rison(screenshot_query_schema)
