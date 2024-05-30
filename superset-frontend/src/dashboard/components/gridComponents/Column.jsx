@@ -98,9 +98,6 @@ const ColumnStyles = styled.div`
         &:first-child {
           inset-block-start: 0;
         }
-        &:last-child {
-          inset-block-end: 0;
-        }
       }
       &:first-child:not(.droptarget-edge) {
         position: absolute;
@@ -295,7 +292,7 @@ class Column extends React.PureComponent {
                           className={cx(
                             'empty-droptarget',
                             itemIndex === columnItems.length - 1 &&
-                              'droptarget-edge-last',
+                              'droptarget-edge',
                           )}
                           editMode
                         >
