@@ -30,6 +30,7 @@ class VizType(str, Enum):
     DIST_BAR = "dist_bar"
     DUAL_LINE = "dual_line"
     HEATMAP = "heatmap"
+    HISTOGRAM = "histogram"
     LINE = "line"
     PIVOT_TABLE = "pivot_table"
     SUNBURST = "sunburst"
@@ -85,6 +86,7 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
         MigrateDistBarChart,
         MigrateDualLine,
         MigrateHeatmapChart,
+        MigrateHistogramChart,
         MigrateLineChart,
         MigratePivotTable,
         MigrateSunburst,
@@ -98,6 +100,7 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
         VizType.DIST_BAR: MigrateDistBarChart,
         VizType.DUAL_LINE: MigrateDualLine,
         VizType.HEATMAP: MigrateHeatmapChart,
+        VizType.HISTOGRAM: MigrateHistogramChart,
         VizType.LINE: MigrateLineChart,
         VizType.PIVOT_TABLE: MigratePivotTable,
         VizType.SUNBURST: MigrateSunburst,
