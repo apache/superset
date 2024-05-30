@@ -30,7 +30,7 @@ export default function columnChoices(
     const { columns } = datasource;
     const filteredColumns = (
       columns as { type_generic?: GenericDataType }[]
-    ).filter(col => (type ? col.type_generic === type : true));
+    ).filter(col => (type !== undefined ? col.type_generic === type : true));
     return filteredColumns
       .map((col: ColumnMeta | QueryColumn): [string, string] => [
         col.column_name,
