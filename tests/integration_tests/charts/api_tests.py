@@ -600,7 +600,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             {
                 "message": {
                     "datasource_type": [
-                        "Must be one of: sl_table, table, dataset, query, saved_query, view."
+                        "Must be one of: table, dataset, query, saved_query, view."
                     ]
                 }
             },
@@ -961,7 +961,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             {
                 "message": {
                     "datasource_type": [
-                        "Must be one of: sl_table, table, dataset, query, saved_query, view."
+                        "Must be one of: table, dataset, query, saved_query, view."
                     ]
                 }
             },

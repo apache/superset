@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import ANY, Mock, patch
+
+from unittest.mock import ANY, patch
 
 import pytest
 
@@ -130,21 +131,6 @@ class TestDatasourceApi(SupersetTestCase):
             response["message"],
             "This endpoint requires the datasource virtual_dataset, "
             "database or `all_datasource_access` permission",
-        )
-
-    @patch("superset.datasource.api.DatasourceDAO.get_datasource")
-    def test_get_column_values_not_implemented_error(self, get_datasource_mock):
-        datasource = Mock()
-        datasource.values_for_column.side_effect = NotImplementedError
-        get_datasource_mock.return_value = datasource
-
-        self.login(ADMIN_USERNAME)
-        rv = self.client.get("api/v1/datasource/sl_table/1/column/col1/values/")
-        self.assertEqual(rv.status_code, 400)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            response["message"],
-            "Unable to get column values for datasource type: sl_table",
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
