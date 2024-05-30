@@ -44,6 +44,7 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
           id: D3_CURRENCIES_LOCALES[localeName].id,
           formatFunc: v => {
             let value = v;
+            let roundedPostfix = ''; // DODO added #34205508
             // we need a rounded value for locale Russia
             if (localeName === 'RUSSIAN_ROUNDED') {
               const preFormatFunction = format(`.${precisionFixed(1)}f`);
@@ -58,17 +59,24 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
             if (localeName === 'RUSSIAN_ROUNDED_1') {
               // @ts-ignore
               value = v.toFixed(1);
+              // DODO added #34205508
+              roundedPostfix = '.1f';
             }
             if (localeName === 'RUSSIAN_ROUNDED_2') {
               // @ts-ignore
               value = v.toFixed(2);
+              // DODO added #34205508
+              roundedPostfix = '.2f';
             }
             if (localeName === 'RUSSIAN_ROUNDED_3') {
               // @ts-ignore
               value = v.toFixed(3);
+              // DODO added #34205508
+              roundedPostfix = '.3f';
             }
+
             const locale = formatLocale(D3_CURRENCIES_LOCALES[localeName]);
-            return locale.format('$,')(value);
+            return locale.format(`$,${roundedPostfix}`)(value); // DODO added roundedPostfix #34205508  https://d3js.org/d3-format#locale_format
           },
         }),
       );
