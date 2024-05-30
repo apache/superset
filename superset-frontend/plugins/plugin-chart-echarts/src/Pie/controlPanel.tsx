@@ -138,7 +138,10 @@ const config: ControlPanelConfig = {
               label: t('Label Template'),
               renderTrigger: true,
               description: t(
-                'Data label formatter, which supports string template and callback function. In either form, \\n is supported to represent a new line.',
+                'Data label formatter using string template.' +
+                  ' Supported variables include {name}, {value}, {percent} for integration with number formatters, ' +
+                  '{a}, {b}, {c}, {d} for ECharts compatibility. ' +
+                  '\\n is supported to represent a new line.',
               ),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 controls?.label_type?.value === 'template',
