@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import numpy as np
 from pandas import DataFrame, Series
 
@@ -22,7 +24,7 @@ from pandas import DataFrame, Series
 def histogram(
     df: DataFrame,
     column: str,
-    groupby: list[str],
+    groupby: list[str] | None,
     bins: int = 5,
     cumulative: bool = False,
     normalize: bool = False,
@@ -43,6 +45,9 @@ def histogram(
                and each column corresponds to a histogram bin. The values are the counts in each bin.
     """
 
+    if groupby is None:
+        groupby = []
+
     # check if the column is numeric
     if not np.issubdtype(df[column].dtype, np.number):
         raise ValueError(f"The column '{column}' must be numeric.")
@@ -60,7 +65,7 @@ def histogram(
         result = np.histogram(series, bins=bin_edges, density=normalize)[0]
         return result if not cumulative else np.cumsum(result)
 
-    if not groupby:
+    if len(groupby) == 0:
         # without grouping
         hist_dict = dict(zip(bin_edges_str, hist_values(df[column])))
         histogram_df = DataFrame(hist_dict, index=[0])

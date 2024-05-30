@@ -46,10 +46,7 @@ const config: ControlPanelConfig = {
               default: null,
               validators: [validateNonEmpty],
               mapStateToProps: ({ datasource }) => ({
-                choices: columnChoices(
-                  datasource,
-                  col => col.type_generic === GenericDataType.Numeric,
-                ),
+                choices: columnChoices(datasource, GenericDataType.Numeric),
               }),
             },
           },

@@ -74,6 +74,11 @@ describe('columnChoices()', () => {
       ['Column 2', 'Column 2'],
       ['Column 3', 'Column 3'],
     ]);
-    expect.anything();
+  });
+
+  it('should return choices of a specific type', () => {
+    expect(columnChoices(testQueryResponse, GenericDataType.Temporal)).toEqual([
+      ['Column 2', 'Column 2'],
+    ]);
   });
 });

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryColumn, QueryResponse } from '@superset-ui/core';
+import { GenericDataType, QueryColumn, QueryResponse } from '@superset-ui/core';
 import { ColumnMeta, Dataset, isDataset, isQueryResponse } from '../types';
 
 /**
@@ -24,18 +24,21 @@ import { ColumnMeta, Dataset, isDataset, isQueryResponse } from '../types';
  */
 export default function columnChoices(
   datasource?: Dataset | QueryResponse | null,
-  filter: (col: ColumnMeta | QueryColumn) => boolean = () => true,
+  type?: GenericDataType,
 ): [string, string][] {
   if (isDataset(datasource) || isQueryResponse(datasource)) {
-    return datasource.columns
-      .filter(filter)
-      .map((col): [string, string] => [
+    const { columns } = datasource;
+    const filteredColumns = (
+      columns as { type_generic?: GenericDataType }[]
+    ).filter(col => (type ? col.type_generic === type : true));
+    return filteredColumns
+      .map((col: ColumnMeta | QueryColumn): [string, string] => [
         col.column_name,
         'verbose_name' in col
           ? col.verbose_name || col.column_name
           : col.column_name,
       ])
-      .sort((opt1, opt2) =>
+      .sort((opt1: [string, string], opt2: [string, string]) =>
         opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1,
       );
   }

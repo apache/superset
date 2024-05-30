@@ -239,6 +239,8 @@ interface _PostProcessingHistogram {
     column: string;
     groupby: string[];
     bins: number;
+    cumulative?: boolean;
+    normalize?: boolean;
   };
 }
 export type PostProcessingHistogram =
