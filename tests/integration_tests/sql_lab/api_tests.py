@@ -18,7 +18,6 @@
 """Unit tests for Superset"""
 
 import datetime
-import json
 import random
 import csv
 import pandas as pd
@@ -35,7 +34,7 @@ from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database  # noqa: F401
 from superset.utils.database import get_example_database, get_main_database  # noqa: F401
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.models.sql_lab import Query
 
 from tests.integration_tests.base_tests import SupersetTestCase

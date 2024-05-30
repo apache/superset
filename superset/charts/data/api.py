@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import logging
 from typing import Any, TYPE_CHECKING
 
@@ -46,7 +45,7 @@ from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.models.sql_lab import Query
-from superset.utils import json as json_utils
+from superset.utils import json
 from superset.utils.core import (
     create_zip,
     DatasourceType,
@@ -129,7 +128,7 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             json_body = json.loads(chart.query_context)
-        except (TypeError, json.decoder.JSONDecodeError):
+        except (TypeError, json.JSONDecodeError):
             json_body = None
 
         if json_body is None:
@@ -171,7 +170,7 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             form_data = json.loads(chart.params)
-        except (TypeError, json.decoder.JSONDecodeError):
+        except (TypeError, json.JSONDecodeError):
             form_data = {}
 
         return self._get_data_response(
@@ -395,9 +394,9 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         if result_format == ChartDataResultFormat.JSON:
-            response_data = json_utils.dumps(
+            response_data = json.dumps(
                 {"result": result["queries"]},
-                default=json_utils.json_int_dttm_ser,
+                default=json.json_int_dttm_ser,
                 ignore_nan=True,
             )
             resp = make_response(response_data, 200)

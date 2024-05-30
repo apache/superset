@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from contextlib import closing
 from typing import Any, Optional
 
@@ -33,6 +32,7 @@ from superset.db_engine_specs import get_engine_spec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import event_logger
 from superset.models.core import Database
+from superset.utils import json
 
 BYPASS_VALIDATION_ENGINES = {"bigquery"}
 
@@ -82,7 +82,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
         try:
             encrypted_extra = json.loads(serialized_encrypted_extra)
-        except json.decoder.JSONDecodeError:
+        except json.JSONDecodeError:
             encrypted_extra = {}
 
         # try to connect

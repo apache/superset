@@ -25,7 +25,6 @@ from sqlalchemy import sql, text, types
 from sqlalchemy.engine.url import make_url
 
 from superset.sql_parse import Table
-from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -116,45 +115,43 @@ def test_get_schema_from_engine_params() -> None:
 @pytest.mark.parametrize(
     ["column_type", "column_value", "expected_value"],
     [
-        (types.DATE(), "2023-05-01", "DATE '2023-05-01'"),
-        (types.TIMESTAMP(), "2023-05-01", "TIMESTAMP '2023-05-01'"),
-        (types.VARCHAR(), "2023-05-01", "'2023-05-01'"),
-        (types.INT(), 1234, "1234"),
+        ("DATE", "2023-05-01", "DATE '2023-05-01'"),
+        ("TIMESTAMP", "2023-05-01", "TIMESTAMP '2023-05-01'"),
+        ("VARCHAR", "2023-05-01", "'2023-05-01'"),
+        ("INT", 1234, "1234"),
     ],
 )
 def test_where_latest_partition(
-    mock_latest_partition, column_type, column_value: Any, expected_value: str
+    mock_latest_partition,
+    column_type: str,
+    column_value: Any,
+    expected_value: str,
 ) -> None:
-    """
-    Test the ``where_latest_partition`` method
-    """
-    from superset.db_engine_specs.presto import PrestoEngineSpec as spec
+    from superset.db_engine_specs.presto import PrestoEngineSpec
 
     mock_latest_partition.return_value = (["partition_key"], [column_value])
 
-    query = sql.select(text("* FROM table"))
-    columns: list[ResultSetColumnType] = [
-        {
-            "column_name": "partition_key",
-            "name": "partition_key",
-            "type": column_type,
-            "is_dttm": False,
-        }
-    ]
-
-    expected = f"""SELECT * FROM table \nWHERE "partition_key" = {expected_value}"""
-    result = spec.where_latest_partition(
-        mock.MagicMock(),
-        Table("table"),
-        query,
-        columns,
+    assert (
+        str(
+            PrestoEngineSpec.where_latest_partition(  # type: ignore
+                database=mock.MagicMock(),
+                table=Table("table"),
+                query=sql.select(text("* FROM table")),
+                columns=[
+                    {
+                        "column_name": "partition_key",
+                        "name": "partition_key",
+                        "type": column_type,
+                        "is_dttm": False,
+                    }
+                ],
+            ).compile(
+                dialect=PrestoDialect(),
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+        == f"""SELECT * FROM table \nWHERE "partition_key" = {expected_value}"""
     )
-    assert result is not None
-    actual = result.compile(
-        dialect=PrestoDialect(), compile_kwargs={"literal_binds": True}
-    )
-
-    assert str(actual) == expected
 
 
 def test_adjust_engine_params_fully_qualified() -> None:

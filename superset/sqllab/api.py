@@ -61,7 +61,7 @@ from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils, json as json_utils
+from superset.utils import core as utils, json
 from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
@@ -131,9 +131,9 @@ class SqlLabRestApi(BaseSupersetApi):
         result = bootstrap_sqllab_data(user_id)
 
         return json_success(
-            json_utils.dumps(
+            json.dumps(
                 {"result": result},
-                default=json_utils.json_iso_dttm_ser,
+                default=json.json_iso_dttm_ser,
                 ignore_nan=True,
             ),
             200,
@@ -342,9 +342,9 @@ class SqlLabRestApi(BaseSupersetApi):
 
         # Using pessimistic json serialization since some database drivers can return
         # unserializeable types at times
-        payload = json_utils.dumps(
+        payload = json.dumps(
             result,
-            default=json_utils.pessimistic_json_iso_dttm_ser,
+            default=json.pessimistic_json_iso_dttm_ser,
             ignore_nan=True,
         )
         return json_success(payload, 200)

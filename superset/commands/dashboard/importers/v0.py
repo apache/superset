@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 import time
 from copy import copy
@@ -32,6 +31,7 @@ from superset.exceptions import DashboardImportException
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,

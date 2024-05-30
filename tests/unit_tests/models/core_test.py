@@ -16,7 +16,6 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
-import json
 from datetime import datetime
 
 import pytest
@@ -26,6 +25,7 @@ from sqlalchemy.engine.reflection import Inspector
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
 from superset.sql_parse import Table
+from superset.utils import json
 
 
 def test_get_metrics(mocker: MockFixture) -> None:

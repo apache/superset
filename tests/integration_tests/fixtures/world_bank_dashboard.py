@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import string
 from random import choice, randint, random, uniform
 from typing import Any
@@ -29,6 +28,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.dashboard_utils import (

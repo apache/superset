@@ -16,13 +16,13 @@
 # under the License.
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING
 
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 
 from superset.extensions import db
+from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.key_value.commands.fixtures import (
     admin,  # noqa: F401

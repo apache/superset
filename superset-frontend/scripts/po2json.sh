@@ -1,3 +1,4 @@
+#!/bin/bash
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -14,27 +15,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-Schema for the column model.
-
-This model was introduced in SIP-68 (https://github.com/apache/superset/issues/14909),
-and represents a "column" in a table or dataset. In addition to a column, new models for
-tables, metrics, and datasets were also introduced.
-
-These models are not fully implemented, and shouldn't be used yet.
-"""
-
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
-
-from superset.columns.models import Column
 
 
-class ColumnSchema(SQLAlchemyAutoSchema):
-    """
-    Schema for the ``Column`` model.
-    """
+# This script generates .json files from .po translation files
+# these json files are used by the frontend to load translations
 
-    class Meta:  # pylint: disable=too-few-public-methods
-        model = Column
-        load_instance = True
-        include_relationships = True
+set -e
+
+for file in $( find ../superset/translations/** -name '*.po' );
+do
+  extension=${file##*.}
+  filename="${file%.*}"
+  if [ $extension == "po" ]
+  then
+    echo "po2json --domain superset --format jed1.x $file $filename.json"
+    po2json --domain superset --format jed1.x $file $filename.json
+    prettier --write $filename.json
+  fi
+done
