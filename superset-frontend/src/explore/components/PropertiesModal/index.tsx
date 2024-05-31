@@ -68,7 +68,7 @@ function PropertiesModal({
   const [submitting, setSubmitting] = useState(false);
   const [form] = AntdForm.useForm();
   // values of form inputs
-  const [name, setName] = useState(slice.slice_name || '');
+  const [name, setName] = useState(slice?.slice_name || '');
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
     null,
   );
@@ -97,23 +97,25 @@ function PropertiesModal({
 
   const fetchChartOwners = useCallback(
     async function fetchChartOwners() {
-      try {
-        const response = await SupersetClient.get({
-          endpoint: `/api/v1/chart/${slice.slice_id}`,
-        });
-        const chart = response.json.result;
-        setSelectedOwners(
-          chart?.owners?.map((owner: any) => ({
-            value: owner.id,
-            label: `${owner.first_name} ${owner.last_name}`,
-          })),
-        );
-      } catch (response) {
-        const clientError = await getClientErrorObject(response);
-        showError(clientError);
+      if (slice?.slice_id) {
+        try {
+          const response = await SupersetClient.get({
+            endpoint: `/api/v1/chart/${slice?.slice_id}`,
+          });
+          const chart = response.json.result;
+          setSelectedOwners(
+            chart?.owners?.map((owner: any) => ({
+              value: owner.id,
+              label: `${owner.first_name} ${owner.last_name}`,
+            })),
+          );
+        } catch (response) {
+          const clientError = await getClientErrorObject(response);
+          showError(clientError);
+        }
       }
     },
-    [slice.slice_id],
+    [slice?.slice_id],
   );
 
   const loadOptions = useMemo(
@@ -174,7 +176,7 @@ function PropertiesModal({
 
     try {
       const res = await SupersetClient.put({
-        endpoint: `/api/v1/chart/${slice.slice_id}`,
+        endpoint: `/api/v1/chart/${slice?.slice_id}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -183,7 +185,7 @@ function PropertiesModal({
         ...payload,
         ...res.json.result,
         tags,
-        id: slice.slice_id,
+        id: slice?.slice_id,
         owners: selectedOwners,
       };
       onSave(updatedChart);
@@ -205,8 +207,8 @@ function PropertiesModal({
 
   // update name after it's changed in another modal
   useEffect(() => {
-    setName(slice.slice_name || '');
-  }, [slice.slice_name]);
+    setName(slice?.slice_name || '');
+  }, [slice?.slice_name]);
 
   useEffect(() => {
     if (!isFeatureEnabled(FeatureFlag.TaggingSystem)) return;
@@ -214,7 +216,7 @@ function PropertiesModal({
       fetchTags(
         {
           objectType: OBJECT_TYPES.CHART,
-          objectId: slice.slice_id,
+          objectId: slice?.slice_id,
           includeTypes: false,
         },
         (tags: TagType[]) => setTags(tags),
@@ -225,7 +227,7 @@ function PropertiesModal({
     } catch (error) {
       showError(error);
     }
-  }, [slice.slice_id]);
+  }, [slice?.slice_id]);
 
   const handleChangeTags = (tags: { label: string; value: number }[]) => {
     const parsedTags: TagType[] = ensureIsArray(tags).map(r => ({
@@ -261,9 +263,9 @@ function PropertiesModal({
             buttonSize="small"
             buttonStyle="primary"
             onClick={form.submit}
-            disabled={submitting || !name || slice.is_managed_externally}
+            disabled={submitting || !name || slice?.is_managed_externally}
             tooltip={
-              slice.is_managed_externally
+              slice?.is_managed_externally
                 ? t(
                     "This chart is managed externally, and can't be edited in Superset",
                   )
@@ -283,12 +285,13 @@ function PropertiesModal({
         onFinish={onSubmit}
         layout="vertical"
         initialValues={{
-          name: slice.slice_name || '',
-          description: slice.description || '',
-          cache_timeout: slice.cache_timeout != null ? slice.cache_timeout : '',
-          certified_by: slice.certified_by || '',
+          name: slice?.slice_name || '',
+          description: slice?.description || '',
+          cache_timeout:
+            slice?.cache_timeout != null ? slice.cache_timeout : '',
+          certified_by: slice?.certified_by || '',
           certification_details:
-            slice.certified_by && slice.certification_details
+            slice?.certified_by && slice?.certification_details
               ? slice.certification_details
               : '',
         }}
