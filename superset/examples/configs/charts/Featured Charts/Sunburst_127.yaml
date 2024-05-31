@@ -1,0 +1,32 @@
+slice_name: Sunburst
+description: null
+certified_by: null
+certification_details: null
+viz_type: sunburst_v2
+params:
+  datasource: 22__table
+  viz_type: sunburst_v2
+  columns:
+    - year
+    - product_line
+  metric: count
+  adhoc_filters:
+    - clause: WHERE
+      subject: order_date
+      operator: TEMPORAL_RANGE
+      comparator: No filter
+      expressionType: SIMPLE
+  row_limit: 10000
+  color_scheme: supersetColors
+  linear_color_scheme: superset_seq_1
+  show_labels: true
+  show_labels_threshold: 5
+  label_type: key
+  number_format: ~g
+  date_format: smart_date
+  extra_form_data: {}
+  dashboards: []
+cache_timeout: null
+uuid: 47b26af7-19e0-4ca1-9cf6-b74b2f1f7e3c
+version: 1.0.0
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005

@@ -1,0 +1,38 @@
+slice_name: Gauge
+description: null
+certified_by: null
+certification_details: null
+viz_type: gauge_chart
+params:
+  datasource: 22__table
+  viz_type: gauge_chart
+  groupby:
+    - deal_size
+  metric: count
+  adhoc_filters:
+    - clause: WHERE
+      subject: order_date
+      operator: TEMPORAL_RANGE
+      comparator: No filter
+      expressionType: SIMPLE
+  row_limit: 10
+  start_angle: 225
+  end_angle: -45
+  color_scheme: supersetColors
+  font_size: 13
+  number_format: SMART_NUMBER
+  value_formatter: "{value}"
+  show_pointer: true
+  animation: true
+  show_axis_tick: false
+  show_split_line: false
+  split_number: 10
+  show_progress: true
+  overlap: true
+  round_cap: false
+  extra_form_data: {}
+  dashboards: []
+cache_timeout: null
+uuid: 57ccf0f1-d28a-4127-9581-7153c5a15b62
+version: 1.0.0
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005

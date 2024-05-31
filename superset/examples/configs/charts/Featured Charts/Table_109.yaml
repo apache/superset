@@ -1,0 +1,41 @@
+slice_name: Table
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params:
+  datasource: 22__table
+  viz_type: table
+  query_mode: raw
+  groupby: []
+  time_grain_sqla: P1D
+  temporal_columns_lookup:
+    order_date: true
+  all_columns:
+    - order_date
+    - product_line
+    - status
+    - price_each
+    - sales
+  percent_metrics: []
+  adhoc_filters:
+    - clause: WHERE
+      subject: order_date
+      operator: TEMPORAL_RANGE
+      comparator: No filter
+      expressionType: SIMPLE
+  order_by_cols: []
+  row_limit: 1000
+  server_page_length: 10
+  order_desc: true
+  table_timestamp_format: smart_date
+  show_cell_bars: true
+  color_pn: true
+  allow_render_html: true
+  extra_form_data: {}
+  dashboards:
+    - 13
+cache_timeout: null
+uuid: d0e7b367-f16f-4d7a-adde-7c7f455fa9bc
+version: 1.0.0
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005

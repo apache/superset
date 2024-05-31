@@ -1,0 +1,27 @@
+slice_name: Tree
+description: null
+certified_by: null
+certification_details: null
+viz_type: tree_chart
+params:
+  datasource: 8__table
+  viz_type: tree_chart
+  id: id
+  parent: parent
+  name: name
+  root_node_id: "1"
+  metric: count
+  adhoc_filters: []
+  row_limit: 1000
+  layout: radial
+  node_label_position: top
+  child_label_position: top
+  symbol: emptyCircle
+  symbolSize: 7
+  roam: false
+  extra_form_data: {}
+  dashboards: []
+cache_timeout: null
+uuid: 57e7f05e-0c9a-4313-8a33-e6d0999824af
+version: 1.0.0
+dataset_uuid: f710a997-c65e-4aa6-aaed-b7d6998565ae

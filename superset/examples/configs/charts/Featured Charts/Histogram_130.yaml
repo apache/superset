@@ -1,0 +1,30 @@
+slice_name: Histogram
+description: null
+certified_by: null
+certification_details: null
+viz_type: histogram_v2
+params:
+  datasource: 22__table
+  viz_type: histogram_v2
+  slice_id: 130
+  column: quantity_ordered
+  groupby:
+    - product_line
+  adhoc_filters:
+    - clause: WHERE
+      comparator: No filter
+      expressionType: SIMPLE
+      operator: TEMPORAL_RANGE
+      subject: order_date
+  row_limit: 10000
+  bins: 10
+  normalize: false
+  color_scheme: supersetAndPresetColors
+  show_value: true
+  show_legend: true
+  extra_form_data: {}
+  dashboards: []
+cache_timeout: null
+uuid: 2a89c19d-d0d2-4f5e-9007-e0fb65440e80
+version: 1.0.0
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005

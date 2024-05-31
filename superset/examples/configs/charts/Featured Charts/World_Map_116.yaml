@@ -1,0 +1,37 @@
+slice_name: World Map
+description: null
+certified_by: null
+certification_details: null
+viz_type: world_map
+params:
+  datasource: 1__table
+  viz_type: world_map
+  entity: country_name
+  country_fieldtype: name
+  metric: sum__SP_POP_TOTL
+  adhoc_filters:
+    - clause: WHERE
+      subject: year
+      operator: TEMPORAL_RANGE
+      comparator: No filter
+      expressionType: SIMPLE
+  row_limit: 10000
+  show_bubbles: true
+  secondary_metric: sum__SP_RUR_TOTL
+  max_bubble_size: "25"
+  color_picker:
+    r: 0
+    g: 122
+    b: 135
+    a: 1
+  color_by: metric
+  linear_color_scheme: superset_seq_1
+  color_scheme: supersetColors
+  y_axis_format: SMART_NUMBER
+  extra_form_data: {}
+  dashboards:
+    - 13
+cache_timeout: null
+uuid: f0606234-1644-426f-8fc6-3eaf8e77fd58
+version: 1.0.0
+dataset_uuid: 3cee7b7f-0009-4d9d-8de4-1da4cad4569e

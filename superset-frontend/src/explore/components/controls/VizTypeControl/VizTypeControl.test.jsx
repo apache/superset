@@ -50,7 +50,7 @@ describe('VizTypeControl', () => {
       new ChartMetadata({
         name: 'vis1',
         thumbnail: '',
-        tags: ['Popular'],
+        tags: ['Featured'],
       }),
     )
     .registerValue(
