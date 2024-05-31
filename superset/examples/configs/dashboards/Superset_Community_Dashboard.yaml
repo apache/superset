@@ -1,25 +1,9 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 dashboard_title: Superset Community Dashboard
 description: null
 css: ''
 slug: null
-certified_by: ''
-certification_details: ''
+certified_by: null
+certification_details: null
 published: true
 uuid: 84cfc008-c88b-4982-8731-90b4aad2824b
 position:
@@ -253,13 +237,13 @@ position:
   HEADER_ID:
     id: HEADER_ID
     meta:
-      text: Superset Community Efforts
+      text: Superset Codebase Engagement
     type: HEADER
   MARKDOWN-e_ue39c8AW:
     children: []
     id: MARKDOWN-e_ue39c8AW
     meta:
-      code: '# Find something to fix!
+      code: '# Help make Superset''s codebase better!
 
 
         These charts help catalog "long tail" cleanup and migration projects in the
@@ -452,7 +436,7 @@ position:
     meta:
       defaultText: Tab title
       placeholder: Tab title
-      text: Technical Debt (Frontend)
+      text: Technical Debt
     parents:
     - ROOT_ID
     - TABS-25qvyH3IQg
@@ -713,52 +697,6 @@ metadata:
     - 91
   color_scheme: ''
   refresh_frequency: 0
-  shared_label_colors:
-    EugeneTorap: '#ACE1C4'
-    Always-prog: '#A1A6BD'
-    zhaoyongjie: '#666666'
-    lilykuang: '#D3B3DA'
-    villebro: '#666666'
-    rtexelm: '#A38F79'
-    craig-rueda: '#1FA8C9'
-    eschutho: '#454E7C'
-    Vitor-Avila: '#9EE5E5'
-    fisjac: '#FEC0A1'
-    Antonio-RiveroMartnez: '#B2B2B2'
-    sfirke: '#5AC189'
-    geido: '#EFA1AA'
-    kgabryje: '#E04355'
-    john-bodley: '#8FD3E4'
-    justinpark: '#3CCCCB'
-    betodealmeida: '#FCC700'
-    dpgaspar: '#A868B7'
-    michael-s-molina: '#ACE1C4'
-    mistercrunch: '#A38F79'
-    rusackas: '#A1A6BD'
-    SUM(total): '#454E7C'
-    days_stale: '#1FA8C9'
-    /home/runner/work/superset/superset/superset-frontend/packages/superset-ui-switchboard/src/switchboard.test.ts: '#1FA8C9'
-    /home/runner/work/superset/superset/superset-frontend/src/views/CRUD/hooks.ts: '#454E7C'
-    ? /home/runner/work/superset/superset/superset-frontend/packages/superset-ui-demo/storybook/stories/superset-ui-chart/SuperChart.stories.tsx
-    : '#5AC189'
-    /home/runner/work/superset/superset/superset-frontend/src/explore/components/ExploreViewContainer/index.jsx: '#FF7F44'
-    /home/runner/work/superset/superset/superset-frontend/src/filters/components/TimeGrain/TimeGrainFilterPlugin.tsx: '#666666'
-    /home/runner/work/superset/superset/superset-frontend/src/filters/components/Range/RangeFilterPlugin.tsx: '#E04355'
-    /home/runner/work/superset/superset/superset-frontend/src/explore/exploreUtils/exploreUtils.test.jsx: '#FCC700'
-    /home/runner/work/superset/superset/superset-frontend/src/pages/AllEntities/index.tsx: '#A868B7'
-    /home/runner/work/superset/superset/superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx: '#3CCCCB'
-    /home/runner/work/superset/superset/superset-frontend/src/features/annotations/AnnotationModal.tsx: '#A38F79'
-    react-hooks/exhaustive-deps: '#1FA8C9'
-    react-prefer-function-component/react-prefer-function-component: '#454E7C'
-    storybook/prefer-pascal-case: '#5AC189'
-    no-console: '#FF7F44'
-    '@typescript-eslint/no-unused-vars': '#666666'
-    jest/no-disabled-tests: '#E04355'
-    jest/expect-expect: '#FCC700'
-    '@typescript-eslint/no-use-before-define': '#A868B7'
-    react/no-danger: '#3CCCCB'
-    testing-library/no-debugging-utils: '#A38F79'
-  color_scheme_domain: []
   expanded_slices: {}
   label_colors: {}
   timed_refresh_immune_slices: []
@@ -903,44 +841,7 @@ metadata:
     - 79
     - 80
     tabsInScope: []
-  - id: NATIVE_FILTER-Hix7r6O6-
-    controlValues:
-      enableEmptyFilter: false
-      defaultToFirstItem: false
-      multiSelect: true
-      searchAllOptions: false
-      inverseSelection: false
-    name: FOO
-    filterType: filter_select
-    targets:
-    - column:
-        name: FOO
-      datasetUuid: a3b0a980-a1b4-4463-89fd-91e6d3347313
-    defaultDataMask:
-      extraFormData: {}
-      filterState: {}
-      ownState: {}
-    cascadeParentIds: []
-    scope:
-      rootPath:
-      - ROOT_ID
-      excluded:
-      - 75
-      - 76
-      - 77
-      - 79
-      - 80
-      - 82
-      - 83
-      - 84
-      - 85
-      - 86
-    type: NATIVE_FILTER
-    description: ''
-    chartsInScope:
-    - 74
-    - 78
-    tabsInScope:
-    - TAB-Qe34bcVead
   default_filters: '{}'
+  shared_label_colors: {}
+  color_scheme_domain: []
 version: 1.0.0
