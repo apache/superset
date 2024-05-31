@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2024-05-19 17:38+0400\n"
-"PO-Revision-Date: 2024-05-31 19:25+0400\n"
+"PO-Revision-Date: 2024-05-31 19:40+0400\n"
 "Last-Translator: Daniel Checheta\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -266,27 +266,27 @@ msgstr "%s Ошибка"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:298
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1402
-#, python-format
+#, fuzzy, python-format
 msgid "%s PASSWORD"
-msgstr ""
+msgstr "%s ПАРОЛЬ"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:318
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1420
-#, python-format
+#, fuzzy, python-format
 msgid "%s SSH TUNNEL PASSWORD"
-msgstr ""
+msgstr "%s ПАРОЛЬ SSH-ТУННЕЛЯ"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:341
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1438
-#, python-format
+#, fuzzy, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY"
-msgstr ""
+msgstr "%s ПРИВАТНЫЙ КЛЮЧ SSH-ТУННЕЛЯ"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:363
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1458
-#, python-format
+#, fuzzy, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
-msgstr ""
+msgstr "%s ПАРОЛЬ ПРИВАТНОГО КЛЮЧА SSH-ТУННЕЛЯ"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:252
 #, python-format
