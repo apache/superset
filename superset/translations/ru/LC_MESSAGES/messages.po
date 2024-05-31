@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2024-05-19 17:38+0400\n"
-"PO-Revision-Date: 2024-05-31 19:40+0400\n"
+"PO-Revision-Date: 2024-05-31 20:07+0400\n"
 "Last-Translator: Daniel Checheta\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -3820,16 +3820,16 @@ msgid ""
 "Click this link to switch to an alternate form that allows you to input the "
 "SQLAlchemy URL for this database manually."
 msgstr ""
-"Нажмите для переключения на альтернативную форму подключения, которая позволит "
-"вам вручную ввести SQLAlchemy URL для данной базы данных."
+"Нажмите для переключения на альтернативную форму, в которой можно вручную ввести "
+"SQLAlchemy URL этой базы данных"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1852
 msgid ""
 "Click this link to switch to an alternate form that exposes only the required "
 "fields needed to connect this database."
 msgstr ""
-"Нажмите для переключения на альтернативную форму подключения, которая позволит "
-"вам ввести все данные в соответствующую форму для данной базы данных"
+"Нажмите для переключения на альтернативную форму, которая содержит только "
+"необходимые параметры подключения"
 
 #: superset-frontend/src/explore/components/controls/ContourControl/index.tsx:118
 msgid "Click to add a contour"
@@ -7638,6 +7638,7 @@ msgid ""
 "For Trino, describe full schemas of nested ROW types, expanding them with dotted "
 "paths"
 msgstr ""
+"Указывать полные пути вложенных типов ROW, используя точечную нотацию (для Trino)"
 
 #: superset-frontend/src/dashboard/components/EmbeddedModal/index.tsx:184
 msgid "For further instructions, consult the"
@@ -7853,7 +7854,7 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:604
 msgid "Give access to multiple catalogs in a single database connection."
-msgstr ""
+msgstr "Предоставить доступ к нескольким каталогам в рамках одного подключения"
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:665
 msgid "Go to the edit mode to configure the dashboard and add charts"
@@ -16381,9 +16382,7 @@ msgstr "Это действие навсегда удалит шаблон"
 msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
-msgstr ""
-"Может быть как IP адрес (например, 127.0.0.1), так и доменное имя (например, "
-"mydatabase.com)"
+msgstr "IP-адрес (например, 127.0.0.1) или доменное имя (например, mydatabase.com)"
 
 #: superset-frontend/src/dashboard/components/SliceHeader/index.tsx:254
 msgid ""
