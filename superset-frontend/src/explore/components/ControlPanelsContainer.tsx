@@ -485,7 +485,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         ? baseDescription(exploreState, controls[name], chart)
         : baseDescription;
 
-    if (name === 'adhoc_filters') {
+    if (name.includes('adhoc_filters')) {
       restProps.canDelete = (
         valueToBeDeleted: Record<string, any>,
         values: Record<string, any>[],
