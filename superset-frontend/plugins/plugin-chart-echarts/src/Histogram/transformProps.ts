@@ -69,7 +69,7 @@ export default function transformProps(
   const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const groupbySet = new Set(groupby);
   const xAxisData: string[] = Object.keys(data[0]).filter(
-    key => groupbySet.has(key) === false,
+    key => !groupbySet.has(key),
   );
   const barSeries: BarSeriesOption[] = data.map(datum => {
     const seriesName =
