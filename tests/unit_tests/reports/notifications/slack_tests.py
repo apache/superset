@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest.mock import Mock
+
 import pandas as pd
 
 
@@ -53,6 +55,15 @@ def test_get_channel_with_multi_recipients() -> None:
         content=content,
     )
 
-    result = slack_notification._get_channel()
+    client = Mock()
+    client.conversations_list.return_value = {
+        "channels": [
+            {"name": "some_channel", "id": "23SDKE"},
+            {"name": "second_channel", "id": "WD3D8KE"},
+            {"name": "third_channel", "id": "223DFKE"},
+        ]
+    }
 
-    assert result == "some_channel,second_channel,third_channel"
+    result = slack_notification._get_channels(client)
+
+    assert result == ["23SDKE", "WD3D8KE", "223DFKE"]

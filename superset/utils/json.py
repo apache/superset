@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 import simplejson
 from flask_babel.speaklater import LazyString
-from simplejson import JSONDecodeError  # noqa: F401 # pylint: disable=unused-import
+from simplejson import JSONDecodeError
 
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
