@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2024-05-19 17:38+0400\n"
-"PO-Revision-Date: 2024-05-31 20:07+0400\n"
+"PO-Revision-Date: 2024-05-31 22:30+0400\n"
 "Last-Translator: Daniel Checheta\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -1790,10 +1790,9 @@ msgid ""
 "emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box "
 "visualize the min, max, range, and outer 2 quartiles."
 msgstr ""
-"Также известна, как \"ящик с усами\", эта диаграмма позволяет сравнить "
-"распределения значений некоторой меры внутри нескольких групп. Ящик в центре "
-"показывает среднее, медиану и два внутренних квартиля. Усы визуализируют минимум, "
-"максимум, диапазон и два внешних квартиля."
+"Эта диаграмма позволяет сравнить распределения значений некоторой меры внутри "
+"нескольких групп. Ящик в центре показывает среднее, медиану и два внутренних "
+"квартиля. Усы визуализируют минимум, максимум, диапазон и два внешних квартиля."
 
 #: superset-frontend/src/components/AlteredSliceTag/index.tsx:230
 msgid "Altered"
@@ -2450,9 +2449,8 @@ msgid ""
 "Area charts are similar to line charts in that they represent variables with the "
 "same scale, but area charts stack the metrics on top of each other."
 msgstr ""
-"Диаграммы с областями похожи на линейные диаграммы в том смысле, что они "
-"отображают показатели с одинаковым масштабом, но диаграммы областей накладывают "
-"эти показатели друг на друга."
+"Диаграмма с областями представляет данные показателей в виде графиков, в которых "
+"значение каждого последующего показателя откладывается от предыдущего"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:236
 msgid "Arrow"
@@ -5410,36 +5408,32 @@ msgid "Deck.gl - 3D Grid"
 msgstr "Deck.gl - 3D-сетка"
 
 #: superset/viz.py:2220
-#, fuzzy
 msgid "Deck.gl - 3D HEX"
-msgstr "Deck.gl - 3D HEX"
+msgstr "Deck.gl - 3D-гексы"
 
 #: superset/viz.py:2302
 msgid "Deck.gl - Arc"
 msgstr "Deck.gl - Дуга"
 
 #: superset/viz.py:2262
-#, fuzzy
 msgid "Deck.gl - Contour"
-msgstr "Deck.gl - Дуга"
+msgstr "Deck.gl - Контур"
 
 #: superset/viz.py:2282
 msgid "Deck.gl - GeoJSON"
 msgstr "Deck.gl - GeoJSON"
 
 #: superset/viz.py:2242
-#, fuzzy
 msgid "Deck.gl - Heatmap"
-msgstr "Deck.gl - Paths"
+msgstr "Deck.gl - Тепловая карта"
 
 #: superset/viz.py:1814
 msgid "Deck.gl - Multiple Layers"
 msgstr "Deck.gl - Многослойный"
 
 #: superset/viz.py:2134
-#, fuzzy
 msgid "Deck.gl - Paths"
-msgstr "Deck.gl - Paths"
+msgstr "Deck.gl - Маршруты"
 
 #: superset/viz.py:2185
 msgid "Deck.gl - Polygon"
@@ -6072,6 +6066,10 @@ msgid ""
 "can be configured to be force-directed or circulate. If your data has a "
 "geospatial component, try the deck.gl Arc chart."
 msgstr ""
+"Показывает связи между сущностями в виде направленного или циклического графа. "
+"Диаграмма удобна, когда нужно показать, как сущности связаны друг с другом и "
+"какие из них наиболее важны. Если ваши данные содержат геоинформацию, попробуйте "
+"диаграмму \"Дуга\" deck.gl."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:167
 #, fuzzy
@@ -11020,6 +11018,8 @@ msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the boundary of "
 "each cell."
 msgstr ""
+"Разбивает карту на сетку из шестигранников и агрегирует данные для каждой "
+"получившейся ячейки"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:744
 msgid "Override time grain"
@@ -11574,7 +11574,7 @@ msgstr "Используйте три разных названия для ме�
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/index.ts:28
 msgid "Plot the distance (like flight paths) between origin and destination."
-msgstr ""
+msgstr "Изображает расстояние между пунктами отправления и назначения в виде дуг"
 
 #: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/index.js:29
 msgid ""
@@ -12065,7 +12065,7 @@ msgstr "Радар"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:61
 msgid "Radar Chart"
-msgstr ""
+msgstr "Радар"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:201
 msgid "Radar render type, whether to display 'circle' shape."
@@ -13203,6 +13203,8 @@ msgid ""
 "Scatter Plot has the horizontal axis in linear units, and the points are "
 "connected in order. It shows a statistical relationship between two variables."
 msgstr ""
+"Точечная диаграмма содержит систему координат в линейном масштабе и соединяет "
+"точки по порядку. Она показывает статистическую связь между двумя переменными."
 
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton/index.tsx:241
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:358
@@ -14112,7 +14114,6 @@ msgid "Show empty columns"
 msgstr "Показывать пустые столбцы"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:57
-#, fuzzy
 msgid ""
 "Show hierarchical relationships of data, with the value represented by area, "
 "showing proportion and contribution to the whole."
@@ -14217,9 +14218,9 @@ msgid ""
 "Showcases a single number accompanied by a simple line chart, to call attention "
 "to an important metric along with its change over time or other dimension."
 msgstr ""
-"Отображает один показатель, сопровождаемый простой линейной диаграммой, чтобы "
-"привлечь внимание к KPI наряду с его изменением с течением времени или другим "
-"измерением."
+"Отображает один показатель и график. Такая визуализация привлекает внимание к "
+"важной метрике и к тому, как она изменяется с течением времени или в направлении "
+"другого измерения."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/index.ts:55
 msgid ""
@@ -14357,6 +14358,8 @@ msgid ""
 "Smooth-line is a variation of the line chart. Without angles and hard edges, "
 "Smooth-line sometimes looks smarter and more professional."
 msgstr ""
+"Гладкая линия - это вариант графика. В ней нет углов и острых краев, поэтому "
+"иногда она выглядит более профессионально."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:816
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:831
@@ -14752,9 +14755,8 @@ msgid "Step type"
 msgstr "Тип шага"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:59
-#, fuzzy
 msgid "Stepped Line"
-msgstr "Ступенчатая линия"
+msgstr "Ступенчатый график"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:49
 msgid ""
@@ -14762,6 +14764,8 @@ msgid ""
 "the line forming a series of steps between data points. A step chart can be "
 "useful when you want to show the changes that occur at irregular intervals."
 msgstr ""
+"Ступенчатый график представляет данные в виде серии ступенек от точки к точке. "
+"Может быть полезным, когда вы хотите показать изменения, происходящие нерегулярно."
 
 #: superset-frontend/src/SqlLab/components/RunQueryActionButton/index.tsx:45
 #: superset-frontend/src/explore/components/RunQueryButton/index.tsx:45
@@ -14895,7 +14899,7 @@ msgstr "Суммарные значения"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/index.ts:46
 msgid "Sunburst Chart"
-msgstr "Диаграмма Солнечные лучи"
+msgstr "Солнечные лучи"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:56
 msgid "Sunday"
@@ -14949,6 +14953,9 @@ msgid ""
 "Swiss army knife for visualizing data. Choose between step, line, scatter, and "
 "bar charts. This viz type has many customization options as well."
 msgstr ""
+"Швейцарский нож визуализации данных. Выбирайте между шаговой диаграммой, "
+"графиком, ступенчатым графиком и гистограммой. В этой диаграмме есть множество "
+"настроек."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:208
 msgid "Symbol"
@@ -15073,7 +15080,7 @@ msgid ""
 "differences between groups."
 msgstr ""
 "Таблица, визуализирующая парные t-тесты, которые используются для нахождения "
-"статистических различий между группами."
+"статистических различий между группами"
 
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:405
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:303
@@ -15161,7 +15168,6 @@ msgid "Tags"
 msgstr "Теги"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/index.js:29
-#, fuzzy
 msgid ""
 "Take your data points, and group them into \"bins\" to see where the densest "
 "areas of information lie"
@@ -15319,7 +15325,10 @@ msgid ""
 "        Pie charts can be difficult to interpret precisely. If clarity of "
 "relative proportion is important, consider using a bar or other chart type "
 "instead."
-msgstr "Классическая круговая/кольцевая диаграмма."
+msgstr ""
+"Классика. Хорошо показывает соотношение частей целого. Круговые диаграммы иногда "
+"сложно точно интерпретировать. Если для вас важно передать соотношения частей, "
+"подумайте об использовании гистограммы или другой визуализации."
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:258
 msgid "The color for points and clusters in RGB"
@@ -16957,7 +16966,7 @@ msgstr "График по времени (устарело)"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:32
 msgid "Time-series Percent Change"
-msgstr "Процентное изменение (временные ряды)"
+msgstr "Процентное изменение (устарело)"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:28
 #, fuzzy
@@ -17764,6 +17773,8 @@ msgstr ""
 msgid ""
 "Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data"
 msgstr ""
+"Использует оценку плотности по Гауссу, чтобы отобразить распределение данных на "
+"местности"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/index.ts:46
 msgid ""
@@ -17781,6 +17792,10 @@ msgid ""
 "Hover over individual paths in the visualization to understand the stages a value "
 "took. Useful for multi-stage, multi-group visualizing funnels and pipelines."
 msgstr ""
+"Показывает поток значений через различные этапы системы с помощью окружностей. "
+"Наведите на путь в визуализации, чтобы показать, через какие этапы прошло "
+"значение. Эта диаграмма удобна, когда нужно показать воронку или поток с "
+"несколькими этапами или группами."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:54
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:117
@@ -17983,6 +17998,8 @@ msgid ""
 "visualized using its own line of points and each metric is represented as an edge "
 "in the chart."
 msgstr ""
+"Визуализируйте меры для нескольких групп. Метрики представлены в виде ребер, а "
+"каждая группа - набором точек на этих ребрах."
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:30
 #: superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/index.ts:30
@@ -17991,6 +18008,9 @@ msgid ""
 "the correlation or strength between two groups. Color is used to emphasize the "
 "strength of the link between each pair of groups."
 msgstr ""
+"Представьте значения меры для пар элементов из двух групп. Тепловые карты хорошо "
+"показывают корреляцию или силу связи между группами. Цвет соответствует силе этой "
+"связи для каждой пары."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Grid/index.ts:28
 msgid ""
@@ -18009,13 +18029,15 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/index.ts:36
 msgid "Visualize multiple levels of hierarchy using a familiar tree-like structure."
-msgstr "Визуализирует несколько уровней иерархии, используя древовидную структуру."
+msgstr "Визуализирует несколько уровней иерархии, используя древовидную структуру"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:58
 msgid ""
 "Visualize two different series using the same x-axis. Note that both series can "
 "be visualized with a different chart type (e.g. 1 using bars and 1 using a line)."
 msgstr ""
+"Визуализируйте два разных ряда данных, используя общую ось X. Каждый ряд должен "
+"быть представлен своим способом (один в виде гистограммы, другой - графиком)."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:28
 #: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/index.ts:41
@@ -18024,16 +18046,20 @@ msgid ""
 "axis, and bubble size). Bubbles from the same group can be showcased using bubble "
 "color."
 msgstr ""
+"Визуализирует метрику в трех измерениях на одном плоском полотне (используя оси "
+"X, Y и радиус пузырька). Пузырьки могут быть сгруппированы с помощью цвета."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Path/index.ts:28
 msgid "Visualizes connected points, which form a path, on a map."
-msgstr "Визуализирует связанные точки, которые образуют путь, на карте."
+msgstr "Визуализирует маршрут, связывающий точки на карте"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/index.ts:28
 msgid ""
 "Visualizes geographic areas from your data as polygons on a Mapbox rendered map. "
 "Polygons can be colored using a metric."
 msgstr ""
+"Отображает в виде полигонов области, полученные из ваших данных, на карте Mapbox. "
+"Полигоны можно окрасить в зависимости от значения метрики."
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:28
 msgid ""
@@ -18042,9 +18068,8 @@ msgid ""
 "color scheme is used to encode the magnitude of each day's value."
 msgstr ""
 "Визуализирует, как показатель изменился с течением времени, используя цветовую "
-"шкалу и календарь. Значения серого цвета используются для обозначения "
-"отсутствующих значений, а линейная цветовая схема используется для отображения "
-"величины значения каждого дня."
+"шкалу и календарь. Серый цвет означает отсутствие значений, а цветовой градиент "
+"показывает величину меры для каждого дня."
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:29
 msgid ""
@@ -18052,6 +18077,9 @@ msgid ""
 "(states, provinces, etc) on a choropleth map. Each subdivision's value is "
 "elevated when you hover over the corresponding geographic boundary."
 msgstr ""
+"Показывает на хороплет-карте, как меняется значение меры в зависимости от "
+"регионов страны (штатов, областей и т.п.). Регионы подсвечиваются при наведении "
+"на них."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:28
 msgid ""
@@ -18065,6 +18093,9 @@ msgid ""
 "system. New stages in the pipeline are visualized as nodes or layers. The "
 "thickness of the bars or edges represent the metric being visualized."
 msgstr ""
+"Показывает поток значений разных групп через различные этапы в системе. Этапы "
+"представлены в виде узлов или слоев. Размер баров или краев соответствует "
+"значению меры."
 
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/index.ts:35
 msgid ""
@@ -19602,49 +19633,47 @@ msgstr "день недели"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Hex/index.ts:32
 msgid "deck.gl 3D Hexagon"
-msgstr "deck.gl 3D Шестигранники"
+msgstr "Deck.gl - 3D-гекс"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/index.ts:31
 msgid "deck.gl Arc"
-msgstr "deck.gl Дуга"
+msgstr "Deck.gl - Дуга"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Contour/index.ts:32
-#, fuzzy
 msgid "deck.gl Contour"
-msgstr "deck.gl Дуга"
+msgstr "Deck.gl - Контурная карта"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/index.ts:32
 msgid "deck.gl Geojson"
-msgstr "deck.gl GeoJSON"
+msgstr "Deck.gl - GeoJSON"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Grid/index.ts:31
 msgid "deck.gl Grid"
-msgstr "Сетка deck.gl"
+msgstr "Deck.gl - Сетка"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/index.ts:32
-#, fuzzy
 msgid "deck.gl Heatmap"
-msgstr "deck.gl Точечная карта"
+msgstr "Deck.gl - Тепловая карта"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/index.ts:30
 msgid "deck.gl Multiple Layers"
-msgstr "deck.gl Многослойный"
+msgstr "Deck.gl - Многослойный"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Path/index.ts:29
 msgid "deck.gl Path"
-msgstr ""
+msgstr "Deck.gl - Маршрут"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/index.ts:31
 msgid "deck.gl Polygon"
-msgstr "deck.gl Полигон"
+msgstr "Deck.gl - Полигон"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/index.ts:31
 msgid "deck.gl Scatterplot"
-msgstr "Точечная карта deck.gl"
+msgstr "Deck.gl - Точечная карта"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/index.ts:31
 msgid "deck.gl Screen Grid"
-msgstr "Screen Grid deck.gl"
+msgstr "Deck.gl - Screen Grid"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/controlPanel.ts:36
 msgid "deck.gl charts"
