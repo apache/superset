@@ -37,6 +37,8 @@ jobs:
         git fetch tmp_upstream --tags
         latest_tag_commit=$(git ls-remote --tags --sort=committerdate tmp_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $1}')
         latest_tag=$(git ls-remote --tags --sort=committerdate tmp_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $2}')
+        echo "Latest stable tag: $latest_tag"
+        echo "Latest stable tag commit: $latest_tag_commit"
         echo LATEST_TAG=${latest_tag} >> $GITHUB_ENV
 
         echo "Pushing the latest tag commit as the origin SYNC_DEST_BRANCH"
