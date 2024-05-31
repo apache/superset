@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2024-05-19 17:38+0400\n"
-"PO-Revision-Date: 2024-05-20 19:59+0400\n"
+"PO-Revision-Date: 2024-05-31 19:25+0400\n"
 "Last-Translator: Daniel Checheta\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -7687,17 +7687,16 @@ msgid "Force refresh"
 msgstr "Обновить"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:358
-#, fuzzy
 msgid "Force refresh catalog list"
-msgstr "Принудительно обновить список таблиц"
+msgstr "Обновить список каталогов"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:384
 msgid "Force refresh schema list"
-msgstr "Принудительно обновить список схем"
+msgstr "Обновить список схем"
 
 #: superset-frontend/src/components/TableSelector/index.tsx:344
 msgid "Force refresh table list"
-msgstr "Принудительно обновить список таблиц"
+msgstr "Обновить список таблиц"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:58
 msgid "Forecast periods"
@@ -11097,7 +11096,7 @@ msgstr "Неверный список владельцев"
 
 #: superset/views/dashboard/mixin.py:64
 msgid "Owners is a list of users who can alter the dashboard."
-msgstr "Владельцы – это список пользователей, которые могут изменять дашборд"
+msgstr "Владельцы – это пользователи, которые могут изменять дашборд"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:491
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:539
@@ -11105,8 +11104,8 @@ msgid ""
 "Owners is a list of users who can alter the dashboard. Searchable by name or "
 "username."
 msgstr ""
-"Владельцы – это список пользователей, которые могут изменять дашборд. Можно "
-"искать по имени или никнейму."
+"Владельцы – это пользователи, которые могут изменять дашборд. Можно искать по "
+"имени или никнейму."
 
 #: superset-frontend/src/utils/downloadAsPdf.ts:55
 msgid "PDF download failed, please refresh and try again."
@@ -13610,7 +13609,6 @@ msgstr "Выбрать базу данных"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:338
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:346
-#, fuzzy
 msgid "Select database or type to search databases"
 msgstr "Выберите базу данных или введите ее имя"
 
@@ -13704,7 +13702,6 @@ msgstr "Выберите сохраненные запросы"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:389
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:396
-#, fuzzy
 msgid "Select schema or type to search schemas"
 msgstr "Выберите схему или введите ее имя"
 
