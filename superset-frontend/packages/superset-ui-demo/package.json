@@ -40,7 +40,7 @@
     "@storybook/addon-controls": "^7.6.13",
     "@storybook/addon-links": "^7.6.13",
     "@storybook/addons": "^7.6.13",
-    "@storybook/react": "^7.6.13",
+    "@storybook/react": "^8.1.5",
     "@storybook/types": "^7.6.19",
     "@types/react-loadable": "^5.5.3",
     "antd": "4.10.3",

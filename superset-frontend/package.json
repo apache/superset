@@ -234,7 +234,7 @@
     "@storybook/addons": "^7.6.13",
     "@storybook/client-api": "^7.6.13",
     "@storybook/components": "^7.6.13",
-    "@storybook/react": "^7.6.13",
+    "@storybook/react": "^8.1.5",
     "@storybook/react-webpack5": "^7.6.13",
     "@svgr/webpack": "^8.0.1",
     "@testing-library/dom": "^7.29.4",
