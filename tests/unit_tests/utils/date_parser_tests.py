@@ -160,6 +160,26 @@ def test_get_since_until() -> None:
     expected = datetime(2015, 1, 1, 0, 0, 0), datetime(2016, 1, 1, 0, 0, 0)
     assert result == expected
 
+    result = get_since_until("Current day")
+    expected = datetime(2016, 11, 7, 0, 0, 0), datetime(2016, 11, 8, 0, 0, 0)
+    assert result == expected
+
+    result = get_since_until("Current week")
+    expected = datetime(2016, 11, 7, 0, 0, 0), datetime(2016, 11, 14, 0, 0, 0)
+    assert result == expected
+
+    result = get_since_until("Current month")
+    expected = datetime(2016, 11, 1, 0, 0, 0), datetime(2016, 12, 1, 0, 0, 0)
+    assert result == expected
+
+    result = get_since_until("Current quarter")
+    expected = datetime(2016, 10, 1, 0, 0, 0), datetime(2017, 1, 1, 0, 0, 0)
+    assert result == expected
+
+    result = get_since_until("Current year")
+    expected = expected = datetime(2016, 1, 1, 0, 0, 0), datetime(2017, 1, 1, 0, 0, 0)
+    assert result == expected
+
     # Tests for our new instant_time_comparison logic and Feature Flag off
     result = get_since_until(
         time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
