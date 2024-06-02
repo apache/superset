@@ -17,7 +17,7 @@
  * under the License.
  */
 
-// @ts-ignore -- whole React import is required for `reactify.test.tsx` Jest test passing.
+// eslint-disable-next-line no-restricted-syntax -- whole React import is required for `reactify.test.tsx` Jest test passing.
 import React, { Component, ComponentClass, WeakValidationMap } from 'react';
 
 // TODO: Note that id and className can collide between Props and ReactifyProps

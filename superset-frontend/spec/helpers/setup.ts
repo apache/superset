@@ -18,6 +18,7 @@
  */
 import 'jest-enzyme';
 import './shim';
+// eslint-disable-next-line no-restricted-syntax -- whole React import is required for mocking React module in tests.
 import React from 'react';
 import { configure as configureTestingLibrary } from '@testing-library/react';
 import { matchers } from '@emotion/jest';

@@ -18,7 +18,6 @@
  */
 import { useState, useMemo, useCallback, useEffect } from 'react';
 
-import * as React from 'react';
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
 import { useSelector } from 'react-redux';

@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { FeatureFlag, SupersetClient } from '@superset-ui/core';
 import * as uiCore from '@superset-ui/core';
