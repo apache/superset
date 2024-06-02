@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=invalid-name, unused-argument
 
-import json
 from typing import Any
 
 import pytest
@@ -37,6 +36,7 @@ from superset.jinja_context import (
 )
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.utils import json
 
 
 def test_filter_values_adhoc_filters() -> None:

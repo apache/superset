@@ -18,11 +18,14 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Literal, Optional, TYPE_CHECKING, TypedDict, Union
 
+from sqlalchemy.sql.type_api import TypeEngine
 from typing_extensions import NotRequired
 from werkzeug.wrappers import Response
 
 if TYPE_CHECKING:
     from superset.utils.core import GenericDataType
+
+SQLType = Union[TypeEngine, type[TypeEngine]]
 
 
 class LegacyMetric(TypedDict):
@@ -73,7 +76,7 @@ class ResultSetColumnType(TypedDict):
 
     name: str  # legacy naming convention keeping this for backwards compatibility
     column_name: str
-    type: Optional[str]
+    type: Optional[Union[SQLType, str]]
     is_dttm: Optional[bool]
     type_generic: NotRequired[Optional["GenericDataType"]]
 

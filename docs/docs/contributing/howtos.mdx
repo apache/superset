@@ -459,7 +459,7 @@ npm run storybook
 
 When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.
 
-## Contribute Translations
+## Contributing Translations
 
 We use [Flask-Babel](https://python-babel.github.io/flask-babel/) to translate Superset.
 In Python files, we use the following
@@ -538,17 +538,16 @@ pybabel init -i superset/translations/messages.pot -d superset/translations -l f
 
 ### Extracting new strings for translation
 
-This step needs to be done every time application strings change. This happens fairly
-frequently, so if you want to ensure that your translation has good coverage, this
-step needs to be run fairly frequently and the updated strings merged to the upstream
-codebase via PRs. To update the template file `superset/translations/messages.pot`
-with current application strings, run the following command:
+Periodically, when working on translations, we need to extract the strings from both the
+backend and the frontend to compile a list of all strings to be translated. It doesn't
+happen automatically and is a required step to gather the strings and get them into the
+`.po` files where they can be translated, so that they can then be compiled.
+
+This script does just that:
 
 ```bash
-pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
+./scripts/translations/babel_update.sh
 ```
-
-Do not forget to update this file with the appropriate license information.
 
 ### Updating language files
 
@@ -575,27 +574,15 @@ case of the Finnish translation, this would be `superset/translations/fi/LC_MESS
 ### Applying translations
 
 To make the translations available on the frontend, we need to convert the PO file into
-a JSON file. To do this, we need to globally install the npm package `po2json`.
+a collection of JSON files. To convert all PO files to formatted JSON files you can use
+the build-translation script
 
 ```bash
-npm install -g po2json
+npm run build-translation
 ```
-
-To convert all PO files to formatted JSON files you can use the `po2json.sh` script.
-
-```bash
-./scripts/po2json.sh
-```
-
-If you get errors running `po2json`, you might be running the Ubuntu package with the same
-name, rather than the Node.js package (they have a different format for the arguments). If
-there is a conflict, you may need to update your `PATH` environment variable or fully qualify
-the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
-If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
-For example, `"year":["年"]` is correct while `"year":[null,"年"]`is incorrect.
 
 Finally, for the translations to take effect we need to compile translation catalogs into
-binary MO files.
+binary MO files for the backend using pybabel.
 
 ```bash
 pybabel compile -d superset/translations

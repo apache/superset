@@ -16,7 +16,6 @@
 # under the License.
 """Defines the templating context for SQL Lab"""
 
-import json
 import re
 from datetime import datetime
 from functools import lru_cache, partial
@@ -35,6 +34,7 @@ from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
+from superset.utils import json
 from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
     get_user_email,

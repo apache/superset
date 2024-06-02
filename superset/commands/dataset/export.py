@@ -16,7 +16,6 @@
 # under the License.
 # isort:skip_file
 
-import json
 import logging
 from collections.abc import Iterator
 from typing import Callable
@@ -31,6 +30,7 @@ from superset.daos.dataset import DatasetDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils.ssh_tunnel import mask_password_info
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -63,14 +63,14 @@ class ExportDatasetsCommand(ExportModelsCommand):
             if payload.get(key):
                 try:
                     payload[key] = json.loads(payload[key])
-                except json.decoder.JSONDecodeError:
+                except json.JSONDecodeError:
                     logger.info("Unable to decode `%s` field: %s", key, payload[key])
         for key in ("metrics", "columns"):
             for attributes in payload.get(key, []):
                 if attributes.get("extra"):
                     try:
                         attributes["extra"] = json.loads(attributes["extra"])
-                    except json.decoder.JSONDecodeError:
+                    except json.JSONDecodeError:
                         logger.info(
                             "Unable to decode `extra` field: %s", attributes["extra"]
                         )
@@ -108,7 +108,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
             if payload.get("extra"):
                 try:
                     payload["extra"] = json.loads(payload["extra"])
-                except json.decoder.JSONDecodeError:
+                except json.JSONDecodeError:
                     logger.info("Unable to decode `extra` field: %s", payload["extra"])
 
             if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(model.database.id):

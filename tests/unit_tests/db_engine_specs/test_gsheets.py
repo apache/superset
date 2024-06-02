@@ -17,7 +17,6 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, line-too-long
 
-import json
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -30,6 +29,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table
 from superset.superset_typing import OAuth2ClientConfig
+from superset.utils import json
 from superset.utils.oauth2 import decode_oauth2_state
 
 if TYPE_CHECKING:

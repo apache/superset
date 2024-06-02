@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -77,6 +76,7 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
 )
 from superset.tasks.types import ExecutorType
+from superset.utils import json
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -1098,7 +1098,7 @@ def test_email_dashboard_report_schedule_force_screenshot(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
 )
-@patch("superset.utils.slack.WebClient.files_upload")
+@patch("superset.utils.slack.WebClient.files_upload_v2")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_chart_report_schedule(
     screenshot_mock,
@@ -1186,7 +1186,7 @@ def test_slack_chart_report_schedule_with_errors(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_csv"
 )
-@patch("superset.utils.slack.WebClient.files_upload")
+@patch("superset.utils.slack.WebClient.files_upload_v2")
 @patch("superset.utils.csv.urllib.request.urlopen")
 @patch("superset.utils.csv.urllib.request.OpenerDirector.open")
 @patch("superset.utils.csv.get_chart_csv_data")
@@ -1353,7 +1353,7 @@ def test_report_schedule_success_grace(create_alert_slack_chart_success):
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_grace")
-@patch("superset.utils.slack.WebClient.files_upload")
+@patch("superset.utils.slack.WebClient.files_upload_v2")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_report_schedule_success_grace_end(
     screenshot_mock, file_upload_mock, create_alert_slack_chart_grace

@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 import os
 import time
@@ -28,6 +27,8 @@ from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import Query, Session
+
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +165,6 @@ def paginated_update(
 def try_load_json(data: Optional[str]) -> dict[str, Any]:
     try:
         return data and json.loads(data) or {}
-    except json.decoder.JSONDecodeError:
+    except json.JSONDecodeError:
         print(f"Failed to parse: {data}")
         return {}

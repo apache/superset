@@ -39,6 +39,7 @@ const {
   outerRadius,
   numberFormat,
   showLabels,
+  roseType,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -83,6 +84,23 @@ const config: ControlPanelConfig = {
               description: t(
                 'Minimum threshold in percentage points for showing labels.',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'roseType',
+            config: {
+              type: 'SelectControl',
+              label: t('Rose Type'),
+              default: roseType,
+              renderTrigger: true,
+              choices: [
+                ['area', t('Area')],
+                ['radius', t('Radius')],
+                [null, t('None')],
+              ],
+              description: t('Whether to show as Nightingale chart.'),
             },
           },
         ],

@@ -107,9 +107,6 @@ const GridRow = styled.div`
         &:first-child {
           inset-inline-start: 0;
         }
-        &:last-child {
-          inset-inline-end: 0;
-        }
       }
     }
 

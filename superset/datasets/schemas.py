@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from datetime import datetime
 from typing import Any
 
@@ -22,10 +21,9 @@ from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
-from superset.datasets.models import Dataset
 from superset.exceptions import SupersetMarshmallowValidationError
+from superset.utils import json
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -289,17 +287,6 @@ class GetOrCreateDatasetSchema(Schema):
     )
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
-
-
-class DatasetSchema(SQLAlchemyAutoSchema):
-    """
-    Schema for the ``Dataset`` model.
-    """
-
-    class Meta:  # pylint: disable=too-few-public-methods
-        model = Dataset
-        load_instance = True
-        include_relationships = True
 
 
 class DatasetCacheWarmUpRequestSchema(Schema):

@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Sql Lab"""
 
-import json
 from datetime import datetime
 from textwrap import dedent
 
@@ -44,10 +43,9 @@ from superset.sql_lab import (
     apply_limit_if_exists,
 )
 from superset.sql_parse import CtasMethod
-from superset.utils.core import (
-    backend,
-    datetime_to_epoch,  # noqa: F401
-)
+from superset.utils.core import backend
+from superset.utils import json
+from superset.utils.json import datetime_to_epoch  # noqa: F401
 from superset.utils.database import get_example_database, get_main_database
 
 from tests.integration_tests.base_tests import SupersetTestCase

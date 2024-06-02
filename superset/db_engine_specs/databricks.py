@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from typing import Any, TYPE_CHECKING, TypedDict, Union
 
@@ -33,6 +32,7 @@ from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.utils import json
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:

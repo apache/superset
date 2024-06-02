@@ -1,3 +1,4 @@
+#!/bin/bash
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,13 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-for file in $( find superset/translations/** );
-do
-  extension=${file##*.}
-  filename="${file%.*}"
-  if [ $extension == "po" ]
-  then
-    po2json --domain superset --format jed1.x $file $filename.json
-    ./superset-frontend/node_modules/.bin/prettier --write $filename.json
-  fi
-done
+# This script generates .mo binary files from .po translation files
+# these .mo files are used by the backend to load translations
+
+flask fab babel-compile --target superset/translations

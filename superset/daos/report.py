@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime
 from typing import Any
@@ -34,6 +33,7 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportState,
 )
+from superset.utils import json
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
