@@ -21,6 +21,7 @@ from typing import List, Union
 
 import backoff
 import pandas as pd
+from deprecation import deprecated
 from flask import g
 from flask_babel import gettext as __
 from slack_sdk import WebClient
@@ -65,10 +66,11 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         """
         Get the recipient's channel(s).
         :returns: A list of channel ids: "EID676L"
+        :raises SlackApiError: If the API call fails
         """
         recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
 
-        channel_recipients = get_email_address_list(recipient_str)
+        channel_recipients: List[str] = get_email_address_list(recipient_str)
 
         conversations_list_response = client.conversations_list(
             types="public_channel,private_channel"
@@ -184,21 +186,65 @@ Error: %(text)s
             return [self._content.pdf]
         return []
 
+    @deprecated(deprecated_in="4.1")
+    def _deprecated_upload_files(
+        self, client: WebClient, title: str, body: str
+    ) -> None:
+        """
+        Deprecated method to upload files to slack
+        Should only be used if the new method fails
+        To be removed in the next major release
+        """
+        file_type, files = (None, [])
+        if self._content.csv:
+            file_type, files = ("csv", [self._content.csv])
+        if self._content.screenshots:
+            file_type, files = ("png", self._content.screenshots)
+        if self._content.pdf:
+            file_type, files = ("pdf", [self._content.pdf])
+
+        recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
+
+        recipients = get_email_address_list(recipient_str)
+
+        for channel in recipients:
+            if len(files) > 0:
+                for file in files:
+                    client.files_upload(
+                        channels=channel,
+                        file=file,
+                        initial_comment=body,
+                        title=title,
+                        filetype=file_type,
+                    )
+            else:
+                client.chat_postMessage(channel=channel, text=body)
+
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     @statsd_gauge("reports.slack.send")
     def send(self) -> None:
         global_logs_context = getattr(g, "logs_context", {}) or {}
         try:
             client = get_slack_client()
-            channels = self._get_channels(client)
+            title = self._content.name
+            body = self._get_body()
+
+            try:
+                channels = self._get_channels(client)
+            except SlackApiError:
+                logger.warning(
+                    "Slack scope missing. Using deprecated API to get channels. Please update your Slack app to use the new API.",
+                    extra={
+                        "execution_id": global_logs_context.get("execution_id"),
+                    },
+                )
+                self._deprecated_upload_files(client, title, body)
+                return
 
             if channels == []:
                 raise NotificationParamException("No valid channel found")
 
             files = self._get_inline_files()
-            title = self._content.name
-
-            body = self._get_body()
 
             # files_upload returns SlackResponse as we run it in sync mode.
             for channel in channels:
