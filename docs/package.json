@@ -21,7 +21,7 @@
     "@ant-design/icons": "^5.3.7",
     "@docsearch/react": "^3.6.0",
     "@docusaurus/core": "^3.3.2",
-    "@docusaurus/plugin-client-redirects": "^3.3.2",
+    "@docusaurus/plugin-client-redirects": "^3.4.0",
     "@docusaurus/preset-classic": "^3.3.2",
     "@emotion/core": "^10.1.1",
     "@emotion/styled": "^10.0.27",
