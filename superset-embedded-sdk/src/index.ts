@@ -21,7 +21,6 @@ import {
   DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY,
   IFRAME_COMMS_MESSAGE_TYPE
 } from './const';
-import { t } from '@superset-ui/core';
 
 // We can swap this out for the actual switchboard package once it gets published
 import { Switchboard } from '@superset-ui/switchboard';
@@ -86,7 +85,7 @@ export async function embedDashboard({
   fetchGuestToken,
   dashboardUiConfig,
   debug = false,
-  iframeTitle = t("Embedded Dashboard"),
+  iframeTitle = "Embedded Dashboard",
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     if (debug) {
