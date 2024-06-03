@@ -33,8 +33,6 @@ import { getLegendProps } from '../utils/series';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPercentFormatter } from '../utils/formatters';
 
-const TOTAL_SERIES = 'total';
-
 export default function transformProps(
   chartProps: HistogramChartProps,
 ): HistogramTransformedProps {
@@ -64,7 +62,7 @@ export default function transformProps(
   const { data } = queriesData[0];
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
   const formatter = getNumberFormatter(
-    normalize ? NumberFormats.FLOAT_3_POINT : NumberFormats.INTEGER,
+    normalize ? NumberFormats.FLOAT_2_POINT : NumberFormats.INTEGER,
   );
   const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const groupbySet = new Set(groupby);
@@ -83,9 +81,16 @@ export default function transformProps(
       name: seriesName,
       type: 'bar',
       data: seriesData,
-      stack: 'stack',
       itemStyle: {
         color: colorFn(seriesName, sliceId),
+      },
+      label: {
+        show: showValue,
+        position: 'top',
+        formatter: params => {
+          const { value } = params;
+          return formatter.format(value as number);
+        },
       },
     };
   });
@@ -97,49 +102,29 @@ export default function transformProps(
     });
   }
 
-  if (showValue) {
-    barSeries.push({
-      name: TOTAL_SERIES,
-      type: 'bar',
-      stack: 'stack',
-      silent: true,
-      label: {
-        show: true,
-        position: 'top',
-        formatter: params => {
-          const { dataIndex } = params;
-          return formatter.format(
-            barSeries
-              .filter(series => legendState[series.name!])
-              .reduce(
-                (acc, series) => acc + (series.data![dataIndex] as number),
-                0,
-              ),
-          );
-        },
-      },
-      data: barSeries[0].data!.map(() => 0),
-    });
-  }
-
   const tooltipFormatter = (params: CallbackDataParams[]) => {
     const title = params[0].name;
-    const array = params.filter(param => param.seriesName !== TOTAL_SERIES);
-    const rows = array.map(param => {
+    const rows = params.map(param => {
       const { marker, seriesName, value } = param;
       return [`${marker}${seriesName}`, formatter.format(value as number)];
     });
     if (groupby.length > 0) {
-      const total = array.reduce(
+      const total = params.reduce(
         (acc, param) => acc + (param.value as number),
         0,
       );
-      rows.forEach((row, i) =>
-        row.push(
-          percentFormatter.format((params[i].value as number) / (total || 1)),
-        ),
-      );
-      rows.push(['Total', formatter.format(total), percentFormatter.format(1)]);
+      if (!normalize) {
+        rows.forEach((row, i) =>
+          row.push(
+            percentFormatter.format((params[i].value as number) / (total || 1)),
+          ),
+        );
+      }
+      const totalRow = ['Total', formatter.format(total)];
+      if (!normalize) {
+        totalRow.push(percentFormatter.format(1));
+      }
+      rows.push(totalRow);
     }
     return tooltipHtml(rows, title, focusedSeries);
   };

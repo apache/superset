@@ -62,7 +62,7 @@ def histogram(
     ]
 
     def hist_values(series: Series) -> np.ndarray:
-        result = np.histogram(series, bins=bin_edges, density=normalize)[0]
+        result = np.histogram(series, bins=bin_edges)[0]
         return result if not cumulative else np.cumsum(result)
 
     if len(groupby) == 0:
@@ -77,6 +77,9 @@ def histogram(
             .unstack(fill_value=0)
         )
         histogram_df.columns = bin_edges_str
+
+    if normalize:
+        histogram_df = histogram_df / histogram_df.values.sum()
 
     # reorder the columns to have the groupby columns first
     histogram_df = histogram_df.reset_index().loc[:, groupby + bin_edges_str]

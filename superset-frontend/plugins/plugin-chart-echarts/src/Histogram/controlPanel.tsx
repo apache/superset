@@ -75,11 +75,11 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Normalize'),
               description: t(`
-                The normalize option adjusts histogram bar heights
-                for easy comparison of distributions. Enabling normalize scales the
-                histogram so that the tallest bar reaches a maximum value of 1, highlighting
-                relative proportions and distribution shapes. Note that normalize only affects
-                the histogram display, not the original data.`),
+                The normalize option transforms the histogram values into proportions or
+                probabilities by dividing each bin's count by the total count of data points.
+                This normalization process ensures that the resulting values sum up to 1,
+                enabling a relative comparison of the data's distribution and providing a
+                clearer understanding of the proportion of data points within each bin.`),
               default: false,
             },
           },
@@ -91,12 +91,11 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Cumulative'),
               description: t(`
-                The cumulative option in a histogram allows you to see how
-                your data accumulates over different values. When enabled, the histogram bars
-                represent the running total of frequencies up to each bin. This helps you
-                understand how likely it is to encounter values below a certain point. Keep
-                in mind that enabling cumulative doesn't change your original data, it just
-                changes the way the histogram is displayed.`),
+                The cumulative option allows you to see how your data accumulates over different
+                values. When enabled, the histogram bars represent the running total of frequencies
+                up to each bin. This helps you understand how likely it is to encounter values
+                below a certain point. Keep in mind that enabling cumulative doesn't change your
+                original data, it just changes the way the histogram is displayed.`),
               default: false,
             },
           },
