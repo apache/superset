@@ -42,20 +42,6 @@ def upgrade():
 
 def downgrade():
     op.create_table(
-        "sl_dataset_users",
-        sa.Column("dataset_id", sa.INTEGER(), nullable=False),
-        sa.Column("user_id", sa.INTEGER(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["dataset_id"],
-            ["sl_datasets.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["user_id"],
-            ["ab_user.id"],
-        ),
-        sa.PrimaryKeyConstraint("dataset_id", "user_id"),
-    )
-    op.create_table(
         "sl_datasets",
         sa.Column("uuid", sa.NUMERIC(precision=16), nullable=True),
         sa.Column("created_on", sa.DATETIME(), nullable=True),
@@ -116,48 +102,6 @@ def downgrade():
         sa.UniqueConstraint("uuid"),
     )
     op.create_table(
-        "sl_dataset_columns",
-        sa.Column("dataset_id", sa.INTEGER(), nullable=False),
-        sa.Column("column_id", sa.INTEGER(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["column_id"],
-            ["sl_columns.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["dataset_id"],
-            ["sl_datasets.id"],
-        ),
-        sa.PrimaryKeyConstraint("dataset_id", "column_id"),
-    )
-    op.create_table(
-        "sl_dataset_tables",
-        sa.Column("dataset_id", sa.INTEGER(), nullable=False),
-        sa.Column("table_id", sa.INTEGER(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["dataset_id"],
-            ["sl_datasets.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["table_id"],
-            ["sl_tables.id"],
-        ),
-        sa.PrimaryKeyConstraint("dataset_id", "table_id"),
-    )
-    op.create_table(
-        "sl_table_columns",
-        sa.Column("table_id", sa.INTEGER(), nullable=False),
-        sa.Column("column_id", sa.INTEGER(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["column_id"],
-            ["sl_columns.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["table_id"],
-            ["sl_tables.id"],
-        ),
-        sa.PrimaryKeyConstraint("table_id", "column_id"),
-    )
-    op.create_table(
         "sl_columns",
         sa.Column("uuid", sa.NUMERIC(precision=16), nullable=True),
         sa.Column("created_on", sa.DATETIME(), nullable=True),
@@ -194,4 +138,60 @@ def downgrade():
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("uuid"),
+    )
+    op.create_table(
+        "sl_dataset_users",
+        sa.Column("dataset_id", sa.INTEGER(), nullable=False),
+        sa.Column("user_id", sa.INTEGER(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["dataset_id"],
+            ["sl_datasets.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["ab_user.id"],
+        ),
+        sa.PrimaryKeyConstraint("dataset_id", "user_id"),
+    )
+    op.create_table(
+        "sl_dataset_tables",
+        sa.Column("dataset_id", sa.INTEGER(), nullable=False),
+        sa.Column("table_id", sa.INTEGER(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["dataset_id"],
+            ["sl_datasets.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["table_id"],
+            ["sl_tables.id"],
+        ),
+        sa.PrimaryKeyConstraint("dataset_id", "table_id"),
+    )
+    op.create_table(
+        "sl_table_columns",
+        sa.Column("table_id", sa.INTEGER(), nullable=False),
+        sa.Column("column_id", sa.INTEGER(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["column_id"],
+            ["sl_columns.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["table_id"],
+            ["sl_tables.id"],
+        ),
+        sa.PrimaryKeyConstraint("table_id", "column_id"),
+    )
+    op.create_table(
+        "sl_dataset_columns",
+        sa.Column("dataset_id", sa.INTEGER(), nullable=False),
+        sa.Column("column_id", sa.INTEGER(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["column_id"],
+            ["sl_columns.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["dataset_id"],
+            ["sl_datasets.id"],
+        ),
+        sa.PrimaryKeyConstraint("dataset_id", "column_id"),
     )
