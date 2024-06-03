@@ -33,7 +33,7 @@ from superset.utils.core import (
 )
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource
+    from superset.connectors.sqla.models import Dataset
     from superset.daos.datasource import DatasourceDAO
 
 
@@ -82,7 +82,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             **kwargs,
         )
 
-    def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
+    def _convert_to_model(self, datasource: DatasourceDict) -> Dataset:
         return self._datasource_dao.get_datasource(
             datasource_type=DatasourceType(datasource["type"]),
             datasource_id=int(datasource["id"]),

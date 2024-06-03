@@ -19,7 +19,7 @@ from unittest.mock import call, patch
 from flask_appbuilder.security.sqla.models import User
 
 from superset.common.query_object import QueryObject
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.core import Database
 from superset.utils.core import override_user
 
@@ -118,7 +118,7 @@ def test_cache_key_cache_query_by_user_on_no_user(logger_mock, feature_flag_mock
     cache key will be the same
     """
 
-    datasource = SqlaTable(
+    datasource = Dataset(
         table_name="test_table",
         columns=[],
         metrics=[],
@@ -143,7 +143,7 @@ def test_cache_key_cache_query_by_user_on_with_user(logger_mock, feature_flag_mo
     flag on, the key will be the same
     """
 
-    datasource = SqlaTable(
+    datasource = Dataset(
         table_name="test_table",
         columns=[],
         metrics=[],
@@ -175,7 +175,7 @@ def test_cache_key_cache_query_by_user_on_with_different_user(
     flag on, the key will be different
     """
 
-    datasource = SqlaTable(
+    datasource = Dataset(
         table_name="test_table",
         columns=[],
         metrics=[],
@@ -216,7 +216,7 @@ def test_cache_key_cache_impersonation_on_no_user(logger_mock, feature_flag_mock
     cache key will be the same
     """
 
-    datasource = SqlaTable(
+    datasource = Dataset(
         table_name="test_table",
         columns=[],
         metrics=[],
@@ -241,7 +241,7 @@ def test_cache_key_cache_impersonation_on_with_user(logger_mock, feature_flag_mo
     flag on, the key will be the same
     """
 
-    datasource = SqlaTable(
+    datasource = Dataset(
         table_name="test_table",
         columns=[],
         metrics=[],
@@ -272,7 +272,7 @@ def test_cache_key_cache_impersonation_on_with_different_user(
     the keys will be the same
     """
 
-    datasource = SqlaTable(
+    datasource = Dataset(
         table_name="test_table",
         columns=[],
         metrics=[],
@@ -307,7 +307,7 @@ def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonati
     the keys will be different
     """
 
-    datasource = SqlaTable(
+    datasource = Dataset(
         table_name="test_table",
         columns=[],
         metrics=[],

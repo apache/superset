@@ -607,7 +607,7 @@ class TestSqlaTableModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_data_for_slices_with_adhoc_column(self):
-        # should perform sqla.model.BaseDatasource.data_for_slices() with adhoc
+        # should perform sqla.model.Dataset.data_for_slices() with adhoc
         # column and legacy chart
         tbl = self.get_table(name="birth_names")
         dashboard = self.get_dash_by_slug("births")

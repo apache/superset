@@ -27,7 +27,7 @@ from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.commands.dataset.exceptions import DatasetInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import (
-    BaseDatasource,
+    Dataset,
     SqlaTable,
     SqlMetric,
     TableColumn,
@@ -64,7 +64,7 @@ def lookup_sqla_database(table: SqlaTable) -> Optional[Database]:
 
 
 def import_dataset(
-    i_datasource: BaseDatasource,
+    i_datasource: Dataset,
     database_id: Optional[int] = None,
     import_time: Optional[int] = None,
 ) -> int:
@@ -75,8 +75,8 @@ def import_dataset(
     superset instances. Audit metadata isn't copied over.
     """
 
-    lookup_database: Callable[[BaseDatasource], Optional[Database]]
-    lookup_datasource: Callable[[BaseDatasource], Optional[BaseDatasource]]
+    lookup_database: Callable[[Dataset], Optional[Database]]
+    lookup_datasource: Callable[[Dataset], Optional[Dataset]]
     if isinstance(i_datasource, SqlaTable):
         lookup_database = lookup_sqla_database
         lookup_datasource = lookup_sqla_table

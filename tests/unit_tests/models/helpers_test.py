@@ -34,10 +34,10 @@ if TYPE_CHECKING:
 
 @pytest.fixture()
 def database(mocker: MockerFixture, session: Session) -> Database:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import Database
 
-    SqlaTable.metadata.create_all(session.get_bind())
+    Dataset.metadata.create_all(session.get_bind())
 
     engine = create_engine(
         "sqlite://",
@@ -74,9 +74,9 @@ def test_values_for_column(database: Database) -> None:
     NULL values should be returned as `None`, not `np.nan`, since NaN cannot be
     serialized to JSON.
     """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.connectors.sqla.models import Dataset, TableColumn
 
-    table = SqlaTable(
+    table = Dataset(
         database=database,
         schema=None,
         table_name="t",
@@ -92,9 +92,9 @@ def test_values_for_column_calculated(
     """
     Test that calculated columns work.
     """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.connectors.sqla.models import Dataset, TableColumn
 
-    table = SqlaTable(
+    table = Dataset(
         database=database,
         schema=None,
         table_name="t",
@@ -115,12 +115,12 @@ def test_values_for_column_double_percents(
     """
     Test the behavior of `double_percents`.
     """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.connectors.sqla.models import Dataset, TableColumn
 
     with database.get_sqla_engine() as engine:
         engine.dialect.identifier_preparer._double_percents = "pyformat"
 
-    table = SqlaTable(
+    table = Dataset(
         database=database,
         schema=None,
         table_name="t",

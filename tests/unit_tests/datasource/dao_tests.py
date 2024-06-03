@@ -25,12 +25,12 @@ from superset.utils.core import DatasourceType
 
 @pytest.fixture
 def session_with_data(session: Session) -> Iterator[Session]:
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.connectors.sqla.models import Dataset, TableColumn
     from superset.models.core import Database
     from superset.models.sql_lab import Query, SavedQuery
 
     engine = session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
 
@@ -38,7 +38,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
         TableColumn(column_name="a", type="INTEGER"),
     ]
 
-    sqla_table = SqlaTable(
+    sqla_table = Dataset(
         table_name="my_sqla_table",
         columns=columns,
         metrics=[],
@@ -71,7 +71,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
 
 
 def test_get_datasource_sqlatable(session_with_data: Session) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.daos.datasource import DatasourceDAO
 
     result = DatasourceDAO.get_datasource(
@@ -81,7 +81,7 @@ def test_get_datasource_sqlatable(session_with_data: Session) -> None:
 
     assert 1 == result.id
     assert "my_sqla_table" == result.table_name
-    assert isinstance(result, SqlaTable)
+    assert isinstance(result, Dataset)
 
 
 def test_get_datasource_query(session_with_data: Session) -> None:
@@ -110,7 +110,7 @@ def test_get_datasource_saved_query(session_with_data: Session) -> None:
 
 
 def test_get_datasource_w_str_param(session_with_data: Session) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.daos.datasource import DatasourceDAO
 
     assert isinstance(
@@ -118,14 +118,14 @@ def test_get_datasource_w_str_param(session_with_data: Session) -> None:
             datasource_type="table",
             datasource_id=1,
         ),
-        SqlaTable,
+        Dataset,
     )
 
 
 def test_get_all_datasources(session_with_data: Session) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
 
-    result = SqlaTable.get_all_datasources()
+    result = Dataset.get_all_datasources()
     assert len(result) == 1
 
 

@@ -81,7 +81,7 @@ from superset.utils.urls import get_url_host
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.sqla.models import (
-        BaseDatasource,
+        Dataset,
         RowLevelSecurityFilter,
         SqlaTable,
     )
@@ -474,7 +474,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or (catalog_perm and self.can_access("catalog_access", catalog_perm))
         )
 
-    def can_access_schema(self, datasource: "BaseDatasource") -> bool:
+    def can_access_schema(self, datasource: "Dataset") -> bool:
         """
         Return True if the user can access the schema associated with specified
         datasource, False otherwise.
@@ -493,7 +493,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or self.can_access("schema_access", datasource.schema_perm or "")
         )
 
-    def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
+    def can_access_datasource(self, datasource: "Dataset") -> bool:
         """
         Return True if the user can access the specified datasource, False otherwise.
 
@@ -571,7 +571,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
     @staticmethod
-    def get_datasource_access_error_msg(datasource: "BaseDatasource") -> str:
+    def get_datasource_access_error_msg(datasource: "Dataset") -> str:
         """
         Return the error message for the denied Superset datasource.
 
@@ -586,7 +586,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def get_datasource_access_link(  # pylint: disable=unused-argument
-        datasource: "BaseDatasource",
+        datasource: "Dataset",
     ) -> Optional[str]:
         """
         Return the link for the denied Superset datasource.
@@ -598,7 +598,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return current_app.config.get("PERMISSION_INSTRUCTIONS_LINK")
 
     def get_datasource_access_error_object(  # pylint: disable=invalid-name
-        self, datasource: "BaseDatasource"
+        self, datasource: "Dataset"
     ) -> SupersetError:
         """
         Return the error object for the denied Superset datasource.
@@ -657,7 +657,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return current_app.config.get("PERMISSION_INSTRUCTIONS_LINK")
 
-    def get_user_datasources(self) -> list["BaseDatasource"]:
+    def get_user_datasources(self) -> list["Dataset"]:
         """
         Collect datasources which the user has explicit permissions to.
 
@@ -2132,7 +2132,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         dashboard: Optional["Dashboard"] = None,
         chart: Optional["Slice"] = None,
         database: Optional["Database"] = None,
-        datasource: Optional["BaseDatasource"] = None,
+        datasource: Optional["Dataset"] = None,
         query: Optional["Query"] = None,
         query_context: Optional["QueryContext"] = None,
         table: Optional["Table"] = None,
@@ -2407,9 +2407,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return [self.get_public_role()] if public_role else []
         return user.roles
 
-    def get_guest_rls_filters(
-        self, dataset: "BaseDatasource"
-    ) -> list[GuestTokenRlsRule]:
+    def get_guest_rls_filters(self, dataset: "Dataset") -> list[GuestTokenRlsRule]:
         """
         Retrieves the row level security filters for the current user and the dataset,
         if the user is authenticated with a guest token.
@@ -2425,7 +2423,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ]
         return []
 
-    def get_rls_filters(self, table: "BaseDatasource") -> list[SqlaQuery]:
+    def get_rls_filters(self, table: "Dataset") -> list[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
         the passed table.
@@ -2493,7 +2491,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         return query.all()
 
-    def get_rls_sorted(self, table: "BaseDatasource") -> list["RowLevelSecurityFilter"]:
+    def get_rls_sorted(self, table: "Dataset") -> list["RowLevelSecurityFilter"]:
         """
         Retrieves a list RLS filters sorted by ID for
         the current user and the passed table.
@@ -2505,10 +2503,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         filters.sort(key=lambda f: f.id)
         return filters
 
-    def get_guest_rls_filters_str(self, table: "BaseDatasource") -> list[str]:
+    def get_guest_rls_filters_str(self, table: "Dataset") -> list[str]:
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
-    def get_rls_cache_key(self, datasource: "BaseDatasource") -> list[str]:
+    def get_rls_cache_key(self, datasource: "Dataset") -> list[str]:
         rls_clauses_with_group_key = []
         if datasource.is_rls_supported:
             rls_clauses_with_group_key = [

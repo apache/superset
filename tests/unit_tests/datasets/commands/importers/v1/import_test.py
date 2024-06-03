@@ -41,13 +41,13 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     """
     from superset import security_manager
     from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import Database
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     db.session.add(database)
@@ -160,13 +160,13 @@ def test_import_dataset_duplicate_column(
     """
     from superset import security_manager
     from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.connectors.sqla.models import Dataset, TableColumn
     from superset.models.core import Database
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     dataset_uuid = uuid.uuid4()
 
@@ -175,7 +175,7 @@ def test_import_dataset_duplicate_column(
     db.session.add(database)
     db.session.flush()
 
-    dataset = SqlaTable(
+    dataset = Dataset(
         uuid=dataset_uuid, table_name="existing_dataset", database_id=database.id
     )
     column = TableColumn(column_name="existing_column")
@@ -285,14 +285,14 @@ def test_import_column_extra_is_string(mocker: MockerFixture, session: Session) 
     """
     from superset import security_manager
     from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     db.session.add(database)
@@ -370,14 +370,14 @@ def test_import_dataset_extra_empty_string(
     """
     from superset import security_manager
     from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     db.session.add(database)
@@ -438,7 +438,7 @@ def test_import_column_allowed_data_url(
 
     from superset import security_manager
     from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
@@ -447,7 +447,7 @@ def test_import_column_allowed_data_url(
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     db.session.add(database)
@@ -513,14 +513,14 @@ def test_import_dataset_managed_externally(
     """
     from superset import security_manager
     from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import dataset_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     db.session.add(database)

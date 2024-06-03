@@ -24,7 +24,7 @@ from superset.utils.core import DatasourceType
 
 @pytest.fixture
 def session_with_data(session: Session):
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.connectors.sqla.models import Dataset, TableColumn
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -48,7 +48,7 @@ def session_with_data(session: Session):
         TableColumn(column_name="a", type="INTEGER"),
     ]
 
-    SqlaTable(  # noqa: F841
+    Dataset(  # noqa: F841
         table_name="my_sqla_table",
         columns=columns,
         metrics=[],

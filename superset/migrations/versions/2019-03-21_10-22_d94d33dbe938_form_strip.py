@@ -44,7 +44,7 @@ class BaseColumnMixin:
     verbose_name = Column(String(1024))
 
 
-class BaseDatasourceMixin:
+class DatasetMixin:
     id = Column(Integer, primary_key=True)
     description = Column(Text)
 
@@ -107,7 +107,7 @@ class DruidColumn(BaseColumnMixin, Base):
     dimension_spec_json = Column(Text)
 
 
-class DruidDatasource(BaseDatasourceMixin, Base):
+class DruidDatasource(DatasetMixin, Base):
     __tablename__ = "datasources"
 
     datasource_name = Column(String(255))
@@ -131,7 +131,7 @@ class Slice(Base):
     viz_type = Column(String(250))
 
 
-class SqlaTable(BaseDatasourceMixin, Base):
+class SqlaTable(DatasetMixin, Base):
     __tablename__ = "tables"
 
     default_endpoint = Column(MediumText())

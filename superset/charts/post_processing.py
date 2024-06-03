@@ -40,7 +40,7 @@ from superset.utils.core import (
 )
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource
+    from superset.connectors.sqla.models import Dataset
     from superset.models.sql_lab import Query
 
 
@@ -223,7 +223,7 @@ pivot_v2_aggfunc_map = {
 def pivot_table_v2(
     df: pd.DataFrame,
     form_data: dict[str, Any],
-    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+    datasource: Optional[Union["Dataset", "Query"]] = None,
 ) -> pd.DataFrame:
     """
     Pivot table v2.
@@ -248,7 +248,7 @@ def table(
     df: pd.DataFrame,
     form_data: dict[str, Any],
     datasource: Optional[  # pylint: disable=unused-argument
-        Union["BaseDatasource", "Query"]
+        Union["Dataset", "Query"]
     ] = None,
 ) -> pd.DataFrame:
     """
@@ -277,7 +277,7 @@ post_processors = {
 def apply_post_process(
     result: dict[Any, Any],
     form_data: Optional[dict[str, Any]] = None,
-    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+    datasource: Optional[Union["Dataset", "Query"]] = None,
 ) -> dict[Any, Any]:
     form_data = form_data or {}
 

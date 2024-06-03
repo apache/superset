@@ -24,7 +24,7 @@ from sqlalchemy.sql import column
 
 import superset.utils.database
 from superset import app, db
-from superset.connectors.sqla.models import BaseDatasource, SqlMetric
+from superset.connectors.sqla.models import Dataset, SqlMetric
 from superset.examples.helpers import (
     get_example_url,
     get_examples_folder,
@@ -137,7 +137,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     db.session.commit()
 
 
-def create_slices(tbl: BaseDatasource) -> list[Slice]:
+def create_slices(tbl: Dataset) -> list[Slice]:
     metric = "sum__SP_POP_TOTL"
     metrics = ["sum__SP_POP_TOTL"]
     secondary_metric = {

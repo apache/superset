@@ -36,7 +36,7 @@ from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
 )
-from superset.connectors.sqla.models import BaseDatasource
+from superset.connectors.sqla.models import Dataset
 from superset.constants import CacheRegion, TimeGrain
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
@@ -113,7 +113,7 @@ class QueryContextProcessor:
     """
 
     _query_context: QueryContext
-    _qc_datasource: BaseDatasource
+    _qc_datasource: Dataset
 
     def __init__(self, query_context: QueryContext):
         self._query_context = query_context
@@ -267,9 +267,7 @@ class QueryContextProcessor:
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         # todo: should support "python_date_format" and "get_column" in each datasource
-        def _get_timestamp_format(
-            source: BaseDatasource, column: str | None
-        ) -> str | None:
+        def _get_timestamp_format(source: Dataset, column: str | None) -> str | None:
             column_obj = source.get_column(column)
             if (
                 column_obj

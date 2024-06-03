@@ -48,7 +48,7 @@ from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource
+    from superset.connectors.sqla.models import Dataset
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     applied_time_extras: dict[str, str]
     apply_fetch_values_predicate: bool
     columns: list[Column]
-    datasource: BaseDatasource | None
+    datasource: Dataset | None
     extras: dict[str, Any]
     filter: list[QueryObjectFilterClause]
     from_dttm: datetime | None
@@ -114,7 +114,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         applied_time_extras: dict[str, str] | None = None,
         apply_fetch_values_predicate: bool = False,
         columns: list[Column] | None = None,
-        datasource: BaseDatasource | None = None,
+        datasource: Dataset | None = None,
         extras: dict[str, Any] | None = None,
         filters: list[QueryObjectFilterClause] | None = None,
         granularity: str | None = None,

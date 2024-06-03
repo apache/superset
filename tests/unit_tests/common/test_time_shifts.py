@@ -21,12 +21,12 @@ from pytest import fixture, mark
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_context_processor import QueryContextProcessor
-from superset.connectors.sqla.models import BaseDatasource
+from superset.connectors.sqla.models import Dataset
 from superset.constants import TimeGrain
 
 query_context_processor = QueryContextProcessor(
     QueryContext(
-        datasource=BaseDatasource(),
+        datasource=Dataset(),
         queries=[],
         result_type=ChartDataResultType.COLUMNS,
         form_data={},

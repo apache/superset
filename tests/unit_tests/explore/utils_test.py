@@ -44,7 +44,7 @@ can_access_datasource = (
 can_access = "superset.security.SupersetSecurityManager.can_access"
 raise_for_access = "superset.security.SupersetSecurityManager.raise_for_access"
 query_datasources_by_name = (
-    "superset.connectors.sqla.models.SqlaTable.query_datasources_by_name"
+    "superset.connectors.sqla.models.Dataset.query_datasources_by_name"
 )
 
 
@@ -89,11 +89,11 @@ def test_unsaved_chart_unknown_query_id(mocker: MockerFixture) -> None:
 
 
 def test_unsaved_chart_unauthorized_dataset(mocker: MockerFixture) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.explore.utils import check_access as check_chart_access
 
     with raises(DatasetAccessDeniedError):
-        mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+        mocker.patch(dataset_find_by_id, return_value=Dataset())
         mocker.patch(can_access_datasource, return_value=False)
 
         with override_user(User()):
@@ -105,10 +105,10 @@ def test_unsaved_chart_unauthorized_dataset(mocker: MockerFixture) -> None:
 
 
 def test_unsaved_chart_authorized_dataset(mocker: MockerFixture) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.explore.utils import check_access as check_chart_access
 
-    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(dataset_find_by_id, return_value=Dataset())
     mocker.patch(can_access_datasource, return_value=True)
 
     with override_user(User()):
@@ -120,11 +120,11 @@ def test_unsaved_chart_authorized_dataset(mocker: MockerFixture) -> None:
 
 
 def test_saved_chart_unknown_chart_id(mocker: MockerFixture) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.explore.utils import check_access as check_chart_access
 
     with raises(ChartNotFoundError):
-        mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+        mocker.patch(dataset_find_by_id, return_value=Dataset())
         mocker.patch(can_access_datasource, return_value=True)
         mocker.patch(chart_find_by_id, return_value=None)
 
@@ -137,11 +137,11 @@ def test_saved_chart_unknown_chart_id(mocker: MockerFixture) -> None:
 
 
 def test_saved_chart_unauthorized_dataset(mocker: MockerFixture) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.explore.utils import check_access as check_chart_access
 
     with raises(DatasetAccessDeniedError):
-        mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+        mocker.patch(dataset_find_by_id, return_value=Dataset())
         mocker.patch(can_access_datasource, return_value=False)
 
         with override_user(User()):
@@ -153,11 +153,11 @@ def test_saved_chart_unauthorized_dataset(mocker: MockerFixture) -> None:
 
 
 def test_saved_chart_is_admin(mocker: MockerFixture) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
 
-    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(dataset_find_by_id, return_value=Dataset())
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_admin, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
@@ -171,11 +171,11 @@ def test_saved_chart_is_admin(mocker: MockerFixture) -> None:
 
 
 def test_saved_chart_is_owner(mocker: MockerFixture) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
 
-    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(dataset_find_by_id, return_value=Dataset())
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_admin, return_value=False)
     mocker.patch(is_owner, return_value=True)
@@ -190,11 +190,11 @@ def test_saved_chart_is_owner(mocker: MockerFixture) -> None:
 
 
 def test_saved_chart_has_access(mocker: MockerFixture) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
 
-    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(dataset_find_by_id, return_value=Dataset())
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_admin, return_value=False)
     mocker.patch(is_owner, return_value=False)
@@ -210,12 +210,12 @@ def test_saved_chart_has_access(mocker: MockerFixture) -> None:
 
 
 def test_saved_chart_no_access(mocker: MockerFixture) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
 
     with raises(ChartAccessDeniedError):
-        mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+        mocker.patch(dataset_find_by_id, return_value=Dataset())
         mocker.patch(can_access_datasource, return_value=True)
         mocker.patch(is_admin, return_value=False)
         mocker.patch(is_owner, return_value=False)
@@ -231,10 +231,10 @@ def test_saved_chart_no_access(mocker: MockerFixture) -> None:
 
 
 def test_dataset_has_access(mocker: MockerFixture) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.explore.utils import check_datasource_access
 
-    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(dataset_find_by_id, return_value=Dataset())
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_admin, return_value=False)
     mocker.patch(is_owner, return_value=False)
@@ -267,7 +267,7 @@ def test_query_has_access(mocker: MockerFixture) -> None:
 
 
 def test_query_no_access(mocker: MockerFixture, client) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.explore.utils import check_datasource_access
     from superset.models.sql_lab import Query
 
@@ -278,7 +278,7 @@ def test_query_no_access(mocker: MockerFixture, client) -> None:
         query_find_by_id,
         return_value=Query(database=database, sql="select * from foo"),
     )
-    mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
+    mocker.patch(query_datasources_by_name, return_value=[Dataset()])
     mocker.patch(is_admin, return_value=False)
     mocker.patch(is_owner, return_value=False)
     mocker.patch(can_access, return_value=False)

@@ -37,7 +37,7 @@ from superset.tags.models import ObjectType, Tag, TagType
 from superset.utils.core import DatasourceType, get_user_id
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource
+    from superset.connectors.sqla.models import Dataset
 
 
 def populate_owner_list(
@@ -100,7 +100,7 @@ def populate_roles(role_ids: list[int] | None = None) -> list[Role]:
     return roles
 
 
-def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDatasource:
+def get_datasource_by_id(datasource_id: int, datasource_type: str) -> Dataset:
     try:
         return DatasourceDAO.get_datasource(
             DatasourceType(datasource_type), datasource_id

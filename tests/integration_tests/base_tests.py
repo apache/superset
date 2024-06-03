@@ -36,7 +36,7 @@ from sqlalchemy.dialects.mysql import dialect
 from tests.integration_tests.test_app import app, login
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
-from superset.connectors.sqla.models import BaseDatasource, SqlaTable
+from superset.connectors.sqla.models import Dataset, SqlaTable
 from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database
@@ -306,7 +306,7 @@ class SupersetTestCase(TestCase):
             raise ValueError("Database doesn't exist")
 
     @staticmethod
-    def get_datasource_mock() -> BaseDatasource:
+    def get_datasource_mock() -> Dataset:
         datasource = MagicMock()
         results = Mock()
         results.query = Mock()

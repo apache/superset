@@ -53,7 +53,7 @@ from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.connectors.sqla.models import BaseDatasource, SqlaTable
+from superset.connectors.sqla.models import Dataset, SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
@@ -461,7 +461,7 @@ class Superset(BaseSupersetView):
             # fallback unknown datasource to table type
             datasource_type = SqlaTable.type
 
-        datasource: BaseDatasource | None = None
+        datasource: Dataset | None = None
         if datasource_id is not None:
             with contextlib.suppress(DatasetNotFoundError):
                 datasource = DatasourceDAO.get_datasource(

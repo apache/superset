@@ -25,7 +25,7 @@ def test_get_dataset_access_filters(mocker: MockerFixture) -> None:
     """
     Test the `get_dataset_access_filters` function.
     """
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.extensions import security_manager
 
     mocker.patch.object(
@@ -43,7 +43,7 @@ def test_get_dataset_access_filters(mocker: MockerFixture) -> None:
         ],
     )
 
-    clause = get_dataset_access_filters(SqlaTable)
+    clause = get_dataset_access_filters(Dataset)
     engine = create_engine("sqlite://")
     compiled_query = clause.compile(engine, compile_kwargs={"literal_binds": True})
     assert str(compiled_query) == (

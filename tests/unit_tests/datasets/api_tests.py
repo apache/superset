@@ -30,16 +30,16 @@ def test_put_invalid_dataset(
     """
     Test invalid payloads.
     """
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import Database
 
-    SqlaTable.metadata.create_all(db.session.get_bind())
+    Dataset.metadata.create_all(db.session.get_bind())
 
     database = Database(
         database_name="my_db",
         sqlalchemy_uri="sqlite://",
     )
-    dataset = SqlaTable(
+    dataset = Dataset(
         table_name="test_put_invalid_dataset",
         database=database,
     )

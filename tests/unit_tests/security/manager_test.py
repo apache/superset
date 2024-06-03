@@ -22,7 +22,7 @@ from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
 from superset.common.query_object import QueryObject
-from superset.connectors.sqla.models import Database, SqlaTable
+from superset.connectors.sqla.models import Database, Dataset
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
@@ -207,8 +207,8 @@ def test_raise_for_access_query_default_schema(
     mocker.patch.object(sm, "can_access_database", return_value=False)
     mocker.patch.object(sm, "get_schema_perm", return_value="[PostgreSQL].[public]")
     mocker.patch.object(sm, "is_guest_user", return_value=False)
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
-    SqlaTable.query_datasources_by_name.return_value = []
+    Dataset = mocker.patch("superset.connectors.sqla.models.Dataset")
+    Dataset.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
     database.get_default_catalog.return_value = None
@@ -262,8 +262,8 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
     get_table_access_error_object = mocker.patch.object(
         sm, "get_table_access_error_object"
     )
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
-    SqlaTable.query_datasources_by_name.return_value = []
+    Dataset = mocker.patch("superset.connectors.sqla.models.Dataset")
+    Dataset.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
     database.get_default_catalog.return_value = None
@@ -307,7 +307,7 @@ def test_raise_for_access_chart_for_datasource_permission(
         roles=[Role(name="Alpha")],
     )
 
-    dataset = SqlaTable(
+    dataset = Dataset(
         table_name="test_table",
         metrics=[],
         main_dttm_col=None,
@@ -578,8 +578,8 @@ def test_raise_for_access_catalog(
         return_value="[PostgreSQL].[db1].[public]",
     )
     mocker.patch.object(sm, "is_guest_user", return_value=False)
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
-    SqlaTable.query_datasources_by_name.return_value = []
+    Dataset = mocker.patch("superset.connectors.sqla.models.Dataset")
+    Dataset.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
     database.get_default_catalog.return_value = "db1"

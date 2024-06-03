@@ -29,7 +29,7 @@ from superset.models.slice import Slice
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource
+    from superset.connectors.sqla.models import Dataset
 
 config = app.config
 
@@ -93,7 +93,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             cache_values=cache_values,
         )
 
-    def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
+    def _convert_to_model(self, datasource: DatasourceDict) -> Dataset:
         return DatasourceDAO.get_datasource(
             datasource_type=DatasourceType(datasource["type"]),
             datasource_id=int(datasource["id"]),
@@ -104,7 +104,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
     def _process_query_object(
         self,
-        datasource: BaseDatasource,
+        datasource: Dataset,
         form_data: dict[str, Any] | None,
         query_object: QueryObject,
     ) -> QueryObject:
@@ -116,7 +116,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         self,
         query_object: QueryObject,
         form_data: dict[str, Any] | None,
-        datasource: BaseDatasource,
+        datasource: Dataset,
     ) -> None:
         temporal_columns = {
             column["column_name"] if isinstance(column, dict) else column.column_name

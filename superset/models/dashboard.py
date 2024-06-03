@@ -42,7 +42,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, db, is_feature_enabled, security_manager
-from superset.connectors.sqla.models import BaseDatasource, SqlaTable
+from superset.connectors.sqla.models import Dataset, SqlaTable
 from superset.daos.datasource import DatasourceDAO
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
@@ -192,11 +192,9 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         return f"/superset/dashboard/{slug or id_}/"
 
     @property
-    def datasources(self) -> set[BaseDatasource]:
+    def datasources(self) -> set[Dataset]:
         # Verbose but efficient database enumeration of dashboard datasources.
-        datasources_by_cls_model: dict[type[BaseDatasource], set[int]] = defaultdict(
-            set
-        )
+        datasources_by_cls_model: dict[type[Dataset], set[int]] = defaultdict(set)
 
         for slc in self.slices:
             datasources_by_cls_model[slc.cls_model].add(slc.datasource_id)
@@ -264,8 +262,8 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
     def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
         # Verbose but efficient database enumeration of dashboard datasources.
-        slices_by_datasource: dict[tuple[type[BaseDatasource], int], set[Slice]] = (
-            defaultdict(set)
+        slices_by_datasource: dict[tuple[type[Dataset], int], set[Slice]] = defaultdict(
+            set
         )
 
         for slc in self.slices:

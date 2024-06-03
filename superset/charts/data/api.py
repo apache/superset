@@ -40,7 +40,7 @@ from superset.commands.chart.exceptions import (
     ChartDataQueryFailedError,
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.connectors.sqla.models import BaseDatasource
+from superset.connectors.sqla.models import Dataset
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
@@ -347,7 +347,7 @@ class ChartDataRestApi(ChartRestApi):
         self,
         result: dict[Any, Any],
         form_data: dict[str, Any] | None = None,
-        datasource: BaseDatasource | Query | None = None,
+        datasource: Dataset | Query | None = None,
     ) -> Response:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
@@ -410,7 +410,7 @@ class ChartDataRestApi(ChartRestApi):
         command: ChartDataCommand,
         force_cached: bool = False,
         form_data: dict[str, Any] | None = None,
-        datasource: BaseDatasource | Query | None = None,
+        datasource: Dataset | Query | None = None,
     ) -> Response:
         try:
             result = command.run(force_cached=force_cached)

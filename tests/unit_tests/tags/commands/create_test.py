@@ -24,14 +24,14 @@ from superset.utils.core import DatasourceType
 
 @pytest.fixture
 def session_with_data(session: Session):
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.connectors.sqla.models import Dataset, TableColumn
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import SavedQuery
 
     engine = session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     slice_obj = Slice(
         id=1,

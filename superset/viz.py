@@ -83,7 +83,7 @@ from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource
+    from superset.connectors.sqla.models import Dataset
 
 config = app.config
 stats_logger = config["STATS_LOGGER"]
@@ -116,7 +116,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     @deprecated(deprecated_in="3.0")
     def __init__(
         self,
-        datasource: BaseDatasource,
+        datasource: Dataset,
         form_data: dict[str, Any],
         force: bool = False,
         force_cached: bool = False,

@@ -134,7 +134,7 @@ def test_sql_lab_insert_rls_as_subquery(
     """
     from flask_appbuilder.security.sqla.models import Role, User
 
-    from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+    from superset.connectors.sqla.models import Dataset, RowLevelSecurityFilter
     from superset.models.core import Database
     from superset.models.sql_lab import Query
     from superset.security.manager import SupersetSecurityManager
@@ -196,7 +196,7 @@ def test_sql_lab_insert_rls_as_subquery(
     rls = RowLevelSecurityFilter(
         name="sqllab_rls1",
         filter_type=RowLevelSecurityFilterType.REGULAR,
-        tables=[SqlaTable(database_id=1, schema=None, table_name="t")],
+        tables=[Dataset(database_id=1, schema=None, table_name="t")],
         roles=[admin.roles[0]],
         group_key=None,
         clause="c > 5",
