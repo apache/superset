@@ -24,7 +24,7 @@ export function columnsByType(
   type?: GenericDataType,
 ): (ColumnMeta | QueryColumn)[] {
   if (isDataset(datasource) || isQueryResponse(datasource)) {
-    const { columns } = datasource;
+    const columns = datasource.columns as (ColumnMeta | QueryColumn)[];
     const filteredColumns = columns.filter(
       col => type === undefined || col.type_generic === type,
     );
