@@ -26,7 +26,7 @@ from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.chart import ChartDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
@@ -67,7 +67,7 @@ class ImportChartsCommand(ImportModelsCommand):
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
-        datasets: dict[str, SqlaTable] = {}
+        datasets: dict[str, Dataset] = {}
         for file_name, config in configs.items():
             if (
                 file_name.startswith("datasets/")

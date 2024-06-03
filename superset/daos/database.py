@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -138,21 +138,21 @@ class DatabaseDAO(BaseDAO[Database]):
         database_id: int,
         catalog: str | None,
         schema: str | None,
-    ) -> list[SqlaTable]:
+    ) -> list[Dataset]:
         """
         Return all datasets, optionally filtered by catalog/schema.
 
         :param database_id: The database ID
         :param catalog: The catalog name
         :param schema: The schema name
-        :return: A list of SqlaTable objects
+        :return: A list of Dataset objects
         """
         return (
-            db.session.query(SqlaTable)
+            db.session.query(Dataset)
             .filter(
-                SqlaTable.database_id == database_id,
-                SqlaTable.catalog == catalog,
-                SqlaTable.schema == schema,
+                Dataset.database_id == database_id,
+                Dataset.catalog == catalog,
+                Dataset.schema == schema,
             )
             .all()
         )

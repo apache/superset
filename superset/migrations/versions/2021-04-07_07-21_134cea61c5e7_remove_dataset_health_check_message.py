@@ -38,7 +38,7 @@ from superset.utils import json  # noqa: E402
 Base = declarative_base()
 
 
-class SqlaTable(Base):
+class Dataset(Base):
     __tablename__ = "tables"
 
     id = Column(Integer, primary_key=True)
@@ -49,7 +49,7 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    for datasource in session.query(SqlaTable):
+    for datasource in session.query(Dataset):
         if datasource.extra:
             try:
                 extra = json.loads(datasource.extra)

@@ -69,7 +69,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
 
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -878,7 +878,7 @@ VIZ_TYPE_DENYLIST: list[str] = []
 # --------------------------------------------------
 DEFAULT_MODULE_DS_MAP = OrderedDict(
     [
-        ("superset.connectors.sqla.models", ["SqlaTable"]),
+        ("superset.connectors.sqla.models", ["Dataset"]),
     ]
 )
 ADDITIONAL_MODULE_DS_MAP: dict[str, list[str]] = {}
@@ -1627,7 +1627,7 @@ DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
 SSL_CERT_PATH: str | None = None
 
 # SQLA table mutator, every time we fetch the metadata for a certain table
-# (superset.connectors.sqla.models.SqlaTable), we call this hook
+# (superset.connectors.sqla.models.Dataset), we call this hook
 # to allow mutating the object with this callback.
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
@@ -1678,7 +1678,7 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 # be memoized to aid with performance, i.e.,
 #
 #    @cache_manager.cache.memoize(timeout=0)
-#    def DATASET_HEALTH_CHECK(datasource: SqlaTable) -> Optional[str]:
+#    def DATASET_HEALTH_CHECK(datasource: Dataset) -> Optional[str]:
 #        if (
 #            datasource.sql and
 #            len(sql_parse.ParsedQuery(datasource.sql, strip_comments=True).tables) == 1
@@ -1703,7 +1703,7 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 #            cache_manager.cache.delete_memoized(func)
 #            cache_manager.cache.set(name, code, timeout=0)
 #
-DATASET_HEALTH_CHECK: Callable[[SqlaTable], str] | None = None
+DATASET_HEALTH_CHECK: Callable[[Dataset], str] | None = None
 
 # the advanced data type key should correspond to that set in the column metadata
 ADVANCED_DATA_TYPES: dict[str, AdvancedDataType] = {

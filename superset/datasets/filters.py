@@ -18,7 +18,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import not_, or_
 from sqlalchemy.orm.query import Query
 
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.views.base import BaseFilter
 
 
@@ -27,7 +27,7 @@ class DatasetIsNullOrEmptyFilter(BaseFilter):  # pylint: disable=too-few-public-
     arg_name = "dataset_is_null_or_empty"
 
     def apply(self, query: Query, value: bool) -> Query:
-        filter_clause = or_(SqlaTable.sql.is_(None), SqlaTable.sql == "")
+        filter_clause = or_(Dataset.sql.is_(None), Dataset.sql == "")
 
         if not value:
             filter_clause = not_(filter_clause)
@@ -42,12 +42,12 @@ class DatasetCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-meth
     def apply(self, query: Query, value: bool) -> Query:
         check_value = '%"certification":%'
         if value is True:
-            return query.filter(SqlaTable.extra.ilike(check_value))
+            return query.filter(Dataset.extra.ilike(check_value))
         if value is False:
             return query.filter(
                 or_(
-                    SqlaTable.extra.notlike(check_value),
-                    SqlaTable.extra.is_(None),
+                    Dataset.extra.notlike(check_value),
+                    Dataset.extra.is_(None),
                 )
             )
         return query

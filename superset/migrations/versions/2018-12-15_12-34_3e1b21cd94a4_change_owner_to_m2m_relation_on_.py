@@ -41,7 +41,7 @@ sqlatable_user = sa.Table(
     sa.Column("table_id", sa.Integer, sa.ForeignKey("tables.id")),
 )
 
-SqlaTable = sa.Table(
+Dataset = sa.Table(
     "tables",
     sa.MetaData(),
     sa.Column("id", sa.Integer, primary_key=True),
@@ -88,7 +88,7 @@ def upgrade():
     insp = sa.engine.reflection.Inspector.from_engine(bind)
     session = db.Session(bind=bind)
 
-    tables = session.query(SqlaTable).all()
+    tables = session.query(Dataset).all()
     for table in tables:
         if table.user_id is not None:
             session.execute(

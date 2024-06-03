@@ -1515,7 +1515,7 @@ def extract_dataframe_dtypes(
     if datasource:
         for column in datasource.columns:
             if isinstance(column, dict):
-                columns_by_name[column.get("column_name")] = column
+                columns_by_name[column.get("column_name")] = column  # type: ignore
             else:
                 columns_by_name[column.column_name] = column
 

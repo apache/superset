@@ -44,7 +44,7 @@ from superset.utils.core import (
 )
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -463,7 +463,7 @@ class BaseTemplateProcessor:
         self,
         database: "Database",
         query: Optional["Query"] = None,
-        table: Optional["SqlaTable"] = None,
+        table: Optional["Dataset"] = None,
         extra_cache_keys: Optional[list[Any]] = None,
         removed_filters: Optional[list[str]] = None,
         applied_filters: Optional[list[str]] = None,
@@ -688,7 +688,7 @@ def get_template_processors() -> dict[str, Any]:
 
 def get_template_processor(
     database: "Database",
-    table: Optional["SqlaTable"] = None,
+    table: Optional["Dataset"] = None,
     query: Optional["Query"] = None,
     **kwargs: Any,
 ) -> BaseTemplateProcessor:

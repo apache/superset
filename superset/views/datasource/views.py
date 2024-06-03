@@ -31,7 +31,7 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
 )
 from superset.commands.utils import populate_owner_list
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.datasource import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -163,7 +163,7 @@ class Datasource(BaseSupersetView):
         except ValidationError as err:
             return json_error_response(str(err), status=400)
 
-        datasource = SqlaTable.get_datasource_by_name(
+        datasource = Dataset.get_datasource_by_name(
             database_name=params["database_name"],
             catalog=params.get("catalog_name"),
             schema=params["schema_name"],

@@ -31,7 +31,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager, stats_logger_manager
 from superset.models.core import FavStar
@@ -178,7 +178,7 @@ class BaseTagFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     arg_name = ""
     class_name = ""
     """ The Tag class_name to user """
-    model: type[Dashboard | Slice | SqllabQuery | SqlaTable] = Dashboard
+    model: type[Dashboard | Slice | SqllabQuery | Dataset] = Dashboard
     """ The SQLAlchemy model """
 
     def apply(self, query: Query, value: Any) -> Query:

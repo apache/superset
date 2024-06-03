@@ -36,14 +36,14 @@ down_revision = "a39867932713"
 Base = declarative_base()
 
 
-class Dataset(Base):
+class SlDataset(Base):
     __tablename__ = "sl_datasets"
 
     id = Column(Integer, primary_key=True)
     created_by_fk = Column(Integer)
 
 
-class DatasetUser(Base):
+class SlDatasetUser(Base):
     __tablename__ = "sl_dataset_users"
 
     id = Column(Integer, primary_key=True)
@@ -66,14 +66,14 @@ class SliceUser(Base):
     slice_id = Column(Integer)
 
 
-class SqlaTable(Base):
+class Dataset(Base):
     __tablename__ = "tables"
 
     id = Column(Integer, primary_key=True)
     created_by_fk = Column(Integer)
 
 
-class SqlaTableUser(Base):
+class DatasetUser(Base):
     __tablename__ = "sqlatable_user"
 
     id = Column(Integer, primary_key=True)
@@ -86,17 +86,17 @@ def upgrade():
     session = db.Session(bind=bind)
 
     op.execute(
-        insert(DatasetUser).from_select(
+        insert(SlDatasetUser).from_select(
             ["user_id", "dataset_id"],
-            session.query(Dataset.created_by_fk, Dataset.id)
+            session.query(SlDataset.created_by_fk, SlDataset.id)
             .outerjoin(
-                DatasetUser,
+                SlDatasetUser,
                 and_(
-                    DatasetUser.dataset_id == Dataset.id,
-                    DatasetUser.user_id == Dataset.created_by_fk,
+                    SlDatasetUser.dataset_id == SlDataset.id,
+                    SlDatasetUser.user_id == SlDataset.created_by_fk,
                 ),
             )
-            .filter(DatasetUser.dataset_id == None, Dataset.created_by_fk != None),  # noqa: E711
+            .filter(SlDatasetUser.dataset_id == None, SlDataset.created_by_fk != None),  # noqa: E711
         )
     )
 
@@ -116,17 +116,17 @@ def upgrade():
     )
 
     op.execute(
-        insert(SqlaTableUser).from_select(
+        insert(DatasetUser).from_select(
             ["user_id", "table_id"],
-            session.query(SqlaTable.created_by_fk, SqlaTable.id)
+            session.query(Dataset.created_by_fk, Dataset.id)
             .outerjoin(
-                SqlaTableUser,
+                DatasetUser,
                 and_(
-                    SqlaTableUser.table_id == SqlaTable.id,
-                    SqlaTableUser.user_id == SqlaTable.created_by_fk,
+                    DatasetUser.table_id == Dataset.id,
+                    DatasetUser.user_id == Dataset.created_by_fk,
                 ),
             )
-            .filter(SqlaTableUser.table_id == None),  # noqa: E711
+            .filter(DatasetUser.table_id == None),  # noqa: E711
         )
     )
 

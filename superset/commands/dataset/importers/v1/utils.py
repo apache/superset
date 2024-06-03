@@ -29,7 +29,7 @@ from sqlalchemy.sql.visitors import VisitableType
 from superset import db, security_manager
 from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
 from superset.commands.exceptions import ImportFailedError
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.utils import json
@@ -72,7 +72,7 @@ def get_sqla_type(native_type: str) -> VisitableType:
     )
 
 
-def get_dtype(df: pd.DataFrame, dataset: SqlaTable) -> dict[str, VisitableType]:
+def get_dtype(df: pd.DataFrame, dataset: Dataset) -> dict[str, VisitableType]:
     return {
         column.column_name: get_sqla_type(column.type)
         for column in dataset.columns
@@ -107,12 +107,12 @@ def import_dataset(
     overwrite: bool = False,
     force_data: bool = False,
     ignore_permissions: bool = False,
-) -> SqlaTable:
+) -> Dataset:
     can_write = ignore_permissions or security_manager.can_access(
         "can_write",
         "Dataset",
     )
-    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
+    existing = db.session.query(Dataset).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite or not can_write:
             return existing
@@ -149,7 +149,7 @@ def import_dataset(
 
     # import recursively to include columns and metrics
     try:
-        dataset = SqlaTable.import_from_dict(config, recursive=True, sync=sync)
+        dataset = Dataset.import_from_dict(config, recursive=True, sync=sync)
     except MultipleResultsFound:
         # Finding multiple results when importing a dataset only happens because initially
         # datasets were imported without schemas (eg, `examples.NULL.users`), and later
@@ -159,7 +159,7 @@ def import_dataset(
         # `examples.public.users`, resulting in a conflict.
         #
         # When that happens, we return the original dataset, unmodified.
-        dataset = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+        dataset = db.session.query(Dataset).filter_by(uuid=config["uuid"]).one()
 
     if dataset.id is None:
         db.session.flush()
@@ -184,7 +184,7 @@ def import_dataset(
     return dataset
 
 
-def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
+def load_data(data_uri: str, dataset: Dataset, database: Database) -> None:
     """
     Load data from a data URI into a dataset.
 

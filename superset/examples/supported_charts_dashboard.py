@@ -22,7 +22,7 @@ import textwrap
 from sqlalchemy import inspect
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql_parse import Table
@@ -40,7 +40,7 @@ from .helpers import (
 DASH_SLUG = "supported_charts_dash"
 
 
-def create_slices(tbl: SqlaTable) -> list[Slice]:
+def create_slices(tbl: Dataset) -> list[Slice]:
     slice_kwargs = {
         "datasource_id": tbl.id,
         "datasource_type": DatasourceType.TABLE,

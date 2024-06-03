@@ -42,7 +42,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, db, is_feature_enabled, security_manager
-from superset.connectors.sqla.models import Dataset, SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.datasource import DatasourceDAO
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
@@ -360,7 +360,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
         eager_datasources = []
         for datasource_id, _ in datasource_id_list:
-            eager_datasource = SqlaTable.get_eager_sqlatable_datasource(datasource_id)
+            eager_datasource = Dataset.get_eager_sqlatable_datasource(datasource_id)
             copied_datasource = eager_datasource.copy()
             copied_datasource.alter_params(
                 remote_id=eager_datasource.id,

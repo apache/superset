@@ -23,7 +23,7 @@ from typing import Callable
 import yaml
 
 from superset.commands.export.models import ExportModelsCommand
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.database import DatabaseDAO
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.daos.dataset import DatasetDAO
@@ -42,7 +42,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
     not_found = DatasetNotFoundError
 
     @staticmethod
-    def _file_name(model: SqlaTable) -> str:
+    def _file_name(model: Dataset) -> str:
         db_file_name = get_filename(
             model.database.database_name, model.database.id, skip_id=True
         )
@@ -50,7 +50,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
         return f"datasets/{db_file_name}/{ds_file_name}.yaml"
 
     @staticmethod
-    def _file_content(model: SqlaTable) -> str:
+    def _file_content(model: Dataset) -> str:
         payload = model.export_to_dict(
             recursive=True,
             include_parent_ref=False,
@@ -83,7 +83,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
 
     @staticmethod
     def _export(
-        model: SqlaTable, export_related: bool = True
+        model: Dataset, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
         yield (
             ExportDatasetsCommand._file_name(model),

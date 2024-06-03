@@ -26,7 +26,7 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
     DatasetRefreshFailedError,
 )
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 class RefreshDatasetCommand(BaseCommand):
     def __init__(self, model_id: int):
         self._model_id = model_id
-        self._model: Optional[SqlaTable] = None
+        self._model: Optional[Dataset] = None
 
     def run(self) -> Model:
         self.validate()

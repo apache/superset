@@ -46,7 +46,7 @@ from sqlalchemy import (
     Integer,
     MetaData,
     String,
-    Table as SqlaTable,
+    Table as Dataset,
     Text,
 )
 from sqlalchemy.engine import Connection, Dialect, Engine
@@ -913,11 +913,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     def update_params_from_encrypted_extra(self, params: dict[str, Any]) -> None:
         self.db_engine_spec.update_params_from_encrypted_extra(self, params)
 
-    def get_table(self, table: Table) -> SqlaTable:
+    def get_table(self, table: Table) -> Dataset:
         extra = self.get_extra()
         meta = MetaData(**extra.get("metadata_params", {}))
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
-            return SqlaTable(
+            return Dataset(
                 table.table,
                 meta,
                 schema=table.schema or None,

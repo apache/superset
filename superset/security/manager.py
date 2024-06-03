@@ -83,7 +83,6 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import (
         Dataset,
         RowLevelSecurityFilter,
-        SqlaTable,
     )
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
@@ -667,17 +666,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user_datasources = set()
 
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import Dataset
 
         user_datasources.update(
-            self.get_session.query(SqlaTable)
-            .filter(get_dataset_access_filters(SqlaTable))
+            self.get_session.query(Dataset)
+            .filter(get_dataset_access_filters(Dataset))
             .all()
         )
 
         # group all datasources by database
-        all_datasources = SqlaTable.get_all_datasources()
-        datasources_by_database: dict["Database", set["SqlaTable"]] = defaultdict(set)
+        all_datasources = Dataset.get_all_datasources()
+        datasources_by_database: dict["Database", set["Dataset"]] = defaultdict(set)
         for datasource in all_datasources:
             datasources_by_database[datasource.database].add(datasource)
 
@@ -767,7 +766,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import Dataset
 
         if hierarchical and (
             self.can_access_database(database)
@@ -801,9 +800,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # datasource_access
         if perms := self.user_view_menu_names("datasource_access"):
             tables = (
-                self.get_session.query(SqlaTable.schema)
-                .filter(SqlaTable.database_id == database.id)
-                .filter(or_(SqlaTable.perm.in_(perms)))
+                self.get_session.query(Dataset.schema)
+                .filter(Dataset.database_id == database.id)
+                .filter(or_(Dataset.perm.in_(perms)))
                 .distinct()
             )
             accessible_schemas.update(
@@ -831,7 +830,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The set of accessible database catalogs
         """
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import Dataset
 
         if hierarchical and self.can_access_database(database):
             return catalogs
@@ -861,9 +860,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # datasource_access
         if perms := self.user_view_menu_names("datasource_access"):
             tables = (
-                self.get_session.query(SqlaTable.schema)
-                .filter(SqlaTable.database_id == database.id)
-                .filter(or_(SqlaTable.perm.in_(perms)))
+                self.get_session.query(Dataset.schema)
+                .filter(Dataset.database_id == database.id)
+                .filter(or_(Dataset.perm.in_(perms)))
                 .distinct()
             )
             accessible_catalogs.update(
@@ -896,7 +895,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The list of accessible SQL tables w/ schema
         """
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import Dataset
 
         if self.can_access_database(database):
             return datasource_names
@@ -916,7 +915,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         schema_perms = self.user_view_menu_names("schema_access")
         user_datasources = {
             DatasourceName(table.table_name, table.schema, table.catalog)
-            for table in SqlaTable.query_datasources_by_permissions(
+            for table in Dataset.query_datasources_by_permissions(
                 database,
                 user_perms,
                 catalog_perms,
@@ -977,7 +976,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import Dataset
         from superset.models import core as models
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
@@ -992,7 +991,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.add_permission_view_menu(view_menu, perm)
 
         logger.info("Creating missing datasource permissions.")
-        datasources = SqlaTable.get_all_datasources()
+        datasources = Dataset.get_all_datasources()
         for datasource in datasources:
             merge_pv("datasource_access", datasource.get_perm())
             merge_pv("schema_access", datasource.get_schema_perm())
@@ -1450,19 +1449,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :return: A list of changed view menus (permission resource names)
         """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
-            SqlaTable,
+            Dataset,
         )
         from superset.models.slice import (  # pylint: disable=import-outside-toplevel
             Slice,
         )
 
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        sqlatable_table = Dataset.__table__  # pylint: disable=no-member
         chart_table = Slice.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
         datasets = (
-            self.get_session.query(SqlaTable)
-            .filter(SqlaTable.database_id == target.id)
+            self.get_session.query(Dataset)
+            .filter(Dataset.database_id == target.id)
             .all()
         )
         updated_view_menus: list[ViewMenu] = []
@@ -1482,7 +1481,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .values(name=new_dataset_vm_name)
             )
 
-            # Update dataset (SqlaTable perm field)
+            # Update dataset (Dataset perm field)
             connection.execute(
                 sqlatable_table.update()
                 .where(
@@ -1515,7 +1514,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self,
         mapper: Mapper,
         connection: Connection,
-        target: "SqlaTable",
+        target: "Dataset",
     ) -> None:
         """
         Handles permission creation when a dataset is inserted.
@@ -1600,7 +1599,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self,
         mapper: Mapper,
         connection: Connection,
-        target: "SqlaTable",
+        target: "Dataset",
     ) -> None:
         """
         Handles permissions update when a dataset is deleted.
@@ -1625,7 +1624,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self,
         mapper: Mapper,
         connection: Connection,
-        target: "SqlaTable",
+        target: "Dataset",
     ) -> None:
         """
         Handles all permissions update when a dataset is changed.
@@ -1642,10 +1641,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :return:
         """
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import Dataset
 
         # Check if watched fields have changed
-        table = SqlaTable.__table__  # pylint: disable=no-member
+        table = Dataset.__table__  # pylint: disable=no-member
         current_dataset = connection.execute(
             table.select().where(table.c.id == target.id)
         ).one()
@@ -1719,7 +1718,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         catalog_permission_name: Optional[str],
         schema_permission_name: Optional[str],
-        target: "SqlaTable",
+        target: "Dataset",
     ) -> None:
         """
         Helper method that is called by SQLAlchemy events on datasets to update
@@ -1736,13 +1735,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :return:
         """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
-            SqlaTable,
+            Dataset,
         )
         from superset.models.slice import (  # pylint: disable=import-outside-toplevel
             Slice,
         )
 
-        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        sqlatable_table = Dataset.__table__  # pylint: disable=no-member
         chart_table = Slice.__table__  # pylint: disable=no-member
 
         # insert new PVMs if they don't not exist
@@ -1790,7 +1789,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         old_permission_name: Optional[str],
         new_permission_name: Optional[str],
-        target: "SqlaTable",
+        target: "Dataset",
     ) -> None:
         """
         Helper method that is called by SQLAlchemy events on datasets to update
@@ -1809,14 +1808,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             new_permission_name,
         )
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
-            SqlaTable,
+            Dataset,
         )
         from superset.models.slice import (  # pylint: disable=import-outside-toplevel
             Slice,
         )
 
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        sqlatable_table = Dataset.__table__  # pylint: disable=no-member
         chart_table = Slice.__table__  # pylint: disable=no-member
 
         new_dataset_view_menu = self.find_view_menu(new_permission_name)
@@ -1840,7 +1839,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # VM changed, so call hook
         new_dataset_view_menu = self.find_view_menu(new_permission_name)
         self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
-        # Update dataset (SqlaTable perm field)
+        # Update dataset (Dataset perm field)
         connection.execute(
             sqlatable_table.update()
             .where(
@@ -2158,7 +2157,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import Dataset
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
         from superset.models.sql_lab import Query
@@ -2225,7 +2224,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 if schema_perm and self.can_access("schema_access", schema_perm):
                     continue
 
-                datasources = SqlaTable.query_datasources_by_name(
+                datasources = Dataset.query_datasources_by_name(
                     database,
                     table_.table,
                     schema=table_.schema,

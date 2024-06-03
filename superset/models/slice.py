@@ -50,7 +50,7 @@ from superset.viz import BaseViz, viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
 
 metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(
@@ -110,12 +110,12 @@ class Slice(  # pylint: disable=too-many-public-methods
         viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
     )
     table = relationship(
-        "SqlaTable",
+        "Dataset",
         foreign_keys=[datasource_id],
         overlaps="table",
-        primaryjoin="and_(Slice.datasource_id == SqlaTable.id, "
+        primaryjoin="and_(Slice.datasource_id == Dataset.id, "
         "Slice.datasource_type == 'table')",
-        remote_side="SqlaTable.id",
+        remote_side="Dataset.id",
         lazy="subquery",
     )
 
@@ -140,14 +140,14 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def cls_model(self) -> type[SqlaTable]:
+    def cls_model(self) -> type[Dataset]:
         # pylint: disable=import-outside-toplevel
         from superset.daos.datasource import DatasourceDAO
 
         return DatasourceDAO.sources[self.datasource_type]
 
     @property
-    def datasource(self) -> SqlaTable | None:
+    def datasource(self) -> Dataset | None:
         return self.get_datasource
 
     def clone(self) -> Slice:
@@ -164,7 +164,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
-    def get_datasource(self) -> SqlaTable | None:
+    def get_datasource(self) -> Dataset | None:
         return (
             db.session.query(self.cls_model)
             .filter_by(id=self.datasource_id)

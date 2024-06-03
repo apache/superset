@@ -48,7 +48,7 @@ from superset.commands.dataset.warm_up_cache import DatasetWarmUpCacheCommand
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dataset import DatasetDAO
 from superset.databases.filters import DatabaseFilter
@@ -81,7 +81,7 @@ logger = logging.getLogger(__name__)
 
 
 class DatasetRestApi(BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(SqlaTable)
+    datamodel = SQLAInterface(Dataset)
     base_filters = [["id", DatasourceFilter, lambda: []]]
 
     resource_name = "dataset"

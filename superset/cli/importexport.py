@@ -104,11 +104,11 @@ def export_datasources(datasource_file: Optional[str] = None) -> None:
     """Export datasources to ZIP file"""
     # pylint: disable=import-outside-toplevel
     from superset.commands.dataset.export import ExportDatasetsCommand
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
 
     g.user = security_manager.find_user(username="admin")
 
-    dataset_ids = [id_ for (id_,) in db.session.query(SqlaTable.id).all()]
+    dataset_ids = [id_ for (id_,) in db.session.query(Dataset.id).all()]
     timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
     root = f"dataset_export_{timestamp}"
     datasource_file = datasource_file or f"{root}.zip"

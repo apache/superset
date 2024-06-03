@@ -20,7 +20,7 @@ import os
 from typing import Any
 
 from superset import app, db
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.slice import Slice
 from superset.utils import json
 
@@ -30,7 +30,7 @@ misc_dash_slices: set[str] = set()  # slices assembled in a 'Misc Chart' dashboa
 
 
 def get_table_connector_registry() -> Any:
-    return SqlaTable
+    return Dataset
 
 
 def get_examples_folder() -> str:

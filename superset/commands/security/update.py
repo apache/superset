@@ -23,7 +23,7 @@ from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.security.exceptions import RLSRuleNotFoundError
 from superset.commands.utils import populate_roles
-from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+from superset.connectors.sqla.models import Dataset, RowLevelSecurityFilter
 from superset.daos.exceptions import DAOUpdateFailedError
 from superset.daos.security import RLSDAO
 from superset.extensions import db
@@ -56,9 +56,7 @@ class UpdateRLSRuleCommand(BaseCommand):
         if not self._model:
             raise RLSRuleNotFoundError()
         roles = populate_roles(self._roles)
-        tables = (
-            db.session.query(SqlaTable).filter(SqlaTable.id.in_(self._tables)).all()
-        )
+        tables = db.session.query(Dataset).filter(Dataset.id.in_(self._tables)).all()
         if len(tables) != len(self._tables):
             raise DatasourceNotFoundValidationError()
         self._properties["roles"] = roles

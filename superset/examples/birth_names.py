@@ -22,7 +22,7 @@ from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
 from superset import app, db
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import Dataset, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -117,14 +117,14 @@ def load_birth_names(
     create_dashboard(slices)
 
 
-def _set_table_metadata(datasource: SqlaTable, database: "Database") -> None:
+def _set_table_metadata(datasource: Dataset, database: "Database") -> None:
     datasource.main_dttm_col = "ds"
     datasource.database = database
     datasource.filter_select_enabled = True
     datasource.fetch_metadata()
 
 
-def _add_table_metrics(datasource: SqlaTable) -> None:
+def _add_table_metrics(datasource: Dataset) -> None:
     # By accessing the attribute first, we make sure `datasource.columns` and
     # `datasource.metrics` are already loaded. Otherwise accessing them later
     # may trigger an unnecessary and unexpected `after_update` event.
@@ -153,7 +153,7 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
     datasource.metrics = metrics
 
 
-def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
+def create_slices(tbl: Dataset) -> tuple[list[Slice], list[Slice]]:
     metrics = [
         {
             "expressionType": "SIMPLE",

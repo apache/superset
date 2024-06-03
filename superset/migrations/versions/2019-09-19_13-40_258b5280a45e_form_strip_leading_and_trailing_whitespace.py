@@ -129,7 +129,7 @@ class Slice(Base):
     viz_type = Column(String(250))
 
 
-class SqlaTable(DatasetMixin, Base):
+class Dataset(DatasetMixin, Base):
     __tablename__ = "tables"
 
     default_endpoint = Column(MediumText())
@@ -172,7 +172,7 @@ def upgrade():
         DruidDatasource,
         DruidMetric,
         Slice,
-        SqlaTable,
+        Dataset,
         SqlMetric,
         TableColumn,
     ]

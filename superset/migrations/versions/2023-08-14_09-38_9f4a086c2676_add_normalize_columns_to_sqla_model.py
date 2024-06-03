@@ -36,7 +36,7 @@ from superset.migrations.shared.utils import paginated_update  # noqa: E402
 Base = declarative_base()
 
 
-class SqlaTable(Base):
+class Dataset(Base):
     __tablename__ = "tables"
 
     id = sa.Column(sa.Integer, primary_key=True)
@@ -58,7 +58,7 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    for table in paginated_update(session.query(SqlaTable)):
+    for table in paginated_update(session.query(Dataset)):
         table.normalize_columns = True
 
 

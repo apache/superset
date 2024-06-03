@@ -191,7 +191,7 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
     add_form_extra_fields = {
         "table": QuerySelectField(
             "Table",
-            query_func=lambda: db.session.query(models.SqlaTable),
+            query_func=lambda: db.session.query(models.Dataset),
             allow_blank=True,
             widget=Select2Widget(extra_classes="readonly"),
         )
@@ -268,7 +268,7 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     add_form_extra_fields = {
         "table": QuerySelectField(
             "Table",
-            query_func=lambda: db.session.query(models.SqlaTable),
+            query_func=lambda: db.session.query(models.Dataset),
             allow_blank=True,
             widget=Select2Widget(extra_classes="readonly"),
         )
@@ -291,7 +291,7 @@ class RowLevelSecurityView(BaseSupersetView):
 class TableModelView(  # pylint: disable=too-many-ancestors
     DeprecateModelViewMixin, SupersetModelView, DeleteMixin, YamlExportMixin
 ):
-    datamodel = SQLAInterface(models.SqlaTable)
+    datamodel = SQLAInterface(models.Dataset)
     class_permission_name = "Dataset"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
     include_route_methods = RouteMethod.CRUD_SET

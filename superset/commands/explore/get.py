@@ -30,7 +30,7 @@ from superset.commands.explore.form_data.parameters import (
 )
 from superset.commands.explore.parameters import CommandParameters
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
-from superset.connectors.sqla.models import Dataset, SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import SupersetException
@@ -106,7 +106,7 @@ class GetExploreCommand(BaseCommand, ABC):
         except SupersetException:
             self._datasource_id = None
             # fallback unknown datasource to table type
-            self._datasource_type = SqlaTable.type
+            self._datasource_type = Dataset.type
 
         datasource: Optional[Dataset] = None
 

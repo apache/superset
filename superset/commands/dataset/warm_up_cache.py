@@ -21,7 +21,7 @@ from typing import Any, Optional
 from superset.commands.base import BaseCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.dataset.exceptions import WarmUpCacheTableNotFoundError
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.extensions import db
 from superset.models.core import Database
 from superset.models.slice import Slice
@@ -54,11 +54,11 @@ class DatasetWarmUpCacheCommand(BaseCommand):
 
     def validate(self) -> None:
         table = (
-            db.session.query(SqlaTable)
+            db.session.query(Dataset)
             .join(Database)
             .filter(
                 Database.database_name == self._db_name,
-                SqlaTable.table_name == self._table_name,
+                Dataset.table_name == self._table_name,
             )
         ).one_or_none()
         if not table:

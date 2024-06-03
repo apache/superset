@@ -124,7 +124,7 @@ class Database(Base):  # pylint: disable=too-many-public-methods
         return self.verbose_name if self.verbose_name else self.database_name
 
 
-class SqlaTable(Base):
+class Dataset(Base):
     __tablename__ = "tables"
     __table_args__ = (UniqueConstraint("database_id", "table_name"),)
 
@@ -169,7 +169,7 @@ def upgrade():
         match_ds_id = re.match(r"\[None\]\.\[.*\]\(id:(\d+)\)", faulty_view_menu.name)
         if match_ds_id:
             dataset_id = int(match_ds_id.group(1))
-            dataset = session.query(SqlaTable).get(dataset_id)
+            dataset = session.query(Dataset).get(dataset_id)
             if dataset:
                 try:
                     new_view_menu = dataset.get_perm()

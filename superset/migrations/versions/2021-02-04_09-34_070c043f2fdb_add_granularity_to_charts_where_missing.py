@@ -45,7 +45,7 @@ class Slice(Base):
     datasource_type = Column(String(200))
 
 
-class SqlaTable(Base):
+class Dataset(Base):
     __tablename__ = "tables"
 
     id = Column(Integer, primary_key=True)
@@ -92,7 +92,7 @@ def upgrade():
             if "granularity" in params or "granularity_sqla" in params:
                 continue
 
-            table = session.query(SqlaTable).get(slc.datasource_id)
+            table = session.query(Dataset).get(slc.datasource_id)
             if not table:
                 continue
 

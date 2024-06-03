@@ -33,7 +33,7 @@ from alembic import op  # noqa: E402
 from sqlalchemy import func  # noqa: E402
 
 from superset import db  # noqa: E402
-from superset.connectors.sqla.models import SqlaTable  # noqa: E402
+from superset.connectors.sqla.models import Dataset  # noqa: E402
 
 
 def upgrade():
@@ -54,8 +54,8 @@ def remove_value_if_too_long():
     # so just remove it if it won't fit back into the 1000 string length column
     try:
         rows = (
-            session.query(SqlaTable)
-            .filter(func.length(SqlaTable.fetch_values_predicate) > 1000)
+            session.query(Dataset)
+            .filter(func.length(Dataset.fetch_values_predicate) > 1000)
             .all()
         )
 

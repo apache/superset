@@ -19,7 +19,7 @@ import logging
 from typing import Union
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.models.sql_lab import Query, SavedQuery
@@ -27,12 +27,12 @@ from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
-Datasource = Union[SqlaTable, Query, SavedQuery]
+Datasource = Union[Dataset, Query, SavedQuery]
 
 
 class DatasourceDAO(BaseDAO[Datasource]):
     sources: dict[Union[DatasourceType, str], type[Datasource]] = {
-        DatasourceType.TABLE: SqlaTable,
+        DatasourceType.TABLE: Dataset,
         DatasourceType.QUERY: Query,
         DatasourceType.SAVEDQUERY: SavedQuery,
     }

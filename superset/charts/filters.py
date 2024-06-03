@@ -23,7 +23,7 @@ from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
 from superset.connectors.sqla import models
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.core import FavStar
 from superset.models.slice import Slice
 from superset.utils.core import get_user_id
@@ -45,7 +45,7 @@ class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 Slice.slice_name.ilike(ilike_value),
                 Slice.description.ilike(ilike_value),
                 Slice.viz_type.ilike(ilike_value),
-                SqlaTable.table_name.ilike(ilike_value),
+                Dataset.table_name.ilike(ilike_value),
             )
         )
 
@@ -91,7 +91,7 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if security_manager.can_access_all_datasources():
             return query
 
-        table_alias = aliased(SqlaTable)
+        table_alias = aliased(Dataset)
         query = query.join(table_alias, self.model.datasource_id == table_alias.id)
         query = query.join(
             models.Database, table_alias.database_id == models.Database.id

@@ -154,7 +154,7 @@ def _get_samples(
             qry_obj_cols.append(o.get("column_name"))
         else:
             qry_obj_cols.append(o.column_name)
-    query_obj.columns = qry_obj_cols
+    query_obj.columns = qry_obj_cols  # type: ignore
     query_obj.from_dttm = None
     query_obj.to_dttm = None
     return _get_full(query_context, query_obj, force_cached)
@@ -177,7 +177,7 @@ def _get_drill_detail(
             qry_obj_cols.append(o.get("column_name"))
         else:
             qry_obj_cols.append(o.column_name)
-    query_obj.columns = qry_obj_cols
+    query_obj.columns = qry_obj_cols  # type: ignore
     return _get_full(query_context, query_obj, force_cached)
 
 

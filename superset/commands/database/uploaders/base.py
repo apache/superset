@@ -32,7 +32,7 @@ from superset.commands.database.exceptions import (
     DatabaseUploadNotSupported,
     DatabaseUploadSaveMetadataFailed,
 )
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.database import DatabaseDAO
 from superset.models.core import Database
 from superset.sql_parse import Table
@@ -152,7 +152,7 @@ class UploadCommand(BaseCommand):
         self._reader.read(self._file, self._model, self._table_name, self._schema)
 
         sqla_table = (
-            db.session.query(SqlaTable)
+            db.session.query(Dataset)
             .filter_by(
                 table_name=self._table_name,
                 schema=self._schema,
@@ -161,7 +161,7 @@ class UploadCommand(BaseCommand):
             .one_or_none()
         )
         if not sqla_table:
-            sqla_table = SqlaTable(
+            sqla_table = Dataset(
                 table_name=self._table_name,
                 database=self._model,
                 database_id=self._model_id,

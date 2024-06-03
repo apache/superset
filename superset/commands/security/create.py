@@ -22,7 +22,7 @@ from typing import Any
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.utils import populate_roles
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.daos.security import RLSDAO
 from superset.extensions import db
@@ -46,9 +46,7 @@ class CreateRLSRuleCommand(BaseCommand):
 
     def validate(self) -> None:
         roles = populate_roles(self._roles)
-        tables = (
-            db.session.query(SqlaTable).filter(SqlaTable.id.in_(self._tables)).all()
-        )
+        tables = db.session.query(Dataset).filter(Dataset.id.in_(self._tables)).all()
         if len(tables) != len(self._tables):
             raise DatasourceNotFoundValidationError()
         self._properties["roles"] = roles

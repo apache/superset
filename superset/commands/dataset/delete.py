@@ -24,7 +24,7 @@ from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DAODeleteFailedError
 from superset.exceptions import SupersetSecurityException
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 class DeleteDatasetCommand(BaseCommand):
     def __init__(self, model_ids: list[int]):
         self._model_ids = model_ids
-        self._models: Optional[list[SqlaTable]] = None
+        self._models: Optional[list[Dataset]] = None
 
     def run(self) -> None:
         self.validate()

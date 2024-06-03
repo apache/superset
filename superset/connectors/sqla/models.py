@@ -512,6 +512,8 @@ def _process_sql_expression(
 class Dataset(
     Model,
     ExploreMixin,
+    ImportExportMixin,
+    AuditMixinNullable,
 ):  # pylint: disable=too-many-public-methods
     """An ORM object for SqlAlchemy table references"""
 
@@ -616,7 +618,7 @@ class Dataset(
         "MAX": sa.func.MAX,
     }
 
-    def __repr__(self) -> str:  # pylint: disable=invalid-repr-returned
+    def __repr__(self) -> str:
         return self.name
 
     @property
@@ -679,10 +681,6 @@ class Dataset(
     @property
     def columns_types(self) -> dict[str, str]:
         return {c.column_name: c.type for c in self.columns}
-
-    @property
-    def main_dttm_col(self) -> str:
-        return "timestamp"
 
     @property
     def filterable_column_names(self) -> list[str]:
@@ -763,7 +761,7 @@ class Dataset(
             "column_formats": self.column_formats,
             "currency_formats": self.currency_formats,
             "description": self.description,
-            "database": self.database.data,  # pylint: disable=no-member
+            "database": self.database.data,
             "default_endpoint": self.default_endpoint,
             "filter_select": self.filter_select_enabled,  # TODO deprecate
             "filter_select_enabled": self.filter_select_enabled,
@@ -1145,7 +1143,7 @@ class Dataset(
         return f"[{self.database}].[{self.table_name}](id:{self.id})"
 
     @property
-    def name(self) -> str:  # pylint: disable=invalid-overridden-method
+    def name(self) -> str:
         return self.schema + "." + self.table_name if self.schema else self.table_name
 
     @property

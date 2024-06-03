@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 Base: Type[Any] = declarative_base()
 
 
-class SqlaTable(Base):
+class Dataset(Base):
     __tablename__ = "tables"
 
     id = sa.Column(sa.Integer, primary_key=True)
@@ -142,7 +142,7 @@ def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
             (SavedQuery, "db_id"),
             (TabState, "database_id"),
             (TableSchema, "database_id"),
-            (SqlaTable, "database_id"),
+            (Dataset, "database_id"),
         ]
         for model, column in models:
             for instance in session.query(model).filter(
@@ -150,7 +150,7 @@ def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
             ):
                 instance.catalog = catalog
 
-        for table in session.query(SqlaTable).filter_by(database_id=database.id):
+        for table in session.query(Dataset).filter_by(database_id=database.id):
             schema_perm = security_manager.get_schema_perm(
                 database.database_name,
                 catalog,
@@ -209,7 +209,7 @@ def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
             (SavedQuery, "db_id"),
             (TabState, "database_id"),
             (TableSchema, "database_id"),
-            (SqlaTable, "database_id"),
+            (Dataset, "database_id"),
         ]
         for model, column in models:
             for instance in session.query(model).filter(
@@ -217,7 +217,7 @@ def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
             ):
                 instance.catalog = None
 
-        for table in session.query(SqlaTable).filter_by(database_id=database.id):
+        for table in session.query(Dataset).filter_by(database_id=database.id):
             schema_perm = security_manager.get_schema_perm(
                 database.database_name,
                 None,

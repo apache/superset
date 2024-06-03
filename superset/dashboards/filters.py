@@ -23,7 +23,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, is_feature_enabled, security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -112,8 +112,8 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         datasource_perm_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices, isouter=True)
-            .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
-            .join(Database, SqlaTable.database_id == Database.id)
+            .join(Dataset, Slice.datasource_id == Dataset.id)
+            .join(Database, Dataset.database_id == Database.id)
             .filter(
                 and_(
                     Dashboard.published.is_(True),

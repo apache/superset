@@ -27,7 +27,7 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseTablesUnexpectedError,
 )
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.database import DatabaseDAO
 from superset.exceptions import SupersetException
 from superset.extensions import db, security_manager
@@ -87,21 +87,21 @@ class TablesDatabaseCommand(BaseCommand):
             extra_dict_by_name = {
                 table.name: table.extra_dict
                 for table in (
-                    db.session.query(SqlaTable)
+                    db.session.query(Dataset)
                     .filter(
-                        SqlaTable.database_id == self._model.id,
-                        SqlaTable.catalog == self._catalog_name,
-                        SqlaTable.schema == self._schema_name,
+                        Dataset.database_id == self._model.id,
+                        Dataset.catalog == self._catalog_name,
+                        Dataset.schema == self._schema_name,
                     )
                     .options(
                         load_only(
-                            SqlaTable.catalog,
-                            SqlaTable.schema,
-                            SqlaTable.table_name,
-                            SqlaTable.extra,
+                            Dataset.catalog,
+                            Dataset.schema,
+                            Dataset.table_name,
+                            Dataset.extra,
                         ),
-                        lazyload(SqlaTable.columns),
-                        lazyload(SqlaTable.metrics),
+                        lazyload(Dataset.columns),
+                        lazyload(Dataset.metrics),
                     )
                 ).all()
             }

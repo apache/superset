@@ -20,7 +20,7 @@
 def register_sqla_event_listeners() -> None:
     import sqlalchemy as sqla
 
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import FavStar
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -33,9 +33,9 @@ def register_sqla_event_listeners() -> None:
         QueryUpdater,
     )
 
-    sqla.event.listen(SqlaTable, "after_insert", DatasetUpdater.after_insert)
-    sqla.event.listen(SqlaTable, "after_update", DatasetUpdater.after_update)
-    sqla.event.listen(SqlaTable, "after_delete", DatasetUpdater.after_delete)
+    sqla.event.listen(Dataset, "after_insert", DatasetUpdater.after_insert)
+    sqla.event.listen(Dataset, "after_update", DatasetUpdater.after_update)
+    sqla.event.listen(Dataset, "after_delete", DatasetUpdater.after_delete)
 
     sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
     sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
@@ -56,7 +56,7 @@ def register_sqla_event_listeners() -> None:
 def clear_sqla_event_listeners() -> None:
     import sqlalchemy as sqla
 
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import FavStar
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -69,9 +69,9 @@ def clear_sqla_event_listeners() -> None:
         QueryUpdater,
     )
 
-    sqla.event.remove(SqlaTable, "after_insert", DatasetUpdater.after_insert)
-    sqla.event.remove(SqlaTable, "after_update", DatasetUpdater.after_update)
-    sqla.event.remove(SqlaTable, "after_delete", DatasetUpdater.after_delete)
+    sqla.event.remove(Dataset, "after_insert", DatasetUpdater.after_insert)
+    sqla.event.remove(Dataset, "after_update", DatasetUpdater.after_update)
+    sqla.event.remove(Dataset, "after_delete", DatasetUpdater.after_delete)
 
     sqla.event.remove(Slice, "after_insert", ChartUpdater.after_insert)
     sqla.event.remove(Slice, "after_update", ChartUpdater.after_update)

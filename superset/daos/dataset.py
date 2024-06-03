@@ -23,7 +23,7 @@ from typing import Any
 import dateutil.parser
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import Dataset, SqlMetric, TableColumn
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAOUpdateFailedError
 from superset.extensions import db
@@ -37,7 +37,7 @@ from superset.views.base import DatasourceFilter
 logger = logging.getLogger(__name__)
 
 
-class DatasetDAO(BaseDAO[SqlaTable]):
+class DatasetDAO(BaseDAO[Dataset]):
     base_filter = DatasourceFilter
 
     @staticmethod
@@ -89,16 +89,16 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         table: Table,
         dataset_id: int | None = None,
     ) -> bool:
-        dataset_query = db.session.query(SqlaTable).filter(
-            SqlaTable.table_name == table.table,
-            SqlaTable.schema == table.schema,
-            SqlaTable.catalog == table.catalog,
-            SqlaTable.database_id == database_id,
+        dataset_query = db.session.query(Dataset).filter(
+            Dataset.table_name == table.table,
+            Dataset.schema == table.schema,
+            Dataset.catalog == table.catalog,
+            Dataset.database_id == database_id,
         )
 
         if dataset_id:
             # make sure the dataset found is different from the target (if any)
-            dataset_query = dataset_query.filter(SqlaTable.id != dataset_id)
+            dataset_query = dataset_query.filter(Dataset.id != dataset_id)
 
         return not db.session.query(dataset_query.exists()).scalar()
 
@@ -108,12 +108,12 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         table: Table,
         dataset_id: int,
     ) -> bool:
-        dataset_query = db.session.query(SqlaTable).filter(
-            SqlaTable.table_name == table.table,
-            SqlaTable.database_id == database_id,
-            SqlaTable.schema == table.schema,
-            SqlaTable.catalog == table.catalog,
-            SqlaTable.id != dataset_id,
+        dataset_query = db.session.query(Dataset).filter(
+            Dataset.table_name == table.table,
+            Dataset.database_id == database_id,
+            Dataset.schema == table.schema,
+            Dataset.catalog == table.catalog,
+            Dataset.id != dataset_id,
         )
         return not db.session.query(dataset_query.exists()).scalar()
 
@@ -169,10 +169,10 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     @classmethod
     def update(
         cls,
-        item: SqlaTable | None = None,
+        item: Dataset | None = None,
         attributes: dict[str, Any] | None = None,
         commit: bool = True,
-    ) -> SqlaTable:
+    ) -> Dataset:
         """
         Updates a Dataset model on the metadata DB
         """
@@ -194,7 +194,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     @classmethod
     def update_columns(
         cls,
-        model: SqlaTable,
+        model: Dataset,
         property_columns: list[dict[str, Any]],
         commit: bool = True,
         override_columns: bool = False,
@@ -272,7 +272,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     @classmethod
     def update_metrics(
         cls,
-        model: SqlaTable,
+        model: Dataset,
         property_metrics: list[dict[str, Any]],
         commit: bool = True,
     ) -> None:
@@ -341,9 +341,9 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         return db.session.query(SqlMetric).get(metric_id)
 
     @staticmethod
-    def get_table_by_name(database_id: int, table_name: str) -> SqlaTable | None:
+    def get_table_by_name(database_id: int, table_name: str) -> Dataset | None:
         return (
-            db.session.query(SqlaTable)
+            db.session.query(Dataset)
             .filter_by(database_id=database_id, table_name=table_name)
             .one_or_none()
         )

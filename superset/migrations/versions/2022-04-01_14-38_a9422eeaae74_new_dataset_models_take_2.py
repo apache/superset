@@ -163,7 +163,7 @@ sqlatable_user_table = sa.Table(
 )
 
 
-class SqlaTable(AuxiliaryColumnsMixin, Base):
+class Dataset(AuxiliaryColumnsMixin, Base):
     __tablename__ = "tables"
     __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
 
@@ -244,7 +244,7 @@ class NewTable(AuxiliaryColumnsMixin, Base):
     __tablename__ = "sl_tables"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    # A temporary column to keep the link between NewTable to SqlaTable
+    # A temporary column to keep the link between NewTable to Dataset
     sqlatable_id = sa.Column(sa.Integer, primary_key=False, nullable=True, unique=True)
     database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
     is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
@@ -299,21 +299,21 @@ def find_tables(
 
 
 # helper SQLA elements for easier querying
-is_physical_table = or_(SqlaTable.sql.is_(None), SqlaTable.sql == "")
+is_physical_table = or_(Dataset.sql.is_(None), Dataset.sql == "")
 is_physical_column = or_(TableColumn.expression.is_(None), TableColumn.expression == "")
 
 # filtering out table columns with valid associated SqlTable
 active_table_columns = sa.join(
     TableColumn,
-    SqlaTable,
-    TableColumn.table_id == SqlaTable.id,
+    Dataset,
+    TableColumn.table_id == Dataset.id,
 )
-active_metrics = sa.join(SqlMetric, SqlaTable, SqlMetric.table_id == SqlaTable.id)
+active_metrics = sa.join(SqlMetric, Dataset, SqlMetric.table_id == Dataset.id)
 
 
 def copy_tables(session: Session) -> None:
     """Copy Physical tables"""
-    count = session.query(SqlaTable).filter(is_physical_table).count()
+    count = session.query(Dataset).filter(is_physical_table).count()
     if not count:
         return
     print(f">> Copy {count:,} physical tables to sl_tables...")
@@ -325,47 +325,47 @@ def copy_tables(session: Session) -> None:
                 # entities. When INSERT FROM SELECT, we must provide a value for `uuid`,
                 # otherwise it'd use the default generated on Python side, which
                 # will cause duplicate values. They will be replaced by `assign_uuids` later.
-                SqlaTable.uuid,
-                SqlaTable.id.label("sqlatable_id"),
-                SqlaTable.created_on,
-                SqlaTable.changed_on,
-                SqlaTable.created_by_fk,
-                SqlaTable.changed_by_fk,
-                SqlaTable.table_name.label("name"),
-                SqlaTable.schema,
-                SqlaTable.database_id,
-                SqlaTable.is_managed_externally,
-                SqlaTable.external_url,
+                Dataset.uuid,
+                Dataset.id.label("sqlatable_id"),
+                Dataset.created_on,
+                Dataset.changed_on,
+                Dataset.created_by_fk,
+                Dataset.changed_by_fk,
+                Dataset.table_name.label("name"),
+                Dataset.schema,
+                Dataset.database_id,
+                Dataset.is_managed_externally,
+                Dataset.external_url,
             ]
         )
         # use an inner join to filter out only tables with valid database ids
-        .select_from(sa.join(SqlaTable, Database, SqlaTable.database_id == Database.id))
+        .select_from(sa.join(Dataset, Database, Dataset.database_id == Database.id))
         .where(is_physical_table),
     )
 
 
 def copy_datasets(session: Session) -> None:
     """Copy all datasets"""
-    count = session.query(SqlaTable).count()
+    count = session.query(Dataset).count()
     if not count:
         return
-    print(f">> Copy {count:,} SqlaTable to sl_datasets...")
+    print(f">> Copy {count:,} Dataset to sl_datasets...")
     insert_from_select(
         NewDataset,
         select(
             [
-                SqlaTable.uuid,
-                SqlaTable.created_on,
-                SqlaTable.changed_on,
-                SqlaTable.created_by_fk,
-                SqlaTable.changed_by_fk,
-                SqlaTable.database_id,
-                SqlaTable.table_name.label("name"),
-                func.coalesce(SqlaTable.sql, SqlaTable.table_name).label("expression"),
+                Dataset.uuid,
+                Dataset.created_on,
+                Dataset.changed_on,
+                Dataset.created_by_fk,
+                Dataset.changed_by_fk,
+                Dataset.database_id,
+                Dataset.table_name.label("name"),
+                func.coalesce(Dataset.sql, Dataset.table_name).label("expression"),
                 is_physical_table.label("is_physical"),
-                SqlaTable.is_managed_externally,
-                SqlaTable.external_url,
-                SqlaTable.extra.label("extra_json"),
+                Dataset.is_managed_externally,
+                Dataset.external_url,
+                Dataset.extra.label("extra_json"),
             ]
         ),
     )
@@ -377,8 +377,8 @@ def copy_datasets(session: Session) -> None:
             [NewDataset.id.label("dataset_id"), sqlatable_user_table.c.user_id]
         ).select_from(
             sqlatable_user_table.join(
-                SqlaTable, SqlaTable.id == sqlatable_user_table.c.table_id
-            ).join(NewDataset, NewDataset.uuid == SqlaTable.uuid)
+                Dataset, Dataset.id == sqlatable_user_table.c.table_id
+            ).join(NewDataset, NewDataset.uuid == Dataset.uuid)
         ),
     )
 
@@ -391,8 +391,8 @@ def copy_datasets(session: Session) -> None:
                 NewTable.id.label("table_id"),
             ]
         ).select_from(
-            sa.join(SqlaTable, NewTable, NewTable.sqlatable_id == SqlaTable.id).join(
-                NewDataset, NewDataset.uuid == SqlaTable.uuid
+            sa.join(Dataset, NewTable, NewTable.sqlatable_id == Dataset.id).join(
+                NewDataset, NewDataset.uuid == Dataset.uuid
             )
         ),
     )
@@ -441,7 +441,7 @@ def copy_columns(session: Session) -> None:
                 NewColumn.id.label("column_id"),
             ],
         ).select_from(
-            joined_columns_table.join(NewDataset, NewDataset.uuid == SqlaTable.uuid)
+            joined_columns_table.join(NewDataset, NewDataset.uuid == Dataset.uuid)
         ),
     )
 
@@ -495,7 +495,7 @@ def copy_metrics(session: Session) -> None:
                 NewColumn.id.label("column_id"),
             ],
         ).select_from(
-            active_metrics.join(NewDataset, NewDataset.uuid == SqlaTable.uuid).join(
+            active_metrics.join(NewDataset, NewDataset.uuid == Dataset.uuid).join(
                 NewColumn, NewColumn.uuid == SqlMetric.uuid
             )
         ),
@@ -508,7 +508,7 @@ def postprocess_datasets(session: Session) -> None:
       - Quote table names for physical datasets (if needed)
       - Link referenced tables to virtual datasets
     """
-    total = session.query(SqlaTable).count()
+    total = session.query(Dataset).count()
     if not total:
         return
 
@@ -517,11 +517,11 @@ def postprocess_datasets(session: Session) -> None:
 
     joined_tables = sa.join(
         NewDataset,
-        SqlaTable,
-        NewDataset.uuid == SqlaTable.uuid,
+        Dataset,
+        NewDataset.uuid == Dataset.uuid,
     ).join(
         Database,
-        Database.id == SqlaTable.database_id,
+        Database.id == Dataset.database_id,
         isouter=True,
     )
     assert session.query(func.count()).select_from(joined_tables).scalar() == total
@@ -556,9 +556,9 @@ def postprocess_datasets(session: Session) -> None:
                     NewDataset.database_id,
                     NewDataset.id.label("dataset_id"),
                     NewDataset.expression,
-                    SqlaTable.extra,
+                    Dataset.extra,
                     NewDataset.is_physical,
-                    SqlaTable.schema,
+                    Dataset.schema,
                     Database.sqlalchemy_uri,
                 ]
             )

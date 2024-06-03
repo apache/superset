@@ -1246,7 +1246,7 @@ def get_rls_for_table(
     """
     # pylint: disable=import-outside-toplevel
     from superset import db
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
 
     if not isinstance(candidate, Identifier):
         candidate = Identifier([Token(Name, candidate.value)])
@@ -1256,12 +1256,12 @@ def get_rls_for_table(
         return None
 
     dataset = (
-        db.session.query(SqlaTable)
+        db.session.query(Dataset)
         .filter(
             and_(
-                SqlaTable.database_id == database_id,
-                SqlaTable.schema == (table.schema or default_schema),
-                SqlaTable.table_name == table.table,
+                Dataset.database_id == database_id,
+                Dataset.schema == (table.schema or default_schema),
+                Dataset.table_name == table.table,
             )
         )
         .one_or_none()

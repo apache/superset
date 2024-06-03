@@ -41,7 +41,7 @@ from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import FavStar
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -163,7 +163,7 @@ class ObjectUpdater:
 
     @classmethod
     def get_owners_ids(
-        cls, target: Dashboard | FavStar | Slice | Query | SqlaTable
+        cls, target: Dashboard | FavStar | Slice | Query | Dataset
     ) -> list[int]:
         raise NotImplementedError("Subclass should implement `get_owners_ids`")
 
@@ -171,7 +171,7 @@ class ObjectUpdater:
     def get_owner_tag_ids(
         cls,
         session: orm.Session,  # pylint: disable=disallowed-name
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
+        target: Dashboard | FavStar | Slice | Query | Dataset,
     ) -> set[int]:
         tag_ids = set()
         for owner_id in cls.get_owners_ids(target):
@@ -184,7 +184,7 @@ class ObjectUpdater:
     def _add_owners(
         cls,
         session: orm.Session,  # pylint: disable=disallowed-name
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
+        target: Dashboard | FavStar | Slice | Query | Dataset,
     ) -> None:
         for owner_id in cls.get_owners_ids(target):
             name: str = f"owner:{owner_id}"
@@ -221,7 +221,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
+        target: Dashboard | FavStar | Slice | Query | Dataset,
     ) -> None:
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # add `owner:` tags
@@ -239,7 +239,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
+        target: Dashboard | FavStar | Slice | Query | Dataset,
     ) -> None:
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # Fetch current owner tags
@@ -278,7 +278,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
+        target: Dashboard | FavStar | Slice | Query | Dataset,
     ) -> None:
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # delete row from `tagged_objects`
@@ -318,7 +318,7 @@ class DatasetUpdater(ObjectUpdater):
     object_type = "dataset"
 
     @classmethod
-    def get_owners_ids(cls, target: SqlaTable) -> list[int]:
+    def get_owners_ids(cls, target: Dataset) -> list[int]:
         return [owner.id for owner in target.owners]
 
 

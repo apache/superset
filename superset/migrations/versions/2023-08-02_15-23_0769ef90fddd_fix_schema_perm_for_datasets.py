@@ -36,7 +36,7 @@ from superset import db  # noqa: E402
 Base = declarative_base()
 
 
-class SqlaTable(Base):
+class Dataset(Base):
     __tablename__ = "tables"
 
     id = sa.Column(sa.Integer, primary_key=True)
@@ -62,33 +62,31 @@ class Database(Base):
 
 def fix_datasets_schema_perm(session):
     for result in (
-        session.query(SqlaTable, Database.database_name)
+        session.query(Dataset, Database.database_name)
         .join(Database)
-        .filter(SqlaTable.schema.isnot(None))
+        .filter(Dataset.schema.isnot(None))
         .filter(
-            SqlaTable.schema_perm
-            != sa.func.concat("[", Database.database_name, "].[", SqlaTable.schema, "]")
+            Dataset.schema_perm
+            != sa.func.concat("[", Database.database_name, "].[", Dataset.schema, "]")
         )
     ):
-        result.SqlaTable.schema_perm = (
-            f"[{result.database_name}].[{result.SqlaTable.schema}]"
+        result.Dataset.schema_perm = (
+            f"[{result.database_name}].[{result.Dataset.schema}]"
         )
 
 
 def fix_charts_schema_perm(session):
     for result in (
-        session.query(Slice, SqlaTable, Database.database_name)
-        .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
-        .join(Database, SqlaTable.database_id == Database.id)
-        .filter(SqlaTable.schema.isnot(None))
+        session.query(Slice, Dataset, Database.database_name)
+        .join(Dataset, Slice.datasource_id == Dataset.id)
+        .join(Database, Dataset.database_id == Database.id)
+        .filter(Dataset.schema.isnot(None))
         .filter(
             Slice.schema_perm
-            != sa.func.concat("[", Database.database_name, "].[", SqlaTable.schema, "]")
+            != sa.func.concat("[", Database.database_name, "].[", Dataset.schema, "]")
         )
     ):
-        result.Slice.schema_perm = (
-            f"[{result.database_name}].[{result.SqlaTable.schema}]"
-        )
+        result.Slice.schema_perm = f"[{result.database_name}].[{result.Dataset.schema}]"
 
 
 def upgrade():

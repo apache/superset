@@ -26,7 +26,7 @@ from sqlalchemy.orm import make_transient
 from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.dataset.importers.v0 import import_dataset
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import Dataset, SqlMetric, TableColumn
 from superset.exceptions import DashboardImportException
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard
@@ -63,7 +63,7 @@ def import_chart(
     slc_to_import = slc_to_import.copy()
     slc_to_import.reset_ownership()
     params = slc_to_import.params_dict
-    datasource = SqlaTable.get_datasource_by_name(
+    datasource = Dataset.get_datasource_by_name(
         datasource_name=params["datasource_name"],
         database_name=params["database_name"],
         catalog=params.get("catalog"),
@@ -282,8 +282,8 @@ def decode_dashboards(o: dict[str, Any]) -> Any:
         return Slice(**o["__Slice__"])
     if "__TableColumn__" in o:
         return TableColumn(**o["__TableColumn__"])
-    if "__SqlaTable__" in o:
-        return SqlaTable(**o["__SqlaTable__"])
+    if "__Dataset__" in o:
+        return Dataset(**o["__Dataset__"])
     if "__SqlMetric__" in o:
         return SqlMetric(**o["__SqlMetric__"])
     if "__datetime__" in o:

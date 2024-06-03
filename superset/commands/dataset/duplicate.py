@@ -30,7 +30,7 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
 )
 from superset.commands.exceptions import DatasourceTypeInvalidError
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import Dataset, SqlMetric, TableColumn
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 class DuplicateDatasetCommand(CreateMixin, BaseCommand):
     def __init__(self, data: dict[str, Any]) -> None:
-        self._base_model: SqlaTable = SqlaTable()
+        self._base_model: Dataset = Dataset()
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -63,7 +63,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
                     ),
                     status=404,
                 )
-            table = SqlaTable(table_name=table_name, owners=owners)
+            table = Dataset(table_name=table_name, owners=owners)
             table.database = database
             table.schema = self._base_model.schema
             table.template_params = self._base_model.template_params

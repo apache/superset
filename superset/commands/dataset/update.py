@@ -37,7 +37,7 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
     DatasetUpdateFailedError,
 )
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DAOUpdateFailedError
 from superset.exceptions import SupersetSecurityException
@@ -55,7 +55,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
     ):
         self._model_id = model_id
         self._properties = data.copy()
-        self._model: Optional[SqlaTable] = None
+        self._model: Optional[Dataset] = None
         self.override_columns = override_columns
         self._properties["override_columns"] = override_columns
 
