@@ -984,7 +984,7 @@ describe('async actions', () => {
       });
     });
 
-    describe('migrateQueryEditorFromLocalStorage', () => {
+    describe('syncQueryEditor', () => {
       it('updates the tab state in the backend', () => {
         expect.assertions(3);
 
@@ -1073,7 +1073,7 @@ describe('async actions', () => {
           },
         ];
         return store
-          .dispatch(actions.migrateQueryEditorFromLocalStorage(oldQueryEditor))
+          .dispatch(actions.syncQueryEditor(oldQueryEditor))
           .then(() => {
             expect(store.getActions()).toEqual(expectedActions);
             expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(3);

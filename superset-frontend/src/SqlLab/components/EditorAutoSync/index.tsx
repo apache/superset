@@ -28,7 +28,7 @@ import {
 import { useUpdateSqlEditorTabMutation } from 'src/hooks/apiResources/sqlEditorTabs';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import {
-  migrateQueryEditorFromLocalStorage,
+  syncQueryEditor,
   setEditorTabLastUpdate,
 } from 'src/SqlLab/actions/sqlLab';
 import useEffectEvent from 'src/hooks/useEffectEvent';
@@ -99,7 +99,7 @@ const EditorAutoSync: React.FC = () => {
       const firstUnsavedQueryEditor = getUnsavedNewQueryEditor();
 
       if (firstUnsavedQueryEditor) {
-        dispatch(migrateQueryEditorFromLocalStorage(firstUnsavedQueryEditor));
+        dispatch(syncQueryEditor(firstUnsavedQueryEditor));
       }
       timer = setTimeout(saveUnsavedQueryEditor, INTERVAL);
     }

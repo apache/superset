@@ -467,7 +467,16 @@ function migrateQuery(queryId, queryEditorId, dispatch) {
     );
 }
 
-export function migrateQueryEditorFromLocalStorage(queryEditor) {
+/**
+ * Persist QueryEditor from local storage to backend tab state.
+ * This ensures that when new tabs are created, query editors are
+ * asynchronously stored in local storage and periodically synchronized
+ * with the backend.
+ * When switching to persistence mode, the QueryEditors previously
+ * stored in local storage will also be synchronized to the backend
+ * through syncQueryEditor.
+ */
+export function syncQueryEditor(queryEditor) {
   return function (dispatch, getState) {
     const { tables, queries } = getState().sqlLab;
     const localStorageTables = tables.filter(
