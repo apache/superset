@@ -23,8 +23,6 @@ export interface SortColumn {
   desc?: boolean;
 }
 
-export type SortColumns = SortColumn[];
-
 export interface SelectOption {
   label: string;
   value: any;
@@ -41,6 +39,7 @@ export interface Filter {
   Header: ReactNode;
   key: string;
   id: string;
+  toolTipDescription?: string;
   urlDisplay?: string;
   operator?: FilterOperator;
   input?:
@@ -84,7 +83,7 @@ export interface FilterValue {
 export interface FetchDataConfig {
   pageIndex: number;
   pageSize: number;
-  sortBy: SortColumns;
+  sortBy: SortColumn[];
   filters: FilterValue[];
 }
 

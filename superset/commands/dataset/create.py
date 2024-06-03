@@ -34,6 +34,7 @@ from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, security_manager
+from superset.sql_parse import Table
 
 logger = logging.getLogger(__name__)
 
@@ -60,14 +61,16 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
         database_id = self._properties["database"]
-        table_name = self._properties["table_name"]
-        schema = self._properties.get("schema", None)
-        sql = self._properties.get("sql", None)
+        schema = self._properties.get("schema")
+        catalog = self._properties.get("catalog")
+        sql = self._properties.get("sql")
         owner_ids: Optional[list[int]] = self._properties.get("owners")
 
+        table = Table(self._properties["table_name"], schema, catalog)
+
         # Validate uniqueness
-        if not DatasetDAO.validate_uniqueness(database_id, schema, table_name):
-            exceptions.append(DatasetExistsValidationError(table_name))
+        if not DatasetDAO.validate_uniqueness(database_id, table):
+            exceptions.append(DatasetExistsValidationError(table))
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
@@ -80,15 +83,16 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         if (
             database
             and not sql
-            and not DatasetDAO.validate_table_exists(database, table_name, schema)
+            and not DatasetDAO.validate_table_exists(database, table)
         ):
-            exceptions.append(TableNotFoundValidationError(table_name))
+            exceptions.append(TableNotFoundValidationError(table))
 
         if sql:
             try:
                 security_manager.raise_for_access(
                     database=database,
                     sql=sql,
+                    catalog=catalog,
                     schema=schema,
                 )
             except SupersetSecurityException as ex:

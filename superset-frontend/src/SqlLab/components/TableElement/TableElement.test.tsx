@@ -43,12 +43,14 @@ jest.mock('src/components/IconTooltip', () => ({
 jest.mock(
   'src/SqlLab/components/ColumnElement',
   () =>
-    ({ column }: { column: Column }) =>
-      <div data-test="mock-column-element">{column.name}</div>,
+    ({ column }: { column: Column }) => (
+      <div data-test="mock-column-element">{column.name}</div>
+    ),
 );
-const getTableMetadataEndpoint = 'glob:**/api/v1/database/*/table/*/*/';
+const getTableMetadataEndpoint =
+  /\/api\/v1\/database\/\d+\/table_metadata\/(?:\?.*)?$/;
 const getExtraTableMetadataEndpoint =
-  'glob:**/api/v1/database/*/table_extra/*/*/';
+  /\/api\/v1\/database\/\d+\/table_metadata\/extra\/(?:\?.*)?$/;
 const updateTableSchemaEndpoint = 'glob:*/tableschemaview/*/expanded';
 
 beforeEach(() => {

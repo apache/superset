@@ -168,13 +168,14 @@ export default function DrillDetailPane({
 
   const data: DataType[] = useMemo(
     () =>
-      resultsPage?.data.map((row, index) =>
-        resultsPage?.colNames.reduce(
-          (acc, curr) => ({ ...acc, [curr]: row[curr] }),
-          {
-            key: index,
-          },
-        ),
+      resultsPage?.data.map(
+        (row, index) =>
+          resultsPage?.colNames.reduce(
+            (acc, curr) => ({ ...acc, [curr]: row[curr] }),
+            {
+              key: index,
+            },
+          ),
       ) || [],
     [resultsPage?.colNames, resultsPage?.data],
   );
@@ -264,6 +265,8 @@ export default function DrillDetailPane({
     (!responseError && !resultsPages.size) ||
     metadataBarStatus === ResourceStatus.Loading;
 
+  const allowHTML = formData.allow_render_html ?? true;
+
   let tableContent = null;
   if (responseError) {
     // Render error if page download failed
@@ -300,7 +303,7 @@ export default function DrillDetailPane({
           }
           resizable
           virtualize
-          allowHTML
+          allowHTML={allowHTML}
         />
       </Resizable>
     );

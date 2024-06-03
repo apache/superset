@@ -2,6 +2,20 @@
   "name": "@superset-ui/plugin-chart-echarts",
   "version": "0.18.25",
   "description": "Superset Chart - Echarts",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-echarts#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/plugins/plugin-chart-echarts"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "sideEffects": false,
   "main": "lib/index.js",
   "module": "esm/index.js",
@@ -9,23 +23,6 @@
     "esm",
     "lib"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/apache/superset.git",
-    "directory": "superset-frontend/plugins/plugin-chart-echarts"
-  },
-  "keywords": [
-    "superset"
-  ],
-  "author": "Superset",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/apache/superset/issues"
-  },
-  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-echarts#readme",
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
     "d3-array": "^1.2.0",
     "echarts": "^5.4.1",
@@ -35,6 +32,10 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "memoize-one": "*",
     "react": "^16.13.1"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

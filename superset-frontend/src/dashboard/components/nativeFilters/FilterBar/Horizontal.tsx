@@ -40,8 +40,8 @@ import crossFiltersSelector from './CrossFilters/selectors';
 const HorizontalBar = styled.div`
   ${({ theme }) => `
     padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
-    theme.gridUnit * 3
-  }px ${theme.gridUnit * 4}px;
+      theme.gridUnit * 3
+    }px ${theme.gridUnit * 4}px;
     background: ${theme.colors.grayscale.light5};
     box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
   `}

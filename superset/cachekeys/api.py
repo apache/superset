@@ -85,6 +85,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
         for ds in datasources.get("datasources", []):
             ds_obj = SqlaTable.get_datasource_by_name(
                 datasource_name=ds.get("datasource_name"),
+                catalog=ds.get("catalog"),
                 schema=ds.get("schema"),
                 database_name=ds.get("database_name"),
             )
@@ -109,10 +110,8 @@ class CacheRestApi(BaseSupersetModelRestApi):
                 )
 
             try:
-                delete_stmt = (
-                    CacheKey.__table__.delete().where(  # pylint: disable=no-member
-                        CacheKey.cache_key.in_(cache_keys)
-                    )
+                delete_stmt = CacheKey.__table__.delete().where(  # pylint: disable=no-member
+                    CacheKey.cache_key.in_(cache_keys)
                 )
                 db.session.execute(delete_stmt)
                 db.session.commit()

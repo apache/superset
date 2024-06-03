@@ -1,3 +1,7 @@
+import { JsonObject } from '@superset-ui/core';
+import { InputProps } from 'antd/lib/input';
+import { ChangeEvent, EventHandler, FormEvent } from 'react';
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -59,6 +63,9 @@ export type DatabaseObject = {
     host?: string;
     port?: number;
     database?: string;
+    default_catalog?: string;
+    default_schema?: string;
+    http_path_field?: string;
     username?: string;
     password?: string;
     encryption?: boolean;
@@ -105,10 +112,11 @@ export type DatabaseObject = {
   engine_information?: {
     supports_file_upload?: boolean;
     disable_ssh_tunneling?: boolean;
+    supports_dynamic_catalog?: boolean;
   };
 
   // SSH Tunnel information
-  ssh_tunnel?: SSHTunnelObject;
+  ssh_tunnel?: SSHTunnelObject | null;
 };
 
 export type DatabaseForm = {
@@ -118,6 +126,18 @@ export type DatabaseForm = {
   parameters: {
     properties: {
       database: {
+        description: string;
+        type: string;
+      };
+      default_catalog: {
+        description: string;
+        type: string;
+      };
+      default_schema: {
+        description: string;
+        type: string;
+      };
+      http_path_field: {
         description: string;
         type: string;
       };
@@ -195,6 +215,11 @@ export type DatabaseForm = {
   };
   preferred: boolean;
   sqlalchemy_uri_placeholder: string;
+  engine_information: {
+    supports_file_upload: boolean;
+    disable_ssh_tunneling: boolean;
+    supports_dynamic_catalog: boolean;
+  };
 };
 
 // the values should align with the database
@@ -214,6 +239,8 @@ export interface ExtraJson {
   cancel_query_on_windows_unload?: boolean; // in Performance
   cost_estimate_enabled?: boolean; // in SQL Lab
   disable_data_preview?: boolean; // in SQL Lab
+  disable_drill_to_detail?: boolean;
+  allow_multi_catalog?: boolean;
   engine_params?: {
     catalog?: Record<string, string>;
     connect_args?: {
@@ -231,3 +258,75 @@ export interface ExtraJson {
   };
   version?: string;
 }
+
+export type CustomTextType = {
+  value?: string | boolean | number;
+  type?: string | null;
+  name?: string;
+  checked?: boolean;
+};
+
+type CustomHTMLInputElement = Omit<Partial<CustomTextType>, 'value' | 'type'> &
+  CustomTextType;
+
+type CustomHTMLTextAreaElement = Omit<
+  Partial<CustomTextType>,
+  'value' | 'type'
+> &
+  CustomTextType;
+
+export type CustomParametersChangeType<T = CustomTextType> =
+  | FormEvent<InputProps>
+  | { target: T };
+
+export type CustomEventHandlerType = EventHandler<
+  ChangeEvent<CustomHTMLInputElement | CustomHTMLTextAreaElement>
+>;
+
+export interface FieldPropTypes {
+  required: boolean;
+  hasTooltip?: boolean;
+  tooltipText?: (value: any) => string;
+  placeholder?: string;
+  onParametersChange: (event: CustomParametersChangeType) => void;
+  onParametersUploadFileChange: (value: any) => string;
+  changeMethods: {
+    onParametersChange: (event: CustomParametersChangeType) => void;
+  } & {
+    onChange: (value: any) => string;
+  } & {
+    onQueryChange: (value: any) => string;
+  } & { onParametersUploadFileChange: (value: any) => string } & {
+    onAddTableCatalog: () => void;
+    onRemoveTableCatalog: (idx: number) => void;
+  } & {
+    onExtraInputChange: (value: any) => void;
+    onSSHTunnelParametersChange: CustomEventHandlerType;
+  };
+  validationErrors: JsonObject | null;
+  getValidation: () => void;
+  clearValidationErrors: () => void;
+  db?: DatabaseObject;
+  dbModel?: DatabaseForm;
+  field: string;
+  default_value?: any;
+  description?: string;
+  isEditMode?: boolean;
+  sslForced?: boolean;
+  defaultDBName?: string;
+  editNewDb?: boolean;
+}
+
+type ChangeMethodsType = FieldPropTypes['changeMethods'];
+
+// changeMethods compatibility with dynamic forms
+type SwitchPropsChangeMethodsType = {
+  onParametersChange: ChangeMethodsType['onParametersChange'];
+};
+
+export type SwitchProps = {
+  dbModel: DatabaseForm;
+  db: DatabaseObject;
+  changeMethods: SwitchPropsChangeMethodsType;
+  clearValidationErrors: () => void;
+};

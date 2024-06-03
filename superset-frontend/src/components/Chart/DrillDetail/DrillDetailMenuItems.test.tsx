@@ -33,8 +33,11 @@ import DrillDetailMenuItems, {
 jest.mock(
   './DrillDetailPane',
   () =>
-    ({ initialFilters }: { initialFilters: BinaryQueryObjectFilterClause[] }) =>
-      <pre data-test="modal-filters">{JSON.stringify(initialFilters)}</pre>,
+    ({
+      initialFilters,
+    }: {
+      initialFilters: BinaryQueryObjectFilterClause[];
+    }) => <pre data-test="modal-filters">{JSON.stringify(initialFilters)}</pre>,
 );
 
 const { id: defaultChartId, form_data: defaultFormData } =
@@ -66,6 +69,28 @@ const filterB: BinaryQueryObjectFilterClause = {
   formattedVal: 'Two days ago',
 };
 
+const MockRenderChart = ({
+  chartId,
+  formData,
+  isContextMenu,
+  filters,
+}: Partial<DrillDetailMenuItemsProps>) => {
+  const [showMenu, setShowMenu] = React.useState(false);
+
+  return (
+    <Menu>
+      <DrillDetailMenuItems
+        chartId={chartId ?? defaultChartId}
+        formData={formData ?? defaultFormData}
+        filters={filters}
+        isContextMenu={isContextMenu}
+        showModal={showMenu}
+        setShowModal={setShowMenu}
+      />
+    </Menu>
+  );
+};
+
 const renderMenu = ({
   chartId,
   formData,
@@ -74,14 +99,12 @@ const renderMenu = ({
 }: Partial<DrillDetailMenuItemsProps>) => {
   const store = getMockStoreWithNativeFilters();
   return render(
-    <Menu>
-      <DrillDetailMenuItems
-        chartId={chartId ?? defaultChartId}
-        formData={formData ?? defaultFormData}
-        filters={filters}
-        isContextMenu={isContextMenu}
-      />
-    </Menu>,
+    <MockRenderChart
+      chartId={chartId}
+      formData={formData}
+      isContextMenu={isContextMenu}
+      filters={filters}
+    />,
     { useRouter: true, useRedux: true, store },
   );
 };
@@ -282,11 +305,11 @@ test('context menu for supported chart, no dimensions, no filters', async () => 
     isContextMenu: true,
   });
 
-  await expectDrillToDetailDisabled(
-    'Drill to detail is disabled because this chart does not group data by dimension value.',
-  );
+  const message =
+    'Drill to detail is disabled because this chart does not group data by dimension value.';
 
-  await expectDrillToDetailByDisabled();
+  await expectDrillToDetailDisabled(message);
+  await expectDrillToDetailByDisabled(message);
 });
 
 test('context menu for supported chart, no dimensions, 1 filter', async () => {
@@ -296,11 +319,11 @@ test('context menu for supported chart, no dimensions, 1 filter', async () => {
     filters: [filterA],
   });
 
-  await expectDrillToDetailDisabled(
-    'Drill to detail is disabled because this chart does not group data by dimension value.',
-  );
+  const message =
+    'Drill to detail is disabled because this chart does not group data by dimension value.';
 
-  await expectDrillToDetailByDisabled();
+  await expectDrillToDetailDisabled(message);
+  await expectDrillToDetailByDisabled(message);
 });
 
 test('dropdown menu for supported chart, dimensions', async () => {

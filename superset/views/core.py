@@ -23,7 +23,6 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-import simplejson as json
 from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
@@ -46,6 +45,7 @@ from superset import (
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.explore.form_data.create import CreateFormDataCommand
@@ -70,10 +70,9 @@ from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
-    base_json_conv,
     DatasourceType,
     get_user_id,
     ReservedUrlParameters,
@@ -121,7 +120,7 @@ PARAMETER_MISSING_ERR = __(
 SqlResults = dict[str, Any]
 
 
-class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
+class Superset(BaseSupersetView):
     """The base views for Superset!"""
 
     logger = logging.getLogger(__name__)
@@ -166,6 +165,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "data": payload["df"].to_dict("records"),
                 "colnames": payload.get("colnames"),
                 "coltypes": payload.get("coltypes"),
+                "rowcount": payload.get("rowcount"),
+                "sql_rowcount": payload.get("sql_rowcount"),
             },
         )
 
@@ -203,7 +204,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=("GET",))
     @check_resource_permissions(check_explore_cache_perms)
-    @deprecated(eol_version="4.0.0")
+    @deprecated(eol_version="5.0.0")
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -256,7 +257,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     )
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
-    @deprecated(eol_version="4.0.0")
+    @deprecated(eol_version="5.0.0")
     def explore_json(
         self, datasource_type: str | None = None, datasource_id: int | None = None
     ) -> FlaskResponse:
@@ -574,7 +575,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self.render_template(
             "superset/basic.html",
             bootstrap_data=json.dumps(
-                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+                bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
             ),
             entry="explore",
             title=title,
@@ -762,7 +763,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     }
                     for slc in slices
                 ],
-                default=base_json_conv,
+                default=json.base_json_conv,
             ),
         )
 
@@ -816,7 +817,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     "user": bootstrap_user_data(g.user, include_perms=True),
                     "common": common_bootstrap_payload(),
                 },
-                default=utils.pessimistic_json_iso_dttm_ser,
+                default=json.pessimistic_json_iso_dttm_ser,
             ),
             standalone_mode=ReservedUrlParameters.is_standalone_mode(),
         )
@@ -832,6 +833,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except DashboardPermalinkGetFailedError as ex:
             flash(__("Error: %(msg)s", msg=ex.message), "danger")
             return redirect("/dashboard/list/")
+        except DashboardAccessDeniedError as ex:
+            flash(__("Error: %(msg)s", msg=ex.message), "danger")
+            return redirect("/dashboard/list/")
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id, state = value["dashboardId"], value.get("state", {})
@@ -839,6 +843,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if url_params := state.get("urlParams"):
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
+        if original_params := request.query_string.decode():
+            url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
             url = f"{url}#{hash_}"
         return redirect(url)
@@ -912,27 +918,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "superset/spa.html",
             entry="spa",
             bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
+                payload, default=json.pessimistic_json_iso_dttm_ser
             ),
         )
-
-    @has_access
-    @event_logger.log_this
-    @expose(
-        "/sqllab/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated(new_target="/sqllab")
-    def sqllab(self) -> FlaskResponse:
-        """SQL Editor"""
-        url = "/sqllab"
-        if url_params := request.args:
-            params = parse.urlencode(url_params)
-            url = f"{url}?{params}"
-        return redirect(url)
 
     @has_access
     @event_logger.log_this

@@ -59,11 +59,3 @@ InteractiveCopyToClipboard.argTypes = {
     control: { type: 'radio', options: ['Button', 'Icon', 'Text'] },
   },
 };
-
-InteractiveCopyToClipboard.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

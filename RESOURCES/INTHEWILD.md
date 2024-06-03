@@ -53,6 +53,7 @@ Join our growing community!
 - [AiHello](https://www.aihello.com) [@ganeshkrishnan1]
 - [Bazaar Technologies](https://www.bazaartech.com) [@umair-abro]
 - [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
+- [Dropit Shopping](https://www.dropit.shop/) [@dropit-dev]
 - [Fanatics](https://www.fanatics.com) [@coderfender]
 - [Fordeal](http://www.fordeal.com) [@Renkai]
 - [GFG - Global Fashion Group](https://global-fashion-group.com) [@ksaagariconic]
@@ -173,6 +174,7 @@ Join our growing community!
 - [AI inside](https://inside.ai/en/)
 - [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
+- [GEOTAB](https://www.geotab.com) [@JZ6]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [Increff](https://www.increff.com/) [@ishansinghania]
 - [komoot](https://www.komoot.com/) [@christophlingg]

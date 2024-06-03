@@ -36,7 +36,7 @@ function DatabaseErrorMessage({
   error,
   source = 'dashboard',
   subtitle,
-}: ErrorMessageComponentProps<DatabaseErrorExtra>) {
+}: ErrorMessageComponentProps<DatabaseErrorExtra | null>) {
   const { extra, level, message } = error;
 
   const isVisualization = ['dashboard', 'explore'].includes(source);
@@ -47,7 +47,7 @@ function DatabaseErrorMessage({
         {t('This may be triggered by:')}
         <br />
         {extra.issue_codes
-          .map<React.ReactNode>(issueCode => (
+          ?.map<React.ReactNode>(issueCode => (
             <IssueCode {...issueCode} key={issueCode.code} />
           ))
           .reduce((prev, curr) => [prev, <br />, curr])}

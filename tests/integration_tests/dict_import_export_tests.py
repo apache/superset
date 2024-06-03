@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-import json
+
 import unittest
 from uuid import uuid4
 
@@ -28,6 +28,7 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.utils.database import get_example_database
 from superset.utils.dict_import_export import export_to_dict
+from superset.utils import json
 
 from .base_tests import SupersetTestCase
 
@@ -43,11 +44,10 @@ class TestDictImportExport(SupersetTestCase):
     def delete_imports(cls):
         with app.app_context():
             # Imported data clean up
-            session = db.session
-            for table in session.query(SqlaTable):
+            for table in db.session.query(SqlaTable):
                 if DBREF in table.params_dict:
-                    session.delete(table)
-            session.commit()
+                    db.session.delete(table)
+            db.session.commit()
 
     @classmethod
     def setUpClass(cls):
@@ -124,7 +124,7 @@ class TestDictImportExport(SupersetTestCase):
 
     def test_import_table_no_metadata(self):
         table, dict_table = self.create_table("pure_table", id=ID_PREFIX + 1)
-        new_table = SqlaTable.import_from_dict(db.session, dict_table)
+        new_table = SqlaTable.import_from_dict(dict_table)
         db.session.commit()
         imported_id = new_table.id
         imported = self.get_table_by_id(imported_id)
@@ -139,7 +139,7 @@ class TestDictImportExport(SupersetTestCase):
             cols_uuids=[uuid4()],
             metric_names=["metric1"],
         )
-        imported_table = SqlaTable.import_from_dict(db.session, dict_table)
+        imported_table = SqlaTable.import_from_dict(dict_table)
         db.session.commit()
         imported = self.get_table_by_id(imported_table.id)
         self.assert_table_equals(table, imported)
@@ -156,7 +156,7 @@ class TestDictImportExport(SupersetTestCase):
             cols_uuids=[uuid4(), uuid4()],
             metric_names=["m1", "m2"],
         )
-        imported_table = SqlaTable.import_from_dict(db.session, dict_table)
+        imported_table = SqlaTable.import_from_dict(dict_table)
         db.session.commit()
         imported = self.get_table_by_id(imported_table.id)
         self.assert_table_equals(table, imported)
@@ -166,7 +166,7 @@ class TestDictImportExport(SupersetTestCase):
         table, dict_table = self.create_table(
             "table_override", id=ID_PREFIX + 3, cols_names=["col1"], metric_names=["m1"]
         )
-        imported_table = SqlaTable.import_from_dict(db.session, dict_table)
+        imported_table = SqlaTable.import_from_dict(dict_table)
         db.session.commit()
         table_over, dict_table_over = self.create_table(
             "table_override",
@@ -174,7 +174,7 @@ class TestDictImportExport(SupersetTestCase):
             cols_names=["new_col1", "col2", "col3"],
             metric_names=["new_metric1"],
         )
-        imported_over_table = SqlaTable.import_from_dict(db.session, dict_table_over)
+        imported_over_table = SqlaTable.import_from_dict(dict_table_over)
         db.session.commit()
 
         imported_over = self.get_table_by_id(imported_over_table.id)
@@ -195,7 +195,7 @@ class TestDictImportExport(SupersetTestCase):
         table, dict_table = self.create_table(
             "table_override", id=ID_PREFIX + 3, cols_names=["col1"], metric_names=["m1"]
         )
-        imported_table = SqlaTable.import_from_dict(db.session, dict_table)
+        imported_table = SqlaTable.import_from_dict(dict_table)
         db.session.commit()
         table_over, dict_table_over = self.create_table(
             "table_override",
@@ -204,7 +204,7 @@ class TestDictImportExport(SupersetTestCase):
             metric_names=["new_metric1"],
         )
         imported_over_table = SqlaTable.import_from_dict(
-            session=db.session, dict_rep=dict_table_over, sync=["metrics", "columns"]
+            dict_rep=dict_table_over, sync=["metrics", "columns"]
         )
         db.session.commit()
 
@@ -229,7 +229,7 @@ class TestDictImportExport(SupersetTestCase):
             cols_names=["new_col1", "col2", "col3"],
             metric_names=["new_metric1"],
         )
-        imported_table = SqlaTable.import_from_dict(db.session, dict_table)
+        imported_table = SqlaTable.import_from_dict(dict_table)
         db.session.commit()
         copy_table, dict_copy_table = self.create_table(
             "copy_cat",
@@ -237,7 +237,7 @@ class TestDictImportExport(SupersetTestCase):
             cols_names=["new_col1", "col2", "col3"],
             metric_names=["new_metric1"],
         )
-        imported_copy_table = SqlaTable.import_from_dict(db.session, dict_copy_table)
+        imported_copy_table = SqlaTable.import_from_dict(dict_copy_table)
         db.session.commit()
         self.assertEqual(imported_table.id, imported_copy_table.id)
         self.assert_table_equals(copy_table, self.get_table_by_id(imported_table.id))
@@ -250,7 +250,6 @@ class TestDictImportExport(SupersetTestCase):
         self.delete_fake_db()
 
         cli_export = export_to_dict(
-            session=db.session,
             recursive=True,
             back_references=False,
             include_defaults=False,

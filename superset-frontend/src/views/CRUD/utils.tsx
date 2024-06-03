@@ -24,12 +24,12 @@ import {
   SupersetClient,
   SupersetClientResponse,
   SupersetTheme,
+  getClientErrorObject,
   t,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
 import rison from 'rison';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig, FilterValue } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
@@ -487,14 +487,14 @@ export const uploadUserPerms = (
   allowedExt: Array<string>,
 ) => {
   const canUploadCSV =
-    findPermission('can_this_form_get', 'CsvToDatabaseView', roles) &&
+    findPermission('can_csv_upload', 'Database', roles) &&
     checkUploadExtensions(csvExt, allowedExt);
   const canUploadColumnar =
     checkUploadExtensions(colExt, allowedExt) &&
-    findPermission('can_this_form_get', 'ColumnarToDatabaseView', roles);
+    findPermission('can_columnar_upload', 'Database', roles);
   const canUploadExcel =
     checkUploadExtensions(excelExt, allowedExt) &&
-    findPermission('can_this_form_get', 'ExcelToDatabaseView', roles);
+    findPermission('can_excel_upload', 'Database', roles);
   return {
     canUploadCSV,
     canUploadColumnar,

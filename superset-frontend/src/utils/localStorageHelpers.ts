@@ -50,6 +50,7 @@ export enum LocalStorageKeys {
    * sqllab__is_autocomplete_enabled
    */
   SqllabIsAutocompleteEnabled = 'sqllab__is_autocomplete_enabled',
+  SqllabIsRenderHtmlEnabled = 'sqllab__is_render_html_enabled',
   ExploreDataTableOriginalFormattedTimeColumns = 'explore__data_table_original_formatted_time_columns',
   DashboardCustomFilterBarWidths = 'dashboard__custom_filter_bar_widths',
   DashboardExploreContext = 'dashboard__explore_context',
@@ -69,6 +70,7 @@ export type LocalStorageValues = {
   datasetname_set_successful: boolean;
   homepage_activity_filter: TableTab | null;
   sqllab__is_autocomplete_enabled: boolean;
+  sqllab__is_render_html_enabled: boolean;
   explore__data_table_original_formatted_time_columns: Record<string, string[]>;
   dashboard__custom_filter_bar_widths: Record<string, number>;
   dashboard__explore_context: Record<string, DashboardContextForExplore>;

@@ -23,12 +23,13 @@ const NUM_COLUMNS = 12;
 type Control = React.ReactElement | null;
 
 export default function ControlRow({ controls }: { controls: Control[] }) {
-  const isHiddenControl = useCallback(
-    (control: Control) =>
-      control?.props.type === 'HiddenControl' ||
-      control?.props.isVisible === false,
-    [],
-  );
+  const isHiddenControl = useCallback((control: Control) => {
+    const props =
+      control && 'shouldStash' in control.props
+        ? control.props.children.props
+        : control?.props;
+    return props?.type === 'HiddenControl' || props?.isVisible === false;
+  }, []);
   // Invisible control should not be counted
   // in the columns number
   const countableControls = controls.filter(
@@ -41,6 +42,7 @@ export default function ControlRow({ controls }: { controls: Control[] }) {
     <div className="row">
       {controls.map((control, i) => (
         <div
+          data-test="control-item"
           className={`col-lg-${colSize} col-xs-12`}
           style={{
             display: isHiddenControl(control) ? 'none' : 'block',

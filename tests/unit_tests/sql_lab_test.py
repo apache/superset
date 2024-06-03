@@ -38,6 +38,7 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
     database = query.database
     database.allow_dml = False
     database.apply_limit_to_sql.return_value = "SELECT 42 AS answer LIMIT 2"
+    database.mutate_sql_based_on_config.return_value = "SELECT 42 AS answer LIMIT 2"
     db_engine_spec = database.db_engine_spec
     db_engine_spec.is_select_query.return_value = True
     db_engine_spec.fetch_data.return_value = [(42,)]
@@ -55,7 +56,9 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
 
     database.apply_limit_to_sql.assert_called_with("SELECT 42 AS answer", 2, force=True)
     db_engine_spec.execute_with_cursor.assert_called_with(
-        cursor, "SELECT 42 AS answer LIMIT 2", query
+        cursor,
+        "SELECT 42 AS answer LIMIT 2",
+        query,
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
@@ -69,15 +72,16 @@ def test_execute_sql_statement_with_rls(
     from superset.sql_lab import execute_sql_statement
 
     sql_statement = "SELECT * FROM sales"
+    sql_statement_with_rls = f"{sql_statement} WHERE organization_id=42"
+    sql_statement_with_rls_and_limit = f"{sql_statement_with_rls} LIMIT 101"
 
     query = mocker.MagicMock()
     query.limit = 100
     query.select_as_cta_used = False
     database = query.database
     database.allow_dml = False
-    database.apply_limit_to_sql.return_value = (
-        "SELECT * FROM sales WHERE organization_id=42 LIMIT 101"
-    )
+    database.apply_limit_to_sql.return_value = sql_statement_with_rls_and_limit
+    database.mutate_sql_based_on_config.return_value = sql_statement_with_rls_and_limit
     db_engine_spec = database.db_engine_spec
     db_engine_spec.is_select_query.return_value = True
     db_engine_spec.fetch_data.return_value = [(42,)]
@@ -104,7 +108,9 @@ def test_execute_sql_statement_with_rls(
         force=True,
     )
     db_engine_spec.execute_with_cursor.assert_called_with(
-        cursor, "SELECT * FROM sales WHERE organization_id=42 LIMIT 101", query
+        cursor,
+        "SELECT * FROM sales WHERE organization_id=42 LIMIT 101",
+        query,
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
@@ -125,7 +131,7 @@ def test_sql_lab_insert_rls_as_subquery(
     from superset.sql_lab import execute_sql_statement
     from superset.utils.core import RowLevelSecurityFilterType
 
-    engine = session.connection().engine
+    engine = db.session.connection().engine
     Query.metadata.create_all(engine)  # pylint: disable=no-member
 
     connection = engine.raw_connection()
@@ -143,8 +149,8 @@ def test_sql_lab_insert_rls_as_subquery(
         limit=5,
         select_as_cta_used=False,
     )
-    session.add(query)
-    session.commit()
+    db.session.add(query)
+    db.session.commit()
 
     admin = User(
         first_name="Alice",
@@ -185,8 +191,8 @@ def test_sql_lab_insert_rls_as_subquery(
         group_key=None,
         clause="c > 5",
     )
-    session.add(rls)
-    session.flush()
+    db.session.add(rls)
+    db.session.flush()
     mocker.patch.object(SupersetSecurityManager, "find_user", return_value=admin)
     mocker.patch("superset.sql_lab.is_feature_enabled", return_value=True)
 

@@ -26,14 +26,14 @@ Create Date: 2019-06-28 13:17:59.517089
 revision = "ab8c66efdd01"
 down_revision = "d7c1a0d6f2da"
 
-import json
-import logging
+import logging  # noqa: E402
 
-from alembic import op
-from sqlalchemy import Column, Integer, Text
-from sqlalchemy.ext.declarative import declarative_base
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, Integer, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db
+from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
@@ -76,7 +76,7 @@ def upgrade():
                             params["resample_method"] = fill_method
 
                     # Ensure that the resample logic is fully defined.
-                    if not "resample_method" in params:
+                    if "resample_method" not in params:
                         del params["resample_rule"]
                 else:
                     del params["resample_rule"]

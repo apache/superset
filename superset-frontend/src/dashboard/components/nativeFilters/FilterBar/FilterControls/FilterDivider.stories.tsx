@@ -94,15 +94,11 @@ const args = {
   description: 'Sample description',
 };
 
-const story = { parameters: { knobs: { disable: true } } };
-
 VerticalFilterDivider.args = {
   ...args,
   horizontal: false,
   overflow: false,
 };
-
-VerticalFilterDivider.story = story;
 
 HorizontalFilterDivider.args = {
   ...args,
@@ -110,12 +106,8 @@ HorizontalFilterDivider.args = {
   overflow: false,
 };
 
-HorizontalFilterDivider.story = story;
-
 HorizontalOverflowFilterDivider.args = {
   ...args,
   horizontal: true,
   overflow: true,
 };
-
-HorizontalOverflowFilterDivider.story = story;

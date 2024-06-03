@@ -17,7 +17,6 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import getToastsFromPyFlashMessages from 'src/components/MessageToasts/getToastsFromPyFlashMessages';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
 import {
@@ -58,7 +57,7 @@ export default function getInitialState({
     version: LatestQueryEditorVersion,
     loaded: true,
     name: t('Untitled query'),
-    sql: 'SELECT *\nFROM\nWHERE',
+    sql: '',
     latestQueryId: null,
     autorun: false,
     dbId: common.conf.SQLLAB_DEFAULT_DBID,
@@ -90,6 +89,7 @@ export default function getInitialState({
         autorun: Boolean(activeTab.autorun),
         templateParams: activeTab.template_params || undefined,
         dbId: activeTab.database_id,
+        catalog: activeTab.catalog,
         schema: activeTab.schema,
         queryLimit: activeTab.query_limit,
         hideLeftBar: activeTab.hide_left_bar,
@@ -122,6 +122,7 @@ export default function getInitialState({
         const table = {
           dbId: tableSchema.database_id,
           queryEditorId: tableSchema.tab_state_id.toString(),
+          catalog: tableSchema.catalog,
           schema: tableSchema.schema,
           name: tableSchema.table,
           expanded: tableSchema.expanded,
@@ -137,7 +138,12 @@ export default function getInitialState({
       });
   }
 
-  const queries = { ...queries_ };
+  const queries = {
+    ...queries_,
+    ...(activeTab?.latest_query && {
+      [activeTab.latest_query.id]: activeTab.latest_query,
+    }),
+  };
 
   /**
    * If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user
@@ -245,9 +251,6 @@ export default function getInitialState({
       queryCostEstimates: {},
       unsavedQueryEditor,
     },
-    messageToasts: getToastsFromPyFlashMessages(
-      (common || {})?.flash_messages || [],
-    ),
     localStorageUsageInKilobytes: 0,
     common,
     ...otherBootstrapData,

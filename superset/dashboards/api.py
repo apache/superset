@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=too-many-lines
 import functools
-import json
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -49,6 +48,7 @@ from superset.commands.dashboard.exceptions import (
 from superset.commands.dashboard.export import ExportDashboardsCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.update import UpdateDashboardCommand
+from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -83,6 +83,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
+from superset.utils import json
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -102,7 +103,7 @@ logger = logging.getLogger(__name__)
 
 
 def with_dashboard(
-    f: Callable[[BaseSupersetModelRestApi, Dashboard], Response]
+    f: Callable[[BaseSupersetModelRestApi, Dashboard], Response],
 ) -> Callable[[BaseSupersetModelRestApi, str], Response]:
     """
     A decorator that looks up the dashboard by id or slug and passes it to the api.
@@ -577,6 +578,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             response = self.response_404()
         except DashboardForbiddenError:
             response = self.response_403()
+        except TagForbiddenError as ex:
+            response = self.response(403, message=str(ex))
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DashboardUpdateFailedError as ex:
@@ -756,7 +759,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     requested_ids
                 ).run():
                     with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content.encode())
+                        fp.write(file_content().encode())
             except DashboardNotFoundError:
                 return self.response_404()
         buf.seek(0)
@@ -1261,7 +1264,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @permission_name("set_embedded")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.delete_embedded",
         log_to_statsd=False,
     )
     @with_dashboard

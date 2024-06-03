@@ -26,3 +26,4 @@ export { default as columnChoices } from './columnChoices';
 export * from './defineSavedMetrics';
 export * from './getStandardizedControls';
 export * from './getTemporalColumns';
+export { default as displayTimeRelatedControls } from './displayTimeRelatedControls';

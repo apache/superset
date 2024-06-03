@@ -17,6 +17,9 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+[![Version](https://img.shields.io/npm/v/%40superset-ui%2Fembedded-sdk?style=flat)](https://www.npmjs.com/package/@superset-ui/embedded-sdk)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Fembedded-sdk?style=flat)](https://libraries.io/npm/@superset-ui%2Fembedded-sdk)
+
 # Superset Embedded SDK
 
 The Embedded SDK allows you to embed dashboards from Superset into your own app,
@@ -40,10 +43,15 @@ embedDashboard({
   supersetDomain: "https://superset.example.com",
   mountPoint: document.getElementById("my-superset-container"), // any html element that can contain an iframe
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
-  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional)
+  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional), urlParams (optional)
       hideTitle: true,
       filters: {
           expanded: true,
+      },
+      urlParams: {
+          foo: 'value1',
+          bar: 'value2',
+          // ...
       }
   },
 });

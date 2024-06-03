@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
+from superset.utils import json
 
 
 def test_column_attributes_on_query():
@@ -22,10 +22,10 @@ def test_column_attributes_on_query():
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
-    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     query_obj = Query(
         client_id="foo",
-        database=db,
+        database=database,
         tab_name="test_tab",
         sql_editor_id="test_editor_id",
         sql="select * from bar",

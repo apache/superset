@@ -17,6 +17,7 @@
 """
 DEPRECATION NOTICE: this module is deprecated and will be removed on 2.0.
 """
+
 import logging
 from io import IOBase
 from typing import cast, Optional, Union
@@ -47,7 +48,7 @@ def deliver_slack_msg(
     if file:
         response = cast(
             SlackResponse,
-            client.files_upload(
+            client.files_upload_v2(
                 channels=slack_channel, file=file, initial_comment=body, title=subject
             ),
         )

@@ -44,7 +44,7 @@ import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane'
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
 import Icons from 'src/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { Droppable } from 'src/dashboard/components/dnd/DragDroppable';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
@@ -81,6 +81,7 @@ import {
   MAIN_HEADER_HEIGHT,
   OPEN_FILTER_BAR_MAX_WIDTH,
   OPEN_FILTER_BAR_WIDTH,
+  EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
@@ -107,12 +108,27 @@ const StickyPanel = styled.div<{ width: number }>`
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
 const StyledHeader = styled.div`
-  grid-column: 2;
-  grid-row: 1;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  max-width: 100vw;
+  ${({ theme }) => css`
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    max-width: 100vw;
+
+    .empty-droptarget:before {
+      position: absolute;
+      content: '';
+      display: none;
+      width: calc(100% - ${theme.gridUnit * 2}px);
+      height: calc(100% - ${theme.gridUnit * 2}px);
+      left: ${theme.gridUnit}px;
+      top: ${theme.gridUnit}px;
+      border: 1px dashed transparent;
+      border-radius: ${theme.gridUnit}px;
+      opacity: 0.5;
+    }
+  `}
 `;
 
 const StyledContent = styled.div<{
@@ -170,6 +186,11 @@ const DashboardContentWrapper = styled.div`
         pointer-events: none;
       }
 
+      .grid-row.grid-row--hovered:after,
+      .dashboard-component-tabs > .grid-row--hovered:after {
+        border: 2px dashed ${theme.colors.primary.base};
+      }
+
       .resizable-container {
         & .dashboard-component-chart-holder {
           .dashboard-chart {
@@ -211,12 +232,8 @@ const DashboardContentWrapper = styled.div`
 
       /* provide hit area in case row contents is edge to edge */
       .dashboard-component-tabs-content {
-        .dragdroppable-row {
+        > .dragdroppable-row {
           padding-top: ${theme.gridUnit * 4}px;
-        }
-
-        & > div:not(:last-child):not(.empty-droptarget) {
-          margin-bottom: ${theme.gridUnit * 4}px;
         }
       }
 
@@ -250,24 +267,20 @@ const DashboardContentWrapper = styled.div`
       }
 
       & > .empty-droptarget {
+        z-index: ${EMPTY_CONTAINER_Z_INDEX};
         position: absolute;
         width: 100%;
       }
 
       & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
         height: ${theme.gridUnit * 4}px;
-        top: -2px;
-        z-index: 10;
+        top: 0;
       }
 
       & > .empty-droptarget:last-child {
-        height: ${theme.gridUnit * 3}px;
-        bottom: 0;
+        height: ${theme.gridUnit * 4}px;
+        bottom: ${-theme.gridUnit * 4}px;
       }
-    }
-
-    .empty-droptarget:first-child .drop-indicator--bottom {
-      top: ${theme.gridUnit * 6}px;
     }
   `}
 `;
@@ -325,13 +338,15 @@ const StyledDashboardContent = styled.div<{
       overflow-y: visible;
 
       // transitionable traits to show filter relevance
-      transition: opacity ${theme.transitionTiming}s ease-in-out,
+      transition:
+        opacity ${theme.transitionTiming}s ease-in-out,
         border-color ${theme.transitionTiming}s ease-in-out,
         box-shadow ${theme.transitionTiming}s ease-in-out;
 
       &.fade-in {
         border-radius: ${theme.borderRadius}px;
-        box-shadow: inset 0 0 0 2px ${theme.colors.primary.base},
+        box-shadow:
+          inset 0 0 0 2px ${theme.colors.primary.base},
           0 0 0 3px
             ${addAlpha(
               theme.colors.primary.base,
@@ -397,6 +412,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
       dispatch(setDirectPathToChild(pathToTabIndex));
+      window.scrollTo(0, 0);
     },
     [dispatch],
   );
@@ -572,49 +588,51 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   return (
     <DashboardWrapper>
-      {showFilterBar && filterBarOrientation === FilterBarOrientation.Vertical && (
-        <>
-          <ResizableSidebar
-            id={`dashboard:${dashboardId}`}
-            enable={dashboardFiltersOpen}
-            minWidth={OPEN_FILTER_BAR_WIDTH}
-            maxWidth={OPEN_FILTER_BAR_MAX_WIDTH}
-            initialWidth={OPEN_FILTER_BAR_WIDTH}
-          >
-            {adjustedWidth => {
-              const filterBarWidth = dashboardFiltersOpen
-                ? adjustedWidth
-                : CLOSED_FILTER_BAR_WIDTH;
-              return (
-                <FiltersPanel
-                  width={filterBarWidth}
-                  hidden={isReport}
-                  data-test="dashboard-filters-panel"
-                >
-                  <StickyPanel ref={containerRef} width={filterBarWidth}>
-                    <ErrorBoundary>
-                      <FilterBar
-                        orientation={FilterBarOrientation.Vertical}
-                        verticalConfig={{
-                          filtersOpen: dashboardFiltersOpen,
-                          toggleFiltersBar: toggleDashboardFiltersOpen,
-                          width: filterBarWidth,
-                          height: filterBarHeight,
-                          offset: filterBarOffset,
-                        }}
-                      />
-                    </ErrorBoundary>
-                  </StickyPanel>
-                </FiltersPanel>
-              );
-            }}
-          </ResizableSidebar>
-        </>
-      )}
+      {showFilterBar &&
+        filterBarOrientation === FilterBarOrientation.Vertical && (
+          <>
+            <ResizableSidebar
+              id={`dashboard:${dashboardId}`}
+              enable={dashboardFiltersOpen}
+              minWidth={OPEN_FILTER_BAR_WIDTH}
+              maxWidth={OPEN_FILTER_BAR_MAX_WIDTH}
+              initialWidth={OPEN_FILTER_BAR_WIDTH}
+            >
+              {adjustedWidth => {
+                const filterBarWidth = dashboardFiltersOpen
+                  ? adjustedWidth
+                  : CLOSED_FILTER_BAR_WIDTH;
+                return (
+                  <FiltersPanel
+                    width={filterBarWidth}
+                    hidden={isReport}
+                    data-test="dashboard-filters-panel"
+                  >
+                    <StickyPanel ref={containerRef} width={filterBarWidth}>
+                      <ErrorBoundary>
+                        <FilterBar
+                          orientation={FilterBarOrientation.Vertical}
+                          verticalConfig={{
+                            filtersOpen: dashboardFiltersOpen,
+                            toggleFiltersBar: toggleDashboardFiltersOpen,
+                            width: filterBarWidth,
+                            height: filterBarHeight,
+                            offset: filterBarOffset,
+                          }}
+                        />
+                      </ErrorBoundary>
+                    </StickyPanel>
+                  </FiltersPanel>
+                );
+              }}
+            </ResizableSidebar>
+          </>
+        )}
       <StyledHeader ref={headerRef}>
         {/* @ts-ignore */}
-        <DragDroppable
+        <Droppable
           data-test="top-level-tabs"
+          className={cx(!topLevelTabs && editMode && 'empty-droptarget')}
           component={dashboardRoot}
           parentComponent={null}
           depth={DASHBOARD_ROOT_DEPTH}
@@ -627,7 +645,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           style={draggableStyle}
         >
           {renderDraggableContent}
-        </DragDroppable>
+        </Droppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
         <Global

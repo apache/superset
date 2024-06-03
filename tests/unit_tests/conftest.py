@@ -41,7 +41,7 @@ from superset.initialization import SupersetAppInitializer
 @pytest.fixture
 def get_session(mocker: MockFixture) -> Callable[[], Session]:
     """
-    Create an in-memory SQLite session to test models.
+    Create an in-memory SQLite db.session.to test models.
     """
     engine = create_engine("sqlite://")
 
@@ -49,7 +49,7 @@ def get_session(mocker: MockFixture) -> Callable[[], Session]:
         Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name
         in_memory_session = Session_()
 
-        # flask calls session.remove()
+        # flask calls db.session.remove()
         in_memory_session.remove = lambda: None
 
         # patch session
@@ -87,6 +87,9 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     app.config["WTF_CSRF_ENABLED"] = False
     app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
     app.config["TESTING"] = True
+    app.config["RATELIMIT_ENABLED"] = False
+    app.config["CACHE_CONFIG"] = {}
+    app.config["DATA_CACHE_CONFIG"] = {}
 
     # loop over extra configs passed in by tests
     # and update the app config
@@ -146,6 +149,7 @@ def full_api_access(mocker: MockFixture) -> Iterator[None]:
         "flask_appbuilder.security.decorators.verify_jwt_in_request",
         return_value=True,
     )
+    mocker.patch.object(security_manager, "is_item_public", return_value=True)
     mocker.patch.object(security_manager, "has_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_all_databases", return_value=True)
 

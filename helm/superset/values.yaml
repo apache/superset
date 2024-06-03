@@ -31,6 +31,12 @@ fullnameOverride: ~
 # Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
 runAsUser: 0
 
+# -- Specify rather or not helm should create the secret described in `secret-env.yaml` template
+secretEnv:
+  # -- Change to false in order to support externally created secret (Binami "Sealed Secrets" for Kubernetes or External Secrets Operator)
+  # note: when externally creating the secret, the chart still expects to pull values from a secret with the name of the release defaults to `release-name-superset-env` - full logic located in _helpers.tpl file: `define "superset.fullname"`
+  create: true
+
 # -- Specify service account name to be used
 serviceAccountName: ~
 serviceAccount:
@@ -248,6 +254,14 @@ supersetNode:
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
+  # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetNode pods
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
 
   # -- Startup command
   # @default -- See `values.yaml`
@@ -258,8 +272,16 @@ supersetNode:
   connections:
     # -- Change in case of bringing your own redis and then also set redis.enabled:false
     redis_host: '{{ .Release.Name }}-redis-headless'
-    # redis_password: superset
     redis_port: "6379"
+    redis_user: ""
+    # redis_password: superset
+    redis_cache_db: "1"
+    redis_celery_db: "0"
+    # Or SSL port is usually 6380
+    # Update following for using Redis with SSL
+    redis_ssl:
+      enabled: false
+      ssl_cert_reqs: CERT_NONE
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
     db_host: '{{ .Release.Name }}-postgresql'
     db_port: "5432"
@@ -349,7 +371,14 @@ supersetWorker:
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
-
+  # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWorker pods
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   # -- Worker startup command
   # @default -- a `celery worker` command
   command:
@@ -422,6 +451,14 @@ supersetWorker:
 supersetCeleryBeat:
   # -- This is only required if you intend to use alerts and reports
   enabled: false
+  # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryBeat pods
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   # -- Command
   # @default -- a `celery beat` command
   command:
@@ -472,6 +509,14 @@ supersetCeleryFlower:
   # flower>=1.0.0 requires Celery 5+ which Superset 1.5 does not support
   enabled: false
   replicaCount: 1
+  # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryFlower pods
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   # -- Command
   # @default -- a `celery flower` command
   command:
@@ -554,6 +599,14 @@ supersetWebsockets:
   # see https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
   enabled: false
   replicaCount: 1
+  # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWebsockets pods
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   ingress:
     path: /ws
     pathType: Prefix

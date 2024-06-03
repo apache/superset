@@ -40,12 +40,11 @@ jest.mock('re-resizable', () => ({
 jest.mock(
   'src/explore/components/ExploreChartPanel',
   () =>
-    ({ exploreState }: { exploreState: JsonObject }) =>
-      (
-        <div data-test="mock-explore-chart-panel">
-          {JSON.stringify(exploreState)}
-        </div>
-      ),
+    ({ exploreState }: { exploreState: JsonObject }) => (
+      <div data-test="mock-explore-chart-panel">
+        {JSON.stringify(exploreState)}
+      </div>
+    ),
 );
 jest.mock('src/dashboard/util/charts/getFormDataWithExtraFilters');
 
@@ -66,6 +65,7 @@ describe('ChartPage', () => {
     const { getByTestId } = render(<ChartPage />, {
       useRouter: true,
       useRedux: true,
+      useDnd: true,
     });
     await waitFor(() =>
       expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
@@ -111,6 +111,7 @@ describe('ChartPage', () => {
       const { getByTestId } = render(<ChartPage />, {
         useRouter: true,
         useRedux: true,
+        useDnd: true,
       });
       await waitFor(() =>
         expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
@@ -157,6 +158,7 @@ describe('ChartPage', () => {
         {
           useRouter: true,
           useRedux: true,
+          useDnd: true,
         },
       );
       await waitFor(() =>

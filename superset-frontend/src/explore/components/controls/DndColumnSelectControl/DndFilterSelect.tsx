@@ -48,6 +48,7 @@ import {
 } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { ControlComponentProps } from 'src/explore/components/Control';
+import { toQueryString } from 'src/utils/urlUtils';
 import DndAdhocFilterOption from './DndAdhocFilterOption';
 import { useDefaultTimeFilter } from '../DateFilterControl/utils';
 import { Clauses, ExpressionTypes } from '../FilterControl/types';
@@ -84,6 +85,16 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     name: controlName,
     canDelete,
   } = props;
+
+  const extra = useMemo<{ disallow_adhoc_metrics?: boolean }>(() => {
+    let extra = {};
+    if (datasource?.extra) {
+      try {
+        extra = JSON.parse(datasource.extra);
+      } catch {} // eslint-disable-line no-empty
+    }
+    return extra;
+  }, [datasource?.extra]);
 
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
@@ -149,18 +160,36 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     optionsForSelect(props.columns, props.formData),
   );
 
+  const availableColumnSet = useMemo(
+    () =>
+      new Set(
+        options.map(
+          ({ column_name, filterOptionName }) =>
+            column_name ?? filterOptionName,
+        ),
+      ),
+    [options],
+  );
+
   useEffect(() => {
     if (datasource && datasource.type === 'table') {
       const dbId = datasource.database?.id;
       const {
         datasource_name: name,
+        catalog,
         schema,
         is_sqllab_view: isSqllabView,
       } = datasource;
 
       if (!isSqllabView && dbId && name && schema) {
         SupersetClient.get({
-          endpoint: `/api/v1/database/${dbId}/table_extra/${name}/${schema}/`,
+          endpoint: `/api/v1/database/${dbId}/table_metadata/extra/${toQueryString(
+            {
+              name,
+              catalog,
+              schema,
+            },
+          )}`,
         })
           .then(({ json }: { json: Record<string, any> }) => {
             if (json?.partitions) {
@@ -211,7 +240,9 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         warning({ title: t('Warning'), content: result });
         return;
       }
-      removeValue(index);
+      if (result === true) {
+        removeValue(index);
+      }
     },
     [canDelete, removeValue, values],
   );
@@ -382,7 +413,25 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     return new AdhocFilter(config);
   }, [droppedItem]);
 
-  const canDrop = useCallback(() => true, []);
+  const canDrop = useCallback(
+    (item: DatasourcePanelDndItem) => {
+      if (
+        extra.disallow_adhoc_metrics &&
+        (item.type !== DndItemType.Column ||
+          !availableColumnSet.has((item.value as ColumnMeta).column_name))
+      ) {
+        return false;
+      }
+
+      if (item.type === DndItemType.Column) {
+        const columnName = (item.value as ColumnMeta).column_name;
+        return availableColumnSet.has(columnName);
+      }
+      return true;
+    },
+    [availableColumnSet, extra],
+  );
+
   const handleDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
       setDroppedItem(item.value);

@@ -77,6 +77,7 @@ export interface ISaveableDatasource {
   dbId: number;
   sql: string;
   templateParams?: string | object | null;
+  catalog?: string | null;
   schema?: string | null;
   database?: Database;
 }
@@ -292,6 +293,7 @@ export const SaveDatasetModal = ({
       createDatasource({
         sql: datasource.sql,
         dbId: datasource.dbId || datasource?.database?.id,
+        catalog: datasource?.catalog,
         schema: datasource?.schema,
         templateParams,
         datasourceName: datasetName,

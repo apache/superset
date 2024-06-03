@@ -19,8 +19,8 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
-from flask import escape
 from flask_appbuilder import Model
+from markupsafe import escape
 from sqlalchemy import (
     Column,
     Enum,
@@ -87,7 +87,6 @@ class ObjectType(enum.Enum):
 
 
 class Tag(Model, AuditMixinNullable):
-
     """A tag attached to an object (query, chart, dashboard, or dataset)."""
 
     __tablename__ = "tag"
@@ -106,7 +105,6 @@ class Tag(Model, AuditMixinNullable):
 
 
 class TaggedObject(Model, AuditMixinNullable):
-
     """An association between an object and a tag."""
 
     __tablename__ = "tagged_object"
@@ -131,7 +129,11 @@ class TaggedObject(Model, AuditMixinNullable):
         return f"<TaggedObject: {self.object_type}:{self.object_id} TAG:{self.tag_id}>"
 
 
-def get_tag(name: str, session: orm.Session, type_: TagType) -> Tag:
+def get_tag(
+    name: str,
+    session: orm.Session,  # pylint: disable=disallowed-name
+    type_: TagType,
+) -> Tag:
     tag_name = name.strip()
     tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
     if tag is None:
@@ -168,7 +170,7 @@ class ObjectUpdater:
     @classmethod
     def get_owner_tag_ids(
         cls,
-        session: orm.Session,
+        session: orm.Session,  # pylint: disable=disallowed-name
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> set[int]:
         tag_ids = set()
@@ -181,7 +183,7 @@ class ObjectUpdater:
     @classmethod
     def _add_owners(
         cls,
-        session: orm.Session,
+        session: orm.Session,  # pylint: disable=disallowed-name
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
         for owner_id in cls.get_owners_ids(target):
@@ -193,7 +195,11 @@ class ObjectUpdater:
 
     @classmethod
     def add_tag_object_if_not_tagged(
-        cls, session: orm.Session, tag_id: int, object_id: int, object_type: str
+        cls,
+        session: orm.Session,  # pylint: disable=disallowed-name
+        tag_id: int,
+        object_id: int,
+        object_type: str,
     ) -> None:
         # Check if the object is already tagged
         exists_query = exists().where(
@@ -217,7 +223,7 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
-        with Session(bind=connection) as session:
+        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # add `owner:` tags
             cls._add_owners(session, target)
 
@@ -235,7 +241,7 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
-        with Session(bind=connection) as session:
+        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # Fetch current owner tags
             existing_tags = (
                 session.query(TaggedObject)
@@ -274,7 +280,7 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
-        with Session(bind=connection) as session:
+        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # delete row from `tagged_objects`
             session.query(TaggedObject).filter(
                 TaggedObject.object_type == cls.object_type,
@@ -321,7 +327,7 @@ class FavStarUpdater:
     def after_insert(
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
-        with Session(bind=connection) as session:
+        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             name = f"favorited_by:{target.user_id}"
             tag = get_tag(name, session, TagType.favorited_by)
             tagged_object = TaggedObject(
@@ -336,7 +342,7 @@ class FavStarUpdater:
     def after_delete(
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
-        with Session(bind=connection) as session:
+        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             name = f"favorited_by:{target.user_id}"
             query = (
                 session.query(TaggedObject.id)

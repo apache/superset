@@ -79,11 +79,3 @@ export const DatasetSpecific = () => {
     </div>
   );
 };
-
-DatasetSpecific.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

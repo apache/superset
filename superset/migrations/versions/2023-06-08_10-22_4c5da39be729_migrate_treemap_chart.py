@@ -21,6 +21,7 @@ Revises: 9ba2ce3086e5
 Create Date: 2023-06-08 10:22:23.192064
 
 """
+
 from alembic import op
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 

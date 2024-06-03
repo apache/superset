@@ -27,11 +27,10 @@ declare module 'dom-to-pdf' {
     filename: string;
     image: Image;
     html2canvas: object;
+    excludeClassNames?: string[];
   }
 
-  const domToPdf = (
-    elementToPrint: Element,
-    options?: Options,
-  ): Promise<any> => {};
+  function domToPdf(elementToPrint: Element, options?: Options): Promise<any>;
+
   export default domToPdf;
 }

@@ -44,11 +44,3 @@ InteractiveBoundsControl.args = {
 InteractiveBoundsControl.argTypes = {
   onChange: { action: 'onChange' },
 };
-
-InteractiveBoundsControl.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

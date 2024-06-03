@@ -22,8 +22,8 @@ import {
   SqlaFormData,
   supersetTheme,
 } from '@superset-ui/core';
-import transformProps, { formatPieLabel } from '../../src/Pie/transformProps';
-import { EchartsPieChartProps, EchartsPieLabelType } from '../../src/Pie/types';
+import transformProps, { parseParams } from '../../src/Pie/transformProps';
+import { EchartsPieChartProps } from '../../src/Pie/types';
 
 describe('Pie transformProps', () => {
   const formData: SqlaFormData = {
@@ -81,61 +81,23 @@ describe('formatPieLabel', () => {
     const numberFormatter = getNumberFormatter();
     const params = { name: 'My Label', value: 1234, percent: 12.34 };
     expect(
-      formatPieLabel({
+      parseParams({
         params,
         numberFormatter,
-        labelType: EchartsPieLabelType.Key,
       }),
-    ).toEqual('My Label');
+    ).toEqual(['My Label', '1.23k', '12.34%']);
     expect(
-      formatPieLabel({
-        params,
-        numberFormatter,
-        labelType: EchartsPieLabelType.Value,
-      }),
-    ).toEqual('1.23k');
-    expect(
-      formatPieLabel({
-        params,
-        numberFormatter,
-        labelType: EchartsPieLabelType.Percent,
-      }),
-    ).toEqual('12.34%');
-    expect(
-      formatPieLabel({
-        params,
-        numberFormatter,
-        labelType: EchartsPieLabelType.KeyValue,
-      }),
-    ).toEqual('My Label: 1.23k');
-    expect(
-      formatPieLabel({
-        params,
-        numberFormatter,
-        labelType: EchartsPieLabelType.KeyPercent,
-      }),
-    ).toEqual('My Label: 12.34%');
-    expect(
-      formatPieLabel({
-        params,
-        numberFormatter,
-        labelType: EchartsPieLabelType.KeyValuePercent,
-      }),
-    ).toEqual('My Label: 1.23k (12.34%)');
-    expect(
-      formatPieLabel({
+      parseParams({
         params: { ...params, name: '<NULL>' },
         numberFormatter,
-        labelType: EchartsPieLabelType.Key,
       }),
-    ).toEqual('<NULL>');
+    ).toEqual(['<NULL>', '1.23k', '12.34%']);
     expect(
-      formatPieLabel({
+      parseParams({
         params: { ...params, name: '<NULL>' },
         numberFormatter,
-        labelType: EchartsPieLabelType.Key,
         sanitizeName: true,
       }),
-    ).toEqual('&lt;NULL&gt;');
+    ).toEqual(['&lt;NULL&gt;', '1.23k', '12.34%']);
   });
 });

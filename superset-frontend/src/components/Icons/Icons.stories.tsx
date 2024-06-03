@@ -84,11 +84,3 @@ InteractiveIcons.argTypes = {
     },
   },
 };
-
-InteractiveIcons.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

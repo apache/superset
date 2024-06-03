@@ -14,8 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from urllib import parse
 
 from sqlalchemy import types
@@ -60,8 +63,8 @@ class DrillEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.Date):
@@ -76,8 +79,8 @@ class DrillEngineSpec(BaseEngineSpec):
         cls,
         uri: URL,
         connect_args: dict[str, Any],
-        catalog: Optional[str] = None,
-        schema: Optional[str] = None,
+        catalog: str | None = None,
+        schema: str | None = None,
     ) -> tuple[URL, dict[str, Any]]:
         if schema:
             uri = uri.set(database=parse.quote(schema.replace(".", "/"), safe=""))
@@ -89,7 +92,7 @@ class DrillEngineSpec(BaseEngineSpec):
         cls,
         sqlalchemy_uri: URL,
         connect_args: dict[str, Any],
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Return the configured schema.
         """
@@ -97,7 +100,11 @@ class DrillEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: Optional[str]
+        cls,
+        url: URL,
+        impersonate_user: bool,
+        username: str | None,
+        access_token: str | None,
     ) -> URL:
         """
         Return a modified URL with the username set.
@@ -117,3 +124,23 @@ class DrillEngineSpec(BaseEngineSpec):
                 )
 
         return url
+
+    @classmethod
+    def fetch_data(
+        cls,
+        cursor: Any,
+        limit: int | None = None,
+    ) -> list[tuple[Any, ...]]:
+        """
+        Custom `fetch_data` for Drill.
+
+        When no rows are returned, Drill raises a `RuntimeError` with the message
+        "generator raised StopIteration". This method catches the exception and
+        returns an empty list instead.
+        """
+        try:
+            return super().fetch_data(cursor, limit)
+        except RuntimeError as ex:
+            if str(ex) == "generator raised StopIteration":
+                return []
+            raise

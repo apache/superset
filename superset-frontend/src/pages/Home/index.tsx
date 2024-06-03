@@ -186,6 +186,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     setItem(LocalStorageKeys.HomepageCollapseState, state);
   };
 
+  const SubmenuExtension = extensionsRegistry.get('home.submenu');
   const WelcomeMessageExtension = extensionsRegistry.get('welcome.message');
   const WelcomeTopExtension = extensionsRegistry.get('welcome.banner');
   const WelcomeMainExtension = extensionsRegistry.get(
@@ -352,7 +353,11 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   return (
     <>
-      <SubMenu {...menuData} />
+      {SubmenuExtension ? (
+        <SubmenuExtension {...menuData} />
+      ) : (
+        <SubMenu {...menuData} />
+      )}
       <WelcomeContainer>
         {WelcomeMessageExtension && <WelcomeMessageExtension />}
         {WelcomeTopExtension && <WelcomeTopExtension />}

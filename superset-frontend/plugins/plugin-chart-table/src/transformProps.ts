@@ -184,8 +184,7 @@ const processColumns = memoizeOne(function processColumns(
     typeof percentMetrics,
     typeof columns,
   ];
-},
-isEqualColumns);
+}, isEqualColumns);
 
 /**
  * Automatically set page size based on number of cells.
@@ -239,6 +238,7 @@ const transformProps = (
     show_totals: showTotals,
     conditional_formatting: conditionalFormatting,
     allow_rearrange_columns: allowRearrangeColumns,
+    allow_render_html: allowRenderHtml,
   } = formData;
   const timeGrain = extractTimegrain(formData);
 
@@ -292,6 +292,7 @@ const transformProps = (
     columnColorFormatters,
     timeGrain,
     allowRearrangeColumns,
+    allowRenderHtml,
     onContextMenu,
   };
 };

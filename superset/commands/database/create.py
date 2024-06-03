@@ -33,6 +33,7 @@ from superset.commands.database.exceptions import (
 from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelCreateFailedError,
+    SSHTunnelDatabasePortError,
     SSHTunnelingNotEnabledError,
     SSHTunnelInvalidError,
 )
@@ -41,6 +42,7 @@ from superset.daos.database import DatabaseDAO
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.exceptions import SupersetErrorsException
 from superset.extensions import db, event_logger, security_manager
+from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 stats_logger = current_app.config["STATS_LOGGER"]
@@ -56,7 +58,11 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
-        except (SupersetErrorsException, SSHTunnelingNotEnabledError) as ex:
+        except (
+            SupersetErrorsException,
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+        ) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
@@ -76,45 +82,71 @@ class CreateDatabaseCommand(BaseCommand):
             "{}",
         )
 
-        try:
-            database = DatabaseDAO.create(attributes=self._properties, commit=False)
-            database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+        ssh_tunnel = None
 
-            ssh_tunnel = None
+        try:
+            database = self._create_database()
+
             if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
                 if not is_feature_enabled("SSH_TUNNELING"):
-                    db.session.rollback()
                     raise SSHTunnelingNotEnabledError()
-                try:
-                    # So database.id is not None
-                    db.session.flush()
-                    ssh_tunnel = CreateSSHTunnelCommand(
-                        database.id, ssh_tunnel_properties
-                    ).run()
-                except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
-                    event_logger.log_with_context(
-                        action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
-                        engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
-                    )
-                    # So we can show the original message
-                    raise ex
-                except Exception as ex:
-                    event_logger.log_with_context(
-                        action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
-                        engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
-                    )
-                    raise DatabaseCreateFailedError() from ex
 
-            # adding a new database we always want to force refresh schema list
-            schemas = database.get_all_schema_names(cache=False, ssh_tunnel=ssh_tunnel)
-            for schema in schemas:
-                security_manager.add_permission_view_menu(
-                    "schema_access", security_manager.get_schema_perm(database, schema)
-                )
+                ssh_tunnel = CreateSSHTunnelCommand(
+                    database, ssh_tunnel_properties
+                ).run()
 
             db.session.commit()
 
-        except DAOCreateFailedError as ex:
+            # add catalog/schema permissions
+            if database.db_engine_spec.supports_catalog:
+                catalogs = database.get_all_catalog_names(
+                    cache=False,
+                    ssh_tunnel=ssh_tunnel,
+                )
+                for catalog in catalogs:
+                    security_manager.add_permission_view_menu(
+                        "catalog_access",
+                        security_manager.get_catalog_perm(
+                            database.database_name, catalog
+                        ),
+                    )
+            else:
+                # add a dummy catalog for DBs that don't support them
+                catalogs = [None]
+
+            for catalog in catalogs:
+                for schema in database.get_all_schema_names(
+                    catalog=catalog,
+                    cache=False,
+                    ssh_tunnel=ssh_tunnel,
+                ):
+                    security_manager.add_permission_view_menu(
+                        "schema_access",
+                        security_manager.get_schema_perm(
+                            database.database_name,
+                            catalog,
+                            schema,
+                        ),
+                    )
+
+        except (
+            SSHTunnelInvalidError,
+            SSHTunnelCreateFailedError,
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+        ) as ex:
+            db.session.rollback()
+            event_logger.log_with_context(
+                action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
+                engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+            )
+            # So we can show the original message
+            raise ex
+        except (
+            DAOCreateFailedError,
+            DatabaseInvalidError,
+            Exception,
+        ) as ex:
             db.session.rollback()
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
@@ -139,6 +171,7 @@ class CreateDatabaseCommand(BaseCommand):
             # Check database_name uniqueness
             if not DatabaseDAO.validate_uniqueness(database_name):
                 exceptions.append(DatabaseExistsValidationError())
+
         if exceptions:
             exception = DatabaseInvalidError()
             exception.extend(exceptions)
@@ -150,3 +183,8 @@ class CreateDatabaseCommand(BaseCommand):
                 )
             )
             raise exception
+
+    def _create_database(self) -> Database:
+        database = DatabaseDAO.create(attributes=self._properties, commit=False)
+        database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+        return database

@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -25,8 +24,9 @@ from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 
 from superset.extensions import db
+from superset.utils import json
 from tests.integration_tests.key_value.commands.fixtures import (
-    admin,
+    admin,  # noqa: F401
     JSON_VALUE,
     RESOURCE,
 )
@@ -55,7 +55,7 @@ def key_value_entry() -> KeyValueEntry:
 
 def test_delete_id_entry(
     app_context: AppContext,
-    admin: User,
+    admin: User,  # noqa: F811
     key_value_entry: KeyValueEntry,
 ) -> None:
     from superset.commands.key_value.delete import DeleteKeyValueCommand
@@ -65,7 +65,7 @@ def test_delete_id_entry(
 
 def test_delete_uuid_entry(
     app_context: AppContext,
-    admin: User,
+    admin: User,  # noqa: F811
     key_value_entry: KeyValueEntry,
 ) -> None:
     from superset.commands.key_value.delete import DeleteKeyValueCommand
@@ -75,7 +75,7 @@ def test_delete_uuid_entry(
 
 def test_delete_entry_missing(
     app_context: AppContext,
-    admin: User,
+    admin: User,  # noqa: F811
     key_value_entry: KeyValueEntry,
 ) -> None:
     from superset.commands.key_value.delete import DeleteKeyValueCommand

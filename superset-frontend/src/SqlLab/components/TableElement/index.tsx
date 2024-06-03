@@ -101,7 +101,7 @@ const StyledCollapsePanel = styled(Collapse.Panel)`
 `;
 
 const TableElement = ({ table, ...props }: TableElementProps) => {
-  const { dbId, schema, name, expanded } = table;
+  const { dbId, catalog, schema, name, expanded } = table;
   const theme = useTheme();
   const dispatch = useDispatch();
   const {
@@ -112,6 +112,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   } = useTableMetadataQuery(
     {
       dbId,
+      catalog,
       schema,
       table: name,
     },
@@ -125,6 +126,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   } = useTableExtendedMetadataQuery(
     {
       dbId,
+      catalog,
       schema,
       table: name,
     },
@@ -377,9 +379,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       >
         {renderWell()}
         <div>
-          {cols?.map(col => (
-            <ColumnElement column={col} key={col.name} />
-          ))}
+          {cols?.map(col => <ColumnElement column={col} key={col.name} />)}
         </div>
       </div>
     );

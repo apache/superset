@@ -26,7 +26,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const createMdxCompiler = require('@storybook/addon-docs/mdx-compiler-plugin');
 const {
   WebpackManifestPlugin,
   getCompilerHooks,
@@ -213,8 +212,28 @@ const config = {
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
   },
+  cache: {
+    type: 'filesystem', // Enable filesystem caching
+    cacheDirectory: path.resolve(__dirname, '.temp_cache'),
+    buildDependencies: {
+      config: [__filename],
+    },
+  },
   output,
   stats: 'minimal',
+  /*
+   Silence warning for missing export in @data-ui's internal structure. This
+   issue arises from an internal implementation detail of @data-ui. As it's
+   non-critical, we suppress it to prevent unnecessary clutter in the build
+   output. For more context, refer to:
+   https://github.com/williaster/data-ui/issues/208#issuecomment-946966712
+   */
+  ignoreWarnings: [
+    {
+      message:
+        /export 'withTooltipPropTypes' \(imported as 'vxTooltipPropTypes'\) was not found/,
+    },
+  ],
   performance: {
     assetFilter(assetFilename) {
       // don't throw size limit warning on geojson and font files
@@ -289,6 +308,12 @@ const config = {
       // TODO: remove Handlebars alias once Handlebars NPM package has been updated to
       // correctly support webpack import (https://github.com/handlebars-lang/handlebars.js/issues/953)
       handlebars: 'handlebars/dist/handlebars.js',
+      /*
+      Temporary workaround to prevent Webpack from resolving moment locale
+      files, which are unnecessary for this project and causing build warnings.
+      This prevents "Module not found" errors for moment locale files.
+      */
+      'moment/min/moment-with-locales': false,
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
@@ -346,6 +371,10 @@ const config = {
         ],
         use: [babelLoader],
       },
+      {
+        test: /ace-builds.*\/worker-.*$/,
+        type: 'asset/resource',
+      },
       // react-hot-loader use "ProxyFacade", which is a wrapper for react Component
       // see https://github.com/gaearon/react-hot-loader/issues/1311
       // TODO: refactor recurseReactClone
@@ -400,7 +429,7 @@ const config = {
         },
         type: 'asset',
         generator: {
-          filename: '[name].[contenthash:8].[ext]',
+          filename: '[name].[contenthash:8][ext]',
         },
       },
       {
@@ -428,7 +457,7 @@ const config = {
         test: /\.(jpg|gif)$/,
         type: 'asset/resource',
         generator: {
-          filename: '[name].[contenthash:8].[ext]',
+          filename: '[name].[contenthash:8][ext]',
         },
       },
       /* for font-awesome */
@@ -445,24 +474,20 @@ const config = {
         test: /\.geojson$/,
         type: 'asset/resource',
       },
-      {
-        test: /\.mdx$/,
-        use: [
-          {
-            loader: 'babel-loader',
-            // may or may not need this line depending on your app's setup
-            options: {
-              plugins: ['@babel/plugin-transform-react-jsx'],
-            },
-          },
-          {
-            loader: '@mdx-js/loader',
-            options: {
-              compilers: [createMdxCompiler({})],
-            },
-          },
-        ],
-      },
+      // {
+      //   test: /\.mdx?$/,
+      //   use: [
+      //     {
+      //       loader: require.resolve('@storybook/mdx2-csf/loader'),
+      //       options: {
+      //         skipCsf: false,
+      //         mdxCompileOptions: {
+      //           remarkPlugins: [remarkGfm],
+      //         },
+      //       },
+      //     },
+      //   ],
+      // },
     ],
   },
   externals: {

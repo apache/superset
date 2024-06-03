@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -54,6 +53,7 @@ from superset.queries.saved_queries.schemas import (
     get_export_ids_schema,
     openapi_spec_methods_override,
 )
+from superset.utils import json
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
@@ -95,6 +95,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "description",
         "id",
         "label",
+        "catalog",
         "schema",
         "sql",
         "sql_tables",
@@ -119,6 +120,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "label",
         "last_run_delta_humanized",
         "rows",
+        "catalog",
         "schema",
         "sql",
         "sql_tables",
@@ -130,12 +132,15 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "db_id",
         "description",
         "label",
+        "catalog",
         "schema",
         "sql",
         "template_parameters",
+        "extra_json",
     ]
     edit_columns = add_columns
     order_columns = [
+        "catalog",
         "schema",
         "label",
         "description",
@@ -148,7 +153,15 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "last_run_delta_humanized",
     ]
 
-    search_columns = ["id", "database", "label", "schema", "created_by", "changed_by"]
+    search_columns = [
+        "id",
+        "database",
+        "label",
+        "catalog",
+        "schema",
+        "created_by",
+        "changed_by",
+    ]
     if is_feature_enabled("TAGGING_SYSTEM"):
         search_columns += ["tags"]
     search_filters = {
@@ -170,7 +183,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     }
     base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "changed_by", "created_by"}
-    allowed_distinct_fields = {"schema"}
+    allowed_distinct_fields = {"catalog", "schema"}
 
     def pre_add(self, item: SavedQuery) -> None:
         item.user = g.user
@@ -276,7 +289,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                     requested_ids
                 ).run():
                     with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content.encode())
+                        fp.write(file_content().encode())
             except SavedQueryNotFoundError:
                 return self.response_404()
         buf.seek(0)

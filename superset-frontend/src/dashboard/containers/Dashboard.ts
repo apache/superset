@@ -48,7 +48,6 @@ function mapStateToProps(state: RootState) {
   } = state;
 
   return {
-    initMessages: dashboardInfo.common?.flash_messages,
     timeout: dashboardInfo.common?.conf?.SUPERSET_WEBSERVER_TIMEOUT,
     userId: dashboardInfo.userId,
     dashboardInfo,

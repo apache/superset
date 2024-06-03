@@ -54,6 +54,7 @@ type_description = "The report schedule type"
 name_description = "The report schedule name."
 # :)
 description_description = "Use a nice description to give context to this Alert/Report"
+email_subject_description = "The report schedule subject line"
 context_markdown_description = "Markdown description"
 crontab_description = (
     "A CRON expression."
@@ -146,6 +147,14 @@ class ReportSchedulePostSchema(Schema):
         allow_none=True,
         required=False,
     )
+    email_subject = fields.String(
+        metadata={
+            "description": email_subject_description,
+            "example": "[Report]  Report name: Dashboard or chart name",
+        },
+        allow_none=True,
+        required=False,
+    )
     context_markdown = fields.String(
         metadata={"description": context_markdown_description},
         allow_none=True,
@@ -204,7 +213,7 @@ class ReportSchedulePostSchema(Schema):
 
     recipients = fields.List(fields.Nested(ReportRecipientSchema))
     report_format = fields.String(
-        dump_default=ReportDataFormat.VISUALIZATION,
+        dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
     extra = fields.Dict(
@@ -272,6 +281,14 @@ class ReportSchedulePutSchema(Schema):
         allow_none=True,
         required=False,
     )
+    email_subject = fields.String(
+        metadata={
+            "description": email_subject_description,
+            "example": "[Report]  Report name: Dashboard or chart name",
+        },
+        allow_none=True,
+        required=False,
+    )
     context_markdown = fields.String(
         metadata={"description": context_markdown_description},
         allow_none=True,
@@ -320,7 +337,7 @@ class ReportSchedulePutSchema(Schema):
     log_retention = fields.Integer(
         metadata={"description": log_retention_description, "example": 90},
         required=False,
-        validate=[Range(min=1, error=_("Value must be greater than 0"))],
+        validate=[Range(min=0, error=_("Value must be 0 or greater"))],
     )
     grace_period = fields.Integer(
         metadata={"description": grace_period_description, "example": 60 * 60 * 4},
@@ -335,7 +352,7 @@ class ReportSchedulePutSchema(Schema):
     )
     recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
     report_format = fields.String(
-        dump_default=ReportDataFormat.VISUALIZATION,
+        dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
     extra = fields.Dict(dump_default=None)

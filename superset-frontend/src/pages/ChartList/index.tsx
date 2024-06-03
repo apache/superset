@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
@@ -53,13 +52,12 @@ import ListView, {
   ListViewProps,
   SelectOption,
 } from 'src/components/ListView';
-import CrossLinks from 'src/components/ListView/CrossLinks';
 import Loading from 'src/components/Loading';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import Chart, { ChartLinkedDashboard } from 'src/types/Chart';
+import Chart from 'src/types/Chart';
 import Tag from 'src/types/TagType';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -72,6 +70,7 @@ import FacePile from 'src/components/FacePile';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
+import { DashboardCrossLinks } from 'src/components/ListView/DashboardCrossLinks';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
@@ -390,21 +389,11 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { dashboards },
           },
-        }: any) => (
-          <CrossLinks
-            crossLinks={ensureIsArray(dashboards).map(
-              (d: ChartLinkedDashboard) => ({
-                title: d.dashboard_title,
-                id: d.id,
-              }),
-            )}
-          />
-        ),
-        Header: t('Dashboards added to'),
+        }: any) => <DashboardCrossLinks dashboards={dashboards} />,
+        Header: t('On dashboards'),
         accessor: 'dashboards',
         disableSortBy: true,
         size: 'xxl',
-        hidden: true,
       },
       {
         Cell: ({
