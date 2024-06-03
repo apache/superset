@@ -74,6 +74,7 @@ interface ColumnSelectPopoverProps {
   label: string;
   isTemporal?: boolean;
   setDatasetModal?: Dispatch<SetStateAction<boolean>>;
+  disabledTabs?: Set<string>;
 }
 
 const getInitialColumnValues = (
@@ -102,6 +103,7 @@ const ColumnSelectPopover = ({
   onClose,
   setDatasetModal,
   setLabel,
+  disabledTabs = new Set<'saved' | 'simple' | 'sqlExpression'>(),
 }: ColumnSelectPopoverProps) => {
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
@@ -299,7 +301,11 @@ const ColumnSelectPopover = ({
           width: ${width}px;
         `}
       >
-        <Tabs.TabPane key="saved" tab={t('Saved')}>
+        <Tabs.TabPane
+          key="saved"
+          tab={t('Saved')}
+          disabled={disabledTabs.has('saved')}
+        >
           {calculatedColumns.length > 0 ? (
             <FormItem label={savedExpressionsLabel}>
               <StyledSelect
@@ -375,7 +381,11 @@ const ColumnSelectPopover = ({
             />
           )}
         </Tabs.TabPane>
-        <Tabs.TabPane key="simple" tab={t('Simple')}>
+        <Tabs.TabPane
+          key="simple"
+          tab={t('Simple')}
+          disabled={disabledTabs.has('simple')}
+        >
           {isTemporal && simpleColumns.length === 0 ? (
             <EmptyStateSmall
               image="empty.svg"
@@ -419,7 +429,11 @@ const ColumnSelectPopover = ({
           )}
         </Tabs.TabPane>
 
-        <Tabs.TabPane key="sqlExpression" tab={t('Custom SQL')}>
+        <Tabs.TabPane
+          key="sqlExpression"
+          tab={t('Custom SQL')}
+          disabled={disabledTabs.has('sqlExpression')}
+        >
           <SQLEditor
             value={
               adhocColumn?.sqlExpression ||

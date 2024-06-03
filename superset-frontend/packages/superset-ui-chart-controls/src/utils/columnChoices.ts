@@ -19,6 +19,32 @@
 import { GenericDataType, QueryColumn, QueryResponse } from '@superset-ui/core';
 import { ColumnMeta, Dataset, isDataset, isQueryResponse } from '../types';
 
+export function columnsByType(
+  datasource?: Dataset | QueryResponse | null,
+  type?: GenericDataType,
+): (ColumnMeta | QueryColumn)[] {
+  if (isDataset(datasource) || isQueryResponse(datasource)) {
+    const { columns } = datasource;
+    const filteredColumns = columns.filter(
+      col => type === undefined || col.type_generic === type,
+    );
+    return filteredColumns.sort(
+      (col1: ColumnMeta | QueryColumn, col2: ColumnMeta | QueryColumn) => {
+        const opt1Name =
+          'verbose_name' in col1
+            ? col1.verbose_name || col1.column_name
+            : col1.column_name;
+        const opt2Name =
+          'verbose_name' in col2
+            ? col2.verbose_name || col2.column_name
+            : col2.column_name;
+        return opt1Name.toLowerCase() > opt2Name.toLowerCase() ? 1 : -1;
+      },
+    );
+  }
+  return [];
+}
+
 /**
  * Convert Datasource columns to column choices
  */
@@ -26,21 +52,12 @@ export default function columnChoices(
   datasource?: Dataset | QueryResponse | null,
   type?: GenericDataType,
 ): [string, string][] {
-  if (isDataset(datasource) || isQueryResponse(datasource)) {
-    const { columns } = datasource;
-    const filteredColumns = (
-      columns as { type_generic?: GenericDataType }[]
-    ).filter(col => type === undefined || col.type_generic === type);
-    return filteredColumns
-      .map((col: ColumnMeta | QueryColumn): [string, string] => [
-        col.column_name,
-        'verbose_name' in col
-          ? col.verbose_name || col.column_name
-          : col.column_name,
-      ])
-      .sort((opt1: [string, string], opt2: [string, string]) =>
-        opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1,
-      );
-  }
-  return [];
+  return columnsByType(datasource, type).map(
+    (col: ColumnMeta | QueryColumn): [string, string] => [
+      col.column_name,
+      'verbose_name' in col
+        ? col.verbose_name || col.column_name
+        : col.column_name,
+    ],
+  );
 }

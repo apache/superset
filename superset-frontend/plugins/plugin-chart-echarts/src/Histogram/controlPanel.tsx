@@ -24,9 +24,10 @@ import {
 } from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  columnChoices,
   formatSelectOptionsForRange,
+  dndGroupByControl,
 } from '@superset-ui/chart-controls';
+import { columnsByType } from 'packages/superset-ui-chart-controls/src/utils/columnChoices';
 import { showLegendControl, showValueControl } from '../controls';
 
 const config: ControlPanelConfig = {
@@ -39,14 +40,15 @@ const config: ControlPanelConfig = {
           {
             name: 'column',
             config: {
-              type: 'SelectControl',
-              label: t('Numeric column'),
+              ...dndGroupByControl,
+              label: t('Column'),
               multi: false,
-              description: t('Select the numeric column to draw the histogram'),
-              default: null,
+              description: t('Numeric column used to calculate the histogram.'),
               validators: [validateNonEmpty],
+              freeForm: false,
+              disabledTabs: new Set(['saved', 'sqlExpression']),
               mapStateToProps: ({ datasource }) => ({
-                choices: columnChoices(datasource, GenericDataType.Numeric),
+                options: columnsByType(datasource, GenericDataType.Numeric),
               }),
             },
           },
