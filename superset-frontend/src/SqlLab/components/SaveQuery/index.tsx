@@ -33,6 +33,11 @@ import {
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { QueryEditor } from 'src/SqlLab/types';
+import useLogAction from 'src/logger/useLogAction';
+import {
+  LOG_ACTIONS_SQLLAB_CREATE_CHART,
+  LOG_ACTIONS_SQLLAB_SAVE_QUERY,
+} from 'src/logger/LogUtils';
 
 interface SaveQueryProps {
   queryEditorId: string;
@@ -91,6 +96,7 @@ const SaveQuery = ({
     }),
     [queryEditor, columns],
   );
+  const logAction = useLogAction({ queryEditorId });
   const defaultLabel = query.name || query.description || t('Undefined');
   const [description, setDescription] = useState<string>(
     query.description || '',
@@ -105,7 +111,12 @@ const SaveQuery = ({
 
   const overlayMenu = (
     <Menu>
-      <Menu.Item onClick={() => setShowSaveDatasetModal(true)}>
+      <Menu.Item
+        onClick={() => {
+          logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
+          setShowSaveDatasetModal(true);
+        }}
+      >
         {t('Save dataset')}
       </Menu.Item>
     </Menu>
@@ -129,6 +140,7 @@ const SaveQuery = ({
   const close = () => setShowSave(false);
 
   const onSaveWrapper = () => {
+    logAction(LOG_ACTIONS_SQLLAB_SAVE_QUERY, {});
     onSave(queryPayload(), query.id);
     close();
   };

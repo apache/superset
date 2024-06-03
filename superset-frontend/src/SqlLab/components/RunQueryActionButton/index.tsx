@@ -25,6 +25,11 @@ import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import {
+  LOG_ACTIONS_SQLLAB_RUN_QUERY,
+  LOG_ACTIONS_SQLLAB_STOP_QUERY,
+} from 'src/logger/LogUtils';
+import useLogAction from 'src/logger/useLogAction';
 
 export interface RunQueryActionButtonProps {
   queryEditorId: string;
@@ -89,6 +94,7 @@ const RunQueryActionButton = ({
   stopQuery,
 }: RunQueryActionButtonProps) => {
   const theme = useTheme();
+  const logAction = useLogAction({ queryEditorId });
   const userOS = detectOS();
 
   const { selectedText, sql } = useQueryEditor(queryEditorId, [
@@ -120,9 +126,13 @@ const RunQueryActionButton = ({
     <StyledButton>
       <ButtonComponent
         data-test="run-query-action"
-        onClick={() =>
-          onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery)
-        }
+        onClick={() => {
+          const eventName = shouldShowStopBtn
+            ? LOG_ACTIONS_SQLLAB_STOP_QUERY
+            : LOG_ACTIONS_SQLLAB_RUN_QUERY;
+          logAction(eventName, { shortcut: false });
+          onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery);
+        }}
         disabled={isDisabled}
         tooltip={
           (!isDisabled &&
