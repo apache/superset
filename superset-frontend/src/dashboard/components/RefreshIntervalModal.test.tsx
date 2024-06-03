@@ -22,7 +22,7 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
+import { HeaderActionsDropdown } from 'src/dashboard/components/Header/HeaderActionsDropdown';
 
 const createProps = () => ({
   addSuccessToast: jest.fn(),

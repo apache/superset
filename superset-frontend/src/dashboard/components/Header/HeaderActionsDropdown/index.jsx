@@ -83,7 +83,7 @@ const mapStateToProps = state => ({
   directPathToChild: state.dashboardState.directPathToChild,
 });
 
-class HeaderActionsDropdown extends React.PureComponent {
+export class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {
     window.location.reload();
   }
@@ -198,7 +198,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     const refreshIntervalOptions =
       dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
 
-    const dashboardComponentId = [...directPathToChild].pop();
+    const dashboardComponentId = [...(directPathToChild || [])].pop();
 
     return (
       <Menu selectable={false} data-test="header-actions-menu" {...rest}>
