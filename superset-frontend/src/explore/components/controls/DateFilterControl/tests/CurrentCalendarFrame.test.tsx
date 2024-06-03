@@ -33,5 +33,5 @@ test('returns null if value is not a valid CurrentRangeType', () => {
   const { container } = render(
     <CurrentCalendarFrame onChange={mockOnChange} value="InvalidValue" />,
   );
-  expect(container.firstChild).toBeNull();
+  expect(container.firstChild).toBeEmptyDOMElement();
 });
