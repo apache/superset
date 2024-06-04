@@ -129,7 +129,6 @@ cypress-install() {
   cache-save cypress
 }
 
-# Run Cypress and upload coverage reports
 cypress-run() {
   cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
 
@@ -137,27 +136,33 @@ cypress-run() {
   local group=${2:-Default}
   local cypress="./node_modules/.bin/cypress run"
   local browser=${CYPRESS_BROWSER:-chrome}
+  local use_dashboard=$3
 
   export TERM="xterm"
   export ELECTRON_DISABLE_GPU=true # Attempt to disable GPU for Electron-based Cypress
 
   say "::group::Run Cypress for [$page]"
-  if [[ -z $CYPRESS_KEY ]]; then
-    xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser"
-  else
+  if [[ "$use_dashboard" == "true" && -n $CYPRESS_KEY ]]; then
+
     export CYPRESS_RECORD_KEY=$(echo $CYPRESS_KEY | base64 --decode)
+    echo "Running using the paid Cypress service and API key"
     # additional flags for Cypress dashboard recording
     xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser" \
       --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
       --parallel --ci-build-id "${GITHUB_SHA:0:8}-${NONCE}"
-
+  else
+    echo "Running locally"
+    unset CYPRESS_KEY
+    xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser" \
+      --parallel --group "$group"
   fi
 
-  # don't add quotes to $record because we do want word splitting
   say "::endgroup::"
 }
 
 cypress-run-all() {
+  local use_dashboard=$1
+
   # Start Flask and run it in background
   # --no-debugger means disable the interactive debugger on the 500 page
   # so errors can print to stderr.
@@ -168,7 +173,7 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "*/**/*"
+  cypress-run "*/**/*" "Default" "$use_dashboard"
 
   # After job is done, print out Flask log for debugging
   say "::group::Flask log for default run"
@@ -183,7 +188,7 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "sqllab/*" "Backend persist"
+  cypress-run "sqllab/*" "Backend persist" "$use_dashboard"
 
   say "::group::Flask log for backend persist"
   cat "$flasklog"
@@ -192,7 +197,6 @@ cypress-run-all() {
   # make sure the program exits
   kill $flaskProcessId
 }
-
 eyes-storybook-dependencies() {
   say "::group::install eyes-storyook dependencies"
   sudo apt-get update -y && sudo apt-get -y install gconf-service ca-certificates libxshmfence-dev fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libgconf-2-4 libglib2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libnspr4 libnss3 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release xdg-utils libappindicator1

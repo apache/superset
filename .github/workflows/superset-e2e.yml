@@ -7,6 +7,12 @@ on:
       - "[0-9].[0-9]"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      use_dashboard:
+        description: 'Use Cypress Dashboard (true/false) [paid service - trigger manually when needed]'
+        required: false
+        default: 'false'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -34,6 +40,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
+      USE_DASHBOARD: ${{ github.event.inputs.use_dashboard || 'false' }}
     services:
       postgres:
         image: postgres:15-alpine
@@ -105,7 +112,7 @@ jobs:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           CYPRESS_KEY: YjljODE2MzAtODcwOC00NTA3LWE4NmMtMTU3YmFmMjIzOTRhCg==
         with:
-          run: cypress-run-all
+          run: cypress-run-all ${{ env.USE_DASHBOARD }}
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         if: steps.check.outputs.python || steps.check.outputs.frontend
