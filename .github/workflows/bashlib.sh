@@ -129,37 +129,6 @@ cypress-install() {
   cache-save cypress
 }
 
-cypress-run() {
-  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
-
-  local page=$1
-  local group=${2:-Default}
-  local cypress="./node_modules/.bin/cypress run"
-  local browser=${CYPRESS_BROWSER:-chrome}
-  local use_dashboard=$3
-
-  export TERM="xterm"
-  export ELECTRON_DISABLE_GPU=true # Attempt to disable GPU for Electron-based Cypress
-
-  say "::group::Run Cypress for [$page]"
-  if [[ "$use_dashboard" == "true" && -n $CYPRESS_KEY ]]; then
-
-    export CYPRESS_RECORD_KEY=$(echo $CYPRESS_KEY | base64 --decode)
-    echo "Running using the paid Cypress service and API key"
-    # additional flags for Cypress dashboard recording
-    xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser" \
-      --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
-      --parallel --ci-build-id "${GITHUB_SHA:0:8}-${NONCE}"
-  else
-    echo "Running locally"
-    unset CYPRESS_KEY
-    xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser" \
-      --parallel --group "$group"
-  fi
-
-  say "::endgroup::"
-}
-
 cypress-run-all() {
   local use_dashboard=$1
 
@@ -173,7 +142,8 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "*/**/*" "Default" "$use_dashboard"
+  #cypress-run "*/**/*" "Default" "$use_dashboard"
+  python scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID
 
   # After job is done, print out Flask log for debugging
   say "::group::Flask log for default run"
@@ -188,7 +158,7 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "sqllab/*" "Backend persist" "$use_dashboard"
+  python scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID --group "Backend persist" --filter "cypress/e2e/sqllab/**/*"
 
   say "::group::Flask log for backend persist"
   cat "$flasklog"

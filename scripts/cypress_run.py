@@ -1,0 +1,128 @@
+import argparse
+import hashlib
+import os
+import subprocess
+from datetime import datetime
+
+XVFB_PRE_CMD = "xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' "
+REPO = os.getenv("GITHUB_REPOSITORY") or "apache/superset"
+GITHUB_EVENT_NAME = os.getenv("GITHUB_REPOSITORY") or "push"
+
+
+def compute_hash(file_path: str) -> str:
+    return hashlib.md5(file_path.encode()).hexdigest()
+
+
+def compute_group_index(hash_value: str, num_groups: int) -> int:
+    return int(hash_value, 16) % num_groups
+
+
+def generate_build_id() -> str:
+    now = datetime.now()
+    rounded_minute = now.minute - (now.minute % 20)
+    rounded_time = now.replace(minute=rounded_minute, second=0, microsecond=0)
+    return (os.getenv("GITHUB_SHA") or "DUMMY")[:8] + rounded_time.strftime(
+        "%Y%m%d%H%M"
+    )
+
+
+def get_cypress_cmd(
+    spec_list: list[str], _filter: str, group: str, use_dashboard: bool
+) -> str:
+    cypress_cmd = "./node_modules/.bin/cypress run"
+
+    os.environ["TERM"] = "xterm"
+    os.environ["ELECTRON_DISABLE_GPU"] = "true"
+    build_id = generate_build_id()
+    browser = os.getenv("CYPRESS_BROWSER", "chrome")
+
+    if use_dashboard:
+        # Run using cypress.io service
+        cypress_record_key = (
+            subprocess.check_output(
+                ["echo", os.getenv("CYPRESS_KEY") or "DUMMY", "|", "base64", "--decode"]
+            )
+            .decode("utf-8")
+            .strip()
+        )
+        os.environ["CYPRESS_RECORD_KEY"] = cypress_record_key
+        spec: str = "*/**/*" if not _filter else _filter
+
+        cmd = (
+            f"{XVFB_PRE_CMD} "
+            f'{cypress_cmd} --spec "{spec}" --browser {browser} '
+            f"--record --group {group} --tag {REPO},{GITHUB_EVENT_NAME} "
+            f"--parallel --ci-build-id {build_id}"
+        )
+    else:
+        # Run local, but split the execution
+        os.environ.pop("CYPRESS_KEY", None)
+        spec_list_str = ",".join(sorted(spec_list))
+        if _filter:
+            spec_list_str = ",".join(sorted([s for s in spec_list if _filter in s]))
+        cmd = (
+            f"{XVFB_PRE_CMD} "
+            f"{cypress_cmd} --browser {browser} "
+            f"--parallel --group {group} "
+            f'--spec "{spec_list_str}" '
+        )
+    return cmd
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Generate Cypress commands based on test file hash"
+    )
+    parser.add_argument(
+        "--use-dashboard",
+        action="store_true",
+        help="Use Cypress Dashboard for parallelization",
+    )
+    parser.add_argument(
+        "--parallelism", type=int, default=10, help="Number of parallel groups"
+    )
+    parser.add_argument(
+        "--parallelism-id", type=int, required=True, help="ID of the parallelism group"
+    )
+    parser.add_argument(
+        "--filter", type=str, required=False, default=None, help="filter to test"
+    )
+    parser.add_argument("--group", type=str, default="Default", help="Group name")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the command instead of executing it",
+    )
+    args = parser.parse_args()
+
+    # Determine the base directory relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.join(
+        script_dir, "..", "superset-frontend", "cypress-base", "cypress", "e2e"
+    )
+
+    test_files = []
+    for root, _, files in os.walk(base_dir):
+        for file in files:
+            if file.endswith("test.ts") or file.endswith("test.js"):
+                test_files.append(os.path.join(root, file))
+
+    groups: dict[int, list[str]] = {i: [] for i in range(args.parallelism)}
+
+    for test_file in test_files:
+        hash_value = compute_hash(test_file)
+        group_index = compute_group_index(hash_value, args.parallelism)
+        groups[group_index].append(test_file)
+
+    group_id = args.parallelism_id
+    spec_list = groups[group_id]
+
+    cmd = get_cypress_cmd(spec_list, args.filter, args.group, args.use_dashboard)
+    if args.dry_run:
+        print(cmd)
+    else:
+        subprocess.run(cmd, shell=True, check=True, stdout=None, stderr=None)
+
+
+if __name__ == "__main__":
+    main()
