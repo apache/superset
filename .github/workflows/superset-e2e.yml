@@ -77,12 +77,14 @@ jobs:
         with:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref }}
+          submodules: recursive
       - name: Checkout using PR ID (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
         uses: actions/checkout@v2
         with:
           persist-credentials: false
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
+          submodules: recursive
       # -------------------------------------------------------
       - name: Check for file changes
         id: check
