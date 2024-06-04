@@ -25,14 +25,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-05-19 17:38+0400\n"
+"POT-Creation-Date: 2024-06-04 22:57+0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.9.1\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/Option.tsx:71
 #: superset-frontend/src/explore/components/controls/OptionControls/index.tsx:394
@@ -517,7 +517,7 @@ msgstr ""
 msgid "1 year start frequency"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:117
+#: superset/db_engine_specs/base.py:116
 msgid "10 minute"
 msgstr ""
 
@@ -533,7 +533,7 @@ msgstr ""
 msgid "104 weeks ago"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:118
+#: superset/db_engine_specs/base.py:117
 msgid "15 minute"
 msgstr ""
 
@@ -652,7 +652,7 @@ msgstr ""
 msgid "30 days ago"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:119
+#: superset/db_engine_specs/base.py:118
 msgid "30 minute"
 msgstr ""
 
@@ -661,7 +661,7 @@ msgstr ""
 msgid "30 minutes"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:114
+#: superset/db_engine_specs/base.py:113
 msgid "30 second"
 msgstr ""
 
@@ -681,7 +681,7 @@ msgstr ""
 msgid "4 weeks (freq=4W-MON)"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:116
+#: superset/db_engine_specs/base.py:115
 msgid "5 minute"
 msgstr ""
 
@@ -690,7 +690,7 @@ msgstr ""
 msgid "5 minutes"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:113
+#: superset/db_engine_specs/base.py:112
 msgid "5 second"
 msgstr ""
 
@@ -717,7 +717,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:163
 #: superset-frontend/src/explore/controls.jsx:261
-#: superset/db_engine_specs/base.py:121
+#: superset/db_engine_specs/base.py:120
 msgid "6 hour"
 msgstr ""
 
@@ -842,12 +842,12 @@ msgid ""
 "empty will allow embedding from any domain."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:751
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:444
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:695
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:389
 msgid "A list of tags that have been applied to this chart."
 msgstr ""
 
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:424
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:369
 msgid "A list of users who can alter the chart. Searchable by name or username."
 msgstr ""
 
@@ -885,7 +885,7 @@ msgid ""
 " rather than its radius or sweep angle."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:697
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:641
 msgid "A readable URL for your dashboard"
 msgstr ""
 
@@ -932,7 +932,7 @@ msgstr ""
 msgid "A timeout occurred while taking a screenshot."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:296
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:290
 msgid "A valid color scheme is required"
 msgstr ""
 
@@ -976,9 +976,9 @@ msgstr ""
 msgid "About"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:476
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:519
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:411
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:420
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:463
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:356
 msgid "Access"
 msgstr ""
 
@@ -1000,7 +1000,7 @@ msgstr ""
 #: superset-frontend/src/pages/AnnotationList/index.tsx:208
 #: superset-frontend/src/pages/ChartList/index.tsx:525
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:175
-#: superset-frontend/src/pages/DashboardList/index.tsx:456
+#: superset-frontend/src/pages/DashboardList/index.tsx:482
 #: superset-frontend/src/pages/DatabaseList/index.tsx:488
 #: superset-frontend/src/pages/DatasetList/index.tsx:503
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:343
@@ -1272,7 +1272,7 @@ msgstr[1] ""
 msgid "Additional Parameters"
 msgstr ""
 
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1868
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1870
 msgid "Additional fields may be required"
 msgstr ""
 
@@ -1288,7 +1288,7 @@ msgstr ""
 msgid "Additional padding for legend."
 msgstr ""
 
-#: superset/db_engine_specs/base.py:2239
+#: superset/db_engine_specs/base.py:2243
 #: superset/db_engine_specs/clickhouse.py:220
 #: superset/db_engine_specs/databend.py:206
 #: superset/db_engine_specs/duckdb.py:63
@@ -1347,9 +1347,9 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/controlPanel.ts:149
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/controlPanel.ts:61
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:964
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:767
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:711
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:34
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1892
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1894
 msgid "Advanced"
 msgstr ""
 
@@ -1555,9 +1555,9 @@ msgstr ""
 #: superset-frontend/src/pages/ChartList/index.tsx:651
 #: superset-frontend/src/pages/ChartList/index.tsx:675
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:235
-#: superset-frontend/src/pages/DashboardList/index.tsx:525
-#: superset-frontend/src/pages/DashboardList/index.tsx:536
-#: superset-frontend/src/pages/DashboardList/index.tsx:572
+#: superset-frontend/src/pages/DashboardList/index.tsx:551
+#: superset-frontend/src/pages/DashboardList/index.tsx:562
+#: superset-frontend/src/pages/DashboardList/index.tsx:598
 #: superset-frontend/src/pages/DatabaseList/index.tsx:516
 #: superset-frontend/src/pages/DatabaseList/index.tsx:536
 #: superset-frontend/src/pages/DatabaseList/index.tsx:548
@@ -1699,7 +1699,7 @@ msgid "Allowed Domains (comma separated)"
 msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:697
-#: superset-frontend/src/pages/DashboardList/index.tsx:594
+#: superset-frontend/src/pages/DashboardList/index.tsx:620
 #: superset-frontend/src/pages/Tags/index.tsx:292
 msgid "Alphabetical"
 msgstr ""
@@ -1729,7 +1729,7 @@ msgstr ""
 msgid "An alert named \"%(name)s\" already exists"
 msgstr ""
 
-#: superset/common/query_context_processor.py:386 superset/viz.py:1062
+#: superset/common/query_context_processor.py:386 superset/viz.py:1061
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -1743,10 +1743,10 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:802
 #: superset-frontend/src/components/Tags/utils.tsx:71
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:128
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:122
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/ColumnSelect.tsx:114
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:42
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:92
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:87
 msgid "An error has occurred"
 msgstr ""
 
@@ -1776,7 +1776,7 @@ msgid ""
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/hooks.ts:314
+#: superset-frontend/src/views/CRUD/hooks.ts:316
 #, python-format
 msgid "An error occurred while creating %ss: %s"
 msgstr ""
@@ -1804,14 +1804,14 @@ msgid ""
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/hooks.ts:112
+#: superset-frontend/src/views/CRUD/hooks.ts:113
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/hooks.ts:180
-#: superset-frontend/src/views/CRUD/hooks.ts:271
-#: superset-frontend/src/views/CRUD/hooks.ts:359
+#: superset-frontend/src/views/CRUD/hooks.ts:182
+#: superset-frontend/src/views/CRUD/hooks.ts:273
+#: superset-frontend/src/views/CRUD/hooks.ts:361
 #, python-format
 msgid "An error occurred while fetching %ss: %s"
 msgstr ""
@@ -1825,7 +1825,7 @@ msgstr ""
 msgid "An error occurred while fetching chart owners values: %s"
 msgstr ""
 
-#: superset-frontend/src/pages/DashboardList/index.tsx:542
+#: superset-frontend/src/pages/DashboardList/index.tsx:568
 #, python-format
 msgid "An error occurred while fetching dashboard owner values: %s"
 msgstr ""
@@ -1835,7 +1835,7 @@ msgid "An error occurred while fetching dashboards"
 msgstr ""
 
 #: superset-frontend/src/features/home/DashboardTable.tsx:148
-#: superset-frontend/src/pages/DashboardList/index.tsx:236
+#: superset-frontend/src/pages/DashboardList/index.tsx:262
 #, python-format
 msgid "An error occurred while fetching dashboards: %s"
 msgstr ""
@@ -1854,7 +1854,7 @@ msgstr ""
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:255
 #: superset-frontend/src/pages/ChartList/index.tsx:680
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:240
-#: superset-frontend/src/pages/DashboardList/index.tsx:577
+#: superset-frontend/src/pages/DashboardList/index.tsx:603
 #: superset-frontend/src/pages/DatabaseList/index.tsx:553
 #: superset-frontend/src/pages/DatasetList/index.tsx:613
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:293
@@ -1919,8 +1919,8 @@ msgstr ""
 msgid "An error occurred while fetching user values: %s"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/hooks.ts:512
-#: superset-frontend/src/views/CRUD/hooks.ts:528
+#: superset-frontend/src/views/CRUD/hooks.ts:514
+#: superset-frontend/src/views/CRUD/hooks.ts:530
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr ""
@@ -2154,16 +2154,16 @@ msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:556
 #: superset-frontend/src/pages/ChartList/index.tsx:663
-#: superset-frontend/src/pages/DashboardList/index.tsx:487
-#: superset-frontend/src/pages/DashboardList/index.tsx:511
-#: superset-frontend/src/pages/DashboardList/index.tsx:560
+#: superset-frontend/src/pages/DashboardList/index.tsx:513
+#: superset-frontend/src/pages/DashboardList/index.tsx:537
+#: superset-frontend/src/pages/DashboardList/index.tsx:586
 #: superset-frontend/src/pages/DatasetList/index.tsx:596
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:269
 msgid "Any"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:726
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:393
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:670
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:338
 msgid "Any additional detail to show in the certification tooltip."
 msgstr ""
 
@@ -2203,13 +2203,13 @@ msgstr ""
 msgid "Applied filters: %s"
 msgstr ""
 
-#: superset/viz.py:236
+#: superset/viz.py:235
 msgid ""
 "Applied rolling window did not return any data. Please make sure the "
 "source query satisfies the minimum periods defined in the rolling window."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:113
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:108
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/ActionButtons/index.tsx:142
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:983
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:231
@@ -2264,8 +2264,8 @@ msgstr ""
 #: superset-frontend/src/features/home/DashboardTable.tsx:229
 #: superset-frontend/src/features/tags/TagCard.tsx:71
 #: superset-frontend/src/pages/ChartList/index.tsx:465
-#: superset-frontend/src/pages/DashboardList/index.tsx:397
-#: superset-frontend/src/pages/DashboardList/index.tsx:720
+#: superset-frontend/src/pages/DashboardList/index.tsx:423
+#: superset-frontend/src/pages/DashboardList/index.tsx:746
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:178
 #: superset-frontend/src/pages/Tags/index.tsx:200
 msgid "Are you sure you want to delete"
@@ -2289,7 +2289,7 @@ msgstr ""
 msgid "Are you sure you want to delete the selected charts?"
 msgstr ""
 
-#: superset-frontend/src/pages/DashboardList/index.tsx:683
+#: superset-frontend/src/pages/DashboardList/index.tsx:709
 msgid "Are you sure you want to delete the selected dashboards?"
 msgstr ""
 
@@ -2327,6 +2327,10 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:259
 msgid "Are you sure you want to save and apply changes?"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:100
+msgid "Area"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:64
@@ -2486,7 +2490,7 @@ msgstr ""
 msgid "Bad formula."
 msgstr ""
 
-#: superset/viz.py:1859 superset/viz.py:1899
+#: superset/viz.py:1858 superset/viz.py:1898
 msgid "Bad spatial key"
 msgstr ""
 
@@ -2542,12 +2546,12 @@ msgid "Based on what should series be ordered on the chart and legend"
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:879
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1806
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1808
 msgid "Basic"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:679
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:353
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:623
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:298
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:246
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:286
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:237
@@ -2682,7 +2686,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/index.ts:45
-#: superset/viz.py:841
+#: superset/viz.py:840
 msgid "Bubble Chart"
 msgstr ""
 
@@ -2724,7 +2728,7 @@ msgstr ""
 #: superset-frontend/src/pages/AnnotationList/index.tsx:231
 #: superset-frontend/src/pages/ChartList/index.tsx:749
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:212
-#: superset-frontend/src/pages/DashboardList/index.tsx:645
+#: superset-frontend/src/pages/DashboardList/index.tsx:671
 #: superset-frontend/src/pages/DatasetList/index.tsx:635
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:322
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:191
@@ -2737,7 +2741,7 @@ msgid "Bulk tag"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:32
-#: superset/viz.py:893
+#: superset/viz.py:892
 msgid "Bullet Chart"
 msgstr ""
 
@@ -2851,7 +2855,7 @@ msgstr ""
 msgid "CTAS & CVAS SCHEMA"
 msgstr ""
 
-#: superset/sql_lab.py:447
+#: superset/sql_lab.py:446
 msgid ""
 "CTAS (create table as select) can only be run with a query where the last"
 " statement is a SELECT. Please make sure your query has a SELECT as its "
@@ -2862,7 +2866,7 @@ msgstr ""
 msgid "CTAS Schema"
 msgstr ""
 
-#: superset/sql_lab.py:464
+#: superset/sql_lab.py:463
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -2887,7 +2891,7 @@ msgid "Cache Timeout (seconds)"
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:970
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:402
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:347
 msgid "Cache timeout"
 msgstr ""
 
@@ -2900,7 +2904,7 @@ msgstr ""
 msgid "Cached %s"
 msgstr ""
 
-#: superset/viz.py:563
+#: superset/viz.py:562
 msgid "Cached value not found"
 msgstr ""
 
@@ -2935,7 +2939,7 @@ msgid "Calculation type"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:32
-#: superset/viz.py:752
+#: superset/viz.py:751
 msgid "Calendar Heatmap"
 msgstr ""
 
@@ -2947,7 +2951,7 @@ msgstr ""
 msgid "Can select multiple values"
 msgstr ""
 
-#: superset/viz.py:1271
+#: superset/viz.py:1270
 msgid "Can't have overlap between Series and Breakdowns"
 msgstr ""
 
@@ -2957,10 +2961,10 @@ msgstr ""
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:270
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:311
 #: superset-frontend/src/components/Modal/Modal.tsx:273
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:646
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:590
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:305
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/Footer.tsx:62
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:311
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:256
 #: superset-frontend/src/explore/components/SaveModal.tsx:440
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:970
 #: superset-frontend/src/features/datasets/AddDataset/Footer/index.tsx:118
@@ -2996,7 +3000,7 @@ msgstr ""
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:365
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:385
 msgid "Catalog"
 msgstr ""
 
@@ -3028,7 +3032,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:53
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:116
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:146
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:102
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:120
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:115
 msgid "Category Name"
 msgstr ""
@@ -3036,14 +3040,14 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:57
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:122
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:152
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:106
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:124
 msgid "Category and Percentage"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:56
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:119
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:149
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:105
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:123
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:110
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:117
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:100
@@ -3061,7 +3065,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:58
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:126
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:156
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:107
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:125
 msgid "Category, Value and Percentage"
 msgstr ""
 
@@ -3096,8 +3100,8 @@ msgstr ""
 msgid "Centroid (Longitude and Latitude): "
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:706
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:376
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:650
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:321
 msgid "Certification"
 msgstr ""
 
@@ -3105,14 +3109,14 @@ msgstr ""
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:354
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1309
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1315
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:720
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:387
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:390
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:664
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:332
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:335
 msgid "Certification details"
 msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:657
-#: superset-frontend/src/pages/DashboardList/index.tsx:554
+#: superset-frontend/src/pages/DashboardList/index.tsx:580
 #: superset-frontend/src/pages/DatasetList/index.tsx:590
 msgid "Certified"
 msgstr ""
@@ -3124,9 +3128,9 @@ msgstr ""
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:343
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1296
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1304
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:711
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:378
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:379
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:655
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:323
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:324
 msgid "Certified by"
 msgstr ""
 
@@ -3228,7 +3232,7 @@ msgstr ""
 msgid "Chart"
 msgstr ""
 
-#: superset/views/core.py:729
+#: superset/views/core.py:727
 #, python-format
 msgid "Chart %(id)s not found"
 msgstr ""
@@ -3275,7 +3279,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:72
 #: superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx:109
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:299
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:71
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:72
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:82
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:61
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:67
@@ -3330,15 +3334,15 @@ msgstr ""
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr ""
 
-#: superset/views/core.py:628
+#: superset/views/core.py:626
 msgid "Chart [{}] has been overwritten"
 msgstr ""
 
-#: superset/views/core.py:624
+#: superset/views/core.py:622
 msgid "Chart [{}] has been saved"
 msgstr ""
 
-#: superset/views/core.py:653
+#: superset/views/core.py:651
 msgid "Chart [{}] was added to dashboard [{}]"
 msgstr ""
 
@@ -3362,7 +3366,7 @@ msgstr ""
 msgid "Chart does not exist"
 msgstr ""
 
-#: superset/charts/data/api.py:138
+#: superset/charts/data/api.py:136
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
 
@@ -3403,7 +3407,7 @@ msgstr ""
 msgid "Chart parameters are invalid."
 msgstr ""
 
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:245
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:190
 msgid "Chart properties updated"
 msgstr ""
 
@@ -3466,11 +3470,11 @@ msgstr ""
 msgid "Child label position"
 msgstr ""
 
-#: superset/viz.py:1716
+#: superset/viz.py:1715
 msgid "Choice of [Label] must be present in [Group By]"
 msgstr ""
 
-#: superset/viz.py:1724
+#: superset/viz.py:1723
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr ""
 
@@ -3658,13 +3662,13 @@ msgstr ""
 msgid "Click the lock to prevent further changes."
 msgstr ""
 
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:2037
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:2040
 msgid ""
 "Click this link to switch to an alternate form that allows you to input "
 "the SQLAlchemy URL for this database manually."
 msgstr ""
 
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1852
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1854
 msgid ""
 "Click this link to switch to an alternate form that exposes only the "
 "required fields needed to connect this database."
@@ -3831,7 +3835,7 @@ msgstr ""
 msgid "Color: "
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:497
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:441
 msgid "Colors"
 msgstr ""
 
@@ -3956,7 +3960,7 @@ msgstr ""
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr ""
 
-#: superset/viz.py:578
+#: superset/viz.py:577
 #, python-format
 msgid "Columns missing in datasource: %(invalid_columns)s"
 msgstr ""
@@ -4120,7 +4124,7 @@ msgstr ""
 msgid "Confidence interval must be between 0 and 1 (exclusive)"
 msgstr ""
 
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:400
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:345
 msgid "Configuration"
 msgstr ""
 
@@ -4166,9 +4170,9 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1161
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1199
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1739
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1778
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1939
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1742
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1779
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1941
 msgid "Connect"
 msgstr ""
 
@@ -4180,9 +4184,9 @@ msgstr ""
 msgid "Connect Google Sheets as tables to this database"
 msgstr ""
 
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1743
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1783
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1943
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1744
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1784
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1945
 msgid "Connect a database"
 msgstr ""
 
@@ -4190,11 +4194,11 @@ msgstr ""
 msgid "Connect database"
 msgstr ""
 
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1849
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1851
 msgid "Connect this database using the dynamic form instead"
 msgstr ""
 
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:2032
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:2035
 msgid "Connect this database with a SQLAlchemy URI string instead"
 msgstr ""
 
@@ -4211,7 +4215,7 @@ msgstr ""
 msgid "Connection failed, please check your connection settings."
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/hooks.ts:710
+#: superset-frontend/src/views/CRUD/hooks.ts:712
 msgid "Connection looks good!"
 msgstr ""
 
@@ -4425,7 +4429,7 @@ msgid "Country Field Type"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:33
-#: superset/viz.py:1461
+#: superset/viz.py:1460
 msgid "Country Map"
 msgstr ""
 
@@ -4514,7 +4518,7 @@ msgid "Creating a data source and creating a new tab"
 msgstr ""
 
 #: superset/views/chart/mixin.py:77 superset/views/dashboard/mixin.py:84
-#: superset/views/dashboard/views.py:189 superset/views/database/mixins.py:193
+#: superset/views/dashboard/views.py:188 superset/views/database/mixins.py:193
 msgid "Creator"
 msgstr ""
 
@@ -4593,7 +4597,7 @@ msgstr ""
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr ""
 
-#: superset/errors.py:152 superset/models/helpers.py:138
+#: superset/errors.py:152 superset/models/helpers.py:136
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr ""
 
@@ -4721,8 +4725,8 @@ msgstr ""
 #: superset-frontend/src/features/home/DashboardTable.tsx:194
 #: superset-frontend/src/features/home/RightMenu.tsx:232
 #: superset-frontend/src/pages/ChartList/index.tsx:646
-#: superset-frontend/src/pages/DashboardList/index.tsx:655
-#: superset/views/dashboard/mixin.py:77 superset/views/dashboard/views.py:187
+#: superset-frontend/src/pages/DashboardList/index.tsx:681
+#: superset/views/dashboard/mixin.py:77 superset/views/dashboard/views.py:186
 msgid "Dashboard"
 msgstr ""
 
@@ -4731,7 +4735,7 @@ msgstr ""
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
 msgstr ""
 
-#: superset/views/core.py:673
+#: superset/views/core.py:671
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr ""
 
@@ -4747,7 +4751,7 @@ msgstr ""
 msgid "Dashboard does not exist"
 msgstr ""
 
-#: superset-frontend/src/pages/DashboardList/index.tsx:177
+#: superset-frontend/src/pages/DashboardList/index.tsx:203
 msgid "Dashboard imported"
 msgstr ""
 
@@ -4755,11 +4759,11 @@ msgstr ""
 msgid "Dashboard parameters are invalid."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:636
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:580
 msgid "Dashboard properties"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:444
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:388
 msgid "Dashboard properties updated"
 msgstr ""
 
@@ -4785,7 +4789,7 @@ msgstr ""
 
 #: superset-frontend/src/features/allEntities/AllEntitiesTable.tsx:152
 #: superset-frontend/src/features/tags/TagModal.tsx:316
-#: superset-frontend/src/pages/DashboardList/index.tsx:680
+#: superset-frontend/src/pages/DashboardList/index.tsx:706
 #: superset-frontend/src/pages/Home/index.tsx:390
 #: superset/initialization/__init__.py:245 superset/views/chart/mixin.py:78
 #: superset/views/dashboard/mixin.py:24
@@ -4873,7 +4877,7 @@ msgstr ""
 msgid "DataFrame must include temporal column"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:341
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:360
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:1411
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:1416
 #: superset-frontend/src/features/databases/UploadDataModel/index.tsx:660
@@ -4951,7 +4955,7 @@ msgid "Database is required for alerts"
 msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:114
-#: superset/db_engine_specs/base.py:2234
+#: superset/db_engine_specs/base.py:2238
 #: superset/db_engine_specs/clickhouse.py:211
 #: superset/db_engine_specs/databend.py:201
 #: superset/db_engine_specs/duckdb.py:58
@@ -4974,7 +4978,7 @@ msgstr ""
 msgid "Database passwords"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:2230
+#: superset/db_engine_specs/base.py:2234
 #: superset/db_engine_specs/clickhouse.py:207
 #: superset/db_engine_specs/databend.py:198
 #: superset/db_engine_specs/databricks.py:52
@@ -5076,7 +5080,7 @@ msgstr ""
 msgid "Dataset parameters are invalid."
 msgstr ""
 
-#: superset/dashboards/api.py:390
+#: superset/dashboards/api.py:391
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr ""
@@ -5138,7 +5142,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:70
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:144
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:150
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:136
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:154
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:150
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:144
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:127
@@ -5169,7 +5173,7 @@ msgstr ""
 msgid "Datetime format"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:122
+#: superset/db_engine_specs/base.py:121
 msgid "Day"
 msgstr ""
 
@@ -5182,7 +5186,7 @@ msgstr ""
 msgid "Days %s"
 msgstr ""
 
-#: superset/connectors/sqla/models.py:1761 superset/models/helpers.py:1027
+#: superset/connectors/sqla/models.py:1716 superset/models/helpers.py:1027
 msgid "Db engine did not return all queried columns"
 msgstr ""
 
@@ -5206,47 +5210,47 @@ msgstr ""
 msgid "Decimal Character"
 msgstr ""
 
-#: superset/viz.py:2100
+#: superset/viz.py:2099
 msgid "Deck.gl - 3D Grid"
 msgstr ""
 
-#: superset/viz.py:2220
+#: superset/viz.py:2219
 msgid "Deck.gl - 3D HEX"
 msgstr ""
 
-#: superset/viz.py:2302
+#: superset/viz.py:2301
 msgid "Deck.gl - Arc"
 msgstr ""
 
-#: superset/viz.py:2262
+#: superset/viz.py:2261
 msgid "Deck.gl - Contour"
 msgstr ""
 
-#: superset/viz.py:2282
+#: superset/viz.py:2281
 msgid "Deck.gl - GeoJSON"
 msgstr ""
 
-#: superset/viz.py:2242
+#: superset/viz.py:2241
 msgid "Deck.gl - Heatmap"
 msgstr ""
 
-#: superset/viz.py:1814
+#: superset/viz.py:1813
 msgid "Deck.gl - Multiple Layers"
 msgstr ""
 
-#: superset/viz.py:2134
+#: superset/viz.py:2133
 msgid "Deck.gl - Paths"
 msgstr ""
 
-#: superset/viz.py:2185
+#: superset/viz.py:2184
 msgid "Deck.gl - Polygon"
 msgstr ""
 
-#: superset/viz.py:2018
+#: superset/viz.py:2017
 msgid "Deck.gl - Scatter plot"
 msgstr ""
 
-#: superset/viz.py:2071
+#: superset/viz.py:2070
 msgid "Deck.gl - Screen Grid"
 msgstr ""
 
@@ -5405,7 +5409,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/features/charts/ChartCard.tsx:104
-#: superset-frontend/src/features/dashboards/DashboardCard.tsx:102
+#: superset-frontend/src/features/dashboards/DashboardCard.tsx:137
 #: superset-frontend/src/features/datasets/AddDataset/Header/index.tsx:59
 #: superset-frontend/src/features/home/SavedQueries.tsx:217
 #: superset-frontend/src/features/tags/TagCard.tsx:84
@@ -5416,15 +5420,15 @@ msgstr ""
 #: superset-frontend/src/pages/ChartList/index.tsx:474
 #: superset-frontend/src/pages/ChartList/index.tsx:804
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:288
-#: superset-frontend/src/pages/DashboardList/index.tsx:406
-#: superset-frontend/src/pages/DashboardList/index.tsx:693
+#: superset-frontend/src/pages/DashboardList/index.tsx:432
+#: superset-frontend/src/pages/DashboardList/index.tsx:719
 #: superset-frontend/src/pages/DatasetList/index.tsx:433
 #: superset-frontend/src/pages/DatasetList/index.tsx:799
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:187
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:342
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:571
 #: superset-frontend/src/pages/Tags/index.tsx:209
-#: superset-frontend/src/pages/Tags/index.tsx:360 superset/views/base.py:718
+#: superset-frontend/src/pages/Tags/index.tsx:360 superset/views/base.py:706
 msgid "Delete"
 msgstr ""
 
@@ -5462,7 +5466,7 @@ msgstr ""
 msgid "Delete Template?"
 msgstr ""
 
-#: superset/views/base.py:718
+#: superset/views/base.py:706
 msgid "Delete all Really?"
 msgstr ""
 
@@ -5514,7 +5518,7 @@ msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] ""
 msgstr[1] ""
 
-#: superset/charts/api.py:523
+#: superset/charts/api.py:525
 #, python-format
 msgid "Deleted %(num)d chart"
 msgid_plural "Deleted %(num)d charts"
@@ -5528,7 +5532,7 @@ msgid_plural "Deleted %(num)d css templates"
 msgstr[0] ""
 msgstr[1] ""
 
-#: superset/dashboards/api.py:697
+#: superset/dashboards/api.py:700
 #, python-format
 msgid "Deleted %(num)d dashboard"
 msgid_plural "Deleted %(num)d dashboards"
@@ -5633,7 +5637,7 @@ msgstr ""
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1270
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/DividerConfigForm.tsx:51
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1167
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:367
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:312
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:1367
 #: superset-frontend/src/features/reports/ReportModal/index.tsx:319
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:475
@@ -5733,7 +5737,7 @@ msgid ""
 "details in your data. Dimensions affect the level of detail in the view."
 msgstr ""
 
-#: superset/viz.py:1421
+#: superset/viz.py:1420
 msgid "Directed Force Layout"
 msgstr ""
 
@@ -5841,7 +5845,7 @@ msgstr ""
 msgid "Distribution"
 msgstr ""
 
-#: superset/viz.py:1261
+#: superset/viz.py:1260
 msgid "Distribution - Bar Chart"
 msgstr ""
 
@@ -5851,7 +5855,7 @@ msgid "Divider"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:84
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:223
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:241
 msgid "Do you want a donut or a pie?"
 msgstr ""
 
@@ -5864,7 +5868,7 @@ msgid "Domain"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:81
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:220
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:238
 msgid "Donut"
 msgstr ""
 
@@ -5893,8 +5897,8 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/PublishedStatus/index.jsx:72
 #: superset-frontend/src/dashboard/components/PublishedStatus/index.jsx:83
-#: superset-frontend/src/pages/DashboardList/index.tsx:321
-#: superset-frontend/src/pages/DashboardList/index.tsx:514
+#: superset-frontend/src/pages/DashboardList/index.tsx:347
+#: superset-frontend/src/pages/DashboardList/index.tsx:540
 msgid "Draft"
 msgstr ""
 
@@ -5922,7 +5926,7 @@ msgstr ""
 msgid "Draw area under curves. Only applicable for line types."
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:178
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:196
 msgid "Draw line from Pie to label when labels outside?"
 msgstr ""
 
@@ -6016,7 +6020,7 @@ msgstr ""
 msgid "Duplicate column name(s): %(columns)s"
 msgstr ""
 
-#: superset/common/query_object.py:291
+#: superset/common/query_object.py:290
 #, python-format
 msgid ""
 "Duplicate column/metric labels: %(labels)s. Please make sure all columns "
@@ -6057,7 +6061,7 @@ msgid ""
 "defaults to the datasource/table timeout if undefined."
 msgstr ""
 
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:406
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:351
 msgid ""
 "Duration (in seconds) of the caching timeout for this chart. Set to -1 to"
 " bypass the cache. Note this defaults to the dataset's timeout if "
@@ -6141,7 +6145,7 @@ msgstr ""
 msgid "ERROR"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/hooks.ts:713
+#: superset-frontend/src/views/CRUD/hooks.ts:715
 #, python-format
 msgid "ERROR: %s"
 msgstr ""
@@ -6166,11 +6170,11 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/menu/MarkdownModeDropdown.tsx:35
 #: superset-frontend/src/explore/components/controls/TextAreaControl.jsx:144
 #: superset-frontend/src/features/charts/ChartCard.tsx:129
-#: superset-frontend/src/features/dashboards/DashboardCard.tsx:76
+#: superset-frontend/src/features/dashboards/DashboardCard.tsx:111
 #: superset-frontend/src/features/home/SavedQueries.tsx:198
 #: superset-frontend/src/pages/AlertReportList/index.tsx:378
 #: superset-frontend/src/pages/ChartList/index.tsx:509
-#: superset-frontend/src/pages/DashboardList/index.tsx:440
+#: superset-frontend/src/pages/DashboardList/index.tsx:466
 #: superset-frontend/src/pages/DatabaseList/index.tsx:471
 #: superset-frontend/src/pages/DatasetList/index.tsx:467
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:205
@@ -6194,7 +6198,7 @@ msgstr ""
 msgid "Edit Chart"
 msgstr ""
 
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:301
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:246
 msgid "Edit Chart Properties"
 msgstr ""
 
@@ -6271,7 +6275,7 @@ msgstr ""
 msgid "Edit dashboard"
 msgstr ""
 
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1783
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1784
 msgid "Edit database"
 msgstr ""
 
@@ -6328,7 +6332,7 @@ msgid "Either the database is spelled incorrectly or does not exist."
 msgstr ""
 
 #: superset/db_engine_specs/doris.py:211 superset/db_engine_specs/mysql.py:157
-#: superset/db_engine_specs/presto.py:709
+#: superset/db_engine_specs/presto.py:707
 #: superset/db_engine_specs/redshift.py:74
 #: superset/db_engine_specs/starrocks.py:154
 #, python-format
@@ -6396,11 +6400,11 @@ msgstr ""
 msgid "Empty collection"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/gridComponents/Column.jsx:270
+#: superset-frontend/src/dashboard/components/gridComponents/Column.jsx:267
 msgid "Empty column"
 msgstr ""
 
-#: superset/charts/data/api.py:369
+#: superset/charts/data/api.py:367
 msgid "Empty query result"
 msgstr ""
 
@@ -6408,7 +6412,7 @@ msgstr ""
 msgid "Empty query?"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/gridComponents/Row.jsx:354
+#: superset-frontend/src/dashboard/components/gridComponents/Row.jsx:351
 msgid "Empty row"
 msgstr ""
 
@@ -6469,7 +6473,7 @@ msgstr ""
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr ""
 
-#: superset/viz.py:1921
+#: superset/viz.py:1920
 msgid ""
 "Encountered invalid NULL spatial entry,"
 "                                        please consider filtering those "
@@ -6581,10 +6585,10 @@ msgstr ""
 msgid "Equal to (=)"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:140
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:295
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:134
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:289
 #: superset-frontend/src/explore/components/EmbedCodeContent.jsx:57
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:97
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:92
 #: superset-frontend/src/pages/AlertReportList/index.tsx:66
 msgid "Error"
 msgstr ""
@@ -6598,7 +6602,7 @@ msgstr ""
 msgid "Error in jinja expression in HAVING clause: %(msg)s"
 msgstr ""
 
-#: superset/connectors/sqla/models.py:1644 superset/models/helpers.py:844
+#: superset/models/helpers.py:844
 #, python-format
 msgid "Error in jinja expression in RLS filters: %(msg)s"
 msgstr ""
@@ -6608,7 +6612,7 @@ msgstr ""
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr ""
 
-#: superset/connectors/sqla/models.py:1425
+#: superset/connectors/sqla/models.py:1422
 #, python-format
 msgid "Error in jinja expression in fetch values predicate: %(msg)s"
 msgstr ""
@@ -6656,13 +6660,13 @@ msgstr ""
 msgid "Error: %(error)s"
 msgstr ""
 
-#: superset/views/core.py:426 superset/views/core.py:836
-#: superset/views/core.py:839
+#: superset/views/core.py:424 superset/views/core.py:834
+#: superset/views/core.py:837
 #, python-format
 msgid "Error: %(msg)s"
 msgstr ""
 
-#: superset/views/core.py:423
+#: superset/views/core.py:421
 msgid "Error: permalink state not found"
 msgstr ""
 
@@ -6695,7 +6699,7 @@ msgstr ""
 msgid "Event definition"
 msgstr ""
 
-#: superset/viz.py:2336
+#: superset/viz.py:2335
 msgid "Event flow"
 msgstr ""
 
@@ -6823,11 +6827,11 @@ msgid "Experimental"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ExploreCtasResultsButton/index.tsx:91
-#: superset/views/core.py:575
+#: superset/views/core.py:573
 msgid "Explore"
 msgstr ""
 
-#: superset/views/core.py:573
+#: superset/views/core.py:571
 #, python-format
 msgid "Explore - %(table)s"
 msgstr ""
@@ -6838,20 +6842,20 @@ msgid "Explore the result set in the data exploration view"
 msgstr ""
 
 #: superset-frontend/src/features/charts/ChartCard.tsx:117
-#: superset-frontend/src/features/dashboards/DashboardCard.tsx:89
+#: superset-frontend/src/features/dashboards/DashboardCard.tsx:124
 #: superset-frontend/src/pages/ChartList/index.tsx:493
 #: superset-frontend/src/pages/ChartList/index.tsx:812
-#: superset-frontend/src/pages/DashboardList/index.tsx:424
-#: superset-frontend/src/pages/DashboardList/index.tsx:701
+#: superset-frontend/src/pages/DashboardList/index.tsx:450
+#: superset-frontend/src/pages/DashboardList/index.tsx:727
 #: superset-frontend/src/pages/DatabaseList/index.tsx:455
 #: superset-frontend/src/pages/DatasetList/index.tsx:449
 #: superset-frontend/src/pages/DatasetList/index.tsx:807
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:579
-#: superset/views/dashboard/views.py:84
+#: superset/views/dashboard/views.py:83
 msgid "Export"
 msgstr ""
 
-#: superset/views/dashboard/views.py:84
+#: superset/views/dashboard/views.py:83
 msgid "Export dashboards?"
 msgstr ""
 
@@ -6877,11 +6881,11 @@ msgstr ""
 msgid "Export to PDF"
 msgstr ""
 
-#: superset/views/base.py:661
+#: superset/views/base.py:649
 msgid "Export to YAML"
 msgstr ""
 
-#: superset/views/base.py:661
+#: superset/views/base.py:649
 msgid "Export to YAML?"
 msgstr ""
 
@@ -7055,7 +7059,7 @@ msgstr ""
 #: superset-frontend/src/features/home/ChartTable.tsx:145
 #: superset-frontend/src/features/home/DashboardTable.tsx:156
 #: superset-frontend/src/pages/ChartList/index.tsx:550
-#: superset-frontend/src/pages/DashboardList/index.tsx:481
+#: superset-frontend/src/pages/DashboardList/index.tsx:507
 msgid "Favorite"
 msgstr ""
 
@@ -7262,7 +7266,7 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1179
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1227
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1939
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1941
 msgid "Finish"
 msgstr ""
 
@@ -7372,11 +7376,11 @@ msgstr ""
 msgid "Force refresh"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:358
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:378
 msgid "Force refresh catalog list"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:384
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:404
 msgid "Force refresh schema list"
 msgstr ""
 
@@ -7396,11 +7400,11 @@ msgstr ""
 msgid "Forest Green"
 msgstr ""
 
-#: superset/commands/explore/get.py:86 superset/views/core.py:440
+#: superset/commands/explore/get.py:85 superset/views/core.py:438
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr ""
 
-#: superset/commands/explore/get.py:94 superset/views/core.py:446
+#: superset/commands/explore/get.py:93 superset/views/core.py:444
 msgid "Form data not found in cache, reverting to dataset metadata."
 msgstr ""
 
@@ -7460,7 +7464,7 @@ msgstr ""
 msgid "Friday"
 msgstr ""
 
-#: superset/utils/date_parser.py:313 superset/viz.py:388
+#: superset/utils/date_parser.py:313 superset/viz.py:387
 msgid "From date cannot be larger than to date"
 msgstr ""
 
@@ -7606,7 +7610,7 @@ msgstr ""
 msgid "Groupable"
 msgstr ""
 
-#: superset/security/manager.py:2257
+#: superset/security/manager.py:2259
 msgid "Guest user cannot modify chart payload"
 msgstr ""
 
@@ -7649,7 +7653,7 @@ msgid "Header row"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/index.ts:34
-#: superset/viz.py:1594
+#: superset/viz.py:1593
 msgid "Heatmap"
 msgstr ""
 
@@ -7702,7 +7706,7 @@ msgid "Hierarchy"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/index.js:37
-#: superset/viz.py:1201
+#: superset/viz.py:1200
 msgid "Histogram"
 msgstr ""
 
@@ -7715,7 +7719,7 @@ msgstr ""
 msgid "Horizon Chart"
 msgstr ""
 
-#: superset/viz.py:1656
+#: superset/viz.py:1655
 msgid "Horizon Charts"
 msgstr ""
 
@@ -7735,13 +7739,13 @@ msgstr ""
 msgid "Host"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:2226
+#: superset/db_engine_specs/base.py:2230
 #: superset/db_engine_specs/clickhouse.py:203
 #: superset/db_engine_specs/databend.py:195
 msgid "Hostname or IP address"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:120
+#: superset/db_engine_specs/base.py:119
 msgid "Hour"
 msgstr ""
 
@@ -7893,7 +7897,7 @@ msgstr ""
 msgid "Import dashboard failed for an unknown reason"
 msgstr ""
 
-#: superset-frontend/src/pages/DashboardList/index.tsx:668
+#: superset-frontend/src/pages/DashboardList/index.tsx:694
 #: superset/templates/superset/import_dashboards.html:21
 msgid "Import dashboards"
 msgstr ""
@@ -7902,7 +7906,7 @@ msgstr ""
 msgid "Import database failed for an unknown reason"
 msgstr ""
 
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1994
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1997
 msgid "Import database from file"
 msgstr ""
 
@@ -7982,11 +7986,11 @@ msgstr ""
 msgid "Inherit range from time filter"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:232
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:250
 msgid "Inner Radius"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:238
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:256
 msgid "Inner radius of donut hole"
 msgstr ""
 
@@ -8097,7 +8101,7 @@ msgstr ""
 msgid "Invalid currency code in saved metrics"
 msgstr ""
 
-#: superset/connectors/sqla/views.py:186 superset/datasets/schemas.py:54
+#: superset/connectors/sqla/views.py:186 superset/datasets/schemas.py:52
 msgid "Invalid date/timestamp format"
 msgstr ""
 
@@ -8126,7 +8130,7 @@ msgstr ""
 msgid "Invalid longitude/latitude"
 msgstr ""
 
-#: superset/utils/core.py:1264
+#: superset/utils/core.py:1125
 #, python-format
 msgid "Invalid metric object: %(metric)s"
 msgstr ""
@@ -8160,7 +8164,7 @@ msgstr ""
 msgid "Invalid rolling_type: %(type)s"
 msgstr ""
 
-#: superset/viz.py:1881
+#: superset/viz.py:1880
 #, python-format
 msgid "Invalid spatial point encountered: %(latlong)s"
 msgstr ""
@@ -8266,12 +8270,12 @@ msgstr ""
 msgid "JSON Metadata"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:772
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:716
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:335
 msgid "JSON metadata"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:365
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:324
 msgid "JSON metadata is invalid!"
 msgstr ""
 
@@ -8372,12 +8376,12 @@ msgstr ""
 msgid "Label Contents"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:175
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:193
 msgid "Label Line"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:49
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:98
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:116
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:105
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:111
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:94
@@ -8409,7 +8413,7 @@ msgid "Labelling"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:106
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:92
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:110
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:87
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:66
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:64
@@ -8471,7 +8475,7 @@ msgstr ""
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:165
 #: superset-frontend/src/pages/ChartList/index.tsx:439
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:142
-#: superset-frontend/src/pages/DashboardList/index.tsx:374
+#: superset-frontend/src/pages/DashboardList/index.tsx:400
 #: superset-frontend/src/pages/DatabaseList/index.tsx:420
 #: superset-frontend/src/pages/DatasetList/index.tsx:405
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:157
@@ -8538,7 +8542,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:709
-#: superset-frontend/src/pages/DashboardList/index.tsx:606
+#: superset-frontend/src/pages/DashboardList/index.tsx:632
 #: superset-frontend/src/pages/Tags/index.tsx:304
 msgid "Least recently modified"
 msgstr ""
@@ -8756,7 +8760,7 @@ msgid "Lines encoding"
 msgstr ""
 
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:241
-#: superset-frontend/src/views/CRUD/hooks.ts:686
+#: superset-frontend/src/views/CRUD/hooks.ts:688
 msgid "Link Copied!"
 msgstr ""
 
@@ -8952,7 +8956,7 @@ msgstr ""
 msgid "Make the x-axis categorical"
 msgstr ""
 
-#: superset/views/core.py:719
+#: superset/views/core.py:717
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
 "expected"
@@ -9020,7 +9024,7 @@ msgstr ""
 msgid "MapBox"
 msgstr ""
 
-#: superset/viz.py:1667
+#: superset/viz.py:1666
 msgid "Mapbox"
 msgstr ""
 
@@ -9199,7 +9203,7 @@ msgstr ""
 msgid "Metric"
 msgstr ""
 
-#: superset/connectors/sqla/models.py:1672 superset/models/helpers.py:1253
+#: superset/connectors/sqla/models.py:1627 superset/models/helpers.py:1253
 #: superset/models/helpers.py:1569
 #, python-format
 msgid "Metric '%(metric)s' does not exist"
@@ -9378,7 +9382,7 @@ msgid ""
 "this insures that the circle respects this minimum radius."
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:84
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:85
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:88
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:154
 msgid "Minimum threshold in percentage points for showing labels."
@@ -9410,7 +9414,7 @@ msgstr ""
 msgid "Minor ticks"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:115
+#: superset/db_engine_specs/base.py:114
 msgid "Minute"
 msgstr ""
 
@@ -9439,12 +9443,12 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:293
 #: superset/connectors/sqla/views.py:422 superset/views/dashboard/mixin.py:85
-#: superset/views/dashboard/views.py:190 superset/views/database/mixins.py:203
+#: superset/views/dashboard/views.py:189 superset/views/database/mixins.py:203
 msgid "Modified"
 msgstr ""
 
 #: superset-frontend/src/features/charts/ChartCard.tsx:156
-#: superset-frontend/src/features/dashboards/DashboardCard.tsx:133
+#: superset-frontend/src/features/dashboards/DashboardCard.tsx:168
 #: superset-frontend/src/features/home/ActivityTable.tsx:121
 #: superset-frontend/src/features/tags/TagCard.tsx:104
 #, python-format
@@ -9455,7 +9459,7 @@ msgstr ""
 #: superset-frontend/src/pages/AlertReportList/index.tsx:494
 #: superset-frontend/src/pages/ChartList/index.tsx:670
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:230
-#: superset-frontend/src/pages/DashboardList/index.tsx:567
+#: superset-frontend/src/pages/DashboardList/index.tsx:593
 #: superset-frontend/src/pages/DatabaseList/index.tsx:543
 #: superset-frontend/src/pages/DatasetList/index.tsx:603
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:283
@@ -9478,7 +9482,7 @@ msgstr ""
 msgid "Monday"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:124
+#: superset/db_engine_specs/base.py:123
 msgid "Month"
 msgstr ""
 
@@ -9561,11 +9565,11 @@ msgstr ""
 msgid "Must choose either a chart or a dashboard"
 msgstr ""
 
-#: superset/viz.py:1692
+#: superset/viz.py:1691
 msgid "Must have a [Group By] column to have 'count' as the [Label]"
 msgstr ""
 
-#: superset/viz.py:1211
+#: superset/viz.py:1210
 msgid "Must have at least one numeric column specified"
 msgstr ""
 
@@ -9617,9 +9621,9 @@ msgstr ""
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.tsx:929
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:218
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1118
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:684
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:354
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:356
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:628
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:299
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:301
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:916
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:290
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:241
@@ -9632,8 +9636,8 @@ msgstr ""
 #: superset-frontend/src/pages/ChartList/index.tsx:568
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:131
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:223
-#: superset-frontend/src/pages/DashboardList/index.tsx:312
-#: superset-frontend/src/pages/DashboardList/index.tsx:499
+#: superset-frontend/src/pages/DashboardList/index.tsx:338
+#: superset-frontend/src/pages/DashboardList/index.tsx:525
 #: superset-frontend/src/pages/DatabaseList/index.tsx:345
 #: superset-frontend/src/pages/DatabaseList/index.tsx:504
 #: superset-frontend/src/pages/DatasetList/index.tsx:356
@@ -9746,6 +9750,10 @@ msgstr ""
 msgid "Next"
 msgstr ""
 
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/index.ts:77
+msgid "Nightingale"
+msgstr ""
+
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:32
 msgid "Nightingale Rose Chart"
 msgstr ""
@@ -9757,8 +9765,8 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/OverwriteConfirm/OverwriteConfirmModal.tsx:143
 #: superset-frontend/src/pages/ChartList/index.tsx:559
 #: superset-frontend/src/pages/ChartList/index.tsx:666
-#: superset-frontend/src/pages/DashboardList/index.tsx:490
-#: superset-frontend/src/pages/DashboardList/index.tsx:563
+#: superset-frontend/src/pages/DashboardList/index.tsx:516
+#: superset-frontend/src/pages/DashboardList/index.tsx:589
 #: superset-frontend/src/pages/DatabaseList/index.tsx:519
 #: superset-frontend/src/pages/DatabaseList/index.tsx:539
 #: superset-frontend/src/pages/DatasetList/index.tsx:599
@@ -9818,7 +9826,7 @@ msgstr ""
 msgid "No columns found"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:369
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:389
 msgid "No compatible catalog found"
 msgstr ""
 
@@ -9830,7 +9838,7 @@ msgstr ""
 msgid "No compatible datasets found"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:395
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:415
 msgid "No compatible schema found"
 msgstr ""
 
@@ -10012,6 +10020,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:183
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:407
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:186
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:102
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:240
 #: superset-frontend/plugins/plugin-chart-echarts/src/constants.ts:82
 #: superset-frontend/src/dashboard/components/Header/index.jsx:455
@@ -10161,7 +10170,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:136
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:169
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:144
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:120
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:138
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:136
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:129
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:112
@@ -10328,7 +10337,7 @@ msgstr ""
 msgid "One ore more annotation layers failed loading."
 msgstr ""
 
-#: superset/sql_lab.py:240
+#: superset/sql_lab.py:239
 msgid "Only SELECT statements are allowed against this database."
 msgstr ""
 
@@ -10533,11 +10542,11 @@ msgstr ""
 msgid "Outdoors"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:205
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:223
 msgid "Outer Radius"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:211
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:229
 msgid "Outer edge of Pie chart"
 msgstr ""
 
@@ -10618,7 +10627,7 @@ msgstr ""
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:456
 #: superset-frontend/src/pages/ChartList/index.tsx:624
-#: superset-frontend/src/pages/DashboardList/index.tsx:531
+#: superset-frontend/src/pages/DashboardList/index.tsx:557
 #: superset-frontend/src/pages/DatasetList/index.tsx:570
 msgid "Owner"
 msgstr ""
@@ -10630,17 +10639,17 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:415
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:434
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:448
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:477
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:480
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:524
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:528
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:254
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:421
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:424
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:468
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:472
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:199
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:1345
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:1350
 #: superset-frontend/src/features/allEntities/AllEntitiesTable.tsx:138
 #: superset-frontend/src/pages/AlertReportList/index.tsx:314
 #: superset-frontend/src/pages/ChartList/index.tsx:425
-#: superset-frontend/src/pages/DashboardList/index.tsx:357
+#: superset-frontend/src/pages/DashboardList/index.tsx:383
 #: superset-frontend/src/pages/DatasetList/index.tsx:391
 #: superset/connectors/sqla/views.py:416 superset/views/chart/mixin.py:82
 #: superset/views/dashboard/mixin.py:81
@@ -10656,8 +10665,8 @@ msgstr ""
 msgid "Owners is a list of users who can alter the dashboard."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:491
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:539
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:435
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:483
 msgid ""
 "Owners is a list of users who can alter the dashboard. Searchable by name"
 " or username."
@@ -10694,7 +10703,7 @@ msgid "Pandas resample rule"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/index.js:33
-#: superset/viz.py:1564
+#: superset/viz.py:1563
 msgid "Parallel Coordinates"
 msgstr ""
 
@@ -10739,7 +10748,7 @@ msgstr ""
 msgid "Partition Chart"
 msgstr ""
 
-#: superset/viz.py:2476
+#: superset/viz.py:2475
 msgid "Partition Diagram"
 msgstr ""
 
@@ -10759,7 +10768,7 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:218
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:130
-#: superset/db_engine_specs/base.py:2224
+#: superset/db_engine_specs/base.py:2228
 #: superset/db_engine_specs/clickhouse.py:201
 #: superset/db_engine_specs/databend.py:194
 msgid "Password"
@@ -10803,7 +10812,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:55
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:118
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:148
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:104
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:122
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:66
 msgid "Percentage"
 msgstr ""
@@ -10827,7 +10836,7 @@ msgstr ""
 msgid "Percentage metrics"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:80
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:81
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:84
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:150
 msgid "Percentage threshold"
@@ -10868,11 +10877,11 @@ msgstr ""
 msgid "Periods must be a whole number"
 msgstr ""
 
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:382
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:327
 msgid "Person or group that has certified this chart."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:715
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:659
 msgid "Person or group that has certified this dashboard."
 msgstr ""
 
@@ -10900,11 +10909,11 @@ msgstr ""
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr ""
 
-#: superset/viz.py:866
+#: superset/viz.py:865
 msgid "Pick a metric for x, y and size"
 msgstr ""
 
-#: superset/viz.py:906
+#: superset/viz.py:905
 msgid "Pick a metric to display"
 msgstr ""
 
@@ -10924,15 +10933,15 @@ msgstr ""
 msgid "Pick a title for you annotation."
 msgstr ""
 
-#: superset/viz.py:1276
+#: superset/viz.py:1275
 msgid "Pick at least one field for [Series]"
 msgstr ""
 
-#: superset/viz.py:715 superset/viz.py:1274
+#: superset/viz.py:714 superset/viz.py:1273
 msgid "Pick at least one metric"
 msgstr ""
 
-#: superset/viz.py:1357
+#: superset/viz.py:1356
 msgid "Pick exactly 2 columns as [Source / Target]"
 msgstr ""
 
@@ -10954,7 +10963,7 @@ msgstr ""
 msgid "Pie Chart (legacy)"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:199
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:217
 msgid "Pie shape"
 msgstr ""
 
@@ -10994,7 +11003,7 @@ msgstr ""
 msgid "Plain"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:791
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:735
 msgid "Please DO NOT overwrite the \"filter_scopes\" key."
 msgstr ""
 
@@ -11006,8 +11015,8 @@ msgid ""
 msgstr ""
 
 #: superset/db_engine_specs/athena.py:58
-#: superset/db_engine_specs/bigquery.py:216
-#: superset/db_engine_specs/postgres.py:164
+#: superset/db_engine_specs/bigquery.py:215
+#: superset/db_engine_specs/postgres.py:163
 #: superset/db_engine_specs/snowflake.py:117
 #, python-format
 msgid ""
@@ -11023,14 +11032,14 @@ msgid ""
 "Then, try running your query again."
 msgstr ""
 
-#: superset/sqllab/query_render.py:39 superset/views/core.py:116
+#: superset/sqllab/query_render.py:39 superset/views/core.py:114
 msgid ""
 "Please check your template parameters for syntax errors and make sure "
 "they match across your SQL query and Set Parameters. Then, try running "
 "your query again."
 msgstr ""
 
-#: superset/viz.py:2641
+#: superset/viz.py:2640
 msgid "Please choose at least one groupby"
 msgstr ""
 
@@ -11043,9 +11052,9 @@ msgstr ""
 #: superset-frontend/src/pages/ChartList/index.tsx:462
 #: superset-frontend/src/pages/ChartList/index.tsx:795
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:277
-#: superset-frontend/src/pages/DashboardList/index.tsx:394
-#: superset-frontend/src/pages/DashboardList/index.tsx:682
-#: superset-frontend/src/pages/DashboardList/index.tsx:737
+#: superset-frontend/src/pages/DashboardList/index.tsx:420
+#: superset-frontend/src/pages/DashboardList/index.tsx:708
+#: superset-frontend/src/pages/DashboardList/index.tsx:763
 #: superset-frontend/src/pages/DatasetList/index.tsx:788
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:175
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:333
@@ -11067,11 +11076,11 @@ msgstr ""
 msgid "Please enter valid text. Spaces alone are not permitted."
 msgstr ""
 
-#: superset/db_engine_specs/postgres.py:128
+#: superset/db_engine_specs/postgres.py:127
 msgid "Please re-enter the password."
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/hooks.ts:445
+#: superset-frontend/src/views/CRUD/hooks.ts:447
 msgid "Please re-export your file and try importing again"
 msgstr ""
 
@@ -11105,7 +11114,7 @@ msgid ""
 "macro."
 msgstr ""
 
-#: superset/viz.py:864
+#: superset/viz.py:863
 msgid "Please use 3 different metric labels"
 msgstr ""
 
@@ -11210,8 +11219,8 @@ msgid "Port"
 msgstr ""
 
 #: superset/db_engine_specs/mssql.py:106
-#: superset/db_engine_specs/postgres.py:138
-#: superset/db_engine_specs/presto.py:727
+#: superset/db_engine_specs/postgres.py:137
+#: superset/db_engine_specs/presto.py:725
 #: superset/db_engine_specs/redshift.py:84
 #, python-format
 msgid "Port %(port)s on hostname \"%(hostname)s\" refused the connection."
@@ -11385,8 +11394,8 @@ msgid "Publicly shared sheets only"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PublishedStatus/index.jsx:101
-#: superset-frontend/src/pages/DashboardList/index.tsx:321
-#: superset-frontend/src/pages/DashboardList/index.tsx:513
+#: superset-frontend/src/pages/DashboardList/index.tsx:347
+#: superset-frontend/src/pages/DashboardList/index.tsx:539
 #: superset/views/dashboard/mixin.py:83
 msgid "Published"
 msgstr ""
@@ -11396,7 +11405,7 @@ msgid "Purple"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:107
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:161
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:179
 msgid "Put labels outside"
 msgstr ""
 
@@ -11408,7 +11417,7 @@ msgstr ""
 msgid "Put some positive value greater than 0"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:164
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:182
 msgid "Put the labels outside of the pie?"
 msgstr ""
 
@@ -11428,7 +11437,7 @@ msgstr ""
 msgid "QUERY DATA IN SQL LAB"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:125
+#: superset/db_engine_specs/base.py:124
 msgid "Quarter"
 msgstr ""
 
@@ -11484,7 +11493,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:33
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:44
 #: superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx:37
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:48
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:49
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:63
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:38
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:42
@@ -11604,6 +11613,10 @@ msgstr ""
 msgid "Radial"
 msgstr ""
 
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:101
+msgid "Radius"
+msgstr ""
+
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/controlPanel.ts:83
 msgid "Radius in kilometers"
 msgstr ""
@@ -11678,7 +11691,7 @@ msgid "Recently edited charts, dashboards, and saved queries will appear here"
 msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:703
-#: superset-frontend/src/pages/DashboardList/index.tsx:600
+#: superset-frontend/src/pages/DashboardList/index.tsx:626
 #: superset-frontend/src/pages/Tags/index.tsx:298
 msgid "Recently modified"
 msgstr ""
@@ -11999,13 +12012,13 @@ msgstr ""
 msgid "Repulsion strength between nodes"
 msgstr ""
 
-#: superset/charts/data/api.py:161 superset/charts/data/api.py:249
-#: superset/charts/data/api.py:319
+#: superset/charts/data/api.py:159 superset/charts/data/api.py:247
+#: superset/charts/data/api.py:317
 #, python-format
 msgid "Request is incorrect: %(error)s"
 msgstr ""
 
-#: superset/charts/data/api.py:236
+#: superset/charts/data/api.py:234
 msgid "Request is not JSON"
 msgstr ""
 
@@ -12078,7 +12091,7 @@ msgstr ""
 msgid "Results %s"
 msgstr ""
 
-#: superset/commands/sql_lab/results.py:59 superset/sql_lab.py:414
+#: superset/commands/sql_lab/results.py:59 superset/sql_lab.py:413
 msgid "Results backend is not configured."
 msgstr ""
 
@@ -12143,15 +12156,15 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:368
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:382
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:545
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:548
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:489
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:492
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:418
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:427
 #: superset/views/dashboard/mixin.py:82
 msgid "Roles"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:559
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:503
 msgid ""
 "Roles is a list which defines access to the dashboard. Granting a role "
 "access to a dashboard will bypass dataset level checks. If no roles are "
@@ -12196,6 +12209,10 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:84
 msgid "Root node id"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:96
+msgid "Rose Type"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:253
@@ -12324,7 +12341,7 @@ msgstr ""
 msgid "Running"
 msgstr ""
 
-#: superset/sql_lab.py:499
+#: superset/sql_lab.py:498
 #, python-format
 msgid "Running statement %(statement_num)s out of %(statement_count)s"
 msgstr ""
@@ -12493,7 +12510,7 @@ msgstr ""
 msgid "Samples for datasource could not be retrieved."
 msgstr ""
 
-#: superset/viz.py:1348
+#: superset/viz.py:1347
 msgid "Sankey"
 msgstr ""
 
@@ -12526,7 +12543,7 @@ msgstr ""
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:331
 #: superset-frontend/src/dashboard/components/Header/index.jsx:636
 #: superset-frontend/src/dashboard/components/Header/index.jsx:638
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:113
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:108
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:319
 #: superset-frontend/src/dashboard/components/SaveModal.tsx:211
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:787
@@ -12535,7 +12552,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:385
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:279
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:458
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:329
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:274
 #: superset-frontend/src/explore/components/SaveModal.tsx:468
 #: superset-frontend/src/explore/components/controls/ContourControl/ContourPopoverControl.tsx:344
 #: superset-frontend/src/explore/components/controls/DatasourceControl/index.jsx:496
@@ -12549,7 +12566,7 @@ msgstr ""
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:229
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:271
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:220
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1778
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1779
 #: superset-frontend/src/features/datasets/AddDataset/Header/index.tsx:52
 #: superset-frontend/src/features/reports/ReportModal/index.tsx:234
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:337
@@ -12748,7 +12765,7 @@ msgstr ""
 msgid "Scheduled task executor not found"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:391
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:411
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:227
 #: superset-frontend/src/features/databases/UploadDataModel/index.tsx:677
 #: superset-frontend/src/features/datasets/DatasetSelectLabel/index.tsx:113
@@ -12844,7 +12861,7 @@ msgstr ""
 msgid "Search..."
 msgstr ""
 
-#: superset/db_engine_specs/base.py:112
+#: superset/db_engine_specs/base.py:111
 msgid "Second"
 msgstr ""
 
@@ -13037,8 +13054,8 @@ msgstr ""
 msgid "Select any columns for metadata inspection"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:363
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:370
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:383
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:390
 msgid "Select catalog or type to search catalogs"
 msgstr ""
 
@@ -13091,12 +13108,12 @@ msgstr ""
 msgid "Select database"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:338
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:346
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:357
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:365
 msgid "Select database or type to search databases"
 msgstr ""
 
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1872
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1874
 msgid ""
 "Select databases require additional fields to be completed in the "
 "Advanced tab to successfully connect the database. Learn what "
@@ -13178,8 +13195,8 @@ msgstr ""
 msgid "Select saved queries"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:389
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:396
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:409
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:416
 msgid "Select schema or type to search schemas"
 msgstr ""
 
@@ -13453,7 +13470,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:94
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:183
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:149
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:167
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:93
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:72
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:70
@@ -13493,7 +13510,7 @@ msgstr ""
 msgid "Show Tooltip Labels"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:191
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:209
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:99
 msgid "Show Total"
 msgstr ""
@@ -13869,7 +13886,7 @@ msgstr ""
 
 #: superset-frontend/src/features/queries/SyntaxHighlighterCopy.tsx:76
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:244
-#: superset-frontend/src/views/CRUD/hooks.ts:689
+#: superset-frontend/src/views/CRUD/hooks.ts:691
 msgid "Sorry, your browser does not support copying."
 msgstr ""
 
@@ -13941,7 +13958,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:62
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:68
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:62
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:61
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:62
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:51
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:49
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/controlPanel.ts:40
@@ -14143,7 +14160,7 @@ msgstr ""
 msgid "State"
 msgstr ""
 
-#: superset/sql_lab.py:521
+#: superset/sql_lab.py:520
 #, python-format
 msgid "Statement %(statement_num)s out of %(statement_count)s"
 msgstr ""
@@ -14154,8 +14171,8 @@ msgid "Statistical"
 msgstr ""
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:473
-#: superset-frontend/src/pages/DashboardList/index.tsx:322
-#: superset-frontend/src/pages/DashboardList/index.tsx:506
+#: superset-frontend/src/pages/DashboardList/index.tsx:348
+#: superset-frontend/src/pages/DashboardList/index.tsx:532
 msgid "Status"
 msgstr ""
 
@@ -14453,7 +14470,7 @@ msgstr ""
 msgid "Table"
 msgstr ""
 
-#: superset/views/core.py:742
+#: superset/views/core.py:740
 #, python-format
 msgid "Table %(table)s wasn't found in the database %(db)s"
 msgstr ""
@@ -14520,7 +14537,7 @@ msgid "Tabular"
 msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:613
-#: superset-frontend/src/pages/DashboardList/index.tsx:520
+#: superset-frontend/src/pages/DashboardList/index.tsx:546
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:500
 #: superset-frontend/src/pages/Tags/index.tsx:324
 msgid "Tag"
@@ -14572,12 +14589,12 @@ msgid "Tagged Object could not be deleted."
 msgstr ""
 
 #: superset-frontend/src/components/MetadataBar/ContentConfig.tsx:128
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:733
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:430
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:677
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:375
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:677
 #: superset-frontend/src/features/allEntities/AllEntitiesTable.tsx:128
 #: superset-frontend/src/pages/ChartList/index.tsx:414
-#: superset-frontend/src/pages/DashboardList/index.tsx:346
+#: superset-frontend/src/pages/DashboardList/index.tsx:372
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:366
 #: superset-frontend/src/pages/Tags/index.tsx:349
 #: superset/initialization/__init__.py:348
@@ -14769,11 +14786,11 @@ msgid ""
 "[country] column"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:462
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:406
 msgid "The dashboard has been saved"
 msgstr ""
 
-#: superset/views/core.py:114
+#: superset/views/core.py:112
 msgid "The data source seems to have been deleted"
 msgstr ""
 
@@ -14882,7 +14899,7 @@ msgstr ""
 msgid "The default schema that should be used for the connection."
 msgstr ""
 
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:371
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:316
 msgid ""
 "The description can be displayed as widget headers in the dashboard view."
 " Supports markdown."
@@ -14908,7 +14925,7 @@ msgid ""
 "call."
 msgstr ""
 
-#: superset/common/query_object.py:313
+#: superset/common/query_object.py:312
 #, python-format
 msgid ""
 "The following entries in `series_columns` are missing in `columns`: "
@@ -14927,8 +14944,8 @@ msgid "The host \"%(hostname)s\" might be down and can't be reached."
 msgstr ""
 
 #: superset/db_engine_specs/mssql.py:111
-#: superset/db_engine_specs/postgres.py:143
-#: superset/db_engine_specs/presto.py:719
+#: superset/db_engine_specs/postgres.py:142
+#: superset/db_engine_specs/presto.py:717
 #: superset/db_engine_specs/redshift.py:89
 #, python-format
 msgid ""
@@ -14941,8 +14958,8 @@ msgid "The host might be down, and can't be reached on the provided port."
 msgstr ""
 
 #: superset/db_engine_specs/mssql.py:101
-#: superset/db_engine_specs/postgres.py:133
-#: superset/db_engine_specs/presto.py:714
+#: superset/db_engine_specs/postgres.py:132
+#: superset/db_engine_specs/presto.py:712
 #: superset/db_engine_specs/redshift.py:79
 #, python-format
 msgid "The hostname \"%(hostname)s\" cannot be resolved."
@@ -15086,7 +15103,7 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] ""
 msgstr[1] ""
 
-#: superset/db_engine_specs/postgres.py:123
+#: superset/db_engine_specs/postgres.py:122
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr ""
@@ -15212,7 +15229,7 @@ msgstr ""
 msgid "The query returned no data"
 msgstr ""
 
-#: superset/sql_lab.py:307
+#: superset/sql_lab.py:306
 #, python-format
 msgid ""
 "The query was killed after %(sqllab_timeout)s seconds. It might be too "
@@ -15270,14 +15287,14 @@ msgid ""
 "data."
 msgstr ""
 
-#: superset/db_engine_specs/bigquery.py:208
+#: superset/db_engine_specs/bigquery.py:207
 #, python-format
 msgid ""
 "The schema \"%(schema)s\" does not exist. A valid schema must be used to "
 "run this query."
 msgstr ""
 
-#: superset/db_engine_specs/presto.py:701
+#: superset/db_engine_specs/presto.py:699
 #, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
@@ -15312,14 +15329,14 @@ msgstr ""
 msgid "The submitted payload has the incorrect schema."
 msgstr ""
 
-#: superset/db_engine_specs/bigquery.py:195
+#: superset/db_engine_specs/bigquery.py:194
 #, python-format
 msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
 msgstr ""
 
-#: superset/db_engine_specs/presto.py:693
+#: superset/db_engine_specs/presto.py:691
 #, python-format
 msgid ""
 "The table \"%(table_name)s\" does not exist. A valid table must be used "
@@ -15399,7 +15416,7 @@ msgstr ""
 msgid "The upper limit of the threshold range of the Isoband"
 msgstr ""
 
-#: superset/views/core.py:115
+#: superset/views/core.py:113
 msgid "The user seems to have been deleted"
 msgstr ""
 
@@ -15408,7 +15425,7 @@ msgid "The user/password combination is not valid (Incorrect password for user).
 msgstr ""
 
 #: superset/db_engine_specs/ocient.py:243
-#: superset/db_engine_specs/postgres.py:118
+#: superset/db_engine_specs/postgres.py:117
 #, python-format
 msgid "The username \"%(username)s\" does not exist."
 msgstr ""
@@ -15492,7 +15509,7 @@ msgstr ""
 msgid "There was an error fetching dataset's related objects"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/hooks.ts:604
+#: superset-frontend/src/views/CRUD/hooks.ts:606
 #, python-format
 msgid "There was an error fetching the favorite status: %s"
 msgstr ""
@@ -15501,7 +15518,7 @@ msgstr ""
 msgid "There was an error fetching your recent activity:"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:301
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:320
 msgid "There was an error loading the catalogs"
 msgstr ""
 
@@ -15513,7 +15530,7 @@ msgstr ""
 msgid "There was an error loading the dataset metadata"
 msgstr ""
 
-#: superset-frontend/src/components/DatabaseSelector/index.tsx:263
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:282
 msgid "There was an error loading the schemas"
 msgstr ""
 
@@ -15521,7 +15538,7 @@ msgstr ""
 msgid "There was an error loading the tables"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/hooks.ts:627
+#: superset-frontend/src/views/CRUD/hooks.ts:629
 #, python-format
 msgid "There was an error saving the favorite status: %s"
 msgstr ""
@@ -15564,7 +15581,7 @@ msgstr ""
 msgid "There was an issue deleting the selected charts: %s"
 msgstr ""
 
-#: superset-frontend/src/pages/DashboardList/index.tsx:262
+#: superset-frontend/src/pages/DashboardList/index.tsx:288
 msgid "There was an issue deleting the selected dashboards: "
 msgstr ""
 
@@ -15644,7 +15661,7 @@ msgstr ""
 msgid "There was an issue previewing the selected query. %s"
 msgstr ""
 
-#: superset/viz.py:1409
+#: superset/viz.py:1408
 msgid ""
 "There's a loop in your Sankey, please provide a tree. Here's a faulty "
 "link: {}"
@@ -15662,7 +15679,7 @@ msgid ""
 "parameters."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:785
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:729
 #: superset/views/dashboard/mixin.py:58
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
@@ -15705,7 +15722,7 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:322
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:267
 msgid "This chart is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -15766,7 +15783,7 @@ msgid ""
 "be in %s."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:658
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:602
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -16047,31 +16064,31 @@ msgstr ""
 msgid "Time Series"
 msgstr ""
 
-#: superset/viz.py:1130
+#: superset/viz.py:1129
 msgid "Time Series - Bar Chart"
 msgstr ""
 
-#: superset/viz.py:924
+#: superset/viz.py:923
 msgid "Time Series - Line Chart"
 msgstr ""
 
-#: superset/viz.py:2441
+#: superset/viz.py:2440
 msgid "Time Series - Nightingale Rose Chart"
 msgstr ""
 
-#: superset/viz.py:2369
+#: superset/viz.py:2368
 msgid "Time Series - Paired t-test"
 msgstr ""
 
-#: superset/viz.py:1185
+#: superset/viz.py:1184
 msgid "Time Series - Percent Change"
 msgstr ""
 
-#: superset/viz.py:1138
+#: superset/viz.py:1137
 msgid "Time Series - Period Pivot"
 msgstr ""
 
-#: superset/viz.py:1192
+#: superset/viz.py:1191
 msgid "Time Series - Stacked"
 msgstr ""
 
@@ -16086,7 +16103,7 @@ msgstr ""
 msgid "Time Shift"
 msgstr ""
 
-#: superset/viz.py:706
+#: superset/viz.py:705
 msgid "Time Table View"
 msgstr ""
 
@@ -16261,7 +16278,7 @@ msgstr ""
 #: superset-frontend/src/components/DynamicEditableTitle/index.tsx:183
 #: superset-frontend/src/components/DynamicEditableTitle/index.tsx:204
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/DividerConfigForm.tsx:41
-#: superset/views/dashboard/mixin.py:78 superset/views/dashboard/views.py:188
+#: superset/views/dashboard/mixin.py:78 superset/views/dashboard/views.py:187
 msgid "Title"
 msgstr ""
 
@@ -16344,7 +16361,7 @@ msgstr ""
 msgid "Total value"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/transformProps.ts:342
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/transformProps.ts:344
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/transformProps.ts:370
 #, python-format
 msgid "Total: %s"
@@ -16551,7 +16568,7 @@ msgstr ""
 msgid "URL parameters"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:693
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:637
 msgid "URL slug"
 msgstr ""
 
@@ -16563,19 +16580,19 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr ""
 
-#: superset/db_engine_specs/presto.py:732
+#: superset/db_engine_specs/presto.py:730
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr ""
 
 #: superset/db_engine_specs/doris.py:226 superset/db_engine_specs/mysql.py:172
-#: superset/db_engine_specs/postgres.py:151
+#: superset/db_engine_specs/postgres.py:150
 #: superset/db_engine_specs/starrocks.py:159
 #, python-format
 msgid "Unable to connect to database \"%(database)s\"."
 msgstr ""
 
-#: superset/db_engine_specs/bigquery.py:183
+#: superset/db_engine_specs/bigquery.py:182
 msgid ""
 "Unable to connect. Verify that the following roles are set on the service"
 " account: \"BigQuery Data Viewer\", \"BigQuery Metadata Viewer\", "
@@ -16663,7 +16680,7 @@ msgstr ""
 msgid "Unexpected no file extension found"
 msgstr ""
 
-#: superset/views/api.py:128
+#: superset/views/api.py:125
 #, python-format
 msgid "Unexpected time range: %(error)s"
 msgstr ""
@@ -16682,7 +16699,7 @@ msgstr ""
 msgid "Unknown MySQL server host \"%(hostname)s\"."
 msgstr ""
 
-#: superset/db_engine_specs/presto.py:1375
+#: superset/db_engine_specs/presto.py:1373
 msgid "Unknown Presto Error"
 msgstr ""
 
@@ -16722,12 +16739,12 @@ msgstr ""
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr ""
 
-#: superset/utils/core.py:1010
+#: superset/utils/core.py:871
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr ""
 
-#: superset/common/query_object.py:440
+#: superset/common/query_object.py:439
 #, python-format
 msgid "Unsupported post processing operation: %(operation)s"
 msgstr ""
@@ -16751,7 +16768,7 @@ msgstr ""
 msgid "Untitled Dataset"
 msgstr ""
 
-#: superset/views/sql_lab/views.py:92
+#: superset/views/sql_lab/views.py:91
 msgid "Untitled Query"
 msgstr ""
 
@@ -16846,7 +16863,7 @@ msgstr ""
 msgid "Usage"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:798
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:742
 #, python-format
 msgid "Use \"%(menuName)s\" menu instead."
 msgstr ""
@@ -16874,14 +16891,14 @@ msgstr ""
 msgid "Use a log scale for the Y-axis"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:2243
+#: superset/db_engine_specs/base.py:2247
 #: superset/db_engine_specs/clickhouse.py:215
 #: superset/db_engine_specs/databend.py:203
 #: superset/db_engine_specs/databricks.py:57
 msgid "Use an encrypted connection to the database"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:2247
+#: superset/db_engine_specs/base.py:2251
 msgid "Use an ssh tunnel connection to the database"
 msgstr ""
 
@@ -16976,13 +16993,13 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:197
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:100
-#: superset/db_engine_specs/base.py:2222
+#: superset/db_engine_specs/base.py:2226
 #: superset/db_engine_specs/clickhouse.py:200
 #: superset/db_engine_specs/databend.py:193
 msgid "Username"
 msgstr ""
 
-#: superset/db_engine_specs/postgres.py:291
+#: superset/db_engine_specs/postgres.py:290
 msgid "Users are not allowed to set a search path for security reasons."
 msgstr ""
 
@@ -17011,7 +17028,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:54
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:117
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:147
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:103
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:121
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:109
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:116
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:99
@@ -17032,7 +17049,7 @@ msgid "Value Format"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:130
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:108
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:126
 msgid "Value and Percentage"
 msgstr ""
 
@@ -17188,7 +17205,7 @@ msgstr ""
 msgid "Virtual dataset query cannot consist of multiple statements"
 msgstr ""
 
-#: superset/connectors/sqla/models.py:1463 superset/models/helpers.py:1115
+#: superset/connectors/sqla/models.py:1460 superset/models/helpers.py:1115
 msgid "Virtual dataset query must be read-only"
 msgstr ""
 
@@ -17295,7 +17312,7 @@ msgid ""
 "corresponds to higher frequency."
 msgstr ""
 
-#: superset/viz.py:126
+#: superset/viz.py:125
 msgid "Viz is missing a datasource"
 msgstr ""
 
@@ -17355,7 +17372,7 @@ msgid ""
 "database-provided information that may help troubleshoot the issue."
 msgstr ""
 
-#: superset/db_engine_specs/bigquery.py:203
+#: superset/db_engine_specs/bigquery.py:202
 #, python-format
 msgid "We can't seem to resolve column \"%(column)s\" at line %(location)s."
 msgstr ""
@@ -17366,8 +17383,8 @@ msgstr ""
 msgid "We can't seem to resolve the column \"%(column_name)s\""
 msgstr ""
 
-#: superset/db_engine_specs/postgres.py:156
-#: superset/db_engine_specs/presto.py:685
+#: superset/db_engine_specs/postgres.py:155
+#: superset/db_engine_specs/presto.py:683
 #, python-format
 msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
@@ -17406,23 +17423,23 @@ msgstr ""
 msgid "Wednesday"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:123
+#: superset/db_engine_specs/base.py:122
 msgid "Week"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:129
+#: superset/db_engine_specs/base.py:128
 msgid "Week ending Saturday"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:130
+#: superset/db_engine_specs/base.py:129
 msgid "Week ending Sunday"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:128
+#: superset/db_engine_specs/base.py:127
 msgid "Week starting Monday"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:127
+#: superset/db_engine_specs/base.py:126
 msgid "Week starting Sunday"
 msgstr ""
 
@@ -17482,7 +17499,7 @@ msgid "What should be shown as the tooltip label"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:60
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:110
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:128
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:112
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:119
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:102
@@ -17543,7 +17560,7 @@ msgid ""
 "relative time filter on a partitioned or indexed time-related field."
 msgstr ""
 
-#: superset/viz.py:719
+#: superset/viz.py:718
 msgid "When using 'Group By' you are limited to use a single metric"
 msgstr ""
 
@@ -17620,7 +17637,7 @@ msgstr ""
 msgid "Whether to display bubbles on top of countries"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:194
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:212
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:102
 msgid "Whether to display the aggregate count"
 msgstr ""
@@ -17630,7 +17647,7 @@ msgid "Whether to display the interactive data table"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:186
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:152
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:170
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:96
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:75
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:73
@@ -17750,6 +17767,10 @@ msgid ""
 "fly"
 msgstr ""
 
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:104
+msgid "Whether to show as Nightingale chart."
+msgstr ""
+
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:171
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:132
 msgid ""
@@ -17794,7 +17815,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:63
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:69
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:63
-#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:62
+#: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:63
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:52
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:50
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/controlPanel.ts:41
@@ -17864,7 +17885,7 @@ msgid "Working timeout"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:33
-#: superset/viz.py:1497
+#: superset/viz.py:1496
 msgid "World Map"
 msgstr ""
 
@@ -18066,7 +18087,7 @@ msgstr ""
 msgid "YScale Interval"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:126
+#: superset/db_engine_specs/base.py:125
 msgid "Year"
 msgstr ""
 
@@ -18089,8 +18110,8 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:145
 #: superset-frontend/src/pages/ChartList/index.tsx:558
 #: superset-frontend/src/pages/ChartList/index.tsx:665
-#: superset-frontend/src/pages/DashboardList/index.tsx:489
-#: superset-frontend/src/pages/DashboardList/index.tsx:562
+#: superset-frontend/src/pages/DashboardList/index.tsx:515
+#: superset-frontend/src/pages/DashboardList/index.tsx:588
 #: superset-frontend/src/pages/DatabaseList/index.tsx:518
 #: superset-frontend/src/pages/DatabaseList/index.tsx:538
 #: superset-frontend/src/pages/DatasetList/index.tsx:598
@@ -18200,12 +18221,12 @@ msgstr ""
 msgid "You do not have permission to edit this %s"
 msgstr ""
 
-#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:94
+#: superset-frontend/src/explore/components/PropertiesModal/index.tsx:89
 msgid "You do not have permission to edit this chart"
 msgstr ""
 
 #: superset-frontend/src/dashboard/actions/dashboardState.js:364
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:135
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:129
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/ColumnSelect.tsx:116
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:44
 msgid "You do not have permission to edit this dashboard"
@@ -18250,16 +18271,16 @@ msgstr ""
 msgid "You don't have permission to modify the value."
 msgstr ""
 
-#: superset/security/manager.py:2686
+#: superset/security/manager.py:2688
 #, python-format
 msgid "You don't have the rights to alter %(resource)s"
 msgstr ""
 
-#: superset/views/core.py:512
+#: superset/views/core.py:510
 msgid "You don't have the rights to alter this chart"
 msgstr ""
 
-#: superset/views/core.py:648
+#: superset/views/core.py:646
 msgid "You don't have the rights to alter this dashboard"
 msgstr ""
 
@@ -18267,15 +18288,15 @@ msgstr ""
 msgid "You don't have the rights to alter this title."
 msgstr ""
 
-#: superset/views/core.py:518
+#: superset/views/core.py:516
 msgid "You don't have the rights to create a chart"
 msgstr ""
 
-#: superset/views/core.py:664
+#: superset/views/core.py:662
 msgid "You don't have the rights to create a dashboard"
 msgstr ""
 
-#: superset/views/core.py:292
+#: superset/views/core.py:290
 msgid "You don't have the rights to download as csv"
 msgstr ""
 
@@ -18295,7 +18316,7 @@ msgid ""
 "the history."
 msgstr ""
 
-#: superset/sql_parse.py:768
+#: superset/sql_parse.py:810
 msgid "You may have an error in your SQL statement. {message}"
 msgstr ""
 
@@ -18398,15 +18419,15 @@ msgstr ""
 msgid "[ untitled dashboard ]"
 msgstr ""
 
-#: superset/viz.py:1732
+#: superset/viz.py:1731
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr ""
 
-#: superset/viz.py:1682
+#: superset/viz.py:1681
 msgid "[Longitude] and [Latitude] must be set"
 msgstr ""
 
-#: superset/commands/explore/get.py:120 superset/views/core.py:474
+#: superset/commands/explore/get.py:119 superset/views/core.py:472
 msgid "[Missing Dataset]"
 msgstr ""
 
@@ -18414,7 +18435,7 @@ msgstr ""
 msgid "[Untitled]"
 msgstr ""
 
-#: superset/connectors/sqla/models.py:357 superset/models/sql_lab.py:241
+#: superset/connectors/sqla/models.py:354 superset/models/sql_lab.py:241
 msgid "[asc]"
 msgstr ""
 
@@ -18422,7 +18443,7 @@ msgstr ""
 msgid "[dashboard name]"
 msgstr ""
 
-#: superset/connectors/sqla/models.py:360 superset/models/sql_lab.py:244
+#: superset/connectors/sqla/models.py:357 superset/models/sql_lab.py:244
 msgid "[desc]"
 msgstr ""
 
@@ -18445,7 +18466,7 @@ msgstr ""
 msgid "`compare_type` must be `difference`, `percentage` or `ratio`"
 msgstr ""
 
-#: superset/charts/schemas.py:647
+#: superset/charts/schemas.py:641
 msgid "`confidence_interval` must be between 0 and 1 (exclusive)"
 msgstr ""
 
@@ -18456,7 +18477,7 @@ msgid ""
 "label points. Leave empty to get a count of points in each cluster."
 msgstr ""
 
-#: superset/common/query_object.py:436
+#: superset/common/query_object.py:435
 msgid "`operation` property of post processing object undefined"
 msgstr ""
 
@@ -18470,15 +18491,15 @@ msgid ""
 "`time_shift_columns`."
 msgstr ""
 
-#: superset/charts/schemas.py:1274
+#: superset/charts/schemas.py:1268
 msgid "`row_limit` must be greater than or equal to 0"
 msgstr ""
 
-#: superset/charts/schemas.py:1281
+#: superset/charts/schemas.py:1275
 msgid "`row_offset` must be greater than or equal to 0"
 msgstr ""
 
-#: superset/charts/schemas.py:1101
+#: superset/charts/schemas.py:1095
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
@@ -18706,8 +18727,8 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.tsx:128
 #: superset-frontend/src/features/home/DashboardTable.tsx:77
-#: superset-frontend/src/pages/DashboardList/index.tsx:136
-#: superset-frontend/src/pages/DashboardList/index.tsx:778
+#: superset-frontend/src/pages/DashboardList/index.tsx:157
+#: superset-frontend/src/pages/DashboardList/index.tsx:804
 msgid "dashboard"
 msgstr ""
 
@@ -18844,7 +18865,7 @@ msgstr ""
 msgid "dialect+driver://username:password@host:port/database"
 msgstr ""
 
-#: superset-frontend/src/features/dashboards/DashboardCard.tsx:122
+#: superset-frontend/src/features/dashboards/DashboardCard.tsx:157
 msgid "draft"
 msgstr ""
 
@@ -19018,7 +19039,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:124
 #: superset-frontend/src/features/databases/DatabaseModal/ModalHeader.tsx:106
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1077
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1881
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1883
 msgid "here"
 msgstr ""
 
@@ -19056,10 +19077,6 @@ msgstr ""
 msgid "is expected to be an integer"
 msgstr ""
 
-#: superset/views/base.py:649
-msgid "json isn't valid"
-msgstr ""
-
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:318
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:346
 msgid "key a-z"
@@ -19095,7 +19112,7 @@ msgstr ""
 msgid "log"
 msgstr ""
 
-#: superset/charts/schemas.py:728
+#: superset/charts/schemas.py:722
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -19228,7 +19245,7 @@ msgstr ""
 msgid "or use existing ones from the panel on the right"
 msgstr ""
 
-#: superset/charts/schemas.py:1303
+#: superset/charts/schemas.py:1297
 msgid "orderby column must be populated"
 msgstr ""
 
@@ -19288,7 +19305,7 @@ msgid ""
 " first is lower than the second value"
 msgstr ""
 
-#: superset/views/core.py:842
+#: superset/views/core.py:840
 msgid "permalink state not found"
 msgstr ""
 
@@ -19314,7 +19331,7 @@ msgstr ""
 msgid "previous calendar year"
 msgstr ""
 
-#: superset-frontend/src/features/dashboards/DashboardCard.tsx:122
+#: superset-frontend/src/features/dashboards/DashboardCard.tsx:157
 msgid "published"
 msgstr ""
 
@@ -19516,7 +19533,7 @@ msgstr ""
 msgid "unknown type icon"
 msgstr ""
 
-#: superset/charts/schemas.py:743
+#: superset/charts/schemas.py:737
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
 " than lower percentile."
