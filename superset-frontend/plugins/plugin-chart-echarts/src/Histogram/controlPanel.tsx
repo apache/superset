@@ -26,8 +26,8 @@ import {
   ControlPanelConfig,
   formatSelectOptionsForRange,
   dndGroupByControl,
+  columnsByType,
 } from '@superset-ui/chart-controls';
-import { columnsByType } from 'packages/superset-ui-chart-controls/src/utils/columnChoices';
 import { showLegendControl, showValueControl } from '../controls';
 
 const config: ControlPanelConfig = {
