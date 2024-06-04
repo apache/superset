@@ -132,7 +132,6 @@ def main() -> None:
 
     group_id = args.parallelism_id
     spec_list = groups[group_id]
-
     cmd = get_cypress_cmd(spec_list, args.filter, args.group, args.use_dashboard)
     print(f"RUN: {cmd}")
     if not args.dry_run:

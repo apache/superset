@@ -13,6 +13,14 @@ on:
         description: 'Use Cypress Dashboard (true/false) [paid service - trigger manually when needed]'
         required: false
         default: 'false'
+      ref:
+        description: 'The branch or tag to checkout'
+        required: false
+        default: ''
+      pr_id:
+        description: 'The pull request ID to checkout'
+        required: false
+        default: ''
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -31,7 +39,7 @@ jobs:
       # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        parallel_id: [0, 1, 2, 3, 4]
+        parallel_id: [0, 1, 2, 3, 4, 5]
         browser: ["chrome"]
     env:
       SUPERSET_ENV: development
@@ -54,11 +62,28 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - name: "Checkout (pull) ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+      # -------------------------------------------------------
+      # Conditional checkout based on context
+      - name: Checkout for push or pull_request event
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        uses: actions/checkout@v2
         with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
           persist-credentials: false
           submodules: recursive
+      - name: Checkout using ref (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.inputs.ref }}
+      - name: Checkout using PR ID (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
+      # -------------------------------------------------------
       - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/
@@ -103,7 +128,7 @@ jobs:
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           PARALLEL_ID: ${{ matrix.parallel_id }}
-          PARALLELISM: 5
+          PARALLELISM: 6
           CYPRESS_KEY: YjljODE2MzAtODcwOC00NTA3LWE4NmMtMTU3YmFmMjIzOTRhCg==
         with:
           run: cypress-run-all ${{ env.USE_DASHBOARD }}
