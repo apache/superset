@@ -123,11 +123,15 @@ def main() -> None:
                     os.path.join(root, file).replace(cypress_base_full_path, "")
                 )
 
+    # Initialize groups
     groups: dict[int, list[str]] = {i: [] for i in range(args.parallelism)}
 
-    for test_file in test_files:
-        hash_value = compute_hash(test_file)
-        group_index = compute_group_index(hash_value, args.parallelism)
+    # Sort test files to ensure deterministic distribution
+    sorted_test_files = sorted(test_files)
+
+    # Distribute test files in a round-robin manner
+    for index, test_file in enumerate(sorted_test_files):
+        group_index = index % args.parallelism
         groups[group_index].append(test_file)
 
     group_id = args.parallelism_id
