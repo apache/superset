@@ -25,7 +25,7 @@ params:
   slice_id: 130
   column: quantity_ordered
   groupby:
-    - product_line
+    - deal_size
   adhoc_filters:
     - clause: WHERE
       comparator: No filter
@@ -36,7 +36,7 @@ params:
   bins: 10
   normalize: false
   color_scheme: supersetAndPresetColors
-  show_value: true
+  show_value: false
   show_legend: true
   extra_form_data: {}
   dashboards: []
