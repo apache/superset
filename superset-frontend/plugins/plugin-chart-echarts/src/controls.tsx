@@ -34,7 +34,7 @@ import { defaultXAxis } from './defaults';
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
 
-const showLegendControl: ControlSetItem = {
+export const showLegendControl: ControlSetItem = {
   name: 'show_legend',
   config: {
     type: 'CheckboxControl',

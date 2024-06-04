@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,17 +16,25 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-export { rollingWindowOperator } from './rollingWindowOperator';
-export { timeCompareOperator } from './timeCompareOperator';
-export { timeComparePivotOperator } from './timeComparePivotOperator';
-export { sortOperator } from './sortOperator';
-export { histogramOperator } from './histogramOperator';
-export { pivotOperator } from './pivotOperator';
-export { resampleOperator } from './resampleOperator';
-export { renameOperator } from './renameOperator';
-export { contributionOperator } from './contributionOperator';
-export { prophetOperator } from './prophetOperator';
-export { boxplotOperator } from './boxplotOperator';
-export { flattenOperator } from './flattenOperator';
-export { rankOperator } from './rankOperator';
-export * from './utils';
+import { PostProcessingHistogram, getColumnLabel } from '@superset-ui/core';
+import { PostProcessingFactory } from './types';
+
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export const histogramOperator: PostProcessingFactory<
+  PostProcessingHistogram
+> = (formData, queryObject) => {
+  const { bins, column, cumulative, groupby, normalize } = formData;
+  const parsedBins = Number.isNaN(Number(bins)) ? 5 : Number(bins);
+  const parsedColumn = getColumnLabel(column);
+  const parsedGroupBy = groupby!.map(getColumnLabel);
+  return {
+    operation: 'histogram',
+    options: {
+      column: parsedColumn,
+      groupby: parsedGroupBy,
+      bins: parsedBins,
+      cumulative,
+      normalize,
+    },
+  };
+};

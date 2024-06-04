@@ -16,14 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './checkColumnType';
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices, columnsByType } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
-export { default as displayTimeRelatedControls } from './displayTimeRelatedControls';
+import { buildQueryContext } from '@superset-ui/core';
+import { histogramOperator } from '@superset-ui/chart-controls';
+import { HistogramFormData } from './types';
+
+export default function buildQuery(formData: HistogramFormData) {
+  const { column, groupby = [] } = formData;
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      columns: [...groupby, column],
+      post_processing: [histogramOperator(formData, baseQueryObject)],
+    },
+  ]);
+}

@@ -16,14 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './checkColumnType';
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices, columnsByType } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
-export { default as displayTimeRelatedControls } from './displayTimeRelatedControls';
+import { histogramOperator } from '@superset-ui/chart-controls';
+import { SqlaFormData } from '@superset-ui/core';
+import { omit } from 'lodash';
+
+const formData: SqlaFormData = {
+  bins: 5,
+  column: 'quantity',
+  cumulative: true,
+  normalize: true,
+  groupby: ['country', 'region'],
+  viz_type: 'histogram',
+  datasource: 'foo',
+};
+
+test('matches formData', () => {
+  expect(histogramOperator(formData, {})).toEqual({
+    operation: 'histogram',
+    options: omit(formData, ['viz_type', 'datasource']),
+  });
+});
+
+test('defaults to 5 bins', () => {
+  expect(
+    histogramOperator(omit(formData, ['bins']) as SqlaFormData, {}),
+  ).toEqual({
+    operation: 'histogram',
+    options: omit(formData, ['viz_type', 'datasource']),
+  });
+});
