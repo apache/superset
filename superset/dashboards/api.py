@@ -47,6 +47,7 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
+from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
@@ -63,7 +64,9 @@ from superset.dashboards.filters import (
     DashboardTitleOrSlugFilter,
     FilterRelatedRoles,
 )
+from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.dashboards.schemas import (
+    CacheScreenshotSchema,
     DashboardCopySchema,
     DashboardDatasetSchema,
     DashboardGetResponseSchema,
@@ -84,8 +87,8 @@ from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
-from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils import json
+from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
     DEFAULT_DASHBOARD_WINDOW_SIZE,
@@ -891,7 +894,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     # activeTabs: Optional[list[str]]
     # anchor: Optional[str]
     # urlParams: Optional[list[tuple[str, str]]]
-    @expose("/<pk>/cache_screenshot/", methods=("GET",))
+    @expose("/<pk>/cache_screenshot/", methods=("POST",))
     # @protect()
     @rison(screenshot_query_schema)
     @safe
@@ -904,19 +907,35 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     def cache_dashboard_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
         """Compute and cache a screenshot.
         ---
-        get:
+        post:
           summary: Compute and cache a screenshot
           parameters:
           - in: path
             schema:
               type: integer
             name: pk
-          - in: query
-            name: q
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/screenshot_query_schema'
+            requestBody:
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      dataMask:
+                        type: object
+                      activeTabs:
+                        type: array
+                      items:
+                        type: string
+                      anchor:
+                        type: string
+                      urlParams:
+                        type: array
+                        items:
+                          type: array
+                          items:
+                            type: string
+                          minItems: 2
+                          maxItems: 2
           responses:
             202:
               description: Dashboard async result
@@ -933,19 +952,36 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        rison_dict = kwargs["rison"]
-        window_size = rison_dict.get("window_size") or DEFAULT_DASHBOARD_WINDOW_SIZE
+        try:
+            payload = CacheScreenshotSchema().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
 
+        window_size = (
+            kwargs["rison"].get("window_size") or DEFAULT_DASHBOARD_WINDOW_SIZE
+        )
         # Don't shrink the image if thumb_size is not specified
-        thumb_size = rison_dict.get("thumb_size") or window_size
+        thumb_size = kwargs["rison"].get("thumb_size") or window_size
 
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
 
-        dashboard_url = get_url_path(
-            "Superset.dashboard", dashboard_id_or_slug=dashboard.id
-        )
+        dashboard_state: DashboardPermalinkState = {
+            "dataMask": payload.get("dataMask", {}),
+            "activeTabs": payload.get("activeTabs", []),
+            "anchor": payload.get("anchor", ""),
+            "urlParams": payload.get("urlParams", []),
+        }
+
+        permalink_key = CreateDashboardPermalinkCommand(
+            dashboard_id=str(dashboard.uuid),
+            state=dashboard_state,
+        ).run()
+        dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
+        # dashboard_url = get_url_path(
+        #     "Superset.dashboard", dashboard_id_or_slug=dashboard.id
+        # )
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
         cache_key = screenshot_obj.cache_key(window_size, thumb_size)
         image_url = get_url_path(

@@ -435,3 +435,12 @@ class DashboardCacheScreenshotResponseSchema(Schema):
     image_url = fields.String(
         metadata={"description": "The url to fetch the screenshot"}
     )
+
+
+class CacheScreenshotSchema(Schema):
+    dataMask = fields.Dict(keys=fields.Str(), values=fields.Raw(), required=False)
+    activeTabs = fields.List(fields.Str(), required=False)
+    anchor = fields.Str(required=False)
+    urlParams = fields.List(
+        fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
+    )
