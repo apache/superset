@@ -38,4 +38,3 @@ export const StatusMessage = styled.div<{
 }>`
   color: ${({ theme, status = 'error' }) => theme.colors[status]?.base};
 `;
-

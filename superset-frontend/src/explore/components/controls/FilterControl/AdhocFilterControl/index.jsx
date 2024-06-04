@@ -377,7 +377,7 @@ class AdhocFilterControl extends React.Component {
             ? this.state.values.map((value, index) =>
                 this.valueRenderer(value, index),
               )
-            : null }
+            : null}
           {this.state.values.length === 0 || this.props.showAddButton
             ? this.addNewFilterPopoverTrigger(
                 <AddControlLabel>
