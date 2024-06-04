@@ -97,14 +97,18 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     cypress_base_path = "superset-frontend/cypress-base/"
-    cypress_tests_path = os.path.join(cypress_base_path, "cypress/e2e")
+    cypress_base_full_path = os.path.join(script_dir, "../", cypress_base_path)
+    cypress_tests_path = os.path.join(cypress_base_full_path, "cypress/e2e")
 
     test_files = []
     for root, _, files in os.walk(cypress_tests_path):
         for file in files:
             if file.endswith("test.ts") or file.endswith("test.js"):
-                test_files.append(os.path.join(root, file))
+                test_files.append(
+                    os.path.join(root, file).replace(cypress_base_full_path, "")
+                )
 
     groups: dict[int, list[str]] = {i: [] for i in range(args.parallelism)}
 
