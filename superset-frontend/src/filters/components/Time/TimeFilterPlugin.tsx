@@ -32,6 +32,20 @@ const TimeFilterStyles = styled(FilterPluginStyle)`
   }
 `;
 
+const ControlContainer = styled.div<{
+  validateStatus?: 'error' | 'warning' | 'info';
+}>`
+  display: flex;
+  height: 100%;
+  max-width: 100%;
+  width: 100%;
+  & > div,
+  & > div:hover {
+    ${({ validateStatus, theme }) =>
+      validateStatus && `border-color: ${theme.colors[validateStatus]?.base}`}
+  }
+`;
+
 export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   const {
     setDataMask,

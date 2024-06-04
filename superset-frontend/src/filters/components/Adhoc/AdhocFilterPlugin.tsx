@@ -24,6 +24,7 @@ import {
   JsonObject,
   JsonResponse,
   smartDateDetailedFormatter,
+  styled,
   SupersetApiError,
   SupersetClient,
   t,
@@ -38,7 +39,6 @@ import {
   StyledFormItem,
   FilterPluginStyle,
   StatusMessage,
-  ControlContainer,
 } from '../common';
 import { getDataRecordFormatter, getAdhocExtraFormData } from '../../utils';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
@@ -78,6 +78,33 @@ function reducer(
       return draft;
   }
 }
+
+const ControlContainer = styled.div<{
+  validateStatus?: 'error' | 'warning' | 'info';
+}>`
+  & > span,
+  & > span:hover {
+    border: 2px solid transparent;
+    display: inline-block;
+    border: ${({ theme, validateStatus }) =>
+      validateStatus && `2px solid ${theme.colors[validateStatus]?.base}`};
+  }
+  &:focus {
+    & > span {
+      border: 2px solid
+        ${({ theme, validateStatus }) =>
+          validateStatus
+            ? theme.colors[validateStatus]?.base
+            : theme.colors.primary.base};
+      outline: 0;
+      box-shadow: 0 0 0 2px
+        ${({ validateStatus }) =>
+          validateStatus
+            ? 'rgba(224, 67, 85, 12%)'
+            : 'rgba(32, 167, 201, 0.2)'};
+    }
+  }
+`;
 
 export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
   const {
@@ -223,8 +250,8 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
               // New Adhoc Filters Selected
               updateDataMask(filters);
             }}
-            label={' '}
             value={filterState.filters || null}
+            showAddButton
           />
         </ControlContainer>
       </StyledFormItem>
