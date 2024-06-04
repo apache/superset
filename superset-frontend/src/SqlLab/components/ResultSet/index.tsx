@@ -74,6 +74,7 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
+
 enum LimitingFactor {
   Query = 'QUERY',
   QueryAndDropdown = 'QUERY_AND_DROPDOWN',

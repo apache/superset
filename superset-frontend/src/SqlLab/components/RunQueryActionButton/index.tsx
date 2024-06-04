@@ -62,7 +62,13 @@ const onClick = (
   allowAsync: boolean,
   runQuery: (c?: boolean) => void = () => undefined,
   stopQuery = () => {},
+  logAction: (name: string, payload: Record<string, any>) => void,
 ): void => {
+  const eventName = shouldShowStopButton
+    ? LOG_ACTIONS_SQLLAB_STOP_QUERY
+    : LOG_ACTIONS_SQLLAB_RUN_QUERY;
+
+  logAction(eventName, { shortcut: false });
   if (shouldShowStopButton) return stopQuery();
   if (allowAsync) {
     return runQuery(true);
@@ -126,13 +132,9 @@ const RunQueryActionButton = ({
     <StyledButton>
       <ButtonComponent
         data-test="run-query-action"
-        onClick={() => {
-          const eventName = shouldShowStopBtn
-            ? LOG_ACTIONS_SQLLAB_STOP_QUERY
-            : LOG_ACTIONS_SQLLAB_RUN_QUERY;
-          logAction(eventName, { shortcut: false });
-          onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery);
-        }}
+        onClick={() =>
+          onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery, logAction)
+        }
         disabled={isDisabled}
         tooltip={
           (!isDisabled &&
