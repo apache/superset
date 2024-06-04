@@ -62,7 +62,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     type = ReportRecipientType.SLACK
 
-    def _get_channels(self, client: WebClient) -> List[str]:
+    def _get_channels(self, client: WebClient) -> list[str]:
         """
         Get the recipient's channel(s).
         :returns: A list of channel ids: "EID676L"
