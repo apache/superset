@@ -23,22 +23,16 @@ import {
   HandlerFunction,
   JsonObject,
   Payload,
-  QueryFormData,
   SupersetTheme,
   t,
   withTheme,
 } from '@superset-ui/core';
-import {
-  ControlStateMapping,
-  Dataset,
-  InfoTooltipWithTrigger,
-} from '@superset-ui/chart-controls';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import { ChartState, ExplorePageState } from 'src/explore/types';
-import { Slice } from '@reduxjs/toolkit';
 import ControlPopover, {
   getSectionContainerElement,
 } from '../ControlPopover/ControlPopover';
