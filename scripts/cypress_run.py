@@ -65,7 +65,6 @@ def get_cypress_cmd(
         cmd = (
             f"{XVFB_PRE_CMD} "
             f"{cypress_cmd} --browser {browser} "
-            f"--parallel --group {group} "
             f'--spec "{spec_list_str}" '
         )
     return cmd
