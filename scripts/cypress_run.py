@@ -46,7 +46,9 @@ def get_cypress_cmd(
             .strip()
         )
         os.environ["CYPRESS_RECORD_KEY"] = cypress_record_key
-        spec: str = "*/**/*" if not _filter else _filter
+        spec: str = "*/**/*"
+        if _filter and "sqllab" in _filter:
+            spec = "cypress/e2e/sqllab/**/*"
 
         cmd = (
             f"{XVFB_PRE_CMD} "
@@ -95,14 +97,11 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    # Determine the base directory relative to the script location
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    base_dir = os.path.join(
-        script_dir, "..", "superset-frontend", "cypress-base", "cypress", "e2e"
-    )
+    cypress_base_path = "superset-frontend/cypress-base/"
+    cypress_tests_path = os.path.join(cypress_base_path, "cypress/e2e")
 
     test_files = []
-    for root, _, files in os.walk(base_dir):
+    for root, _, files in os.walk(cypress_tests_path):
         for file in files:
             if file.endswith("test.ts") or file.endswith("test.js"):
                 test_files.append(os.path.join(root, file))

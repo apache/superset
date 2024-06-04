@@ -131,6 +131,7 @@ cypress-install() {
 
 cypress-run-all() {
   local use_dashboard=$1
+  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
 
   # Start Flask and run it in background
   # --no-debugger means disable the interactive debugger on the 500 page
@@ -143,7 +144,7 @@ cypress-run-all() {
   local flaskProcessId=$!
 
   #cypress-run "*/**/*" "Default" "$use_dashboard"
-  python scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID
+  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID
 
   # After job is done, print out Flask log for debugging
   say "::group::Flask log for default run"
@@ -158,7 +159,7 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  python scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID --group "Backend persist" --filter "cypress/e2e/sqllab/**/*"
+  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID --group "Backend persist" --filter "sqllab"
 
   say "::group::Flask log for backend persist"
   cat "$flasklog"
