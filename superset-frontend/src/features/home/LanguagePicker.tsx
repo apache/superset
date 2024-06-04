@@ -58,6 +58,21 @@ const StyledFlag = styled.i`
 
 export default function LanguagePicker(props: LanguagePickerProps) {
   const { locale, languages, ...rest } = props;
+
+  // DODO changed #33835937 start
+  const hardcodedRuEnUrl = Object.fromEntries(
+    Object.entries(languages).map(([key, value]) => {
+      if (key === 'en') {
+        return [key, { ...value, url: '/api/v1/me/change/lang/en' }];
+      }
+      if (key === 'ru') {
+        return [key, { ...value, url: '/api/v1/me/change/lang/ru' }];
+      }
+      return [key, value];
+    }),
+  );
+  // DODO changed #33835937 stop
+
   return (
     <SubMenu
       aria-label="Languages"
@@ -76,7 +91,10 @@ export default function LanguagePicker(props: LanguagePickerProps) {
         >
           <StyledLabel className="f16">
             <i className={`flag ${languages[langKey].flag}`} />
-            <a href={languages[langKey].url}>{languages[langKey].name}</a>
+            {/* DODO #33835937 href changed from languages to hardcodedRuEnUrl */}
+            <a href={hardcodedRuEnUrl[langKey].url}>
+              {languages[langKey].name}
+            </a>
           </StyledLabel>
         </Menu.Item>
       ))}

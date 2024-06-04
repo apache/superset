@@ -14,15 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import g, Response
+from flask import g, Response, redirect
 from flask_appbuilder.api import expose, safe
 from flask_jwt_extended.exceptions import NoAuthorizationError
 
 from superset.views.base_api import BaseSupersetApi
 from superset.views.users.schemas import UserResponseSchema
-from superset.views.utils import bootstrap_user_data
+from superset.views.utils import bootstrap_user_data, update_language
+from superset import app
 
 user_response_schema = UserResponseSchema()
+
+
+def validate_language(lang) -> bool:  # DODO changed #33835937
+    languages = app.config["LANGUAGES"]
+    keys_of_languages = languages.keys()
+    return lang in keys_of_languages
 
 
 class CurrentUserRestApi(BaseSupersetApi):
@@ -91,3 +98,17 @@ class CurrentUserRestApi(BaseSupersetApi):
             return self.response_401()
         user = bootstrap_user_data(g.user, include_perms=True)
         return self.response(200, result=user)
+
+# DODO changed #33835937
+    @expose("change/lang/<lang>", ("GET",))
+    def change_lang(self, lang: str):
+        try:
+            if g.user is None or g.user.is_anonymous:
+                return self.response_401()
+            if not validate_language(lang):
+                self.response_400("Incorrect language")
+        except NoAuthorizationError:
+            return self.response_401()
+        update_language(lang)
+        return redirect("/superset/welcome/")
+

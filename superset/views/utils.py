@@ -27,6 +27,7 @@ from flask import flash, g, has_request_context, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.wrappers.response import Response
 
@@ -45,10 +46,11 @@ from superset.extensions import cache_manager, feature_flag_manager, security_ma
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
+from superset.models.user_info import UserInfo
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.superset_typing import FormData
-from superset.utils.core import DatasourceType
+from superset.utils.core import DatasourceType, get_user_id
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
 
@@ -67,6 +69,46 @@ def sanitize_datasource_data(datasource_data: dict[str, Any]) -> dict[str, Any]:
             datasource_database["parameters"] = {}
 
     return datasource_data
+
+
+def get_language() -> str:  # DODO changed #33835937
+    user_id = get_user_id()
+    try:
+        user_info = (
+            db.session.query(UserInfo).filter(UserInfo.user_id == user_id).one_or_none()
+        )
+        return user_info.language
+    except Exception:
+        logger.warning(f"User id = {user_id} dont have language in database")
+        return "ru"
+
+
+def create_userinfo(lang: str):   # DODO changed #33835937
+    try:
+        user_id = get_user_id()
+        model = UserInfo()
+        setattr(model, 'language', lang)
+        setattr(model, 'user_id', user_id)
+        try:
+            db.session.add(model)
+            db.session.commit()
+        except SQLAlchemyError as ex:
+            db.session.rollback()
+        return True
+    except Exception:
+        raise ErrorLevel.ERROR
+
+
+def update_language(lang: str):  # DODO changed #33835937
+    try:
+        user_id = get_user_id()
+        user_info = (
+            db.session.query(UserInfo).filter(UserInfo.user_id == user_id).one_or_none()
+        )
+        user_info.language = lang
+        db.session.commit()
+    except AttributeError:
+        create_userinfo(lang)
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, Any]:

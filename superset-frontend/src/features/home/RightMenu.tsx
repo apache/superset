@@ -1,18 +1,18 @@
 // DODO was here
-import React, { Fragment, useState, useEffect } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { useQueryParams, BooleanParam } from 'use-query-params';
+import { BooleanParam, useQueryParams } from 'use-query-params';
 import { isEmpty } from 'lodash';
 
 import {
-  t,
-  styled,
   css,
-  SupersetTheme,
-  SupersetClient,
   getExtensionsRegistry,
+  styled,
+  SupersetClient,
+  SupersetTheme,
+  t,
   useTheme,
 } from '@superset-ui/core';
 import { MainNav as Menu } from 'src/components/Menu';
@@ -22,9 +22,9 @@ import Label from 'src/components/Label';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
+  MenuObjectChildProps,
   MenuObjectProps,
   UserWithPermissionsAndRoles,
-  MenuObjectChildProps,
 } from 'src/types/bootstrapTypes';
 import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
@@ -428,16 +428,16 @@ const RightMenu = ({
           icon={<Icons.TriangleDown iconSize="xl" />}
         >
           {settings?.map?.((section, index) => [
-            <Menu.ItemGroup key={`${section.label}`} title={section.label}>
+            <Menu.ItemGroup key={`${section.label}`} title={t(section.label)}>
               {section?.childs?.map?.(child => {
                 if (typeof child !== 'string') {
                   const menuItemDisplay = RightMenuItemIconExtension ? (
                     <StyledMenuItemWithIcon>
-                      {child.label}
+                      {t(child.label)}
                       <RightMenuItemIconExtension menuChild={child} />
                     </StyledMenuItemWithIcon>
                   ) : (
-                    child.label
+                    t(child.label)
                   );
                   return (
                     <Menu.Item key={`${child.label}`}>

@@ -111,3 +111,10 @@ def load_examples(
 ) -> None:
     """Loads a set of Slices and Dashboards and a supporting dataset"""
     load_examples_run(load_test_data, load_big_data, only_metadata, force)
+
+
+@click.command()
+@with_appcontext
+def insert_user_info() -> None:
+    from superset.examples.user_info import load_user_info
+    load_user_info()

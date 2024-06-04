@@ -4733,7 +4733,9 @@
       "Week_ending sunday": [""],
       "Week starting Sunday": [""],
       "Week starting Monday": [""],
-      "Week ending Saturday": [""]
+      "Week ending Saturday": [""],
+      "List Users": [""],
+      "List Roles": [""]
     }
   }
 }
