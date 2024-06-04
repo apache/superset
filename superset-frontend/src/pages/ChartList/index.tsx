@@ -786,7 +786,7 @@ function ChartList(props: ChartListProps) {
       <PropertiesModal
         onHide={closeChartEditModal}
         onSave={handleChartUpdated}
-        show={sliceCurrentlyEditing ? true : false}
+        show={!!sliceCurrentlyEditing}
         slice={sliceCurrentlyEditing}
       />
       <ConfirmStatusChange
