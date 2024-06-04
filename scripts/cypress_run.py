@@ -120,9 +120,8 @@ def main() -> None:
     spec_list = groups[group_id]
 
     cmd = get_cypress_cmd(spec_list, args.filter, args.group, args.use_dashboard)
-    if args.dry_run:
-        print(cmd)
-    else:
+    print(f"RUN: {cmd}")
+    if not args.dry_run:
         subprocess.run(cmd, shell=True, check=True, stdout=None, stderr=None)
 
 
