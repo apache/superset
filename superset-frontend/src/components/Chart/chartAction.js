@@ -5,25 +5,25 @@ import moment from 'moment';
 import {
   FeatureFlag,
   isDefined,
+  isFeatureEnabled,
   SupersetClient,
   t,
-  isFeatureEnabled,
 } from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
 import {
+  buildV1ChartDataPayload,
   getAnnotationJsonUrl,
+  getChartDataUri,
   getExploreUrl,
   getLegacyEndpointType,
-  buildV1ChartDataPayload,
   getQuerySettings,
-  getChartDataUri,
   shouldUseLegacyApi,
 } from 'src/explore/exploreUtils';
 import { requiresQuery } from 'src/modules/AnnotationTypes';
 
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
-import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
+import { LOG_ACTIONS_LOAD_CHART, Logger } from 'src/logger/LogUtils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { safeStringify } from 'src/utils/safeStringify';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
@@ -293,6 +293,21 @@ const v1ChartDataRequest = async (
     setDataMask,
     ownState,
   });
+
+  // DODO added start 34420888
+  payload.queries?.forEach(query => {
+    const timeFilter = query?.filters
+      ?.reverse()
+      .find(filter => filter.op === 'TEMPORAL_RANGE');
+    if (
+      (query.time_range === undefined || query.time_range === 'No filter') &&
+      timeFilter
+    ) {
+      // set time range to enforce jinja work
+      query.time_range = timeFilter.val;
+    }
+  });
+  // DODO added stop 34420888
 
   // The dashboard id is added to query params for tracking purposes
   const { slice_id: sliceId } = formData;
