@@ -32,7 +32,7 @@ from flask_appbuilder.security.sqla.models import Role
 from superset.daos.datasource import DatasourceDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
 from superset import app, appbuilder, db, security_manager, viz
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
@@ -114,7 +114,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
         ds = (
-            db.session.query(SqlaTable)
+            db.session.query(Dataset)
             .filter_by(table_name="wb_health_population", schema=schema)
             .first()
         )
@@ -136,7 +136,7 @@ class TestRolePermission(SupersetTestCase):
 
     def tearDown(self):
         ds = (
-            db.session.query(SqlaTable)
+            db.session.query(Dataset)
             .filter_by(table_name="wb_health_population", schema="temp_schema")
             .first()
         )
@@ -164,7 +164,7 @@ class TestRolePermission(SupersetTestCase):
         tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
         db.session.add(tmp_db1)
 
-        table = SqlaTable(
+        table = Dataset(
             schema="tmp_schema",
             table_name="tmp_perm_table",
             database=tmp_db1,
@@ -172,7 +172,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(table)
         db.session.commit()
 
-        table = db.session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
+        table = db.session.query(Dataset).filter_by(table_name="tmp_perm_table").one()
         self.assertEqual(table.perm, f"[tmp_db1].[tmp_perm_table](id:{table.id})")
 
         pvm_dataset = security_manager.find_permission_view_menu(
@@ -209,7 +209,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(tmp_db1)
         db.session.commit()
 
-        table = SqlaTable(
+        table = Dataset(
             schema="tmp_schema",
             table_name="tmp_table",
             database=tmp_db1,
@@ -225,7 +225,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.rollback()
 
         table = (
-            db.session.query(SqlaTable).filter_by(table_name="tmp_table").one_or_none()
+            db.session.query(Dataset).filter_by(table_name="tmp_table").one_or_none()
         )
         self.assertIsNone(table)
         pvm_dataset = security_manager.find_permission_view_menu(
@@ -237,7 +237,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
     def test_after_insert_dataset_table_none(self):
-        table = SqlaTable(
+        table = Dataset(
             schema="tmp_schema",
             table_name="tmp_perm_table",
             # Setting database_id instead of database will skip permission creation
@@ -247,7 +247,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
         stored_table = (
-            db.session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
+            db.session.query(Dataset).filter_by(table_name="tmp_perm_table").one()
         )
         # Assert permission is created
         self.assertIsNotNone(
@@ -438,13 +438,13 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(tmp_db1)
         db.session.commit()
 
-        table1 = SqlaTable(
+        table1 = Dataset(
             schema="tmp_schema",
             table_name="tmp_table1",
             database=tmp_db1,
         )
         db.session.add(table1)
-        table2 = SqlaTable(
+        table2 = Dataset(
             schema="tmp_schema",
             table_name="tmp_table2",
             database=tmp_db1,
@@ -460,8 +460,8 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(slice1)
         db.session.commit()
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
-        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
-        table2 = db.session.query(SqlaTable).filter_by(table_name="tmp_table2").one()
+        table1 = db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
+        table2 = db.session.query(Dataset).filter_by(table_name="tmp_table2").one()
 
         # assert initial perms
         self.assertIsNotNone(
@@ -616,7 +616,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(tmp_db)
         db.session.commit()
 
-        table1 = SqlaTable(
+        table1 = Dataset(
             schema="tmp_schema",
             table_name="tmp_table1",
             database=tmp_db,
@@ -635,7 +635,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
         # refresh
-        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table1 = db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
 
         # Test delete
         db.session.delete(table1)
@@ -670,7 +670,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(tmp_db)
         db.session.commit()
 
-        table1 = SqlaTable(
+        table1 = Dataset(
             schema="tmp_schema",
             table_name="tmp_table1",
             database=tmp_db,
@@ -689,7 +689,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
         # refresh
-        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table1 = db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
 
         # Test delete, permissions are correctly deleted
         db.session.delete(table1)
@@ -725,7 +725,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(tmp_db)
         db.session.commit()
 
-        table1 = SqlaTable(
+        table1 = Dataset(
             schema="tmp_schema",
             table_name="tmp_table1",
             database=tmp_db,
@@ -748,7 +748,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIsNotNone(table1_pvm)
 
         # refresh
-        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table1 = db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
         # Test update
         table1.table_name = "tmp_table1_changed"
         db.session.commit()
@@ -767,7 +767,7 @@ class TestRolePermission(SupersetTestCase):
 
         # test dataset permission changed
         changed_table1 = (
-            db.session.query(SqlaTable).filter_by(table_name="tmp_table1_changed").one()
+            db.session.query(Dataset).filter_by(table_name="tmp_table1_changed").one()
         )
         self.assertEqual(
             changed_table1.perm, f"[tmp_db].[tmp_table1_changed](id:{table1.id})"
@@ -797,7 +797,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(tmp_db)
         db.session.commit()
 
-        table1 = SqlaTable(
+        table1 = Dataset(
             schema="tmp_schema",
             table_name="tmp_table1",
             database=tmp_db,
@@ -815,7 +815,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
         # refresh
-        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table1 = db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
         # Test update
         table1.table_name = "tmp_table1_changed"
         db.session.flush()
@@ -853,7 +853,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(tmp_db2)
         db.session.commit()
 
-        table1 = SqlaTable(
+        table1 = Dataset(
             schema="tmp_schema",
             table_name="tmp_table1",
             database=tmp_db1,
@@ -876,7 +876,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIsNotNone(table1_pvm)
 
         # refresh
-        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table1 = db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
         # Test update
         table1.database = tmp_db2
         db.session.commit()
@@ -895,7 +895,7 @@ class TestRolePermission(SupersetTestCase):
 
         # test dataset permission and schema permission changed
         changed_table1 = (
-            db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+            db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
         )
         self.assertEqual(changed_table1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
         self.assertEqual(changed_table1.schema_perm, "[tmp_db2].[tmp_schema]")  # noqa: F541
@@ -917,7 +917,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(tmp_db1)
         db.session.commit()
 
-        table1 = SqlaTable(
+        table1 = Dataset(
             schema="tmp_schema",
             table_name="tmp_table1",
             database=tmp_db1,
@@ -940,7 +940,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIsNotNone(table1_pvm)
 
         # refresh
-        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table1 = db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
         # Test update
         table1.schema = "tmp_schema_changed"
         db.session.commit()
@@ -953,7 +953,7 @@ class TestRolePermission(SupersetTestCase):
 
         # test dataset schema permission changed
         changed_table1 = (
-            db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+            db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
         )
         self.assertEqual(changed_table1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
         self.assertEqual(changed_table1.schema_perm, "[tmp_db1].[tmp_schema_changed]")  # noqa: F541
@@ -974,7 +974,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(tmp_db1)
         db.session.commit()
 
-        table1 = SqlaTable(
+        table1 = Dataset(
             schema="tmp_schema",
             table_name="tmp_table1",
             database=tmp_db1,
@@ -997,13 +997,13 @@ class TestRolePermission(SupersetTestCase):
         self.assertIsNotNone(table1_pvm)
 
         # refresh
-        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table1 = db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
         # Test update
         table1.schema = None
         db.session.commit()
 
         # refresh
-        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table1 = db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
 
         self.assertEqual(table1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
         self.assertIsNone(table1.schema_perm)
@@ -1021,7 +1021,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.add(tmp_db2)
         db.session.commit()
 
-        table1 = SqlaTable(
+        table1 = Dataset(
             schema="tmp_schema",
             table_name="tmp_table1",
             database=tmp_db1,
@@ -1044,7 +1044,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIsNotNone(table1_pvm)
 
         # refresh
-        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table1 = db.session.query(Dataset).filter_by(table_name="tmp_table1").one()
         # Test update
         table1.table_name = "tmp_table1_changed"
         table1.database = tmp_db2
@@ -1064,7 +1064,7 @@ class TestRolePermission(SupersetTestCase):
 
         # test dataset permission and schema permission changed
         changed_table1 = (
-            db.session.query(SqlaTable).filter_by(table_name="tmp_table1_changed").one()
+            db.session.query(Dataset).filter_by(table_name="tmp_table1_changed").one()
         )
         self.assertEqual(
             changed_table1.perm, f"[tmp_db2].[tmp_table1_changed](id:{table1.id})"
@@ -1108,7 +1108,7 @@ class TestRolePermission(SupersetTestCase):
 
     def test_set_perm_slice(self):
         database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
-        table = SqlaTable(table_name="tmp_perm_table", database=database)
+        table = Dataset(table_name="tmp_perm_table", database=database)
         db.session.add(database)
         db.session.add(table)
         db.session.commit()
@@ -1133,7 +1133,7 @@ class TestRolePermission(SupersetTestCase):
         table.table_name = "tmp_perm_table_v2"
         db.session.commit()
         table = (
-            db.session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
+            db.session.query(Dataset).filter_by(table_name="tmp_perm_table_v2").one()
         )
         self.assertEqual(slice.perm, table.perm)
         self.assertEqual(
@@ -1222,7 +1222,7 @@ class TestRolePermission(SupersetTestCase):
         if they already exist on a public role.
         Also check that non data access permissions are removed
         """
-        table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+        table = db.session.query(Dataset).filter_by(table_name="birth_names").one()
         self.grant_public_access_to_table(table)
         public_role = security_manager.get_public_role()
         unwanted_pvm = security_manager.find_permission_view_menu(
@@ -1913,7 +1913,7 @@ class TestDatasources(SupersetTestCase):
         mock_get_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
-            SqlaTable, "get_all_datasources"
+            Dataset, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
@@ -1938,7 +1938,7 @@ class TestDatasources(SupersetTestCase):
         mock_get_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
-            SqlaTable, "get_all_datasources"
+            Dataset, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
@@ -1963,7 +1963,7 @@ class TestDatasources(SupersetTestCase):
         ]
 
         with mock.patch.object(
-            SqlaTable, "get_all_datasources"
+            Dataset, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),

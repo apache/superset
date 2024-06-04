@@ -88,7 +88,7 @@ dashboard_export: dict[str, Any] = {
     ],
     "datasources": [
         {
-            "__SqlaTable__": {
+            "__Dataset__": {
                 "cache_timeout": None,
                 "columns": [
                     {
@@ -329,7 +329,7 @@ database_metadata_config: dict[str, Any] = {
 
 dataset_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
-    "type": "SqlaTable",
+    "type": "Dataset",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
 

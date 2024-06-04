@@ -23,14 +23,14 @@ from sqlalchemy.orm.session import Session
 
 @pytest.fixture
 def session_with_data(session: Session) -> Iterator[Session]:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import Database
 
     engine = session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    sqla_table = SqlaTable(
+    sqla_table = Dataset(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],
@@ -45,7 +45,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
 
 
 def test_datasource_find_by_id_skip_base_filter(session_with_data: Session) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.daos.dataset import DatasetDAO
 
     result = DatasetDAO.find_by_id(
@@ -56,7 +56,7 @@ def test_datasource_find_by_id_skip_base_filter(session_with_data: Session) -> N
     assert result
     assert 1 == result.id
     assert "my_sqla_table" == result.table_name
-    assert isinstance(result, SqlaTable)
+    assert isinstance(result, Dataset)
 
 
 def test_datasource_find_by_id_skip_base_filter_not_found(
@@ -72,7 +72,7 @@ def test_datasource_find_by_id_skip_base_filter_not_found(
 
 
 def test_datasource_find_by_ids_skip_base_filter(session_with_data: Session) -> None:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.daos.dataset import DatasetDAO
 
     result = DatasetDAO.find_by_ids(
@@ -83,7 +83,7 @@ def test_datasource_find_by_ids_skip_base_filter(session_with_data: Session) -> 
     assert result
     assert [1] == list(map(lambda x: x.id, result))
     assert ["my_sqla_table"] == list(map(lambda x: x.table_name, result))
-    assert isinstance(result[0], SqlaTable)
+    assert isinstance(result[0], Dataset)
 
 
 def test_datasource_find_by_ids_skip_base_filter_not_found(

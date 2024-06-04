@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
 from superset.commands.explore.form_data.state import TemporaryExploreState
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.explore.exceptions import DatasetAccessDeniedError
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
@@ -55,7 +55,7 @@ def admin_id() -> int:
 def dataset() -> int:
     with app.app_context():  # noqa: F841
         dataset = (
-            db.session.query(SqlaTable)
+            db.session.query(Dataset)
             .filter_by(table_name="wb_health_population")
             .first()
         )

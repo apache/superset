@@ -38,7 +38,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,  # noqa: F401
 )
 from superset import security_manager
-from superset.connectors.sqla.models import SqlaTable  # noqa: F401
+from superset.connectors.sqla.models import Dataset  # noqa: F401
 from superset.models import core as models  # noqa: F401
 from superset.utils.core import get_user_id, get_username, override_user
 from superset.utils.database import get_example_database  # noqa: F401

@@ -290,9 +290,9 @@ def with_config(override_config: dict[str, Any]):
 
 @pytest.fixture
 def virtual_dataset():
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import Dataset, SqlMetric, TableColumn
 
-    dataset = SqlaTable(
+    dataset = Dataset(
         table_name="virtual_dataset",
         sql=(
             "SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5, 1 as col6 "
@@ -337,7 +337,7 @@ def virtual_dataset():
 
 @pytest.fixture
 def physical_dataset():
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import Dataset, SqlMetric, TableColumn
     from superset.connectors.sqla.utils import get_identifier_quoter
 
     example_database = get_example_database()
@@ -374,7 +374,7 @@ def physical_dataset():
         """
         )
 
-    dataset = SqlaTable(
+    dataset = Dataset(
         table_name="physical_dataset",
         database=example_database,
     )
@@ -401,7 +401,7 @@ def physical_dataset():
         DROP TABLE physical_dataset;
     """
     )
-    dataset = db.session.query(SqlaTable).filter_by(table_name="physical_dataset").all()
+    dataset = db.session.query(Dataset).filter_by(table_name="physical_dataset").all()
     for ds in dataset:
         db.session.delete(ds)
     db.session.commit()
@@ -409,9 +409,9 @@ def physical_dataset():
 
 @pytest.fixture
 def virtual_dataset_comma_in_column_value():
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import Dataset, SqlMetric, TableColumn
 
-    dataset = SqlaTable(
+    dataset = Dataset(
         table_name="virtual_dataset",
         sql=(
             "SELECT 'col1,row1' as col1, 'col2, row1' as col2 "

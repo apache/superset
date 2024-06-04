@@ -27,11 +27,11 @@ def test_export(session: Session) -> None:
     Test exporting a dataset.
     """
     from superset.commands.dataset.export import ExportDatasetsCommand
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import Dataset, SqlMetric, TableColumn
     from superset.models.core import Database
 
     engine = db.session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     db.session.add(database)
@@ -57,7 +57,7 @@ def test_export(session: Session) -> None:
         ),
     ]
 
-    sqla_table = SqlaTable(
+    sqla_table = Dataset(
         table_name="my_table",
         columns=columns,
         metrics=metrics,

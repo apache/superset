@@ -28,7 +28,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.uploaders.base import UploadCommand
 from superset.commands.database.uploaders.csv_reader import CSVReader
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import override_user
@@ -129,7 +129,7 @@ def test_csv_upload_dataset():
             CSVReader({}),
         ).run()
     dataset = (
-        db.session.query(SqlaTable)
+        db.session.query(Dataset)
         .filter_by(database_id=upload_database.id, table_name=CSV_UPLOAD_TABLE)
         .one_or_none()
     )

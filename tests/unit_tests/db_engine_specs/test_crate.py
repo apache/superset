@@ -45,12 +45,12 @@ def test_alter_new_orm_column() -> None:
     """
     DB Eng Specs (crate): Test alter orm column
     """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.connectors.sqla.models import Dataset, TableColumn
     from superset.db_engine_specs.crate import CrateEngineSpec
     from superset.models.core import Database
 
     database = Database(database_name="crate", sqlalchemy_uri="crate://db")
-    tbl = SqlaTable(table_name="tbl", database=database)
+    tbl = Dataset(table_name="tbl", database=database)
     col = TableColumn(column_name="ts", type="TIMESTAMP", table=tbl)
     CrateEngineSpec.alter_new_orm_column(col)
     assert col.python_date_format == "epoch_ms"

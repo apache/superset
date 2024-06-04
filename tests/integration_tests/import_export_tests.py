@@ -35,7 +35,7 @@ from tests.integration_tests.test_app import app
 from superset.commands.dashboard.importers.v0 import decode_dashboards
 from superset import db, security_manager
 
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import Dataset, SqlMetric, TableColumn
 from superset.commands.dashboard.importers.v0 import import_chart, import_dashboard
 from superset.commands.dataset.importers.v0 import import_dataset
 from superset.models.dashboard import Dashboard
@@ -61,7 +61,7 @@ def delete_imports():
         for dash in db.session.query(Dashboard):
             if "remote_id" in dash.params_dict:
                 db.session.delete(dash)
-        for table in db.session.query(SqlaTable):
+        for table in db.session.query(Dataset):
             if "remote_id" in table.params_dict:
                 db.session.delete(table)
         db.session.commit()
@@ -123,7 +123,7 @@ class TestImportExport(SupersetTestCase):
 
     def create_table(self, name, schema=None, id=0, cols_names=[], metric_names=[]):
         params = {"remote_id": id, "database_name": "examples"}
-        table = SqlaTable(
+        table = Dataset(
             id=id,
             schema=schema,
             table_name=name,

@@ -35,7 +35,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe  # noqa: F401
 from superset.db_engine_specs.mysql import MySQLEngineSpec
@@ -151,7 +151,7 @@ class TestDatabaseApi(SupersetTestCase):
                 example_db.sqlalchemy_uri_decrypted,
                 expose_in_sqllab=True,
             )
-            table = SqlaTable(
+            table = Dataset(
                 schema="main", table_name="ab_permission", database=self._database
             )
             db.session.add(table)
@@ -1574,7 +1574,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get select star with datasource access
         """
-        table = SqlaTable(
+        table = Dataset(
             schema="main", table_name="ab_permission", database=get_main_database()
         )
         db.session.add(table)
@@ -1940,7 +1940,7 @@ class TestDatabaseApi(SupersetTestCase):
         with self.create_app().app_context():
             main_db = get_main_database()
             main_db.allow_file_upload = True
-            table = SqlaTable(
+            table = Dataset(
                 schema="public",
                 table_name="ab_permission",
                 database=get_main_database(),

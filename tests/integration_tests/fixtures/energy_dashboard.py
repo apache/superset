@@ -21,7 +21,7 @@ import pytest
 from sqlalchemy import column, Float, String
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable, SqlMetric
+from superset.connectors.sqla.models import Dataset, SqlMetric
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
@@ -97,7 +97,7 @@ def _create_energy_table() -> list[Slice]:
 
 
 def _create_and_commit_energy_slice(
-    table: SqlaTable, title: str, viz_type: str, param: dict[str, str]
+    table: Dataset, title: str, viz_type: str, param: dict[str, str]
 ):
     slice = create_slice(title, viz_type, table, param)
     existing_slice = (

@@ -30,7 +30,7 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
+from superset.connectors.sqla.models import Dataset, TableColumn, SqlMetric
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
@@ -79,7 +79,7 @@ class TestDatabaseModel(SupersetTestCase):
         """Druid has a special __time column"""
 
         database = Database(database_name="druid_db", sqlalchemy_uri="druid://db")
-        tbl = SqlaTable(table_name="druid_tbl", database=database)
+        tbl = Dataset(table_name="druid_tbl", database=database)
         col = TableColumn(column_name="__time", type="INTEGER", table=tbl)
         self.assertEqual(col.is_dttm, None)
         DruidEngineSpec.alter_new_orm_column(col)
@@ -92,7 +92,7 @@ class TestDatabaseModel(SupersetTestCase):
         """Ensure a column with is_dttm set to true evaluates to is_temporal == True"""
 
         database = get_example_database()
-        tbl = SqlaTable(table_name="test_tbl", database=database)
+        tbl = Dataset(table_name="test_tbl", database=database)
         col = TableColumn(column_name="ds", type="VARCHAR", table=tbl)
         # by default, VARCHAR should not be assumed to be temporal
         assert col.is_temporal is False
@@ -120,7 +120,7 @@ class TestDatabaseModel(SupersetTestCase):
             "TIMESTAMP": GenericDataType.TEMPORAL,
         }
 
-        tbl = SqlaTable(table_name="col_type_test_tbl", database=get_example_database())
+        tbl = Dataset(table_name="col_type_test_tbl", database=get_example_database())
         for str_type, db_col_type in test_cases.items():
             col = TableColumn(column_name="foo", type=str_type, table=tbl)
             self.assertEqual(col.is_temporal, db_col_type == GenericDataType.TEMPORAL)
@@ -146,7 +146,7 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
         # Table with Jinja callable.
-        table1 = SqlaTable(
+        table1 = Dataset(
             table_name="test_has_extra_cache_keys_table",
             sql="""
             SELECT
@@ -163,7 +163,7 @@ class TestDatabaseModel(SupersetTestCase):
         assert extra_cache_keys == [1, "abc", "abc@test.com"]
 
         # Table with Jinja callable disabled.
-        table2 = SqlaTable(
+        table2 = Dataset(
             table_name="test_has_extra_cache_keys_disabled_table",
             sql="""
             SELECT
@@ -180,7 +180,7 @@ class TestDatabaseModel(SupersetTestCase):
 
         # Table with no Jinja callable.
         query = "SELECT 'abc' as user"
-        table3 = SqlaTable(
+        table3 = Dataset(
             table_name="test_has_no_extra_cache_keys_table",
             sql=query,
             database=get_example_database(),
@@ -229,7 +229,7 @@ class TestDatabaseModel(SupersetTestCase):
             "extras": {"time_grain_sqla": "P1D"},
         }
 
-        table = SqlaTable(
+        table = Dataset(
             table_name="test_has_jinja_metric_and_expr",
             sql="SELECT '{{ 'user_' + current_username() }}' as user, "
             "'{{ 'xyz_' + time_grain }}' as time_grain",
@@ -339,7 +339,7 @@ class TestDatabaseModel(SupersetTestCase):
             "filter": [],
         }
 
-        table = SqlaTable(
+        table = Dataset(
             table_name="test_validate_adhoc_sql", database=get_example_database()
         )
         db.session.commit()
@@ -447,7 +447,7 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
         # Table with Jinja callable.
-        table = SqlaTable(
+        table = Dataset(
             table_name="test_table",
             sql="SELECT '{{ abcd xyz + 1 ASDF }}' as user",
             database=get_example_database(),
@@ -469,7 +469,7 @@ class TestDatabaseModel(SupersetTestCase):
             "extras": {},
         }
 
-        table = SqlaTable(
+        table = Dataset(
             table_name="another_test_table",
             sql="SELECT * from test_table;",
             database=get_example_database(),
@@ -489,7 +489,7 @@ class TestDatabaseModel(SupersetTestCase):
             "filter": [],
         }
 
-        table = SqlaTable(
+        table = Dataset(
             table_name="test_multiple_sql_statements",
             sql="SELECT 'foo' as grp, 1 as num; SELECT 'bar' as grp, 2 as num",
             database=get_example_database(),
@@ -510,7 +510,7 @@ class TestDatabaseModel(SupersetTestCase):
             "filter": [],
         }
 
-        table = SqlaTable(
+        table = Dataset(
             table_name="test_dml_statement",
             sql="DELETE FROM foo",
             database=get_example_database(),
@@ -521,7 +521,7 @@ class TestDatabaseModel(SupersetTestCase):
             table.get_sqla_query(**query_obj)
 
     def test_fetch_metadata_for_updated_virtual_table(self):
-        table = SqlaTable(
+        table = Dataset(
             table_name="updated_sql_table",
             database=get_example_database(),
             sql="select 123 as intcol, 'abc' as strcol, 'abc' as mycase",
@@ -584,7 +584,7 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
         database = Database(database_name="testdb", sqlalchemy_uri="sqlite://")
-        table = SqlaTable(table_name="bq_table", database=database)
+        table = Dataset(table_name="bq_table", database=database)
         db.session.add(database)
         db.session.add(table)
         db.session.commit()
@@ -599,7 +599,7 @@ class TestDatabaseModel(SupersetTestCase):
 
 @pytest.fixture()
 def text_column_table(app_context: AppContext):
-    table = SqlaTable(
+    table = Dataset(
         table_name="text_column_table",
         sql=(
             "SELECT 'foo' as foo "
@@ -750,7 +750,7 @@ def test_filter_on_text_column(text_column_table):
 
 @only_postgresql
 def test_should_generate_closed_and_open_time_filter_range(login_as_admin):
-    table = SqlaTable(
+    table = Dataset(
         table_name="temporal_column_table",
         sql=(
             "SELECT '2021-12-31'::timestamp as datetime_col "
@@ -869,7 +869,7 @@ def test__normalize_prequery_result_type(
 
         return None
 
-    table = SqlaTable(table_name="foobar", database=get_example_database())
+    table = Dataset(table_name="foobar", database=get_example_database())
     mocker.patch.object(table.db_engine_spec, "convert_dttm", new=_convert_dttm)
 
     columns_by_name = {

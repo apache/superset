@@ -33,7 +33,7 @@ from superset.commands.exceptions import CommandInvalidError  # noqa: F401
 from superset.commands.importers.exceptions import IncorrectVersionError  # noqa: F401
 from superset.commands.tag.create import CreateCustomTagCommand
 from superset.commands.tag.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
-from superset.connectors.sqla.models import SqlaTable  # noqa: F401
+from superset.connectors.sqla.models import Dataset  # noqa: F401
 from superset.models.core import Database  # noqa: F401
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice  # noqa: F401

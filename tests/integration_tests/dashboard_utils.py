@@ -21,7 +21,7 @@ from typing import Optional
 from pandas import DataFrame  # noqa: F401
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -36,7 +36,7 @@ def get_table(
 ):
     schema = schema or get_example_default_schema()
     return (
-        db.session.query(SqlaTable)
+        db.session.query(Dataset)
         .filter_by(database_id=database.id, schema=schema, table_name=table_name)
         .one_or_none()
     )
@@ -48,12 +48,12 @@ def create_table_metadata(
     table_description: str = "",
     fetch_values_predicate: Optional[str] = None,
     schema: Optional[str] = None,
-) -> SqlaTable:
+) -> Dataset:
     schema = schema or get_example_default_schema()
 
     table = get_table(table_name, database, schema)
     if not table:
-        table = SqlaTable(
+        table = Dataset(
             schema=schema,
             table_name=table_name,
             normalize_columns=False,
@@ -70,7 +70,7 @@ def create_table_metadata(
 
 
 def create_slice(
-    title: str, viz_type: str, table: SqlaTable, slices_dict: dict[str, str]
+    title: str, viz_type: str, table: Dataset, slices_dict: dict[str, str]
 ) -> Slice:
     return Slice(
         slice_name=title,

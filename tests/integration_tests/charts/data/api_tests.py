@@ -51,7 +51,7 @@ import pytest
 from superset.models.slice import Slice
 
 from superset.commands.chart.data.get_data_command import ChartDataCommand
-from superset.connectors.sqla.models import TableColumn, SqlaTable
+from superset.connectors.sqla.models import TableColumn, Dataset
 from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager_factory, db
 from superset.models.annotations import AnnotationLayer
@@ -899,7 +899,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         where clause and filters
         """
         owner = self.get_user("admin")
-        table = SqlaTable(
+        table = Dataset(
             table_name="virtual_table_1",
             schema=get_example_default_schema(),
             owners=[owner],
@@ -1393,9 +1393,9 @@ def test_chart_cache_timeout(
     slice_with_cache_timeout = load_energy_table_with_slice[0]
     slice_with_cache_timeout.cache_timeout = 20
 
-    datasource: SqlaTable = (
-        db.session.query(SqlaTable)
-        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+    datasource: Dataset = (
+        db.session.query(Dataset)
+        .filter(Dataset.id == physical_query_context["datasource"]["id"])
         .first()
     )
     datasource.cache_timeout = 1254
@@ -1422,9 +1422,9 @@ def test_chart_cache_timeout_not_present(
 ):
     # should use datasource cache, if it's present
 
-    datasource: SqlaTable = (
-        db.session.query(SqlaTable)
-        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+    datasource: Dataset = (
+        db.session.query(Dataset)
+        .filter(Dataset.id == physical_query_context["datasource"]["id"])
         .first()
     )
     datasource.cache_timeout = 1980

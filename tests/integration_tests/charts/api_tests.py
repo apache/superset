@@ -30,7 +30,7 @@ from sqlalchemy.sql import func
 
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.extensions import cache_manager, db, security_manager  # noqa: F401
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
@@ -1179,7 +1179,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         with app.app_context():
             admin = self.get_user("admin")
             energy_table = (
-                db.session.query(SqlaTable)
+                db.session.query(Dataset)
                 .filter_by(table_name="energy_usage")
                 .one_or_none()
             )

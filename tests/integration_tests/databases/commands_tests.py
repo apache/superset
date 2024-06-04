@@ -39,7 +39,7 @@ from superset.commands.database.test_connection import TestConnectionDatabaseCom
 from superset.commands.database.validate import ValidateDatabaseParametersCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.databases.schemas import DatabaseTestConnectionSchema  # noqa: F401
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -544,9 +544,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         command.run()
 
-        dataset = (
-            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
-        )
+        dataset = db.session.query(Dataset).filter_by(uuid=dataset_config["uuid"]).one()
         assert dataset.offset == 66
 
         new_config = dataset_config.copy()
@@ -561,9 +559,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
         # the underlying dataset should not be modified by the second import, since
         # we're importing a database, not a dataset
-        dataset = (
-            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
-        )
+        dataset = db.session.query(Dataset).filter_by(uuid=dataset_config["uuid"]).one()
         assert dataset.offset == 66
 
         db.session.delete(dataset)

@@ -26,7 +26,7 @@ from sqlalchemy.orm.session import Session
 from superset import db
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
 
 FULL_DTTM_DEFAULTS_EXAMPLE = {
     "main_dttm_col": "id",
@@ -46,7 +46,7 @@ FULL_DTTM_DEFAULTS_EXAMPLE = {
 }
 
 
-def apply_dttm_defaults(table: "SqlaTable", dttm_defaults: dict[str, Any]) -> None:
+def apply_dttm_defaults(table: "Dataset", dttm_defaults: dict[str, Any]) -> None:
     """Applies dttm defaults to the table, mutates in place."""
     for dbcol in table.columns:
         # Set is_dttm is column is listed in dttm_columns.
@@ -76,15 +76,15 @@ def apply_dttm_defaults(table: "SqlaTable", dttm_defaults: dict[str, Any]) -> No
 
 
 @pytest.fixture
-def test_table(session: Session) -> "SqlaTable":
+def test_table(session: Session) -> "Dataset":
     """
     Fixture that generates an in-memory table.
     """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.connectors.sqla.models import Dataset, TableColumn
     from superset.models.core import Database
 
     engine = db.session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     columns = [
         TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
@@ -94,7 +94,7 @@ def test_table(session: Session) -> "SqlaTable":
         TableColumn(column_name="duration_ms", type="INTEGER"),
     ]
 
-    return SqlaTable(
+    return Dataset(
         table_name="test_table",
         columns=columns,
         metrics=[],
@@ -103,7 +103,7 @@ def test_table(session: Session) -> "SqlaTable":
     )
 
 
-def test_main_dttm_col(mocker: MockerFixture, test_table: "SqlaTable") -> None:
+def test_main_dttm_col(mocker: MockerFixture, test_table: "Dataset") -> None:
     """
     Test the ``SQLA_TABLE_MUTATOR`` config.
     """
@@ -136,7 +136,7 @@ def test_main_dttm_col(mocker: MockerFixture, test_table: "SqlaTable") -> None:
 
 def test_main_dttm_col_nonexistent(
     mocker: MockerFixture,
-    test_table: "SqlaTable",
+    test_table: "Dataset",
 ) -> None:
     """
     Test the ``SQLA_TABLE_MUTATOR`` config when main datetime column doesn't exist.
@@ -170,7 +170,7 @@ def test_main_dttm_col_nonexistent(
 
 def test_main_dttm_col_nondttm(
     mocker: MockerFixture,
-    test_table: "SqlaTable",
+    test_table: "Dataset",
 ) -> None:
     """
     Test the ``SQLA_TABLE_MUTATOR`` config when main datetime column has wrong type.
@@ -204,7 +204,7 @@ def test_main_dttm_col_nondttm(
 
 def test_python_date_format_by_column_name(
     mocker: MockerFixture,
-    test_table: "SqlaTable",
+    test_table: "Dataset",
 ) -> None:
     """
     Test the ``SQLA_TABLE_MUTATOR`` setting for "python_date_format".
@@ -245,7 +245,7 @@ def test_python_date_format_by_column_name(
 
 def test_expression_by_column_name(
     mocker: MockerFixture,
-    test_table: "SqlaTable",
+    test_table: "Dataset",
 ) -> None:
     """
     Test the ``SQLA_TABLE_MUTATOR`` setting for expression.
@@ -288,7 +288,7 @@ def test_expression_by_column_name(
 
 def test_full_setting(
     mocker: MockerFixture,
-    test_table: "SqlaTable",
+    test_table: "Dataset",
 ) -> None:
     """
     Test the ``SQLA_TABLE_MUTATOR`` with full settings.

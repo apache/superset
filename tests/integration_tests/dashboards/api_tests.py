@@ -260,11 +260,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         Check that a gamma user with data access can access dashboard/datasets
         """
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import Dataset
 
         # Set correct role permissions
         gamma_role = security_manager.find_role("Gamma")
-        fixture_dataset = db.session.query(SqlaTable).get(1)
+        fixture_dataset = db.session.query(Dataset).get(1)
         data_access_pvm = security_manager.add_permission_view_menu(
             "datasource_access", fixture_dataset.perm
         )
@@ -382,11 +382,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         Check that a gamma user with data access can access dashboard/charts
         """
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import Dataset
 
         # Set correct role permissions
         gamma_role = security_manager.find_role("Gamma")
-        fixture_dataset = db.session.query(SqlaTable).get(1)
+        fixture_dataset = db.session.query(Dataset).get(1)
         data_access_pvm = security_manager.add_permission_view_menu(
             "datasource_access", fixture_dataset.perm
         )

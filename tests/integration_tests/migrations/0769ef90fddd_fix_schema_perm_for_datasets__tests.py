@@ -19,7 +19,7 @@ from importlib import import_module
 import pytest
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.slice import Slice
 from superset.utils.core import backend, get_example_default_schema
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -41,7 +41,7 @@ def test_fix_schema_perm():
     if backend() == "sqlite":
         return
 
-    dataset = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+    dataset = db.session.query(Dataset).filter_by(table_name="birth_names").one()
     chart = db.session.query(Slice).filter_by(slice_name="Girls").one()
     dataset.schema_perm = "wrong"
     chart.schema_perm = "wrong"

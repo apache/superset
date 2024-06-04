@@ -22,7 +22,7 @@ from typing import Any, Optional
 from sqlalchemy import func
 
 from superset import appbuilder, db, security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from tests.integration_tests.dashboards.consts import DEFAULT_DASHBOARD_SLUG_TO_TEST
@@ -81,7 +81,7 @@ def get_slice_by_name(slice_name: str) -> Slice:
 
 
 def get_sql_table_by_name(table_name: str):
-    return db.session.query(SqlaTable).filter_by(table_name=table_name).one()
+    return db.session.query(Dataset).filter_by(table_name=table_name).one()
 
 
 def count_dashboards() -> int:

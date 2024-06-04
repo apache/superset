@@ -21,7 +21,7 @@ from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable, sqlatable_user
+from superset.connectors.sqla.models import Dataset, sqlatable_user
 from superset.models.core import Database
 from superset.models.dashboard import (
     Dashboard,
@@ -115,7 +115,7 @@ def create_slice_to_db(
 
 def create_slice(
     datasource_id: Optional[int] = None,
-    datasource: Optional[SqlaTable] = None,
+    datasource: Optional[Dataset] = None,
     name: Optional[str] = None,
     owners: Optional[list[User]] = None,
 ) -> Slice:
@@ -148,7 +148,7 @@ def create_datasource_table_to_db(
     name: Optional[str] = None,
     db_id: Optional[int] = None,
     owners: Optional[list[User]] = None,
-) -> SqlaTable:
+) -> Dataset:
     sqltable = create_datasource_table(name, db_id, owners=owners)
     insert_model(sqltable)
     inserted_sqltables_ids.append(sqltable.id)
@@ -160,13 +160,13 @@ def create_datasource_table(
     db_id: Optional[int] = None,
     database: Optional[Database] = None,
     owners: Optional[list[User]] = None,
-) -> SqlaTable:
+) -> Dataset:
     name = name if name is not None else random_str()
     owners = owners if owners is not None else []
     if database:
-        return SqlaTable(table_name=name, database=database, owners=owners)
+        return Dataset(table_name=name, database=database, owners=owners)
     db_id = db_id if db_id is not None else create_database_to_db(name=name + "_db").id
-    return SqlaTable(table_name=name, database_id=db_id, owners=owners)
+    return Dataset(table_name=name, database_id=db_id, owners=owners)
 
 
 def create_database_to_db(name: Optional[str] = None) -> Database:
@@ -270,9 +270,9 @@ def delete_slice_users_associations(slice_: Slice) -> None:
 
 def delete_all_inserted_tables():
     try:
-        tables_to_delete: list[SqlaTable] = (
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.id.in_(inserted_sqltables_ids))
+        tables_to_delete: list[Dataset] = (
+            db.session.query(Dataset)
+            .filter(Dataset.id.in_(inserted_sqltables_ids))
             .all()
         )
         for table in tables_to_delete:
@@ -289,7 +289,7 @@ def delete_all_inserted_tables():
         raise
 
 
-def delete_sqltable(table: SqlaTable, do_commit: bool = False) -> None:
+def delete_sqltable(table: Dataset, do_commit: bool = False) -> None:
     logger.info(f"deleting table{table.id}")
     delete_table_users_associations(table)
     db.session.delete(table)
@@ -297,7 +297,7 @@ def delete_sqltable(table: SqlaTable, do_commit: bool = False) -> None:
         db.session.commit()
 
 
-def delete_table_users_associations(table: SqlaTable) -> None:
+def delete_table_users_associations(table: Dataset) -> None:
     db.session.execute(
         sqlatable_user.delete().where(sqlatable_user.c.table_id == table.id)
     )

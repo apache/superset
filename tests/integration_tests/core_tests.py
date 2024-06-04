@@ -38,7 +38,7 @@ from superset import dataframe, db, security_manager, sql_lab
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.exceptions import SupersetException
@@ -86,7 +86,7 @@ def cleanup():
 class TestCore(SupersetTestCase):
     def setUp(self):
         self.table_ids = {
-            tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
+            tbl.table_name: tbl.id for tbl in (db.session.query(Dataset).all())
         }
         self.original_unsafe_db_setting = app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]
 
@@ -533,7 +533,7 @@ class TestCore(SupersetTestCase):
     def test_comments_in_sqlatable_query(self):
         clean_query = "SELECT\n  '/* val 1 */' AS c1,\n  '-- val 2' AS c2\nFROM tbl"
         commented_query = "/* comment 1 */" + clean_query + "-- comment 2"
-        table = SqlaTable(
+        table = Dataset(
             table_name="test_comments_in_sqlatable_query_table",
             sql=commented_query,
             database=get_example_database(),

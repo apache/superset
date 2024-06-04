@@ -28,7 +28,7 @@ import prison
 
 from freezegun import freeze_time
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable  # noqa: F401
+from superset.connectors.sqla.models import Dataset  # noqa: F401
 from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec

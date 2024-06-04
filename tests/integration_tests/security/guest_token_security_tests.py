@@ -22,7 +22,7 @@ import pytest
 from flask import g
 
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
@@ -225,7 +225,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     @pytest.fixture(scope="class")
     def create_dataset(self):
         with self.create_app().app_context():
-            dataset = SqlaTable(
+            dataset = Dataset(
                 table_name="dummy_sql_table",
                 database=get_example_database(),
                 schema=get_example_default_schema(),
@@ -263,7 +263,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
         self.other_chart = self.get_slice("Treemap")
         self.other_datasource = self.other_chart.datasource
         self.native_filter_datasource = (
-            db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+            db.session.query(Dataset).filter_by(table_name="dummy_sql_table").first()
         )
         self.dash.json_metadata = json.dumps(
             {

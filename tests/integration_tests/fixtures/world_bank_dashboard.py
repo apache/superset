@@ -24,7 +24,7 @@ from pandas import DataFrame
 from sqlalchemy import DateTime, String
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -103,7 +103,7 @@ def create_dashboard_for_loaded_data():
     return dash_id_to_delete, slices_ids_to_delete
 
 
-def _create_world_bank_slices(table: SqlaTable) -> list[Slice]:
+def _create_world_bank_slices(table: Dataset) -> list[Slice]:
     from superset.examples.world_bank import create_slices
 
     slices = create_slices(table)
@@ -120,7 +120,7 @@ def _commit_slices(slices: list[Slice]):
         db.session.commit()
 
 
-def _create_world_bank_dashboard(table: SqlaTable) -> Dashboard:
+def _create_world_bank_dashboard(table: Dataset) -> Dashboard:
     from superset.examples.helpers import update_slice_ids
     from superset.examples.world_bank import dashboard_positions
 

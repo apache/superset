@@ -19,7 +19,7 @@ from typing import Callable, Optional
 import pytest
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -103,7 +103,7 @@ def _create_table(
 
 def _cleanup(dash_id: int, slice_ids: list[int]) -> None:
     schema = get_example_default_schema()
-    for datasource in db.session.query(SqlaTable).filter_by(
+    for datasource in db.session.query(Dataset).filter_by(
         table_name="birth_names", schema=schema
     ):
         for col in datasource.columns + datasource.metrics:

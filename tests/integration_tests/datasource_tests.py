@@ -27,7 +27,7 @@ from superset import app, db
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import (  # noqa: F401
-    SqlaTable,
+    Dataset,
     SqlMetric,
     TableColumn,
 )
@@ -110,7 +110,7 @@ class TestDatasource(SupersetTestCase):
             "row_limit": 1000,
             "row_offset": 0,
         }
-        table = SqlaTable(
+        table = Dataset(
             table_name="dummy_sql_table",
             database=database,
             schema=get_example_default_schema(),
@@ -140,7 +140,7 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
-        table = SqlaTable(
+        table = Dataset(
             table_name="dummy_sql_table",
             database=get_example_database(),
             schema=get_example_default_schema(),
@@ -179,7 +179,7 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_by_name_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
-        table = SqlaTable(
+        table = Dataset(
             table_name="dummy_sql_table",
             database=get_example_database(),
             schema=get_example_default_schema(),
@@ -272,7 +272,7 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_for_virtual_table_template_params(self):
         self.login(ADMIN_USERNAME)
-        table = SqlaTable(
+        table = Dataset(
             table_name="dummy_sql_table_with_template_params",
             database=get_example_database(),
             schema=get_example_default_schema(),
@@ -291,7 +291,7 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_for_malicious_virtual_table(self):
         self.login(ADMIN_USERNAME)
-        table = SqlaTable(
+        table = Dataset(
             table_name="malicious_sql_table",
             database=get_example_database(),
             schema=get_example_default_schema(),
@@ -304,7 +304,7 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_for_multistatement_virtual_table(self):
         self.login(ADMIN_USERNAME)
-        table = SqlaTable(
+        table = Dataset(
             table_name="multistatement_sql_table",
             database=get_example_database(),
             schema=get_example_default_schema(),
@@ -317,7 +317,7 @@ class TestDatasource(SupersetTestCase):
             self.assertEqual(resp["error"], "Only single queries supported")
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch("superset.connectors.sqla.models.SqlaTable.external_metadata")
+    @mock.patch("superset.connectors.sqla.models.Dataset.external_metadata")
     def test_external_metadata_error_return_400(self, mock_get_datasource):
         self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
@@ -327,7 +327,7 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             SupersetGenericDBErrorException,
-            lambda: db.session.query(SqlaTable)
+            lambda: db.session.query(Dataset)
             .filter_by(id=tbl.id)
             .one_or_none()
             .external_metadata(),
@@ -470,7 +470,7 @@ class TestDatasource(SupersetTestCase):
         app.config["DATASET_HEALTH_CHECK"] = my_check
         self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
-        datasource = db.session.query(SqlaTable).filter_by(id=tbl.id).one_or_none()
+        datasource = db.session.query(Dataset).filter_by(id=tbl.id).one_or_none()
         assert datasource.health_check_message == "Warning message!"
         app.config["DATASET_HEALTH_CHECK"] = None
 

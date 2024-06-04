@@ -18,7 +18,7 @@
 
 import pytest
 
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.extensions import db
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
@@ -58,7 +58,7 @@ class TestTagging(SupersetTestCase):
         self.assertEqual([], self.query_tagged_object_table())
 
         # Create a dataset and add it to the db
-        test_dataset = SqlaTable(
+        test_dataset = Dataset(
             table_name="foo",
             schema=None,
             owners=[],
@@ -243,7 +243,7 @@ class TestTagging(SupersetTestCase):
         self.assertEqual([], self.query_tagged_object_table())
 
         # Create a dataset and add it to the db
-        test_dataset = SqlaTable(
+        test_dataset = Dataset(
             table_name="foo",
             schema=None,
             owners=[],

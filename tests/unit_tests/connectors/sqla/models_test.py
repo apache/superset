@@ -21,7 +21,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
@@ -48,7 +48,7 @@ def test_query_bubbles_errors(mocker: MockerFixture) -> None:
         redirect_uri="http://redirect.example.com",
     )
 
-    sqla_table = SqlaTable(
+    sqla_table = Dataset(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],
@@ -77,7 +77,7 @@ def test_permissions_without_catalog() -> None:
     Test permissions when the table has no catalog.
     """
     database = Database(database_name="my_db")
-    sqla_table = SqlaTable(
+    sqla_table = Dataset(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],
@@ -97,7 +97,7 @@ def test_permissions_with_catalog() -> None:
     Test permissions when the table with a catalog set.
     """
     database = Database(database_name="my_db")
-    sqla_table = SqlaTable(
+    sqla_table = Dataset(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],
@@ -119,7 +119,7 @@ def test_query_datasources_by_name(mocker: MockerFixture) -> None:
     db = mocker.patch("superset.connectors.sqla.models.db")
 
     database = Database(database_name="my_db", id=1)
-    sqla_table = SqlaTable(
+    sqla_table = Dataset(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],
@@ -149,7 +149,7 @@ def test_query_datasources_by_permissions(mocker: MockerFixture) -> None:
 
     engine = create_engine("sqlite://")
     database = Database(database_name="my_db", id=1)
-    sqla_table = SqlaTable(
+    sqla_table = Dataset(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],
@@ -172,7 +172,7 @@ def test_query_datasources_by_permissions_with_catalog_schema(
 
     engine = create_engine("sqlite://")
     database = Database(database_name="my_db", id=1)
-    sqla_table = SqlaTable(
+    sqla_table = Dataset(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],
@@ -202,7 +202,7 @@ def test_dataset_uniqueness(session: Session) -> None:
     database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
 
     # add prod.schema.table
-    dataset = SqlaTable(
+    dataset = Dataset(
         database=database,
         catalog="prod",
         schema="schema",
@@ -212,7 +212,7 @@ def test_dataset_uniqueness(session: Session) -> None:
     session.commit()
 
     # add dev.schema.table
-    dataset = SqlaTable(
+    dataset = Dataset(
         database=database,
         catalog="dev",
         schema="schema",
@@ -222,7 +222,7 @@ def test_dataset_uniqueness(session: Session) -> None:
     session.commit()
 
     # try to add dev.schema.table again, fails
-    dataset = SqlaTable(
+    dataset = Dataset(
         database=database,
         catalog="dev",
         schema="schema",
@@ -234,7 +234,7 @@ def test_dataset_uniqueness(session: Session) -> None:
     session.rollback()
 
     # add schema.table
-    dataset = SqlaTable(
+    dataset = Dataset(
         database=database,
         catalog=None,
         schema="schema",
@@ -244,7 +244,7 @@ def test_dataset_uniqueness(session: Session) -> None:
     session.commit()
 
     # add schema.table again, works because in SQL `NULlL != NULL`
-    dataset = SqlaTable(
+    dataset = Dataset(
         database=database,
         catalog=None,
         schema="schema",

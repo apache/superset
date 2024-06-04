@@ -20,7 +20,7 @@ from unittest.mock import ANY, patch
 import pytest
 
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.daos.exceptions import DatasourceTypeNotSupportedError
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -30,8 +30,8 @@ from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 class TestDatasourceApi(SupersetTestCase):
     def get_virtual_dataset(self):
         return (
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.table_name == "virtual_dataset")
+            db.session.query(Dataset)
+            .filter(Dataset.table_name == "virtual_dataset")
             .one()
         )
 

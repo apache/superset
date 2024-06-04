@@ -31,7 +31,7 @@ from sqlalchemy.sql import func
 
 from superset import app  # noqa: F401
 from superset.commands.dataset.exceptions import DatasetCreateFailedError
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import Dataset, SqlMetric, TableColumn
 from superset.daos.exceptions import (
     DAOCreateFailedError,
     DAODeleteFailedError,
@@ -83,12 +83,12 @@ class TestDatasetApi(SupersetTestCase):
         database: Database,
         sql: Optional[str] = None,
         schema: Optional[str] = None,
-    ) -> SqlaTable:
+    ) -> Dataset:
         obj_owners = list()
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
             obj_owners.append(user)
-        table = SqlaTable(
+        table = Dataset(
             table_name=table_name,
             schema=schema,
             owners=obj_owners,
@@ -105,18 +105,18 @@ class TestDatasetApi(SupersetTestCase):
             "ab_permission", [self.get_user("admin").id], get_main_database()
         )
 
-    def get_fixture_datasets(self) -> list[SqlaTable]:
+    def get_fixture_datasets(self) -> list[Dataset]:
         return (
-            db.session.query(SqlaTable)
-            .options(joinedload(SqlaTable.database))
-            .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
+            db.session.query(Dataset)
+            .options(joinedload(Dataset.database))
+            .filter(Dataset.table_name.in_(self.fixture_tables_names))
             .all()
         )
 
-    def get_fixture_virtual_datasets(self) -> list[SqlaTable]:
+    def get_fixture_virtual_datasets(self) -> list[Dataset]:
         return (
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(self.fixture_virtual_table_names))
+            db.session.query(Dataset)
+            .filter(Dataset.table_name.in_(self.fixture_virtual_table_names))
             .all()
         )
 
@@ -164,7 +164,7 @@ class TestDatasetApi(SupersetTestCase):
     def get_energy_usage_dataset():
         example_db = get_example_database()
         return (
-            db.session.query(SqlaTable)
+            db.session.query(Dataset)
             .filter_by(
                 database=example_db,
                 table_name="energy_usage",
@@ -444,7 +444,7 @@ class TestDatasetApi(SupersetTestCase):
                     schema="information_schema",
                 )
             )
-            all_datasets = db.session.query(SqlaTable).all()
+            all_datasets = db.session.query(Dataset).all()
             schema_values = sorted(
                 {
                     dataset.schema
@@ -563,7 +563,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         table_id = data.get("id")
-        model = db.session.query(SqlaTable).get(table_id)
+        model = db.session.query(Dataset).get(table_id)
         assert model.table_name == table_data["table_name"]
         assert model.database_id == table_data["database"]
         # normalize_columns should default to False
@@ -610,7 +610,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         table_id = data.get("id")
-        model = db.session.query(SqlaTable).get(table_id)
+        model = db.session.query(Dataset).get(table_id)
         assert model.table_name == table_data["table_name"]
         assert model.database_id == table_data["database"]
         assert model.normalize_columns is True
@@ -654,7 +654,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.post_assert_metric(uri, table_data, "post")
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
-        model = db.session.query(SqlaTable).get(data.get("id"))
+        model = db.session.query(Dataset).get(data.get("id"))
         assert admin in model.owners
         assert alpha in model.owners
         db.session.delete(model)
@@ -753,7 +753,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
-        model = db.session.query(SqlaTable).get(data.get("id"))
+        model = db.session.query(Dataset).get(data.get("id"))
         assert admin in model.owners
         assert alpha in model.owners
         db.session.delete(model)
@@ -905,7 +905,7 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.put_assert_metric(uri, dataset_data, "put")
         assert rv.status_code == 200
-        model = db.session.query(SqlaTable).get(dataset.id)
+        model = db.session.query(Dataset).get(dataset.id)
         assert model.owners == current_owners
 
         db.session.delete(dataset)
@@ -922,7 +922,7 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.put_assert_metric(uri, dataset_data, "put")
         assert rv.status_code == 200
-        model = db.session.query(SqlaTable).get(dataset.id)
+        model = db.session.query(Dataset).get(dataset.id)
         assert model.owners == []
 
         db.session.delete(dataset)
@@ -940,7 +940,7 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.put_assert_metric(uri, dataset_data, "put")
         assert rv.status_code == 200
-        model = db.session.query(SqlaTable).get(dataset.id)
+        model = db.session.query(Dataset).get(dataset.id)
         assert model.owners == [gamma]
 
         db.session.delete(dataset)
@@ -958,7 +958,7 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.put_assert_metric(uri, dataset_data, "put")
         assert rv.status_code == 200
-        model = db.session.query(SqlaTable).get(dataset.id)
+        model = db.session.query(Dataset).get(dataset.id)
         assert model.description == dataset_data["description"]
         assert model.owners == current_owners
 
@@ -1591,7 +1591,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.delete(uri)
         assert rv.status_code == 404
 
-        non_id = self.get_nonexistent_numeric_id(SqlaTable)
+        non_id = self.get_nonexistent_numeric_id(Dataset)
         column_id = dataset.columns[0].id
 
         self.login(ADMIN_USERNAME)
@@ -1663,7 +1663,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.delete(uri)
         assert rv.status_code == 404
 
-        non_id = self.get_nonexistent_numeric_id(SqlaTable)
+        non_id = self.get_nonexistent_numeric_id(Dataset)
         metric_id = dataset.metrics[0].id
 
         self.login(ADMIN_USERNAME)
@@ -1723,8 +1723,8 @@ class TestDatasetApi(SupersetTestCase):
         expected_response = {"message": f"Deleted {len(datasets)} datasets"}
         assert data == expected_response
         datasets = (
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
+            db.session.query(Dataset)
+            .filter(Dataset.table_name.in_(self.fixture_tables_names))
             .all()
         )
         assert datasets == []
@@ -1754,7 +1754,7 @@ class TestDatasetApi(SupersetTestCase):
 
         datasets = self.get_fixture_datasets()
         dataset_ids = [dataset.id for dataset in datasets]
-        dataset_ids.append(db.session.query(func.max(SqlaTable.id)).scalar())
+        dataset_ids.append(db.session.query(func.max(Dataset.id)).scalar())
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
@@ -1824,7 +1824,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test item refresh not found dataset
         """
 
-        max_id = db.session.query(func.max(SqlaTable.id)).scalar()
+        max_id = db.session.query(func.max(Dataset.id)).scalar()
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dataset/{max_id + 1}/refresh"
@@ -1883,7 +1883,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test export dataset not found
         """
 
-        max_id = db.session.query(func.max(SqlaTable.id)).scalar()
+        max_id = db.session.query(func.max(Dataset.id)).scalar()
         # Just one does not exist and we get 404
         argument = [max_id + 1, 1]
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
@@ -1994,7 +1994,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test related objects not found
         """
 
-        max_id = db.session.query(func.max(SqlaTable.id)).scalar()
+        max_id = db.session.query(func.max(Dataset.id)).scalar()
         # id does not exist and we get 404
         invalid_id = max_id + 1
         uri = f"api/v1/dataset/{invalid_id}/related_objects/"
@@ -2081,7 +2081,7 @@ class TestDatasetApi(SupersetTestCase):
         db.session.commit()
 
     def test_import_dataset_v0_export(self):
-        num_datasets = db.session.query(SqlaTable).count()
+        num_datasets = db.session.query(Dataset).count()
 
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dataset/import/"
@@ -2099,11 +2099,9 @@ class TestDatasetApi(SupersetTestCase):
 
         assert rv.status_code == 200
         assert response == {"message": "OK"}
-        assert db.session.query(SqlaTable).count() == num_datasets + 1
+        assert db.session.query(Dataset).count() == num_datasets + 1
 
-        dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="birth_names_2").one()
-        )
+        dataset = db.session.query(Dataset).filter_by(table_name="birth_names_2").one()
         db.session.delete(dataset)
         db.session.commit()
 
@@ -2212,7 +2210,7 @@ class TestDatasetApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "metadata.yaml": {"type": ["Must be equal to SqlaTable."]},
+                        "metadata.yaml": {"type": ["Must be equal to Dataset."]},
                         "issue_codes": [
                             {
                                 "code": 1010,
@@ -2278,7 +2276,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test custom dataset_is_certified filter
         """
 
-        table_w_certification = SqlaTable(
+        table_w_certification = Dataset(
             table_name="foo",
             schema=None,
             owners=[],
@@ -2317,8 +2315,8 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.post_assert_metric(uri, table_data, "duplicate")
         assert rv.status_code == 201
         rv_data = json.loads(rv.data)
-        new_dataset: SqlaTable = (
-            db.session.query(SqlaTable).filter_by(id=rv_data["id"]).one_or_none()
+        new_dataset: Dataset = (
+            db.session.query(Dataset).filter_by(id=rv_data["id"]).one_or_none()
         )
         assert new_dataset is not None
         assert new_dataset.id != dataset.id
@@ -2390,8 +2388,8 @@ class TestDatasetApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         dataset = (
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.table_name == "virtual_dataset")
+            db.session.query(Dataset)
+            .filter(Dataset.table_name == "virtual_dataset")
             .one()
         )
         self.assertEqual(response["result"], {"table_id": dataset.id})
@@ -2449,7 +2447,7 @@ class TestDatasetApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         table = (
-            db.session.query(SqlaTable)
+            db.session.query(Dataset)
             .filter_by(table_name="test_create_sqla_table_api")
             .one()
         )

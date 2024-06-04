@@ -22,7 +22,7 @@ import pytest
 from superset import app, db, security_manager
 from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils.core import DatasourceType, get_example_default_schema
@@ -34,7 +34,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
     @pytest.fixture()
     def create_dataset(self):
         with self.create_app().app_context():
-            dataset = SqlaTable(
+            dataset = Dataset(
                 table_name="dummy_sql_table",
                 database=get_example_database(),
                 schema=get_example_default_schema(),
@@ -53,7 +53,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
     def create_slice(self):
         with self.create_app().app_context():
             dataset = (
-                db.session.query(SqlaTable)
+                db.session.query(Dataset)
                 .filter_by(table_name="dummy_sql_table")
                 .first()
             )
@@ -97,7 +97,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+            db.session.query(Dataset).filter_by(table_name="dummy_sql_table").first()
         )
         slice = db.session.query(Slice).filter_by(slice_name="slice_name").first()
 
@@ -117,7 +117,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
         }
 
         dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+            db.session.query(Dataset).filter_by(table_name="dummy_sql_table").first()
         )
         slice = db.session.query(Slice).filter_by(slice_name="slice_name").first()
 
@@ -145,7 +145,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
         }
 
         dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+            db.session.query(Dataset).filter_by(table_name="dummy_sql_table").first()
         )
         slice = db.session.query(Slice).filter_by(slice_name="slice_name").first()
 

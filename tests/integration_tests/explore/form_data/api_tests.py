@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session  # noqa: F401
 from superset import db
 from superset.commands.dataset.exceptions import DatasetAccessDeniedError
 from superset.commands.explore.form_data.state import TemporaryExploreState
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
 from superset.utils import json
@@ -57,7 +57,7 @@ def admin_id() -> int:
 def datasource() -> int:
     with app.app_context() as ctx:  # noqa: F841
         dataset = (
-            db.session.query(SqlaTable)
+            db.session.query(Dataset)
             .filter_by(table_name="wb_health_population")
             .first()
         )
@@ -76,7 +76,7 @@ def cache(chart_id, admin_id, datasource):
     cache_manager.explore_form_data_cache.set(KEY, entry)
 
 
-def test_post(test_client, login_as_admin, chart_id: int, datasource: SqlaTable):
+def test_post(test_client, login_as_admin, chart_id: int, datasource: Dataset):
     payload = {
         "datasource_id": datasource.id,
         "datasource_type": datasource.type,
@@ -88,7 +88,7 @@ def test_post(test_client, login_as_admin, chart_id: int, datasource: SqlaTable)
 
 
 def test_post_bad_request_non_string(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -101,7 +101,7 @@ def test_post_bad_request_non_string(
 
 
 def test_post_bad_request_non_json_string(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -113,9 +113,7 @@ def test_post_bad_request_non_json_string(
     assert resp.status_code == 400
 
 
-def test_post_access_denied(
-    test_client, login_as, chart_id: int, datasource: SqlaTable
-):
+def test_post_access_denied(test_client, login_as, chart_id: int, datasource: Dataset):
     login_as("gamma")
     payload = {
         "datasource_id": datasource.id,
@@ -128,7 +126,7 @@ def test_post_access_denied(
 
 
 def test_post_same_key_for_same_context(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -146,7 +144,7 @@ def test_post_same_key_for_same_context(
 
 
 def test_post_different_key_for_different_context(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -169,7 +167,7 @@ def test_post_different_key_for_different_context(
 
 
 def test_post_same_key_for_same_tab_id(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -187,7 +185,7 @@ def test_post_same_key_for_same_tab_id(
 
 
 def test_post_different_key_for_different_tab_id(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -205,7 +203,7 @@ def test_post_different_key_for_different_tab_id(
 
 
 def test_post_different_key_for_no_tab_id(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -222,7 +220,7 @@ def test_post_different_key_for_no_tab_id(
     assert first_key != second_key
 
 
-def test_put(test_client, login_as_admin, chart_id: int, datasource: SqlaTable):
+def test_put(test_client, login_as_admin, chart_id: int, datasource: Dataset):
     payload = {
         "datasource_id": datasource.id,
         "datasource_type": datasource.type,
@@ -234,7 +232,7 @@ def test_put(test_client, login_as_admin, chart_id: int, datasource: SqlaTable):
 
 
 def test_put_same_key_for_same_tab_id(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -252,7 +250,7 @@ def test_put_same_key_for_same_tab_id(
 
 
 def test_put_different_key_for_different_tab_id(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -270,7 +268,7 @@ def test_put_different_key_for_different_tab_id(
 
 
 def test_put_different_key_for_no_tab_id(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -288,7 +286,7 @@ def test_put_different_key_for_no_tab_id(
 
 
 def test_put_bad_request(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -301,7 +299,7 @@ def test_put_bad_request(
 
 
 def test_put_bad_request_non_string(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -314,7 +312,7 @@ def test_put_bad_request_non_string(
 
 
 def test_put_bad_request_non_json_string(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable
+    test_client, login_as_admin, chart_id: int, datasource: Dataset
 ):
     payload = {
         "datasource_id": datasource.id,
@@ -326,7 +324,7 @@ def test_put_bad_request_non_json_string(
     assert resp.status_code == 400
 
 
-def test_put_access_denied(test_client, login_as, chart_id: int, datasource: SqlaTable):
+def test_put_access_denied(test_client, login_as, chart_id: int, datasource: Dataset):
     login_as("gamma")
     payload = {
         "datasource_id": datasource.id,
@@ -338,7 +336,7 @@ def test_put_access_denied(test_client, login_as, chart_id: int, datasource: Sql
     assert resp.status_code == 403
 
 
-def test_put_not_owner(test_client, login_as, chart_id: int, datasource: SqlaTable):
+def test_put_not_owner(test_client, login_as, chart_id: int, datasource: Dataset):
     login_as("gamma")
     payload = {
         "datasource_id": datasource.id,
@@ -389,7 +387,7 @@ def test_delete_access_denied(test_client, login_as):
 
 
 def test_delete_not_owner(
-    test_client, login_as_admin, chart_id: int, datasource: SqlaTable, admin_id: int
+    test_client, login_as_admin, chart_id: int, datasource: Dataset, admin_id: int
 ):
     another_key = "another_key"
     another_owner = admin_id + 1

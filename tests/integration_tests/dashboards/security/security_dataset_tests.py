@@ -39,7 +39,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
     def load_dashboard(self):
         with app.app_context():
             table = (
-                db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()  # noqa: F405
+                db.session.query(Dataset).filter_by(table_name="energy_usage").one()  # noqa: F405
             )
             # get a slice from the allowed table
             slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()  # noqa: F405

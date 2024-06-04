@@ -26,7 +26,7 @@ from flask import Response, escape, url_for
 from sqlalchemy import func
 
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from tests.integration_tests.constants import (
@@ -58,7 +58,7 @@ from .base_tests import SupersetTestCase
 class TestDashboard(SupersetTestCase):
     @pytest.fixture
     def load_dashboard(self):
-        table = db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
+        table = db.session.query(Dataset).filter_by(table_name="energy_usage").one()
         # get a slice from the allowed table
         slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
 
@@ -133,7 +133,7 @@ class TestDashboard(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_user_dashboard_access(self):
-        table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+        table = db.session.query(Dataset).filter_by(table_name="birth_names").one()
 
         # Make the births dash published so it can be seen
         births_dash = db.session.query(Dashboard).filter_by(slug="births").one()
@@ -172,7 +172,7 @@ class TestDashboard(SupersetTestCase):
         "load_birth_names_dashboard_with_slices", "public_role_like_gamma"
     )
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
-        table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+        table = db.session.query(Dataset).filter_by(table_name="birth_names").one()
         self.grant_public_access_to_table(table)
 
         dash = db.session.query(Dashboard).filter_by(slug="births").first()

@@ -28,16 +28,16 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 
 @pytest.fixture
 def session_with_data(request, session: Session) -> Iterator[Session]:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
     engine = session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     sqlalchemy_uri = getattr(request, "param", "postgresql://u:p@localhost:5432/db")
     database = Database(database_name="my_database", sqlalchemy_uri=sqlalchemy_uri)
-    sqla_table = SqlaTable(
+    sqla_table = Dataset(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],

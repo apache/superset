@@ -32,7 +32,7 @@ from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
@@ -225,9 +225,7 @@ class TestImportChartsCommand(SupersetTestCase):
             "viz_type": "deck_path",
         }
 
-        dataset = (
-            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
-        )
+        dataset = db.session.query(Dataset).filter_by(uuid=dataset_config["uuid"]).one()
         table_name = dataset.table_name if dataset else None
         assert table_name == "imported_dataset"
         assert chart.table == dataset
@@ -259,9 +257,7 @@ class TestImportChartsCommand(SupersetTestCase):
         command.run()
         command.run()
 
-        dataset = (
-            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
-        )
+        dataset = db.session.query(Dataset).filter_by(uuid=dataset_config["uuid"]).one()
         charts = db.session.query(Slice).filter_by(datasource_id=dataset.id).all()
         assert len(charts) == 1
 
@@ -289,7 +285,7 @@ class TestImportChartsCommand(SupersetTestCase):
         contents["metadata.yaml"] = yaml.safe_dump(
             {
                 "version": "2.0.0",
-                "type": "SqlaTable",
+                "type": "Dataset",
                 "timestamp": "2020-11-04T21:27:44.423819+00:00",
             }
         )

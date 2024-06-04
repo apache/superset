@@ -24,7 +24,7 @@ from flask import g
 import prison
 
 from superset import db, security_manager, app  # noqa: F401
-from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+from superset.connectors.sqla.models import RowLevelSecurityFilter, Dataset
 from superset.security.guest_token import (
     GuestTokenResourceType,
     GuestUser,
@@ -88,8 +88,8 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry1 = RowLevelSecurityFilter()
         self.rls_entry1.name = "rls_entry1"
         self.rls_entry1.tables.extend(
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["energy_usage", "unicode_test"]))
+            db.session.query(Dataset)
+            .filter(Dataset.table_name.in_(["energy_usage", "unicode_test"]))
             .all()
         )
         self.rls_entry1.filter_type = "Regular"
@@ -103,8 +103,8 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry2 = RowLevelSecurityFilter()
         self.rls_entry2.name = "rls_entry2"
         self.rls_entry2.tables.extend(
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["birth_names"]))
+            db.session.query(Dataset)
+            .filter(Dataset.table_name.in_(["birth_names"]))
             .all()
         )
         self.rls_entry2.filter_type = "Regular"
@@ -117,8 +117,8 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry3 = RowLevelSecurityFilter()
         self.rls_entry3.name = "rls_entry3"
         self.rls_entry3.tables.extend(
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["birth_names"]))
+            db.session.query(Dataset)
+            .filter(Dataset.table_name.in_(["birth_names"]))
             .all()
         )
         self.rls_entry3.filter_type = "Regular"
@@ -131,8 +131,8 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry4 = RowLevelSecurityFilter()
         self.rls_entry4.name = "rls_entry4"
         self.rls_entry4.tables.extend(
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["birth_names"]))
+            db.session.query(Dataset)
+            .filter(Dataset.table_name.in_(["birth_names"]))
             .all()
         )
         self.rls_entry4.filter_type = "Base"
@@ -156,7 +156,7 @@ class TestRowLevelSecurity(SupersetTestCase):
     @pytest.fixture()
     def create_dataset(self):
         with self.create_app().app_context():
-            dataset = SqlaTable(database_id=1, schema=None, table_name="table1")
+            dataset = Dataset(database_id=1, schema=None, table_name="table1")
             db.session.add(dataset)
             db.session.flush()
             db.session.commit()
@@ -169,7 +169,7 @@ class TestRowLevelSecurity(SupersetTestCase):
 
     def _get_test_dataset(self):
         return (
-            db.session.query(SqlaTable).filter(SqlaTable.table_name == "table1")
+            db.session.query(Dataset).filter(Dataset.table_name == "table1")
         ).one_or_none()
 
     @pytest.mark.usefixtures("create_dataset")
@@ -347,7 +347,7 @@ class TestRowLevelSecurityCreateAPI(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_success(self):
-        table = db.session.query(SqlaTable).first()
+        table = db.session.query(Dataset).first()
         self.login(ADMIN_USERNAME)
         payload = {
             "name": "rls 1",
@@ -395,7 +395,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_invalid_role_failure(self):
-        table = db.session.query(SqlaTable).first()
+        table = db.session.query(Dataset).first()
 
         rls = RowLevelSecurityFilter(
             name="rls test invalid role",
@@ -420,7 +420,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_invalid_table_failure(self):
-        table = db.session.query(SqlaTable).first()
+        table = db.session.query(Dataset).first()
 
         rls = RowLevelSecurityFilter(
             name="rls test invalid role",
@@ -450,7 +450,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_put_success(self):
-        tables = db.session.query(SqlaTable).limit(2).all()
+        tables = db.session.query(Dataset).limit(2).all()
         roles = db.session.query(security_manager.role_model).limit(2).all()
 
         rls = RowLevelSecurityFilter(
@@ -506,7 +506,7 @@ class TestRowLevelSecurityDeleteAPI(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_bulk_delete_success(self):
-        tables = db.session.query(SqlaTable).limit(2).all()
+        tables = db.session.query(Dataset).limit(2).all()
         roles = db.session.query(security_manager.role_model).limit(2).all()
 
         rls_1 = RowLevelSecurityFilter(
@@ -549,7 +549,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
 
-        db_tables = db.session.query(SqlaTable).all()
+        db_tables = db.session.query(Dataset).all()
 
         db_table_names = {t.name for t in db_tables}
         received_tables = {table["text"] for table in result}

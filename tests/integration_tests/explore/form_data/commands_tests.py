@@ -26,7 +26,7 @@ from superset.commands.explore.form_data.delete import DeleteFormDataCommand
 from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.commands.explore.form_data.update import UpdateFormDataCommand
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils import json
@@ -39,7 +39,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
     @pytest.fixture()
     def create_dataset(self):
         with self.create_app().app_context():
-            dataset = SqlaTable(
+            dataset = Dataset(
                 table_name="dummy_sql_table",
                 database=get_example_database(),
                 schema=get_example_default_schema(),
@@ -58,7 +58,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
     def create_slice(self):
         with self.create_app().app_context():
             dataset = (
-                db.session.query(SqlaTable)
+                db.session.query(Dataset)
                 .filter_by(table_name="dummy_sql_table")
                 .first()
             )
@@ -102,7 +102,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+            db.session.query(Dataset).filter_by(table_name="dummy_sql_table").first()
         )
         slice = db.session.query(Slice).filter_by(slice_name="slice_name").first()
 
@@ -127,7 +127,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         }
 
         dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+            db.session.query(Dataset).filter_by(table_name="dummy_sql_table").first()
         )
         slice = db.session.query(Slice).filter_by(slice_name="slice_name").first()
 
@@ -153,7 +153,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         }
 
         dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+            db.session.query(Dataset).filter_by(table_name="dummy_sql_table").first()
         )
         slice = db.session.query(Slice).filter_by(slice_name="slice_name").first()
 
@@ -178,7 +178,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         }
 
         dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+            db.session.query(Dataset).filter_by(table_name="dummy_sql_table").first()
         )
         slice = db.session.query(Slice).filter_by(slice_name="slice_name").first()
 
@@ -207,7 +207,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         }
 
         dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+            db.session.query(Dataset).filter_by(table_name="dummy_sql_table").first()
         )
         slice = db.session.query(Slice).filter_by(slice_name="slice_name").first()
 
@@ -257,7 +257,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         }
 
         dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+            db.session.query(Dataset).filter_by(table_name="dummy_sql_table").first()
         )
         slice = db.session.query(Slice).filter_by(slice_name="slice_name").first()
 
@@ -305,7 +305,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         }
 
         dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+            db.session.query(Dataset).filter_by(table_name="dummy_sql_table").first()
         )
         slice = db.session.query(Slice).filter_by(slice_name="slice_name").first()
 

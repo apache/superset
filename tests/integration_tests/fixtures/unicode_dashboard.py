@@ -19,7 +19,7 @@ import pytest
 from sqlalchemy import String
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
@@ -102,7 +102,7 @@ def _create_unicode_dashboard(slice_title: str, position: str) -> Dashboard:
     return create_dashboard("unicode-test", "Unicode Test", position, [slice])
 
 
-def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
+def _create_and_commit_unicode_slice(table: Dataset, title: str):
     slice = create_slice(title, "word_cloud", table, {})
     o = db.session.query(Slice).filter_by(slice_name=slice.slice_name).one_or_none()
     if o:

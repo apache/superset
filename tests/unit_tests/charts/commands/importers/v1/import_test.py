@@ -27,7 +27,7 @@ from sqlalchemy.orm.session import Session
 from superset import security_manager
 from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.exceptions import ImportFailedError
-from superset.connectors.sqla.models import Database, SqlaTable
+from superset.connectors.sqla.models import Database, Dataset
 from superset.models.slice import Slice
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import chart_config
@@ -36,9 +36,9 @@ from tests.integration_tests.fixtures.importexport import chart_config
 @pytest.fixture
 def session_with_data(session: Session) -> Generator[Session, None, None]:
     engine = session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
-    dataset = SqlaTable(
+    dataset = Dataset(
         table_name="test_table",
         metrics=[],
         main_dttm_col=None,
@@ -63,10 +63,10 @@ def session_with_data(session: Session) -> Generator[Session, None, None]:
 
 @pytest.fixture
 def session_with_schema(session: Session) -> Generator[Session, None, None]:
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
 
     engine = session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     yield session
 

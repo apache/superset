@@ -23,7 +23,7 @@ import pytest
 from sqlalchemy import Column, create_engine, Date, Integer, MetaData, String, Table
 from sqlalchemy.ext.declarative import declarative_base
 
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import Dataset, TableColumn
 from superset.extensions import db
 from superset.models.core import Database
 from superset.utils.core import get_example_default_schema
@@ -173,7 +173,7 @@ def get_datasource_post() -> dict[str, Any]:
 
 @pytest.fixture()
 @pytest.mark.usefixtures("app_conntext")
-def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
+def load_dataset_with_columns() -> Generator[Dataset, None, None]:
     engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"], echo=True)
     meta = MetaData()
 
@@ -189,7 +189,7 @@ def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
 
     students.insert().values(name="George", ds="2021-01-01")
 
-    dataset = SqlaTable(
+    dataset = Dataset(
         database_id=db.session.query(Database).first().id, table_name="students"
     )
     column = TableColumn(table_id=dataset.id, column_name="name")

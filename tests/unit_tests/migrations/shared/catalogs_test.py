@@ -34,7 +34,7 @@ def test_upgrade_catalog_perms(mocker: MockerFixture, session: Session) -> None:
     catalog, instead of being `NULL`. We also need to update `schema_perms` to include
     the default catalog.
     """
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import Database
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
@@ -56,7 +56,7 @@ def test_upgrade_catalog_perms(mocker: MockerFixture, session: Session) -> None:
         database_name="my_db",
         sqlalchemy_uri="postgresql://localhost/db",
     )
-    dataset = SqlaTable(
+    dataset = Dataset(
         table_name="my_table",
         database=database,
         catalog=None,

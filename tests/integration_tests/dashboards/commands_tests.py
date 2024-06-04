@@ -31,7 +31,7 @@ from superset.commands.dashboard.export import (
 from superset.commands.dashboard.importers import v0, v1
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import Dataset
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -450,7 +450,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
     def test_import_v0_dashboard_cli_export(self):
         num_dashboards = db.session.query(Dashboard).count()
         num_charts = db.session.query(Slice).count()
-        num_datasets = db.session.query(SqlaTable).count()
+        num_datasets = db.session.query(Dataset).count()
         num_databases = db.session.query(Database).count()
 
         contents = {
@@ -461,7 +461,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
 
         new_num_dashboards = db.session.query(Dashboard).count()
         new_num_charts = db.session.query(Slice).count()
-        new_num_datasets = db.session.query(SqlaTable).count()
+        new_num_datasets = db.session.query(Dataset).count()
         new_num_databases = db.session.query(Database).count()
         assert new_num_dashboards == num_dashboards + 1
         assert new_num_charts == num_charts + 1

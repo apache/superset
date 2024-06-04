@@ -29,21 +29,21 @@ def test_validate_update_uniqueness(session: Session) -> None:
     are in different schemas
     """
     from superset import db
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import Dataset
     from superset.models.core import Database
 
-    SqlaTable.metadata.create_all(session.get_bind())
+    Dataset.metadata.create_all(session.get_bind())
 
     database = Database(
         database_name="my_db",
         sqlalchemy_uri="sqlite://",
     )
-    dataset1 = SqlaTable(
+    dataset1 = Dataset(
         table_name="my_dataset",
         schema="main",
         database=database,
     )
-    dataset2 = SqlaTable(
+    dataset2 = Dataset(
         table_name="my_dataset",
         schema="dev",
         database=database,
