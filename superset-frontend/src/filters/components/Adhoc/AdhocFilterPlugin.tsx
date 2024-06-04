@@ -190,7 +190,7 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
           ...filterState,
           label: (adhoc_filters || [])
             .map(f =>
-              f.sqlExpression ? String(f.sqlExpression) : f.getDefaultLabel(),
+              f.sqlExpression ? String(f.sqlExpression) : f.getDefaultLabel?.(),
             )
             .join(', '),
           value: adhoc_filters?.length ? adhoc_filters : null,
