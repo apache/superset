@@ -178,7 +178,7 @@ export default class MainPreset extends Preset {
         new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
         ...experimentalPlugins,
       ].concat(
-        isFeatureEnabled(FeatureFlag.ADHOC_DASHBOARD_NATIVE_FILTERS)
+        isFeatureEnabled(FeatureFlag.AdhocDashboardNativeFilters)
           ? [new AdhocFilterPlugin().configure({ key: 'filter_adhoc' })]
           : [],
       ),

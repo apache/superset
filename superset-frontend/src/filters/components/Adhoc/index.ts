@@ -27,7 +27,7 @@ export default class FilterAdhocPlugin extends ChartPlugin {
     const metadata = new ChartMetadata({
       name: t('Adhoc filter'),
       description: t('Adhoc filter plugin using AntD'),
-      behaviors: [Behavior.INTERACTIVE_CHART, Behavior.NATIVE_FILTER],
+      behaviors: [Behavior.InteractiveChart, Behavior.NativeFilter],
       enableNoResults: false,
       tags: [t('Experimental')],
       thumbnail,
