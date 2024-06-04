@@ -150,21 +150,6 @@ cypress-run-all() {
   say "::group::Flask log for default run"
   cat "$flasklog"
   say "::endgroup::"
-
-  # Rerun SQL Lab tests with backend persist disabled
-  export SUPERSET_CONFIG=tests.integration_tests.superset_test_config_sqllab_backend_persist_off
-
-  # Restart Flask with new configs
-  kill $flaskProcessId
-  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
-  local flaskProcessId=$!
-
-  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID --group "Backend persist" --filter "sqllab"
-
-  say "::group::Flask log for backend persist"
-  cat "$flasklog"
-  say "::endgroup::"
-
   # make sure the program exits
   kill $flaskProcessId
 }

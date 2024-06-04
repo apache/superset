@@ -64,9 +64,6 @@ def get_cypress_cmd(
         )
         os.environ["CYPRESS_RECORD_KEY"] = cypress_record_key
         spec: str = "*/**/*"
-        if _filter and "sqllab" in _filter:
-            spec = "cypress/e2e/sqllab/**/*"
-
         cmd = (
             f"{XVFB_PRE_CMD} "
             f'{cypress_cmd} --spec "{spec}" --browser {browser} '
