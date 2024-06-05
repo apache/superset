@@ -17,7 +17,7 @@
 
 */}}
 
-{{- if .Values.supersetWorker.autoscaling.enabled and not .Values.supersetWorker.autoscaling.custom }}
+{{- if .Values.supersetWorker.autoscaling.enabled and .Values.supersetWorker.autoscaling.createHPA }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
