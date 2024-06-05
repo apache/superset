@@ -55,12 +55,10 @@ def get_cypress_cmd(
 
     if use_dashboard:
         # Run using cypress.io service
+        cypress_key = os.getenv("CYPRESS_KEY")
+        command = f"echo {cypress_key} | base64 --decode"
         cypress_record_key = (
-            subprocess.check_output(
-                ["echo", os.getenv("CYPRESS_KEY") or "DUMMY", "|", "base64", "--decode"]
-            )
-            .decode("utf-8")
-            .strip()
+            subprocess.check_output(command, shell=True).decode("utf-8").strip()
         )
         os.environ["CYPRESS_RECORD_KEY"] = cypress_record_key
         spec: str = "*/**/*"
