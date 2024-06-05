@@ -247,11 +247,11 @@ hostAliases: []
 
 # Superset node configuration
 supersetNode:
-  replicaCount: 1
+  replicas:
+    enabled: true
+    replicaCount: 1
   autoscaling:
     enabled: false
-    # createHPA is only valid if autoscaling.enabled is true
-    createHPA: true
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
@@ -366,11 +366,11 @@ supersetNode:
 
 # Superset Celery worker configuration
 supersetWorker:
-  replicaCount: 1
+  replicas:
+    enabled: true
+    replicaCount: 1
   autoscaling:
     enabled: false
-    # createHPA is only valid if autoscaling.enabled is true
-    createHPA: true 
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
