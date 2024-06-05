@@ -38,6 +38,7 @@ TARGET_FORM_DATA: dict[str, Any] = {
     "column": "category",
     "cumulative": True,
     "form_data_bak": SOURCE_FORM_DATA,
+    "groupby": [],
     "linear_color_scheme": "blue",
     "normalize": True,
     "row_limit": 100,
