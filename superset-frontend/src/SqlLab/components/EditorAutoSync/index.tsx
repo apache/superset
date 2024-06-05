@@ -27,9 +27,13 @@ import {
 } from 'src/SqlLab/types';
 import { useUpdateSqlEditorTabMutation } from 'src/hooks/apiResources/sqlEditorTabs';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
-import { setEditorTabLastUpdate } from 'src/SqlLab/actions/sqlLab';
+import {
+  syncQueryEditor,
+  setEditorTabLastUpdate,
+} from 'src/SqlLab/actions/sqlLab';
+import useEffectEvent from 'src/hooks/useEffectEvent';
 
-const INTERVAL = 5000;
+export const INTERVAL = 5000;
 
 function hasUnsavedChanges(
   queryEditor: QueryEditor,
@@ -73,17 +77,43 @@ const EditorAutoSync: React.FC = () => {
     INTERVAL,
   );
 
-  useEffect(() => {
-    const unsaved = filterUnsavedQueryEditorList(
+  const getUnsavedItems = useEffectEvent(unsavedQE =>
+    filterUnsavedQueryEditorList(
       queryEditors,
-      debouncedUnsavedQueryEditor,
+      unsavedQE,
       lastSavedTimestampRef.current,
-    );
+    ),
+  );
+
+  const getUnsavedNewQueryEditor = useEffectEvent(() =>
+    filterUnsavedQueryEditorList(
+      queryEditors,
+      unsavedQueryEditor,
+      lastSavedTimestampRef.current,
+    ).find(({ inLocalStorage }) => Boolean(inLocalStorage)),
+  );
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    function saveUnsavedQueryEditor() {
+      const firstUnsavedQueryEditor = getUnsavedNewQueryEditor();
+
+      if (firstUnsavedQueryEditor) {
+        dispatch(syncQueryEditor(firstUnsavedQueryEditor));
+      }
+      timer = setTimeout(saveUnsavedQueryEditor, INTERVAL);
+    }
+    timer = setTimeout(saveUnsavedQueryEditor, INTERVAL);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [getUnsavedNewQueryEditor, dispatch]);
+
+  useEffect(() => {
+    const unsaved = getUnsavedItems(debouncedUnsavedQueryEditor);
 
     Promise.all(
       unsaved
-        // TODO: Migrate migrateQueryEditorFromLocalStorage
-        //       in TabbedSqlEditors logic by addSqlEditor mutation later
         .filter(({ inLocalStorage }) => !inLocalStorage)
         .map(queryEditor => updateSqlEditor({ queryEditor })),
     ).then(resolvers => {
@@ -92,7 +122,7 @@ const EditorAutoSync: React.FC = () => {
         dispatch(setEditorTabLastUpdate(lastSavedTimestampRef.current));
       }
     });
-  }, [debouncedUnsavedQueryEditor, dispatch, queryEditors, updateSqlEditor]);
+  }, [debouncedUnsavedQueryEditor, getUnsavedItems, dispatch, updateSqlEditor]);
 
   useEffect(() => {
     if (error) {
