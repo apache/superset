@@ -79,6 +79,7 @@ import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { PopKPIPlugin } from '@superset-ui/plugin-chart-period-over-period-kpi';
 import { FilterPlugins } from 'src/constants';
 import TimeTableChartPlugin from '../TimeTable';
+import { AvenABChartPlugin } from '../../../plugins/plugin-aven-ab-chart/src';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -168,6 +169,8 @@ export default class MainPreset extends Preset {
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
         ...experimentalPlugins,
+
+        new AvenABChartPlugin().configure({ key: 'aven_ab' }),
       ],
     });
   }

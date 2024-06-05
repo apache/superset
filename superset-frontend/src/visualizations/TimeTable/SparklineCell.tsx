@@ -40,12 +40,12 @@ interface Props {
   ariaLabel: string;
   dataKey: string;
   className?: string;
-  data: Array<number>;
+  data: Array<number | null>;
   entries: Array<any>;
   height: number;
   numberFormat: string;
   dateFormat: string;
-  renderTooltip: ({ index }: { index: number }) => React.ReactNode;
+  renderTooltip?: ({ index }: { index: number }) => React.ReactNode;
   showYAxis: boolean;
   width: number;
   yAxisBounds: Array<number | undefined>;
@@ -107,14 +107,20 @@ const SparklineCell = ({
   };
   let hasMinBound = false;
   let hasMaxBound = false;
-  let min: number = data.reduce(
-    (acc, current) => Math.min(acc, current),
-    data[0],
-  );
-  let max: number = data.reduce(
-    (acc, current) => Math.max(acc, current),
-    data[0],
-  );
+  let min: number =
+    data
+      .filter(v => v !== null)
+      .reduce(
+        (acc, current) => Math.min(acc as number, current as number),
+        data[0],
+      ) || 0;
+  let max: number =
+    data
+      .filter(v => v !== null)
+      .reduce(
+        (acc, current) => Math.max(acc as number, current as number),
+        data[0],
+      ) || 0;
 
   if (yAxisBounds) {
     const [minBound, maxBound] = yAxisBounds;
@@ -159,6 +165,11 @@ const SparklineCell = ({
   const xAccessor = (d: any) => d.x;
   const yAccessor = (d: any) => d.y;
 
+  const ticks = [min, max];
+  if (min <= 0 && max >= 0) {
+    ticks.push(0);
+  }
+
   return (
     <>
       <XYChart
@@ -192,7 +203,7 @@ const SparklineCell = ({
             width={innerWidth}
             strokeDasharray="3 3"
             stroke={`${theme.colors.grayscale.light1}`}
-            tickValues={[min, max]}
+            tickValues={ticks}
           />
         )}
         <LineSeries
