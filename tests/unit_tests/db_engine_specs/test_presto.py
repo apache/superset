@@ -135,6 +135,7 @@ def test_where_latest_partition(
             PrestoEngineSpec.where_latest_partition(  # type: ignore
                 database=mock.MagicMock(),
                 table_name="table",
+                schema="schema",
                 query=sql.select(text("* FROM table")),
                 columns=[
                     {
