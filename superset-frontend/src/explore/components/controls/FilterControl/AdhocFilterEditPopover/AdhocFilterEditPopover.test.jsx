@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint-disable no-unused-expressions */
-import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import Button from 'src/components/Button';

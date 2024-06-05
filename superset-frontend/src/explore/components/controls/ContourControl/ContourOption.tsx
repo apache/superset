@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import { ContourOptionProps } from './types';
 import ContourPopoverTrigger from './ContourPopoverTrigger';

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { Component } from 'react';
 import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import { PivotData, flatKey } from './utilities';
@@ -59,7 +59,7 @@ function displayHeaderCell(
   );
 }
 
-export class TableRenderer extends React.Component {
+export class TableRenderer extends Component {
   constructor(props) {
     super(props);
 

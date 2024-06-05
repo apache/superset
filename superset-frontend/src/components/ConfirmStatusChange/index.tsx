@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState, ReactNode } from 'react';
+
 import DeleteModal from 'src/components/DeleteModal';
 
 export type Callback = (...args: any[]) => void;
 
 export interface ConfirmStatusChangeProps {
-  title: React.ReactNode;
-  description: React.ReactNode;
+  title: ReactNode;
+  description: ReactNode;
   onConfirm: Callback;
-  children: (showConfirm: Callback) => React.ReactNode;
+  children: (showConfirm: Callback) => ReactNode;
 }
 
 export default function ConfirmStatusChange({

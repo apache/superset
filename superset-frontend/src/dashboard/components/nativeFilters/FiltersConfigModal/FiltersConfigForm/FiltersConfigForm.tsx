@@ -41,13 +41,15 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import { isEqual } from 'lodash';
-import React, {
+import {
   forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
   useState,
+  RefObject,
+  memo,
 } from 'react';
 import rison from 'rison';
 import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/types';
@@ -345,7 +347,7 @@ const FiltersConfigForm = (
     getDependencySuggestion,
     isActive,
   }: FiltersConfigFormProps,
-  ref: React.RefObject<any>,
+  ref: RefObject<any>,
 ) => {
   const isRemoved = !!removedFilters[filterId];
   const [error, setError] = useState<ClientErrorObject>();
@@ -1312,7 +1314,7 @@ const FiltersConfigForm = (
   );
 };
 
-export default React.memo(
+export default memo(
   forwardRef<typeof FiltersConfigForm, FiltersConfigFormProps>(
     FiltersConfigForm,
   ),

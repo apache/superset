@@ -22,7 +22,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import { pick } from 'lodash';
 import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
@@ -61,7 +61,7 @@ type TabbedSqlEditorsProps = ReturnType<typeof mergeProps>;
 
 const SQL_LAB_URL = '/sqllab';
 
-class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
+class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
   constructor(props: TabbedSqlEditorsProps) {
     super(props);
     this.removeQueryEditor = this.removeQueryEditor.bind(this);

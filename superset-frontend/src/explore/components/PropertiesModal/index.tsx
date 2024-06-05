@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
+
 import Modal from 'src/components/Modal';
 import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';
@@ -303,7 +304,7 @@ function PropertiesModal({
                 data-test="properties-modal-name-input"
                 type="text"
                 value={name}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
                   setName(event.target.value ?? '')
                 }
               />

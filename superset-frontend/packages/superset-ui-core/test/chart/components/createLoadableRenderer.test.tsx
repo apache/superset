@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { ComponentType } from 'react';
 import { shallow } from 'enzyme';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import createLoadableRenderer, {
@@ -29,7 +29,7 @@ describe('createLoadableRenderer', () => {
     return <div className="test-component">test</div>;
   }
   let loadChartSuccess = jest.fn(() => Promise.resolve(TestComponent));
-  let render: (loaded: { Chart: React.ComponentType }) => JSX.Element;
+  let render: (loaded: { Chart: ComponentType }) => JSX.Element;
   let loading: () => JSX.Element;
   let LoadableRenderer: LoadableRendererType<{}>;
   let restoreConsole: RestoreConsole;

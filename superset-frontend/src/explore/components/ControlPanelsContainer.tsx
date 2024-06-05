@@ -17,7 +17,8 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, {
+import {
+  isValidElement,
   ReactNode,
   useCallback,
   useContext,
@@ -650,10 +651,10 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               }
               ${!section.label &&
               `
-            .ant-collapse-header {
-              display: none;
-            }
-          `}
+          .ant-collapse-header {
+            display: none;
+          }
+        `}
             `}
             header={<PanelHeader />}
             key={sectionId}
@@ -665,7 +666,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                     // When the item is invalid
                     return null;
                   }
-                  if (React.isValidElement(controlItem)) {
+                  if (isValidElement(controlItem)) {
                     // When the item is a React element
                     return controlItem;
                   }

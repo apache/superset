@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   CSSProperties,
   useCallback,
   useLayoutEffect,
   useMemo,
   useState,
   MouseEvent,
+  KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
+
 import {
   ColumnInstance,
   ColumnWithLooseAccessor,
@@ -604,7 +606,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               ...sharedStyle,
               ...style,
             }}
-            onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
+            onKeyDown={(e: ReactKeyboardEvent<HTMLElement>) => {
               // programatically sort column on keypress
               if (Object.values(ACTION_KEYS).includes(e.key)) {
                 col.toggleSortBy();

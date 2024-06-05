@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -792,4 +792,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(withToasts(React.memo(ExploreViewContainer)));
+)(withToasts(memo(ExploreViewContainer)));

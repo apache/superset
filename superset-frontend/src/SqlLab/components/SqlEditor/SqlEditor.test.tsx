@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FocusEventHandler } from 'react';
 import * as uiCore from '@superset-ui/core';
 import { act } from 'react-dom/test-utils';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
@@ -45,7 +45,7 @@ jest.mock('src/components/AsyncAceEditor', () => ({
     value,
   }: {
     onChange: (value: string) => void;
-    onBlur: React.FocusEventHandler<HTMLTextAreaElement>;
+    onBlur: FocusEventHandler<HTMLTextAreaElement>;
     value: string;
   }) => (
     <textarea

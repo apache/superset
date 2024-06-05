@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { DatePickerProps, RangePickerProps } from 'antd/lib/date-picker';
 import { DatePicker, RangePicker } from '.';
 

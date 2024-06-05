@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import React from 'react';
+import { ReactNode } from 'react';
 import classNames from 'classnames';
 import { PaginationButtonProps } from './types';
 
 interface PaginationItemButton extends PaginationButtonProps {
   active?: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function Item({ active, children, onClick }: PaginationItemButton) {
