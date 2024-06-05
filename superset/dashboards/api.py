@@ -888,12 +888,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         )
 
     # TODO: cache_dashboard_screenshot endpoint
-    # Change to POST
-    # Add state to payload
-    #     dataMask: Optional[dict[str, Any]]
-    # activeTabs: Optional[list[str]]
-    # anchor: Optional[str]
-    # urlParams: Optional[list[tuple[str, str]]]
     @expose("/<pk>/cache_screenshot/", methods=("POST",))
     # @protect()
     @rison(screenshot_query_schema)
@@ -957,15 +951,15 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
+        dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
+        if not dashboard:
+            return self.response_404()
+
         window_size = (
             kwargs["rison"].get("window_size") or DEFAULT_DASHBOARD_WINDOW_SIZE
         )
         # Don't shrink the image if thumb_size is not specified
         thumb_size = kwargs["rison"].get("thumb_size") or window_size
-
-        dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
-        if not dashboard:
-            return self.response_404()
 
         dashboard_state: DashboardPermalinkState = {
             "dataMask": payload.get("dataMask", {}),
@@ -975,7 +969,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         }
 
         permalink_key = CreateDashboardPermalinkCommand(
-            dashboard_id=str(dashboard.uuid),
+            dashboard_id=str(dashboard.id),
             state=dashboard_state,
         ).run()
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
@@ -994,8 +988,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 current_user=get_current_user(),
                 dashboard_id=dashboard.id,
                 force=True,
-                window_size=window_size,
                 thumb_size=thumb_size,
+                window_size=window_size
             )
             return self.response(
                 202,
