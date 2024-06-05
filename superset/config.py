@@ -443,7 +443,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DASHBOARD_CACHE": False,  # deprecated
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,  # deprecated
     "SHARE_QUERIES_VIA_KV_STORE": False,
-    "TAGGING_SYSTEM": False,
+    "TAGGING_SYSTEM": True,
     "SQLLAB_BACKEND_PERSISTENCE": True,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
@@ -503,7 +503,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # or to disallow users from viewing other users profile page
     # Do not show user info or profile in the menu
     "MENU_HIDE_USER_INFO": False,
-    "TAGGING_SYSTEM": True,
 }
 
 # ------------------------------
