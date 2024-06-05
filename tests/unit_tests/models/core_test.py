@@ -21,11 +21,13 @@ from datetime import datetime
 import pytest
 from pytest_mock import MockFixture
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.engine.url import make_url
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_get_metrics(mocker: MockFixture) -> None:
@@ -289,3 +291,90 @@ def test_get_all_catalog_names(mocker: MockFixture) -> None:
 
     assert database.get_all_catalog_names(force=True) == {"examples", "other"}
     get_inspector.assert_called_with(ssh_tunnel=None)
+
+
+def test_get_sqla_engine(mocker: MockFixture) -> None:
+    """
+    Test `_get_sqla_engine`.
+    """
+    from superset.models.core import Database
+
+    user = mocker.MagicMock()
+    user.email = "alice.doe@example.org"
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=user,
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    create_engine = mocker.patch("superset.models.core.create_engine")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    create_engine.assert_called_with(
+        make_url("trino:///"),
+        connect_args={"source": "Apache Superset"},
+    )
+
+
+def test_get_sqla_engine_user_impersonation(mocker: MockFixture) -> None:
+    """
+    Test user impersonation in `_get_sqla_engine`.
+    """
+    from superset.models.core import Database
+
+    user = mocker.MagicMock()
+    user.email = "alice.doe@example.org"
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=user,
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    create_engine = mocker.patch("superset.models.core.create_engine")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    create_engine.assert_called_with(
+        make_url("trino:///"),
+        connect_args={"user": "alice", "source": "Apache Superset"},
+    )
+
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_sqla_engine_user_impersonation_email(mocker: MockFixture) -> None:
+    """
+    Test user impersonation in `_get_sqla_engine` with `username_from_email`.
+    """
+    from superset.models.core import Database
+
+    user = mocker.MagicMock()
+    user.email = "alice.doe@example.org"
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=user,
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    create_engine = mocker.patch("superset.models.core.create_engine")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    create_engine.assert_called_with(
+        make_url("trino:///"),
+        connect_args={"user": "alice.doe", "source": "Apache Superset"},
+    )

@@ -21,7 +21,6 @@ import builtins
 import dataclasses
 import logging
 import re
-from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -70,7 +69,7 @@ from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
-from superset import app, db, is_feature_enabled, security_manager
+from superset import app, db, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.utils import (
@@ -1602,48 +1601,6 @@ class SqlaTable(
         for col in select_exprs:
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
-
-    def get_sqla_row_level_filters(
-        self,
-        template_processor: BaseTemplateProcessor,
-    ) -> list[TextClause]:
-        """
-        Return the appropriate row level security filters for this table and the
-        current user. A custom username can be passed when the user is not present in the
-        Flask global namespace.
-
-        :param template_processor: The template processor to apply to the filters.
-        :returns: A list of SQL clauses to be ANDed together.
-        """
-        all_filters: list[TextClause] = []
-        filter_groups: dict[int | str, list[TextClause]] = defaultdict(list)
-        try:
-            for filter_ in security_manager.get_rls_filters(self):
-                clause = self.text(
-                    f"({template_processor.process_template(filter_.clause)})"
-                )
-                if filter_.group_key:
-                    filter_groups[filter_.group_key].append(clause)
-                else:
-                    all_filters.append(clause)
-
-            if is_feature_enabled("EMBEDDED_SUPERSET"):
-                for rule in security_manager.get_guest_rls_filters(self):
-                    clause = self.text(
-                        f"({template_processor.process_template(rule['clause'])})"
-                    )
-                    all_filters.append(clause)
-
-            grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
-            all_filters.extend(grouped_filters)
-            return all_filters
-        except TemplateError as ex:
-            raise QueryObjectValidationError(
-                _(
-                    "Error in jinja expression in RLS filters: %(msg)s",
-                    msg=ex.message,
-                )
-            ) from ex
 
     def text(self, clause: str) -> TextClause:
         return self.db_engine_spec.get_text_clause(clause)

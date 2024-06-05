@@ -147,7 +147,6 @@ class GenericDataType(IntEnum):
 
 
 class DatasourceType(StrEnum):
-    SLTABLE = "sl_table"
     TABLE = "table"
     DATASET = "dataset"
     QUERY = "query"

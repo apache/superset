@@ -59,7 +59,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 
-from superset import app, db_engine_specs
+from superset import app, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
@@ -450,7 +450,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 sqlalchemy_uri=sqlalchemy_uri,
             )
 
-    def _get_sqla_engine(
+    def _get_sqla_engine(  # pylint: disable=too-many-locals
         self,
         catalog: str | None = None,
         schema: str | None = None,
@@ -477,6 +477,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         )
 
         effective_username = self.get_effective_user(sqlalchemy_url)
+        if effective_username and is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
+            user = security_manager.find_user(username=effective_username)
+            if user and user.email:
+                effective_username = user.email.split("@")[0]
+
         oauth2_config = self.get_oauth2_config()
         access_token = (
             get_oauth2_access_token(

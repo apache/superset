@@ -50,4 +50,4 @@ jobs:
         uses: ./.github/actions/setup-backend/
       - name: Test babel extraction
         if: steps.check.outputs.python
-        run: flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _,__,t,tn,tct
+        run: scripts/translations/babel_update.sh

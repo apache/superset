@@ -40,7 +40,7 @@ import { render, waitFor } from 'spec/helpers/testing-library';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { logging } from '@superset-ui/core';
-import EditorAutoSync from '.';
+import EditorAutoSync, { INTERVAL } from '.';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -78,8 +78,34 @@ test('sync the unsaved editor tab state when there are new changes since the las
       sqlLab: unsavedSqlLabState,
     },
   });
-  await waitFor(() => jest.runAllTimers());
+  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(1);
+  fetchMock.restore();
+});
+
+test('sync the unsaved NEW editor state when there are new in local storage', async () => {
+  const createEditorTabState = `glob:*/tabstateview/`;
+  fetchMock.post(createEditorTabState, { id: 123 });
+  expect(fetchMock.calls(createEditorTabState)).toHaveLength(0);
+  render(<EditorAutoSync />, {
+    useRedux: true,
+    initialState: {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queryEditors: [
+          ...initialState.sqlLab.queryEditors,
+          {
+            id: 'rnd-new-id',
+            name: 'new tab name',
+            inLocalStorage: true,
+          },
+        ],
+      },
+    },
+  });
+  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  expect(fetchMock.calls(createEditorTabState)).toHaveLength(1);
   fetchMock.restore();
 });
 
@@ -102,7 +128,7 @@ test('skip syncing the unsaved editor tab state when the updates are already syn
       },
     },
   });
-  await waitFor(() => jest.runAllTimers());
+  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
   fetchMock.restore();
 });
@@ -126,7 +152,7 @@ test('renders an error toast when the sync failed', async () => {
       },
     },
   );
-  await waitFor(() => jest.runAllTimers());
+  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
 
   expect(logging.warn).toHaveBeenCalledTimes(1);
   expect(logging.warn).toHaveBeenCalledWith(

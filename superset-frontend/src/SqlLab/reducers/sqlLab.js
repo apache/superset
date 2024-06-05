@@ -442,9 +442,10 @@ export default function sqlLabReducer(state = {}, action) {
         // continue regardless of error
       }
       // replace localStorage query editor with the server backed one
-      return addToArr(
-        removeFromArr(state, 'queryEditors', action.oldQueryEditor),
+      return alterInArr(
+        state,
         'queryEditors',
+        action.oldQueryEditor,
         action.newQueryEditor,
       );
     },
@@ -468,20 +469,9 @@ export default function sqlLabReducer(state = {}, action) {
       );
     },
     [actions.MIGRATE_TAB_HISTORY]() {
-      try {
-        // remove migrated tab from localStorage tabHistory
-        const { sqlLab } = JSON.parse(localStorage.getItem('redux'));
-        sqlLab.tabHistory = sqlLab.tabHistory.filter(
-          tabId => tabId !== action.oldId,
-        );
-        localStorage.setItem('redux', JSON.stringify({ sqlLab }));
-      } catch (error) {
-        // continue regardless of error
-      }
-      const tabHistory = state.tabHistory.filter(
-        tabId => tabId !== action.oldId,
+      const tabHistory = state.tabHistory.map(tabId =>
+        tabId === action.oldId ? action.newId : tabId,
       );
-      tabHistory.push(action.newId);
       return { ...state, tabHistory };
     },
     [actions.MIGRATE_QUERY]() {

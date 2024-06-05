@@ -37,7 +37,6 @@ from superset.daos.exceptions import (
     DAODeleteFailedError,
     DAOUpdateFailedError,
 )
-from superset.datasets.models import Dataset  # noqa: F401
 from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice

@@ -37,6 +37,7 @@ import { DndControlProps } from './types';
 export type DndColumnSelectProps = DndControlProps<QueryFormColumn> & {
   options: ColumnMeta[];
   isTemporal?: boolean;
+  disabledTabs?: Set<string>;
 };
 
 function DndColumnSelect(props: DndColumnSelectProps) {
@@ -50,6 +51,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     name,
     label,
     isTemporal,
+    disabledTabs,
   } = props;
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
@@ -121,6 +123,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
             }}
             editedColumn={column}
             isTemporal={isTemporal}
+            disabledTabs={disabledTabs}
           >
             <OptionWrapper
               key={idx}

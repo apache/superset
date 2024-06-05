@@ -172,6 +172,8 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    environment:
+      CELERYD_CONCURRENCY: 2
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: *superset-user
@@ -211,12 +213,15 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    profiles:
+      - optional
     environment:
       DATABASE_HOST: localhost
       DATABASE_DB: test
       REDIS_CELERY_DB: 2
       REDIS_RESULTS_DB: 3
       REDIS_HOST: localhost
+      CELERYD_CONCURRENCY: 8
     network_mode: host
     depends_on: *superset-depends-on
     user: *superset-user
