@@ -16,7 +16,7 @@
 # under the License.
 from typing import Callable
 
-from flask import current_app, abort, request
+from flask import abort, current_app, request
 from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, login_user
 from flask_wtf.csrf import same_origin
