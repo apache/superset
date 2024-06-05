@@ -28,6 +28,7 @@ export { default as EchartsMixedTimeseriesChartPlugin } from './MixedTimeseries'
 export { default as EchartsPieChartPlugin } from './Pie';
 export { default as EchartsGraphChartPlugin } from './Graph';
 export { default as EchartsGaugeChartPlugin } from './Gauge';
+export { default as EchartsHistogramChartPlugin } from './Histogram';
 export { default as EchartsRadarChartPlugin } from './Radar';
 export { default as EchartsFunnelChartPlugin } from './Funnel';
 export { default as EchartsTreeChartPlugin } from './Tree';
@@ -56,6 +57,7 @@ export { default as HeatmapTransformProps } from './Heatmap/transformProps';
 export { default as SunburstTransformProps } from './Sunburst/transformProps';
 export { default as BubbleTransformProps } from './Bubble/transformProps';
 export { default as WaterfallTransformProps } from './Waterfall/transformProps';
+export { default as HistogramTransformProps } from './Histogram/transformProps';
 
 export { DEFAULT_FORM_DATA as TimeseriesDefaultFormData } from './Timeseries/constants';
 

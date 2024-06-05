@@ -66,58 +66,6 @@ enum Sections {
   Tags = 'TAGS',
 }
 
-const DEFAULT_ORDER = [
-  'line',
-  'big_number',
-  'big_number_total',
-  'table',
-  'pivot_table_v2',
-  'echarts_timeseries_line',
-  'echarts_area',
-  'echarts_timeseries_bar',
-  'echarts_timeseries_scatter',
-  'pie',
-  'mixed_timeseries',
-  'dist_bar',
-  'area',
-  'bar',
-  'deck_polygon',
-  'time_table',
-  'histogram',
-  'deck_scatter',
-  'deck_hex',
-  'time_pivot',
-  'deck_arc',
-  'heatmap',
-  'heatmap_v2',
-  'deck_grid',
-  'deck_screengrid',
-  'treemap_v2',
-  'box_plot',
-  'sankey',
-  'word_cloud',
-  'mapbox',
-  'kepler',
-  'cal_heatmap',
-  'rose',
-  'bubble',
-  'bubble_v2',
-  'deck_geojson',
-  'horizon',
-  'deck_multi',
-  'compare',
-  'partition',
-  'event_flow',
-  'deck_path',
-  'graph_chart',
-  'world_map',
-  'paired_ttest',
-  'para',
-  'country_map',
-];
-
-const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
-
 const THUMBNAIL_GRID_UNITS = 24;
 
 export const MAX_ADVISABLE_VIZ_GALLERY_WIDTH = 1090;
@@ -128,7 +76,7 @@ const ALL_CHARTS = t('All charts');
 
 const FEATURED = t('Featured');
 
-const RECOMMENDED_TAGS = [t('Popular'), t('ECharts'), t('Advanced-Analytics')];
+const RECOMMENDED_TAGS = [FEATURED, t('ECharts'), t('Advanced-Analytics')];
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
@@ -372,13 +320,6 @@ const TitleLabelWrapper = styled.div`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-function vizSortFactor(entry: VizEntry) {
-  if (typesWithDefaultOrder.has(entry.key)) {
-    return DEFAULT_ORDER.indexOf(entry.key);
-  }
-  return DEFAULT_ORDER.length;
-}
-
 interface ThumbnailProps {
   entry: VizEntry;
   selectedViz: string | null;
@@ -494,7 +435,7 @@ const doesVizMatchSelector = (viz: ChartMetadata, selector: string) =>
   (viz.tags || []).indexOf(selector) > -1;
 
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
-  const { selectedViz, onChange, onDoubleClick, className } = props;
+  const { selectedViz, onChange, onDoubleClick, className, denyList } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
   const [searchInputValue, setSearchInputValue] = useState('');
@@ -508,14 +449,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const chartMetadata: VizEntry[] = useMemo(() => {
     const result = Object.entries(mountedPluginMetadata)
       .map(([key, value]) => ({ key, value }))
-      .filter(({ key }) => !props.denyList.includes(key))
+      .filter(({ key }) => !denyList.includes(key))
       .filter(
         ({ value }) =>
           nativeFilterGate(value.behaviors || []) && !value.deprecated,
-      );
-    result.sort((a, b) => vizSortFactor(a) - vizSortFactor(b));
+      )
+      .sort((a, b) => a.value.name.localeCompare(b.value.name));
     return result;
-  }, [mountedPluginMetadata]);
+  }, [mountedPluginMetadata, denyList]);
 
   const chartsByCategory = useMemo(() => {
     const result: Record<string, VizEntry[]> = {};
@@ -567,7 +508,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   );
 
   const sortedMetadata = useMemo(
-    () => chartMetadata.sort((a, b) => a.key.localeCompare(b.key)),
+    () =>
+      chartMetadata.sort((a, b) => a.value.name.localeCompare(b.value.name)),
     [chartMetadata],
   );
 
@@ -692,9 +634,9 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     if (
       activeSelector === FEATURED &&
       activeSection === Sections.Featured &&
-      chartsByTags[t('Popular')]
+      chartsByTags[FEATURED]
     ) {
-      return chartsByTags[t('Popular')];
+      return chartsByTags[FEATURED];
     }
     if (
       activeSection === Sections.Category &&
