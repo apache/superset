@@ -989,7 +989,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 dashboard_id=dashboard.id,
                 force=True,
                 thumb_size=thumb_size,
-                window_size=window_size
+                window_size=window_size,
             )
             return self.response(
                 202,
