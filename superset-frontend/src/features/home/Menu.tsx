@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
-import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
+import { css, styled, SupersetTheme, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { Row, Col, Grid } from 'src/components';
+import { Col, Grid, Row } from 'src/components';
 import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
@@ -30,11 +30,14 @@ import Icons from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
 import {
+  MenuData,
   MenuObjectChildProps,
   MenuObjectProps,
-  MenuData,
 } from 'src/types/bootstrapTypes';
+import { useSelector } from 'react-redux';
 import RightMenu from './RightMenu';
+import { onboardingMenuItems } from '../../DodoExtensions/onBoarding';
+import { getUserInfo } from '../../DodoExtensions/onBoarding/model/selector/getUserInfo';
 
 interface MenuProps {
   data: MenuData;
@@ -348,6 +351,13 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
       settings.push(newItem);
     }
   });
+
+  // DODO added 32839645 start
+  const user = useSelector(getUserInfo);
+  if (user.roles.Admin) {
+    cleanedMenu.push(...onboardingMenuItems());
+  }
+  // DODO added 32839645 stop
 
   newMenuData.menu = cleanedMenu;
   newMenuData.settings = settings;
