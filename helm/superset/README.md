@@ -105,6 +105,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | init.loadExamples | bool | `false` |  |
 | init.podAnnotations | object | `{}` |  |
 | init.podSecurityContext | object | `{}` |  |
+| init.priorityClassName | string | `nil` | Set priorityClassName for init job pods |
 | init.resources | object | `{}` |  |
 | init.tolerations | list | `[]` |  |
 | init.topologySpreadConstraints | list | `[]` | TopologySpreadConstrains to be added to init job |
@@ -114,6 +115,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | nameOverride | string | `nil` | Provide a name to override the name of the chart |
 | nodeSelector | object | `{}` |  |
 | postgresql | object | see `values.yaml` | Configuration values for the postgresql dependency. ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql |
+| priorityClassName | string | `nil` | Set priorityClassName for superset pods |
 | redis | object | see `values.yaml` | Configuration values for the Redis dependency. ref: https://github.com/bitnami/charts/blob/master/bitnami/redis More documentation can be found here: https://artifacthub.io/packages/helm/bitnami/redis |
 | resources | object | `{}` |  |
 | runAsUser | int | `0` | User ID directive. This user must have enough permissions to run the bootstrap script Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure |
@@ -142,6 +144,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetCeleryBeat.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetCeleryBeat.podLabels | object | `{}` | Labels to be added to supersetCeleryBeat pods |
 | supersetCeleryBeat.podSecurityContext | object | `{}` |  |
+| supersetCeleryBeat.priorityClassName | string | `nil` | Set priorityClassName for CeleryBeat pods |
 | supersetCeleryBeat.resources | object | `{}` | Resource settings for the CeleryBeat pods - these settings overwrite might existing values from the global resources object defined above. |
 | supersetCeleryBeat.topologySpreadConstraints | list | `[]` | TopologySpreadConstrains to be added to supersetCeleryBeat deployments |
 | supersetCeleryFlower.affinity | object | `{}` | Affinity to be added to supersetCeleryFlower deployment |
@@ -165,6 +168,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetCeleryFlower.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetCeleryFlower.podLabels | object | `{}` | Labels to be added to supersetCeleryFlower pods |
 | supersetCeleryFlower.podSecurityContext | object | `{}` |  |
+| supersetCeleryFlower.priorityClassName | string | `nil` | Set priorityClassName for supersetCeleryFlower pods |
 | supersetCeleryFlower.readinessProbe.failureThreshold | int | `3` |  |
 | supersetCeleryFlower.readinessProbe.httpGet.path | string | `"/api/workers"` |  |
 | supersetCeleryFlower.readinessProbe.httpGet.port | string | `"flower"` |  |
@@ -270,6 +274,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWebsockets.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetWebsockets.podLabels | object | `{}` |  |
 | supersetWebsockets.podSecurityContext | object | `{}` |  |
+| supersetWebsockets.priorityClassName | string | `nil` | Set priorityClassName for supersetWebsockets pods |
 | supersetWebsockets.readinessProbe.failureThreshold | int | `3` |  |
 | supersetWebsockets.readinessProbe.httpGet.path | string | `"/health"` |  |
 | supersetWebsockets.readinessProbe.httpGet.port | string | `"ws"` |  |
@@ -318,6 +323,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWorker.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetWorker.podLabels | object | `{}` | Labels to be added to supersetWorker pods |
 | supersetWorker.podSecurityContext | object | `{}` |  |
+| supersetWorker.priorityClassName | string | `nil` | Set priorityClassName for supersetWorker pods |
 | supersetWorker.readinessProbe | object | `{}` | No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic) |
 | supersetWorker.replicaCount | int | `1` |  |
 | supersetWorker.resources | object | `{}` | Resource settings for the supersetWorker pods - these settings overwrite might existing values from the global resources object defined above. |
