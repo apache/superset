@@ -250,7 +250,8 @@ supersetNode:
   replicaCount: 1
   autoscaling:
     enabled: false
-    custom: false
+    # createHPA is only valid if autoscaling.enabled is true
+    createHPA: true
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
@@ -368,7 +369,8 @@ supersetWorker:
   replicaCount: 1
   autoscaling:
     enabled: false
-    custom: false
+    # createHPA is only valid if autoscaling.enabled is true
+    createHPA: true 
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
