@@ -25,6 +25,16 @@ import os
 
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
+from superset.tasks.types import ExecutorType
+from superset.superset_typing import CacheConfig
+
+#auth libs
+from superset.superset_typing import CacheConfig
+from superset.tasks.types import ExecutorType
+from custom_sso_security_manager import CustomSsoSecurityManager
+CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
+from flask_appbuilder.security.manager import AUTH_OAUTH
+#
 
 logger = logging.getLogger()
 
@@ -92,13 +102,108 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True, 
+    "EMBEDDED_SUPERSET": True, 
+    "TAGGING_SYSTEM": True, 
+    "THUMBNAILS": True,
+    "THUMBNAILS_SQLA_LISTENERS": True,
+
+}
+
+
+THUMBNAIL_SELENIUM_USER = "admin"
+THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER, ExecutorType.SELENIUM]
+
+THUMBNAIL_CACHE_CONFIG: CacheConfig = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': 24*60*60*7,
+    'CACHE_KEY_PREFIX': 'thumbnail_',
+    'CACHE_REDIS_URL': 'redis://redis:6379/1'
+}
+
+
+FAB_API_MAX_PAGE_SIZE = 500
+
+
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
-WEBDRIVER_BASEURL = "http://superset:8088/"  # When using docker compose baseurl should be http://superset_app:8088/
+WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 SQLLAB_CTAS_NO_LIMIT = True
+
+
+TALISMAN_ENABLED = False
+GUEST_ROLE_NAME = "Guest"
+
+##############################################33
+# Set the authentication type to OAuth
+AUTH_TYPE = AUTH_OAUTH
+
+
+ENABLE_PROXY_FIX = True
+AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION_ROLE = "Gamma"
+AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(['lautaro@datakimia.com', 'user2@domain.com'], email) && 'Admin' || 'Viewer'"
+AUTH_ROLES_MAPPING = {
+"superset_users": ["Gamma","Alpha"],
+"superset_admins": ["Admin"],
+}
+
+# Working Example Google
+OAUTH_PROVIDERS = [
+{
+    'name': 'google',
+    #'whitelist': ['@company.com'],
+    'icon': 'fa-google',
+    'token_key': 'access_token',
+    'remote_app': {
+        'api_base_url': 'https://www.googleapis.com/oauth2/v2/',
+        'client_kwargs': {
+            'scope': 'email profile'
+        },
+        'request_token_url': None,
+        'access_token_url': 'https://accounts.google.com/o/oauth2/token',
+        'authorize_url': 'https://accounts.google.com/o/oauth2/auth',
+        'client_id': '1038479848720-3o66nss7jj0jauvditoc4h89vo7qqq6u.apps.googleusercontent.com',
+        'client_secret': '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'
+    }
+}]
+
+# Enable CORS 
+
+ENABLE_CORS = True
+CORS_OPTIONS = {
+    'origins': [
+        'http://localhost:3000',  # Replace with your frontend domain(s)
+    ],
+    'supports_credentials': True,
+    "allow_headers": ["*"], 
+    "resources": ["*"],    
+}
+
+HTTP_HEADERS = {"X-Frame-Options": "ALLOWALL"} 
+FAB_ADD_SECURITY_API = True
+
+# Flask-WTF flag for CSRF 
+WTF_CSRF_ENABLED = False
+
+# Add endpoints that need to be exempt from CSRF protection
+WTF_CSRF_EXEMPT_LIST = ["/login/google"]
+
+# A CSRF token that expires in 1 year 
+WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
+
+##############################################3end auth
+
+SUPERSET_LOAD_EXAMPLES="yes"
+PREVIOUS_SECRET_KEY="4MCsZm1ciqjZ4347/jIrefw34vKOPZ37Rr9k2iguLd3OeeCiZ45aw5ha"
+SUPERSET_SECRET_KEY="+DLoS9mlyLGxgUIP5QcM1/8IxVB0AG4GCdhDD2uSaQZAgfxwaVL7uO7f"
+
+
+
+######
 
 #
 # Optionally import superset_config_docker.py (which will have been included on
@@ -113,3 +218,5 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+

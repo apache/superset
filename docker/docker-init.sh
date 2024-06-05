@@ -37,7 +37,7 @@ Init Step ${1}/${STEP_CNT} [${2}] -- ${3}
 
 EOF
 }
-ADMIN_PASSWORD="admin"
+ADMIN_PASSWORD="datakimia2024"
 # If Cypress run – overwrite the password for admin and export env variables
 if [ "$CYPRESS_CONFIG" == "true" ]; then
     ADMIN_PASSWORD="general"
