@@ -1,5 +1,5 @@
 import React from 'react';
-import { Switch, Route, Redirect } from 'react-router-dom';
+import { Redirect, Route, Switch } from 'react-router-dom';
 import DashboardApp from '../App';
 import { MainComponentProps } from '../../types/global';
 
@@ -17,6 +17,7 @@ export default function Main({
     DASHBOARD_NATIVE_FILTERS: true,
     DASHBOARD_CROSS_FILTERS: true,
     DASHBOARD_NATIVE_FILTERS_SET: false,
+    TAGGING_SYSTEM: false,
   };
 
   return navigation ? (

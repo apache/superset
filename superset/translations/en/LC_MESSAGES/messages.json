@@ -4735,7 +4735,9 @@
       "Week starting Monday": [""],
       "Week ending Saturday": [""],
       "List Users": [""],
-      "List Roles": [""]
+      "List Roles": [""],
+      "Teams": [""],
+      "Requests": [""]
     }
   }
 }
