@@ -34,8 +34,8 @@ metadata:
   annotations: {{- toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
   {{- end }}
 spec:
-  {{- if not .Values.supersetWorker.autoscaling.enabled }}
-  replicas: {{ .Values.supersetWorker.replicaCount }}
+  {{- if not .Values.supersetWorker.autoscaling.enabled and .Values.supersetWorker.replicas.enabled }}
+  replicas: {{ .Values.supersetWorker.replicas.replicaCount }}
   {{- end }}
   selector:
     matchLabels:

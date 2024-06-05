@@ -124,6 +124,7 @@ const ColumnSelectPopoverTrigger = ({
       isTemporal,
       onColumnEdit,
       popoverLabel,
+      disabledTabs,
     ],
   );
 

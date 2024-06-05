@@ -33,10 +33,10 @@ from superset.extensions import (
 )
 from superset.security import SupersetSecurityManager  # noqa: F401
 
-#  All of the fields located here should be considered legacy. The correct way
-#  to declare "global" dependencies is to define it in extensions.py,
-#  then initialize it in app.create_app(). These fields will be removed
-#  in subsequent PRs as things are migrated towards the factory pattern
+# All of the fields located here should be considered legacy. The correct way
+# to declare "global" dependencies is to define it in extensions.py,
+# then initialize it in app.create_app(). These fields will be removed
+# in subsequent PRs as things are migrated towards the factory pattern
 app: Flask = current_app
 cache = cache_manager.cache
 conf = LocalProxy(lambda: current_app.config)

@@ -233,7 +233,8 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetNode.readinessProbe.periodSeconds | int | `15` |  |
 | supersetNode.readinessProbe.successThreshold | int | `1` |  |
 | supersetNode.readinessProbe.timeoutSeconds | int | `1` |  |
-| supersetNode.replicaCount | int | `1` |  |
+| supersetNode.replicas.enabled | bool | `true` |  |
+| supersetNode.replicas.replicaCount | int | `1` |  |
 | supersetNode.resources | object | `{}` | Resource settings for the supersetNode pods - these settings overwrite might existing values from the global resources object defined above. |
 | supersetNode.startupProbe.failureThreshold | int | `60` |  |
 | supersetNode.startupProbe.httpGet.path | string | `"/health"` |  |
@@ -319,7 +320,8 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWorker.podLabels | object | `{}` | Labels to be added to supersetWorker pods |
 | supersetWorker.podSecurityContext | object | `{}` |  |
 | supersetWorker.readinessProbe | object | `{}` | No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic) |
-| supersetWorker.replicaCount | int | `1` |  |
+| supersetWorker.replicas.enabled | bool | `true` |  |
+| supersetWorker.replicas.replicaCount | int | `1` |  |
 | supersetWorker.resources | object | `{}` | Resource settings for the supersetWorker pods - these settings overwrite might existing values from the global resources object defined above. |
 | supersetWorker.startupProbe | object | `{}` | No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic) |
 | supersetWorker.strategy | object | `{}` |  |

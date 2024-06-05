@@ -247,7 +247,9 @@ hostAliases: []
 
 # Superset node configuration
 supersetNode:
-  replicaCount: 1
+  replicas:
+    enabled: true
+    replicaCount: 1
   autoscaling:
     enabled: false
     minReplicas: 1
@@ -364,7 +366,9 @@ supersetNode:
 
 # Superset Celery worker configuration
 supersetWorker:
-  replicaCount: 1
+  replicas:
+    enabled: true
+    replicaCount: 1
   autoscaling:
     enabled: false
     minReplicas: 1
