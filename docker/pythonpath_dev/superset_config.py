@@ -113,7 +113,7 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
 
 # security
-ALLOW_ORIGINS = ["https://cloudadmin.io", "https://development.cloudadmin.io", "http://localhost:8001"]
+ALLOW_ORIGINS = ["https://*.cloudadmin.io", "http://localhost:8001"]
 ENABLE_CORS = True
 CORS_OPTIONS = {
     "supports_credentials": True,
