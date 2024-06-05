@@ -23,7 +23,7 @@ import { PostProcessingFactory } from './types';
 export const histogramOperator: PostProcessingFactory<
   PostProcessingHistogram
 > = (formData, queryObject) => {
-  const { bins, column, cumulative, groupby, normalize } = formData;
+  const { bins, column, cumulative, groupby = [], normalize } = formData;
   const parsedBins = Number.isNaN(Number(bins)) ? 5 : Number(bins);
   const parsedColumn = getColumnLabel(column);
   const parsedGroupBy = groupby!.map(getColumnLabel);

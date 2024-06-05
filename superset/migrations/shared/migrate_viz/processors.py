@@ -290,7 +290,7 @@ class MigrateHistogramChart(MigrateViz):
         "y_axis_label": "y_axis_title",
         "normalized": "normalize",
     }
-    remove_keys = {"all_columns_x", "link_length"}
+    remove_keys = {"all_columns_x", "link_length", "queryFields"}
 
     def _pre_action(self) -> None:
         all_columns_x = self.data.get("all_columns_x")
@@ -299,3 +299,7 @@ class MigrateHistogramChart(MigrateViz):
 
         link_length = self.data.get("link_length")
         self.data["bins"] = int(link_length) if link_length else 5
+
+        groupby = self.data.get("groupby")
+        if not groupby:
+            self.data["groupby"] = []
