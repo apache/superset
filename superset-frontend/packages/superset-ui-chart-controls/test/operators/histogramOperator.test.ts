@@ -37,6 +37,13 @@ test('matches formData', () => {
   });
 });
 
+test('sets default groupby', () => {
+  expect(
+    histogramOperator({ ...formData, groupby: undefined }, {})?.options
+      ?.groupby,
+  ).toEqual([]);
+});
+
 test('defaults to 5 bins', () => {
   expect(
     histogramOperator(omit(formData, ['bins']) as SqlaFormData, {}),
