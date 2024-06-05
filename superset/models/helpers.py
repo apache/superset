@@ -90,6 +90,7 @@ from superset.utils import core as utils, json
 from superset.utils.core import (
     GenericDataType,
     get_column_name,
+    get_non_base_axis_columns,
     get_user_id,
     is_adhoc_column,
     MediumText,
@@ -2083,7 +2084,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "filter": filter,
                     "orderby": orderby,
                     "extras": extras,
-                    "columns": columns,
+                    "columns": get_non_base_axis_columns(columns),
                     "order_desc": True,
                 }
 
