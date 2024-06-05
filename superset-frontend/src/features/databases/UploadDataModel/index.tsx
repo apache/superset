@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useEffect, useMemo, useState } from 'react';
+import {
+  FunctionComponent,
+  useEffect,
+  useMemo,
+  useState,
+  ReactNode,
+  FC,
+} from 'react';
+
 import {
   getClientErrorObject,
   SupersetClient,
@@ -181,7 +189,7 @@ export const validateUploadFileExtension = (
 interface StyledSwitchContainerProps extends SwitchProps {
   label: string;
   dataTest: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 const SwitchContainer = ({
@@ -208,9 +216,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [form] = AntdForm.useForm();
   const [currentDatabaseId, setCurrentDatabaseId] = useState<number>(0);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [columns, setColumns] = React.useState<string[]>([]);
-  const [sheetNames, setSheetNames] = React.useState<string[]>([]);
-  const [sheetsColumnNames, setSheetsColumnNames] = React.useState<
+  const [columns, setColumns] = useState<string[]>([]);
+  const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [sheetsColumnNames, setSheetsColumnNames] = useState<
     SheetColumnNames[]
   >([]);
   const [delimiter, setDelimiter] = useState<string>(',');
@@ -562,7 +570,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     columnar: t('Columnar Upload'),
   };
 
-  const UploadTitle: React.FC = () => {
+  const UploadTitle: FC = () => {
     const title = uploadTitles[type] || t('Upload');
     return <h4>{title}</h4>;
   };

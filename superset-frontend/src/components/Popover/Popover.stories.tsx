@@ -18,7 +18,6 @@
  */
 import Button from 'src/components/Button';
 import { PopoverProps } from 'antd/lib/popover';
-import React from 'react';
 import Popover from '.';
 
 export default {

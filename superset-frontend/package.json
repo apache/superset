@@ -80,7 +80,6 @@
   ],
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
-    "@emotion/babel-preset-css-prop": "^11.11.0",
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",
@@ -222,6 +221,7 @@
     "@babel/preset-react": "^7.22.5",
     "@babel/register": "^7.23.7",
     "@cypress/react": "^5.10.0",
+    "@emotion/babel-plugin": "^11.11.0",
     "@emotion/jest": "^11.3.0",
     "@hot-loader/react-dom": "^16.14.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",

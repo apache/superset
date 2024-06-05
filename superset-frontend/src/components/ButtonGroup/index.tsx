@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode } from 'react';
 
 export interface ButtonGroupProps {
   className?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export default function ButtonGroup(props: ButtonGroupProps) {

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { FC } from 'react';
 import { Route } from 'react-router-dom';
 import { getExtensionsRegistry, ThemeProvider } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
@@ -35,7 +35,7 @@ const { common } = getBootstrapData();
 
 const extensionsRegistry = getExtensionsRegistry();
 
-export const RootContextProviders: React.FC = ({ children }) => {
+export const RootContextProviders: FC = ({ children }) => {
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
   );

@@ -17,7 +17,6 @@
  * under the License.
  */
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import Control, { ControlProps } from 'src/explore/components/Control';
 

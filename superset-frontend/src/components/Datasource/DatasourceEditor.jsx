@@ -17,7 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
-import React, { useCallback } from 'react';
+import { PureComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Radio } from 'src/components/Radio';
 import Card from 'src/components/Card';
@@ -576,7 +576,7 @@ function OwnersSelector({ datasource, onChange }) {
   );
 }
 
-class DatasourceEditor extends React.PureComponent {
+class DatasourceEditor extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {

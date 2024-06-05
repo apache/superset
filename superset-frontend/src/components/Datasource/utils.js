@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Children, cloneElement } from 'react';
 
 export function recurseReactClone(children, type, propExtender) {
   /**
    * Clones a React component's children, and injects new props
    * where the type specified is matched.
    */
-  return React.Children.map(children, child => {
+  return Children.map(children, child => {
     let newChild = child;
     if (child && child.type.name === type.name) {
-      newChild = React.cloneElement(child, propExtender(child));
+      newChild = cloneElement(child, propExtender(child));
     }
     if (newChild && newChild.props.children) {
-      newChild = React.cloneElement(newChild, {
+      newChild = cloneElement(newChild, {
         children: recurseReactClone(
           newChild.props.children,
           type,

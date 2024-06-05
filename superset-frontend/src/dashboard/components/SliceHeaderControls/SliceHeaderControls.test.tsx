@@ -17,8 +17,8 @@
  * under the License.
  */
 
+import { KeyboardEvent, ReactElement } from 'react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
@@ -468,7 +468,7 @@ describe('handleDropdownNavigation', () => {
     const event = {
       key: 'Tab',
       preventDefault: jest.fn(),
-    } as unknown as React.KeyboardEvent<HTMLDivElement>;
+    } as unknown as KeyboardEvent<HTMLDivElement>;
 
     handleDropdownNavigation(
       event,
@@ -487,7 +487,7 @@ describe('handleDropdownNavigation', () => {
     const event = {
       key: 'Enter',
       preventDefault: jest.fn(),
-    } as unknown as React.KeyboardEvent<HTMLDivElement>;
+    } as unknown as KeyboardEvent<HTMLDivElement>;
 
     handleDropdownNavigation(
       event,
@@ -508,7 +508,7 @@ describe('handleDropdownNavigation', () => {
       key: 'Enter',
       preventDefault: jest.fn(),
       currentTarget: { focus: jest.fn() },
-    } as unknown as React.KeyboardEvent<HTMLDivElement>;
+    } as unknown as KeyboardEvent<HTMLDivElement>;
 
     handleDropdownNavigation(
       event,
@@ -527,7 +527,7 @@ describe('handleDropdownNavigation', () => {
     const event = {
       key: 'ArrowDown',
       preventDefault: jest.fn(),
-    } as unknown as React.KeyboardEvent<HTMLDivElement>;
+    } as unknown as KeyboardEvent<HTMLDivElement>;
 
     handleDropdownNavigation(
       event,
@@ -544,7 +544,7 @@ describe('handleDropdownNavigation', () => {
     const event = {
       key: 'ArrowUp',
       preventDefault: jest.fn(),
-    } as unknown as React.KeyboardEvent<HTMLDivElement>;
+    } as unknown as KeyboardEvent<HTMLDivElement>;
 
     handleDropdownNavigation(
       event,
@@ -561,7 +561,7 @@ describe('handleDropdownNavigation', () => {
     const event = {
       key: 'Escape',
       preventDefault: jest.fn(),
-    } as unknown as React.KeyboardEvent<HTMLDivElement>;
+    } as unknown as KeyboardEvent<HTMLDivElement>;
 
     handleDropdownNavigation(
       event,
@@ -579,7 +579,7 @@ describe('handleDropdownNavigation', () => {
     const event = {
       key: 'Shift',
       preventDefault: jest.fn(),
-    } as unknown as React.KeyboardEvent<HTMLDivElement>;
+    } as unknown as KeyboardEvent<HTMLDivElement>;
 
     handleDropdownNavigation(
       event,
@@ -605,7 +605,7 @@ describe('handleDropdownNavigation', () => {
     };
 
     const childWithKey = item?.props?.children?.find(
-      (child: React.ReactElement) => child?.key,
+      (child: ReactElement) => child?.key,
     );
 
     expect(childWithKey).toBeDefined();

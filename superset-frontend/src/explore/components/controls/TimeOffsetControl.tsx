@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { isEqual } from 'lodash';
 import moment, { Moment } from 'moment';
 import {

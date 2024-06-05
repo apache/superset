@@ -17,7 +17,6 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import CrossLinksTooltip, { CrossLinksTooltipProps } from './CrossLinksTooltip';
 

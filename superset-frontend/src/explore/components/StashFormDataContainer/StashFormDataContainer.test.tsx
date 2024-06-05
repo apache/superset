@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { defaultState } from 'src/explore/store';
 import { render } from 'spec/helpers/testing-library';
 import { useSelector } from 'react-redux';
