@@ -31,5 +31,8 @@ def load_user_info():
     users_id = {user.id: UserInfo(id=i+1, language="ru", user_id=user.id)
                 for i, user in enumerate(users)
                 }
-    db.session.add_all(users_id.values())
-    db.session.commit()
+    try:
+        db.session.add_all(users_id.values())
+        db.session.commit()
+    except Exception as e:
+        pass
