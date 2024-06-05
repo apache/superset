@@ -59,12 +59,10 @@ def upgrade():
     # Delete duplicates if any
     min_id_subquery = (
         select(
-            [
                 func.min(tagged_object_table.c.id).label("min_id"),
                 tagged_object_table.c.tag_id,
                 tagged_object_table.c.object_id,
                 tagged_object_table.c.object_type,
-            ]
         )
         .group_by(
             tagged_object_table.c.tag_id,
@@ -75,7 +73,7 @@ def upgrade():
     )
 
     delete_query = tagged_object_table.delete().where(
-        tagged_object_table.c.id.notin_(select([min_id_subquery.c.min_id]))
+        tagged_object_table.c.id.notin_(select(min_id_subquery.c.min_id))
     )
 
     bind.execute(delete_query)

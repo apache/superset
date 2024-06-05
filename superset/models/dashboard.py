@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict
-from typing import Any, Callable
+from typing import Any, Callable, List
 
 import sqlalchemy as sqla
 from flask_appbuilder import Model
@@ -37,7 +37,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship, subqueryload
+from sqlalchemy.orm import relationship, subqueryload, Mapped
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 
@@ -140,7 +140,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     certification_details = Column(Text)
     json_metadata = Column(utils.MediumText())
     slug = Column(String(255), unique=True)
-    slices: list[Slice] = relationship(
+    slices: Mapped[List[Slice]] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
     owners = relationship(

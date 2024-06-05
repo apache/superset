@@ -31,7 +31,7 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import backref, relationship, Mapped
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
 
@@ -171,7 +171,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     custom_width = Column(Integer, nullable=True)
     custom_height = Column(Integer, nullable=True)
 
-    extra: ReportScheduleExtra  # type: ignore
+    extra: Mapped[ReportScheduleExtra] = Column(Text, default="{}") # type: ignore
 
     email_subject = Column(String(255))
 

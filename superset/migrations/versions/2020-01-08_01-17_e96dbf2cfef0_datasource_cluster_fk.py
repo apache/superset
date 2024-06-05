@@ -24,6 +24,8 @@ Create Date: 2020-01-08 01:17:40.127610
 
 import sqlalchemy as sa
 from alembic import op
+from flask_appbuilder import Model
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset.utils.core import (
     generic_find_fk_constraint_name,
@@ -34,6 +36,29 @@ from superset.utils.core import (
 revision = "e96dbf2cfef0"
 down_revision = "817e1c9b09d0"
 
+Base = declarative_base()
+
+clusters = sa.Table(
+    "clusters",
+    Model.metadata,
+    sa.Column("id", sa.Integer, primary_key=True),
+    sa.Column("cluster_name", sa.String(length=250)),
+)
+
+
+datasources = sa.Table(
+    "datasources",
+    Model.metadata,
+    sa.Column("cluster_id", sa.Integer),
+    sa.Column(
+        "cluster_name",
+        sa.String(length=250),
+        sa.ForeignKey("clusters.cluster_name"),
+        nullable=True,
+    ),
+    sa.Column("datasource_name", sa.String(length=255), nullable=True),
+)
+
 
 def upgrade():
     bind = op.get_bind()
@@ -43,13 +68,8 @@ def upgrade():
     with op.batch_alter_table("datasources") as batch_op:
         batch_op.add_column(sa.Column("cluster_id", sa.Integer()))
 
-    # Update cluster_id values
-    metadata = sa.MetaData(bind=bind)
-    datasources = sa.Table("datasources", metadata, autoload=True)
-    clusters = sa.Table("clusters", metadata, autoload=True)
-
     statement = datasources.update().values(
-        cluster_id=sa.select([clusters.c.id])
+        cluster_id=sa.select(clusters.c.id)
         .where(datasources.c.cluster_name == clusters.c.cluster_name)
         .as_scalar()
     )

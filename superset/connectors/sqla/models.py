@@ -24,7 +24,7 @@ import re
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, List
 
 import dateutil.parser
 import numpy as np
@@ -239,7 +239,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         return self.kind == DatasourceKind.VIRTUAL
 
     @declared_attr
-    def slices(self) -> RelationshipProperty:
+    def slices(self) -> Mapped[List[Slice]]:
         return relationship(
             "Slice",
             overlaps="table",
@@ -1148,7 +1148,7 @@ class SqlaTable(
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     fetch_values_predicate = Column(Text)
     owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
-    database: Database = relationship(
+    database: Mapped[Database] = relationship(
         "Database",
         backref=backref("tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],

@@ -18,7 +18,7 @@ from typing import Any
 
 from flask import g
 from flask_babel import lazy_gettext as _
-from flask_sqlalchemy import BaseQuery
+from flask_sqlalchemy.query import Query
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
@@ -67,7 +67,7 @@ class SavedQueryTagFilter(BaseTagFilter):  # pylint: disable=too-few-public-meth
 
 
 class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
+    def apply(self, query: Query, value: Any) -> Query:
         """
         Filter saved queries to only those created by current user.
 

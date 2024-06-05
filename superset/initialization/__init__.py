@@ -528,7 +528,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.indexview = SupersetIndexView
         appbuilder.base_template = "superset/base.html"
         appbuilder.security_manager_class = custom_sm
-        appbuilder.init_app(self.superset_app, db.session)
+        appbuilder.init_app(self.superset_app)
 
     def configure_url_map_converters(self) -> None:
         #
@@ -628,8 +628,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def setup_db(self) -> None:
         db.init_app(self.superset_app)
 
-        with self.superset_app.app_context():
-            pessimistic_connection_handling(db.engine)
+        # with self.superset_app.app_context():
+        #     pessimistic_connection_handling(db.engine)
 
         migrate.init_app(self.superset_app, db=db, directory=APP_DIR + "/migrations")
 

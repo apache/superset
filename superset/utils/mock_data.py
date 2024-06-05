@@ -31,7 +31,7 @@ from flask_appbuilder import Model
 from sqlalchemy import Column, inspect, MetaData, Table as DBTable
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql import func
-from sqlalchemy.sql.visitors import VisitableType
+from sqlalchemy.sql.visitors import Visitable
 
 from superset import db
 from superset.sql_parse import Table
@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 class ColumnInfo(TypedDict):
     name: str
-    type: VisitableType
+    type: Visitable
     nullable: bool
     default: Optional[Any]
     autoincrement: str

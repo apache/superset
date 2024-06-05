@@ -84,4 +84,4 @@ def load_test_users_run() -> None:
                     sm.find_role(role),
                     password="general",
                 )
-        sm.get_session.commit()
+        sm.session.commit()

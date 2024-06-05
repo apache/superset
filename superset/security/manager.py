@@ -48,7 +48,7 @@ from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import eagerload
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
@@ -670,7 +670,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import SqlaTable
 
         user_datasources.update(
-            self.get_session.query(SqlaTable)
+            self.session.query(SqlaTable)
             .filter(get_dataset_access_filters(SqlaTable))
             .all()
         )
@@ -706,7 +706,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def user_view_menu_names(self, permission_name: str) -> set[str]:
         base_query = (
-            self.get_session.query(self.viewmenu_model.name)
+            self.session.query(self.viewmenu_model.name)
             .join(self.permissionview_model)
             .join(self.permission_model)
             .join(assoc_permissionview_role)
@@ -801,7 +801,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # datasource_access
         if perms := self.user_view_menu_names("datasource_access"):
             tables = (
-                self.get_session.query(SqlaTable.schema)
+                self.session.query(SqlaTable.schema)
                 .filter(SqlaTable.database_id == database.id)
                 .filter(or_(SqlaTable.perm.in_(perms)))
                 .distinct()
@@ -861,7 +861,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # datasource_access
         if perms := self.user_view_menu_names("datasource_access"):
             tables = (
-                self.get_session.query(SqlaTable.schema)
+                self.session.query(SqlaTable.schema)
                 .filter(SqlaTable.database_id == database.id)
                 .filter(or_(SqlaTable.perm.in_(perms)))
                 .distinct()
@@ -999,7 +999,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             merge_pv("catalog_access", datasource.get_catalog_perm())
 
         logger.info("Creating missing database permissions.")
-        databases = self.get_session.query(models.Database).all()
+        databases = self.session.query(models.Database).all()
         for database in databases:
             merge_pv("database_access", database.perm)
 
@@ -1009,7 +1009,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         logger.info("Cleaning faulty perms")
-        pvms = self.get_session.query(PermissionView).filter(
+        pvms = self.session.query(PermissionView).filter(
             or_(
                 PermissionView.permission  # pylint: disable=singleton-comparison
                 == None,  # noqa: E711
@@ -1017,7 +1017,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 == None,  # noqa: E711
             )
         )
-        self.get_session.commit()
+        self.session.commit()
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
 
@@ -1049,7 +1049,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.create_missing_perms()
 
         # commit role and view menu updates
-        self.get_session.commit()
+        self.session.commit()
         self.clean_perms()
 
     def _get_all_pvms(self) -> list[PermissionView]:
@@ -1057,10 +1057,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Gets list of all PVM
         """
         pvms = (
-            self.get_session.query(self.permissionview_model)
+            self.session.query(self.permissionview_model)
             .options(
-                eagerload(self.permissionview_model.permission),
-                eagerload(self.permissionview_model.view_menu),
+                joinedload(self.permissionview_model.permission),
+                joinedload(self.permissionview_model.view_menu),
             )
             .all()
         )
@@ -1072,7 +1072,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         definition
         """
         role_from_permissions_names = self.builtin_roles.get(role_name, [])
-        all_pvms = self.get_session.query(PermissionView).all()
+        all_pvms = self.session.query(PermissionView).all()
         role_from_permissions = []
         for pvm_regex in role_from_permissions_names:
             view_name_regex = pvm_regex[0]
@@ -1089,7 +1089,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
-        query = self.get_session.query(Role).filter(Role.id.in_(role_ids))
+        query = self.session.query(Role).filter(Role.id.in_(role_ids))
         return query.all()
 
     def copy_role(
@@ -1122,7 +1122,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 ):
                     role_from_permissions.append(permission_view)
         role_to.permissions = role_from_permissions
-        self.get_session.commit()
+        self.session.commit()
 
     def set_role(
         self,
@@ -1143,7 +1143,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             permission_view for permission_view in pvms if pvm_check(permission_view)
         ]
         role.permissions = role_pvms
-        self.get_session.commit()
+        self.session.commit()
 
     def _is_admin_only(self, pvm: PermissionView) -> bool:
         """
@@ -1362,7 +1362,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         # Clean database schema permissions
         schema_pvms = (
-            self.get_session.query(self.permissionview_model)
+            self.session.query(self.permissionview_model)
             .join(self.permission_model)
             .join(self.viewmenu_model)
             .filter(
@@ -1461,7 +1461,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         chart_table = Slice.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
         datasets = (
-            self.get_session.query(SqlaTable)
+            self.session.query(SqlaTable)
             .filter(SqlaTable.database_id == target.id)
             .all()
         )
@@ -1540,7 +1540,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.warning(
                 "Dataset has no database will retry with database_id to set permission"
             )
-            database = self.get_session.query(Database).get(target.database_id)
+            database = self.session.query(Database).get(target.database_id)
             dataset_perm = self.get_dataset_perm(
                 target.id, target.table_name, database.database_name
             )
@@ -2173,7 +2173,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
-            self.get_session.expunge(query)
+            self.session.expunge(query)
 
         if database and table or query:
             if query:
@@ -2285,7 +2285,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     form_data
                     and (dashboard_id := form_data.get("dashboardId"))
                     and (
-                        dashboard_ := self.get_session.query(Dashboard)
+                        dashboard_ := self.session.query(Dashboard)
                         .filter(Dashboard.id == dashboard_id)
                         .one_or_none()
                     )
@@ -2318,7 +2318,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             form_data.get("type") != "NATIVE_FILTER"
                             and (slice_id := form_data.get("slice_id"))
                             and (
-                                slc := self.get_session.query(Slice)
+                                slc := self.session.query(Slice)
                                 .filter(Slice.id == slice_id)
                                 .one_or_none()
                             )
@@ -2391,7 +2391,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         need to be scoped
         """
         return (
-            self.get_session.query(self.user_model)
+            self.session.query(self.user_model)
             .filter(self.user_model.username == username)
             .one_or_none()
         )

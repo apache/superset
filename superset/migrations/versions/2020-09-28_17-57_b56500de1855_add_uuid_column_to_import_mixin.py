@@ -144,7 +144,7 @@ def upgrade():
     slice_uuid_map = {
         slc.id: slc.uuid
         for slc in session.query(models["slices"])
-        .options(load_only("id", "uuid"))
+        .options(load_only(models["slices"].id, models["slices"].uuid))
         .all()
     }
     update_dashboards(session, slice_uuid_map)

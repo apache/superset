@@ -26,17 +26,34 @@ Create Date: 2020-04-24 10:46:24.119363
 revision = "e557699a813e"
 down_revision = "743a117f0d98"
 
-import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
+from flask_appbuilder import Model  # noqa: E402
+import sqlalchemy as sa  # noqa: E402
 
 from superset.utils.core import generic_find_fk_constraint_name  # noqa: E402
+
+metadata = sa.MetaData()
+
+rlsf = sa.Table(
+        "row_level_security_filters",
+        metadata,
+        sa.Column("created_on", sa.DateTime(), nullable=True),
+        sa.Column("changed_on", sa.DateTime(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("table_id", sa.Integer(), nullable=False),
+        sa.Column("clause", sa.Text(), nullable=False),
+        sa.Column("created_by_fk", sa.Integer(), nullable=True),
+        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"]),
+        sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"]),
+        sa.ForeignKeyConstraint(["table_id"], ["tables.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
 
 
 def upgrade():
     bind = op.get_bind()
-    metadata = sa.MetaData(bind=bind)
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
+    insp = sa.inspect(bind)
     rls_filter_tables = op.create_table(
         "rls_filter_tables",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -47,8 +64,7 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
 
-    rlsf = sa.Table("row_level_security_filters", metadata, autoload=True)
-    filter_ids = sa.select([rlsf.c.id, rlsf.c.table_id])
+    filter_ids = sa.select(rlsf.c.id, rlsf.c.table_id)
 
     for row in bind.execute(filter_ids):
         move_table_id = rls_filter_tables.insert().values(

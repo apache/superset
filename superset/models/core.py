@@ -992,16 +992,16 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     @property
     def sqlalchemy_uri_decrypted(self) -> str:
         try:
-            conn = make_url_safe(self.sqlalchemy_uri)
+            url = make_url_safe(self.sqlalchemy_uri)
         except DatabaseInvalidError:
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
             return "dialect://invalid_uri"
         if custom_password_store:
-            conn = conn.set(password=custom_password_store(conn))
+            url = url.set(password=custom_password_store(url))
         else:
-            conn = conn.set(password=self.password)
-        return str(conn)
+            url = url.set(password=self.password)
+        return url.render_as_string(hide_password=False)
 
     @property
     def sql_url(self) -> str:
@@ -1021,9 +1021,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return self.perm  # type: ignore
 
     def has_table(self, table: Table) -> bool:
+        from sqlalchemy import inspect
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
             # do not pass "" as an empty schema; force null
-            return engine.has_table(table.table, table.schema or None)
+            inspector = inspect(engine)
+            return inspector.has_table(table.table, table.schema or None)
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:

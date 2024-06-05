@@ -66,6 +66,7 @@ logger = logging.getLogger(__name__)
 class Slice(  # pylint: disable=too-many-public-methods
     Model, AuditMixinNullable, ImportExportMixin
 ):
+    __allow_unmapped__ = True
     """A slice is essentially a report or a view on data"""
 
     query_context_factory: QueryContextFactory | None = None

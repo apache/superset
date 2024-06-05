@@ -31,6 +31,14 @@ from alembic import op  # noqa: E402
 
 from superset.utils import core as utils  # noqa: E402
 
+metadata = sa.MetaData()
+
+filters = sa.Table(
+    "row_level_security_filters",
+    metadata,
+    sa.Column("filter_type", sa.VARCHAR(255), nullable=True)
+)
+
 
 def upgrade():
     with op.batch_alter_table("row_level_security_filters") as batch_op:
@@ -43,8 +51,6 @@ def upgrade():
         )
 
     bind = op.get_bind()
-    metadata = sa.MetaData(bind=bind)
-    filters = sa.Table("row_level_security_filters", metadata, autoload=True)
     statement = filters.update().values(
         filter_type=utils.RowLevelSecurityFilterType.REGULAR.value
     )

@@ -32,6 +32,7 @@ from alembic import op  # noqa: E402
 from flask_appbuilder.models.mixins import AuditMixin  # noqa: E402
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String  # noqa: E402
 from sqlalchemy.ext.declarative import declarative_base, declared_attr  # noqa: E402
+from sqlalchemy.orm import Mapped
 
 from superset.tags.models import ObjectType, TagType  # noqa: E402
 from superset.utils.core import get_user_id  # noqa: E402
@@ -51,7 +52,7 @@ class AuditMixinNullable(AuditMixin):
     )
 
     @declared_attr
-    def created_by_fk(self) -> Column:
+    def created_by_fk(self) -> Mapped[int]:
         return Column(
             Integer,
             ForeignKey("ab_user.id"),
@@ -60,7 +61,7 @@ class AuditMixinNullable(AuditMixin):
         )
 
     @declared_attr
-    def changed_by_fk(self) -> Column:
+    def changed_by_fk(self) -> Mapped[int]:
         return Column(
             Integer,
             ForeignKey("ab_user.id"),
