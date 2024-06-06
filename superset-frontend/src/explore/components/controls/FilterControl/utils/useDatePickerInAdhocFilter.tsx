@@ -18,7 +18,7 @@
  */
 import React from 'react';
 
-import { hasGenericChartAxes, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { Dataset, isTemporalColumn } from '@superset-ui/chart-controls';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -38,7 +38,7 @@ export const useDatePickerInAdhocFilter = ({
 }: DatePickerInFilterProps): React.ReactElement | undefined => {
   const onTimeRangeChange = (val: string) => onChange(columnName, val);
 
-  return hasGenericChartAxes && isTemporalColumn(columnName, datasource) ? (
+  return isTemporalColumn(columnName, datasource) ? (
     <>
       <ControlHeader label={t('Time Range')} />
       <DateFilterControl

@@ -20,7 +20,7 @@
 import React, { FC } from 'react';
 import { css } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils';
+import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/utils';
 import {
   FilterValue,
   FilterItem,

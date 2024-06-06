@@ -422,7 +422,7 @@ class DatabaseSSHTunnel(Schema):
     private_key_password = fields.String(required=False)
 
 
-class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
+class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
@@ -479,7 +479,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
-class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
+class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
@@ -536,7 +536,7 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     uuid = fields.String(required=False)
 
 
-class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
+class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(

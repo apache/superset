@@ -75,9 +75,7 @@ const getDashboardPageContext = (pageId?: string | null) => {
   if (!pageId) {
     return null;
   }
-  return (
-    getItem(LocalStorageKeys.dashboard__explore_context, {})[pageId] || null
-  );
+  return getItem(LocalStorageKeys.DashboardExploreContext, {})[pageId] || null;
 };
 
 const getDashboardContextFormData = () => {
@@ -153,7 +151,7 @@ export default function ExplorePage() {
           isExploreInitialized.current = true;
         });
     }
-    getSharedLabelColor().source = SharedLabelColorSource.explore;
+    getSharedLabelColor().source = SharedLabelColorSource.Explore;
   }, [dispatch, location]);
 
   if (!isLoaded) {

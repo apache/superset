@@ -196,7 +196,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return None
 
 
-class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
+class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_aliases = {"postgres"}
     supports_dynamic_schema = True

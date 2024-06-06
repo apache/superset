@@ -46,7 +46,7 @@ class TestCache(SupersetTestCase):
         app.config["DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "NullCache"}
         cache_manager.init_app(app)
 
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         json_endpoint = "/superset/explore_json/{}/{}/".format(
             slc.datasource_type, slc.datasource_id
         )
@@ -73,7 +73,7 @@ class TestCache(SupersetTestCase):
         }
         cache_manager.init_app(app)
 
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         json_endpoint = "/superset/explore_json/{}/{}/".format(
             slc.datasource_type, slc.datasource_id
         )

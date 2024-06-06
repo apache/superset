@@ -88,6 +88,7 @@ function visitEdit(sampleDashboard = SAMPLE_DASHBOARD_1) {
 }
 
 function resetTabbedDashboard(go = false) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   cy.getDashboard('tabbed_dash').then((r: Record<string, any>) => {
     const jsonMetadata = r?.json_metadata || '{}';
     const metadata = JSON.parse(jsonMetadata);

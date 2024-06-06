@@ -116,7 +116,7 @@ function AlertList({
     () => [
       {
         id: 'type',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         value: isReportEnabled ? 'Report' : 'Alert',
       },
     ],
@@ -401,7 +401,7 @@ function AlertList({
         size: 'xl',
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -450,14 +450,14 @@ function AlertList({
         key: 'search',
         id: 'name',
         input: 'search',
-        operator: FilterOperator.contains,
+        operator: FilterOperator.Contains,
       },
       {
         Header: t('Owner'),
         key: 'owner',
         id: 'owners',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'report',
@@ -474,7 +474,7 @@ function AlertList({
         key: 'status',
         id: 'last_state',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: 'Any',
         selects: [
           {
@@ -495,7 +495,7 @@ function AlertList({
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'report',

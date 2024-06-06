@@ -22,6 +22,7 @@ from typing import Union
 
 import backoff
 import pandas as pd
+from flask import g
 from flask_babel import gettext as __
 from slack_sdk import WebClient
 from slack_sdk.errors import (
@@ -175,6 +176,7 @@ Error: %(text)s
         channel = self._get_channel()
         body = self._get_body()
         file_type = "csv" if self._content.csv else "png"
+        global_logs_context = getattr(g, "logs_context", {}) or {}
         try:
             token = app.config["SLACK_API_TOKEN"]
             if callable(token):
@@ -192,7 +194,12 @@ Error: %(text)s
                     )
             else:
                 client.chat_postMessage(channel=channel, text=body)
-            logger.info("Report sent to slack")
+            logger.info(
+                "Report sent to slack",
+                extra={
+                    "execution_id": global_logs_context.get("execution_id"),
+                },
+            )
         except (
             BotUserAccessError,
             SlackRequestError,

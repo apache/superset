@@ -59,8 +59,8 @@ export interface FormDataResidual {
 }
 
 export enum QueryMode {
-  aggregate = 'aggregate',
-  raw = 'raw',
+  Aggregate = 'aggregate',
+  Raw = 'raw',
 }
 
 /**

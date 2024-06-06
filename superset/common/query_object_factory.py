@@ -33,8 +33,6 @@ from superset.utils.core import (
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import sessionmaker
-
     from superset.connectors.sqla.models import BaseDatasource
     from superset.daos.datasource import DatasourceDAO
 
@@ -42,17 +40,14 @@ if TYPE_CHECKING:
 class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     _config: dict[str, Any]
     _datasource_dao: DatasourceDAO
-    _session_maker: sessionmaker
 
     def __init__(
         self,
         app_configurations: dict[str, Any],
         _datasource_dao: DatasourceDAO,
-        session_maker: sessionmaker,
     ):
         self._config = app_configurations
         self._datasource_dao = _datasource_dao
-        self._session_maker = session_maker
 
     def create(  # pylint: disable=too-many-arguments
         self,
@@ -91,7 +86,6 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         return self._datasource_dao.get_datasource(
             datasource_type=DatasourceType(datasource["type"]),
             datasource_id=int(datasource["id"]),
-            session=self._session_maker(),
         )
 
     def _process_extras(

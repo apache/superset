@@ -114,10 +114,10 @@ def test_template_hive(app_context: AppContext, mocker: MockFixture) -> None:
         "superset.jinja_context.HiveTemplateProcessor.latest_partition"
     )
     lp_mock.return_value = "the_latest"
-    db = mock.Mock()
-    db.backend = "hive"
+    database = mock.Mock()
+    database.backend = "hive"
     template = "{{ hive.latest_partition('my_table') }}"
-    tp = get_template_processor(database=db)
+    tp = get_template_processor(database=database)
     assert tp.process_template(template) == "the_latest"
 
 
@@ -126,15 +126,15 @@ def test_template_trino(app_context: AppContext, mocker: MockFixture) -> None:
         "superset.jinja_context.TrinoTemplateProcessor.latest_partition"
     )
     lp_mock.return_value = "the_latest"
-    db = mock.Mock()
-    db.backend = "trino"
+    database = mock.Mock()
+    database.backend = "trino"
     template = "{{ trino.latest_partition('my_table') }}"
-    tp = get_template_processor(database=db)
+    tp = get_template_processor(database=database)
     assert tp.process_template(template) == "the_latest"
 
     # Backwards compatibility if migrating from Presto.
     template = "{{ presto.latest_partition('my_table') }}"
-    tp = get_template_processor(database=db)
+    tp = get_template_processor(database=database)
     assert tp.process_template(template) == "the_latest"
 
 
@@ -154,9 +154,9 @@ def test_custom_process_template(app_context: AppContext, mocker: MockFixture) -
         "tests.integration_tests.superset_test_custom_template_processors.datetime"
     )
     mock_dt.utcnow = mock.Mock(return_value=datetime(1970, 1, 1))
-    db = mock.Mock()
-    db.backend = "db_for_macros_testing"
-    tp = get_template_processor(database=db)
+    database = mock.Mock()
+    database.backend = "db_for_macros_testing"
+    tp = get_template_processor(database=database)
 
     template = "SELECT '$DATE()'"
     assert tp.process_template(template) == f"SELECT '1970-01-01'"
@@ -168,28 +168,28 @@ def test_custom_process_template(app_context: AppContext, mocker: MockFixture) -
 def test_custom_get_template_kwarg(app_context: AppContext) -> None:
     """Test macro passed as kwargs when getting template processor
     works in custom template processor."""
-    db = mock.Mock()
-    db.backend = "db_for_macros_testing"
+    database = mock.Mock()
+    database.backend = "db_for_macros_testing"
     template = "$foo()"
-    tp = get_template_processor(database=db, foo=lambda: "bar")
+    tp = get_template_processor(database=database, foo=lambda: "bar")
     assert tp.process_template(template) == "bar"
 
 
 def test_custom_template_kwarg(app_context: AppContext) -> None:
     """Test macro passed as kwargs when processing template
     works in custom template processor."""
-    db = mock.Mock()
-    db.backend = "db_for_macros_testing"
+    database = mock.Mock()
+    database.backend = "db_for_macros_testing"
     template = "$foo()"
-    tp = get_template_processor(database=db)
+    tp = get_template_processor(database=database)
     assert tp.process_template(template, foo=lambda: "bar") == "bar"
 
 
 def test_custom_template_processors_overwrite(app_context: AppContext) -> None:
     """Test template processor for presto gets overwritten by custom one."""
-    db = mock.Mock()
-    db.backend = "db_for_macros_testing"
-    tp = get_template_processor(database=db)
+    database = mock.Mock()
+    database.backend = "db_for_macros_testing"
+    tp = get_template_processor(database=database)
 
     template = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
     assert tp.process_template(template) == template

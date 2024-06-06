@@ -20,6 +20,8 @@ import json
 
 from sqlalchemy.orm.session import Session
 
+from superset import db
+
 
 def test_export(session: Session) -> None:
     """
@@ -29,12 +31,12 @@ def test_export(session: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.models.core import Database
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     columns = [
         TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),

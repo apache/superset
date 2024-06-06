@@ -102,14 +102,14 @@ export const DataTablesPane = ({
     samples: false,
   });
   const [panelOpen, setPanelOpen] = useState(
-    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+    isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? false
-      : getItem(LocalStorageKeys.is_datapanel_open, false),
+      : getItem(LocalStorageKeys.IsDatapanelOpen, false),
   );
 
   useEffect(() => {
-    if (!isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT))
-      setItem(LocalStorageKeys.is_datapanel_open, panelOpen);
+    if (!isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault))
+      setItem(LocalStorageKeys.IsDatapanelOpen, panelOpen);
   }, [panelOpen]);
 
   useEffect(() => {

@@ -21,16 +21,14 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  FeatureFlag,
   Filter,
   Filters,
   getCategoricalSchemeRegistry,
-  isFeatureEnabled,
   SupersetClient,
   useComponentDidUpdate,
 } from '@superset-ui/core';
 import { ParentSize } from '@visx/responsive';
-import pick from 'lodash/pick';
+import { pick } from 'lodash';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
@@ -104,10 +102,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [dashboardLayout, directPathToChild]);
 
   useEffect(() => {
-    if (
-      !isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
-      nativeFilterScopes.length === 0
-    ) {
+    if (nativeFilterScopes.length === 0) {
       return;
     }
     const scopes = nativeFilterScopes.map(filterScope => {

@@ -56,8 +56,8 @@ export type GetTableSize = () => Partial<StickyState> | undefined;
 export type SetStickyState = (size?: Partial<StickyState>) => void;
 
 export enum ReducerActions {
-  init = 'init', // this is from global reducer
-  setStickyState = 'setStickyState',
+  Init = 'init', // this is from global reducer
+  SetStickyState = 'setStickyState',
 }
 
 export type ReducerAction<
@@ -344,7 +344,7 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
   const setStickyState = useCallback(
     (size?: Partial<StickyState>) => {
       dispatch({
-        type: ReducerActions.setStickyState,
+        type: ReducerActions.SetStickyState,
         size,
       });
     },
@@ -354,7 +354,7 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
   );
 
   const useStickyWrap = (renderer: TableRenderer) => {
-    const { width, height } =
+    const { width, height }: { width?: number; height?: number } =
       useMountedMemo(getTableSize, [getTableSize]) || sticky;
     // only change of data should trigger re-render
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -397,7 +397,7 @@ export default function useSticky<D extends object>(hooks: Hooks<D>) {
       ReducerActions,
       { size: StickyState }
     >;
-    if (action.type === ReducerActions.init) {
+    if (action.type === ReducerActions.Init) {
       return {
         ...newState,
         sticky: {
@@ -405,7 +405,7 @@ export default function useSticky<D extends object>(hooks: Hooks<D>) {
         },
       };
     }
-    if (action.type === ReducerActions.setStickyState) {
+    if (action.type === ReducerActions.SetStickyState) {
       const { size } = action;
       if (!size) {
         return { ...newState };

@@ -272,7 +272,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   };
 
   const showLegacyDatasourceEditor = !isFeatureEnabled(
-    FeatureFlag.DISABLE_LEGACY_DATASOURCE_EDITOR,
+    FeatureFlag.DisableLegacyDatasourceEditor,
   );
 
   return (

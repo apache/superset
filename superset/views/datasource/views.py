@@ -24,8 +24,7 @@ from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import _
 from marshmallow import ValidationError
-from sqlalchemy.exc import NoSuchTableError
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound, NoSuchTableError
 
 from superset import db, event_logger, security_manager
 from superset.commands.dataset.exceptions import (
@@ -84,7 +83,7 @@ class Datasource(BaseSupersetView):
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
         orm_datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), datasource_id
+            DatasourceType(datasource_type), datasource_id
         )
         orm_datasource.database_id = database_id
 
@@ -127,7 +126,7 @@ class Datasource(BaseSupersetView):
     @deprecated(new_target="/api/v1/dataset/<int:pk>")
     def get(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), datasource_id
+            DatasourceType(datasource_type), datasource_id
         )
         return self.json_response(sanitize_datasource_data(datasource.data))
 
@@ -140,7 +139,6 @@ class Datasource(BaseSupersetView):
     ) -> FlaskResponse:
         """Gets column info from the source system"""
         datasource = DatasourceDAO.get_datasource(
-            db.session,
             DatasourceType(datasource_type),
             datasource_id,
         )
@@ -165,7 +163,6 @@ class Datasource(BaseSupersetView):
             return json_error_response(str(err), status=400)
 
         datasource = SqlaTable.get_datasource_by_name(
-            session=db.session,
             database_name=params["database_name"],
             schema=params["schema_name"],
             datasource_name=params["table_name"],

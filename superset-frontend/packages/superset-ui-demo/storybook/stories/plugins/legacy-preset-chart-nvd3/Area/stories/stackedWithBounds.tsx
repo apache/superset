@@ -53,9 +53,7 @@ export const stackedWithYAxisBounds = () => (
   />
 );
 
-stackedWithYAxisBounds.story = {
-  name: 'Stacked with yAxisBounds',
-};
+stackedWithYAxisBounds.storyName = 'Stacked with yAxisBounds';
 
 export const stackedWithYAxisBoundsMinOnly = () => (
   <SuperChart
@@ -88,6 +86,4 @@ export const stackedWithYAxisBoundsMinOnly = () => (
   />
 );
 
-stackedWithYAxisBoundsMinOnly.story = {
-  name: 'Stacked with yAxisBounds min only',
-};
+stackedWithYAxisBoundsMinOnly.storyName = 'Stacked with yAxisBounds min only';

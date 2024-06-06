@@ -143,11 +143,7 @@ const legacyChartDataRequest = async (
     parseMethod,
   };
 
-  const clientMethod =
-    'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
-      ? SupersetClient.get
-      : SupersetClient.post;
-  return clientMethod(querySettings).then(({ json, response }) =>
+  return SupersetClient.post(querySettings).then(({ json, response }) =>
     // Make the legacy endpoint return a payload that corresponds to the
     // V1 chart data endpoint response signature.
     ({
@@ -252,17 +248,20 @@ export async function getChartDataRequest({
 
 export function runAnnotationQuery({
   annotation,
-  timeout = 60,
+  timeout,
   formData = null,
   key,
   isDashboardRequest = false,
   force = false,
 }) {
   return function (dispatch, getState) {
-    const sliceKey = key || Object.keys(getState().charts)[0];
+    const { charts, common } = getState();
+    const sliceKey = key || Object.keys(charts)[0];
+    const queryTimeout = timeout || common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+
     // make a copy of formData, not modifying original formData
     const fd = {
-      ...(formData || getState().charts[sliceKey].latestQueryFormData),
+      ...(formData || charts[sliceKey].latestQueryFormData),
     };
 
     if (!annotation.sourceType) {
@@ -313,7 +312,7 @@ export function runAnnotationQuery({
     return SupersetClient.post({
       url,
       signal,
-      timeout: timeout * 1000,
+      timeout: queryTimeout * 1000,
       headers: { 'Content-Type': 'application/json' },
       jsonPayload: buildV1ChartDataPayload({
         formData: fd,
@@ -375,7 +374,7 @@ export function addChart(chart, key) {
 }
 
 export function handleChartDataResponse(response, json, useLegacyApi) {
-  if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+  if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
     // deal with getChartDataRequest transforming the response data
     const result = 'result' in json ? json.result : json;
     switch (response.status) {
@@ -400,19 +399,20 @@ export function handleChartDataResponse(response, json, useLegacyApi) {
 export function exploreJSON(
   formData,
   force = false,
-  timeout = 60,
+  timeout,
   key,
-  method,
   dashboardId,
   ownState,
 ) {
-  return async dispatch => {
+  return async (dispatch, getState) => {
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
+    const queryTimeout =
+      timeout || getState().common.conf.SUPERSET_WEBSERVER_TIMEOUT;
 
     const requestParams = {
       signal: controller.signal,
-      timeout: timeout * 1000,
+      timeout: queryTimeout * 1000,
     };
     if (dashboardId) requestParams.dashboard_id = dashboardId;
 
@@ -425,7 +425,7 @@ export function exploreJSON(
       resultFormat: 'json',
       resultType: 'full',
       force,
-      method,
+      method: 'POST',
       requestParams,
       ownState,
     });
@@ -462,7 +462,7 @@ export function exploreJSON(
         return dispatch(chartUpdateSucceeded(queriesResponse, key));
       })
       .catch(response => {
-        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+        if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
           return dispatch(chartUpdateFailed([response], key));
         }
 
@@ -520,60 +520,16 @@ export function exploreJSON(
   };
 }
 
-export const GET_SAVED_CHART = 'GET_SAVED_CHART';
-export function getSavedChart(
-  formData,
-  force = false,
-  timeout = 60,
-  key,
-  dashboardId,
-  ownState,
-) {
-  /*
-   * Perform a GET request to `/explore_json`.
-   *
-   * This will return the payload of a saved chart, optionally filtered by
-   * ad-hoc or extra filters from dashboards. Eg:
-   *
-   *  GET  /explore_json?{"chart_id":1}
-   *  GET  /explore_json?{"chart_id":1,"extra_filters":"..."}
-   *
-   */
-  return exploreJSON(
-    formData,
-    force,
-    timeout,
-    key,
-    'GET',
-    dashboardId,
-    ownState,
-  );
-}
-
 export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA';
 export function postChartFormData(
   formData,
   force = false,
-  timeout = 60,
+  timeout,
   key,
   dashboardId,
   ownState,
 ) {
-  /*
-   * Perform a POST request to `/explore_json`.
-   *
-   * This will post the form data to the endpoint, returning a new chart.
-   *
-   */
-  return exploreJSON(
-    formData,
-    force,
-    timeout,
-    key,
-    'POST',
-    dashboardId,
-    ownState,
-  );
+  return exploreJSON(formData, force, timeout, key, dashboardId, ownState);
 }
 
 export function redirectSQLLab(formData, history) {

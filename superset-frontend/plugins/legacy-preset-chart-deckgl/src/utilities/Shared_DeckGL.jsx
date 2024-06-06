@@ -72,12 +72,12 @@ function jsFunctionControl(
         {extraDescr}
       </div>
     ),
-    warning: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS)
+    warning: !isFeatureEnabled(FeatureFlag.EnableJavascriptControls)
       ? t(
           'This functionality is disabled in your environment for security reasons.',
         )
       : null,
-    readOnly: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS),
+    readOnly: !isFeatureEnabled(FeatureFlag.EnableJavascriptControls),
   };
 }
 

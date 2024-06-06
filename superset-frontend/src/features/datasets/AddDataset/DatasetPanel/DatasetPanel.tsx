@@ -27,7 +27,6 @@ import LOADING_GIF from 'src/assets/images/ortege-logo.png';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
-import 'animate.css';
 
 /**
  * Enum defining CSS position options
@@ -301,7 +300,7 @@ const DatasetPanel = ({
               <TableScrollContainer>
                 <Table
                   loading={loading}
-                  size={TableSize.SMALL}
+                  size={TableSize.Small}
                   columns={tableColumnDefinition}
                   data={columnList}
                   pageSizeOptions={pageSizeOptions}
@@ -314,7 +313,7 @@ const DatasetPanel = ({
               <TableScrollContainer>
                 <Table
                   loading={loading}
-                  size={TableSize.SMALL}
+                  size={TableSize.Small}
                   columns={tableColumnDefinition}
                   data={columnList}
                   pageSizeOptions={pageSizeOptions}

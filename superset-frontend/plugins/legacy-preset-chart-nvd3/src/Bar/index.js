@@ -32,7 +32,7 @@ const metadata = new ChartMetadata({
     'Visualize how a metric changes over time using bars. Add a group by column to visualize group level metrics and how they change over time.',
   ),
   exampleGallery: [{ url: example1 }, { url: example2 }, { url: example3 }],
-  label: ChartLabel.DEPRECATED,
+  label: ChartLabel.Deprecated,
   name: t('Time-series Bar Chart (legacy)'),
   supportedAnnotationTypes: [ANNOTATION_TYPES.INTERVAL, ANNOTATION_TYPES.EVENT],
   tags: [

@@ -23,8 +23,8 @@ from typing import Any, Optional
 from flask import current_app
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.orm import Session
 
+from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.models.sql_lab import Query
@@ -101,7 +101,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
             raise cls.get_dbapi_mapped_exception(ex)
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Stop query and updates progress information"""
 
         query_id = query.id
@@ -113,8 +113,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
         try:
             status = cursor.status()
             while status in unfinished_states:
-                session.refresh(query)
-                query = session.query(Query).filter_by(id=query_id).one()
+                db.session.refresh(query)
+                query = db.session.query(Query).filter_by(id=query_id).one()
                 # if query cancelation was requested prior to the handle_cursor call, but
                 # the query was still executed
                 # modified in stop_query in views / core.py is reflected  here.
@@ -145,7 +145,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                         needs_commit = True
 
                     if needs_commit:
-                        session.commit()
+                        db.session.commit()
                 sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )

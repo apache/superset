@@ -1058,7 +1058,7 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:
 def merge_extra_filters(form_data: dict[str, Any]) -> None:
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
-    # interactive filters like the ones emitted by the "Filter Box" visualization.
+    # interactive filters.
     # Note extra_filters only support simple filters.
     form_data.setdefault("applied_time_extras", {})
     adhoc_filters = form_data.get("adhoc_filters", [])

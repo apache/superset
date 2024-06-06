@@ -54,7 +54,7 @@ function visitChartList() {
 }
 
 describe('Charts list', () => {
-  describe.skip('Cross-referenced dashboards', () => {
+  describe('Cross-referenced dashboards', () => {
     beforeEach(() => {
       cy.createSampleDashboards([0, 1, 2, 3]);
       cy.createSampleCharts([0]);
@@ -112,9 +112,10 @@ describe('Charts list', () => {
       cy.getBySel('sort-header').eq(1).contains('Name');
       cy.getBySel('sort-header').eq(2).contains('Type');
       cy.getBySel('sort-header').eq(3).contains('Dataset');
-      cy.getBySel('sort-header').eq(4).contains('Owners');
-      cy.getBySel('sort-header').eq(5).contains('Last modified');
-      cy.getBySel('sort-header').eq(6).contains('Actions');
+      cy.getBySel('sort-header').eq(4).contains('On dashboards');
+      cy.getBySel('sort-header').eq(5).contains('Owners');
+      cy.getBySel('sort-header').eq(6).contains('Last modified');
+      cy.getBySel('sort-header').eq(7).contains('Actions');
     });
 
     it('should sort correctly in list mode', () => {

@@ -34,9 +34,9 @@ from sqlalchemy import Column, text, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
+from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -334,7 +334,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def handle_cursor(  # pylint: disable=too-many-locals
-        cls, cursor: Any, query: Query, session: Session
+        cls, cursor: Any, query: Query
     ) -> None:
         """Updates progress information"""
         # pylint: disable=import-outside-toplevel
@@ -353,8 +353,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             # Queries don't terminate when user clicks the STOP button on SQL LAB.
             # Refresh session so that the `query.status` modified in stop_query in
             # views/core.py is reflected here.
-            session.refresh(query)
-            query = session.query(type(query)).filter_by(id=query_id).one()
+            db.session.refresh(query)
+            query = db.session.query(type(query)).filter_by(id=query_id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
                 break
@@ -396,7 +396,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                         logger.info("Query %s: [%s] %s", str(query_id), str(job_id), l)
                     last_log_line = len(log_lines)
                 if needs_commit:
-                    session.commit()
+                    db.session.commit()
             if sleep_interval := current_app.config.get("HIVE_POLL_INTERVAL"):
                 logger.warning(
                     "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL_SECONDS instead"

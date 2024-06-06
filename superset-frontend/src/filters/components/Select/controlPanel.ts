@@ -19,7 +19,6 @@
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
@@ -35,8 +34,6 @@ const {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    // @ts-ignore
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

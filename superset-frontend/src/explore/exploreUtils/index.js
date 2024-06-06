@@ -99,7 +99,7 @@ export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
     if (force) {
       search.force = '1';
     }
-    search.standalone = DashboardStandaloneMode.HIDE_NAV;
+    search.standalone = DashboardStandaloneMode.HideNav;
   }
   return uri.directory(directory).search(search).toString();
 }

@@ -759,7 +759,7 @@ class TestUtils(SupersetTestCase):
 
     def test_merge_extra_filters_with_unset_legacy_time_range(self):
         """
-        Make sure native filter is applied if filter box time range is unset.
+        Make sure native filter is applied if filter time range is unset.
         """
         form_data = {
             "time_range": "Last 10 days",
@@ -774,28 +774,6 @@ class TestUtils(SupersetTestCase):
             {
                 "time_range": "Last year",
                 "applied_time_extras": {},
-                "adhoc_filters": [],
-            },
-        )
-
-    def test_merge_extra_filters_with_conflicting_time_ranges(self):
-        """
-        Make sure filter box takes precedence if both native filter and filter box
-        time ranges are set.
-        """
-        form_data = {
-            "time_range": "Last 10 days",
-            "extra_filters": [{"col": "__time_range", "op": "==", "val": "Last week"}],
-            "extra_form_data": {
-                "time_range": "Last year",
-            },
-        }
-        merge_extra_filters(form_data)
-        self.assertEqual(
-            form_data,
-            {
-                "time_range": "Last week",
-                "applied_time_extras": {"__time_range": "Last week"},
                 "adhoc_filters": [],
             },
         )
@@ -920,7 +898,7 @@ class TestUtils(SupersetTestCase):
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(username="admin")
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         dashboard_id = 1
 
         assert slc.viz is not None
@@ -978,7 +956,7 @@ class TestUtils(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extract_dataframe_dtypes(self):
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Girls")
         cols: tuple[tuple[str, GenericDataType, list[Any]], ...] = (
             ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
             (

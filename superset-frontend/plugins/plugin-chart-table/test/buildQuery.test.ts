@@ -17,7 +17,6 @@
  * under the License.
  */
 import { QueryMode, TimeGranularity } from '@superset-ui/core';
-import * as supersetCoreModule from '@superset-ui/core';
 import buildQuery from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
@@ -31,7 +30,7 @@ describe('plugin-chart-table', () => {
     it('should add post-processing and ignore duplicate metrics', () => {
       const query = buildQuery({
         ...basicFormData,
-        query_mode: QueryMode.aggregate,
+        query_mode: QueryMode.Aggregate,
         metrics: ['aaa', 'aaa'],
         percent_metrics: ['bbb', 'bbb'],
       }).queries[0];
@@ -50,7 +49,7 @@ describe('plugin-chart-table', () => {
     it('should not add metrics in raw records mode', () => {
       const query = buildQuery({
         ...basicFormData,
-        query_mode: QueryMode.raw,
+        query_mode: QueryMode.Raw,
         columns: ['a'],
         metrics: ['aaa', 'aaa'],
         percent_metrics: ['bbb', 'bbb'],
@@ -62,7 +61,7 @@ describe('plugin-chart-table', () => {
     it('should not add post-processing when there is no percent metric', () => {
       const query = buildQuery({
         ...basicFormData,
-        query_mode: QueryMode.aggregate,
+        query_mode: QueryMode.Aggregate,
         metrics: ['aaa'],
         percent_metrics: [],
       }).queries[0];
@@ -73,7 +72,7 @@ describe('plugin-chart-table', () => {
     it('should not add post-processing in raw records mode', () => {
       const query = buildQuery({
         ...basicFormData,
-        query_mode: QueryMode.raw,
+        query_mode: QueryMode.Raw,
         metrics: ['aaa'],
         columns: ['rawcol'],
         percent_metrics: ['ccc'],
@@ -83,13 +82,10 @@ describe('plugin-chart-table', () => {
       expect(query.post_processing).toEqual([]);
     });
     it('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
-      Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-        value: true,
-      });
       const query = buildQuery({
         ...basicFormData,
         groupby: ['col1'],
-        query_mode: QueryMode.aggregate,
+        query_mode: QueryMode.Aggregate,
         time_grain_sqla: TimeGranularity.MONTH,
         extra_form_data: { time_grain_sqla: TimeGranularity.QUARTER },
         temporal_columns_lookup: { col1: true },
@@ -103,14 +99,11 @@ describe('plugin-chart-table', () => {
       });
     });
     it('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
-      Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-        value: true,
-      });
       const query = buildQuery({
         ...basicFormData,
         time_grain_sqla: TimeGranularity.MONTH,
         groupby: ['col1'],
-        query_mode: QueryMode.aggregate,
+        query_mode: QueryMode.Aggregate,
         temporal_columns_lookup: { col1: true },
       }).queries[0];
       expect(query.columns?.[0]).toEqual({

@@ -84,8 +84,7 @@ class MigrateViz:
 
             rv_data[key] = value
 
-        if is_feature_enabled("GENERIC_CHART_AXES"):
-            self._migrate_temporal_filter(rv_data)
+        self._migrate_temporal_filter(rv_data)
 
         self.data = rv_data
 

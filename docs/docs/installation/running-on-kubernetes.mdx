@@ -310,15 +310,17 @@ supersetWorker:
     - |
       # Install chrome webdriver
       # See https://github.com/apache/superset/blob/4fa3b6c7185629b87c27fc2c0e5435d458f7b73d/docs/src/pages/docs/installation/email_reports.mdx
-      apt update
+      apt-get update
+      apt-get install -y wget
       wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-      apt install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb
+      apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb
       wget https://chromedriver.storage.googleapis.com/88.0.4324.96/chromedriver_linux64.zip
+      apt-get install -y zip
       unzip chromedriver_linux64.zip
       chmod +x chromedriver
       mv chromedriver /usr/bin
-      apt autoremove -yqq --purge
-      apt clean
+      apt-get autoremove -yqq --purge
+      apt-get clean
       rm -f google-chrome-stable_current_amd64.deb chromedriver_linux64.zip
 
       # Run

@@ -423,7 +423,7 @@ function FiltersConfigModal({
       )();
       resetForm(true);
     } else {
-      configFormRef.current.changeTab('configuration');
+      configFormRef.current?.changeTab?.('configuration');
     }
   };
 

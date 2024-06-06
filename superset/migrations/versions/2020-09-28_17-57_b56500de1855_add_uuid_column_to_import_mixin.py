@@ -68,7 +68,7 @@ table_names = [
     "slice_email_schedules",
 ]
 models = {
-    table_name: type(table_name, (Base, ImportMixin), {"__tablename__": table_name})
+    table_name: type(table_name, (ImportMixin, Base), {"__tablename__": table_name})
     for table_name in table_names
 }
 

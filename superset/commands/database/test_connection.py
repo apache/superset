@@ -32,7 +32,10 @@ from superset.commands.database.exceptions import (
     DatabaseTestConnectionDriverError,
     DatabaseTestConnectionUnexpectedError,
 )
-from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelingNotEnabledError
+from superset.commands.database.ssh_tunnel.exceptions import (
+    SSHTunnelDatabasePortError,
+    SSHTunnelingNotEnabledError,
+)
 from superset.daos.database import DatabaseDAO, SSHTunnelDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
@@ -61,20 +64,22 @@ def get_log_connection_action(
 
 
 class TestConnectionDatabaseCommand(BaseCommand):
+    _model: Optional[Database] = None
+    _context: dict[str, Any]
+    _uri: str
+
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
-        self._model: Optional[Database] = None
 
-    def run(self) -> None:  # pylint: disable=too-many-statements, too-many-branches
-        self.validate()
-        ex_str = ""
+        if (database_name := self._properties.get("database_name")) is not None:
+            self._model = DatabaseDAO.get_database_by_name(database_name)
+
         uri = self._properties.get("sqlalchemy_uri", "")
         if self._model and uri == self._model.safe_sqlalchemy_uri():
             uri = self._model.sqlalchemy_uri_decrypted
-        ssh_tunnel = self._properties.get("ssh_tunnel")
 
-        # context for error messages
         url = make_url_safe(uri)
+
         context = {
             "hostname": url.host,
             "password": url.password,
@@ -82,6 +87,14 @@ class TestConnectionDatabaseCommand(BaseCommand):
             "username": url.username,
             "database": url.database,
         }
+
+        self._context = context
+        self._uri = uri
+
+    def run(self) -> None:  # pylint: disable=too-many-statements
+        self.validate()
+        ex_str = ""
+        ssh_tunnel = self._properties.get("ssh_tunnel")
 
         serialized_encrypted_extra = self._properties.get(
             "masked_encrypted_extra",
@@ -103,15 +116,12 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 encrypted_extra=serialized_encrypted_extra,
             )
 
-            database.set_sqlalchemy_uri(uri)
+            database.set_sqlalchemy_uri(self._uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
             # Generate tunnel if present in the properties
             if ssh_tunnel:
-                if not is_feature_enabled("SSH_TUNNELING"):
-                    raise SSHTunnelingNotEnabledError()
-                # If there's an existing tunnel for that DB we need to use the stored
-                # password, private_key and private_key_password instead
+                # unmask password while allowing for updated values
                 if ssh_tunnel_id := ssh_tunnel.pop("id", None):
                     if existing_ssh_tunnel := SSHTunnelDAO.find_by_id(ssh_tunnel_id):
                         ssh_tunnel = unmask_password_info(
@@ -186,7 +196,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             # check for custom errors (wrong username, wrong password, etc)
-            errors = database.db_engine_spec.extract_errors(ex, context)
+            errors = database.db_engine_spec.extract_errors(ex, self._context)
             raise SupersetErrorsException(errors) from ex
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
@@ -221,9 +231,12 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 ),
                 engine=database.db_engine_spec.__name__,
             )
-            errors = database.db_engine_spec.extract_errors(ex, context)
+            errors = database.db_engine_spec.extract_errors(ex, self._context)
             raise DatabaseTestConnectionUnexpectedError(errors) from ex
 
     def validate(self) -> None:
-        if (database_name := self._properties.get("database_name")) is not None:
-            self._model = DatabaseDAO.get_database_by_name(database_name)
+        if self._properties.get("ssh_tunnel"):
+            if not is_feature_enabled("SSH_TUNNELING"):
+                raise SSHTunnelingNotEnabledError()
+            if not self._context.get("port"):
+                raise SSHTunnelDatabasePortError()

@@ -10,7 +10,7 @@ version: 1
 ### Jinja Templates
 
 SQL Lab and Explore supports [Jinja templating](https://jinja.palletsprojects.com/en/2.11.x/) in queries.
-To enable templating, the `ENABLE_TEMPLATE_PROCESSING` [feature flag](https://superset.apache.org/docs/installation/configuring-superset#feature-flags) needs to be enabled in
+To enable templating, the `ENABLE_TEMPLATE_PROCESSING` [feature flag](/docs/installation/configuring-superset#feature-flags) needs to be enabled in
 `superset_config.py`. When templating is enabled, python code can be embedded in virtual datasets and
 in Custom SQL in the filter and metric controls in Explore. By default, the following variables are
 made available in the Jinja context:

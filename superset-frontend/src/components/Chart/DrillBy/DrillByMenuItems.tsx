@@ -107,15 +107,13 @@ export const DrillByMenuItems = ({
     setSearchInput('');
   }, [columns.length]);
 
-  const hasDrillBy =
-    ensureIsArray(drillByConfig?.filters).length &&
-    drillByConfig?.groupbyFieldName;
+  const hasDrillBy = drillByConfig?.groupbyFieldName;
 
   const handlesDimensionContextMenu = useMemo(
     () =>
       getChartMetadataRegistry()
         .get(formData.viz_type)
-        ?.behaviors.find(behavior => behavior === Behavior.DRILL_BY),
+        ?.behaviors.find(behavior => behavior === Behavior.DrillBy),
     [formData.viz_type],
   );
   const verboseMap = useVerboseMap(dataset);

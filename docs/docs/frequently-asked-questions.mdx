@@ -1,7 +1,7 @@
 ---
 title: Frequently Asked Questions
 hide_title: true
-sidebar_position: 7
+sidebar_position: 8
 ---
 
 ## Frequently Asked Questions
@@ -154,14 +154,14 @@ Table schemas evolve, and Superset needs to reflect that. It’s pretty common i
 dashboard to want to add a new dimension or metric. To get Superset to discover your new columns,
 all you have to do is to go to **Data -> Datasets**, click the edit icon next to the dataset
 whose schema has changed, and hit **Sync columns from source** from the **Columns** tab.
-Behind the scene, the new columns will get merged it. Following this, you may want to re-edit the
+Behind the scene, the new columns will get merged. Following this, you may want to re-edit the
 table afterwards to configure the Columns tab, check the appropriate boxes and save again.
 
 ### What database engine can I use as a backend for Superset?
 
 To clarify, the database backend is an OLTP database used by Superset to store its internal
 information like your list of users and dashboard definitions. While Superset supports a
-[variety of databases as data *sources*](https://superset.apache.org/docs/databases/installing-database-drivers/),
+[variety of databases as data *sources*](/docs/databases/installing-database-drivers/),
 only a few database engines are supported for use as the OLTP backend / metadata store.
 
 Superset is tested using MySQL, PostgreSQL, and SQLite backends. It’s recommended you install
@@ -174,10 +174,6 @@ non-OLTP databases are not designed for this type of workload.
 
 You can take a look at this Flask-AppBuilder
 [configuration example](https://github.com/dpgaspar/Flask-AppBuilder/blob/master/examples/oauth/config.py).
-
-### How can I set a default filter on my dashboard?
-
-Simply apply the filter and save the dashboard while the filter is active.
 
 ### Is there a way to force the dashboard to use specific colors?
 
@@ -220,7 +216,7 @@ and write your own connector. The only example of this at the moment is the Drui
 is getting superseded by Druid’s growing SQL support and the recent availability of a DBAPI and
 SQLAlchemy driver. If the database you are considering integrating has any kind of of SQL support,
 it’s probably preferable to go the SQLAlchemy route. Note that for a native connector to be possible
-the database needs to have support for running OLAP-type queries and should be able to things that
+the database needs to have support for running OLAP-type queries and should be able to do things that
 are typical in basic SQL:
 
 - aggregate data
@@ -268,8 +264,10 @@ This can be used, for example, to convert UTC time to local time.
 ### Does Superset collect any telemetry data?
 
 Superset uses [Scarf](https://about.scarf.sh/) by default to collect basic telemetry data upon installing and/or running Superset. This data helps the maintainers of Superset better understand which versions of Superset are being used, in order to prioritize patch/minor releases and security fixes.
-We use the [Scarf Gateway](https://docs.scarf.sh/gateway/) to sit in front of container registries, and the [scarf-js](https://about.scarf.sh/package-sdks) package to track `npm` installations.
-Scarf purges PII and provides aggregated statistics. Superset users can easily opt out of analytics in various ways documented [here](https://docs.scarf.sh/gateway/#do-not-track) and [here](https://docs.scarf.sh/package-analytics/#as-a-user-of-a-package-using-scarf-js-how-can-i-opt-out-of-analytics). Additional opt-out instructions for Docker users are available on the [Docker Installation](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose) page.
+We use the [Scarf Gateway](https://docs.scarf.sh/gateway/) to sit in front of container registries, the [scarf-js](https://about.scarf.sh/package-sdks) package to track `npm` installations, and a Scarf pixel to gather anonymous analytics on Superset page views.
+Scarf purges PII and provides aggregated statistics. Superset users can easily opt out of analytics in various ways documented [here](https://docs.scarf.sh/gateway/#do-not-track) and [here](https://docs.scarf.sh/package-analytics/#as-a-user-of-a-package-using-scarf-js-how-can-i-opt-out-of-analytics).
+Superset maintainers can also opt out of telemetry data collection by setting the `SCARF_ANALYTICS` environment variable to `false` in the Superset container (or anywhere Superset/webpack are run).
+Additional opt-out instructions for Docker users are available on the [Docker Installation](/docs/installation/installing-superset-using-docker-compose) page.
 
 ### Does Superset have an archive panel or trash bin from which a user can recover deleted assets?
 

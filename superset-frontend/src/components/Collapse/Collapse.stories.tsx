@@ -59,13 +59,8 @@ InteractiveCollapse.argTypes = {
   },
 };
 
-InteractiveCollapse.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+InteractiveCollapse.parameters = {
+  actions: {
+    disable: true,
   },
 };

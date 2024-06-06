@@ -20,7 +20,6 @@ import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ColumnMeta,
   ControlPanelConfig,
-  sections,
   sharedControls,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
@@ -41,7 +40,6 @@ import {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

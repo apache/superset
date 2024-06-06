@@ -205,7 +205,7 @@ export default function transformProps(
   ) {
     xAxisLabel = verboseMap[xAxisLabel];
   }
-  const isHorizontal = orientation === OrientationType.horizontal;
+  const isHorizontal = orientation === OrientationType.Horizontal;
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
@@ -219,7 +219,7 @@ export default function transformProps(
     getMetricLabel,
   );
 
-  const isMultiSeries = groupby.length || metrics.length > 1;
+  const isMultiSeries = groupby?.length || metrics?.length > 1;
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -297,7 +297,7 @@ export default function transformProps(
           : getCustomFormatter(
               customFormatters,
               metrics,
-              labelMap[seriesName]?.[0],
+              labelMap?.[seriesName]?.[0],
             ) ?? defaultFormatter,
         showValue,
         onlyTotal,
@@ -411,11 +411,11 @@ export default function transformProps(
   }
 
   const tooltipFormatter =
-    xAxisDataType === GenericDataType.TEMPORAL
+    xAxisDataType === GenericDataType.Temporal
       ? getTooltipTimeFormatter(tooltipTimeFormat)
       : String;
   const xAxisFormatter =
-    xAxisDataType === GenericDataType.TEMPORAL
+    xAxisDataType === GenericDataType.Temporal
       ? getXAxisFormatter(xAxisTimeFormat)
       : String;
 
@@ -462,7 +462,7 @@ export default function transformProps(
     },
     minorTick: { show: minorTicks },
     minInterval:
-      xAxisType === AxisType.time && timeGrainSqla
+      xAxisType === AxisType.Time && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
     ...getMinAndMaxFromBounds(
@@ -476,7 +476,7 @@ export default function transformProps(
 
   let yAxis: any = {
     ...defaultYAxis,
-    type: logAxis ? AxisType.log : AxisType.value,
+    type: logAxis ? AxisType.Log : AxisType.Value,
     min: yAxisMin,
     max: yAxisMax,
     minorTick: { show: minorTicks },

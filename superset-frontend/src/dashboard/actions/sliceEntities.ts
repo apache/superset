@@ -17,13 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
-import {
-  DatasourceType,
-  isFeatureEnabled,
-  FeatureFlag,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { DatasourceType, SupersetClient, t } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { Dispatch } from 'redux';
@@ -113,14 +107,6 @@ export function fetchSlices(
     }[] = filter_value
       ? [{ col: 'slice_name', opr: 'chart_all_text', value: filter_value }]
       : [];
-
-    if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
-      filters.push({
-        col: 'viz_type',
-        opr: 'neq',
-        value: 'filter_box',
-      });
-    }
 
     if (userId) {
       filters.push({ col: 'owners', opr: 'rel_m_m', value: userId });

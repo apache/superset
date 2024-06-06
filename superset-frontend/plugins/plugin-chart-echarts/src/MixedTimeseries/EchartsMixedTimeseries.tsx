@@ -142,7 +142,7 @@ export default function EchartsMixedTimeseries({
           ...(eventParams.name ? [eventParams.name] : []),
           ...(isFirst ? labelMap : labelMapB)[eventParams.seriesName],
         ];
-        if (data && xAxis.type === AxisType.time) {
+        if (data && xAxis.type === AxisType.Time) {
           drillToDetailFilters.push({
             col:
               xAxis.label === DTTM_ALIAS
@@ -155,7 +155,7 @@ export default function EchartsMixedTimeseries({
           });
         }
         [
-          ...(data && xAxis.type === AxisType.category ? [xAxis.label] : []),
+          ...(data && xAxis.type === AxisType.Category ? [xAxis.label] : []),
           ...(isFirst ? formData.groupby : formData.groupbyB),
         ].forEach((dimension, i) =>
           drillToDetailFilters.push({

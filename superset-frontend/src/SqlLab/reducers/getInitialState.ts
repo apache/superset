@@ -64,6 +64,7 @@ export default function getInitialState({
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     hideLeftBar: false,
     remoteId: null,
+    cursorPosition: { row: 0, column: 0 },
   };
   let unsavedQueryEditor: UnsavedQueryEditor = {};
 
@@ -75,7 +76,7 @@ export default function getInitialState({
     let queryEditor: QueryEditor;
     if (activeTab && activeTab.id === id) {
       queryEditor = {
-        version: activeTab.extra_json?.version ?? QueryEditorVersion.v1,
+        version: activeTab.extra_json?.version ?? QueryEditorVersion.V1,
         id: id.toString(),
         loaded: true,
         name: activeTab.label,
@@ -135,7 +136,12 @@ export default function getInitialState({
       });
   }
 
-  const queries = { ...queries_ };
+  const queries = {
+    ...queries_,
+    ...(activeTab?.latest_query && {
+      [activeTab.latest_query.id]: activeTab.latest_query,
+    }),
+  };
 
   /**
    * If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user

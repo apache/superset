@@ -55,8 +55,8 @@ export type Chart = ChartState & {
 };
 
 export enum FilterBarOrientation {
-  VERTICAL = 'VERTICAL',
-  HORIZONTAL = 'HORIZONTAL',
+  Vertical = 'VERTICAL',
+  Horizontal = 'HORIZONTAL',
 }
 
 // chart's cross filter scoping can have its custom value or point to the global configuration
@@ -170,7 +170,7 @@ export type Layout = { [key: string]: LayoutItem };
 export type Charts = { [key: number]: Chart };
 
 type ComponentTypesKeys = keyof typeof componentTypes;
-export type ComponentType = typeof componentTypes[ComponentTypesKeys];
+export type ComponentType = (typeof componentTypes)[ComponentTypesKeys];
 
 /** State of dashboardLayout item in redux */
 export type LayoutItem = {

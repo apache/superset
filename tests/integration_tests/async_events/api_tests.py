@@ -117,8 +117,6 @@ class TestAsyncEventApi(SupersetTestCase):
 
     def test_events_no_token(self):
         self.login(username="admin")
-        self.client.set_cookie(
-            "localhost", app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], ""
-        )
+        self.client.set_cookie(app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "")
         rv = self.fetch_events()
         assert rv.status_code == 401

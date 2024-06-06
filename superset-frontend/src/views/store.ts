@@ -108,7 +108,7 @@ const CombinedDatasourceReducers = (
   datasources: DatasourcesState | undefined | { [key: string]: Dataset },
   action: DatasourcesActionPayload | AnyDatasourcesAction | HydrateExplore,
 ) => {
-  if (action.type === DatasourcesAction.SET_DATASOURCES) {
+  if (action.type === DatasourcesAction.SetDatasources) {
     return dashboardDatasources(
       datasources as DatasourcesState | undefined,
       action as DatasourcesActionPayload,
