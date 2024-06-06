@@ -283,10 +283,10 @@ AUTH_RATE_LIMIT = "5 per second"
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = "Ortege"
 
 # Specify the App icon
-APP_ICON = "/static/assets/images/superset-logo-horiz.png"
+APP_ICON = "/static/assets/images/ortege-logo-horiz.png"
 
 # Specify where clicking the logo would take the user
 # e.g. setting it to '/' would take the user to '/superset/welcome/'
@@ -571,7 +571,16 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[
 #     }]
 
 # This is merely a default
-EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
+# EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
+EXTRA_CATEGORICAL_COLOR_SCHEMES = [{
+    "id": 'stacksColorSet',
+    "description": '',
+    "label": 'Stacks Color Schema',
+    "isDefault": True,
+    "colors":
+        ['#FB6331', '#264653', '#2A9D8F', '#E9C46A', '#F7DBA7', '#1E212B', '#4D8B31',
+        '#FFC800', '#FFFFFF', '#78E0DC', '#8EEDF7', '#9977BB', '#A1CDF1', '#555B6E']
+}]
 
 # THEME_OVERRIDES is used for adding custom theme to superset
 # example code for "My theme" custom scheme
@@ -1415,13 +1424,21 @@ TALISMAN_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://*.clarity.ms",
+            "https://c.bing.com",
         ],
         "object-src": "'none'",
         "style-src": [
             "'self'",
             "'unsafe-inline'",
         ],
-        "script-src": ["'self'", "'strict-dynamic'"],
+        "script-src": [
+            "'self'", 
+            "'strict-dynamic'", 
+            "https://*.clarity.ms", 
+            "https://c.bing.com", 
+            "'unsafe-inline'",
+        ],
     },
     "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
@@ -1444,13 +1461,21 @@ TALISMAN_DEV_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://*.clarity.ms",
+            "https://c.bing.com",
         ],
         "object-src": "'none'",
         "style-src": [
             "'self'",
             "'unsafe-inline'",
         ],
-        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        "script-src": [
+            "'self'", 
+            "'strict-dynamic'", 
+            "https://*.clarity.ms", 
+            "'unsafe-inline'",
+            "'unsafe-eval'"
+        ],
     },
     "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,

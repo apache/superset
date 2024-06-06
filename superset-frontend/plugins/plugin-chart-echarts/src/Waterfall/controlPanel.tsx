@@ -17,25 +17,27 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { hasGenericChartAxes, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlSubSectionHeader,
   D3_TIME_FORMAT_DOCS,
   DEFAULT_TIME_FORMAT,
   formatSelectOptions,
+  sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { showValueControl } from '../controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['x_axis'],
-        ['time_grain_sqla'],
+        [hasGenericChartAxes ? 'x_axis' : null],
+        [hasGenericChartAxes ? 'time_grain_sqla' : null],
         ['groupby'],
         ['metric'],
         ['adhoc_filters'],

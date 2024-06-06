@@ -378,6 +378,19 @@ function SavedQueryList({
         size: 'xl',
       },
       {
+        Cell: ({
+          row: {
+            original: {
+              changed_by: changedBy,
+              changed_on_delta_humanized: changedOn,
+            },
+          },
+        }: any) => <ModifiedInfo user={changedBy} date={changedOn} />,
+        Header: t('Last modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
+      },
+      {
         Cell: ({ row: { original } }: any) => {
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
