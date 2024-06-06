@@ -299,7 +299,7 @@ def check_sess_token():
             if session_user_id:
                 session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
                 session_user_username = session_user.username
-        if referrer and 'analytics-business' in referrer and b_id:
+        if referrer and ('analytics-business' in referrer or 'desk.eka.care' in referrer) and b_id:
         # if b_id and b_id != "10000" and b_id != "73701655395436":
             token_user_username = b_id + '@dummyanalytics.com'
         else:
