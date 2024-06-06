@@ -27,7 +27,6 @@ import LOADING_GIF from 'src/assets/images/ortege-logo.png';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
-import 'animate.css';
 
 /**
  * Enum defining CSS position options

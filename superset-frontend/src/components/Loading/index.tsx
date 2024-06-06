@@ -20,7 +20,6 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
-import 'animate.css';
 import Loader from 'src/assets/images/ortege-logo.png';
 
 export type PositionOption =
