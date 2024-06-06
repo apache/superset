@@ -78,7 +78,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, db
 from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
@@ -681,7 +681,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
             pvs = (
-                security_manager.get_session.query(
+                db.session.query(
                     security_manager.permissionview_model
                 )
                 .filter_by(view_menu=view_menu)
@@ -692,14 +692,14 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
                 self.post_delete(item)
 
                 for pv in pvs:
-                    security_manager.get_session.delete(pv)
+                    db.session.delete(pv)
 
                 if view_menu:
-                    security_manager.get_session.delete(view_menu)
+                    db.session.delete(view_menu)
 
-                security_manager.get_session.commit()
+                db.session.commit()
 
-            flash(*self.datamodel.message)
+            flash("Deleted Row", "info")
             self.update_redirect()
 
     @action(

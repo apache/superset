@@ -22,13 +22,14 @@ from flask_appbuilder import Model
 from marshmallow import post_load, pre_load, Schema, ValidationError
 from sqlalchemy.exc import NoResultFound
 
+from superset.extensions import db
 from superset.utils.core import get_user_id
 
 
 def validate_owner(value: int) -> None:
     try:
         (
-            current_app.appbuilder.get_session.query(
+            db.session.query(
                 current_app.appbuilder.sm.user_model.id
             )
             .filter_by(id=value)
@@ -120,7 +121,7 @@ class BaseOwnedSchema(BaseSupersetSchema):
         if user_id and user_id not in owners:
             owners.append(user_id)
         for owner_id in owners:
-            user = current_app.appbuilder.get_session.query(
+            user = db.session.query(
                 current_app.appbuilder.sm.user_model
             ).get(owner_id)
             owner_objs.append(user)

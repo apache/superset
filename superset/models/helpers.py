@@ -1744,12 +1744,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # Expected output columns
         labels_expected = [c.key for c in select_exprs]
 
-        # Order by columns are "hidden" columns, some databases require them
-        # always be present in SELECT if an aggregation function is used
+        # Order by columns are "hidden" columns, some databases always require them
+        # to be present in SELECT if an aggregation function is used
         if not db_engine_spec.allows_hidden_orderby_agg:
             select_exprs = remove_duplicates(select_exprs + orderby_exprs)
 
-        qry = sa.select(select_exprs)
+        qry = sa.select(*select_exprs)
 
         tbl, cte = self.get_from_clause(template_processor)
 
@@ -2021,7 +2021,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     inner_select_exprs.append(inner)
 
                 inner_select_exprs += [inner_main_metric_expr]
-                subq = sa.select(inner_select_exprs).select_from(tbl)
+                subq = sa.select(*inner_select_exprs).select_from(tbl)
                 inner_time_filter = []
 
                 if dttm_col and not db_engine_spec.time_groupby_inline:

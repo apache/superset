@@ -53,6 +53,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
 from superset.constants import RouteMethod
+from superset.extensions import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
@@ -2446,7 +2447,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_roles = [role.id for role in self.get_user_roles(g.user)]
         regular_filter_roles = (
-            self.get_session()
+            db.session()
             .query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
@@ -2455,7 +2456,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
         base_filter_roles = (
-            self.get_session()
+            db.session
             .query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
@@ -2464,12 +2465,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
         filter_tables = (
-            self.get_session()
+            db.session
             .query(RLSFilterTables.c.rls_filter_id)
             .filter(RLSFilterTables.c.table_id == table.id)
         )
         query = (
-            self.get_session()
+            db.session
             .query(
                 RowLevelSecurityFilter.id,
                 RowLevelSecurityFilter.group_key,

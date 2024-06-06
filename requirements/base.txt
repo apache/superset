@@ -235,7 +235,7 @@ packaging==23.2
     #   marshmallow
     #   marshmallow-sqlalchemy
     #   shillelagh
-pandas[performance]==2.0.3
+pandas[performance]==2.2.2
     # via apache-superset
 paramiko==3.4.0
     # via

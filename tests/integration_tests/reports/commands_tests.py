@@ -24,7 +24,6 @@ import pytest
 from flask import current_app
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
-from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
 from slack_sdk.errors import (
     BotUserAccessError,
@@ -37,6 +36,7 @@ from slack_sdk.errors import (
     SlackTokenRotationError,
 )
 from sqlalchemy.sql import func
+from sqlalchemy.orm import Query
 
 from superset import db
 from superset.commands.report.exceptions import (
@@ -108,7 +108,7 @@ def get_target_from_report_schedule(report_schedule: ReportSchedule) -> list[str
     ]
 
 
-def get_error_logs_query(report_schedule: ReportSchedule) -> BaseQuery:
+def get_error_logs_query(report_schedule: ReportSchedule) -> Query:
     return (
         db.session.query(ReportExecutionLog)
         .filter(

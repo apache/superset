@@ -32,6 +32,7 @@ import pytest
 
 import flask  # noqa: F401
 from flask import current_app, has_app_context  # noqa: F401
+from sqlalchemy import text
 
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
@@ -115,7 +116,8 @@ def drop_table_if_exists(table_name: str, table_type: CtasMethod) -> None:
     sql = f"DROP {table_type} IF EXISTS {table_name}"
     database = get_example_database()
     with database.get_sqla_engine() as engine:
-        engine.execute(sql)
+        with engine.connect() as connection:
+            connection.execute(text(sql))
 
 
 def quote_f(value: Optional[str]):
