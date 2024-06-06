@@ -46,9 +46,9 @@ const AnnotationLayer = AsyncEsmComponent(
 export interface Annotation {
   name: string;
   show?: boolean;
-  annotation: any;
-  timeout: any;
-  key: any;
+  annotation: string;
+  timeout: Date;
+  key: string;
   formData?: any;
   isDashboardRequest?: boolean;
   force?: boolean;
@@ -80,7 +80,7 @@ const defaultProps = {
   value: [],
   annotationError: {},
   annotationQuery: {},
-  onChange: () => {},
+  onChange: () => { },
 };
 class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
   static defaultProps = defaultProps;
@@ -125,7 +125,7 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
         anno === originalAnnotation ? newAnnotation : anno,
       );
     } else {
-      annotations = [...annotations, newAnnotation];
+      annotations = [ ...annotations, newAnnotation ];
       this.setState({ addedAnnotationIndex: annotations.length - 1 });
     }
 
@@ -139,11 +139,11 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
 
   handleVisibleChange = (visible: boolean, popoverKey: number | string) => {
     this.setState(prevState => ({
-      popoverVisible: { ...prevState.popoverVisible, [popoverKey]: visible },
+      popoverVisible: { ...prevState.popoverVisible, [ popoverKey ]: visible },
     }));
   };
 
-  removeAnnotationLayer(annotation: Annotation) {
+  removeAnnotationLayer(annotation: Annotation | undefined) {
     const annotations = this.props.value.filter(anno => anno !== annotation);
     // So scrollbar doesnt get stuck on hidden
     const element = getSectionContainerElement();
@@ -155,7 +155,7 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
 
   renderPopover = (
     popoverKey: number | string,
-    annotation: Annotation | undefined,
+    annotation: Annotation,
     error: string,
   ) => {
     const id = annotation?.name || '_new';
@@ -163,7 +163,7 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
     return (
       <div id={`annotation-pop-${id}`} data-test="popover-content">
         <AnnotationLayer
-          {...annotation}
+          {...(annotation || {})}
           error={error}
           colorScheme={this.props.colorScheme}
           vizType={this.props.vizType}
@@ -182,7 +182,7 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
 
   renderInfo(anno: Annotation) {
     const { annotationError, annotationQuery, theme } = this.props;
-    if (annotationQuery[anno.name]) {
+    if (annotationQuery[ anno.name ]) {
       return (
         <i
           className="fa fa-refresh"
@@ -191,12 +191,12 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
         />
       );
     }
-    if (annotationError[anno.name]) {
+    if (annotationError[ anno.name ]) {
       return (
         <InfoTooltipWithTrigger
           label="validation-errors"
           bsStyle="danger"
-          tooltip={annotationError[anno.name]}
+          tooltip={annotationError[ anno.name ]}
         />
       );
     }
@@ -208,8 +208,7 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
 
   render() {
     const { addedAnnotationIndex } = this.state;
-    const addedAnnotation = this.props.value[addedAnnotationIndex];
-
+    const addedAnnotation = addedAnnotationIndex ? this.props.value[ addedAnnotationIndex ] : null;
     const annotations = this.props.value.map((anno, i) => (
       <ControlPopover
         key={i}
@@ -224,9 +223,9 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
         content={this.renderPopover(
           i,
           anno,
-          this.props.annotationError[anno.name],
+          this.props.annotationError[ anno.name ],
         )}
-        visible={this.state.popoverVisible[i]}
+        visible={this.state.popoverVisible[ i ]}
         onVisibleChange={visible => this.handleVisibleChange(visible, i)}
       >
         <CustomListItem selectable>
@@ -235,34 +234,36 @@ class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
         </CustomListItem>
       </ControlPopover>
     ));
-
     const addLayerPopoverKey = 'add';
     return (
       <div>
         <List bordered css={theme => ({ borderRadius: theme.gridUnit })}>
           {annotations}
-          <ControlPopover
-            trigger="click"
-            content={this.renderPopover(
-              addLayerPopoverKey,
-              addedAnnotation,
-              '',
-            )}
-            title={t('Add annotation layer')}
-            visible={this.state.popoverVisible[addLayerPopoverKey]}
-            destroyTooltipOnHide
-            onVisibleChange={visible =>
-              this.handleVisibleChange(visible, addLayerPopoverKey)
-            }
-          >
-            <CustomListItem selectable>
-              <i
-                data-test="add-annotation-layer-button"
-                className="fa fa-plus"
-              />{' '}
-              &nbsp; {t('Add annotation layer')}
-            </CustomListItem>
-          </ControlPopover>
+          {addedAnnotation && (
+            <ControlPopover
+              trigger="click"
+              content={this.renderPopover(
+                addLayerPopoverKey,
+                addedAnnotation,
+                '',
+              )}
+              title={t('Add annotation layer')}
+              visible={this.state.popoverVisible[ addLayerPopoverKey ]}
+              destroyTooltipOnHide
+              onVisibleChange={visible =>
+                this.handleVisibleChange(visible, addLayerPopoverKey)
+              }
+            >
+              <CustomListItem selectable>
+                <i
+                  data-test="add-annotation-layer-button"
+                  className="fa fa-plus"
+                />{' '}
+                &nbsp; {t('Add annotation layer')}
+              </CustomListItem>
+            </ControlPopover>
+          )}
+
         </List>
       </div>
     );
@@ -283,7 +284,7 @@ function mapStateToProps({
   };
 
   const chart =
-    chartKey && charts[chartKey] ? charts[chartKey] : defaultChartState;
+    chartKey && charts[ chartKey ] ? charts[ chartKey ] : defaultChartState;
 
   return {
     colorScheme: explore.controls?.color_scheme?.value,
