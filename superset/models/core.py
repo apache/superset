@@ -116,9 +116,7 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(
-    Model, AuditMixinNullable, ImportExportMixin
-):  # pylint: disable=too-many-public-methods
+class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -392,7 +390,9 @@ class Database(
         return (
             username
             if (username := get_username())
-            else object_url.username if self.impersonate_user else None
+            else object_url.username
+            if self.impersonate_user
+            else None
         )
 
     @contextmanager
@@ -1074,8 +1074,8 @@ class Database(
         admins to create custom OAuth2 clients from the Superset UI, and assign them to
         specific databases.
         """
-        config = json.loads(self.encrypted_extra or "{}")
-        oauth2_client_info = config.get("oauth2_client_info", {})
+        encrypted_extra = json.loads(self.encrypted_extra or "{}")
+        oauth2_client_info = encrypted_extra.get("oauth2_client_info", {})
         return bool(oauth2_client_info) or self.db_engine_spec.is_oauth2_enabled()
 
     def get_oauth2_config(self) -> OAuth2ClientConfig | None:
@@ -1087,8 +1087,8 @@ class Database(
         admins to create custom OAuth2 clients from the Superset UI, and assign them to
         specific databases.
         """
-        config = json.loads(self.encrypted_extra or "{}")
-        if oauth2_client_info := config.get("oauth2_client_info"):
+        encrypted_extra = json.loads(self.encrypted_extra or "{}")
+        if oauth2_client_info := encrypted_extra.get("oauth2_client_info"):
             schema = OAuth2ClientConfigSchema()
             client_config = schema.load(oauth2_client_info)
             return cast(OAuth2ClientConfig, client_config)
