@@ -16,5 +16,6 @@
 
 # Ortege specific packages
 apache-superset[databricks]
-prophet==1.1.3
 postmarker==1.0
+prophet==1.1.3
+pydoris==1.0.5.3
