@@ -27,7 +27,7 @@ import {
   UnsavedQueryEditor,
 } from 'src/SqlLab/types';
 import {
-  useUpdateCurrentQueryEditorMutation,
+  useUpdateCurrentSqlEditorTabMutation,
   useUpdateSqlEditorTabMutation,
 } from 'src/hooks/apiResources/sqlEditorTabs';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
@@ -83,7 +83,7 @@ const EditorAutoSync: FC = () => {
     ({ sqlLab }) => sqlLab.lastUpdatedActiveTab,
   );
   const [updateSqlEditor, { error }] = useUpdateSqlEditorTabMutation();
-  const [updateCurrentSqlEditor] = useUpdateCurrentQueryEditorMutation();
+  const [updateCurrentSqlEditor] = useUpdateCurrentSqlEditorTabMutation();
 
   const debouncedUnsavedQueryEditor = useDebounceValue(
     unsavedQueryEditor,

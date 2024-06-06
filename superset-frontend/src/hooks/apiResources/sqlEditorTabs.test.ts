@@ -25,7 +25,7 @@ import {
 import { api } from 'src/hooks/apiResources/queryApi';
 import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import {
-  useUpdateCurrentQueryEditorMutation,
+  useUpdateCurrentSqlEditorTabMutation,
   useUpdateSqlEditorTabMutation,
 } from './sqlEditorTabs';
 
@@ -105,7 +105,7 @@ test('posts activate request with queryEditorId', async () => {
   const tabStateMutationApiRoute = `glob:*/tabstateview/${expectedQueryEditor.id}/activate`;
   fetchMock.post(tabStateMutationApiRoute, 200);
   const { result, waitFor } = renderHook(
-    () => useUpdateCurrentQueryEditorMutation(),
+    () => useUpdateCurrentSqlEditorTabMutation(),
     {
       wrapper: createWrapper({
         useRedux: true,
