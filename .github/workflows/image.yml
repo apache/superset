@@ -46,6 +46,7 @@ jobs:
         env:
           DOCKERHUB_USER: ${{ secrets.CR_USERNAME }}
           DOCKERHUB_REPO: ${{ secrets.CR_ENDPOINT }}/ortege/studio
+          MAIN_BRANCH: ortege
         run: |
           pip install click
           ./scripts/build_docker.py ${{ matrix.build_preset }} ${{ github.event_name }} --platform ${{ matrix.platform }}

@@ -27,6 +27,7 @@ REPO = os.getenv("DOCKERHUB_REPO", "apache/superset")
 CACHE_REPO = f"{REPO}-cache"
 BASE_PY_IMAGE = "3.9-slim-bookworm"
 
+MAIN_BRANCH = os.getenv("MAIN_BRANCH", "master")
 
 def run_cmd(command: str, raise_on_failure: bool = True) -> str:
     process = subprocess.Popen(
@@ -124,8 +125,8 @@ def get_docker_tags(
         if is_latest or force_latest:
             # add a latest tag
             tags.add(make_docker_tag(["latest"] + tag_chunks))
-    elif build_context == "push" and build_context_ref == "master":
-        tags.add(make_docker_tag(["master"] + tag_chunks))
+    elif build_context == "push" and build_context_ref == MAIN_BRANCH:
+        tags.add(make_docker_tag([MAIN_BRANCH] + tag_chunks))
     elif build_context == "pull_request":
         tags.add(make_docker_tag([f"pr-{build_context_ref}"] + tag_chunks))
     return tags
