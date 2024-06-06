@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect'; // For advanced DOM assertions
 import { CurrentCalendarFrame } from '../components/CurrentCalendarFrame';
