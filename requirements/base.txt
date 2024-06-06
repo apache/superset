@@ -6,7 +6,7 @@
 #    pip-compile-multi
 #
 -e file:.
-autlib
+authlib
     # via -r requirements/base.in
 alembic==1.13.1
     # via flask-migrate

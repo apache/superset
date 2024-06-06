@@ -145,7 +145,7 @@ AUTH_TYPE = AUTH_OAUTH
 ENABLE_PROXY_FIX = True
 AUTH_USER_REGISTRATION = True
 AUTH_USER_REGISTRATION_ROLE = "Gamma"
-AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(['lautaro@datakimia.com', 'user2@domain.com'], email) && 'Admin' || 'Viewer'"
+AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(['lautaro@datakimia.com', 'user2@domain.com'], email) && 'Admin' || 'Alpha'"
 AUTH_ROLES_MAPPING = {
 "superset_users": ["Gamma","Alpha"],
 "superset_admins": ["Admin"],
@@ -172,15 +172,14 @@ OAUTH_PROVIDERS = [
 }]
 
 # Enable CORS 
-
 ENABLE_CORS = True
 CORS_OPTIONS = {
-    'origins': [
-        'http://localhost:3000',  # Replace with your frontend domain(s)
-    ],
-    'supports_credentials': True,
-    "allow_headers": ["*"], 
-    "resources": ["*"],    
+    'origins': [
+        'http://localhost:3000', # Replace with your frontend domain(s)
+    ],
+    'supports_credentials': True,
+    "allow_headers": ["*"],
+    "resources": ["*"],
 }
 
 HTTP_HEADERS = {"X-Frame-Options": "ALLOWALL"} 
