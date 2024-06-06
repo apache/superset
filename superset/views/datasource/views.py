@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from collections import Counter
 from typing import Any
 
@@ -56,6 +57,8 @@ from superset.views.datasource.schemas import (
 )
 from superset.views.datasource.utils import get_samples
 from superset.views.utils import sanitize_datasource_data
+
+logger = logging.getLogger(__name__)
 
 
 class Datasource(BaseSupersetView):
@@ -146,6 +149,7 @@ class Datasource(BaseSupersetView):
         try:
             external_metadata = datasource.external_metadata()
         except SupersetException as ex:
+            logger.error(ex)
             return json_error_response(str(ex), status=400)
         return self.json_response(external_metadata)
 

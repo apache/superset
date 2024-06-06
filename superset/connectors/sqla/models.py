@@ -305,15 +305,13 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     def get_sqla_col(
         self,
         label: str | None = None,
-        template_processor: BaseTemplateProcessor | None = None,
     ) -> Column:
         label = label or self.column_name
         db_engine_spec = self.db_engine_spec
         column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else None
         if expression := self.expression:
-            if template_processor:
-                expression = template_processor.process_template(expression)
+            expression = self.table.render_sql(expression)
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -328,14 +326,12 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         self,
         time_grain: str | None,
         label: str | None = None,
-        template_processor: BaseTemplateProcessor | None = None,
     ) -> TimestampExpression | Label:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
 
         :param time_grain: Optional time grain, e.g. P1Y
         :param label: alias/label that column is expected to have
-        :param template_processor: template processor
         :return: A TimeExpression object wrapped in a Label if supported by db
         """
         label = label or utils.DTTM_ALIAS
@@ -350,8 +346,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             sqla_col = column(self.column_name, type_=type_)
             return self.database.make_sqla_column_compatible(sqla_col, label)
         if expression := self.expression:
-            if template_processor:
-                expression = template_processor.process_template(expression)
+            expression = self.table.render_sql(expression)
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -426,12 +421,10 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     def get_sqla_col(
         self,
         label: str | None = None,
-        template_processor: BaseTemplateProcessor | None = None,
     ) -> Column:
         label = label or self.metric_name
         expression = self.expression
-        if template_processor:
-            expression = template_processor.process_template(expression)
+        expression = self.table.render_sql(expression)
 
         sqla_col: ColumnClause = literal_column(expression)
         return self.table.database.make_sqla_column_compatible(sqla_col, label)
@@ -1233,13 +1226,8 @@ class Dataset(
 
     def get_fetch_values_predicate(
         self,
-        template_processor: BaseTemplateProcessor | None = None,
     ) -> TextClause:
-        fetch_values_predicate = self.fetch_values_predicate
-        if template_processor:
-            fetch_values_predicate = template_processor.process_template(
-                fetch_values_predicate
-            )
+        fetch_values_predicate = self.render_sql(self.fetch_values_predicate)
         try:
             return self.text(fetch_values_predicate)
         except TemplateError as ex:
@@ -1250,8 +1238,12 @@ class Dataset(
                 )
             ) from ex
 
-    def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
-        return get_template_processor(table=self, database=self.database, **kwargs)
+    def render_sql(self, sql: str, **kwargs: Any) -> str:
+        return self.database.render_sql(sql, **self.template_params_dict)
+
+    @property
+    def template_params_dict(self) -> dict[Any, Any]:
+        return json.json_to_dict(self.template_params)
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         query_str_ext = self.get_query_str_extended(query_obj)
@@ -1264,9 +1256,7 @@ class Dataset(
             tbl.schema = self.schema
         return tbl
 
-    def get_from_clause(
-        self, template_processor: BaseTemplateProcessor | None = None
-    ) -> tuple[TableClause | Alias, str | None]:
+    def get_from_clause(self) -> tuple[TableClause | Alias, str | None]:
         """
         Return where to select the columns and metrics from. Either a physical table
         or a virtual table with it's own subquery. If the FROM is referencing a
@@ -1275,7 +1265,7 @@ class Dataset(
         if not self.is_virtual:
             return self.get_sqla_table(), None
 
-        from_sql = self.get_rendered_sql(template_processor)
+        from_sql = self.get_rendered_sql()
         parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
         if not (
             parsed_query.is_unknown()
@@ -1298,14 +1288,12 @@ class Dataset(
         self,
         metric: AdhocMetric,
         columns_by_name: dict[str, TableColumn],
-        template_processor: BaseTemplateProcessor | None = None,
     ) -> ColumnElement:
         """
         Turn an adhoc metric into a sqlalchemy column.
 
         :param dict metric: Adhoc metric definition
         :param dict columns_by_name: Columns for the current table
-        :param template_processor: template_processor instance
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
@@ -1317,9 +1305,7 @@ class Dataset(
             column_name = cast(str, metric_column.get("column_name"))
             table_column: TableColumn | None = columns_by_name.get(column_name)
             if table_column:
-                sqla_column = table_column.get_sqla_col(
-                    template_processor=template_processor
-                )
+                sqla_column = table_column.get_sqla_col()
             else:
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
@@ -1328,7 +1314,9 @@ class Dataset(
                 expression=metric["sqlExpression"],
                 database_id=self.database_id,
                 schema=self.schema,
-                template_processor=template_processor,
+                template_processor=get_template_processor(
+                    table=self, database=self.database
+                ),
             )
             sqla_metric = literal_column(expression)
         else:
@@ -1340,7 +1328,6 @@ class Dataset(
         self,
         col: AdhocColumn,
         force_type_check: bool = False,
-        template_processor: BaseTemplateProcessor | None = None,
     ) -> ColumnElement:
         """
         Turn an adhoc column into a sqlalchemy column.
@@ -1349,7 +1336,6 @@ class Dataset(
         :param force_type_check: Should the column type be checked in the db.
                This is needed to validate if a filter with an adhoc column
                is applicable.
-        :param template_processor: template_processor instance
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
@@ -1358,16 +1344,16 @@ class Dataset(
             expression=col["sqlExpression"],
             database_id=self.database_id,
             schema=self.schema,
-            template_processor=template_processor,
+            template_processor=get_template_processor(
+                table=self, database=self.database
+            ),
         )
         time_grain = col.get("timeGrain")
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
         pdf = None
         if col_in_metadata := self.get_column(expression):
-            sqla_column = col_in_metadata.get_sqla_col(
-                template_processor=template_processor
-            )
+            sqla_column = col_in_metadata.get_sqla_col()
             is_dttm = col_in_metadata.is_temporal
             pdf = col_in_metadata.python_date_format
         else:
@@ -1375,7 +1361,7 @@ class Dataset(
             if has_timegrain or force_type_check:
                 try:
                     # probe adhoc column type
-                    tbl, _ = self.get_from_clause(template_processor)
+                    tbl, _ = self.get_from_clause()
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
                     col_desc = get_columns_description(
@@ -1435,7 +1421,6 @@ class Dataset(
         series_limit_metric: Metric,
         metrics_by_name: dict[str, SqlMetric],
         columns_by_name: dict[str, TableColumn],
-        template_processor: BaseTemplateProcessor | None = None,
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
@@ -1444,9 +1429,7 @@ class Dataset(
             isinstance(series_limit_metric, str)
             and series_limit_metric in metrics_by_name
         ):
-            ob = metrics_by_name[series_limit_metric].get_sqla_col(
-                template_processor=template_processor
-            )
+            ob = metrics_by_name[series_limit_metric].get_sqla_col()
         else:
             raise QueryObjectValidationError(
                 _("Metric '%(metric)s' does not exist", metric=series_limit_metric)

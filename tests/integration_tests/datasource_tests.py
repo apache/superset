@@ -49,6 +49,8 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 from tests.integration_tests.fixtures.datasource import get_datasource_post
 
+dataset_unique_attrs = ["database_id", "schema", "table_name"]
+
 
 @contextmanager
 def create_test_table_context(database: Database):
@@ -270,24 +272,25 @@ class TestDatasource(SupersetTestCase):
         resp = self.get_json_resp(url)
         self.assertIn("error", resp)
 
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"ENABLE_TEMPLATE_PROCESSING": True},
+        clear=True,
+    )
     def test_external_metadata_for_virtual_table_template_params(self):
         self.login(ADMIN_USERNAME)
         table = Dataset(
-            table_name="dummy_sql_table_with_template_params",
+            table_name="dummy_sql_table_with_template_params_2",
             database=get_example_database(),
             schema=get_example_default_schema(),
             sql="select {{ foo }} as intcol",
             template_params=json.dumps({"foo": "123"}),
         )
-        db.session.add(table)
-        db.session.commit()
-
-        table = self.get_table(name="dummy_sql_table_with_template_params")
-        url = f"/datasource/external_metadata/table/{table.id}/"
-        resp = self.get_json_resp(url)
-        assert {o.get("column_name") for o in resp} == {"intcol"}
-        db.session.delete(table)
-        db.session.commit()
+        with db_insert_temp_object(table, dataset_unique_attrs):
+            url = f"/datasource/external_metadata/table/{table.id}/"
+            resp = self.get_json_resp(url)
+            print(resp)
+            assert {o.get("column_name") for o in resp} == {"intcol"}
 
     def test_external_metadata_for_malicious_virtual_table(self):
         self.login(ADMIN_USERNAME)
@@ -297,7 +300,7 @@ class TestDatasource(SupersetTestCase):
             schema=get_example_default_schema(),
             sql="delete table birth_names",
         )
-        with db_insert_temp_object(table):
+        with db_insert_temp_object(table, dataset_unique_attrs):
             url = f"/datasource/external_metadata/table/{table.id}/"
             resp = self.get_json_resp(url)
             self.assertEqual(resp["error"], "Only `SELECT` statements are allowed")
@@ -311,7 +314,7 @@ class TestDatasource(SupersetTestCase):
             sql="select 123 as intcol, 'abc' as strcol;"
             "select 123 as intcol, 'abc' as strcol",
         )
-        with db_insert_temp_object(table):
+        with db_insert_temp_object(table, dataset_unique_attrs):
             url = f"/datasource/external_metadata/table/{table.id}/"
             resp = self.get_json_resp(url)
             self.assertEqual(resp["error"], "Only single queries supported")

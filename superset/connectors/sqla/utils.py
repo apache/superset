@@ -37,7 +37,6 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.models.core import Database
-from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 
@@ -102,9 +101,7 @@ def get_virtual_table_metadata(dataset: Dataset) -> list[ResultSetColumnType]:
         )
 
     db_engine_spec = dataset.database.db_engine_spec
-    sql = dataset.get_template_processor().process_template(
-        dataset.sql, **dataset.template_params_dict
-    )
+    sql = dataset.render_sql(dataset.sql, **dataset.template_params_dict)
     parsed_query = ParsedQuery(sql, engine=db_engine_spec.engine)
     if not db_engine_spec.is_readonly_query(parsed_query):
         raise SupersetSecurityException(
@@ -137,18 +134,9 @@ def get_columns_description(
     schema: str | None,
     query: str,
 ) -> list[ResultSetColumnType]:
-    # TODO(villebro): refactor to use same code that's used by
-    #  sql_lab.py:execute_sql_statements
-    db_engine_spec = database.db_engine_spec
     try:
-        with database.get_raw_connection(catalog=catalog, schema=schema) as conn:
-            cursor = conn.cursor()
-            query = database.apply_limit_to_sql(query, limit=1)
-            cursor.execute(query)
-            db_engine_spec.execute(cursor, query, database)
-            result = db_engine_spec.fetch_data(cursor, limit=1)
-            result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
-            return result_set.columns
+        result_set = database.get_result_set(query, catalog, schema, limit=1)
+        return result_set.columns
     except Exception as ex:
         raise SupersetGenericDBErrorException(message=str(ex)) from ex
 

@@ -26,7 +26,7 @@ import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import lazy_gettext as _
 
-from superset import app, jinja_context, security_manager
+from superset import app, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
     AlertQueryError,
@@ -143,15 +143,7 @@ class AlertCommand(BaseCommand):
         :raises AlertQueryError: SQL query is not valid
         :raises AlertQueryTimeout: The SQL query received a celery soft timeout
         """
-        sql_template = jinja_context.get_template_processor(
-            database=self._report_schedule.database
-        )
-        rendered_sql = sql_template.process_template(self._report_schedule.sql)
         try:
-            limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
-                rendered_sql, ALERT_SQL_LIMIT
-            )
-
             executor, username = get_executor(  # pylint: disable=unused-variable
                 executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
                 model=self._report_schedule,
@@ -159,7 +151,11 @@ class AlertCommand(BaseCommand):
             user = security_manager.find_user(username)
             with override_user(user):
                 start = default_timer()
-                df = self._report_schedule.database.get_df(sql=limited_rendered_sql)
+                df = self._report_schedule.database.get_df(
+                    sql=self._report_schedule.sql,
+                    limit=ALERT_SQL_LIMIT,
+                    render_template=True,
+                )
                 stop = default_timer()
                 logger.info(
                     "Query for %s took %.2f ms",

@@ -29,7 +29,7 @@ from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
-from typing import Any, Callable, cast, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING, cast
 
 import numpy
 import pandas as pd
@@ -59,7 +59,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 
-from superset import app, db_engine_specs, is_feature_enabled
+from superset import app, db_engine_specs, is_feature_enabled, jinja_context
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
@@ -642,14 +642,24 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             )
         return sql_
 
-    def get_df(  # pylint: disable=too-many-locals
+    def render_sql(self, sql: str, **kwargs: Any) -> str:
+        tp = jinja_context.get_template_processor(self)
+        return tp.process_template(sql, **kwargs)
+
+    def get_result_set(
         self,
         sql: str,
         catalog: str | None = None,
         schema: str | None = None,
-        mutator: Callable[[pd.DataFrame], None] | None = None,
+        limit: Optional[int] = None,
+        render_template: Optional[bool] = False,
     ) -> pd.DataFrame:
-        sqls = self.db_engine_spec.parse_sql(sql)
+        if render_template:
+            sql = self.render_sql(sql)
+        if limit:
+            sql = self.apply_limit_to_sql(sql, limit)
+
+        statements = self.db_engine_spec.parse_sql(sql)
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             engine_url = engine.url
 
@@ -665,8 +675,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
-            df = None
-            for i, sql_ in enumerate(sqls):
+            for i, sql_ in enumerate(statements):
                 sql_ = self.mutate_sql_based_on_config(sql_, is_split=True)
                 _log_query(sql_)
                 with event_logger.log_context(
@@ -675,20 +684,31 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     object_ref=__name__,
                 ):
                     self.db_engine_spec.execute(cursor, sql_, self)
-                    if i < len(sqls) - 1:
+                    if i < len(statements) - 1:
                         # If it's not the last, we don't keep the results
                         cursor.fetchall()
                     else:
                         # Last query, fetch and process the results
                         data = self.db_engine_spec.fetch_data(cursor)
-                        result_set = SupersetResultSet(
+                        return SupersetResultSet(
                             data, cursor.description, self.db_engine_spec
                         )
-                        df = result_set.to_pandas_df()
-            if mutator:
-                df = mutator(df)
+        return None
 
-            return self.post_process_df(df)
+    def get_df(
+        self,
+        sql: str,
+        catalog: str | None = None,
+        schema: str | None = None,
+        mutator: Callable[[pd.DataFrame], None] | None = None,
+        limit: Optional[int] = None,
+        render_template: Optional[bool] = False,
+    ) -> pd.DataFrame:
+        result_set = self.get_result_set(sql, catalog, schema, limit, render_template)
+        df = result_set.to_pandas_df()
+        if mutator:
+            df = mutator(df)
+        return self.post_process_df(df)
 
     def compile_sqla_query(
         self,

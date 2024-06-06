@@ -16,6 +16,7 @@
 # under the License.
 import decimal
 import logging
+import re
 import uuid
 from datetime import date, datetime, time, timedelta
 from typing import Any, Callable, Optional, Union
@@ -250,3 +251,11 @@ def loads(
     except JSONDecodeError as ex:
         logger.error("JSON is not valid %s", str(ex), exc_info=True)
         raise
+
+
+def json_to_dict(json_str: str) -> dict[Any, Any]:
+    if json_str:
+        val = re.sub(",[ \t\r\n]+}", "}", json_str)
+        val = re.sub(",[ \t\r\n]+\\]", "]", val)
+        return loads(val)
+    return {}

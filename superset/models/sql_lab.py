@@ -49,7 +49,6 @@ from sqlalchemy.sql.elements import ColumnElement, literal_column
 
 from superset import security_manager
 from superset.exceptions import SupersetSecurityException
-from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
     ExploreMixin,
@@ -157,9 +156,6 @@ class Query(
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
     __table_args__ = (sqla.Index("ti_user_id_changed_on", user_id, changed_on),)
-
-    def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
-        return get_template_processor(query=self, database=self.database, **kwargs)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -361,12 +357,10 @@ class Query(
         self,
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
-        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         """
         Turn an adhoc column into a sqlalchemy column.
         :param col: Adhoc column definition
-        :param template_processor: template_processor instance
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
@@ -375,7 +369,6 @@ class Query(
             expression=col["sqlExpression"],
             database_id=self.database_id,
             schema=self.schema,
-            template_processor=template_processor,
         )
         sqla_column = literal_column(expression)
         return self.make_sqla_column_compatible(sqla_column, label)

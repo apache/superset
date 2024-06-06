@@ -20,18 +20,21 @@
 from datetime import datetime
 import imp
 from contextlib import contextmanager
-from typing import Any, Union, Optional
+from typing import Any, Union, Optional, List
 from unittest.mock import Mock, patch, MagicMock
+import logging
 
 import pandas as pd
 from flask import Response, g
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.engine.interfaces import Dialect
-from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import dialect
+
+from sqlalchemy.exc import InvalidRequestError, IntegrityError
+from sqlalchemy.ext.declarative import DeclarativeMeta
 
 from tests.integration_tests.test_app import app, login
 from superset.sql_parse import CtasMethod
@@ -203,8 +206,7 @@ class SupersetTestCase(TestCase):
         previous_g_user = g.user if hasattr(g, "user") else None
         try:
             if login:
-                resp = self.login(username=temp_user.username)
-                print(resp)
+                self.login(username=temp_user.username)
             else:
                 g.user = temp_user
             yield temp_user
@@ -592,12 +594,42 @@ class SupersetTestCase(TestCase):
 
 
 @contextmanager
-def db_insert_temp_object(obj: DeclarativeMeta):
-    """Insert a temporary object in database; delete when done."""
+def db_insert_temp_object(
+    obj: DeclarativeMeta, unique_attrs: Optional[List[str]] = None
+):
+    """
+    Insert a temporary object in the database; delete when done.
+    Optionally will look at a combination of unique keys, and pre-delete if the object exists already.
+    """
+    session = db.session
     try:
-        db.session.add(obj)
-        db.session.commit()
+        # Ensure the session is clean before starting
+        session.expire_all()
+
+        if unique_attrs:
+            filter_by_kwargs = {
+                attr: getattr(obj, attr) for attr in unique_attrs if hasattr(obj, attr)
+            }
+            if filter_by_kwargs:
+                logging.debug(f"Deleting with filter: {filter_by_kwargs}")
+                with session.no_autoflush:
+                    session.query(obj.__class__).filter_by(**filter_by_kwargs).delete()
+                    session.commit()
+
+        session.add(obj)
+        session.commit()
         yield obj
+
+    except (IntegrityError, InvalidRequestError) as e:
+        session.rollback()
+        logging.error(f"Error: {e}")
+        raise e
+
     finally:
-        db.session.delete(obj)
-        db.session.commit()
+        try:
+            if False and session.object_session(obj):
+                session.delete(obj)
+                session.commit()
+        except InvalidRequestError as e:
+            session.rollback()
+            logging.error(f"Error during cleanup: {e}")
