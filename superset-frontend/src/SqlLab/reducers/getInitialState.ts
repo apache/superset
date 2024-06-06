@@ -110,6 +110,7 @@ export default function getInitialState({
     };
   });
   const tabHistory = activeTab ? [activeTab.id.toString()] : [];
+  let lastUpdatedActiveTab = activeTab ? activeTab.id.toString() : '';
   let tables = {} as Record<string, Table>;
   let editorTabLastUpdatedAt = Date.now();
   if (activeTab) {
@@ -217,6 +218,7 @@ export default function getInitialState({
         if (sqlLab.tabHistory) {
           tabHistory.push(...sqlLab.tabHistory);
         }
+        lastUpdatedActiveTab = tabHistory.slice(tabHistory.length - 1)[0] || '';
       }
     }
   } catch (error) {
@@ -250,6 +252,7 @@ export default function getInitialState({
       editorTabLastUpdatedAt,
       queryCostEstimates: {},
       unsavedQueryEditor,
+      lastUpdatedActiveTab,
     },
     localStorageUsageInKilobytes: 0,
     common,
