@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Package's main module!"""
-
 from flask import current_app, Flask
 from werkzeug.local import LocalProxy
 
