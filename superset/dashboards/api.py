@@ -85,7 +85,10 @@ from superset.dashboards.schemas import (
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
-from superset.tasks.thumbnails import cache_dashboard_thumbnail
+from superset.tasks.thumbnails import (
+    cache_dashboard_screenshot,
+    cache_dashboard_thumbnail,
+)
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.pdf import build_pdf_from_screenshots
@@ -888,7 +891,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         )
 
     # TODO: cache_dashboard_screenshot endpoint
-    @expose("/<pk>/cache_screenshot/", methods=("POST",))
+    @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     # @protect()
     @rison(screenshot_query_schema)
     @safe
@@ -948,10 +951,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         try:
             payload = CacheScreenshotSchema().load(request.json)
+            print("PAYLOAD: ", payload)
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
+        print("DASHBOARD: ", dashboard)
         if not dashboard:
             return self.response_404()
 
@@ -972,7 +977,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             dashboard_id=str(dashboard.id),
             state=dashboard_state,
         ).run()
+        print("PERMALINK KEY:", permalink_key)
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
+        print("DASHBOARD_URL: ", dashboard_url)
         # dashboard_url = get_url_path(
         #     "Superset.dashboard", dashboard_id_or_slug=dashboard.id
         # )
@@ -984,9 +991,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
-            cache_dashboard_thumbnail.delay(
+            cache_dashboard_screenshot.delay(
                 current_user=get_current_user(),
                 dashboard_id=dashboard.id,
+                dashboard_url=dashboard_url,
+                cache_key=cache_key,
                 force=True,
                 thumb_size=thumb_size,
                 window_size=window_size,
