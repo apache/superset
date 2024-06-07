@@ -24,7 +24,6 @@ from collections.abc import Hashable
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
-import simplejson as json
 import sqlalchemy as sqla
 from flask import current_app
 from flask_appbuilder import Model
@@ -59,6 +58,7 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.utils import json
 from superset.utils.core import (
     get_column_name,
     LongText,

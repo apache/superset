@@ -19,14 +19,12 @@
 
 import builtins
 import dataclasses
-import json
 import logging
 import re
 import uuid
 from collections import defaultdict
 from collections.abc import Hashable
 from datetime import datetime, timedelta
-from json.decoder import JSONDecodeError
 from typing import Any, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
 import dateutil.parser
@@ -88,10 +86,11 @@ from superset.superset_typing import (
     OrderBy,
     QueryObjectDict,
 )
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import (
     GenericDataType,
     get_column_name,
+    get_non_base_axis_columns,
     get_user_id,
     is_adhoc_column,
     MediumText,
@@ -597,7 +596,7 @@ class ExtraJSONMixin:
     def extra(self) -> dict[str, Any]:
         try:
             return json.loads(self.extra_json or "{}") or {}
-        except (TypeError, JSONDecodeError) as exc:
+        except (TypeError, json.JSONDecodeError) as exc:
             logger.error(
                 "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
             )
@@ -807,7 +806,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_sqla_row_level_filters(
         self,
-        template_processor: BaseTemplateProcessor,
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> list[TextClause]:
         """
         Return the appropriate row level security filters for this table and the
@@ -817,6 +816,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param template_processor: The template processor to apply to the filters.
         :returns: A list of SQL clauses to be ANDed together.
         """
+        template_processor = template_processor or self.get_template_processor()
+
         all_filters: list[TextClause] = []
         filter_groups: dict[Union[int, str], list[TextClause]] = defaultdict(list)
         try:
@@ -1088,7 +1089,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 _("Virtual dataset query cannot consist of multiple statements")
             )
 
-        sql = script.statements[0].format()
+        sql = script.statements[0].format(comments=False)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         return sql
@@ -2083,7 +2084,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "filter": filter,
                     "orderby": orderby,
                     "extras": extras,
-                    "columns": columns,
+                    "columns": get_non_base_axis_columns(columns),
                     "order_desc": True,
                 }
 

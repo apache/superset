@@ -19,7 +19,6 @@
 
 // import { Meta, Source } from '@storybook/addon-docs';
 import Markdown from 'markdown-to-jsx';
-import React from 'react';
 
 export default {
   title: 'Design System/Components/DropdownContainer/Overview',

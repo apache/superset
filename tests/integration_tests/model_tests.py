@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import json
 from superset.utils.core import DatasourceType
+from superset.utils import json
 import unittest
 from unittest import mock
 
@@ -167,7 +167,7 @@ class TestDatabaseModel(SupersetTestCase):
             model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
-            assert str(call_args[0][0]) == "presto://gamma@localhost"
+            assert str(call_args[0][0]) == "presto://gamma@localhost/"
 
             assert call_args[1]["connect_args"] == {
                 "protocol": "https",
@@ -180,7 +180,7 @@ class TestDatabaseModel(SupersetTestCase):
             model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
-            assert str(call_args[0][0]) == "presto://localhost"
+            assert str(call_args[0][0]) == "presto://localhost/"
 
             assert call_args[1]["connect_args"] == {
                 "protocol": "https",
@@ -225,7 +225,7 @@ class TestDatabaseModel(SupersetTestCase):
             model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
-            assert str(call_args[0][0]) == "trino://localhost"
+            assert str(call_args[0][0]) == "trino://localhost/"
             assert call_args[1]["connect_args"]["user"] == "gamma"
 
             model = Database(
@@ -239,7 +239,7 @@ class TestDatabaseModel(SupersetTestCase):
 
             assert (
                 str(call_args[0][0])
-                == "trino://original_user:original_user_password@localhost"
+                == "trino://original_user:original_user_password@localhost/"
             )
             assert call_args[1]["connect_args"]["user"] == "gamma"
 

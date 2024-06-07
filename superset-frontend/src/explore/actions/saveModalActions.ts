@@ -20,7 +20,7 @@ import rison from 'rison';
 import { Dispatch } from 'redux';
 import {
   DatasourceType,
-  QueryFormData,
+  type QueryFormData,
   SimpleAdhocFilter,
   SupersetClient,
   t,
@@ -318,4 +318,3 @@ export const getSliceDashboards =
       throw error;
     }
   };
-export { QueryFormData };

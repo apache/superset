@@ -20,7 +20,6 @@
 from __future__ import annotations
 
 import inspect
-import json
 import os
 from pathlib import Path
 from typing import Any, TypedDict
@@ -53,6 +52,7 @@ from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
+from superset.utils import json
 from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
@@ -349,7 +349,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             serialized_encrypted_extra = data.get("masked_encrypted_extra") or "{}"
             try:
                 encrypted_extra = json.loads(serialized_encrypted_extra)
-            except json.decoder.JSONDecodeError:
+            except json.JSONDecodeError:
                 encrypted_extra = {}
 
             data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(

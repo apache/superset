@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import moment from 'moment';
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import {
   styled,
@@ -171,7 +171,7 @@ const discardBtnStyle = theme => css`
   height: ${theme.gridUnit * 8}px;
 `;
 
-class Header extends React.PureComponent {
+class Header extends PureComponent {
   static discardChanges() {
     const url = new URL(window.location.href);
 

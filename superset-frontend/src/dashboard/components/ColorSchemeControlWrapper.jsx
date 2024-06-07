@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import PropTypes from 'prop-types';
-import React from 'react';
+import { PureComponent } from 'react';
 import { getCategoricalSchemeRegistry, t } from '@superset-ui/core';
 
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
@@ -36,7 +36,7 @@ const defaultProps = {
   onChange: () => {},
 };
 
-class ColorSchemeControlWrapper extends React.PureComponent {
+class ColorSchemeControlWrapper extends PureComponent {
   constructor(props) {
     super(props);
     this.state = { hovered: false };

@@ -445,8 +445,16 @@ Create the distribution
 ```bash
 cd superset-frontend/
 npm ci && npm run build
+# Compile translations for the frontend
+npm run build-translation
+
 cd ../
-flask fab babel-compile --target superset/translations
+
+
+# Compile translations for the backend
+./scripts/translations/generate_po_files.sh
+
+# build the python distribution
 python setup.py sdist
 ```
 

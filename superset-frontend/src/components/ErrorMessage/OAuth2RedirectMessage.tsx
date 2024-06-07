@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, MouseEvent } from 'react';
+
 import { useDispatch, useSelector } from 'react-redux';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { ExplorePageState } from 'src/explore/types';
@@ -67,7 +68,7 @@ function OAuth2RedirectMessage({
 
   // store a reference to the OAuth2 browser tab, so we can check that the success
   // message is coming from it
-  const handleOAuthClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleOAuthClick = (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     oAuthTab.current = window.open(extra.url, '_blank');
   };

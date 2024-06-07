@@ -18,7 +18,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import warnings
@@ -63,7 +62,7 @@ from superset import sql_parse
 from superset.constants import TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
 from superset.sql_parse import ParsedQuery, SQLScript, Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
@@ -72,7 +71,7 @@ from superset.superset_typing import (
     ResultSetColumnType,
     SQLAColumnType,
 )
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
@@ -1134,8 +1133,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cte = None
         sql_remainder = None
         sql = sql.strip(" \t\n;")
+        sql_statement = sqlparse.format(sql, strip_comments=True)
         query_limit: int | None = sql_parse.extract_top_from_query(
-            sql, cls.top_keywords
+            sql_statement, cls.top_keywords
         )
         if not limit:
             final_limit = query_limit
@@ -1144,7 +1144,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         else:
             final_limit = limit
         if not cls.allows_cte_in_subquery:
-            cte, sql_remainder = sql_parse.get_cte_remainder_query(sql)
+            cte, sql_remainder = sql_parse.get_cte_remainder_query(sql_statement)
         if cte:
             str_statement = str(sql_remainder)
             cte = cte + "\n"
@@ -1818,6 +1818,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if not cls.allows_sql_comments:
             query = sql_parse.strip_comments_from_sql(query, engine=cls.engine)
+        disallowed_functions = current_app.config["DISALLOWED_SQL_FUNCTIONS"].get(
+            cls.engine, set()
+        )
+        if sql_parse.check_sql_functions_exist(query, disallowed_functions, cls.engine):
+            raise DisallowedSQLFunction(disallowed_functions)
 
         if cls.arraysize:
             cursor.arraysize = cls.arraysize

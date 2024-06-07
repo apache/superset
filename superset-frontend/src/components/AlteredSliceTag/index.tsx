@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, FC } from 'react';
+
 import { isEqual, isEmpty } from 'lodash';
 import { QueryFormData, styled, t } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
@@ -160,7 +161,7 @@ export const getRowsFromDiffs = (
 export const isEqualish = (val1: string, val2: string): boolean =>
   isEqual(alterForComparison(val1), alterForComparison(val2));
 
-const AlteredSliceTag: React.FC<AlteredSliceTagProps> = props => {
+const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
   const [rows, setRows] = useState<RowType[]>([]);
   const [hasDiffs, setHasDiffs] = useState<boolean>(false);
 

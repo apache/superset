@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { bindActionCreators } from 'redux';
@@ -89,7 +89,7 @@ const TabTitleContainer = styled.div`
 const renderDraggableContent = dropProps =>
   dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />;
 
-class Tab extends React.PureComponent {
+class Tab extends PureComponent {
   constructor(props) {
     super(props);
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -223,7 +223,7 @@ class Tab extends React.PureComponent {
           />
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
-          <React.Fragment key={componentId}>
+          <Fragment key={componentId}>
             <DashboardComponent
               id={componentId}
               parentId={tabComponent.id}
@@ -253,7 +253,7 @@ class Tab extends React.PureComponent {
                 {renderDraggableContent}
               </Droppable>
             )}
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
     );

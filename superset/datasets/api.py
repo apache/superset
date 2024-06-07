@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
-import json
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -66,6 +65,7 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
+from superset.utils import json
 from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (

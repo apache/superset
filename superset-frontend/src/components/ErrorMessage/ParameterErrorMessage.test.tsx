@@ -19,7 +19,6 @@
 
 import userEvent from '@testing-library/user-event';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import ParameterErrorMessage from './ParameterErrorMessage';
 

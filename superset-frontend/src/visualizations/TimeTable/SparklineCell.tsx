@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode } from 'react';
 import moment from 'moment';
 import {
   formatNumber,
@@ -45,7 +45,7 @@ interface Props {
   height: number;
   numberFormat: string;
   dateFormat: string;
-  renderTooltip: ({ index }: { index: number }) => React.ReactNode;
+  renderTooltip: ({ index }: { index: number }) => ReactNode;
   showYAxis: boolean;
   width: number;
   yAxisBounds: Array<number | undefined>;

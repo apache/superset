@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { zip } from 'lodash';
 import { css, GenericDataType, styled } from '@superset-ui/core';
 import {

@@ -18,7 +18,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -120,6 +119,7 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
+from superset.utils import json
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info

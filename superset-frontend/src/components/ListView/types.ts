@@ -39,6 +39,7 @@ export interface Filter {
   Header: ReactNode;
   key: string;
   id: string;
+  toolTipDescription?: string;
   urlDisplay?: string;
   operator?: FilterOperator;
   input?:

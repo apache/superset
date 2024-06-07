@@ -16,7 +16,6 @@
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
 
-import json
 import os
 
 import pandas as pd
@@ -38,7 +37,7 @@ from superset.examples.helpers import (
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql_parse import Table
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import DatasourceType
 
 

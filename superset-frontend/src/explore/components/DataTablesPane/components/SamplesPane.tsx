@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';

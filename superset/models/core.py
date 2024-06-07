@@ -22,7 +22,6 @@
 from __future__ import annotations
 
 import builtins
-import json
 import logging
 import textwrap
 from ast import literal_eval
@@ -60,7 +59,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 
-from superset import app, db_engine_specs
+from superset import app, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
@@ -76,7 +75,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import Table
 from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
-from superset.utils import cache as cache_util, core as utils
+from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import DatasourceName, get_username
 from superset.utils.oauth2 import get_oauth2_access_token
@@ -451,7 +450,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 sqlalchemy_uri=sqlalchemy_uri,
             )
 
-    def _get_sqla_engine(
+    def _get_sqla_engine(  # pylint: disable=too-many-locals
         self,
         catalog: str | None = None,
         schema: str | None = None,
@@ -478,6 +477,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         )
 
         effective_username = self.get_effective_user(sqlalchemy_url)
+        if effective_username and is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
+            user = security_manager.find_user(username=effective_username)
+            if user and user.email:
+                effective_username = user.email.split("@")[0]
+
         oauth2_config = self.get_oauth2_config()
         access_token = (
             get_oauth2_access_token(
@@ -601,7 +605,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         for col, coltype in df.dtypes.to_dict().items():
             if coltype == numpy.object_ and column_needs_conversion(df[col]):
-                df[col] = df[col].apply(utils.json_dumps_w_dates)
+                df[col] = df[col].apply(json.json_dumps_w_dates)
         return df
 
     @property
@@ -957,7 +961,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
             def _convert(value: Any) -> Any:
                 try:
-                    return utils.base_json_conv(value)
+                    return json.base_json_conv(value)
                 except TypeError:
                     return None
 

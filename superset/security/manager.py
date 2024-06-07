@@ -17,7 +17,6 @@
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 
-import json
 import logging
 import re
 import time
@@ -69,6 +68,7 @@ from superset.security.guest_token import (
 )
 from superset.sql_parse import extract_tables_from_jinja_sql, Table
 from superset.superset_typing import Metric
+from superset.utils import json
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
@@ -550,7 +550,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
             message="You don't have access to this dashboard.",
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
         )
 
     def get_chart_access_error_object(
@@ -567,7 +567,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.CHART_SECURITY_ACCESS_ERROR,
             message="You don't have access to this chart.",
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
         )
 
     @staticmethod
@@ -609,7 +609,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
             message=self.get_datasource_access_error_msg(datasource),
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_datasource_access_link(datasource),
                 "datasource": datasource.name,
@@ -638,7 +638,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
             message=self.get_table_access_error_msg(tables),
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_table_access_link(tables),
                 "tables": [str(table) for table in tables],
@@ -968,6 +968,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_view_query", "Dashboard")
         self.add_permission_view_menu("can_view_chart_as_table", "Dashboard")
         self.add_permission_view_menu("can_drill", "Dashboard")
+        self.add_permission_view_menu("can_tag", "Chart")
+        self.add_permission_view_menu("can_tag", "Dashboard")
 
     def create_missing_perms(self) -> None:
         """
@@ -2255,7 +2257,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 SupersetError(
                     error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
                     message=_("Guest user cannot modify chart payload"),
-                    level=ErrorLevel.ERROR,
+                    level=ErrorLevel.WARNING,
                 )
             )
 

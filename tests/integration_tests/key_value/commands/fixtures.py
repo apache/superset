@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Generator
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -31,6 +30,7 @@ from superset.key_value.types import (
     KeyValueResource,
     PickleKeyValueCodec,
 )
+from superset.utils import json
 from tests.integration_tests.test_app import app
 
 if TYPE_CHECKING:

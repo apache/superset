@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   useState,
   useEffect,
   useReducer,
   useCallback,
   useMemo,
+  ChangeEvent,
 } from 'react';
+
 import { t, SupersetTheme, getClientErrorObject } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -274,7 +276,7 @@ function ReportModal({
           name="custom_width"
           value={currentReport?.custom_width || ''}
           placeholder={t('Input custom width in pixels')}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
             setCurrentReport({
               custom_width: parseInt(event.target.value, 10) || null,
             });
