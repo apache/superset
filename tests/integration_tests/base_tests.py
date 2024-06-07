@@ -627,7 +627,7 @@ def db_insert_temp_object(
 
     finally:
         try:
-            if False and session.object_session(obj):
+            if session.object_session(obj):
                 session.delete(obj)
                 session.commit()
         except InvalidRequestError as e:
