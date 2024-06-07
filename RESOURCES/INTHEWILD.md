@@ -86,6 +86,7 @@ Join our growing community!
 - [ELMO Cloud HR & Payroll](https://elmosoftware.com.au/)
 - [Endress+Hauser](http://www.endress.com/) [@rumbin]
 - [FBK - ICT center](http://ict.fbk.eu)
+- [Gavagai](https://gavagai.io) [@gavagai-corp]
 - [GfK Data Lab](http://datalab.gfk.com) [@mherr]
 - [GrowthSimple](https://growthsimple.ai/)
 - [Hydrolix](https://www.hydrolix.io/)

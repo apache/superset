@@ -34,7 +34,7 @@ metadata:
   annotations: {{- toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
   {{- end }}
 spec:
-  {{- if not .Values.supersetWorker.autoscaling.enabled and .Values.supersetWorker.replicas.enabled }}
+  {{- if and (not .Values.supersetWorker.autoscaling.enabled) .Values.supersetWorker.replicas.enabled }}
   replicas: {{ .Values.supersetWorker.replicas.replicaCount }}
   {{- end }}
   selector:
@@ -148,6 +148,9 @@ spec:
         {{- with .Values.supersetWorker.affinity }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- end }}
+      {{- if .Values.supersetWorker.priorityClassName }}
+      priorityClassName: {{ .Values.supersetWorker.priorityClassName }}
       {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.supersetWorker.topologySpreadConstraints }}
       topologySpreadConstraints:

@@ -550,7 +550,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
             message="You don't have access to this dashboard.",
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
         )
 
     def get_chart_access_error_object(
@@ -567,7 +567,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.CHART_SECURITY_ACCESS_ERROR,
             message="You don't have access to this chart.",
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
         )
 
     @staticmethod
@@ -609,7 +609,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
             message=self.get_datasource_access_error_msg(datasource),
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_datasource_access_link(datasource),
                 "datasource": datasource.name,
@@ -638,7 +638,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
             message=self.get_table_access_error_msg(tables),
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_table_access_link(tables),
                 "tables": [str(table) for table in tables],
@@ -2257,7 +2257,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 SupersetError(
                     error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
                     message=_("Guest user cannot modify chart payload"),
-                    level=ErrorLevel.ERROR,
+                    level=ErrorLevel.WARNING,
                 )
             )
 
