@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import itertools
-import json
 from unittest.mock import MagicMock, patch  # noqa: F401
 
 import pytest
@@ -36,6 +35,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     chart_config,

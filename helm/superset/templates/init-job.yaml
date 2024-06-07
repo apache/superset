@@ -98,6 +98,9 @@ spec:
           {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- end }}
+      {{- if .Values.init.priorityClassName }}
+      priorityClassName: {{ .Values.init.priorityClassName }}
+      {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.init.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- with .Values.topologySpreadConstraints }}

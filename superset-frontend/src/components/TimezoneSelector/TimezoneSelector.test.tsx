@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import moment from 'moment-timezone';
+import { FC } from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import type { TimezoneSelectorProps } from './index';
@@ -27,7 +27,7 @@ const loadComponent = (mockCurrentTime?: string) => {
     jest.useFakeTimers('modern');
     jest.setSystemTime(new Date(mockCurrentTime));
   }
-  return new Promise<React.FC<TimezoneSelectorProps>>(resolve => {
+  return new Promise<FC<TimezoneSelectorProps>>(resolve => {
     jest.isolateModules(() => {
       const { default: TimezoneSelector } = module.require('./index');
       resolve(TimezoneSelector);

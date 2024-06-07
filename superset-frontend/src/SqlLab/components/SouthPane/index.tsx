@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { createRef, useMemo } from 'react';
+import { createRef, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import shortid from 'shortid';
 import Tabs from 'src/components/Tabs';

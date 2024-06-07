@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import { shallow, ShallowWrapper } from 'enzyme';
 import { GenericDataType } from '@superset-ui/core';
 
@@ -42,7 +42,7 @@ describe('ColumnOption', () => {
     props = { ...defaultProps };
   });
   it('is a valid element', () => {
-    expect(React.isValidElement(<ColumnOption {...defaultProps} />)).toBe(true);
+    expect(isValidElement(<ColumnOption {...defaultProps} />)).toBe(true);
   });
   it('shows a label with verbose_name', () => {
     const lbl = wrapper.find('.option-label');

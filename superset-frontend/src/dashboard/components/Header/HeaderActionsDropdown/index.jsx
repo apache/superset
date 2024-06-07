@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
 import { t } from '@superset-ui/core';
@@ -77,7 +77,7 @@ const defaultProps = {
   refreshWarning: null,
 };
 
-class HeaderActionsDropdown extends React.PureComponent {
+class HeaderActionsDropdown extends PureComponent {
   static discardChanges() {
     window.location.reload();
   }

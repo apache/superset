@@ -187,7 +187,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 try:
                     # chart containers didn't render
                     logger.debug("Wait for chart containers to draw at url: %s", url)
-                    slice_container_locator = page.locator(".slice_container")
+                    slice_container_locator = page.locator(".chart-container")
                     slice_container_locator.first.wait_for()
                     for slice_container_elem in slice_container_locator.all():
                         slice_container_elem.wait_for()
@@ -375,7 +375,7 @@ class WebDriverSelenium(WebDriverProxy):
                 logger.debug("Wait for chart containers to draw at url: %s", url)
                 WebDriverWait(driver, self._screenshot_locate_wait).until(
                     EC.visibility_of_all_elements_located(
-                        (By.CLASS_NAME, "slice_container")
+                        (By.CLASS_NAME, "chart-container")
                     )
                 )
             except TimeoutException as ex:

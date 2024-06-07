@@ -16,7 +16,6 @@
 # under the License.
 import logging
 
-import simplejson as json
 from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -28,7 +27,7 @@ from superset import db
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.superset_typing import FlaskResponse
-from superset.utils import json as json_utils
+from superset.utils import json
 from superset.utils.core import get_user_id
 from superset.views.base import (
     BaseSupersetView,
@@ -140,7 +139,7 @@ class TabStateView(BaseSupersetView):
         if tab_state is None:
             return Response(status=404)
         return json_success(
-            json.dumps(tab_state.to_dict(), default=json_utils.json_iso_dttm_ser)
+            json.dumps(tab_state.to_dict(), default=json.json_iso_dttm_ser)
         )
 
     @has_access_api

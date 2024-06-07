@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import json
 from unittest.mock import patch
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -32,6 +31,7 @@ from superset import db, security_manager
 from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
 from superset.views.base_api import BaseSupersetModelRestApi, requires_json  # noqa: F401
+from superset.utils import json
 
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_config

@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import re
 import urllib
 from datetime import datetime
@@ -48,7 +47,7 @@ from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.hashing import md5_sha_from_str
 
 try:

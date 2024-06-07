@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import uuid
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
@@ -24,6 +23,7 @@ from typing import TYPE_CHECKING
 from flask.ctx import AppContext
 
 from superset.extensions import db
+from superset.utils import json
 from tests.integration_tests.key_value.commands.fixtures import (
     ID_KEY,
     JSON_CODEC,

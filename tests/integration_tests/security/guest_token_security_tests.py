@@ -16,7 +16,6 @@
 # under the License.
 """Unit tests for Superset"""
 
-import json
 from unittest.mock import Mock, patch
 
 import pytest
@@ -29,6 +28,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.security.guest_token import GuestTokenResourceType  # noqa: F401
 from superset.sql_parse import Table  # noqa: F401
+from superset.utils import json
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase

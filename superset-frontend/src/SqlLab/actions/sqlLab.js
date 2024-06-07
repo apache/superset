@@ -467,12 +467,24 @@ function migrateQuery(queryId, queryEditorId, dispatch) {
     );
 }
 
-export function migrateQueryEditorFromLocalStorage(
-  queryEditor,
-  tables,
-  queries,
-) {
-  return function (dispatch) {
+/**
+ * Persist QueryEditor from local storage to backend tab state.
+ * This ensures that when new tabs are created, query editors are
+ * asynchronously stored in local storage and periodically synchronized
+ * with the backend.
+ * When switching to persistence mode, the QueryEditors previously
+ * stored in local storage will also be synchronized to the backend
+ * through syncQueryEditor.
+ */
+export function syncQueryEditor(queryEditor) {
+  return function (dispatch, getState) {
+    const { tables, queries } = getState().sqlLab;
+    const localStorageTables = tables.filter(
+      table => table.inLocalStorage && table.queryEditorId === queryEditor.id,
+    );
+    const localStorageQueries = Object.values(queries).filter(
+      query => query.inLocalStorage && query.sqlEditorId === queryEditor.id,
+    );
     return SupersetClient.post({
       endpoint: '/tabstateview/',
       postPayload: { queryEditor },
@@ -482,6 +494,7 @@ export function migrateQueryEditorFromLocalStorage(
           ...queryEditor,
           id: json.id.toString(),
           inLocalStorage: false,
+          loaded: true,
         };
         dispatch({
           type: MIGRATE_QUERY_EDITOR,
@@ -494,10 +507,10 @@ export function migrateQueryEditorFromLocalStorage(
           newId: newQueryEditor.id,
         });
         return Promise.all([
-          ...tables.map(table =>
+          ...localStorageTables.map(table =>
             migrateTable(table, newQueryEditor.id, dispatch),
           ),
-          ...queries.map(query =>
+          ...localStorageQueries.map(query =>
             migrateQuery(query.id, newQueryEditor.id, dispatch),
           ),
         ]);
@@ -516,35 +529,15 @@ export function migrateQueryEditorFromLocalStorage(
 }
 
 export function addQueryEditor(queryEditor) {
-  return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.post({
-          endpoint: '/tabstateview/',
-          postPayload: { queryEditor },
-        }).then(({ json }) => ({ ...json, loaded: true }))
-      : Promise.resolve({ id: shortid.generate() });
-
-    return sync
-      .then(({ id, loaded }) => {
-        const newQueryEditor = {
-          ...queryEditor,
-          id: id.toString(),
-          loaded,
-        };
-        return dispatch({
-          type: ADD_QUERY_EDITOR,
-          queryEditor: newQueryEditor,
-        });
-      })
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'Unable to add a new tab to the backend. Please contact your administrator.',
-            ),
-          ),
-        ),
-      );
+  const newQueryEditor = {
+    ...queryEditor,
+    id: shortid.generate().toString(),
+    loaded: true,
+    inLocalStorage: true,
+  };
+  return {
+    type: ADD_QUERY_EDITOR,
+    queryEditor: newQueryEditor,
   };
 }
 

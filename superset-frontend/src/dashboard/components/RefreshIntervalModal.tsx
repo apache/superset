@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { createRef, PureComponent } from 'react';
 import Select from 'src/components/Select/Select';
 import { t, styled } from '@superset-ui/core';
 import Alert from 'src/components/Alert';
@@ -66,7 +66,7 @@ type RefreshIntervalModalState = {
   custom_block: boolean;
 };
 
-class RefreshIntervalModal extends React.PureComponent<
+class RefreshIntervalModal extends PureComponent<
   RefreshIntervalModalProps,
   RefreshIntervalModalState
 > {
@@ -79,7 +79,7 @@ class RefreshIntervalModal extends React.PureComponent<
 
   constructor(props: RefreshIntervalModalProps) {
     super(props);
-    this.modalRef = React.createRef() as ModalTriggerRef;
+    this.modalRef = createRef() as ModalTriggerRef;
     this.state = {
       refreshFrequency: props.refreshFrequency,
       custom_hour: 0,

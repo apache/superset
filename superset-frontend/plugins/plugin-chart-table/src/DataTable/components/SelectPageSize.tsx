@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { memo } from 'react';
 import { t } from '@superset-ui/core';
 import { formatSelectOptions } from '@superset-ui/chart-controls';
 
@@ -70,7 +70,7 @@ function getOptionValue(x: SizeOption) {
   return Array.isArray(x) ? x[0] : x;
 }
 
-export default React.memo(function SelectPageSize({
+export default memo(function SelectPageSize({
   total,
   options: sizeOptions,
   current: currentSize,

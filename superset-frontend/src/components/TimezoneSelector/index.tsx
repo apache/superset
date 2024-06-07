@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import moment from 'moment-timezone';
 import { t } from '@superset-ui/core';
 import { Select } from 'src/components';

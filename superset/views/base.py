@@ -83,7 +83,7 @@ from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
-from superset.utils import core as utils, json as json_utils
+from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 
 from .utils import bootstrap_user_data
@@ -153,9 +153,7 @@ def json_error_response(
     payload = payload or {"error": f"{msg}"}
 
     return Response(
-        json_utils.dumps(
-            payload, default=json_utils.json_iso_dttm_ser, ignore_nan=True
-        ),
+        json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
         status=status,
         mimetype="application/json",
     )
@@ -170,9 +168,7 @@ def json_errors_response(
 
     payload["errors"] = [dataclasses.asdict(error) for error in errors]
     return Response(
-        json_utils.dumps(
-            payload, default=json_utils.json_iso_dttm_ser, ignore_nan=True
-        ),
+        json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
         status=status,
         mimetype="application/json; charset=utf-8",
     )
@@ -294,9 +290,7 @@ class BaseSupersetView(BaseView):
     @staticmethod
     def json_response(obj: Any, status: int = 200) -> FlaskResponse:
         return Response(
-            json_utils.dumps(
-                obj, default=json_utils.json_int_dttm_ser, ignore_nan=True
-            ),
+            json.dumps(obj, default=json.json_int_dttm_ser, ignore_nan=True),
             status=status,
             mimetype="application/json",
         )
@@ -312,8 +306,8 @@ class BaseSupersetView(BaseView):
         return self.render_template(
             "superset/spa.html",
             entry="spa",
-            bootstrap_data=json_utils.dumps(
-                payload, default=json_utils.pessimistic_json_iso_dttm_ser
+            bootstrap_data=json.dumps(
+                payload, default=json.pessimistic_json_iso_dttm_ser
             ),
         )
 
@@ -547,9 +541,9 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 @superset_app.context_processor
 def get_common_bootstrap_data() -> dict[str, Any]:
     def serialize_bootstrap_data() -> str:
-        return json_utils.dumps(
+        return json.dumps(
             {"common": common_bootstrap_payload()},
-            default=json_utils.pessimistic_json_iso_dttm_ser,
+            default=json.pessimistic_json_iso_dttm_ser,
         )
 
     return {"bootstrap_data": serialize_bootstrap_data}
@@ -630,8 +624,8 @@ class SupersetModelView(ModelView):
         return self.render_template(
             "superset/spa.html",
             entry="spa",
-            bootstrap_data=json_utils.dumps(
-                payload, default=json_utils.pessimistic_json_iso_dttm_ser
+            bootstrap_data=json.dumps(
+                payload, default=json.pessimistic_json_iso_dttm_ser
             ),
         )
 

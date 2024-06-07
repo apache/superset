@@ -18,7 +18,6 @@
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-import json
 import os
 import re
 from typing import Any, Optional
@@ -66,13 +65,7 @@ from superset.utils.core import (
     zlib_decompress,
     DateColumn,
 )
-from superset.utils.json import (
-    base_json_conv,
-    format_timedelta,
-    json_int_dttm_ser,
-    json_iso_dttm_ser,
-    validate_json,
-)
+from superset.utils import json
 from superset.utils.database import get_or_create_db
 from superset.utils import schema
 from superset.utils.hashing import md5_sha_from_str
@@ -91,49 +84,49 @@ class TestUtils(SupersetTestCase):
     def test_json_int_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
         ts = 1577836800000.0
-        assert json_int_dttm_ser(dttm) == ts
-        assert json_int_dttm_ser(date(2020, 1, 1)) == ts
-        assert json_int_dttm_ser(datetime(1970, 1, 1)) == 0
-        assert json_int_dttm_ser(date(1970, 1, 1)) == 0
-        assert json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
-        assert json_int_dttm_ser(np.int64(1)) == 1
+        assert json.json_int_dttm_ser(dttm) == ts
+        assert json.json_int_dttm_ser(date(2020, 1, 1)) == ts
+        assert json.json_int_dttm_ser(datetime(1970, 1, 1)) == 0
+        assert json.json_int_dttm_ser(date(1970, 1, 1)) == 0
+        assert json.json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
+        assert json.json_int_dttm_ser(np.int64(1)) == 1
 
         with self.assertRaises(TypeError):
-            json_int_dttm_ser(np.datetime64())
+            json.json_int_dttm_ser(np.datetime64())
 
     def test_json_iso_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
         dt = date(2020, 1, 1)
         t = time()
-        assert json_iso_dttm_ser(dttm) == dttm.isoformat()
-        assert json_iso_dttm_ser(dt) == dt.isoformat()
-        assert json_iso_dttm_ser(t) == t.isoformat()
-        assert json_iso_dttm_ser(np.int64(1)) == 1
+        assert json.json_iso_dttm_ser(dttm) == dttm.isoformat()
+        assert json.json_iso_dttm_ser(dt) == dt.isoformat()
+        assert json.json_iso_dttm_ser(t) == t.isoformat()
+        assert json.json_iso_dttm_ser(np.int64(1)) == 1
 
         assert (
-            json_iso_dttm_ser(np.datetime64(), pessimistic=True)
+            json.json_iso_dttm_ser(np.datetime64(), pessimistic=True)
             == "Unserializable [<class 'numpy.datetime64'>]"
         )
 
         with self.assertRaises(TypeError):
-            json_iso_dttm_ser(np.datetime64())
+            json.json_iso_dttm_ser(np.datetime64())
 
     def test_base_json_conv(self):
-        assert isinstance(base_json_conv(np.bool_(1)), bool)
-        assert isinstance(base_json_conv(np.int64(1)), int)
-        assert isinstance(base_json_conv(np.array([1, 2, 3])), list)
-        assert base_json_conv(np.array(None)) is None
-        assert isinstance(base_json_conv({1}), list)
-        assert isinstance(base_json_conv(Decimal("1.0")), float)
-        assert isinstance(base_json_conv(uuid.uuid4()), str)
-        assert isinstance(base_json_conv(time()), str)
-        assert isinstance(base_json_conv(timedelta(0)), str)
-        assert isinstance(base_json_conv(b""), str)
-        assert isinstance(base_json_conv(b"\xff\xfe"), str)
-        assert base_json_conv(b"\xff") == "[bytes]"
+        assert isinstance(json.base_json_conv(np.bool_(1)), bool)
+        assert isinstance(json.base_json_conv(np.int64(1)), int)
+        assert isinstance(json.base_json_conv(np.array([1, 2, 3])), list)
+        assert json.base_json_conv(np.array(None)) is None
+        assert isinstance(json.base_json_conv({1}), list)
+        assert isinstance(json.base_json_conv(Decimal("1.0")), float)
+        assert isinstance(json.base_json_conv(uuid.uuid4()), str)
+        assert isinstance(json.base_json_conv(time()), str)
+        assert isinstance(json.base_json_conv(timedelta(0)), str)
+        assert isinstance(json.base_json_conv(b""), str)
+        assert isinstance(json.base_json_conv(b"\xff\xfe"), str)
+        assert json.base_json_conv(b"\xff") == "[bytes]"
 
         with pytest.raises(TypeError):
-            base_json_conv(np.datetime64())
+            json.base_json_conv(np.datetime64())
 
     def test_zlib_compression(self):
         json_str = '{"test": 1}'
@@ -574,24 +567,26 @@ class TestUtils(SupersetTestCase):
         )
 
     def test_format_timedelta(self):
-        self.assertEqual(format_timedelta(timedelta(0)), "0:00:00")
-        self.assertEqual(format_timedelta(timedelta(days=1)), "1 day, 0:00:00")
-        self.assertEqual(format_timedelta(timedelta(minutes=-6)), "-0:06:00")
+        self.assertEqual(json.format_timedelta(timedelta(0)), "0:00:00")
+        self.assertEqual(json.format_timedelta(timedelta(days=1)), "1 day, 0:00:00")
+        self.assertEqual(json.format_timedelta(timedelta(minutes=-6)), "-0:06:00")
         self.assertEqual(
-            format_timedelta(timedelta(0) - timedelta(days=1, hours=5, minutes=6)),
+            json.format_timedelta(timedelta(0) - timedelta(days=1, hours=5, minutes=6)),
             "-1 day, 5:06:00",
         )
         self.assertEqual(
-            format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3)),
+            json.format_timedelta(
+                timedelta(0) - timedelta(days=16, hours=4, minutes=3)
+            ),
             "-16 days, 4:03:00",
         )
 
     def test_validate_json(self):
         valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'
-        self.assertIsNone(validate_json(valid))
+        self.assertIsNone(json.validate_json(valid))
         invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
-        with self.assertRaises(SupersetException):
-            validate_json(invalid)
+        with self.assertRaises(json.JSONDecodeError):
+            json.validate_json(invalid)
 
     def test_convert_legacy_filters_into_adhoc_where(self):
         form_data = {"where": "a = 1"}

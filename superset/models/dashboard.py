@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 import uuid
 from collections import defaultdict
@@ -51,7 +50,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
-from superset.utils import core as utils, json as json_utils
+from superset.utils import core as utils, json
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
@@ -372,7 +371,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
         return json.dumps(
             {"dashboards": copied_dashboards, "datasources": eager_datasources},
-            cls=json_utils.DashboardEncoder,
+            cls=json.DashboardEncoder,
             indent=4,
         )
 

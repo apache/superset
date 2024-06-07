@@ -30,7 +30,3 @@
 
 **/*.geojson @villebro @rusackas
 /superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
-
-# Translations are a finnicky contribution that we care about
-
-/superset/translations/ @villebro @rusackas

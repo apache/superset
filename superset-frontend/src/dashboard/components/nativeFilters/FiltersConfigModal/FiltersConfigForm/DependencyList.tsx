@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Select } from 'src/components';

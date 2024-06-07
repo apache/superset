@@ -60,7 +60,7 @@ from superset.utils.core import (
     get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
-    get_xaxis_label,
+    get_x_axis_label,
     normalize_dttm_col,
     TIME_COMPARISON,
 )
@@ -399,7 +399,7 @@ class QueryContextProcessor:
         for offset in query_object.time_offsets:
             try:
                 # pylint: disable=line-too-long
-                # Since the xaxis is also a column name for the time filter, xaxis_label will be set as granularity
+                # Since the x-axis is also a column name for the time filter, x_axis_label will be set as granularity
                 # these query object are equivalent:
                 # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}
                 # 2) { columns: [
@@ -414,9 +414,9 @@ class QueryContextProcessor:
                 )
                 query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
 
-                xaxis_label = get_xaxis_label(query_object.columns)
+                x_axis_label = get_x_axis_label(query_object.columns)
                 query_object_clone.granularity = (
-                    query_object_clone.granularity or xaxis_label
+                    query_object_clone.granularity or x_axis_label
                 )
             except ValueError as ex:
                 raise QueryObjectValidationError(str(ex)) from ex
@@ -450,7 +450,7 @@ class QueryContextProcessor:
             query_object_clone.filter = [
                 flt
                 for flt in query_object_clone.filter
-                if flt.get("col") != xaxis_label
+                if flt.get("col") != x_axis_label
             ]
 
             # `offset` is added to the hash function

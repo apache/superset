@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  KeyboardEvent,
+  memo,
 } from 'react';
+
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
@@ -147,7 +150,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
       setPopoverVisible(true);
     }
@@ -319,4 +322,4 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
 };
 
-export default React.memo(FiltersBadge);
+export default memo(FiltersBadge);

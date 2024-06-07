@@ -17,7 +17,6 @@
 
 # pylint: disable=too-many-lines
 
-import json
 import textwrap
 
 from sqlalchemy import inspect
@@ -27,6 +26,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql_parse import Table
+from superset.utils import json
 from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database

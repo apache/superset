@@ -18,7 +18,7 @@
  */
 import { flatMapDeep } from 'lodash';
 import { FormInstance } from 'src/components';
-import React from 'react';
+import { useState, useCallback } from 'react';
 import { CustomControlItem, Dataset } from '@superset-ui/chart-controls';
 import { Column, ensureIsArray, GenericDataType } from '@superset-ui/core';
 import { DatasourcesState, ChartsState } from 'src/dashboard/types';
@@ -27,8 +27,8 @@ import { FILTER_SUPPORTED_TYPES } from './constants';
 const FILTERS_FIELD_NAME = 'filters';
 
 export const useForceUpdate = (isActive = true) => {
-  const [, updateState] = React.useState({});
-  return React.useCallback(() => {
+  const [, updateState] = useState({});
+  return useCallback(() => {
     if (isActive) {
       updateState({});
     }

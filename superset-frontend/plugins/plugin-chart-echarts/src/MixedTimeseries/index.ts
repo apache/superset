@@ -74,6 +74,7 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
           t('Multi-Variables'),
           t('Time'),
           t('Transformable'),
+          t('Featured'),
         ],
         queryObjectCount: 2,
       },

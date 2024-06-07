@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import {
   t,
@@ -88,7 +88,7 @@ function isDictionaryForAdhocFilter(value) {
   return value && !(value instanceof AdhocFilter) && value.expressionType;
 }
 
-class AdhocFilterControl extends React.Component {
+class AdhocFilterControl extends Component {
   constructor(props) {
     super(props);
     this.optionsForSelect = this.optionsForSelect.bind(this);

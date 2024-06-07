@@ -17,7 +17,7 @@
  * under the License.
  */
 import PropTypes from 'prop-types';
-import React from 'react';
+import { PureComponent } from 'react';
 import {
   ensureIsArray,
   FeatureFlag,
@@ -151,7 +151,7 @@ const MonospaceDiv = styled.div`
   white-space: pre-wrap;
 `;
 
-class Chart extends React.PureComponent {
+class Chart extends PureComponent {
   constructor(props) {
     super(props);
     this.handleRenderContainerFailure =
