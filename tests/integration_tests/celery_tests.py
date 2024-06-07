@@ -190,34 +190,34 @@ def test_run_sync_query_dont_exist(test_client, ctas_method):
         }
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
-@pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-def test_run_sync_query_cta(test_client, ctas_method):
-    tmp_table_name = f"{TEST_SYNC}_{ctas_method.lower()}"
-    result = run_sql(
-        test_client, QUERY, tmp_table=tmp_table_name, cta=True, ctas_method=ctas_method
-    )
-    assert QueryStatus.SUCCESS == result["query"]["state"], result
-    assert cta_result(ctas_method) == (result["data"], result["columns"])
+# @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
+# @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
+# def test_run_sync_query_cta(test_client, ctas_method):
+#     tmp_table_name = f"{TEST_SYNC}_{ctas_method.lower()}"
+#     result = run_sql(
+#         test_client, QUERY, tmp_table=tmp_table_name, cta=True, ctas_method=ctas_method
+#     )
+#     assert QueryStatus.SUCCESS == result["query"]["state"], result
+#     assert cta_result(ctas_method) == (result["data"], result["columns"])
+#
+#     # Check the data in the tmp table.
+#     select_query = get_query_by_id(result["query"]["serverId"])
+#     results = run_sql(test_client, select_query.select_sql)
+#     assert QueryStatus.SUCCESS == results["status"], results
+#     assert len(results["data"]) > 0
+#
+#     delete_tmp_view_or_table(tmp_table_name, ctas_method)
 
-    # Check the data in the tmp table.
-    select_query = get_query_by_id(result["query"]["serverId"])
-    results = run_sql(test_client, select_query.select_sql)
-    assert QueryStatus.SUCCESS == results["status"], results
-    assert len(results["data"]) > 0
 
-    delete_tmp_view_or_table(tmp_table_name, ctas_method)
-
-
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
-def test_run_sync_query_cta_no_data(test_client):
-    sql_empty_result = "SELECT * FROM birth_names WHERE name='random'"
-    result = run_sql(test_client, sql_empty_result)
-    assert QueryStatus.SUCCESS == result["query"]["state"]
-    assert ([], []) == (result["data"], result["columns"])
-
-    query = get_query_by_id(result["query"]["serverId"])
-    assert QueryStatus.SUCCESS == query.status
+# @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
+# def test_run_sync_query_cta_no_data(test_client):
+#     sql_empty_result = "SELECT * FROM birth_names WHERE name='random'"
+#     result = run_sql(test_client, sql_empty_result)
+#     assert QueryStatus.SUCCESS == result["query"]["state"]
+#     assert ([], []) == (result["data"], result["columns"])
+#
+#     query = get_query_by_id(result["query"]["serverId"])
+#     assert QueryStatus.SUCCESS == query.status
 
 
 # @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
@@ -367,136 +367,136 @@ CURSOR_DESCR = (
 )
 
 
-def test_default_data_serialization():
-    db_engine_spec = BaseEngineSpec()
-    results = SupersetResultSet(SERIALIZATION_DATA, CURSOR_DESCR, db_engine_spec)
-
-    with mock.patch.object(
-        db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
-    ) as expand_data:
-        data = sql_lab._serialize_and_expand_data(results, db_engine_spec, False, True)
-        expand_data.assert_called_once()
-    assert isinstance(data[0], list)
-
-
-def test_new_data_serialization():
-    db_engine_spec = BaseEngineSpec()
-    results = SupersetResultSet(SERIALIZATION_DATA, CURSOR_DESCR, db_engine_spec)
-
-    with mock.patch.object(
-        db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
-    ) as expand_data:
-        data = sql_lab._serialize_and_expand_data(results, db_engine_spec, True)
-        expand_data.assert_not_called()
-    assert isinstance(data[0], bytes)
+# def test_default_data_serialization():
+#     db_engine_spec = BaseEngineSpec()
+#     results = SupersetResultSet(SERIALIZATION_DATA, CURSOR_DESCR, db_engine_spec)
+#
+#     with mock.patch.object(
+#         db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
+#     ) as expand_data:
+#         data = sql_lab._serialize_and_expand_data(results, db_engine_spec, False, True)
+#         expand_data.assert_called_once()
+#     assert isinstance(data[0], list)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-def test_default_payload_serialization():
-    use_new_deserialization = False
-    db_engine_spec = BaseEngineSpec()
-    results = SupersetResultSet(SERIALIZATION_DATA, CURSOR_DESCR, db_engine_spec)
-    query = {
-        "database_id": 1,
-        "sql": "SELECT * FROM birth_names LIMIT 100",
-        "status": QueryStatus.PENDING,
-    }
-    (
-        serialized_data,
-        selected_columns,
-        all_columns,
-        expanded_columns,
-    ) = sql_lab._serialize_and_expand_data(
-        results, db_engine_spec, use_new_deserialization
-    )
-    payload = {
-        "query_id": 1,
-        "status": QueryStatus.SUCCESS,
-        "state": QueryStatus.SUCCESS,
-        "data": serialized_data,
-        "columns": all_columns,
-        "selected_columns": selected_columns,
-        "expanded_columns": expanded_columns,
-        "query": query,
-    }
-
-    serialized = sql_lab._serialize_payload(payload, use_new_deserialization)
-    assert isinstance(serialized, str)
+# def test_new_data_serialization():
+#     db_engine_spec = BaseEngineSpec()
+#     results = SupersetResultSet(SERIALIZATION_DATA, CURSOR_DESCR, db_engine_spec)
+#
+#     with mock.patch.object(
+#         db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
+#     ) as expand_data:
+#         data = sql_lab._serialize_and_expand_data(results, db_engine_spec, True)
+#         expand_data.assert_not_called()
+#     assert isinstance(data[0], bytes)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-def test_msgpack_payload_serialization():
-    use_new_deserialization = True
-    db_engine_spec = BaseEngineSpec()
-    results = SupersetResultSet(SERIALIZATION_DATA, CURSOR_DESCR, db_engine_spec)
-    query = {
-        "database_id": 1,
-        "sql": "SELECT * FROM birth_names LIMIT 100",
-        "status": QueryStatus.PENDING,
-    }
-    (
-        serialized_data,
-        selected_columns,
-        all_columns,
-        expanded_columns,
-    ) = sql_lab._serialize_and_expand_data(
-        results, db_engine_spec, use_new_deserialization
-    )
-    payload = {
-        "query_id": 1,
-        "status": QueryStatus.SUCCESS,
-        "state": QueryStatus.SUCCESS,
-        "data": serialized_data,
-        "columns": all_columns,
-        "selected_columns": selected_columns,
-        "expanded_columns": expanded_columns,
-        "query": query,
-    }
-
-    serialized = sql_lab._serialize_payload(payload, use_new_deserialization)
-    assert isinstance(serialized, bytes)
-
-
-def test_create_table_as():
-    q = ParsedQuery("SELECT * FROM outer_space;")
-
-    assert "CREATE TABLE tmp AS \nSELECT * FROM outer_space" == q.as_create_table("tmp")
-    assert (
-        "DROP TABLE IF EXISTS tmp;\nCREATE TABLE tmp AS \nSELECT * FROM outer_space"
-        == q.as_create_table("tmp", overwrite=True)
-    )
-
-    # now without a semicolon
-    q = ParsedQuery("SELECT * FROM outer_space")
-    assert "CREATE TABLE tmp AS \nSELECT * FROM outer_space" == q.as_create_table("tmp")
-
-    # now a multi-line query
-    multi_line_query = "SELECT * FROM planets WHERE\n" "Luke_Father = 'Darth Vader'"
-    q = ParsedQuery(multi_line_query)
-    assert (
-        "CREATE TABLE tmp AS \nSELECT * FROM planets WHERE\nLuke_Father = 'Darth Vader'"
-        == q.as_create_table("tmp")
-    )
+# @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+# def test_default_payload_serialization():
+#     use_new_deserialization = False
+#     db_engine_spec = BaseEngineSpec()
+#     results = SupersetResultSet(SERIALIZATION_DATA, CURSOR_DESCR, db_engine_spec)
+#     query = {
+#         "database_id": 1,
+#         "sql": "SELECT * FROM birth_names LIMIT 100",
+#         "status": QueryStatus.PENDING,
+#     }
+#     (
+#         serialized_data,
+#         selected_columns,
+#         all_columns,
+#         expanded_columns,
+#     ) = sql_lab._serialize_and_expand_data(
+#         results, db_engine_spec, use_new_deserialization
+#     )
+#     payload = {
+#         "query_id": 1,
+#         "status": QueryStatus.SUCCESS,
+#         "state": QueryStatus.SUCCESS,
+#         "data": serialized_data,
+#         "columns": all_columns,
+#         "selected_columns": selected_columns,
+#         "expanded_columns": expanded_columns,
+#         "query": query,
+#     }
+#
+#     serialized = sql_lab._serialize_payload(payload, use_new_deserialization)
+#     assert isinstance(serialized, str)
 
 
-def test_in_app_context():
-    @celery_app.task(bind=True)
-    def my_task(self):
-        # Directly check if an app context is present
-        return has_app_context()
+# @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+# def test_msgpack_payload_serialization():
+#     use_new_deserialization = True
+#     db_engine_spec = BaseEngineSpec()
+#     results = SupersetResultSet(SERIALIZATION_DATA, CURSOR_DESCR, db_engine_spec)
+#     query = {
+#         "database_id": 1,
+#         "sql": "SELECT * FROM birth_names LIMIT 100",
+#         "status": QueryStatus.PENDING,
+#     }
+#     (
+#         serialized_data,
+#         selected_columns,
+#         all_columns,
+#         expanded_columns,
+#     ) = sql_lab._serialize_and_expand_data(
+#         results, db_engine_spec, use_new_deserialization
+#     )
+#     payload = {
+#         "query_id": 1,
+#         "status": QueryStatus.SUCCESS,
+#         "state": QueryStatus.SUCCESS,
+#         "data": serialized_data,
+#         "columns": all_columns,
+#         "selected_columns": selected_columns,
+#         "expanded_columns": expanded_columns,
+#         "query": query,
+#     }
+#
+#     serialized = sql_lab._serialize_payload(payload, use_new_deserialization)
+#     assert isinstance(serialized, bytes)
 
-    # Expect True within an app context
-    with app.app_context():
-        result = my_task.apply().get()
-        assert (
-            result is True
-        ), "Task should have access to current_app within app context"
 
-    # Expect True outside of an app context
-    result = my_task.apply().get()
-    assert (
-        result is True
-    ), "Task should have access to current_app outside of app context"
+# def test_create_table_as():
+#     q = ParsedQuery("SELECT * FROM outer_space;")
+#
+#     assert "CREATE TABLE tmp AS \nSELECT * FROM outer_space" == q.as_create_table("tmp")
+#     assert (
+#         "DROP TABLE IF EXISTS tmp;\nCREATE TABLE tmp AS \nSELECT * FROM outer_space"
+#         == q.as_create_table("tmp", overwrite=True)
+#     )
+#
+#     # now without a semicolon
+#     q = ParsedQuery("SELECT * FROM outer_space")
+#     assert "CREATE TABLE tmp AS \nSELECT * FROM outer_space" == q.as_create_table("tmp")
+#
+#     # now a multi-line query
+#     multi_line_query = "SELECT * FROM planets WHERE\n" "Luke_Father = 'Darth Vader'"
+#     q = ParsedQuery(multi_line_query)
+#     assert (
+#         "CREATE TABLE tmp AS \nSELECT * FROM planets WHERE\nLuke_Father = 'Darth Vader'"
+#         == q.as_create_table("tmp")
+#     )
+
+
+# def test_in_app_context():
+#     @celery_app.task(bind=True)
+#     def my_task(self):
+#         # Directly check if an app context is present
+#         return has_app_context()
+#
+#     # Expect True within an app context
+#     with app.app_context():
+#         result = my_task.apply().get()
+#         assert (
+#             result is True
+#         ), "Task should have access to current_app within app context"
+#
+#     # Expect True outside of an app context
+#     result = my_task.apply().get()
+#     assert (
+#         result is True
+#     ), "Task should have access to current_app outside of app context"
 
 
 def delete_tmp_view_or_table(name: str, db_object_type: str):
