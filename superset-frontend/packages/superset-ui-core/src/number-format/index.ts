@@ -33,3 +33,4 @@ export { default as createD3NumberFormatter } from './factories/createD3NumberFo
 export { default as createDurationFormatter } from './factories/createDurationFormatter';
 export { default as createSiAtMostNDigitFormatter } from './factories/createSiAtMostNDigitFormatter';
 export { default as createSmartNumberFormatter } from './factories/createSmartNumberFormatter';
+export { default as createLengthFormatter } from './factories/createLengthFormatter';
