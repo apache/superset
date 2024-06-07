@@ -179,8 +179,8 @@ def import_dataset(
         load_data(data_uri, dataset, dataset.database)
 
     if user := get_user():
-        dataset.owners.append(user)
-
+        if user not in dataset.owners:
+            dataset.owners.append(user)
     return dataset
 
 
