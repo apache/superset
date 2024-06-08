@@ -36,7 +36,7 @@ module.exports = {
   modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   testEnvironmentOptions: {
-    url: 'http://localhost'
+    url: 'http://localhost',
   },
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',

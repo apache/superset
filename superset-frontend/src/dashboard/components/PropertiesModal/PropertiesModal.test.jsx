@@ -64,8 +64,8 @@ const requiredProps = {
   addSuccessToast: () => {},
 };
 
-const setup = (overrideProps) => {
-  return mount(
+const setup = overrideProps =>
+  mount(
     <Provider store={mockStore}>
       <PropertiesModal {...requiredProps} {...overrideProps} />
     </Provider>,
@@ -74,7 +74,6 @@ const setup = (overrideProps) => {
       wrappingComponentProps: { theme: supersetTheme },
     },
   );
-}
 
 // all these tests need to be moved to dashboard/components/PropertiesModal/PropertiesModal.test.tsx
 describe.skip('PropertiesModal', () => {

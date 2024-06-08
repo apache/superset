@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen, act  } from 'spec/helpers/testing-library';
+import { render, screen, act } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import * as mockCore from '@superset-ui/core';
@@ -275,7 +275,7 @@ describe('FilterBar', () => {
     renderWrapper(openedBarProps, stateWithDivider);
 
     await act(async () => {
-      jest.advanceTimersByTime(1000) // 1s
+      jest.advanceTimersByTime(1000); // 1s
     });
 
     const title = await screen.findByText('Select time range');

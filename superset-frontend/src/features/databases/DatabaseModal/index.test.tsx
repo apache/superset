@@ -434,7 +434,9 @@ describe('DatabaseModal', () => {
       // <TabHeader> - AntD header
       const closeButton = screen.getByRole('button', { name: /close/i });
 
-      const basicHeader = screen.getByRole('heading', { name: /connect a database/i });
+      const basicHeader = screen.getByRole('heading', {
+        name: /connect a database/i,
+      });
       expect(basicHeader).toBeVisible();
 
       // <ModalHeader> - Connection header
