@@ -116,3 +116,6 @@ docker/requirements-local.txt
 
 cache/
 docker/*local*
+
+# Jest test report
+test-report.html
