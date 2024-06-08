@@ -174,12 +174,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     { label: string; value: string }[]
   >([]);
   const [error, setError] = useState(false);
-  const [ccValue, setCcValue] = useState<string>(
-    cc || '',
-  );
-  const [bccValue, setBccValue] = useState<string>(
-    bcc || '',
-  );
+  const [ccValue, setCcValue] = useState<string>(cc || '');
+  const [bccValue, setBccValue] = useState<string>(bcc || '');
   const theme = useTheme();
   const [slackOptions, setSlackOptions] = useState<SlackOptionsType>([
     {
@@ -343,9 +339,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   };
 
-  const onCcChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement>,
-  ) => {
+  const onCcChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { target } = event;
 
     setCcValue(target.value);
@@ -360,9 +354,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   };
 
-  const onBccChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement>,
-  ) => {
+  const onBccChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { target } = event;
 
     setBccValue(target.value);
@@ -480,11 +472,9 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               data-test="bcc"
               value={bccValue}
               onChange={onBccChange}
-          />
-          </div>
-          <div className="control-label">
-                    {TRANSLATIONS.EMAIL_SUBJECT_NAME}
-          </div>
+            />
+            </div>
+            <div className="control-label">{TRANSLATIONS.EMAIL_SUBJECT_NAME}</div>
             <div className={`input-container ${error ? 'error' : ''}`}>
               <input
                 type="text"
@@ -498,11 +488,28 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             <div style={{color: theme.colors.error.base, fontSize: theme.gridUnit * 3,}}>
                       {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
             </div>)}
-
-          <div className="helper">
-          {t('Recipients are separated by "," or ";"')}
-        </div>
-        </StyledInputContainer>       
+            <div className="helper">
+              {t('Recipients are separated by "," or ";"')}
+            </div>
+          </StyledInputContainer>       
+        ) : (
+          <StyledInputContainer>
+            <div className="control-label">
+              {t('%s recipients', method)}
+              <span className="required">*</span>
+            </div>
+            <div className="input-container">
+              <textarea
+                name="recipients"
+                data-test="recipients"
+                value={recipientValue}
+                onChange={onRecipientsChange}
+              />
+            </div>
+            <div className="helper">
+              {t('Recipients are separated by "," or ";"')}
+            </div>
+          </StyledInputContainer>
         )
           :
         (

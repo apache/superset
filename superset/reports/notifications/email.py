@@ -212,8 +212,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         try:
             send_email_smtp(
                 to,
-                cc,
-                bcc,
                 subject,
                 content.body,
                 app.config,
@@ -221,9 +219,10 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 data=content.data,
                 pdf=content.pdf,
                 images=content.images,
-                bcc="",
                 mime_subtype="related",
                 dryrun=False,
+                cc=cc,
+                bcc=bcc,
                 header_data=content.header_data,
             )
             logger.info(

@@ -188,7 +188,11 @@ function ReportModal({
       owners: [userId],
       recipients: [
         {
-          recipient_config_json: { target: userEmail, ccTarget: ccEmail, bccTarget: bccEmail },
+          recipient_config_json: { 
+            target: userEmail,
+            ccTarget: ccEmail,
+            bccTarget: bccEmail
+          },
           type: 'Email',
         },
       ],

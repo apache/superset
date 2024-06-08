@@ -1025,17 +1025,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const validateEmails = (emails: string): boolean => {
       if (!emails) return true; // No emails to validate
-      return emails.split(/[,;]/).every(email => EMAIL_REGEX.test(email.trim()));
+      return emails
+        .split(/[,;]/)
+        .every(email => EMAIL_REGEX.test(email.trim()));
    };
 
    for (const setting of notificationSettings) {
       if (!!setting.method && setting.method==='Email') {
-          if(setting.recipients?.length && !validateEmails(setting.recipients))return false;
-          if(setting.cc && !validateEmails(setting.cc))return false;
-          if(setting.bcc && !validateEmails(setting.bcc))return false;
+          if (setting.recipients?.length && !validateEmails(setting.recipients))
+            return false;
+          if (setting.cc && !validateEmails(setting.cc)) return false;
+          if (setting.bcc && !validateEmails(setting.bcc)) return false;
         }
-      };
-
+      }
     return true;
   };
 
@@ -1099,10 +1101,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     
     if (hasErrors) {
       errors.push(TRANSLATIONS.RECIPIENTS_ERROR_TEXT);
-    } 
-    else {
-        // Check for email format errors
-        const hasValidationErrors = !checkEmailFormat();
+    } else {
+      // Check for email format errors
+      const hasValidationErrors = !checkEmailFormat();
         if (hasValidationErrors) {
             errors.push(TRANSLATIONS.EMAIL_VALIDATION_ERROR_TEXT);
         }
@@ -1169,8 +1170,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setNotificationSettings([
         {
           recipients: '',
-          cc:'',
-          bcc:'',
+          cc: '',
+          bcc: '',
           options: allowedNotificationMethods,
           method: NotificationMethodOption.Email,
         },
