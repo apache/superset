@@ -172,6 +172,7 @@ describe('Welcome without sql role', () => {
 
   afterAll(() => {
     fetchMock.resetHistory();
+    fetchMock.restore();
   });
 
   it('renders', () => {
@@ -218,7 +219,7 @@ describe('Welcome page with toggle switch', () => {
   });
 
   afterAll(() => {
-    isFeatureEnabledMock.restore();
+    isFeatureEnabledMock.mockRestore();
   });
 
   it('shows a toggle button when feature flags is turned on', async () => {

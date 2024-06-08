@@ -35,7 +35,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, waitFor, act } from 'spec/helpers/testing-library';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { logging } from '@superset-ui/core';
@@ -58,9 +58,8 @@ const unsavedSqlLabState = {
   },
   editorTabLastUpdatedAt,
 };
-beforeAll(() => {
-  jest.useFakeTimers();
-});
+
+jest.useFakeTimers();
 
 afterAll(() => {
   jest.useRealTimers();
@@ -103,7 +102,9 @@ test('sync the unsaved NEW editor state when there are new in local storage', as
       },
     },
   });
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
   expect(fetchMock.calls(createEditorTabState)).toHaveLength(1);
   fetchMock.restore();
 });

@@ -19,6 +19,7 @@
 import handleScroll from '.';
 
 jest.useFakeTimers();
+jest.spyOn(global, 'clearInterval');
 
 const { scroll } = window;
 
