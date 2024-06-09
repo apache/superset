@@ -62,7 +62,6 @@ module.exports = {
     __DEV__: true,
     caches: true,
   },
-  maxWorkers: '50%',
   reporters: [
     'default',
     [
