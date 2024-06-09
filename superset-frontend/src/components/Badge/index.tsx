@@ -32,19 +32,21 @@ const Badge = styled(
     <AntdBadge
       text={text}
       color={text ? color : undefined}
-      classNames={{
-        root: 'superset-badge',
-      }}
+      status={props.status || 'default'}
       {...props}
     />
   ),
 )`
-  & > sup {
-    padding: 0 ${({ theme }) => theme.gridUnit * 2}px;
-    background: ${({ theme, color }) => color || theme.colors.primary.base};
-    color: ${({ theme, textColor }) =>
-      textColor || theme.colors.grayscale.light5};
-  }
+  ${({ theme, color, count }) => `
+    & > sup,
+    & > sup.ant-badge-count {
+      ${
+        count !== undefined
+          ? `background: ${color || theme.colors.primary.base};`
+          : ''
+      }
+    }
+  `}
 `;
 
 export default Badge;
