@@ -128,7 +128,7 @@ it('should transform chart props for viz', () => {
               [599916000000, 3],
             ],
             id: 'boy',
-            stack: 'obs_a',
+            stack: 'obs\na',
           }),
           expect.objectContaining({
             data: [
@@ -136,7 +136,7 @@ it('should transform chart props for viz', () => {
               [599916000000, 4],
             ],
             id: 'girl',
-            stack: 'obs_a',
+            stack: 'obs\na',
           }),
           expect.objectContaining({
             data: [
@@ -144,7 +144,7 @@ it('should transform chart props for viz', () => {
               [599916000000, 3],
             ],
             id: 'boy (1)',
-            stack: 'obs_b',
+            stack: 'obs\nb',
           }),
           expect.objectContaining({
             data: [
@@ -152,7 +152,7 @@ it('should transform chart props for viz', () => {
               [599916000000, 4],
             ],
             id: 'girl (1)',
-            stack: 'obs_b',
+            stack: 'obs\nb',
           }),
         ]),
       }),
