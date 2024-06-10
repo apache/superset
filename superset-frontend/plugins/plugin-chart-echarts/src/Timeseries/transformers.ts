@@ -151,6 +151,7 @@ export function transformSeries(
     areaOpacity?: number;
     seriesType?: EchartsTimeseriesSeriesType;
     stack?: StackType;
+    stackIdSuffix?: string;
     yAxisIndex?: number;
     showValue?: boolean;
     onlyTotal?: boolean;
@@ -178,6 +179,7 @@ export function transformSeries(
     areaOpacity = 1,
     seriesType,
     stack,
+    stackIdSuffix,
     yAxisIndex = 0,
     showValue,
     onlyTotal,
@@ -222,6 +224,9 @@ export function transformSeries(
     stackId = 'obs';
   } else if (stack && isTrend) {
     stackId = forecastSeries.type;
+  }
+  if (stackId && stackIdSuffix) {
+    stackId += stackIdSuffix;
   }
   let plotType;
   if (
