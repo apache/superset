@@ -23,12 +23,12 @@ import {
   useTheme,
   isFeatureEnabled,
   getClientErrorObject,
+  SupersetClient,
 } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { storeQuery } from 'src/utils/common';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { LOG_ACTIONS_SQLLAB_COPY_LINK } from 'src/logger/LogUtils';
 import useLogAction from 'src/logger/useLogAction';
@@ -65,12 +65,16 @@ const ShareSqlLabQuery = ({
       'templateParams',
     ]);
 
-  const getCopyUrlForKvStore = (callback: Function) => {
+  const getCopyUrlForPermalink = (callback: Function) => {
     const sharedQuery = { dbId, name, schema, autorun, sql, templateParams };
 
-    return storeQuery(sharedQuery)
-      .then(shortUrl => {
-        callback(shortUrl);
+    return SupersetClient.post({
+      endpoint: '/api/v1/sqllab/permalink',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sharedQuery),
+    })
+      .then(({ json }) => {
+        callback(json.url);
       })
       .catch(response => {
         getClientErrorObject(response).then(() => {
@@ -97,7 +101,7 @@ const ShareSqlLabQuery = ({
       shortcut: false,
     });
     if (isFeatureEnabled(FeatureFlag.ShareQueriesViaKvStore)) {
-      return getCopyUrlForKvStore(callback);
+      return getCopyUrlForPermalink(callback);
     }
     return getCopyUrlForSavedQuery(callback);
   };
