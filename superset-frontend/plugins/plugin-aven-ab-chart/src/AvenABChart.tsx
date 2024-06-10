@@ -71,7 +71,7 @@ const TimeTableStyles = styled.div<AvenABChartStylesProps>`
 
 const renderSparklineCell = (
   sparkData: (number | null)[],
-  tooltip: JSXElement[],
+  tooltip: React.ReactNode[],
   timestamps: { time: Date }[],
 ) => (
   <SparklineCell
@@ -121,9 +121,9 @@ function getDelta(
   test: {}[],
   numeratorMetric: string,
   denominatorMetric: string,
-): { numbers: (number | null)[]; tooltip: JSXElement[] } {
+): { numbers: (number | null)[]; tooltip: React.ReactNode[] } {
   const retNumbers: (number | null)[] = [];
-  const retElements: JSXElement[] = [];
+  const retElements: React.ReactNode[] = [];
 
   // eslint-disable-next-line no-plusplus
   for (let i = 0; i < control.length; i++) {
