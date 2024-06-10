@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
 import {

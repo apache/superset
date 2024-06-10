@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, ChangeEvent } from 'react';
+
 import type { DatabaseObject } from 'src/features/databases/types';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
@@ -138,11 +139,11 @@ const SaveQuery = ({
     close();
   };
 
-  const onLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onLabelChange = (e: ChangeEvent<HTMLInputElement>) => {
     setLabel(e.target.value);
   };
 
-  const onDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const onDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setDescription(e.target.value);
   };
 

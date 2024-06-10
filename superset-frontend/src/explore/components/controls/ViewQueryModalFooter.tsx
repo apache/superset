@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import { isObject } from 'lodash';
 import { t, SupersetClient } from '@superset-ui/core';
 import Button from 'src/components/Button';
@@ -38,7 +38,7 @@ const CLOSE = t('Close');
 const SAVE_AS_DATASET = t('Save as Dataset');
 const OPEN_IN_SQL_LAB = t('Open in SQL Lab');
 
-const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
+const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
   closeModal: () => void;
   changeDatasource: () => void;
   datasource: SimpleDataSource;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import Popover from 'src/components/Popover';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 import { ConditionalFormattingConfig, FormattingPopoverProps } from './types';

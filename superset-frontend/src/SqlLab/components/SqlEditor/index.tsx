@@ -18,14 +18,16 @@
  */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
-import React, {
+import {
   useState,
   useEffect,
   useMemo,
   useRef,
   useCallback,
   ChangeEvent,
+  FC,
 } from 'react';
+
 import type AceEditor from 'react-ace';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { CSSTransition } from 'react-transition-group';
@@ -234,7 +236,7 @@ const elementStyle = (
   }px)`,
 });
 
-const SqlEditor: React.FC<Props> = ({
+const SqlEditor: FC<Props> = ({
   queryEditor,
   defaultQueryLimit,
   maxRow,

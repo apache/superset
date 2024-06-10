@@ -427,13 +427,15 @@ describe('async actions', () => {
             maxRow: undefined,
             id: 'abcd',
             templateParams: undefined,
+            inLocalStorage: true,
+            loaded: true,
           },
         },
       ];
       const request = actions.cloneQueryToNewTab(query, true);
-      return request(store.dispatch, store.getState).then(() => {
-        expect(store.getActions()).toEqual(expectedActions);
-      });
+      request(store.dispatch, store.getState);
+
+      expect(store.getActions()).toEqual(expectedActions);
     });
   });
 
@@ -453,13 +455,16 @@ describe('async actions', () => {
       const expectedActions = [
         {
           type: actions.ADD_QUERY_EDITOR,
-          queryEditor,
+          queryEditor: {
+            ...queryEditor,
+            inLocalStorage: true,
+            loaded: true,
+          },
         },
       ];
-      const request = actions.addQueryEditor(defaultQueryEditor);
-      return request(store.dispatch, store.getState).then(() => {
-        expect(store.getActions()).toEqual(expectedActions);
-      });
+      store.dispatch(actions.addQueryEditor(defaultQueryEditor));
+
+      expect(store.getActions()).toEqual(expectedActions);
     });
 
     describe('addNewQueryEditor', () => {
@@ -488,13 +493,14 @@ describe('async actions', () => {
               queryLimit:
                 defaultQueryEditor.queryLimit ||
                 initialState.common.conf.DEFAULT_SQLLAB_LIMIT,
+              inLocalStorage: true,
+              loaded: true,
             },
           },
         ];
         const request = actions.addNewQueryEditor();
-        return request(store.dispatch, store.getState).then(() => {
-          expect(store.getActions()).toEqual(expectedActions);
-        });
+        request(store.dispatch, store.getState);
+        expect(store.getActions()).toEqual(expectedActions);
       });
     });
   });
@@ -534,20 +540,33 @@ describe('async actions', () => {
     afterEach(fetchMock.resetHistory);
 
     describe('addQueryEditor', () => {
-      it('updates the tab state in the backend', () => {
+      let stub;
+      beforeEach(() => {
+        stub = sinon.stub(shortid, 'generate').returns('abcd');
+      });
+      afterEach(() => {
+        stub.restore();
+      });
+
+      it('creates the tab state in the local storage', () => {
         expect.assertions(2);
 
         const store = mockStore({});
         const expectedActions = [
           {
             type: actions.ADD_QUERY_EDITOR,
-            queryEditor: { ...queryEditor, id: '1', loaded: true },
+            queryEditor: {
+              ...queryEditor,
+              id: 'abcd',
+              loaded: true,
+              inLocalStorage: true,
+            },
           },
         ];
-        return store.dispatch(actions.addQueryEditor(queryEditor)).then(() => {
-          expect(store.getActions()).toEqual(expectedActions);
-          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
-        });
+        store.dispatch(actions.addQueryEditor(queryEditor));
+
+        expect(store.getActions()).toEqual(expectedActions);
+        expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
       });
     });
 
@@ -965,7 +984,7 @@ describe('async actions', () => {
       });
     });
 
-    describe('migrateQueryEditorFromLocalStorage', () => {
+    describe('syncQueryEditor', () => {
       it('updates the tab state in the backend', () => {
         expect.assertions(3);
 
@@ -978,16 +997,41 @@ describe('async actions', () => {
           overwriteRoutes: true,
         });
 
+        const oldQueryEditor = { ...queryEditor, inLocalStorage: true };
         const tables = [
-          { id: 'one', dataPreviewQueryId: 'previewOne' },
-          { id: 'two', dataPreviewQueryId: 'previewTwo' },
+          {
+            id: 'one',
+            dataPreviewQueryId: 'previewOne',
+            queryEditorId: oldQueryEditor.id,
+            inLocalStorage: true,
+          },
+          {
+            id: 'two',
+            dataPreviewQueryId: 'previewTwo',
+            queryEditorId: oldQueryEditor.id,
+            inLocalStorage: true,
+          },
         ];
         const queries = [
-          { ...query, id: 'previewOne' },
-          { ...query, id: 'previewTwo' },
+          {
+            ...query,
+            id: 'previewOne',
+            sqlEditorId: oldQueryEditor.id,
+            inLocalStorage: true,
+          },
+          {
+            ...query,
+            id: 'previewTwo',
+            sqlEditorId: oldQueryEditor.id,
+            inLocalStorage: true,
+          },
         ];
-        const store = mockStore({});
-        const oldQueryEditor = { ...queryEditor, inLocalStorage: true };
+        const store = mockStore({
+          sqlLab: {
+            queries,
+            tables,
+          },
+        });
         const expectedActions = [
           {
             type: actions.MIGRATE_QUERY_EDITOR,
@@ -997,6 +1041,7 @@ describe('async actions', () => {
               ...oldQueryEditor,
               id: '1',
               inLocalStorage: false,
+              loaded: true,
             },
           },
           {
@@ -1028,13 +1073,7 @@ describe('async actions', () => {
           },
         ];
         return store
-          .dispatch(
-            actions.migrateQueryEditorFromLocalStorage(
-              oldQueryEditor,
-              tables,
-              queries,
-            ),
-          )
+          .dispatch(actions.syncQueryEditor(oldQueryEditor))
           .then(() => {
             expect(store.getActions()).toEqual(expectedActions);
             expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(3);

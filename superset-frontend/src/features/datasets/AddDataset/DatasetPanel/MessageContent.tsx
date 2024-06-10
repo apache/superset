@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { t, styled } from '@superset-ui/core';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { Link } from 'react-router-dom';

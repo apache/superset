@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetTheme, css } from '@superset-ui/core';
-import React, { ReactElement } from 'react';
+import { ReactElement } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { RecipientIconName } from '../types';

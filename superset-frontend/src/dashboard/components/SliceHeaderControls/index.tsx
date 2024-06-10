@@ -16,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   MouseEvent,
   Key,
+  KeyboardEvent,
   ReactChild,
   useState,
   useRef,
   RefObject,
   useCallback,
+  ReactElement,
 } from 'react';
+
 import { RouteComponentProps, useHistory, withRouter } from 'react-router-dom';
 import moment from 'moment';
 import {
@@ -345,9 +348,9 @@ const getNavigationKeys = (
 };
 
 export const handleDropdownNavigation = (
-  e: React.KeyboardEvent<HTMLElement>,
+  e: KeyboardEvent<HTMLElement>,
   dropdownIsOpen: boolean,
-  menu: React.ReactElement,
+  menu: ReactElement,
   toggleDropdown: () => void,
   setSelectedKeys: (keys: string[]) => void,
   setOpenKeys: (keys: string[]) => void,

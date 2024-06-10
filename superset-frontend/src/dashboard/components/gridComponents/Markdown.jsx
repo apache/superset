@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import cx from 'classnames';
@@ -115,7 +115,7 @@ const MarkdownStyles = styled.div`
   `}
 `;
 
-class Markdown extends React.PureComponent {
+class Markdown extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {

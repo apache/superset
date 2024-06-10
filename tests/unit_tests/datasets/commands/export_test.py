@@ -16,11 +16,10 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import
 
-import json
-
 from sqlalchemy.orm.session import Session
 
 from superset import db
+from superset.utils import json
 
 
 def test_export(session: Session) -> None:

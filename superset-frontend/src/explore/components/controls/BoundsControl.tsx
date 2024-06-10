@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { InputNumber } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
 import { debounce, parseInt } from 'lodash';

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
@@ -76,7 +76,7 @@ def session_with_data(session: Session):
     yield session
 
 
-def test_update_command_success(session_with_data: Session, mocker: MockFixture):
+def test_update_command_success(session_with_data: Session, mocker: MockerFixture):
     from superset.commands.tag.update import UpdateTagCommand
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
@@ -111,7 +111,7 @@ def test_update_command_success(session_with_data: Session, mocker: MockFixture)
 
 
 def test_update_command_success_duplicates(
-    session_with_data: Session, mocker: MockFixture
+    session_with_data: Session, mocker: MockerFixture
 ):
     from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
     from superset.commands.tag.update import UpdateTagCommand
@@ -161,7 +161,7 @@ def test_update_command_success_duplicates(
 
 
 def test_update_command_failed_validation(
-    session_with_data: Session, mocker: MockFixture
+    session_with_data: Session, mocker: MockerFixture
 ):
     from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
     from superset.commands.tag.exceptions import TagInvalidError

@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
-import json
 import unittest
 import copy
 from datetime import datetime
@@ -64,6 +63,7 @@ from superset.utils.core import (
     AdhocMetricExpressionType,
     ExtraFiltersReasonType,
 )
+from superset.utils import json
 from superset.utils.database import get_example_database, get_main_database
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 

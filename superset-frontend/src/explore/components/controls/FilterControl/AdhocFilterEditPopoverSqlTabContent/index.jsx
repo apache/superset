@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { Select } from 'src/components';
 import { styled, t } from '@superset-ui/core';
@@ -49,7 +49,7 @@ const StyledSelect = styled(Select)`
   `}
 `;
 
-export default class AdhocFilterEditPopoverSqlTabContent extends React.Component {
+export default class AdhocFilterEditPopoverSqlTabContent extends Component {
   constructor(props) {
     super(props);
     this.onSqlExpressionChange = this.onSqlExpressionChange.bind(this);

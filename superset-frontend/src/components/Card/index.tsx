@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { SupersetTheme } from '@superset-ui/core';
 import AntdCard, { CardProps as AntdCardProps } from 'antd/lib/card';
 

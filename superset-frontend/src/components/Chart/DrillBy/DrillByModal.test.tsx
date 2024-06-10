@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import { omit, isUndefined, omitBy } from 'lodash';
 import userEvent from '@testing-library/user-event';

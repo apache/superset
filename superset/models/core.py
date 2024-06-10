@@ -22,7 +22,6 @@
 from __future__ import annotations
 
 import builtins
-import json
 import logging
 import textwrap
 from ast import literal_eval
@@ -30,7 +29,7 @@ from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable, cast, TYPE_CHECKING
 
 import numpy
 import pandas as pd
@@ -60,7 +59,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 
-from superset import app, db_engine_specs
+from superset import app, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
@@ -76,10 +75,10 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import Table
 from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
-from superset.utils import cache as cache_util, core as utils, json as json_utils
+from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import DatasourceName, get_username
-from superset.utils.oauth2 import get_oauth2_access_token
+from superset.utils.oauth2 import get_oauth2_access_token, OAuth2ClientConfigSchema
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -451,7 +450,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 sqlalchemy_uri=sqlalchemy_uri,
             )
 
-    def _get_sqla_engine(
+    def _get_sqla_engine(  # pylint: disable=too-many-locals
         self,
         catalog: str | None = None,
         schema: str | None = None,
@@ -478,6 +477,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         )
 
         effective_username = self.get_effective_user(sqlalchemy_url)
+        if effective_username and is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
+            user = security_manager.find_user(username=effective_username)
+            if user and user.email:
+                effective_username = user.email.split("@")[0]
+
         oauth2_config = self.get_oauth2_config()
         access_token = (
             get_oauth2_access_token(
@@ -550,17 +554,23 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             nullpool=nullpool,
             source=source,
         ) as engine:
-            with closing(engine.raw_connection()) as conn:
-                # pre-session queries are used to set the selected schema and, in the
-                # future, the selected catalog
-                for prequery in self.db_engine_spec.get_prequeries(
-                    catalog=catalog,
-                    schema=schema,
-                ):
-                    cursor = conn.cursor()
-                    cursor.execute(prequery)
+            try:
+                with closing(engine.raw_connection()) as conn:
+                    # pre-session queries are used to set the selected schema and, in the
+                    # future, the selected catalog
+                    for prequery in self.db_engine_spec.get_prequeries(
+                        catalog=catalog,
+                        schema=schema,
+                    ):
+                        cursor = conn.cursor()
+                        cursor.execute(prequery)
 
-                yield conn
+                    yield conn
+
+            except Exception as ex:
+                if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+                    self.db_engine_spec.start_oauth2_dance(self)
+                raise ex
 
     def get_default_catalog(self) -> str | None:
         """
@@ -601,7 +611,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         for col, coltype in df.dtypes.to_dict().items():
             if coltype == numpy.object_ and column_needs_conversion(df[col]):
-                df[col] = df[col].apply(json_utils.json_dumps_w_dates)
+                df[col] = df[col].apply(json.json_dumps_w_dates)
         return df
 
     @property
@@ -957,7 +967,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
             def _convert(value: Any) -> Any:
                 try:
-                    return json_utils.base_json_conv(value)
+                    return json.base_json_conv(value)
                 except TypeError:
                     return None
 
@@ -1059,20 +1069,30 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         """
         Is OAuth2 enabled in the database for authentication?
 
-        Currently this looks for a global config at the DB engine spec level, but in the
-        future we want to be allow admins to create custom OAuth2 clients from the
-        Superset UI, and assign them to specific databases.
+        Currently this checks for configuration stored in the database `extra`, and then
+        for a global config at the DB engine spec level. In the future we want to allow
+        admins to create custom OAuth2 clients from the Superset UI, and assign them to
+        specific databases.
         """
-        return self.db_engine_spec.is_oauth2_enabled()
+        encrypted_extra = json.loads(self.encrypted_extra or "{}")
+        oauth2_client_info = encrypted_extra.get("oauth2_client_info", {})
+        return bool(oauth2_client_info) or self.db_engine_spec.is_oauth2_enabled()
 
     def get_oauth2_config(self) -> OAuth2ClientConfig | None:
         """
         Return OAuth2 client configuration.
 
-        This includes client ID, client secret, scope, redirect URI, endpointsm etc.
-        Currently this reads the global DB engine spec config, but in the future it
-        should first check if there's a custom client assigned to the database.
+        Currently this checks for configuration stored in the database `extra`, and then
+        for a global config at the DB engine spec level. In the future we want to allow
+        admins to create custom OAuth2 clients from the Superset UI, and assign them to
+        specific databases.
         """
+        encrypted_extra = json.loads(self.encrypted_extra or "{}")
+        if oauth2_client_info := encrypted_extra.get("oauth2_client_info"):
+            schema = OAuth2ClientConfigSchema()
+            client_config = schema.load(oauth2_client_info)
+            return cast(OAuth2ClientConfig, client_config)
+
         return self.db_engine_spec.get_oauth2_config()
 
 

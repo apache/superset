@@ -47,6 +47,10 @@ assists people when migrating to a new version.
   more clearly provides access to all databases, as specified in its name. Before it only allowed
   listing all databases in CRUD-view and dropdown and didn't provide access to data as it
   seemed the name would imply.
+- [28483](https://github.com/apache/superset/pull/28483) Starting with this version we bundle
+  translations inside the python package. This includes the .mo files needed by pybabel on the
+  backend, as well as the .json files used by the frontend. If you were doing anything before
+  as part of your bundling to expose translation packages, it's probably not needed anymore.
 
 ### Potential Downtime
 

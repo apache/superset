@@ -25,7 +25,6 @@ import {
   getStandardizedControls,
   temporalColumnMixin,
 } from '@superset-ui/chart-controls';
-import React from 'react';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 const config: ControlPanelConfig = {

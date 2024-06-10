@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState, DragEvent } from 'react';
+
 import { ComponentMeta, ComponentStory } from '@storybook/react';
 import { action } from '@storybook/addon-actions';
 import {
@@ -494,7 +495,7 @@ ResizableColumns.args = {
 
 export const ReorderableColumns: ComponentStory<typeof Table> = args => {
   const [droppedItem, setDroppedItem] = useState<string | undefined>();
-  const dragOver = (ev: React.DragEvent<HTMLDivElement>) => {
+  const dragOver = (ev: DragEvent<HTMLDivElement>) => {
     ev.preventDefault();
     const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
     if (element?.style) {
@@ -502,7 +503,7 @@ export const ReorderableColumns: ComponentStory<typeof Table> = args => {
     }
   };
 
-  const dragOut = (ev: React.DragEvent<HTMLDivElement>) => {
+  const dragOut = (ev: DragEvent<HTMLDivElement>) => {
     ev.preventDefault();
     const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
     if (element?.style) {
@@ -510,7 +511,7 @@ export const ReorderableColumns: ComponentStory<typeof Table> = args => {
     }
   };
 
-  const dragDrop = (ev: React.DragEvent<HTMLDivElement>) => {
+  const dragDrop = (ev: DragEvent<HTMLDivElement>) => {
     const data = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);
     const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
     if (element?.style) {
@@ -521,9 +522,9 @@ export const ReorderableColumns: ComponentStory<typeof Table> = args => {
   return (
     <div>
       <div
-        onDragOver={(ev: React.DragEvent<HTMLDivElement>) => dragOver(ev)}
-        onDragLeave={(ev: React.DragEvent<HTMLDivElement>) => dragOut(ev)}
-        onDrop={(ev: React.DragEvent<HTMLDivElement>) => dragDrop(ev)}
+        onDragOver={(ev: DragEvent<HTMLDivElement>) => dragOver(ev)}
+        onDragLeave={(ev: DragEvent<HTMLDivElement>) => dragOut(ev)}
+        onDrop={(ev: DragEvent<HTMLDivElement>) => dragDrop(ev)}
         style={{
           width: '100%',
           height: '40px',

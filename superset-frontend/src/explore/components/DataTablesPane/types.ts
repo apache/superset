@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactElement } from 'react';
 import {
   Datasource,
   GenericDataType,
@@ -46,7 +47,7 @@ export interface ResultsPaneProps {
   queryFormData: QueryFormData;
   queryForce: boolean;
   ownState?: JsonObject;
-  errorMessage?: React.ReactElement;
+  errorMessage?: ReactElement;
   actions?: ExploreActions;
   dataSize?: number;
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true

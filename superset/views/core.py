@@ -23,7 +23,6 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-import simplejson as json
 from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
@@ -71,7 +70,7 @@ from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils, json as json_utils
+from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
     DatasourceType,
@@ -575,8 +574,8 @@ class Superset(BaseSupersetView):
 
         return self.render_template(
             "superset/basic.html",
-            bootstrap_data=json_utils.dumps(
-                bootstrap_data, default=json_utils.pessimistic_json_iso_dttm_ser
+            bootstrap_data=json.dumps(
+                bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
             ),
             entry="explore",
             title=title,
@@ -752,7 +751,7 @@ class Superset(BaseSupersetView):
             )
 
         return json_success(
-            json_utils.dumps(
+            json.dumps(
                 [
                     {
                         "slice_id" if key == "chart_id" else key: value
@@ -764,7 +763,7 @@ class Superset(BaseSupersetView):
                     }
                     for slc in slices
                 ],
-                default=json_utils.base_json_conv,
+                default=json.base_json_conv,
             ),
         )
 
@@ -813,12 +812,12 @@ class Superset(BaseSupersetView):
             "superset/spa.html",
             entry="spa",
             title=dashboard.dashboard_title,  # dashboard title is always visible
-            bootstrap_data=json_utils.dumps(
+            bootstrap_data=json.dumps(
                 {
                     "user": bootstrap_user_data(g.user, include_perms=True),
                     "common": common_bootstrap_payload(),
                 },
-                default=json_utils.pessimistic_json_iso_dttm_ser,
+                default=json.pessimistic_json_iso_dttm_ser,
             ),
             standalone_mode=ReservedUrlParameters.is_standalone_mode(),
         )
@@ -918,8 +917,8 @@ class Superset(BaseSupersetView):
         return self.render_template(
             "superset/spa.html",
             entry="spa",
-            bootstrap_data=json_utils.dumps(
-                payload, default=json_utils.pessimistic_json_iso_dttm_ser
+            bootstrap_data=json.dumps(
+                payload, default=json.pessimistic_json_iso_dttm_ser
             ),
         )
 

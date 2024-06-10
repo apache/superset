@@ -77,6 +77,7 @@ export function useListViewResource<D extends object = any>(
   defaultCollectionValue: D[] = [],
   baseFilters?: FilterValue[], // must be memoized
   initialLoadingState = true,
+  selectColumns?: string[],
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -162,6 +163,7 @@ export function useListViewResource<D extends object = any>(
         page: pageIndex,
         page_size: pageSize,
         ...(filterExps.length ? { filters: filterExps } : {}),
+        ...(selectColumns?.length ? { select_columns: selectColumns } : {}),
       });
 
       return SupersetClient.get({
