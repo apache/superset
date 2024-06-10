@@ -20,7 +20,7 @@
 from datetime import datetime
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 
@@ -43,7 +43,7 @@ oauth2_client_info = {
 }
 
 
-def test_get_metrics(mocker: MockFixture) -> None:
+def test_get_metrics(mocker: MockerFixture) -> None:
     """
     Tests for ``get_metrics``.
     """
@@ -89,7 +89,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
     ]
 
 
-def test_get_db_engine_spec(mocker: MockFixture) -> None:
+def test_get_db_engine_spec(mocker: MockerFixture) -> None:
     """
     Tests for ``get_db_engine_spec``.
     """
@@ -228,7 +228,7 @@ def test_table_column_database() -> None:
     assert TableColumn(database=database).database is database
 
 
-def test_get_prequeries(mocker: MockFixture) -> None:
+def test_get_prequeries(mocker: MockerFixture) -> None:
     """
     Tests for ``get_prequeries``.
     """
@@ -272,7 +272,7 @@ def test_get_default_catalog() -> None:
     assert database.get_default_catalog() == "examples"
 
 
-def test_get_default_schema(mocker: MockFixture) -> None:
+def test_get_default_schema(mocker: MockerFixture) -> None:
     """
     Test the `get_default_schema` method.
     """
@@ -289,7 +289,7 @@ def test_get_default_schema(mocker: MockFixture) -> None:
     get_inspector.assert_called_with(catalog="examples")
 
 
-def test_get_all_catalog_names(mocker: MockFixture) -> None:
+def test_get_all_catalog_names(mocker: MockerFixture) -> None:
     """
     Test the `get_all_catalog_names` method.
     """
@@ -306,7 +306,7 @@ def test_get_all_catalog_names(mocker: MockFixture) -> None:
     get_inspector.assert_called_with(ssh_tunnel=None)
 
 
-def test_get_sqla_engine(mocker: MockFixture) -> None:
+def test_get_sqla_engine(mocker: MockerFixture) -> None:
     """
     Test `_get_sqla_engine`.
     """
@@ -334,7 +334,7 @@ def test_get_sqla_engine(mocker: MockFixture) -> None:
     )
 
 
-def test_get_sqla_engine_user_impersonation(mocker: MockFixture) -> None:
+def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     """
     Test user impersonation in `_get_sqla_engine`.
     """
@@ -364,7 +364,7 @@ def test_get_sqla_engine_user_impersonation(mocker: MockFixture) -> None:
 
 
 @with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
-def test_get_sqla_engine_user_impersonation_email(mocker: MockFixture) -> None:
+def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None:
     """
     Test user impersonation in `_get_sqla_engine` with `username_from_email`.
     """
@@ -430,7 +430,7 @@ def test_get_oauth2_config(app_context: None) -> None:
     }
 
 
-def test_raw_connection_oauth(mocker: MockFixture) -> None:
+def test_raw_connection_oauth(mocker: MockerFixture) -> None:
     """
     Test that we can start OAuth2 from `raw_connection()` errors.
 

@@ -19,7 +19,7 @@
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import Database, SqlaTable
@@ -60,7 +60,7 @@ def stored_metrics() -> list[AdhocMetric]:
 
 
 def test_raise_for_access_guest_user_ok(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app_context: None,
     stored_metrics: list[AdhocMetric],
 ) -> None:
@@ -87,7 +87,7 @@ def test_raise_for_access_guest_user_ok(
 
 
 def test_raise_for_access_guest_user_tampered_id(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app_context: None,
     stored_metrics: list[AdhocMetric],
 ) -> None:
@@ -115,7 +115,7 @@ def test_raise_for_access_guest_user_tampered_id(
 
 
 def test_raise_for_access_guest_user_tampered_form_data(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app_context: None,
     stored_metrics: list[AdhocMetric],
 ) -> None:
@@ -152,7 +152,7 @@ def test_raise_for_access_guest_user_tampered_form_data(
 
 
 def test_raise_for_access_guest_user_tampered_queries(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app_context: None,
     stored_metrics: list[AdhocMetric],
 ) -> None:
@@ -190,7 +190,7 @@ def test_raise_for_access_guest_user_tampered_queries(
 
 
 def test_raise_for_access_query_default_schema(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app_context: None,
 ) -> None:
     """
@@ -250,7 +250,7 @@ def test_raise_for_access_query_default_schema(
     )
 
 
-def test_raise_for_access_jinja_sql(mocker: MockFixture, app_context: None) -> None:
+def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) -> None:
     """
     Test that Jinja gets rendered to SQL.
     """
@@ -286,7 +286,7 @@ def test_raise_for_access_jinja_sql(mocker: MockFixture, app_context: None) -> N
 
 
 def test_raise_for_access_chart_for_datasource_permission(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app_context: None,
 ) -> None:
     """
@@ -422,7 +422,7 @@ def test_raise_for_access_chart_owner(
 
 
 def test_query_context_modified(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     stored_metrics: list[AdhocMetric],
 ) -> None:
     """
@@ -448,7 +448,7 @@ def test_query_context_modified(
 
 
 def test_query_context_modified_tampered(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     stored_metrics: list[AdhocMetric],
 ) -> None:
     """
@@ -483,7 +483,7 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
-def test_query_context_modified_native_filter(mocker: MockFixture) -> None:
+def test_query_context_modified_native_filter(mocker: MockerFixture) -> None:
     """
     Test the `query_context_modified` function with a native filter request.
 
@@ -495,7 +495,7 @@ def test_query_context_modified_native_filter(mocker: MockFixture) -> None:
     assert not query_context_modified(query_context)
 
 
-def test_query_context_modified_mixed_chart(mocker: MockFixture) -> None:
+def test_query_context_modified_mixed_chart(mocker: MockerFixture) -> None:
     """
     Test the `query_context_modified` function for a mixed chart request.
 
@@ -564,7 +564,7 @@ def test_get_schema_perm() -> None:
 
 
 def test_raise_for_access_catalog(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app_context: None,
 ) -> None:
     """

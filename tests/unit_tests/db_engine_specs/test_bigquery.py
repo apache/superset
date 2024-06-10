@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy import select
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import sqltypes
@@ -86,7 +86,7 @@ def test_get_fields() -> None:
     )
 
 
-def test_select_star(mocker: MockFixture) -> None:
+def test_select_star(mocker: MockerFixture) -> None:
     """
     Test the ``select_star`` method.
 
@@ -336,7 +336,7 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
-def test_get_default_catalog(mocker: MockFixture) -> None:
+def test_get_default_catalog(mocker: MockerFixture) -> None:
     """
     Test that we get the default catalog from the connection URI.
     """

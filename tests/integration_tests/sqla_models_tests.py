@@ -25,7 +25,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from flask.ctx import AppContext
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 
@@ -856,7 +856,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
     ],
 )
 def test__normalize_prequery_result_type(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     row: pd.Series,
     dimension: str,
     result: Any,
