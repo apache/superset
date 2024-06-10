@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactElement } from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -24,7 +24,7 @@ import { TooltipPlacement } from 'antd/lib/tooltip';
 
 export type ActionProps = {
   label: string;
-  tooltip?: string | React.ReactElement;
+  tooltip?: string | ReactElement;
   placement?: TooltipPlacement;
   icon: string;
   onClick: () => void;

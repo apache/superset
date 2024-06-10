@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { useContext } from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import { DndItemType } from 'src/explore/components/DndItemType';
@@ -35,7 +35,7 @@ const defaultProps: DndSelectLabelProps = {
   onClickGhostButton: jest.fn(),
 };
 const MockChildren = () => {
-  const [zones] = React.useContext(DropzoneContext);
+  const [zones] = useContext(DropzoneContext);
   return (
     <>
       {Object.keys(zones).map(key => (

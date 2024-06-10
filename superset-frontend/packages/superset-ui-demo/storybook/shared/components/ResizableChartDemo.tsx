@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState, ReactNode } from 'react';
+import { useState, ReactNode } from 'react';
 import { styled } from '@superset-ui/core';
 import type { DecoratorFunction } from '@storybook/types';
 import ResizablePanel, { Size } from './ResizablePanel';

@@ -129,35 +129,10 @@ cypress-install() {
   cache-save cypress
 }
 
-# Run Cypress and upload coverage reports
-cypress-run() {
+cypress-run-all() {
+  local USE_DASHBOARD=$1
   cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
 
-  local page=$1
-  local group=${2:-Default}
-  local cypress="./node_modules/.bin/cypress run"
-  local browser=${CYPRESS_BROWSER:-chrome}
-
-  export TERM="xterm"
-  export ELECTRON_DISABLE_GPU=true # Attempt to disable GPU for Electron-based Cypress
-
-  say "::group::Run Cypress for [$page]"
-  if [[ -z $CYPRESS_KEY ]]; then
-    xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser"
-  else
-    export CYPRESS_RECORD_KEY=$(echo $CYPRESS_KEY | base64 --decode)
-    # additional flags for Cypress dashboard recording
-    xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser" \
-      --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
-      --parallel --ci-build-id "${GITHUB_SHA:0:8}-${NONCE}"
-
-  fi
-
-  # don't add quotes to $record because we do want word splitting
-  say "::endgroup::"
-}
-
-cypress-run-all() {
   # Start Flask and run it in background
   # --no-debugger means disable the interactive debugger on the 500 page
   # so errors can print to stderr.
@@ -168,27 +143,17 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "*/**/*"
+  USE_DASHBOARD_FLAG=''
+  if [ "$USE_DASHBOARD" = "true" ]; then
+    USE_DASHBOARD_FLAG='--use-dashboard'
+  fi
+
+  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID $USE_DASHBOARD_FLAG
 
   # After job is done, print out Flask log for debugging
-  say "::group::Flask log for default run"
+  echo "::group::Flask log for default run"
   cat "$flasklog"
-  say "::endgroup::"
-
-  # Rerun SQL Lab tests with backend persist disabled
-  export SUPERSET_CONFIG=tests.integration_tests.superset_test_config_sqllab_backend_persist_off
-
-  # Restart Flask with new configs
-  kill $flaskProcessId
-  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
-  local flaskProcessId=$!
-
-  cypress-run "sqllab/*" "Backend persist"
-
-  say "::group::Flask log for backend persist"
-  cat "$flasklog"
-  say "::endgroup::"
-
+  echo "::endgroup::"
   # make sure the program exits
   kill $flaskProcessId
 }

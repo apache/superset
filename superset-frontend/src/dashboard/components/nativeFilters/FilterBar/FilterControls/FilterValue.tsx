@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  FC,
+  memo,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
+
 import {
   ChartDataResponseResult,
   Behavior,
@@ -83,7 +86,7 @@ const useShouldFilterRefresh = () => {
   return !isDashboardRefreshing && isFilterRefreshing;
 };
 
-const FilterValue: React.FC<FilterControlProps> = ({
+const FilterValue: FC<FilterControlProps> = ({
   dataMaskSelected,
   filter,
   onFilterSelectionChange,
@@ -341,4 +344,4 @@ const FilterValue: React.FC<FilterControlProps> = ({
     </StyledDiv>
   );
 };
-export default React.memo(FilterValue);
+export default memo(FilterValue);

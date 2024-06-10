@@ -140,3 +140,13 @@ class QueryNotFoundValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__([_("Query does not exist")], field_name="datasource_id")
+
+
+class TagNotFoundValidationError(ValidationError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message, field_name="tags")
+
+
+class TagForbiddenError(ForbiddenError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
 import { connect } from 'react-redux';
@@ -83,7 +83,7 @@ const mapStateToProps = state => ({
   directPathToChild: state.dashboardState.directPathToChild,
 });
 
-export class HeaderActionsDropdown extends React.PureComponent {
+export class HeaderActionsDropdown extends PureComponent {
   static discardChanges() {
     window.location.reload();
   }

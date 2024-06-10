@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import pickle
 
 import pytest
@@ -25,6 +24,7 @@ from flask_appbuilder.security.sqla.models import User
 
 from superset.extensions import db
 from superset.key_value.exceptions import KeyValueCreateFailedError
+from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.key_value.commands.fixtures import (
     admin,  # noqa: F401

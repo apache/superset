@@ -461,6 +461,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
+    # When impersonating a user, use the email prefix instead of the username
+    "IMPERSONATE_WITH_EMAIL_PREFIX": False,
     # Enable caching per impersonation key (e.g username) in a datasource where user
     # impersonation is enabled
     "CACHE_IMPERSONATION": False,
@@ -1226,6 +1228,15 @@ DB_CONNECTION_MUTATOR = None
 #           raise Exception("URI invalid")
 #
 DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
+
+# A set of disallowed SQL functions per engine. This is used to restrict the use of
+# unsafe SQL functions in SQL Lab and Charts. The keys of the dictionary are the engine
+# names, and the values are sets of disallowed functions.
+DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
+    "postgresql": {"version", "query_to_xml", "inet_server_addr", "inet_client_addr"},
+    "clickhouse": {"url"},
+    "mysql": {"version"},
+}
 
 
 # A function that intercepts the SQL to be executed and can alter it.

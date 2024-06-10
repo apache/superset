@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { shallow } from 'enzyme';
 import Toast from 'src/components/MessageToasts/Toast';
 import ToastPresenter from 'src/components/MessageToasts/ToastPresenter';

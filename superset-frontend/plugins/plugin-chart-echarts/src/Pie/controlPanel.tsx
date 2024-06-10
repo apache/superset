@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { ensureIsInt, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
@@ -40,6 +39,7 @@ const {
   outerRadius,
   numberFormat,
   showLabels,
+  roseType,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -84,6 +84,23 @@ const config: ControlPanelConfig = {
               description: t(
                 'Minimum threshold in percentage points for showing labels.',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'roseType',
+            config: {
+              type: 'SelectControl',
+              label: t('Rose Type'),
+              default: roseType,
+              renderTrigger: true,
+              choices: [
+                ['area', t('Area')],
+                ['radius', t('Radius')],
+                [null, t('None')],
+              ],
+              description: t('Whether to show as Nightingale chart.'),
             },
           },
         ],

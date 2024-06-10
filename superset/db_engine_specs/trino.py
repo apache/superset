@@ -22,8 +22,7 @@ import threading
 import time
 from typing import Any, TYPE_CHECKING
 
-import simplejson as json
-from flask import current_app
+from flask import current_app, Flask
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
@@ -42,7 +41,7 @@ from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -219,11 +218,14 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         execute_result: dict[str, Any] = {}
         execute_event = threading.Event()
 
-        def _execute(results: dict[str, Any], event: threading.Event) -> None:
+        def _execute(
+            results: dict[str, Any], event: threading.Event, app: Flask
+        ) -> None:
             logger.debug("Query %d: Running query: %s", query_id, sql)
 
             try:
-                cls.execute(cursor, sql, query.database)
+                with app.app_context():
+                    cls.execute(cursor, sql, query.database)
             except Exception as ex:  # pylint: disable=broad-except
                 results["error"] = ex
             finally:
@@ -231,7 +233,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         execute_thread = threading.Thread(
             target=_execute,
-            args=(execute_result, execute_event),
+            args=(execute_result, execute_event, current_app._get_current_object()),  # pylint: disable=protected-access
         )
         execute_thread.start()
 

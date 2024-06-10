@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { isValidElement } from 'react';
 import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import Button from '.';
@@ -32,7 +32,7 @@ describe('Button', () => {
 
   // test the basic component
   it('renders the base component', () => {
-    expect(React.isValidElement(<Button />)).toBe(true);
+    expect(isValidElement(<Button />)).toBe(true);
   });
 
   it('works with an onClick handler', () => {

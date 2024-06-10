@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useRef } from 'react';
+import { FunctionComponent, useState, useRef } from 'react';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import {

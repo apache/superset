@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Optional
 
@@ -37,6 +36,7 @@ from superset.daos.exceptions import DAOUpdateFailedError
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 

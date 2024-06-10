@@ -24,7 +24,7 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   CategoricalColorNamespace,
   Datasource,

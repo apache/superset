@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Callable, Optional
 
@@ -34,6 +33,7 @@ from superset.connectors.sqla.models import (
     TableColumn,
 )
 from superset.models.core import Database
+from superset.utils import json
 from superset.utils.dict_import_export import DATABASES_KEY
 
 logger = logging.getLogger(__name__)

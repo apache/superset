@@ -239,6 +239,34 @@ describe('sqlLabReducer', () => {
         interceptedAction.northPercent,
       );
     });
+    it('should migrate query editor by new query editor id', () => {
+      const index = newState.queryEditors.findIndex(({ id }) => id === qe.id);
+      const newQueryEditor = {
+        ...qe,
+        id: 'updatedNewId',
+        schema: 'updatedSchema',
+      };
+      const action = {
+        type: actions.MIGRATE_QUERY_EDITOR,
+        oldQueryEditor: qe,
+        newQueryEditor,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.queryEditors[index].id).toEqual('updatedNewId');
+      expect(newState.queryEditors[index]).toEqual(newQueryEditor);
+    });
+    it('should migrate tab history by new query editor id', () => {
+      expect(newState.tabHistory).toContain(qe.id);
+      const action = {
+        type: actions.MIGRATE_TAB_HISTORY,
+        oldId: qe.id,
+        newId: 'updatedNewId',
+      };
+      newState = sqlLabReducer(newState, action);
+
+      expect(newState.tabHistory).toContain('updatedNewId');
+      expect(newState.tabHistory).not.toContain(qe.id);
+    });
   });
   describe('Tables', () => {
     let newState;

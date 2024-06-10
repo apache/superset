@@ -26,26 +26,36 @@ FROM --platform=${BUILDPLATFORM} node:18-bullseye-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 
+# Somehow we need python3 + build-essential on this side of the house to install node-gyp
 RUN apt-get update -qq \
-    && apt-get install -yqq --no-install-recommends \
+    && apt-get install \
+        -yqq --no-install-recommends \
         build-essential \
         python3
 
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 # NPM ci first, as to NOT invalidate previous steps except for when package.json changes
-WORKDIR /app/superset-frontend
 
 RUN --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.sh \
     /frontend-mem-nag.sh
 
+WORKDIR /app/superset-frontend
 RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json \
     --mount=type=bind,target=./package-lock.json,src=./superset-frontend/package-lock.json \
     npm ci
 
-COPY ./superset-frontend ./
-# This seems to be the most expensive step
+# Runs the webpack build process
+COPY superset-frontend /app/superset-frontend
 RUN npm run ${BUILD_CMD}
+
+# This copies the .po files needed for translation
+RUN mkdir -p /app/superset/translations
+COPY superset/translations /app/superset/translations
+# Compiles .json files from the .po files, then deletes the .po files
+RUN npm run build-translation
+RUN rm /app/superset/translations/*/LC_MESSAGES/*.po
+RUN rm /app/superset/translations/messages.pot
 
 ######################################################################
 # Final lean image...
@@ -87,13 +97,23 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && apt-get autoremove -yqq --purge build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy the compiled frontend assets
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
+
 ## Lastly, let's install superset itself
 COPY --chown=superset:superset superset superset
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -e . \
-    && flask fab babel-compile --target superset/translations \
-    && chown -R superset:superset superset/translations
+    pip install -e .
+
+# Copy the .json translations from the frontend layer
+COPY --chown=superset:superset --from=superset-node /app/superset/translations superset/translations
+
+# Compile translations for the backend - this generates .mo files, then deletes the .po files
+COPY ./scripts/translations/generate_mo_files.sh ./scripts/translations/
+RUN ./scripts/translations/generate_mo_files.sh \
+    && chown -R superset:superset superset/translations \
+    && rm superset/translations/messages.pot \
+    && rm superset/translations/*/LC_MESSAGES/*.po
 
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 USER superset
