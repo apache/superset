@@ -15,17 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from collections.abc import Iterator
+from typing import Any
+from uuid import uuid3
+
+import pytest
 
 from superset import db
 from superset.key_value.models import KeyValueEntry
-from tests.integration_tests.base_tests import SupersetTestCase
+from superset.key_value.types import KeyValueResource
+from superset.key_value.utils import decode_permalink_id
 from tests.integration_tests.constants import (
     GAMMA_SQLLAB_USERNAME,
 )
 
 
-class TestSqlLabPermalinkApi(SupersetTestCase):
-    data = {
+@pytest.fixture()
+def tab_state_data() -> dict[str, Any]:
+    return {
         "dbId": 1,
         "name": "Untitled Query 1",
         "schema": "main",
@@ -34,36 +41,62 @@ class TestSqlLabPermalinkApi(SupersetTestCase):
         "templateParams": '{"param1": "value1"}',
     }
 
-    def test_post(self):
-        self.login(GAMMA_SQLLAB_USERNAME)
-        resp = self.client.post("api/v1/sqllab/permalink", json=self.data)
-        assert resp.status_code == 201
-        data = resp.json
-        key = data["key"]
-        url = data["url"]
-        assert key in url
-        db.session.query(KeyValueEntry).filter_by(id=key).delete()
-        db.session.commit()
 
-    def test_post_access_denied(self):
-        resp = self.client.post("api/v1/sqllab/permalink", json=self.data)
-        assert resp.status_code == 401
+@pytest.fixture()
+def permalink_salt(app_context) -> Iterator[str]:
+    from superset.key_value.shared_entries import get_permalink_salt, get_uuid_namespace
+    from superset.key_value.types import SharedKey
 
-    def test_post_invalid_schema(self):
-        self.login(GAMMA_SQLLAB_USERNAME)
-        resp = self.client.post(
-            "api/v1/sqllab/permalink", json={"name": "Untitled Query 1", "sql": "Test"}
-        )
-        assert resp.status_code == 400
+    key = SharedKey.SQLLAB_PERMALINK_SALT
+    salt = get_permalink_salt(key)
+    yield salt
+    namespace = get_uuid_namespace(salt)
+    db.session.query(KeyValueEntry).filter_by(
+        resource=KeyValueResource.APP,
+        uuid=uuid3(namespace, key),
+    )
+    db.session.commit()
 
-    def test_get(self):
-        self.login(GAMMA_SQLLAB_USERNAME)
-        resp = self.client.post("api/v1/sqllab/permalink", json=self.data)
-        data = resp.json
-        key = data["key"]
-        resp = self.client.get(f"api/v1/sqllab/permalink/{key}")
-        assert resp.status_code == 200
-        result = json.loads(resp.data.decode("utf-8"))
-        assert result == self.data
-        db.session.query(KeyValueEntry).filter_by(id=key).delete()
-        db.session.commit()
+
+def test_post(
+    tab_state_data: dict[str, Any], permalink_salt: str, test_client, login_as
+):
+    login_as(GAMMA_SQLLAB_USERNAME)
+    resp = test_client.post("api/v1/sqllab/permalink", json=tab_state_data)
+    assert resp.status_code == 201
+    data = resp.json
+    key = data["key"]
+    url = data["url"]
+    assert key in url
+    id_ = decode_permalink_id(key, permalink_salt)
+    db.session.query(KeyValueEntry).filter_by(id=id_).delete()
+    db.session.commit()
+
+
+def test_post_access_denied(tab_state_data: dict[str, Any], test_client, login_as):
+    resp = test_client.post("api/v1/sqllab/permalink", json=tab_state_data)
+    assert resp.status_code == 401
+
+
+def test_post_invalid_schema(test_client, login_as):
+    login_as(GAMMA_SQLLAB_USERNAME)
+    resp = test_client.post(
+        "api/v1/sqllab/permalink", json={"name": "Untitled Query 1", "sql": "Test"}
+    )
+    assert resp.status_code == 400
+
+
+def test_get(
+    tab_state_data: dict[str, Any], permalink_salt: str, test_client, login_as
+):
+    login_as(GAMMA_SQLLAB_USERNAME)
+    resp = test_client.post("api/v1/sqllab/permalink", json=tab_state_data)
+    data = resp.json
+    key = data["key"]
+    resp = test_client.get(f"api/v1/sqllab/permalink/{key}")
+    assert resp.status_code == 200
+    result = json.loads(resp.data.decode("utf-8"))
+    assert result == tab_state_data
+    id_ = decode_permalink_id(key, permalink_salt)
+    db.session.query(KeyValueEntry).filter_by(id=id_).delete()
+    db.session.commit()
