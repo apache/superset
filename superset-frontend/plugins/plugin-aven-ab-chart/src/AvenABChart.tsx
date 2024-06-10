@@ -145,12 +145,16 @@ function buildRow(
     denominatorMetric,
   );
   const lastDelta = deltaArray.at(-1);
-  if (!lastControl || !lastTest || !lastDelta) {
+  if (
+    lastControl === undefined ||
+    lastTest === undefined ||
+    lastDelta === undefined
+  ) {
     throw new Error('empty arrays');
   }
 
   const color =
-    lastDelta > -0.00001 && lastDelta < 0.00001
+    lastDelta === null || (lastDelta > -0.00001 && lastDelta < 0.00001)
       ? 'black'
       : lastDelta < 0
         ? 'red'
@@ -183,7 +187,10 @@ function buildRow(
     ),
     delta_rel: (
       <span style={{ color }}>
-        <FormattedNumber num={lastDelta} format="+.1%" />
+        <FormattedNumber
+          num={lastDelta !== null ? lastDelta : undefined}
+          format="+.1%"
+        />
       </span>
     ),
     spark: renderSparklineCell(deltaArray, 'abc', timestamps),

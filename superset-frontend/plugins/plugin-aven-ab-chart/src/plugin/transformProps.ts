@@ -92,7 +92,9 @@ export default function transformProps(chartProps: ChartProps) {
     ),
   ].sort();
 
-  const metricsNames = formData.metrics.map((v: { label: string }) => v.label);
+  const metricsNames = formData.metrics.map((v: string | { label: string }) =>
+    typeof v === 'string' ? v : v.label,
+  );
   const unqMetricNames = [...new Set(metricsNames)];
   if (metricsNames.length !== unqMetricNames.length) {
     throw new Error('ALl metrics need unique names');
