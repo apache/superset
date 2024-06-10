@@ -1610,9 +1610,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def _get_fields(cls, cols: list[ResultSetColumnType]) -> list[Any]:
         return [
-            literal_column(query_as)
-            if (query_as := c.get("query_as"))
-            else column(c["column_name"])
+            (
+                literal_column(query_as)
+                if (query_as := c.get("query_as"))
+                else column(c["column_name"])
+            )
             for c in cols
         ]
 
@@ -1828,12 +1830,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             cursor.arraysize = cls.arraysize
         try:
             cursor.execute(query)
-        except cls.oauth2_exception as ex:
-            if database.is_oauth2_enabled() and g and g.user:
+        except Exception as ex:
+            if database.is_oauth2_enabled() and cls.needs_oauth2(ex):
                 cls.start_oauth2_dance(database)
             raise cls.get_dbapi_mapped_exception(ex) from ex
-        except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Check if the exception is one that indicates OAuth2 is needed.
+        """
+        return g and hasattr(g, "user") and isinstance(ex, cls.oauth2_exception)
 
     @classmethod
     def make_label_compatible(cls, label: str) -> str | quoted_name:

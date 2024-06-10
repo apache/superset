@@ -90,6 +90,9 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     app.config["RATELIMIT_ENABLED"] = False
     app.config["CACHE_CONFIG"] = {}
     app.config["DATA_CACHE_CONFIG"] = {}
+    app.config["SERVER_NAME"] = "example.com"
+    app.config["APPLICATION_ROOT"] = "/"
+    app.config["PREFERRED_URL_SCHEME="] = "http"
 
     # loop over extra configs passed in by tests
     # and update the app config
