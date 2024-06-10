@@ -67,7 +67,9 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     assert database.allow_dml is False
 
 
-def test_import_database_sqlite_invalid(mocker: MockerFixture, session: Session) -> None:
+def test_import_database_sqlite_invalid(
+    mocker: MockerFixture, session: Session
+) -> None:
     """
     Test importing a database.
     """

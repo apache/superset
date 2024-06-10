@@ -147,7 +147,9 @@ def test_execute_query_succeeded_with_retries(
     assert execute_query_mock.call_count == expected_max_retries
 
 
-def test_execute_query_failed_no_retry(mocker: MockerFixture, app_context: None) -> None:
+def test_execute_query_failed_no_retry(
+    mocker: MockerFixture, app_context: None
+) -> None:
     from superset.commands.report.alert import AlertCommand, AlertQueryTimeout
 
     execute_query_mock = mocker.patch(

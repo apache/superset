@@ -102,7 +102,9 @@ def test_import_adds_dashboard_charts(mocker: MockerFixture, session: Session) -
     assert len(dashboard_ids) == expected_number_of_dashboards
 
 
-def test_import_removes_dashboard_charts(mocker: MockerFixture, session: Session) -> None:
+def test_import_removes_dashboard_charts(
+    mocker: MockerFixture, session: Session
+) -> None:
     """
     Test that existing dashboards are updated without old charts.
     """

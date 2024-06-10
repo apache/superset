@@ -703,7 +703,9 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
     DatasetDAO.find_by_id.assert_not_called()
 
 
-def test_metric_macro_no_dataset_id_with_context_chart_id(mocker: MockerFixture) -> None:
+def test_metric_macro_no_dataset_id_with_context_chart_id(
+    mocker: MockerFixture,
+) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context
     includes an existing chart ID (url_params.slice_id).

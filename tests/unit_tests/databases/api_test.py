@@ -1630,7 +1630,9 @@ def test_columnar_upload_file_extension_invalid(
     assert response.json == {"message": {"file": ["File extension is not allowed."]}}
 
 
-def test_csv_metadata(mocker: MockerFixture, client: Any, full_api_access: None) -> None:
+def test_csv_metadata(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
     _ = mocker.patch.object(CSVReader, "file_metadata")
     response = client.post(
         "/api/v1/database/csv_metadata/",

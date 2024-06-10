@@ -108,7 +108,9 @@ def test_create_command_success(session_with_data: Session, mocker: MockerFixtur
         )
 
 
-def test_create_command_success_clear(session_with_data: Session, mocker: MockerFixture):
+def test_create_command_success_clear(
+    session_with_data: Session, mocker: MockerFixture
+):
     from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice

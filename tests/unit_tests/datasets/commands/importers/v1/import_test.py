@@ -152,7 +152,9 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     assert sqla_table.database.id == database.id
 
 
-def test_import_dataset_duplicate_column(mocker: MockerFixture, session: Session) -> None:
+def test_import_dataset_duplicate_column(
+    mocker: MockerFixture, session: Session
+) -> None:
     """
     Test importing a dataset with a column that already exists.
     """

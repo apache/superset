@@ -201,7 +201,9 @@ def test_dml(
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
-def test_security_manager(mocker: MockerFixture, app_context: None, table1: None) -> None:
+def test_security_manager(
+    mocker: MockerFixture, app_context: None, table1: None
+) -> None:
     """
     Test that we use the security manager to check for permissions.
     """

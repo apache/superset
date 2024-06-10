@@ -155,7 +155,9 @@ def test_template_trino(app_context: AppContext, mocker: MockerFixture) -> None:
     assert tp.process_template(template) == "the_latest"
 
 
-def test_template_context_addons(app_context: AppContext, mocker: MockerFixture) -> None:
+def test_template_context_addons(
+    app_context: AppContext, mocker: MockerFixture
+) -> None:
     addons_mock = mocker.patch("superset.jinja_context.context_addons")
     addons_mock.return_value = {"datetime": datetime}
     maindb = superset.utils.database.get_example_database()
@@ -164,7 +166,9 @@ def test_template_context_addons(app_context: AppContext, mocker: MockerFixture)
     assert tp.process_template(template) == "SELECT '2017-01-01T00:00:00'"
 
 
-def test_custom_process_template(app_context: AppContext, mocker: MockerFixture) -> None:
+def test_custom_process_template(
+    app_context: AppContext, mocker: MockerFixture
+) -> None:
     """Test macro defined in custom template processor works."""
 
     mock_dt = mocker.patch(
