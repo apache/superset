@@ -16,6 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**
+ * ******************* WHAT YOU CAN BUILD HERE *******************
+ *  In essence, a chart is given a few key ingredients to work with:
+ *  * Data: provided via `props.data`
+ *  * A DOM element
+ *  * FormData (your controls!) provided as props by transformProps.ts
+ */
+
 import React, { createRef, useMemo } from 'react';
 import { formatNumber, styled, t } from '@superset-ui/core';
 import { AvenABChartProps, AvenABChartStylesProps } from './types';
@@ -51,34 +60,34 @@ const TimeTableStyles = styled.div<AvenABChartStylesProps>`
   th {
     z-index: 11 !important; // to cover sparkline
   }
+  tbody {
+    tr {
+      td {
+        padding: 1px;
+      }
+    }
+  }
 `;
 
 const renderSparklineCell = (
   sparkData: (number | null)[],
-  valueField: string,
+  tooltip: JSXElement[],
   timestamps: { time: Date }[],
 ) => (
   <SparklineCell
-    ariaLabel={`spark-${valueField}`}
+    ariaLabel="spark"
     width={300}
     height={50}
     data={sparkData}
-    dataKey={`spark-${valueField}`}
+    dataKey="spark"
     dateFormat="%B %d, %Y"
-    numberFormat=".1%"
+    numberFormat="+.1%"
     showYAxis
     yAxisBounds={[undefined, undefined]}
     entries={timestamps}
+    renderTooltip={e => tooltip[e.index]}
   />
 );
-
-/**
- * ******************* WHAT YOU CAN BUILD HERE *******************
- *  In essence, a chart is given a few key ingredients to work with:
- *  * Data: provided via `props.data`
- *  * A DOM element
- *  * FormData (your controls!) provided as props by transformProps.ts
- */
 
 function div0(a: any, b: any): number {
   if (typeof a !== 'number' || typeof b !== 'number' || b === 0) {
@@ -87,13 +96,34 @@ function div0(a: any, b: any): number {
   return a / b;
 }
 
+function getRatioAndResultElement(num: number, den: number) {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <p style={{ fontSize: 'xx-small' }}>
+        {formatNumber(',', num)} / {formatNumber(',', den)}
+      </p>
+      <p>{formatNumber('.1%', div0(num, den))}</p>
+    </div>
+  );
+}
+
+function getRatioAndResultElementForToolTip(num: number, den: number) {
+  return (
+    <p>
+      {formatNumber(',', num)} / {formatNumber(',', den)} (
+      {formatNumber('.1%', div0(num, den))})
+    </p>
+  );
+}
+
 function getDelta(
   control: {}[],
   test: {}[],
   numeratorMetric: string,
   denominatorMetric: string,
-): (number | null)[] {
-  const ret: (number | null)[] = [];
+): { numbers: (number | null)[]; tooltip: JSXElement[] } {
+  const retNumbers: (number | null)[] = [];
+  const retElements: JSXElement[] = [];
 
   // eslint-disable-next-line no-plusplus
   for (let i = 0; i < control.length; i++) {
@@ -110,23 +140,30 @@ function getDelta(
       Number.isNaN(testValue) ||
       Number.isNaN(controlValue)
     ) {
-      ret.push(null);
+      retNumbers.push(null);
+      retElements.push(<div />);
     } else {
-      ret.push((testValue - controlValue) / controlValue);
+      retNumbers.push((testValue - controlValue) / controlValue);
+      retElements.push(
+        <span style={{ fontSize: 'xx-small' }}>
+          Control:
+          {getRatioAndResultElementForToolTip(
+            control[i][numeratorMetric] as number,
+            control[i][denominatorMetric] as number,
+          )}
+          Test:
+          {getRatioAndResultElementForToolTip(
+            test[i][numeratorMetric] as number,
+            test[i][denominatorMetric] as number,
+          )}
+        </span>,
+      );
     }
   }
-  return ret;
-}
-
-function getRatioAndResultElement(num: number, den: number) {
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <p style={{ fontSize: 'xx-small' }}>
-        {num} / {den}
-      </p>
-      <p>{formatNumber('.1%', div0(num, den))}</p>
-    </div>
-  );
+  return {
+    numbers: retNumbers,
+    tooltip: retElements,
+  };
 }
 
 function buildRow(
@@ -144,7 +181,7 @@ function buildRow(
     numeratorMetric,
     denominatorMetric,
   );
-  const lastDelta = deltaArray.at(-1);
+  const lastDelta = deltaArray.numbers.at(-1);
   if (
     lastControl === undefined ||
     lastTest === undefined ||
@@ -193,7 +230,11 @@ function buildRow(
         />
       </span>
     ),
-    spark: renderSparklineCell(deltaArray, 'abc', timestamps),
+    spark: renderSparklineCell(
+      deltaArray.numbers,
+      deltaArray.tooltip,
+      timestamps,
+    ),
   };
 }
 
@@ -236,6 +277,7 @@ export default function AvenABChart(props: AvenABChartProps) {
       },
       {
         accessor: 'spark',
+        Header: t('Delta to Date'),
         cellProps: { style: { width: '50%' } },
       },
     ],

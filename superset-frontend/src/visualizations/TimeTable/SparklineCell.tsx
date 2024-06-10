@@ -91,6 +91,7 @@ const SparklineCell = ({
   yAxisBounds = [undefined, undefined],
   showYAxis = false,
   entries = [],
+  renderTooltip = undefined,
 }: Props) => {
   const theme = useTheme();
   const xyTheme = buildChartTheme({
@@ -227,16 +228,21 @@ const SparklineCell = ({
             const idx = tooltipData?.datumByKey[dataKey].index;
             return (
               <div>
-                <strong>
-                  {idx !== undefined && formatNumber(numberFormat, data[idx])}
-                </strong>
-                <div>
+                <p>
                   {idx !== undefined &&
                     formatTime(
                       dateFormat,
                       moment.utc(entries[idx].time).toDate(),
                     )}
-                </div>
+                </p>
+                <p>
+                  {idx !== undefined && formatNumber(numberFormat, data[idx])}
+                </p>
+                <p>
+                  {idx !== undefined &&
+                    renderTooltip &&
+                    renderTooltip({ index: idx })}
+                </p>
               </div>
             );
           }}
@@ -246,6 +252,7 @@ const SparklineCell = ({
         {`svg:not(:root) {
             overflow: visible;
           }`}
+
       </style>
     </>
   );
