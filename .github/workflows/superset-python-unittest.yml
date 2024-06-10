@@ -22,6 +22,18 @@ jobs:
         python-version: ["current", "next"]
     env:
       PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          # Use custom ports for services to avoid accidentally connecting to
+          # GitHub action runner's default installations
+          - 15432:5432
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
