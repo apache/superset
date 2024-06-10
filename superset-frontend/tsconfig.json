@@ -74,6 +74,7 @@
     "./plugins/*/src/**/*",
     "./plugins/*/types/**/*",
     "./packages/*/test/**/*",
-    "./plugins/*/test/**/*"
+    "./plugins/*/test/**/*",
+    "node_modules/eslint-plugin-react/lib/types.d.ts"
   ]
 }
