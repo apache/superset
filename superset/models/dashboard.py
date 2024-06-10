@@ -150,11 +150,12 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     )
     tags = relationship(
         "Tag",
-        overlaps="objects,tag,tags,tags",
+        overlaps="objects,tag,tags",
         secondary="tagged_object",
-        primaryjoin="and_(Dashboard.id == TaggedObject.object_id)",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        primaryjoin="and_(Dashboard.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'dashboard')",
+        secondaryjoin="and_(TaggedObject.tag_id == Tag.id)",
+        passive_deletes=True,
     )
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
