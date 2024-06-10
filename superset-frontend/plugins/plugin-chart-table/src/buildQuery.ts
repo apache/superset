@@ -23,6 +23,7 @@ import {
   getMetricLabel,
   getTimeOffset,
   isPhysicalColumn,
+  parseDttmToDate,
   QueryMode,
   QueryObject,
   removeDuplicates,
@@ -91,13 +92,31 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
       ) || [];
 
+    // In case the viz is using all version of controls, we try to load them
+    const previousCustomTimeRangeFilters: any =
+      formData.adhoc_custom?.filter(
+        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
+      ) || [];
+
+    let previousCustomStartDate = '';
+    if (
+      !isEmpty(previousCustomTimeRangeFilters) &&
+      previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
+    ) {
+      previousCustomStartDate =
+        previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
+    }
+
     const timeOffsets = ensureIsArray(
       isTimeComparison(formData, baseQueryObject)
-        ? getTimeOffset(
-            TimeRangeFilters[0],
-            formData.time_compare,
-            formData.start_date_offset,
-          )
+        ? getTimeOffset({
+            timeRangeFilter: TimeRangeFilters[0],
+            shifts: formData.time_compare,
+            startDate:
+              previousCustomStartDate && !formData.start_date_offset
+                ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
+                : formData.start_date_offset,
+          })
         : [],
     );
 
