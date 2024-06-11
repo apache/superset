@@ -890,9 +890,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
 
-    # TODO: Update cache_dashboard_screenshot endpoint
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
-    # @protect()
+    @protect()
     @rison(screenshot_query_schema)
     @safe
     @statsd_metrics
@@ -951,12 +950,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         try:
             payload = CacheScreenshotSchema().load(request.json)
-            print("PAYLOAD: ", payload)
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
-        print("DASHBOARD: ", dashboard)
         if not dashboard:
             return self.response_404()
 
@@ -979,21 +976,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ).run()
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
-
-        # dashboard_url = get_url_path(
-        #     "Superset.dashboard", dashboard_id_or_slug=dashboard.id
-        # )
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
         cache_key = screenshot_obj.cache_key(window_size, thumb_size)
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
-
-        print("DASHBOARD ID:", dashboard.id)
-        print("PERMALINK KEY:", permalink_key)
-        print("IMAGE_URL: ", image_url)
-        print("DASHBOARD_URL: ", dashboard_url)
-        print("CACHE_KEY", cache_key)
 
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
@@ -1001,7 +988,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 current_user=get_current_user(),
                 dashboard_id=dashboard.id,
                 dashboard_url=dashboard_url,
-                cache_key=cache_key,
                 force=True,
                 thumb_size=thumb_size,
                 window_size=window_size,
@@ -1015,9 +1001,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
         return trigger_celery()
 
-    # TODO:Update Dashboard screenshot endpoint
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
-    # @protect()
+    @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1060,10 +1045,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # Making sure the dashboard still exists
         if not dashboard:
             return self.response_404()
-
-        print("THUMBNAIL_CACHE: ", dir(thumbnail_cache))
-        print("THUMBNAIL CACHE: ", thumbnail_cache.cache)
-        print("DIGEST", digest)
 
         download_format = request.args.get("download_format", "png")
 

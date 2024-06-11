@@ -106,12 +106,11 @@ def cache_dashboard_thumbnail(
         )
 
 
-@celery_app.task(name="cache_dashboard_screenshot", soft_time_limit=300)
+@celery_app.task(name="cache_dashboard_screenshot", soft_time_limit=60)
 def cache_dashboard_screenshot(
     current_user: Optional[str],
     dashboard_id: int,
     dashboard_url: str,
-    cache_key: str,
     force: bool = False,
     thumb_size: Optional[WindowSize] = None,
     window_size: Optional[WindowSize] = None,
@@ -119,7 +118,6 @@ def cache_dashboard_screenshot(
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
 
-    print("CACHE DASHBOARD SCREENSHOT CELERY", dashboard_id, dashboard_url, cache_key)
     if not thumbnail_cache:
         logging.warning("No cache set, refusing to compute")
         return
@@ -134,7 +132,7 @@ def cache_dashboard_screenshot(
     )
     user = security_manager.find_user(username)
     with override_user(user):
-        screenshot = DashboardScreenshot(dashboard_url, cache_key)
+        screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
         screenshot.compute_and_cache(
             user=user,
             cache=thumbnail_cache,
