@@ -1660,7 +1660,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             else quote(table.table)
         )
 
-        qry = select(fields).select_from(text(full_table_name))
+        qry = select(*fields).select_from(text(full_table_name))
 
         if limit and cls.allow_limit_clause:
             qry = qry.limit(limit)
