@@ -550,13 +550,14 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
 
 
 def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_dataset):
-    TableColumn(
+    tc = TableColumn(
         column_name="DUMMY CC",
         type="VARCHAR(255)",
         table=virtual_dataset,
         expression="INCORRECT SQL",
     )
-
+    db.session.add(tc)
+    db.session.commit()
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )

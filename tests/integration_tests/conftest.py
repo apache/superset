@@ -25,6 +25,7 @@ from unittest.mock import patch
 import pytest
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla import models as ab_models
+from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from superset import db, security_manager
@@ -343,68 +344,66 @@ def physical_dataset():
     example_database = get_example_database()
 
     with example_database.get_sqla_engine() as engine:
-        quoter = get_identifier_quoter(engine.name)
-        # sqlite can only execute one statement at a time
-        engine.execute(
-            f"""
-            CREATE TABLE IF NOT EXISTS physical_dataset(
-            col1 INTEGER,
-            col2 VARCHAR(255),
-            col3 DECIMAL(4,2),
-            col4 VARCHAR(255),
-            col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-            col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-            {quoter('time column with spaces')} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
-            );
+        with engine.connect() as conn:
+            quoter = get_identifier_quoter(engine.name)
+            # sqlite can only execute one statement at a time
+            conn.execute(
+                text(f"""
+                CREATE TABLE IF NOT EXISTS physical_dataset(
+                col1 INTEGER,
+                col2 VARCHAR(255),
+                col3 DECIMAL(4,2),
+                col4 VARCHAR(255),
+                col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+                col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+                {quoter('time column with spaces')} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
+                );
+                """
+                     ))
+            conn.execute(
+                text("""
+                INSERT INTO physical_dataset values
+                (0, 'a', 1.0, NULL, '2000-01-01 00:00:00', '2002-01-03 00:00:00', '2002-01-03 00:00:00'),
+                (1, 'b', 1.1, NULL, '2000-01-02 00:00:00', '2002-02-04 00:00:00', '2002-02-04 00:00:00'),
+                (2, 'c', 1.2, NULL, '2000-01-03 00:00:00', '2002-03-07 00:00:00', '2002-03-07 00:00:00'),
+                (3, 'd', 1.3, NULL, '2000-01-04 00:00:00', '2002-04-12 00:00:00', '2002-04-12 00:00:00'),
+                (4, 'e', 1.4, NULL, '2000-01-05 00:00:00', '2002-05-11 00:00:00', '2002-05-11 00:00:00'),
+                (5, 'f', 1.5, NULL, '2000-01-06 00:00:00', '2002-06-13 00:00:00', '2002-06-13 00:00:00'),
+                (6, 'g', 1.6, NULL, '2000-01-07 00:00:00', '2002-07-15 00:00:00', '2002-07-15 00:00:00'),
+                (7, 'h', 1.7, NULL, '2000-01-08 00:00:00', '2002-08-18 00:00:00', '2002-08-18 00:00:00'),
+                (8, 'i', 1.8, NULL, '2000-01-09 00:00:00', '2002-09-20 00:00:00', '2002-09-20 00:00:00'),
+                (9, 'j', 1.9, NULL, '2000-01-10 00:00:00', '2002-10-22 00:00:00', '2002-10-22 00:00:00');
             """
-        )
-        engine.execute(
-            """
-            INSERT INTO physical_dataset values
-            (0, 'a', 1.0, NULL, '2000-01-01 00:00:00', '2002-01-03 00:00:00', '2002-01-03 00:00:00'),
-            (1, 'b', 1.1, NULL, '2000-01-02 00:00:00', '2002-02-04 00:00:00', '2002-02-04 00:00:00'),
-            (2, 'c', 1.2, NULL, '2000-01-03 00:00:00', '2002-03-07 00:00:00', '2002-03-07 00:00:00'),
-            (3, 'd', 1.3, NULL, '2000-01-04 00:00:00', '2002-04-12 00:00:00', '2002-04-12 00:00:00'),
-            (4, 'e', 1.4, NULL, '2000-01-05 00:00:00', '2002-05-11 00:00:00', '2002-05-11 00:00:00'),
-            (5, 'f', 1.5, NULL, '2000-01-06 00:00:00', '2002-06-13 00:00:00', '2002-06-13 00:00:00'),
-            (6, 'g', 1.6, NULL, '2000-01-07 00:00:00', '2002-07-15 00:00:00', '2002-07-15 00:00:00'),
-            (7, 'h', 1.7, NULL, '2000-01-08 00:00:00', '2002-08-18 00:00:00', '2002-08-18 00:00:00'),
-            (8, 'i', 1.8, NULL, '2000-01-09 00:00:00', '2002-09-20 00:00:00', '2002-09-20 00:00:00'),
-            (9, 'j', 1.9, NULL, '2000-01-10 00:00:00', '2002-10-22 00:00:00', '2002-10-22 00:00:00');
-        """
-        )
+                     ))
+            conn.execute(text("COMMIT"))
+            dataset = SqlaTable(
+                table_name="physical_dataset",
+                database=example_database,
+            )
+            TableColumn(column_name="col1", type="INTEGER", table=dataset)
+            TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
+            TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
+            TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
+            TableColumn(column_name="col5", type="TIMESTAMP", is_dttm=True, table=dataset)
+            TableColumn(column_name="col6", type="TIMESTAMP", is_dttm=True, table=dataset)
+            TableColumn(
+                column_name="time column with spaces",
+                type="TIMESTAMP",
+                is_dttm=True,
+                table=dataset,
+            )
+            SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+            db.session.add(dataset)
+            db.session.commit()
 
-    dataset = SqlaTable(
-        table_name="physical_dataset",
-        database=example_database,
-    )
-    TableColumn(column_name="col1", type="INTEGER", table=dataset)
-    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
-    TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
-    TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
-    TableColumn(column_name="col5", type="TIMESTAMP", is_dttm=True, table=dataset)
-    TableColumn(column_name="col6", type="TIMESTAMP", is_dttm=True, table=dataset)
-    TableColumn(
-        column_name="time column with spaces",
-        type="TIMESTAMP",
-        is_dttm=True,
-        table=dataset,
-    )
-    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
-    db.session.add(dataset)
-    db.session.commit()
+            yield dataset
 
-    yield dataset
-
-    engine.execute(
-        """
-        DROP TABLE physical_dataset;
-    """
-    )
-    dataset = db.session.query(SqlaTable).filter_by(table_name="physical_dataset").all()
-    for ds in dataset:
-        db.session.delete(ds)
-    db.session.commit()
+            conn.execute(text("DROP TABLE physical_dataset;"))
+            dataset = db.session.query(SqlaTable).filter_by(
+                table_name="physical_dataset").all()
+            for ds in dataset:
+                db.session.delete(ds)
+            db.session.commit()
 
 
 @pytest.fixture
