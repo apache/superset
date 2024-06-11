@@ -446,5 +446,6 @@ class ChartDataRestApi(ChartRestApi):
             return ChartDataQueryContextSchema().load(form_data)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
-        except ValidationError as error:
-            raise error
+        except ValidationError:  # pylint: disable=try-except-raise
+            # Make sure to bubble this up
+            raise
