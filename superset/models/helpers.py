@@ -1377,7 +1377,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # automatically add a random alias to the projection because of the
                 # call to DISTINCT; others will uppercase the column names. This
                 # gives us a deterministic column name in the dataframe.
-                [target_col.get_sqla_col(template_processor=tp).label("column_values")]
+                target_col.get_sqla_col(template_processor=tp).label("column_values")
             )
             .select_from(tbl)
             .distinct()

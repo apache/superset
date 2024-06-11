@@ -27,6 +27,7 @@ from unittest import mock
 import prison
 
 from freezegun import freeze_time
+from sqlalchemy import text
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable  # noqa: F401
 from superset.db_engine_specs import BaseEngineSpec
@@ -212,20 +213,21 @@ class TestSqlLab(SupersetTestCase):
             db.session.commit()
             examples_db = get_example_database()
             with examples_db.get_sqla_engine() as engine:
-                data = engine.execute(
-                    f"SELECT * FROM admin_database.{tmp_table_name}"
-                ).fetchall()
-                names_count = engine.execute(
-                    f"SELECT COUNT(*) FROM birth_names"  # noqa: F541
-                ).first()
-                self.assertEqual(
-                    names_count[0], len(data)
-                )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
+                with engine.connect() as conn:
+                    data = conn.execute(
+                        text(f"SELECT * FROM admin_database.{tmp_table_name}")
+                    ).fetchall()
+                    names_count = conn.execute(
+                        text(f"SELECT COUNT(*) FROM birth_names")  # noqa: F541
+                    ).first()
+                    self.assertEqual(
+                        names_count[0], len(data)
+                    )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
 
-                # cleanup
-                engine.execute(f"DROP {ctas_method} admin_database.{tmp_table_name}")
-                examples_db.allow_ctas = old_allow_ctas
-                db.session.commit()
+                    # cleanup
+                    conn.execute(text(f"DROP {ctas_method} admin_database.{tmp_table_name}"))
+                    examples_db.allow_ctas = old_allow_ctas
+                    db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_multi_sql(self):

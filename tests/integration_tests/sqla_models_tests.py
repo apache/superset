@@ -235,18 +235,21 @@ class TestDatabaseModel(SupersetTestCase):
             "'{{ 'xyz_' + time_grain }}' as time_grain",
             database=get_example_database(),
         )
-        TableColumn(
+        table_column = TableColumn(
             column_name="expr",
             expression="case when '{{ current_username() }}' = 'abc' "
             "then 'yes' else 'no' end",
             type="VARCHAR(100)",
             table=table,
         )
-        SqlMetric(
+        table_metric = SqlMetric(
             metric_name="count_timegrain",
             expression="count('{{ 'bar_' + time_grain }}')",
             table=table,
         )
+        db.session.add(table)
+        db.session.add(table_column)
+        db.session.add(table_metric)
         db.session.commit()
 
         sqla_query = table.get_sqla_query(**base_query_obj)
@@ -271,8 +274,9 @@ class TestDatabaseModel(SupersetTestCase):
         self.login(username="admin")
         table = self.get_table(name="birth_names")
         metric = SqlMetric(
-            metric_name="count_jinja_metric", expression="count(*)", table=table
+            metric_name="count_jinja_metric", expression="count(*)", table_id=table.id
         )
+        db.session.add(metric)
         db.session.commit()
 
         base_query_obj = {
@@ -347,7 +351,7 @@ class TestDatabaseModel(SupersetTestCase):
         with pytest.raises(QueryObjectValidationError):
             table.get_sqla_query(**base_query_obj)
         # Cleanup
-        db.session.delete(table)
+        db.session.query(SqlaTable).filter_by(table_name="test_validate_adhoc_sql").delete()
         db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
