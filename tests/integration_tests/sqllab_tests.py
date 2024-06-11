@@ -304,9 +304,11 @@ class TestSqlLab(SupersetTestCase):
         )
 
         with examples_db.get_sqla_engine() as engine:
-            engine.execute(
-                f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
-            )
+            with engine.connect() as conn:
+                conn.execute(
+                    text(f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2")
+                )
+                conn.execute(text("COMMIT"))
 
         data = self.run_sql(
             f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", username="SchemaUser"
@@ -333,8 +335,9 @@ class TestSqlLab(SupersetTestCase):
 
         db.session.query(Query).delete()
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
-        db.session.commit()
+            with engine.connect() as conn:
+                conn.execute(text(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table"))
+                conn.execute(text("COMMIT"))
 
     def test_alias_duplicate(self):
         self.run_sql(
