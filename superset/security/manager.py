@@ -2174,7 +2174,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
-            self.session.expunge(query)
+            query.metadata = None
 
         if database and table or query:
             if query:
