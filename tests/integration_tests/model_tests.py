@@ -200,7 +200,10 @@ class TestDatabaseModel(SupersetTestCase):
         model._get_sqla_engine()
         call_args = mocked_create_engine.call_args
 
-        assert str(call_args[0][0]) == "mysql://user:password@localhost"
+        assert (
+            call_args[0][0].render_as_string(hide_password=False)
+            == "mysql://user:password@localhost"
+        )
         assert call_args[1]["connect_args"]["local_infile"] == 0
 
         model = Database(
@@ -210,7 +213,9 @@ class TestDatabaseModel(SupersetTestCase):
         model._get_sqla_engine()
         call_args = mocked_create_engine.call_args
 
-        assert str(call_args[0][0]) == "mysql+mysqlconnector://user:password@localhost"
+        assert (call_args[0][0].render_as_string(hide_password=False)
+                == "mysql+mysqlconnector://user:password@localhost"
+        )
         assert call_args[1]["connect_args"]["allow_local_infile"] == 0
 
     @mock.patch("superset.models.core.create_engine")
