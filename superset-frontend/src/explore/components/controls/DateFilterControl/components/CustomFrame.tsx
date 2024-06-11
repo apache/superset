@@ -28,6 +28,7 @@ import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
 import Select from 'src/components/Select/Select';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { customTimeRangeDecode } from '@superset-ui/core';
 import {
   SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,
@@ -35,7 +36,6 @@ import {
   UNTIL_MODE_OPTIONS,
   MOMENT_FORMAT,
   MIDNIGHT,
-  customTimeRangeDecode,
   customTimeRangeEncode,
   dttmToMoment,
   LOCALE_MAPPING,
