@@ -160,6 +160,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 crontab="* * * * *",
                 chart=chart,
             )
+            db.session.add(report_schedule)
             db.session.commit()
 
             yield chart
