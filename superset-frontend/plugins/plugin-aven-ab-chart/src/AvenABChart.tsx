@@ -98,7 +98,7 @@ function div0(a: any, b: any): number {
 
 function getRatioAndResultElement(num: number, den: number) {
   return (
-    <div style={{ textAlign: 'center' }}>
+    <div>
       <p style={{ fontSize: 'xx-small' }}>
         {formatNumber(',', num)} / {formatNumber(',', den)}
       </p>
@@ -198,7 +198,12 @@ function buildRow(
         : 'green';
 
   return {
-    metric: `${numeratorMetric} / ${denominatorMetric}`,
+    metric: (
+      <div style={{ fontSize: 'small' }}>
+        <p>{numeratorMetric}</p>
+        <p>&emsp;<b>/</b> {denominatorMetric}</p>
+      </div>
+    ),
     control: getRatioAndResultElement(
       lastControl[numeratorMetric] as number,
       lastControl[denominatorMetric] as number,
@@ -278,7 +283,6 @@ export default function AvenABChart(props: AvenABChartProps) {
       {
         accessor: 'spark',
         Header: t('Delta to Date'),
-        cellProps: { style: { width: '50%' } },
       },
     ],
     [],
@@ -320,12 +324,7 @@ export default function AvenABChart(props: AvenABChartProps) {
   }
 
   return (
-    <TimeTableStyles
-      ref={rootElem}
-      headerFontSize={props.headerFontSize}
-      height={height}
-      width={width}
-    >
+    <TimeTableStyles ref={rootElem} height={height} width={width}>
       <TableView
         className="table-no-hover"
         columns={columns}

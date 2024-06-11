@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { supersetTheme, TimeseriesDataRecord } from '@superset-ui/core';
+import { TimeseriesDataRecord } from '@superset-ui/core';
 
 export interface AvenABChartStylesProps {
   height: number;
   width: number;
-  headerFontSize: keyof typeof supersetTheme.typography.sizes;
 }
 
 interface AvenABChartCustomizeProps {
