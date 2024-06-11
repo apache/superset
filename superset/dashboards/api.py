@@ -890,7 +890,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
 
-    # TODO: cache_dashboard_screenshot endpoint
+    # TODO: Update cache_dashboard_screenshot endpoint
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     # @protect()
     @rison(screenshot_query_schema)
@@ -977,9 +977,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             dashboard_id=str(dashboard.id),
             state=dashboard_state,
         ).run()
-        print("PERMALINK KEY:", permalink_key)
+
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
-        print("DASHBOARD_URL: ", dashboard_url)
+
         # dashboard_url = get_url_path(
         #     "Superset.dashboard", dashboard_id_or_slug=dashboard.id
         # )
@@ -988,6 +988,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
+
+        print("DASHBOARD ID:", dashboard.id)
+        print("PERMALINK KEY:", permalink_key)
+        print("IMAGE_URL: ", image_url)
+        print("DASHBOARD_URL: ", dashboard_url)
+        print("CACHE_KEY", cache_key)
 
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")

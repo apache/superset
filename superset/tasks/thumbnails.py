@@ -119,9 +119,12 @@ def cache_dashboard_screenshot(
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
 
+    print("CACHE DASHBOARD SCREENSHOT CELERY", dashboard_id, dashboard_url, cache_key)
     if not thumbnail_cache:
         logging.warning("No cache set, refusing to compute")
         return
+
+
     dashboard = Dashboard.get(dashboard_id)
 
     logger.info("Caching dashboard: %s", dashboard_url)
