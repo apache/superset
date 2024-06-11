@@ -63,11 +63,9 @@ def create_test_table_context(database: Database):
             )
             connection.execute(text(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)"))
             connection.execute(text(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)"))
+            connection.execute(text("COMMIT"))
+            yield db.session
 
-    yield db.session
-
-    with database.get_sqla_engine() as engine:
-        with engine.connect() as connection:
             connection.execute(text(f"DROP TABLE {full_table_name}"))
 
 
