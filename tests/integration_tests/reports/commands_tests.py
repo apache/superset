@@ -35,6 +35,7 @@ from slack_sdk.errors import (
     SlackRequestError,
     SlackTokenRotationError,
 )
+from sqlalchemy import text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Query
 
@@ -152,13 +153,15 @@ def assert_log(state: str, error_message: Optional[str] = None):
 @contextmanager
 def create_test_table_context(database: Database):
     with database.get_sqla_engine() as engine:
-        engine.execute("CREATE TABLE test_table AS SELECT 1 as first, 2 as second")
-        engine.execute("INSERT INTO test_table (first, second) VALUES (1, 2)")
-        engine.execute("INSERT INTO test_table (first, second) VALUES (3, 4)")
+        with engine.connect() as connection:
+            connection.execute(text("CREATE TABLE test_table AS SELECT 1 as first, 2 as second"))
+            connection.execute(text("INSERT INTO test_table (first, second) VALUES (1, 2)"))
+            connection.execute(text("INSERT INTO test_table (first, second) VALUES (3, 4)"))
 
     yield db.session
     with database.get_sqla_engine() as engine:
-        engine.execute("DROP TABLE test_table")
+        with engine.connect() as connection:
+            connection.execute(text("DROP TABLE test_table"))
 
 
 @pytest.fixture()

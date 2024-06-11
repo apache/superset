@@ -18,7 +18,7 @@ import random
 
 import pandas as pd
 import pytest
-from sqlalchemy import column, Float, String
+from sqlalchemy import column, Float, String, text
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric
@@ -53,7 +53,10 @@ def load_energy_table_data():
     yield
     with app.app_context():
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS energy_usage")
+            with engine.connect() as connection:
+                connection.execute(
+                    text(f"DROP TABLE IF EXISTS {ENERGY_USAGE_TBL_NAME}")
+                )
 
 
 @pytest.fixture()

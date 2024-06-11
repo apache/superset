@@ -22,6 +22,7 @@ from unittest import mock
 
 import prison
 import pytest
+from sqlalchemy import text
 
 from superset import app, db
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -56,25 +57,27 @@ def create_test_table_context(database: Database):
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
     with database.get_sqla_engine() as engine:
-        engine.execute(
-            f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
-        )
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")
+        with engine.connect() as connection:
+            connection.execute(
+                text(f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second")
+            )
+            connection.execute(text(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)"))
+            connection.execute(text(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)"))
 
     yield db.session
 
     with database.get_sqla_engine() as engine:
-        engine.execute(f"DROP TABLE {full_table_name}")
+        with engine.connect() as connection:
+            connection.execute(text(f"DROP TABLE {full_table_name}"))
 
 
 class TestDatasource(SupersetTestCase):
-    def setUp(self):
-        db.session.begin(subtransactions=True)
-
-    def tearDown(self):
-        db.session.rollback()
-        super().tearDown()
+    # def setUp(self):
+    #     db.session.begin(subtransactions=True)
+    #
+    # def tearDown(self):
+    #     db.session.rollback()
+    #     super().tearDown()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_for_physical_table(self):
