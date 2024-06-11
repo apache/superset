@@ -29,17 +29,13 @@ from superset.utils import json
 from superset.utils.core import DatasourceType, get_example_default_schema
 
 
-def get_table(
+def delete_table_if_exists(
     table_name: str,
-    database: Database,
-    schema: Optional[str] = None,
 ):
-    schema = schema or get_example_default_schema()
-    return (
-        db.session.query(SqlaTable)
-        .filter_by(database_id=database.id, schema=schema, table_name=table_name)
-        .one_or_none()
-    )
+    tables = db.session.query(SqlaTable).filter_by(table_name=table_name).all()
+    for tbl in tables:
+        db.session.delete(tbl)
+    db.session.commit()
 
 
 def create_table_metadata(
@@ -51,15 +47,16 @@ def create_table_metadata(
 ) -> SqlaTable:
     schema = schema or get_example_default_schema()
 
-    table = get_table(table_name, database, schema)
-    if not table:
-        table = SqlaTable(
-            schema=schema,
-            table_name=table_name,
-            normalize_columns=False,
-            always_filter_main_dttm=False,
-        )
-        db.session.add(table)
+    delete_table_if_exists(table_name)
+
+    table = SqlaTable(
+        schema=schema,
+        table_name=table_name,
+        normalize_columns=False,
+        always_filter_main_dttm=False,
+    )
+    db.session.add(table)
+
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
     table.database = database
