@@ -27,6 +27,8 @@
 
 import React, { createRef, useMemo } from 'react';
 import { formatNumber, styled, t } from '@superset-ui/core';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import cdf from '@stdlib/stats-base-dists-normal-cdf';
 import { AvenABChartProps, AvenABChartStylesProps } from './types';
 import TableView from '../../../src/components/TableView/TableView';
 import sortNumericValues from '../../../src/utils/sortNumericValues';
@@ -39,6 +41,37 @@ import FormattedNumber from '../../../src/visualizations/TimeTable/FormattedNumb
 // Theming variables are provided for your use via a ThemeProvider
 // imported from @superset-ui/core. For variables available, please visit
 // https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/style/index.ts
+
+function calculatePValueTwoSidedCDF(
+  successes_control: number,
+  trials_control: number,
+  successes_variation: number,
+  trials_variation: number,
+) {
+  // Calculate conversion rates
+  const conversion_rate_control = successes_control / trials_control;
+  const conversion_rate_variation = successes_variation / trials_variation;
+
+  // Calculate pooled conversion rate
+  const pooled_conversion_rate =
+    (successes_control + successes_variation) /
+    (trials_control + trials_variation);
+
+  // Calculate pooled standard error
+  const pooled_standard_error = Math.sqrt(
+    pooled_conversion_rate *
+      (1 - pooled_conversion_rate) *
+      (1 / trials_control + 1 / trials_variation),
+  );
+
+  // Calculate Z-score
+  const z_score =
+    (conversion_rate_variation - conversion_rate_control) /
+    pooled_standard_error;
+
+  // Calculate P-value (two-sided)
+  return 2 * (1 - cdf(Math.abs(z_score), 0, 1));
+}
 
 const sortNumberWithMixedTypes = (
   rowA: any,
@@ -201,7 +234,9 @@ function buildRow(
     metric: (
       <div style={{ fontSize: 'small' }}>
         <p>{numeratorMetric}</p>
-        <p>&emsp;<b>/</b> {denominatorMetric}</p>
+        <p>
+          &emsp;<b>/</b> {denominatorMetric}
+        </p>
       </div>
     ),
     control: getRatioAndResultElement(
@@ -240,7 +275,54 @@ function buildRow(
       deltaArray.tooltip,
       timestamps,
     ),
+    p_value: formatNumber(
+      '.2%',
+      1 -
+        calculatePValueTwoSidedCDF(
+          lastControl[numeratorMetric],
+          lastControl[denominatorMetric],
+          lastTest[numeratorMetric],
+          lastTest[denominatorMetric],
+        ),
+    ),
   };
+}
+
+function getColumns(showPValue: boolean) {
+  const base = [
+    { accessor: 'metric', Header: t('Metric') },
+    {
+      accessor: 'control',
+      Header: t('Control'),
+      sortType: sortNumberWithMixedTypes,
+    },
+    {
+      accessor: 'test',
+      Header: t('Test'),
+      sortType: sortNumberWithMixedTypes,
+    },
+    {
+      accessor: 'delta_abs',
+      Header: t('Points'),
+      sortType: sortNumberWithMixedTypes,
+    },
+    {
+      accessor: 'delta_rel',
+      Header: t('Delta'),
+      sortType: sortNumberWithMixedTypes,
+    },
+    {
+      accessor: 'spark',
+      Header: t('Delta to Date'),
+    },
+  ];
+  if (showPValue) {
+    base.push({
+      accessor: 'p_value',
+      Header: t('1 - P value'),
+    });
+  }
+  return base;
 }
 
 export default function AvenABChart(props: AvenABChartProps) {
@@ -254,39 +336,11 @@ export default function AvenABChart(props: AvenABChartProps) {
     allTimestamps,
     metricsNames,
     stepOverStep,
+    showPValue,
   } = props;
   const rootElem = createRef<HTMLDivElement>();
 
-  const columns = useMemo(
-    () => [
-      { accessor: 'metric', Header: t('Metric') },
-      {
-        accessor: 'control',
-        Header: t('Control'),
-        sortType: sortNumberWithMixedTypes,
-      },
-      {
-        accessor: 'test',
-        Header: t('Test'),
-        sortType: sortNumberWithMixedTypes,
-      },
-      {
-        accessor: 'delta_abs',
-        Header: t('Points'),
-        sortType: sortNumberWithMixedTypes,
-      },
-      {
-        accessor: 'delta_rel',
-        Header: t('Delta'),
-        sortType: sortNumberWithMixedTypes,
-      },
-      {
-        accessor: 'spark',
-        Header: t('Delta to Date'),
-      },
-    ],
-    [],
-  );
+  const columns = useMemo(() => getColumns(showPValue), [showPValue]);
 
   const timestamps = allTimestamps.map(v => ({
     time: new Date(v),
