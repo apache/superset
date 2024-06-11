@@ -226,6 +226,7 @@ class TestSqlLab(SupersetTestCase):
 
                     # cleanup
                     conn.execute(text(f"DROP {ctas_method} admin_database.{tmp_table_name}"))
+                    conn.execute(text("COMMIT"))
                     examples_db.allow_ctas = old_allow_ctas
                     db.session.commit()
 

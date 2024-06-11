@@ -43,7 +43,7 @@ class QueryDAO(BaseDAO[Query]):
         :param query_id: The query id
         :return:
         """
-        query = db.session.query(Query).get(query_id)
+        query = db.session.get(Query, query_id)
         related_saved_queries = (
             db.session.query(SavedQuery)
             .filter(SavedQuery.database == query.database)
