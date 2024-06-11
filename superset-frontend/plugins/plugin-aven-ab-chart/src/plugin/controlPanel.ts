@@ -148,6 +148,16 @@ const config: ControlPanelConfig = {
               ),
             },
           },
+          {
+            name: 'show_p_value',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show P-Value'),
+              renderTrigger: true,
+              default: false,
+              description: t('If selected add a p-value column'),
+            },
+          },
         ],
       ],
     },

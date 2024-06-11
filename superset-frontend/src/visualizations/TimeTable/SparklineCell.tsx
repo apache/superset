@@ -227,7 +227,7 @@ const SparklineCell = ({
           renderTooltip={({ tooltipData }) => {
             const idx = tooltipData?.datumByKey[dataKey].index;
             return (
-              <div>
+              <div data-container="body">
                 <p>
                   {idx !== undefined &&
                     formatTime(
@@ -252,7 +252,6 @@ const SparklineCell = ({
         {`svg:not(:root) {
             overflow: visible;
           }`}
-
       </style>
     </>
   );
