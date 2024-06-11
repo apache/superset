@@ -240,7 +240,7 @@ def loads(
     :param object_hook: function that will be called to decode objects values
     :returns: A Python object deserialized from string
     """
-    if not obj or obj == b"":  # handling stupid edge cases
+    if obj and obj == b"":
         return {}
     try:
         return simplejson.loads(
@@ -251,4 +251,4 @@ def loads(
         )
     except JSONDecodeError as ex:
         logger.error("JSON is not valid %s", str(ex), exc_info=True)
-        raise
+        raise ex
