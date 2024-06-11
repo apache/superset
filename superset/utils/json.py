@@ -240,9 +240,7 @@ def loads(
     :param object_hook: function that will be called to decode objects values
     :returns: A Python object deserialized from string
     """
-    if isinstance(obj, bytes):
-        obj = obj.decode("utf-8")
-    if not obj:
+    if not obj or obj == b"":  # handling stupid edge cases
         return {}
     try:
         return simplejson.loads(
