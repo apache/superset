@@ -124,7 +124,6 @@ def cache_dashboard_screenshot(
         logging.warning("No cache set, refusing to compute")
         return
 
-
     dashboard = Dashboard.get(dashboard_id)
 
     logger.info("Caching dashboard: %s", dashboard_url)
