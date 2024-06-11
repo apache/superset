@@ -276,7 +276,7 @@ function buildRow(
       timestamps,
     ),
     p_value: formatNumber(
-      '.2%',
+      '.2f',
       1 -
         calculatePValueTwoSidedCDF(
           lastControl[numeratorMetric],
@@ -319,7 +319,7 @@ function getColumns(showPValue: boolean) {
   if (showPValue) {
     base.push({
       accessor: 'p_value',
-      Header: t('1 - P value'),
+      Header: t('1 - P-Value'),
     });
   }
   return base;
