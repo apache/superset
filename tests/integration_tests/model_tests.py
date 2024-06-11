@@ -222,7 +222,7 @@ class TestDatabaseModel(SupersetTestCase):
     def test_impersonate_user_trino(self, mocked_create_engine):
         principal_user = security_manager.find_user(username="gamma")
 
-        with override_user(principal_user):
+        with (override_user(principal_user)):
             model = Database(
                 database_name="test_database", sqlalchemy_uri="trino://localhost"
             )
@@ -230,7 +230,9 @@ class TestDatabaseModel(SupersetTestCase):
             model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
-            assert str(call_args[0][0]) == "trino://localhost/"
+            assert (call_args[0][0].render_as_string(hide_password=False)
+                    == "trino://localhost/"
+            )
             assert call_args[1]["connect_args"]["user"] == "gamma"
 
             model = Database(
@@ -243,7 +245,7 @@ class TestDatabaseModel(SupersetTestCase):
             call_args = mocked_create_engine.call_args
 
             assert (
-                str(call_args[0][0])
+                call_args[0][0].render_as_string(hide_password=False)
                 == "trino://original_user:original_user_password@localhost/"
             )
             assert call_args[1]["connect_args"]["user"] == "gamma"
