@@ -48,9 +48,9 @@ export interface ReportObject {
   recipients: [
     { 
       recipient_config_json: {
-        target: string,
-        ccTarget: string,
-        bccTarget:string
+        target: string;
+        ccTarget: string;
+        bccTarget: string;
       };
       type: ReportRecipientType;
     },

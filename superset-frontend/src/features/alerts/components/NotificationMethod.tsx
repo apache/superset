@@ -412,6 +412,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           </div>
         </StyledInputContainer>
       </div>
+<<<<<<< HEAD
       {method !== undefined ? (
         <>
           <div className="inline-container">
@@ -468,6 +469,35 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           </div>
           <div className="input-container">
           <textarea
+=======
+      {method !== undefined ? (            
+        method === 'Email' ? (
+          <StyledInputContainer>
+            <div className="control-label">
+              {t('To')}
+              <span className="required">*</span>
+            </div>
+            <div className="input-container">
+              <textarea
+                name="To"
+                data-test="recipients"
+                value={recipientValue}
+                onChange={onRecipientsChange}
+              />
+            </div>
+            <div className="control-label">{TRANSLATIONS.EMAIL_CC_NAME}</div>
+            <div className="input-container">
+              <textarea
+                name="CC"
+                data-test="cc"
+                value={ccValue}
+                onChange={onCcChange}
+              />
+            </div>
+            <div className="control-label">{TRANSLATIONS.EMAIL_BCC_NAME}</div>
+            <div className="input-container">
+            <textarea
+>>>>>>> 261b54a89 (handle build failure and prettify)
               name="BCC"
               data-test="bcc"
               value={bccValue}

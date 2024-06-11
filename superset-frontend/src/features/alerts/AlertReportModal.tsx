@@ -1028,16 +1028,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return emails
         .split(/[,;]/)
         .every(email => EMAIL_REGEX.test(email.trim()));
-   };
+     };
 
-   for (const setting of notificationSettings) {
-      if (!!setting.method && setting.method==='Email') {
-          if (setting.recipients?.length && !validateEmails(setting.recipients))
+    for (const setting of notificationSettings) {
+      if (!!setting.method && setting.method === 'Email') {
+        if (setting.recipients?.length && !validateEmails(setting.recipients))
             return false;
-          if (setting.cc && !validateEmails(setting.cc)) return false;
-          if (setting.bcc && !validateEmails(setting.bcc)) return false;
-        }
+        if (setting.cc && !validateEmails(setting.cc)) return false;
+        if (setting.bcc && !validateEmails(setting.bcc)) return false;
       }
+    }
     return true;
   };
 
@@ -1104,9 +1104,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     } else {
       // Check for email format errors
       const hasValidationErrors = !checkEmailFormat();
-        if (hasValidationErrors) {
-            errors.push(TRANSLATIONS.EMAIL_VALIDATION_ERROR_TEXT);
-        }
+      if (hasValidationErrors) {
+        errors.push(TRANSLATIONS.EMAIL_VALIDATION_ERROR_TEXT);
+      }
     }
 
     if (emailError) {
