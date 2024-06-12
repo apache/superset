@@ -142,10 +142,10 @@ export const customTimeRangeDecode = (
       const [sinceDttm, sinceGrainValue, sinceGrain] = [
         ...sinceCapturedGroup.slice(1),
       ];
-      const [untileDttm, untilGrainValue, untilGrain] = [
+      const [untilDttm, untilGrainValue, untilGrain] = [
         ...untilCapturedGroup.slice(1),
       ];
-      if (sinceDttm === untileDttm) {
+      if (sinceDttm === untilDttm) {
         return {
           customRange: {
             ...defaultCustomRange,
@@ -154,7 +154,7 @@ export const customTimeRangeDecode = (
             sinceDatetime: sinceDttm,
             untilGrain: untilGrain as DateTimeGrainType,
             untilGrainValue: parseInt(untilGrainValue, 10),
-            untilDatetime: untileDttm,
+            untilDatetime: untilDttm,
             anchorValue: sinceDttm,
             sinceMode: 'relative',
             untilMode: 'relative',

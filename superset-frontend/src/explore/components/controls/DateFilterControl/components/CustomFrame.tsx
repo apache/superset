@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { t, customTimeRangeDecode } from '@superset-ui/core';
 import { Moment } from 'moment';
 import { isInteger } from 'lodash';
 // @ts-ignore
@@ -28,7 +28,6 @@ import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
 import Select from 'src/components/Select/Select';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { customTimeRangeDecode } from '@superset-ui/core';
 import {
   SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,

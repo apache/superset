@@ -37,13 +37,34 @@ const runTimezoneTest = (
   shifts: any,
   startDate: any,
   expected_result: string[],
+  includeFutureOffsets = true,
 ) => {
   jest.setSystemTime(new Date(now_time));
   timezoneMock.register(timezone);
-  const result = getTimeOffset({ timeRangeFilter, shifts, startDate });
+  const result = getTimeOffset({
+    timeRangeFilter,
+    shifts,
+    startDate,
+    includeFutureOffsets,
+  });
   expect(result).toEqual(expected_result);
   timezoneMock.unregister();
 };
+
+test('should handle includeFutureOffsets is null', () => {
+  jest.useFakeTimers('modern');
+  jest.setSystemTime(new Date(NOW_UTC_IN_EUROPE));
+  timezoneMock.register('Etc/GMT-2');
+  const result = getTimeOffset({
+    timeRangeFilter: {
+      comparator: '2024-06-03 : 2024-06-10',
+    },
+    shifts: ['custom'],
+    startDate: '2024-05-29',
+  });
+  expect(result).toEqual(['5 days ago']);
+  timezoneMock.unregister();
+});
 
 test('should handle custom range with specific dates', () => {
   const timeRangeFilter = {
@@ -74,7 +95,7 @@ test('should handle custom range with specific dates', () => {
   );
 });
 
-test('should handle custom range with relative dates', () => {
+test('should handle custom range with relative dates (now)', () => {
   const timeRangeFilter = {
     comparator: 'now : 2024-06-10',
   };
@@ -571,5 +592,439 @@ test('should handle custom range with Advanced 2022-11-01', () => {
     shifts,
     startDate,
     ['14 days ago'],
+  );
+});
+
+test('should handle future inherit shift with includeFutureOffsets set to true', () => {
+  const timeRangeFilter = {
+    comparator: '2024-06-10 : 2024-06-05',
+  };
+  const shifts = ['inherit'];
+  const startDate = '2024-06-20';
+  jest.useFakeTimers('modern');
+
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days after'],
+    undefined,
+  );
+  runTimezoneTest(
+    NOW_IN_UTC,
+    'UTC',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days after'],
+    undefined,
+  );
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days after'],
+    undefined,
+  );
+});
+
+test('should handle future custom shift with includeFutureOffsets set to true', () => {
+  const timeRangeFilter = {
+    comparator: '2024-06-10 : 2024-06-05',
+  };
+  const shifts = ['custom'];
+  const startDate = '2024-06-15';
+  jest.useFakeTimers('modern');
+
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days after'],
+  );
+  runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, [
+    '5 days after',
+  ]);
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days after'],
+  );
+});
+
+test('should handle custom range with specific (YYYY-MM) and relative dates', () => {
+  const timeRangeFilter = {
+    comparator: '2024-06 : DATEADD(DATETIME("2024-06-03T00:00:00"), 7, day)',
+  };
+  const shifts = ['custom'];
+  const startDate = '2024-05-29';
+  jest.useFakeTimers('modern');
+
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['3 days ago'],
+  );
+  runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, [
+    '3 days ago',
+  ]);
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['2 days ago'],
+  );
+});
+
+test('should handle custom range with minutes', () => {
+  const timeRangeFilter = {
+    comparator: '10 minutes ago : now',
+  };
+  const shifts = ['custom'];
+  const startDate = '2024-05-29';
+  jest.useFakeTimers('modern');
+
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days ago'],
+  );
+  runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, [
+    '5 days ago',
+  ]);
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days ago'],
+  );
+});
+
+test('should handle custom range with undefined startDate', () => {
+  const timeRangeFilter = {
+    comparator: '',
+  };
+  const shifts = ['custom'];
+  const startDate = undefined;
+  jest.useFakeTimers('modern');
+
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+  );
+  runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, []);
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+  );
+});
+
+test('should handle future custom shift with different format', () => {
+  const timeRangeFilter = {
+    comparator: '2024-06-10T23:45:30-05:00 : 2024-06-05',
+  };
+  const shifts = ['custom'];
+  const startDate = '2024-06-15';
+  jest.useFakeTimers('modern');
+
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['4 days after'],
+  );
+  runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, [
+    '4 days after',
+  ]);
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days after'],
+  );
+});
+
+test('should handle custom range with relative dates', () => {
+  const timeRangeFilter = {
+    comparator:
+      'DATEADD(DATETIME("now"), -7, day) : DATEADD(DATETIME("now"), 7, day)',
+  };
+  const shifts = ['custom'];
+  const startDate = '2024-05-29';
+  jest.useFakeTimers('modern');
+
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['2 days after'],
+  );
+  runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, [
+    '2 days after',
+  ]);
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['2 days after'],
+  );
+});
+
+test('should handle custom range with relative dates (minute and seconds)', () => {
+  const timeRangeFilter = {
+    comparator:
+      'DATEADD(DATETIME("now"), -700, minute) : DATEADD(DATETIME("now"), 7000, second)',
+  };
+  const shifts = ['custom'];
+  const startDate = '2024-05-29';
+  jest.useFakeTimers('modern');
+
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['4 days ago'],
+  );
+  runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, [
+    '4 days ago',
+  ]);
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['4 days ago'],
+  );
+});
+
+test('should handle custom range with relative dates (hour)', () => {
+  const timeRangeFilter = {
+    comparator:
+      'DATEADD(DATETIME("now"), -24, hour) : DATEADD(DATETIME("now"), 24, hour)',
+  };
+  const shifts = ['custom'];
+  const startDate = '2024-05-29';
+  jest.useFakeTimers('modern');
+
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['4 days ago'],
+  );
+  runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, [
+    '4 days ago',
+  ]);
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['4 days ago'],
+  );
+});
+
+test('should handle custom shifts with same day', () => {
+  const timeRangeFilter = {
+    comparator: '2024-05-29 : 2024-05-29',
+  };
+  const shifts = ['custom'];
+  const startDate = '2024-05-29';
+  jest.useFakeTimers('modern');
+
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['0 days ago'],
+  );
+  runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, [
+    '0 days ago',
+  ]);
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['0 days ago'],
+  );
+});
+
+test('should handle inherit shifts without filter', () => {
+  const timeRangeFilter = {
+    comparator: ':',
+  };
+  const shifts = ['inherit'];
+  const startDate = '2024-05-29';
+  jest.useFakeTimers('modern');
+
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+  );
+  runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, []);
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+  );
+});
+
+test('should handle inherit shift same day', () => {
+  const timeRangeFilter = {
+    comparator: '2024-03-06 : 2024-03-06',
+  };
+  const shifts = ['inherit'];
+  const startDate = '2024-03-06';
+  jest.useFakeTimers('modern');
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+    true,
+  );
+  runTimezoneTest(
+    NOW_IN_UTC,
+    'UTC',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+    true,
+  );
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+    true,
+  );
+});
+
+test('should handle inherit shift same day includeFutureOffsets set to false', () => {
+  const timeRangeFilter = {
+    comparator: '2024-03-06 : 2024-03-01',
+  };
+  const shifts = ['inherit'];
+  const startDate = '2024-03-06';
+  jest.useFakeTimers('modern');
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+    false,
+  );
+  runTimezoneTest(
+    NOW_IN_UTC,
+    'UTC',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+    false,
+  );
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+    false,
+  );
+});
+
+test('should handle custom shift same day includeFutureOffsets set to false', () => {
+  const timeRangeFilter = {
+    comparator: '2024-03-01 : 2024-03-01',
+  };
+  const shifts = ['custom'];
+  const startDate = '2024-03-06';
+  jest.useFakeTimers('modern');
+  runTimezoneTest(
+    NOW_UTC_IN_EUROPE,
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+    false,
+  );
+  runTimezoneTest(
+    NOW_IN_UTC,
+    'UTC',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+    false,
+  );
+  runTimezoneTest(
+    NOW_UTC_IN_PACIFIC,
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    [],
+    false,
   );
 });

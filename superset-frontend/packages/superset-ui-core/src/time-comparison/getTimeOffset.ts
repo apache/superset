@@ -302,7 +302,7 @@ export const getTimeOffset = ({
           if (includeFutureOffsets && inInheritShift < 0) {
             return `${inInheritShift * -1} days after`;
           }
-          if (inInheritShift >= 0) {
+          if (inInheritShift > 0) {
             return `${inInheritShift} days ago`;
           }
         }
