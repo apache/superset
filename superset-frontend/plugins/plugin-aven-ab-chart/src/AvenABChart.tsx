@@ -239,7 +239,9 @@ function getIntervalBar(
   const den = end - start;
   return (
     <div style={{ display: 'inline-flex', fontFamily: 'monospace' }}>
-      <span>{formatNumber('.1f', 100 * colorStart)} &ensp;</span>
+      <span>
+        {(100 * colorStart).toFixed(1).padStart(4, '0')} &ensp;
+      </span>
       <div
         style={{
           width: '100px',
