@@ -36,6 +36,29 @@ import {
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
 
+describe('getUpToDateQuery', () => {
+  test('should return the up to date query editor state', () => {
+    const outOfUpdatedQueryEditor = {
+      ...defaultQueryEditor,
+      schema: null,
+      sql: 'SELECT ...',
+    };
+    const queryEditor = {
+      ...defaultQueryEditor,
+      sql: 'SELECT * FROM table',
+    };
+    const state = {
+      sqlLab: {
+        queryEditors: [queryEditor],
+        unsavedQueryEditor: {},
+      },
+    };
+    expect(actions.getUpToDateQuery(state, outOfUpdatedQueryEditor)).toEqual(
+      queryEditor,
+    );
+  });
+});
+
 describe('async actions', () => {
   const mockBigNumber = '9223372036854775807';
   const queryEditor = {
@@ -715,7 +738,13 @@ describe('async actions', () => {
         it('updates the tab state in the backend', () => {
           expect.assertions(2);
 
-          const store = mockStore(initialState);
+          const store = mockStore({
+            ...initialState,
+            sqlLab: {
+              ...initialState.sqlLab,
+              queryEditors: [queryEditor],
+            },
+          });
           const request = actions.queryEditorSetAndSaveSql(queryEditor, sql);
           return request(store.dispatch, store.getState).then(() => {
             expect(store.getActions()).toEqual(expectedActions);
@@ -731,7 +760,13 @@ describe('async actions', () => {
               feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
             );
 
-          const store = mockStore(initialState);
+          const store = mockStore({
+            ...initialState,
+            sqlLab: {
+              ...initialState.sqlLab,
+              queryEditors: [queryEditor],
+            },
+          });
           const request = actions.queryEditorSetAndSaveSql(queryEditor, sql);
           request(store.dispatch, store.getState);
 
