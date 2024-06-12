@@ -134,11 +134,11 @@ export const convertQueryToClient = fieldConverter(queryClientMapping);
 
 export function getUpToDateQuery(rootState, queryEditor, key) {
   const {
-    sqlLab: { unsavedQueryEditor },
+    sqlLab: { unsavedQueryEditor, queryEditors },
   } = rootState;
   const id = key ?? queryEditor.id;
   return {
-    ...queryEditor,
+    ...queryEditors.find(qe => qe.id === id),
     ...(id === unsavedQueryEditor.id && unsavedQueryEditor),
   };
 }

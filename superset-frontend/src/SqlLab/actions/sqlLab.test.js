@@ -36,6 +36,28 @@ import {
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
 
+describe('getUpToDateQuery', () => {
+  test('should return the up to date query editor state', () => {
+    const outOfUpdatedQueryEditor = {
+      ...defaultQueryEditor,
+      schema: null,
+      sql: 'SELECT ...',
+    };
+    const queryEditor = {
+      ...defaultQueryEditor,
+      sql: 'SELECT * FROM table',
+    };
+    const state = {
+      sqlLab: {
+        queryEditors: [queryEditor],
+      },
+    };
+    expect(actions.getUpToDateQuery(state, outOfUpdatedQueryEditor)).toEqual(
+      queryEditor,
+    );
+  });
+});
+
 describe('async actions', () => {
   const mockBigNumber = '9223372036854775807';
   const queryEditor = {
