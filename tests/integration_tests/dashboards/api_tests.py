@@ -160,6 +160,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 crontab="* * * * *",
                 dashboard=dashboard,
             )
+            db.session.add(report_schedule)
             db.session.commit()
 
             yield dashboard
