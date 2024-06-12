@@ -27,7 +27,6 @@
 
 import React, { createRef, useMemo } from 'react';
 import { formatNumber, styled, t } from '@superset-ui/core';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import cdf from '@stdlib/stats-base-dists-normal-cdf';
 import { AvenABChartProps, AvenABChartStylesProps } from './types';
 import TableView from '../../../src/components/TableView/TableView';
@@ -42,35 +41,116 @@ import FormattedNumber from '../../../src/visualizations/TimeTable/FormattedNumb
 // imported from @superset-ui/core. For variables available, please visit
 // https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/style/index.ts
 
+function standardNormalInverseCDF(p: number): number {
+  const a0 = 2.50662823884;
+  const a1 = -18.61500062529;
+  const a2 = 41.39119773534;
+  const a3 = -25.44106049637;
+  const b1 = -8.4735109309;
+  const b2 = 23.08336743743;
+  const b3 = -21.06224101826;
+  const b4 = 3.13082909833;
+  const c0 = 0.3374754822726147;
+  const c1 = 0.9761690190917186;
+  const c2 = 0.1607979714918209;
+  const c3 = 0.0276438810333863;
+  const c4 = 0.0038405729373609;
+  const c5 = 0.0003951896511919;
+  const c6 = 0.0000321767881768;
+  const c7 = 0.0000002888167364;
+  const c8 = 0.0000003960315187;
+
+  let x;
+  if (p < 0 || p > 1) {
+    throw new Error('Probability must be between 0 and 1');
+  } else if (p === 0) {
+    return -Infinity;
+  } else if (p === 1) {
+    return Infinity;
+  }
+  const r = p - 0.5;
+  if (Math.abs(r) < 0.42) {
+    x = r * r;
+    return (
+      (r * (((a3 * x + a2) * x + a1) * x + a0)) /
+      ((((b4 * x + b3) * x + b2) * x + b1) * x + 1)
+    );
+  }
+  x = p < 0.5 ? Math.sqrt(-2 * Math.log(p)) : Math.sqrt(-2 * Math.log(1 - p));
+  return (
+    x -
+    ((((c8 * x + c7) * x + c6) * x + c5) * x) /
+      ((((c4 * x + c3) * x + c2) * x + c1) * x + c0)
+  );
+}
+
+function getConfidenceInterval(
+  conversionRate: number,
+  trials: number,
+  confidenceLevel: number,
+) {
+  // Calculate standard errors
+  const se: number = Math.sqrt(
+    (conversionRate * (1 - conversionRate)) / trials,
+  );
+  // Compute confidence intervals
+  const zScoreConfidence = standardNormalInverseCDF(
+    1 - (1 - confidenceLevel) / 2,
+  );
+  const errorMargin: number = zScoreConfidence * se;
+  const lowerBound: number = Math.max(0, conversionRate - errorMargin);
+  const upperBound: number = Math.min(1, conversionRate + errorMargin);
+  return {
+    lowerBound,
+    upperBound,
+  };
+}
+
 function calculatePValueTwoSidedCDF(
-  successes_control: number,
-  trials_control: number,
-  successes_variation: number,
-  trials_variation: number,
+  successesControl: number,
+  samplesControl: number,
+  successesTest: number,
+  samplesTest: number,
+  confidenceIntervalLevel: number,
 ) {
   // Calculate conversion rates
-  const conversion_rate_control = successes_control / trials_control;
-  const conversion_rate_variation = successes_variation / trials_variation;
+  const conversionRateControl = successesControl / samplesControl;
+  const conversionRateTest = successesTest / samplesTest;
 
   // Calculate pooled conversion rate
-  const pooled_conversion_rate =
-    (successes_control + successes_variation) /
-    (trials_control + trials_variation);
+  const pooledConversionRate =
+    (successesControl + successesTest) / (samplesControl + samplesTest);
 
   // Calculate pooled standard error
-  const pooled_standard_error = Math.sqrt(
-    pooled_conversion_rate *
-      (1 - pooled_conversion_rate) *
-      (1 / trials_control + 1 / trials_variation),
+  const pooledStandardError = Math.sqrt(
+    pooledConversionRate *
+      (1 - pooledConversionRate) *
+      (1 / samplesControl + 1 / samplesTest),
   );
 
   // Calculate Z-score
-  const z_score =
-    (conversion_rate_variation - conversion_rate_control) /
-    pooled_standard_error;
+  const zScore =
+    (conversionRateTest - conversionRateControl) / pooledStandardError;
 
   // Calculate P-value (two-sided)
-  return 2 * (1 - cdf(Math.abs(z_score), 0, 1));
+  const pValue = 2 * (1 - cdf(Math.abs(zScore), 0, 1));
+
+  const controlBounds = getConfidenceInterval(
+    conversionRateControl,
+    samplesControl,
+    confidenceIntervalLevel,
+  );
+  const testBounds = getConfidenceInterval(
+    conversionRateTest,
+    samplesTest,
+    confidenceIntervalLevel,
+  );
+
+  return {
+    pValue,
+    controlBounds,
+    testBounds,
+  };
 }
 
 const sortNumberWithMixedTypes = (
@@ -149,6 +229,68 @@ function getRatioAndResultElementForToolTip(num: number, den: number) {
   );
 }
 
+function getIntervalBar(
+  start: number,
+  colorStart: number,
+  tickMark: number,
+  colorEnd: number,
+  end: number,
+) {
+  const den = end - start;
+  return (
+    <div style={{ display: 'inline-flex', fontFamily: 'monospace' }}>
+      <span>{formatNumber('.1f', 100 * colorStart)} &ensp;</span>
+      <div
+        style={{
+          width: '100px',
+          display: 'flex',
+          height: '15px',
+        }}
+      >
+        <div
+          style={{
+            width: `${(100 * (colorStart - start)) / den}%`,
+            display: 'flex',
+            backgroundColor: 'transparent',
+          }}
+        />
+        <div
+          style={{
+            width: `${(100 * (tickMark - colorStart)) / den - 1}%`,
+            display: 'flex',
+            // eslint-disable-next-line theme-colors/no-literal-colors
+            backgroundColor: 'gray',
+          }}
+        />
+        <div
+          style={{
+            width: `2%`,
+            display: 'flex',
+            // eslint-disable-next-line theme-colors/no-literal-colors
+            backgroundColor: 'black',
+          }}
+        />
+        <div
+          style={{
+            width: `${(100 * (colorEnd - tickMark)) / den - 2}%`,
+            display: 'flex',
+            // eslint-disable-next-line theme-colors/no-literal-colors
+            backgroundColor: 'gray',
+          }}
+        />
+        <div
+          style={{
+            width: `${(100 * (end - colorEnd)) / den}%`,
+            display: 'flex',
+            backgroundColor: 'transparent',
+          }}
+        />
+      </div>
+      <span>&ensp;{formatNumber('.1f', 100 * colorEnd)}</span>
+    </div>
+  );
+}
+
 function getDelta(
   control: {}[],
   test: {}[],
@@ -205,6 +347,7 @@ function buildRow(
   timestamps: { time: Date }[],
   numeratorMetric: string,
   denominatorMetric: string,
+  confidenceIntervalLevel: number,
 ) {
   const lastControl = metricsControl.at(-1);
   const lastTest = metricsTest.at(-1);
@@ -229,6 +372,23 @@ function buildRow(
       : lastDelta < 0
         ? 'red'
         : 'green';
+
+  const confidence = calculatePValueTwoSidedCDF(
+    lastControl[numeratorMetric],
+    lastControl[denominatorMetric],
+    lastTest[numeratorMetric],
+    lastTest[denominatorMetric],
+    confidenceIntervalLevel,
+  );
+
+  const confidenceMin = Math.min(
+    confidence.testBounds.lowerBound,
+    confidence.controlBounds.lowerBound,
+  );
+  const confidenceMax = Math.max(
+    confidence.testBounds.upperBound,
+    confidence.controlBounds.upperBound,
+  );
 
   return {
     metric: (
@@ -275,20 +435,39 @@ function buildRow(
       deltaArray.tooltip,
       timestamps,
     ),
-    p_value: formatNumber(
-      '.2f',
-      1 -
-        calculatePValueTwoSidedCDF(
-          lastControl[numeratorMetric],
-          lastControl[denominatorMetric],
-          lastTest[numeratorMetric],
-          lastTest[denominatorMetric],
-        ),
+    p_value: (
+      <div style={{ textAlign: 'center' }}>
+        {formatNumber('.2f', 1 - confidence.pValue)}
+      </div>
+    ),
+    confidence_interval_bar: (
+      <div style={{ fontFamily: 'monospace', fontSize: 'small' }}>
+        <div style={{ paddingBottom: '2px' }}>
+          C:{' '}
+          {getIntervalBar(
+            confidenceMin,
+            confidence.controlBounds.lowerBound,
+            div0(lastControl[numeratorMetric], lastControl[denominatorMetric]),
+            confidence.controlBounds.upperBound,
+            confidenceMax,
+          )}
+        </div>
+        <div>
+          T:{' '}
+          {getIntervalBar(
+            confidenceMin,
+            confidence.testBounds.lowerBound,
+            div0(lastTest[numeratorMetric], lastTest[denominatorMetric]),
+            confidence.testBounds.upperBound,
+            confidenceMax,
+          )}
+        </div>
+      </div>
     ),
   };
 }
 
-function getColumns(showPValue: boolean) {
+function getColumns(showPValue: boolean, showConfidenceIntervals: boolean) {
   const base = [
     { accessor: 'metric', Header: t('Metric') },
     {
@@ -322,6 +501,12 @@ function getColumns(showPValue: boolean) {
       Header: t('1 - P-Value'),
     });
   }
+  if (showConfidenceIntervals) {
+    base.push({
+      accessor: 'confidence_interval_bar',
+      Header: t('Confidence Intervals'),
+    });
+  }
   return base;
 }
 
@@ -337,10 +522,15 @@ export default function AvenABChart(props: AvenABChartProps) {
     metricsNames,
     stepOverStep,
     showPValue,
+    showConfidenceIntervals,
+    confidenceIntervalLevel,
   } = props;
   const rootElem = createRef<HTMLDivElement>();
 
-  const columns = useMemo(() => getColumns(showPValue), [showPValue]);
+  const columns = useMemo(
+    () => getColumns(showPValue, showConfidenceIntervals),
+    [showPValue, showConfidenceIntervals],
+  );
 
   const timestamps = allTimestamps.map(v => ({
     time: new Date(v),
@@ -360,6 +550,7 @@ export default function AvenABChart(props: AvenABChartProps) {
         timestamps,
         numeratorMetric,
         denominatorMetric,
+        confidenceIntervalLevel,
       ),
     );
   }
@@ -373,6 +564,7 @@ export default function AvenABChart(props: AvenABChartProps) {
         timestamps,
         metricsNames.at(-1) || 'make linter happy',
         metricsNames[0],
+        confidenceIntervalLevel,
       ),
     );
   }

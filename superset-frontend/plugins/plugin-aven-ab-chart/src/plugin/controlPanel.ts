@@ -148,6 +148,8 @@ const config: ControlPanelConfig = {
               ),
             },
           },
+        ],
+        [
           {
             name: 'show_p_value',
             config: {
@@ -156,6 +158,30 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: false,
               description: t('If selected add a p-value column'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_confidence_intervals',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Confidence Intervals'),
+              renderTrigger: true,
+              default: true,
+              description: t('If selected shows confidence intervals'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'confidence_interval_level',
+            config: {
+              type: 'TextControl',
+              label: t('Confidence level for intervals'),
+              renderTrigger: true,
+              default: 0.9,
+              description: t('Value for confidence interval'),
             },
           },
         ],

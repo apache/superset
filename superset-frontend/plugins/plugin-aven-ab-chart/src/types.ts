@@ -26,6 +26,8 @@ export interface AvenABChartStylesProps {
 interface AvenABChartCustomizeProps {
   stepOverStep: boolean;
   showPValue: boolean;
+  showConfidenceIntervals: boolean;
+  confidenceIntervalLevel: number;
 }
 
 export type AvenABChartProps = AvenABChartStylesProps &
