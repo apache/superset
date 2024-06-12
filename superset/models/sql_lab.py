@@ -418,8 +418,8 @@ class SavedQuery(
         overlaps="objects,tag,tags",
         primaryjoin="and_(SavedQuery.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'query')",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id)",
-        passive_deletes=True,
+        secondaryjoin="TaggedObject.tag_id == Tag.id",
+        viewonly=True,
     )
 
     export_parent = "database"
