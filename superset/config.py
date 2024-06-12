@@ -537,6 +537,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
     "CHART_PLUGINS_EXPERIMENTAL": False,
+    # Regardless of database configuration settings, force SQLLAB to run async using Celery
+    "SQLLAB_FORCE_RUN_ASYNC": False,
 }
 
 # ------------------------------
