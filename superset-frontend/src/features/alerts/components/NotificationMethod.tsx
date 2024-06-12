@@ -369,7 +369,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   };
 
-
   // Set recipients
   if (!!recipients && recipientValue !== recipients) {
     setRecipientValue(recipients);
@@ -412,7 +411,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           </div>
         </StyledInputContainer>
       </div>
-<<<<<<< HEAD
       {method !== undefined ? (
         <>
           <div className="inline-container">
@@ -469,8 +467,9 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           </div>
           <div className="input-container">
           <textarea
-=======
-      {method !== undefined ? (            
+
+      {method !== undefined ? (
+>>>>>>> 4f823a140 (pytest and pre-commit validated)
         method === 'Email' ? (
           <StyledInputContainer>
             <div className="control-label">
@@ -497,14 +496,15 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             <div className="control-label">{TRANSLATIONS.EMAIL_BCC_NAME}</div>
             <div className="input-container">
             <textarea
->>>>>>> 261b54a89 (handle build failure and prettify)
-              name="BCC"
-              data-test="bcc"
-              value={bccValue}
-              onChange={onBccChange}
-            />
+                name="BCC"
+                data-test="bcc"
+                value={bccValue}
+                onChange={onBccChange}
+              />
             </div>
-            <div className="control-label">{TRANSLATIONS.EMAIL_SUBJECT_NAME}</div>
+            <div className="control-label">
+              {TRANSLATIONS.EMAIL_SUBJECT_NAME}
+            </div>
             <div className={`input-container ${error ? 'error' : ''}`}>
               <input
                 type="text"
@@ -515,13 +515,19 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               />
             </div>
             {error && (
-            <div style={{color: theme.colors.error.base, fontSize: theme.gridUnit * 3,}}>
-                      {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
-            </div>)}
+              <div
+                style={{
+                  color: theme.colors.error.base,
+                  fontSize: theme.gridUnit * 3,
+                }}
+              >
+                {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
+              </div>
+            )}
             <div className="helper">
               {t('Recipients are separated by "," or ";"')}
             </div>
-          </StyledInputContainer>       
+          </StyledInputContainer>
         ) : (
           <StyledInputContainer>
             <div className="control-label">

@@ -107,6 +107,7 @@ def get_target_from_report_schedule(report_schedule: ReportSchedule) -> list[str
         for recipient in report_schedule.recipients
     ]
 
+
 def get_cctarget_from_report_schedule(report_schedule: ReportSchedule) -> list[str]:
     return [
         json.loads(recipient.recipient_config_json).get("ccTarget", "")
@@ -119,7 +120,7 @@ def get_bcctarget_from_report_schedule(report_schedule: ReportSchedule) -> list[
         json.loads(recipient.recipient_config_json).get("bccTarget", "")
         for recipient in report_schedule.recipients
     ]
-    
+
 
 def get_error_logs_query(report_schedule: ReportSchedule) -> BaseQuery:
     return (
@@ -189,7 +190,10 @@ def create_report_email_chart():
 def create_report_email_chart_with_cc_and_bcc():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        email_target="target@email.com", ccTarget="cc@email.com", bccTarget="bcc@email.com", chart=chart
+        email_target="target@email.com",
+        ccTarget="cc@email.com",
+        bccTarget="bcc@email.com",
+        chart=chart,
     )
     yield report_schedule
 
@@ -640,8 +644,10 @@ def create_invalid_sql_alert_email_chart(request, app_context: AppContext):
 
         cleanup_report_schedule(report_schedule)
 
+
 @pytest.mark.usefixtures(
-    "load_birth_names_dashboard_with_slices", "create_report_email_chart_with_cc_and_bcc"
+    "load_birth_names_dashboard_with_slices",
+    "create_report_email_chart_with_cc_and_bcc",
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -685,9 +691,7 @@ def test_email_chart_report_schedule_with_cc_bcc(
 
         # Assert the cc recipients if provided
         if notification_cctargets:
-            expected_cc_targets = [
-                target.strip() for target in notification_cctargets
-            ]
+            expected_cc_targets = [target.strip() for target in notification_cctargets]
             assert (
                 email_mock.call_args[1].get("cc", "").split(",") == expected_cc_targets
             )
@@ -697,7 +701,8 @@ def test_email_chart_report_schedule_with_cc_bcc(
                 target.strip() for target in notification_bcctargets
             ]
             assert (
-                email_mock.call_args[1].get("bcc", "").split(",") == expected_bcc_targets
+                email_mock.call_args[1].get("bcc", "").split(",")
+                == expected_bcc_targets
             )
 
         # Assert the email inline screenshot

@@ -46,7 +46,7 @@ export interface ReportObject {
   name: string;
   owners: number[];
   recipients: [
-    { 
+    {
       recipient_config_json: {
         target: string;
         ccTarget: string;

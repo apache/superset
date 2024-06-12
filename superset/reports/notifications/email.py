@@ -192,11 +192,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
-    
+
     def _get_cc(self) -> str:
         # To accomadate backward compatability
         return json.loads(self._recipient.recipient_config_json).get("ccTarget", "")
-    
+
     def _get_bcc(self) -> str:
         # To accomadate backward compatability
         return json.loads(self._recipient.recipient_config_json).get("bccTarget", "")

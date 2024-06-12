@@ -188,7 +188,7 @@ function ReportModal({
       owners: [userId],
       recipients: [
         {
-          recipient_config_json: { 
+          recipient_config_json: {
             target: userEmail,
             ccTarget: ccEmail,
             bccTarget: bccEmail,

@@ -1028,12 +1028,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return emails
         .split(/[,;]/)
         .every(email => EMAIL_REGEX.test(email.trim()));
-     };
+    };
 
     for (const setting of notificationSettings) {
       if (!!setting.method && setting.method === 'Email') {
         if (setting.recipients?.length && !validateEmails(setting.recipients))
-            return false;
+          return false;
         if (setting.cc && !validateEmails(setting.cc)) return false;
         if (setting.bcc && !validateEmails(setting.bcc)) return false;
       }
@@ -1098,7 +1098,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const validateNotificationSection = () => {
     const errors = [];
     const hasErrors = !checkNotificationSettings();
-    
+
     if (hasErrors) {
       errors.push(TRANSLATIONS.RECIPIENTS_ERROR_TEXT);
     } else {
