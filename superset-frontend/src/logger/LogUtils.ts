@@ -84,6 +84,7 @@ export const LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV = 'sqllab_download_csv';
 export const LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD =
   'sqllab_copy_result_to_clipboard';
 export const LOG_ACTIONS_SQLLAB_CREATE_CHART = 'sqllab_create_chart';
+export const LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE = 'sqllab_load_tab_state';
 
 // Log event types --------------------------------------------------------------
 export const LOG_EVENT_TYPE_TIMING = new Set([
@@ -91,6 +92,7 @@ export const LOG_EVENT_TYPE_TIMING = new Set([
   LOG_ACTIONS_RENDER_CHART,
   LOG_ACTIONS_HIDE_BROWSER_TAB,
   LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY,
+  LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE,
 ]);
 export const LOG_EVENT_TYPE_USER = new Set([
   LOG_ACTIONS_MOUNT_DASHBOARD,

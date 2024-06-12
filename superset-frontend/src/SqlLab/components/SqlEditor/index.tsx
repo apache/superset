@@ -104,8 +104,10 @@ import {
   LOG_ACTIONS_SQLLAB_CREATE_VIEW_AS,
   LOG_ACTIONS_SQLLAB_ESTIMATE_QUERY_COST,
   LOG_ACTIONS_SQLLAB_FORMAT_SQL,
+  LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE,
   LOG_ACTIONS_SQLLAB_RUN_QUERY,
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
+  Logger,
 } from 'src/logger/LogUtils';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
@@ -402,6 +404,7 @@ const SqlEditor: React.FC<Props> = ({
               descr: KEY_MAP[KeyboardShortcut.CtrlT],
             }),
         func: () => {
+          Logger.markTimeOrigin();
           dispatch(addNewQueryEditor());
         },
       },
@@ -524,6 +527,13 @@ const SqlEditor: React.FC<Props> = ({
     !queryEditor.loaded;
 
   const loadQueryEditor = useEffectEvent(() => {
+    const duration = Logger.getTimestamp();
+    logAction(LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE, {
+      duration,
+      queryEditorId: queryEditor.id,
+      inLocalStorage: Boolean(queryEditor.inLocalStorage),
+      hasLoaded: !shouldLoadQueryEditor,
+    });
     if (shouldLoadQueryEditor) {
       dispatch(switchQueryEditor(queryEditor, displayLimit));
     }
