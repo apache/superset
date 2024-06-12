@@ -711,7 +711,7 @@ function ExploreViewContainer(props) {
 
 ExploreViewContainer.propTypes = propTypes;
 
-const retainQueryModeRquirements = hiddenFormData => {
+const retainQueryModeRequirements = hiddenFormData => {
   Object.keys(hiddenFormData ?? {}).filter(
     key => !QUERY_MODE_REQUISITES.has(key),
   );
@@ -729,9 +729,9 @@ function mapStateToProps(state) {
     saveModal,
   } = state;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
-  const hasQueryMode = !!controls.query_mode.value;
+  const hasQueryMode = !!controls.query_mode?.value;
   const fieldsToOmit = hasQueryMode
-    ? retainQueryModeRquirements(hiddenFormData)
+    ? retainQueryModeRequirements(hiddenFormData)
     : hiddenFormData;
   const form_data = omit(getFormDataFromControls(controls), fieldsToOmit);
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
