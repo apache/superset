@@ -272,7 +272,7 @@ function getIntervalBar(
         />
         <div
           style={{
-            width: `${(100 * (colorEnd - tickMark)) / den - 2}%`,
+            width: `${(100 * (colorEnd - tickMark)) / den - 1}%`,
             display: 'flex',
             // eslint-disable-next-line theme-colors/no-literal-colors
             backgroundColor: 'gray',
