@@ -22,6 +22,7 @@ import imp
 from contextlib import contextmanager
 from typing import Any, Union, Optional
 from unittest.mock import Mock, patch, MagicMock
+import logging
 
 import pandas as pd
 from flask import Response, g
@@ -67,6 +68,7 @@ def get_resp(
     else:
         resp = client.get(url, follow_redirects=follow_redirects)
     if raise_on_error and resp.status_code > 400:
+        logging.error(resp)
         raise Exception(f"http request failed with code {resp.status_code}")
     return resp.data.decode("utf-8")
 

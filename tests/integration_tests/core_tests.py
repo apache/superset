@@ -91,7 +91,11 @@ class TestCore(SupersetTestCase):
         self.original_unsafe_db_setting = app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]
 
     def tearDown(self):
-        db.session.query(Query).delete()
+        try:
+            db.session.query(Query).delete()
+        except Exception:
+            logging.error("Failed at deleting ")
+
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = self.original_unsafe_db_setting
         super().tearDown()
 
@@ -453,9 +457,12 @@ class TestCore(SupersetTestCase):
         data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data["data"][0]["test"], "2")
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_fetch_datasource_metadata(self):
         self.login(ADMIN_USERNAME)
-        url = "/superset/fetch_datasource_metadata?" "datasourceKey=1__table"
+        qry = db.session.query(SqlaTable).filter_by(table_name="birth_names")
+        tbl = qry.one()
+        url = f"/superset/fetch_datasource_metadata?datasourceKey={tbl.id}__table"
         resp = self.get_json_resp(url)
         keys = [
             "name",
