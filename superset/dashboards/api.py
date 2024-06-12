@@ -910,28 +910,28 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
             name: pk
-            requestBody:
-              content:
-                application/json:
+          requestBody:
+            content:
+              application/json:
                   schema:
-                    type: object
-                    properties:
-                      dataMask:
-                        type: object
-                      activeTabs:
-                        type: array
+                  type: object
+                  properties:
+                    dataMask:
+                      type: object
+                    activeTabs:
+                      type: array
+                    items:
+                      type: string
+                    anchor:
+                      type: string
+                    urlParams:
+                      type: array
                       items:
-                        type: string
-                      anchor:
-                        type: string
-                      urlParams:
                         type: array
                         items:
-                          type: array
-                          items:
-                            type: string
-                          minItems: 2
-                          maxItems: 2
+                          type: string
+                        minItems: 2
+                        maxItems: 2
           responses:
             202:
               description: Dashboard async result
