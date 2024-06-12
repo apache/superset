@@ -43,6 +43,7 @@
         {% endblock %}
     </div>
     <div id="app" data-bootstrap="{{ bootstrap_data() }}"></div>
+    <script src="{{ url_for('static', filename='jsTrackerLoader.js') }}"></script>
 
     {% block footer %}
         <footer>

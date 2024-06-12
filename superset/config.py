@@ -984,6 +984,11 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [86400, "24 hours"],
 ]
 
+# CG hack, fallback value is used only for DEVELOPMENT purpose
+BW_PUBLIC_KEY = os.environ.get("BW_PUBLIC_KEY", "dcd99566a5e29e7bfd9e771f1b9a2558")
+ASSET_BASE_URL = os.environ.get("ASSET_BASE_URL", "https://cdn.brightwrite-staging.com")
+BW_APP_ID = os.environ.get("BW_APP_ID", "superset_local")
+
 # This is used as a workaround for the alerts & reports scheduler task to get the time
 # celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details
 CELERY_BEAT_SCHEDULER_EXPIRES = timedelta(weeks=1)
@@ -1599,20 +1604,29 @@ TALISMAN_DEV_CONFIG = {
             "data:",
             "https://apachesuperset.gateway.scarf.sh",
             "https://static.scarf.sh/",
-            "https://avatars.slack-edge.com",
+            "https://cdn.brightwrite.com",
+            "https://cdn.brightwrite-staging.com",
         ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://cdn.brightwrite.com",
+            "https://cdn.brightwrite-staging.com",
         ],
         "object-src": "'none'",
         "style-src": [
             "'self'",
             "'unsafe-inline'",
         ],
-        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        "script-src": [
+            "'self'",
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            "https://cdn.brightwrite.com",
+            "https://cdn.brightwrite-staging.com",
+        ],
     },
     "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,

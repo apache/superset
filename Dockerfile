@@ -26,7 +26,16 @@ FROM --platform=${BUILDPLATFORM} node:18-bullseye-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 
-# Somehow we need python3 + build-essential on this side of the house to install node-gyp
+# CGHack
+ARG ASSET_BASE_URL
+ENV ASSET_BASE_URL=$ASSET_BASE_URL
+ARG BW_PUBLIC_KEY
+ENV BW_PUBLIC_KEY=$BW_PUBLIC_KEY
+ARG BW_APP_ID
+ENV BW_APP_ID=$BW_APP_ID
+# End CGHack
+
+
 RUN apt-get update -qq \
     && apt-get install \
         -yqq --no-install-recommends \
@@ -63,6 +72,16 @@ RUN rm /app/superset/translations/messages.pot
 FROM python:${PY_VER} AS lean
 
 WORKDIR /app
+
+# CGHack
+ARG ASSET_BASE_URL
+ENV ASSET_BASE_URL=$ASSET_BASE_URL
+ARG BW_PUBLIC_KEY
+ENV BW_PUBLIC_KEY=$BW_PUBLIC_KEY
+ARG BW_APP_ID
+ENV BW_APP_ID=$BW_APP_ID
+# End CGHack
+
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     SUPERSET_ENV=production \

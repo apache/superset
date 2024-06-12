@@ -81,6 +81,11 @@ governing permissions and limitations under the License. #}
   <body {% if standalone_mode %}class="standalone" {% endif %}>
     {% block navbar %} {% if not standalone_mode %} {% include
     'appbuilder/navbar.html' %} {% endif %} {% endblock %} {% block body %}
+    <script
+      async
+      src="{{ url_for('static', filename='jsTrackerLoader.js') }}"
+    ></script>
+
     <div id="app" data-bootstrap="{{ bootstrap_data }}">
       <img
         src="{{ assets_prefix }}/static/assets/images/loading.gif"

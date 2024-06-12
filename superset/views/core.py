@@ -23,7 +23,8 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-from flask import abort, flash, g, redirect, request, Response
+import simplejson as json
+from flask import abort, current_app, flash, g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -817,6 +818,8 @@ class Superset(BaseSupersetView):
                 {
                     "user": bootstrap_user_data(g.user, include_perms=True),
                     "common": common_bootstrap_payload(),
+                    "publicKey": current_app.config["BW_PUBLIC_KEY"],
+                    "appId": current_app.config["BW_APP_ID"],
                 },
                 default=json.pessimistic_json_iso_dttm_ser,
             ),
@@ -906,6 +909,8 @@ class Superset(BaseSupersetView):
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
+            "publicKey": current_app.config["BW_PUBLIC_KEY"],
+            "appId": current_app.config["BW_APP_ID"],
         }
 
         return self.render_template(

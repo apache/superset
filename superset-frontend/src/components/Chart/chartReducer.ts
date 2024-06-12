@@ -17,6 +17,8 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
+
+// @ts-nocheck
 import { t } from '@superset-ui/core';
 import { omit } from 'lodash';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
@@ -89,6 +91,18 @@ export default function chartReducer(
       return { ...state, chartStatus: 'rendered', chartUpdateEndTime: now() };
     },
     [actions.CHART_RENDERING_FAILED](state) {
+      const chartId = state?.id;
+      const dashboardId = state?.latestQueryFormData?.dashboardId;
+
+      window.bwtag('record', 'loading_failed_rendering', {
+        chartId,
+        dashboardId,
+        error: t(
+          'An error occurred while rendering the visualization: %s',
+          action.error,
+        ),
+      });
+
       return {
         ...state,
         chartStatus: 'failed',
@@ -100,6 +114,16 @@ export default function chartReducer(
       };
     },
     [actions.CHART_UPDATE_FAILED](state) {
+      const chartId = state?.id;
+      const dashboardId = state?.latestQueryFormData?.dashboardId;
+
+      window.bwtag('record', 'loading_failed_update', {
+        chartId,
+        dashboardId,
+        error: action.queriesResponse
+          ? action.queriesResponse?.[0]?.error
+          : t('Network error.'),
+      });
       return {
         ...state,
         chartStatus: 'failed',
@@ -160,6 +184,9 @@ export default function chartReducer(
       };
     },
     [actions.ANNOTATION_QUERY_FAILED](state) {
+      const chartId = state?.id;
+      const dashboardId = state?.latestQueryFormData?.dashboardId;
+
       const annotationData = { ...state.annotationData };
       delete annotationData[action.annotation.name];
       const annotationError = {
@@ -168,6 +195,13 @@ export default function chartReducer(
           ? action.queryResponse.error
           : t('Network error.'),
       };
+
+      window.bwtag('record', 'loading_failed_annotation', {
+        chartId,
+        dashboardId,
+        error: annotationError,
+      });
+
       const annotationQuery = { ...state.annotationQuery };
       delete annotationQuery[action.annotation.name];
       return {

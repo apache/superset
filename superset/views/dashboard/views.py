@@ -29,6 +29,7 @@ from flask_appbuilder.security.decorators import (
 )
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_login import AnonymousUserMixin, login_user
+from flask import current_app
 
 from superset import db, event_logger, is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -154,6 +155,8 @@ class Dashboard(BaseSupersetView):
         bootstrap_data = {
             "common": common_bootstrap_payload(),
             "embedded": {"dashboard_id": dashboard_id_or_slug},
+            "publicKey": current_app.config["BW_PUBLIC_KEY"],
+            "appId": current_app.config["BW_APP_ID"],
         }
 
         return self.render_template(

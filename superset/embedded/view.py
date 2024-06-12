@@ -20,6 +20,7 @@ from flask import abort, current_app, request
 from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, login_user
 from flask_wtf.csrf import same_origin
+from flask import current_app
 
 from superset import event_logger, is_feature_enabled
 from superset.daos.dashboard import EmbeddedDashboardDAO
@@ -84,6 +85,8 @@ class EmbeddedView(BaseSupersetView):
             "embedded": {
                 "dashboard_id": embedded.dashboard_id,
             },
+            "publicKey": current_app.config["BW_PUBLIC_KEY"],
+            "appId": current_app.config["BW_APP_ID"],
         }
 
         return self.render_template(

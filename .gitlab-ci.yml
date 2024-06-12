@@ -13,6 +13,7 @@ variables:
 stages:
   - build
   - push_to_gar
+  - sync_cdn
 
 .login_to_gcp: &login_to_gcp
   - gcloud iam workload-identity-pools create-cred-config
@@ -38,10 +39,22 @@ build_superset:
   before_script:
     - *docker_login
   script:
-    - docker build -t ${NEXUS_IMAGE_NAME} .
+    - >
+      docker build --build-arg="ASSET_BASE_URL=${ASSET_BASE_URL}" 
+      --build-arg="BW_PUBLIC_KEY=${BW_PUBLIC_KEY}" 
+      --build-arg="BW_APP_ID=${BW_APP_ID}" -t ${NEXUS_IMAGE_NAME} .
     - docker push ${NEXUS_IMAGE_NAME}
   rules:
-    - if: $CI_COMMIT_BRANCH # Branch push, not tag push
+    - if: $CI_COMMIT_TAG == "staging"
+      variables:
+        ASSET_BASE_URL: "https://cdn.brightwrite-staging.com"
+        BW_PUBLIC_KEY: "a02b211d9dbb71b299b980b16593ed22"
+        BW_APP_ID: "superset_staging"
+    - if: $CI_COMMIT_TAG == "production"
+      variables:
+        ASSET_BASE_URL: "https://cdn.brightwrite.com"
+        BW_PUBLIC_KEY: "031b7df8719e4205cd29232e0b34b69c"
+        BW_APP_ID: "superset_production"
 
 push_to_gar:
   stage: push_to_gar
@@ -60,23 +73,57 @@ push_to_gar:
     - docker tag "${NEXUS_IMAGE_NAME}" "${GOOGLE_PREFIX}/${IMAGE_NAME}:latest"
     - docker tag "${NEXUS_IMAGE_NAME}" "${GOOGLE_PREFIX}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     - docker push --all-tags "${GOOGLE_PREFIX}/${IMAGE_NAME}"
+    - docker push ${NEXUS_IMAGE_NAME}
   rules:
-    - if: $CI_COMMIT_BRANCH # Branch push, not tag push
+    - if: $CI_COMMIT_TAG == "staging"
+      variables:
+        ASSET_BASE_URL: "https://cdn.brightwrite-staging.com"
+    - if: $CI_COMMIT_TAG == "production"
+      variables:
+        ASSET_BASE_URL: "https://cdn.brightwrite.com"
 
-tag_release:
-  stage: push_to_gar
+sync_CDN_stag:
+  stage: sync_cdn
   image: google/cloud-sdk:alpine
+  variables:
+    CDN_BUCKET: "cdn.brightwrite-staging.com"
   services:
     - name: docker:23-dind
       alias: docker
-      command: [ "--tls=false" ]
+      command: ["--tls=false"]
   before_script:
     - *docker_login
     - *login_to_gcp
     - gcloud auth configure-docker -q europe-docker.pkg.dev
   script:
-    - docker build -t ${NEXUS_IMAGE_NAME} .
-    - docker tag "${NEXUS_IMAGE_NAME}" "${GOOGLE_PREFIX}/${IMAGE_NAME}:$CI_COMMIT_TAG"
-    - docker push --all-tags "${GOOGLE_PREFIX}/${IMAGE_NAME}"
+    - mkdir static
+    - docker pull "${GOOGLE_PREFIX}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    - docker run -d -v ./static/:/superset/static "${GOOGLE_PREFIX}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    - docker cp $(docker ps -lq):/app/superset/static/ ./
+    - gcloud storage rm -r gs://${CDN_BUCKET}/superset
+    - gsutil rsync -cr ./static "gs://${CDN_BUCKET}/superset/static"
   rules:
-    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_TAG == "staging"
+
+sync_CDN_prod:
+  stage: sync_cdn
+  image: google/cloud-sdk:alpine
+  variables:
+    CDN_BUCKET: "bw-event-public"
+  services:
+    - name: docker:23-dind
+      alias: docker
+      command: ["--tls=false"]
+  before_script:
+    - *docker_login
+    - *login_to_gcp
+    - gcloud auth configure-docker -q europe-docker.pkg.dev
+  script:
+    - mkdir static
+    - docker pull "${GOOGLE_PREFIX}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    - docker run -d -v ./static/:/superset/static "${GOOGLE_PREFIX}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    - docker cp $(docker ps -lq):/app/superset/static/ ./
+    - gcloud storage rm -r gs://${CDN_BUCKET}/superset
+    - gsutil rsync -cr ./static "gs://${CDN_BUCKET}/superset/static"
+  rules:
+    - if: $CI_COMMIT_TAG == "production"

@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 /* eslint-disable react/sort-prop-types */
 /* eslint-disable react/jsx-handler-names */
 /**
