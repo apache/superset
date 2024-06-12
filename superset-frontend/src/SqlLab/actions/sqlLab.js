@@ -138,6 +138,7 @@ export function getUpToDateQuery(rootState, queryEditor, key) {
   } = rootState;
   const id = key ?? queryEditor.id;
   return {
+    id,
     ...queryEditors.find(qe => qe.id === id),
     ...(id === unsavedQueryEditor.id && unsavedQueryEditor),
   };

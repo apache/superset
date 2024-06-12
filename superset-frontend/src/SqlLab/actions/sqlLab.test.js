@@ -50,6 +50,7 @@ describe('getUpToDateQuery', () => {
     const state = {
       sqlLab: {
         queryEditors: [queryEditor],
+        unsavedQueryEditor: {},
       },
     };
     expect(actions.getUpToDateQuery(state, outOfUpdatedQueryEditor)).toEqual(
@@ -737,7 +738,13 @@ describe('async actions', () => {
         it('updates the tab state in the backend', () => {
           expect.assertions(2);
 
-          const store = mockStore(initialState);
+          const store = mockStore({
+            ...initialState,
+            sqlLab: {
+              ...initialState.sqlLab,
+              queryEditors: [queryEditor],
+            },
+          });
           const request = actions.queryEditorSetAndSaveSql(queryEditor, sql);
           return request(store.dispatch, store.getState).then(() => {
             expect(store.getActions()).toEqual(expectedActions);
@@ -753,7 +760,13 @@ describe('async actions', () => {
               feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
             );
 
-          const store = mockStore(initialState);
+          const store = mockStore({
+            ...initialState,
+            sqlLab: {
+              ...initialState.sqlLab,
+              queryEditors: [queryEditor],
+            },
+          });
           const request = actions.queryEditorSetAndSaveSql(queryEditor, sql);
           request(store.dispatch, store.getState);
 
