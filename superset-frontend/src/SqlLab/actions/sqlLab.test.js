@@ -528,6 +528,21 @@ describe('async actions', () => {
     });
   });
 
+  it('set current query editor', () => {
+    expect.assertions(1);
+
+    const store = mockStore(initialState);
+    const expectedActions = [
+      {
+        type: actions.SET_ACTIVE_QUERY_EDITOR,
+        queryEditor: defaultQueryEditor,
+      },
+    ];
+    store.dispatch(actions.setActiveQueryEditor(defaultQueryEditor));
+
+    expect(store.getActions()).toEqual(expectedActions);
+  });
+
   describe('backend sync', () => {
     const updateTabStateEndpoint = 'glob:*/tabstateview/*';
     fetchMock.put(updateTabStateEndpoint, {});
@@ -590,26 +605,6 @@ describe('async actions', () => {
 
         expect(store.getActions()).toEqual(expectedActions);
         expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
-      });
-    });
-
-    describe('setActiveQueryEditor', () => {
-      it('updates the tab state in the backend', () => {
-        expect.assertions(2);
-
-        const store = mockStore({});
-        const expectedActions = [
-          {
-            type: actions.SET_ACTIVE_QUERY_EDITOR,
-            queryEditor,
-          },
-        ];
-        return store
-          .dispatch(actions.setActiveQueryEditor(queryEditor))
-          .then(() => {
-            expect(store.getActions()).toEqual(expectedActions);
-            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
-          });
       });
     });
 

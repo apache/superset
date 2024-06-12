@@ -181,10 +181,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       if (!queryEditor) {
         return;
       }
-      this.props.actions.switchQueryEditor(
-        queryEditor,
-        this.props.displayLimit,
-      );
+      this.props.actions.setActiveQueryEditor(queryEditor);
     }
   }
 
