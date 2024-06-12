@@ -334,7 +334,7 @@ class Chart extends Component {
   exportPivotCSV() {
     this.exportTable('csv', false, true);
   }
-  
+
   exportXLSX() {
     this.exportTable('xlsx', false);
   }
