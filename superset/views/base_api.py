@@ -124,7 +124,7 @@ def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
                 self.incr_stats("warning", func_name)
             else:
                 self.incr_stats("error", func_name)
-            raise ex
+            raise
 
         self.send_stats_metrics(response, func_name, duration)
         return response

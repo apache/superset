@@ -342,7 +342,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             connect_args["auth"] = trino_auth(**auth_params)
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
-            raise ex
+            raise
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:

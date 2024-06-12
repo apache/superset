@@ -74,9 +74,9 @@ class ImportModelsCommand(BaseCommand):
         try:
             self._import(self._configs, self.overwrite)
             db.session.commit()
-        except CommandException as ex:
+        except CommandException:
             db.session.rollback()
-            raise ex
+            raise
         except Exception as ex:
             db.session.rollback()
             raise self.import_error() from ex
