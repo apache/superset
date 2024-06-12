@@ -168,6 +168,7 @@ Join our growing community!
 
 ### Government
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
+- [RIS3 Strategy of CZ, MIT CR](https://www.ris3.cz/) [@RIS3CZ]
 
 ### Travel
 - [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
