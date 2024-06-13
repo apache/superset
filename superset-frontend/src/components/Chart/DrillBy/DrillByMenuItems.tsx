@@ -327,7 +327,7 @@ export const DrillByMenuItems = ({
               `}
             >
               <AutoSizer>
-                {({ height, width }) => (
+                {({ height, width }: { height: number; width: number }) => (
                   <List
                     width={width}
                     height={height}

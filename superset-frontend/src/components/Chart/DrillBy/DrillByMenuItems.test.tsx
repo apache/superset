@@ -68,6 +68,7 @@ const renderMenu = ({
       <DrillByMenuItems
         formData={formData ?? defaultFormData}
         drillByConfig={drillByConfig}
+        open
         {...rest}
       />
     </Menu>,
