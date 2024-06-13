@@ -35,7 +35,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, waitFor, act } from 'spec/helpers/testing-library';
+import { render, act } from 'spec/helpers/testing-library';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { logging } from '@superset-ui/core';
@@ -88,7 +88,9 @@ test('sync the unsaved editor tab state when there are new changes since the las
       sqlLab: unsavedSqlLabState,
     },
   });
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(1);
   fetchMock.restore();
 });
@@ -142,9 +144,13 @@ test('sync the active editor id when there are updates in tab history', async ()
       },
     },
   });
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
   expect(fetchMock.calls(updateActiveEditorTabState)).toHaveLength(1);
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
   expect(fetchMock.calls(updateActiveEditorTabState)).toHaveLength(1);
 });
 
@@ -167,7 +173,9 @@ test('skip syncing the unsaved editor tab state when the updates are already syn
       },
     },
   });
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
   expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
   fetchMock.restore();
 });
@@ -191,7 +199,9 @@ test('renders an error toast when the sync failed', async () => {
       },
     },
   );
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
 
   expect(logging.warn).toHaveBeenCalledTimes(1);
   expect(logging.warn).toHaveBeenCalledWith(
