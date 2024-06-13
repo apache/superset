@@ -53,7 +53,7 @@ InteractiveTabs.argTypes = {
     defaultValue: 'line',
     control: {
       type: 'inline-radio',
-      options: ['line', 'card', 'editable-card'],
     },
+    options: ['line', 'card', 'editable-card'],
   },
 };
