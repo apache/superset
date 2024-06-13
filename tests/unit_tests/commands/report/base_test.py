@@ -52,11 +52,11 @@ TEST_SCHEDULES_SINGLE_MINUTES = {
 TEST_SCHEDULES = TEST_SCHEDULES_EVERY_MINUTE.union(TEST_SCHEDULES_SINGLE_MINUTES)
 
 
-def dynamic_alert_minimum_interval() -> int:
+def dynamic_alert_minimum_interval(**kwargs) -> int:
     return int(timedelta(minutes=10).total_seconds())
 
 
-def dynamic_report_minimum_interval() -> int:
+def dynamic_report_minimum_interval(**kwargs) -> int:
     return int(timedelta(minutes=5).total_seconds())
 
 
