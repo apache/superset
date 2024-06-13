@@ -132,6 +132,7 @@ gevent = ["gevent>=23.9.1"]
 gsheets = ["shillelagh[gsheetsapi]>=1.2.18, <2"]
 hana = ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"]
 hive = [
+    "boto3",
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
@@ -154,7 +155,7 @@ pinot = ["pinotdb>=0.3.3, <0.4"]
 playwright = ["playwright>=1.37.0, <2"]
 postgres = ["psycopg2-binary==2.9.6"]
 presto = ["pyhive[presto]>=0.6.5"]
-trino = ["trino>=0.328.0"]
+trino = ["boto3", "trino>=0.328.0"]
 prophet = ["prophet>=1.1.5, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 rockset = ["rockset-sqlalchemy>=0.0.1, <1"]
