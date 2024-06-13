@@ -272,14 +272,26 @@ def test_validate_report_frequency_using_callable() -> None:
     Test the ``validate_report_frequency`` method when the config
     values are set to a function.
     """
+    # Should fail with a 9 minutes interval, and work with 10
     with pytest.raises(ReportScheduleFrequencyNotAllowed):
         BaseReportScheduleCommand().validate_report_frequency(
             "1,10 * * * *",
             ReportScheduleType.ALERT,
         )
 
+    BaseReportScheduleCommand().validate_report_frequency(
+        "1,11 * * * *",
+        ReportScheduleType.ALERT,
+    )
+
+    # Should fail with a 4 minutes interval, and work with 5
     with pytest.raises(ReportScheduleFrequencyNotAllowed):
         BaseReportScheduleCommand().validate_report_frequency(
             "1,5 * * * *",
             ReportScheduleType.REPORT,
         )
+
+    BaseReportScheduleCommand().validate_report_frequency(
+        "1,6 * * * *",
+        ReportScheduleType.REPORT,
+    )
