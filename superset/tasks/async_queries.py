@@ -51,13 +51,18 @@ def set_form_data(form_data: dict[str, Any]) -> None:
 
 
 def _create_query_context_from_form(form_data: dict[str, Any]) -> QueryContext:
+    """
+    Create the query context from the form data.
+
+    :param form_data: The task form data
+    :returns: The query context
+    :raises ValidationError: If the request is incorrect
+    """
+
     try:
         return ChartDataQueryContextSchema().load(form_data)
     except KeyError as ex:
         raise ValidationError("Request is incorrect") from ex
-    except ValidationError:  # pylint: disable=try-except-raise
-        # Make sure to bubble this up
-        raise
 
 
 def _load_user_from_job_metadata(job_metadata: dict[str, Any]) -> User:
