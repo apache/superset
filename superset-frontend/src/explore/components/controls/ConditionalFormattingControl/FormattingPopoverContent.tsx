@@ -44,6 +44,7 @@ const colorSchemeOptions = (theme: SupersetTheme) => [
   { value: theme.colors.success.dark1, label: t('success dark') },
   { value: theme.colors.alert.dark1, label: t('alert dark') },
   { value: theme.colors.error.dark1, label: t('error dark') },
+  { value: theme.colors.custom.base,label:t('Dark Green')},
 ];
 
 const operatorOptions = [

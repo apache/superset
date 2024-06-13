@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
@@ -66,17 +67,28 @@ from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.tasks.utils import get_executor
-from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
-from superset.utils.decorators import logs_context
 from superset.utils.pdf import build_pdf_from_screenshots
+from superset.utils.decorators import logs_context
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
 
-
+def formatDTimenow():
+    current_utc_time = datetime.utcnow()
+    year = current_utc_time.year
+    month = current_utc_time.month
+    day = current_utc_time.day
+    hour = current_utc_time.hour
+    minute = current_utc_time.minute
+    second = current_utc_time.second
+    return f"{year},{month},{day},{hour},{minute},{second}"
+formatted_string = formatDTimenow()
+year, month, day, hour, minute, second = map(int, formatted_string.split(','))
+dt = datetime(year, month, day, hour, minute, second) 
+print(dt,"**************************dt*********************************") 
 class BaseReportState:
     current_states: list[ReportState] = []
     initial: bool = False
@@ -89,8 +101,8 @@ class BaseReportState:
         execution_id: UUID,
     ) -> None:
         self._report_schedule = report_schedule
-        self._scheduled_dttm = scheduled_dttm
-        self._start_dttm = datetime.utcnow()
+        self._scheduled_dttm = dt
+        self._start_dttm = dt
         self._execution_id = execution_id
 
     def update_report_schedule_and_log(
@@ -119,7 +131,7 @@ class BaseReportState:
             self._report_schedule.last_value_row_json = None
 
         self._report_schedule.last_state = state
-        self._report_schedule.last_eval_dttm = datetime.utcnow()
+        self._report_schedule.last_eval_dttm = dt
         db.session.commit()
 
     def create_log(self, error_message: Optional[str] = None) -> None:
@@ -129,7 +141,7 @@ class BaseReportState:
         log = ReportExecutionLog(
             scheduled_dttm=self._scheduled_dttm,
             start_dttm=self._start_dttm,
-            end_dttm=datetime.utcnow(),
+            end_dttm=dt,
             value=self._report_schedule.last_value,
             value_row_json=self._report_schedule.last_value_row_json,
             state=self._report_schedule.last_state,
@@ -505,7 +517,7 @@ class BaseReportState:
         return (
             last_success is not None
             and self._report_schedule.grace_period
-            and datetime.utcnow()
+            and dt
             - timedelta(seconds=self._report_schedule.grace_period)
             < last_success.end_dttm
         )
@@ -522,7 +534,7 @@ class BaseReportState:
         return (
             last_success is not None
             and self._report_schedule.grace_period
-            and datetime.utcnow()
+            and dt
             - timedelta(seconds=self._report_schedule.grace_period)
             < last_success.end_dttm
         )
@@ -539,7 +551,7 @@ class BaseReportState:
         return (
             self._report_schedule.working_timeout is not None
             and self._report_schedule.last_eval_dttm is not None
-            and datetime.utcnow()
+            and dt
             - timedelta(seconds=self._report_schedule.working_timeout)
             > last_working.end_dttm
         )
@@ -688,7 +700,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
     ):
         self._execution_id = task_uuid
         self._report_schedule = report_schedule
-        self._scheduled_dttm = scheduled_dttm
+        self._scheduled_dttm = dt
 
     def run(self) -> None:
         for state_cls in self.states_cls:
@@ -715,7 +727,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     def __init__(self, task_id: str, model_id: int, scheduled_dttm: datetime):
         self._model_id = model_id
         self._model: Optional[ReportSchedule] = None
-        self._scheduled_dttm = scheduled_dttm
+        self._scheduled_dttm = dt
         self._execution_id = UUID(task_id)
 
     def run(self) -> None:

@@ -1469,10 +1469,10 @@ DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 
 # Enable/disable CSP warning
-CONTENT_SECURITY_POLICY_WARNING = True
+CONTENT_SECURITY_POLICY_WARNING = False
 
 # Do you want Talisman enabled?
-TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+TALISMAN_ENABLED = False
 
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
