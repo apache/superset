@@ -144,17 +144,11 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
       (input: { chartType: string; overrideTransformProps?: TransformProps }) =>
         input.chartType,
       input => input.overrideTransformProps,
-      allProps => allProps,
+      input => input.id,
+      input => input?.chartProps?.formData?.dashboardId,
     ],
-    (chartType, overrideTransformProps, allProps) => {
+    (chartType, overrideTransformProps, chartId, dashboardId) => {
       if (chartType) {
-        const chartId = allProps.id;
-        const dashboardId = allProps?.chartProps?.formData?.dashboardId;
-        const appContainer = document.getElementById('app');
-        const { user } = JSON.parse(
-          appContainer?.getAttribute('data-bootstrap') || '{}',
-        );
-
         const Renderer = createLoadableRenderer({
           loader: {
             Chart: () => getChartComponentRegistry().getAsPromise(chartType),
@@ -167,7 +161,6 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
               chartType,
               dashboardId,
               chartId,
-              user_email: user.email,
             };
             this.timer(details);
             window.bwtag('record', 'loading_started', { ...details });
