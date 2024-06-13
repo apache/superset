@@ -31,9 +31,6 @@ function buildCumulativeArray(
   );
 
   const metrics: object[] = [];
-  if (!timestampMap.get(allTimestamps[0])) {
-    metrics.push(Object.fromEntries(metricsNames.map(name => [name, 0])));
-  }
 
   allTimestamps.forEach(timestamp => {
     const newEntry = {};
@@ -80,7 +77,12 @@ export default function transformProps(chartProps: ChartProps) {
    * be seen until restarting the development server.
    */
   const { width, height, formData, queriesData } = chartProps;
-  const { stepOverStep, showPValue, showConfidenceIntervals, confidenceIntervalLevel } = formData;
+  const {
+    stepOverStep,
+    showPValue,
+    showConfidenceIntervals,
+    confidenceIntervalLevel,
+  } = formData;
   const data = queriesData[0].data as TimeseriesDataRecord[];
 
   // we need to have one entry for every timestamp available, note that control or test can be empty for a specific ts
