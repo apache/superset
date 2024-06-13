@@ -44,10 +44,6 @@ const StyledHeader = styled.div`
     display: flex;
     align-items: center;
     padding: ${({ theme }) => theme.gridUnit * 3.5}px 0;
-    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
-    float: right;
-    position: absolute;
-    right: 0;
     ul.ant-menu-root {
       padding: 0px;
     }
@@ -69,6 +65,7 @@ const StyledHeader = styled.div`
   }
   .menu {
     background-color: ${({ theme }) => theme.colors.grayscale.light5};
+    margin: 0 ${({ theme }) => theme.gridUnit * 4}px 0 0;
     .ant-menu-horizontal {
       line-height: inherit;
       .ant-menu-item {
@@ -86,6 +83,12 @@ const StyledHeader = styled.div`
 
   .ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-item {
     margin: 0 ${({ theme }) => theme.gridUnit + 1}px;
+  }
+
+  .ant-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .menu .ant-menu-item {
