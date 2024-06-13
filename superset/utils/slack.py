@@ -16,8 +16,15 @@
 # under the License.
 
 
+import logging
+
 from flask import current_app
 from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
+
+from superset.exceptions import SupersetException
+
+logger = logging.getLogger(__name__)
 
 
 class SlackClientError(Exception):
@@ -29,6 +36,53 @@ def get_slack_client() -> WebClient:
     if callable(token):
         token = token()
     return WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
+
+
+def get_channels_with_search(search_string: str = "", limit: int = 200) -> list[str]:
+    """
+    The slack api is paginated but does not include search, so we need to fetch
+    all channels and filter them ourselves
+    This will search by slack name or id
+    """
+
+    try:
+        client = get_slack_client()
+        channels = []
+        cursor = None
+
+        while True:
+            response = client.conversations_list(limit=limit, cursor=cursor)
+            channels.extend(response.data["channels"])
+            cursor = response.data.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
+
+        # The search string can be multiple channels separated by commas
+        if search_string:
+            search_array = search_string.split(",")
+
+            channels = [
+                channel
+                for channel in channels
+                if any(
+                    search.lower() in channel["name"].lower()
+                    or search.lower() in channel["id"].lower()
+                    for search in search_array
+                )
+            ]
+        return channels
+    except (SlackClientError, SlackApiError) as ex:
+        raise SupersetException(f"Failed to list channels: {ex}") from ex
+
+
+def should_use_v2_api() -> bool:
+    try:
+        client = get_slack_client()
+        client.conversations_list()
+        logger.info("Slack API v2 is available")
+        return True
+    except SlackApiError:
+        return False
 
 
 def get_user_avatar(email: str, client: WebClient = None) -> str:

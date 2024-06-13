@@ -30,7 +30,7 @@ jest.mock('@superset-ui/core', () => ({
 
 jest.mock('src/features/databases/state.ts', () => ({
   useCommonConf: () => ({
-    ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack'],
+    ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack', 'SlackV2'],
   }),
 }));
 

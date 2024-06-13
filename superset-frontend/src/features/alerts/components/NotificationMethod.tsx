@@ -16,10 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FunctionComponent, useState, ChangeEvent } from 'react';
+import {
+  FunctionComponent,
+  useState,
+  ChangeEvent,
+  useEffect,
+  useMemo,
+} from 'react';
 
-import { styled, t, useTheme } from '@superset-ui/core';
-import { Select } from 'src/components';
+import {
+  FeatureFlag,
+  SupersetClient,
+  isFeatureEnabled,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
+import rison from 'rison';
+import { AsyncSelect, Select } from 'src/components';
 import Icons from 'src/components/Icons';
 import { NotificationMethodOption, NotificationSetting } from '../types';
 import { StyledInputContainer } from '../AlertReportModal';
@@ -87,26 +101,99 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
+  const [slackRecipients, setSlackRecipients] = useState<
+    { label: string; value: string }[]
+  >([]);
   const [error, setError] = useState(false);
   const theme = useTheme();
 
-  if (!setting) {
-    return null;
-  }
+  const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
 
-  const onMethodChange = (method: NotificationMethodOption) => {
+  const mapChannelsToOptions = (result: { name: any; id: any }[]) =>
+    result.map((result: { name: any; id: any }) => ({
+      label: result.name,
+      value: result.id,
+    }));
+
+  const loadChannels = async (
+    search_string: string | undefined = '',
+  ): Promise<{
+    data: { label: any; value: any }[];
+    totalCount: number;
+  }> => {
+    const query = rison.encode({ search_string });
+    const endpoint = `/api/v1/report/slack_channels/?q=${query}`;
+    const noResults = { data: [], totalCount: 0 };
+    return SupersetClient.get({ endpoint })
+      .then(({ json }) => {
+        const { result, count } = json;
+
+        const options: { label: any; value: any }[] =
+          mapChannelsToOptions(result);
+
+        return {
+          data: options,
+          totalCount: (count ?? options.length) as number,
+        };
+      })
+      .catch(() => {
+        // Fallback to slack v1 if slack v2 is not compatible
+        setUseSlackV1(true);
+        return noResults;
+      });
+  };
+  const onMethodChange = (selected: {
+    label: string;
+    value: NotificationMethodOption;
+  }) => {
     // Since we're swapping the method, reset the recipients
     setRecipientValue('');
-    if (onUpdate) {
+    if (onUpdate && setting) {
       const updatedSetting = {
         ...setting,
-        method,
+        method: selected.value,
         recipients: '',
       };
 
       onUpdate(index, updatedSetting);
     }
   };
+
+  useEffect(() => {
+    // fetch slack channel names from
+    // ids on first load
+    if (method && ['Slack', 'SlackV2'].includes(method)) {
+      loadChannels(recipients).then(response => {
+        setSlackRecipients(response.data || []);
+        // if fetch succeeds, set the method to SlackV2
+        onMethodChange({ label: 'Slack', value: 'SlackV2' });
+      });
+    }
+  }, []);
+
+  const formattedOptions = useMemo(
+    () =>
+      (options || [])
+        .filter(
+          method =>
+            (isFeatureEnabled(FeatureFlag.AlertReportSlackV2) &&
+              !useSlackV1 &&
+              method === 'SlackV2') ||
+            ((!isFeatureEnabled(FeatureFlag.AlertReportSlackV2) ||
+              useSlackV1) &&
+              method === 'Slack') ||
+            method === 'Email',
+        )
+        .map(method => ({
+          label: method === 'SlackV2' ? 'Slack' : method,
+          value: method,
+        })),
+    [options],
+  );
+
+  if (!setting) {
+    return null;
+  }
 
   const onRecipientsChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const { target } = event;
@@ -117,6 +204,21 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       const updatedSetting = {
         ...setting,
         recipients: target.value,
+      };
+
+      onUpdate(index, updatedSetting);
+    }
+  };
+
+  const onSlackRecipientsChange = (
+    recipients: { label: string; value: string }[],
+  ) => {
+    setSlackRecipients(recipients);
+
+    if (onUpdate) {
+      const updatedSetting = {
+        ...setting,
+        recipients: recipients?.map(obj => obj.value).join(','),
       };
 
       onUpdate(index, updatedSetting);
@@ -153,15 +255,12 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             <Select
               ariaLabel={t('Delivery method')}
               data-test="select-delivery-method"
+              labelInValue
               onChange={onMethodChange}
               placeholder={t('Select Delivery Method')}
-              options={(options || []).map(
-                (method: NotificationMethodOption) => ({
-                  label: method,
-                  value: method,
-                }),
-              )}
-              value={method}
+              options={formattedOptions}
+              showSearch
+              value={formattedOptions.find(option => option.value === method)}
             />
             {index !== 0 && !!onRemove ? (
               <span
@@ -211,19 +310,37 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           <div className="inline-container">
             <StyledInputContainer>
               <div className="control-label">
-                {t('%s recipients', method)}
+                {t('%s recipients', method === 'SlackV2' ? 'Slack' : method)}
                 <span className="required">*</span>
               </div>
-              <div className="input-container">
-                <textarea
-                  name="recipients"
-                  data-test="recipients"
-                  value={recipientValue}
-                  onChange={onRecipientsChange}
-                />
-              </div>
-              <div className="helper">
-                {t('Recipients are separated by "," or ";"')}
+              <div>
+                {['Email', 'Slack'].includes(method) ? (
+                  <>
+                    <div className="input-container">
+                      <textarea
+                        name="recipients"
+                        data-test="recipients"
+                        value={recipientValue}
+                        onChange={onRecipientsChange}
+                      />
+                    </div>
+                    <div className="helper">
+                      {t('Recipients are separated by "," or ";"')}
+                    </div>
+                  </>
+                ) : (
+                  // for SlackV2
+                  <AsyncSelect
+                    ariaLabel={t('Select channels')}
+                    mode="multiple"
+                    name="recipients"
+                    value={slackRecipients}
+                    options={loadChannels}
+                    onChange={onSlackRecipientsChange}
+                    allowClear
+                    data-test="recipients"
+                  />
+                )}
               </div>
             </StyledInputContainer>
           </div>
