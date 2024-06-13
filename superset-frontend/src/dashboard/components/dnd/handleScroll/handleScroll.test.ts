@@ -33,7 +33,7 @@ test('calling: "NOT_SCROLL_TOP" ,"SCROLL_TOP", "NOT_SCROLL_TOP"', () => {
 
   handleScroll('NOT_SCROLL_TOP');
 
-  expect(clearInterval).not.toBeCalled();
+  expect(clearInterval).not.toHaveBeenCalled();
 
   handleScroll('SCROLL_TOP');
 
