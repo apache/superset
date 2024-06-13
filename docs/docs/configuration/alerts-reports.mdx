@@ -207,7 +207,7 @@ REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=5).total_seconds())
 Alternatively, you can assign a function to `ALERT_MINIMUM_INTERVAL` and/or `REPORT_MINIMUM_INTERVAL`. This is useful to dynamically retrieve a value as needed:
 
 ``` python
-def alert_dynamic_minimal_interval() -> int:
+def alert_dynamic_minimal_interval(**kwargs) -> int:
     """
     Define logic here to retrieve the value dynamically
     """
