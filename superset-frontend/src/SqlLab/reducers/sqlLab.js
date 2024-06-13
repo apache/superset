@@ -742,6 +742,9 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.SET_EDITOR_TAB_LAST_UPDATE]() {
       return { ...state, editorTabLastUpdatedAt: action.timestamp };
     },
+    [actions.SET_LAST_UPDATED_ACTIVE_TAB]() {
+      return { ...state, lastUpdatedActiveTab: action.queryEditorId };
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();

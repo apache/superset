@@ -109,6 +109,7 @@ export type SqlLabRootState = {
     unsavedQueryEditor: UnsavedQueryEditor;
     queryCostEstimates?: Record<string, QueryCostEstimate>;
     editorTabLastUpdatedAt: number;
+    lastUpdatedActiveTab: string;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];

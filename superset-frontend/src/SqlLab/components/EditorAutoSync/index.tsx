@@ -26,11 +26,15 @@ import {
   QueryEditor,
   UnsavedQueryEditor,
 } from 'src/SqlLab/types';
-import { useUpdateSqlEditorTabMutation } from 'src/hooks/apiResources/sqlEditorTabs';
+import {
+  useUpdateCurrentSqlEditorTabMutation,
+  useUpdateSqlEditorTabMutation,
+} from 'src/hooks/apiResources/sqlEditorTabs';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import {
   syncQueryEditor,
   setEditorTabLastUpdate,
+  setLastUpdatedActiveTab,
 } from 'src/SqlLab/actions/sqlLab';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 
@@ -71,7 +75,15 @@ const EditorAutoSync: FC = () => {
   );
   const dispatch = useDispatch();
   const lastSavedTimestampRef = useRef<number>(editorTabLastUpdatedAt);
+
+  const currentQueryEditorId = useSelector<SqlLabRootState, string>(
+    ({ sqlLab }) => sqlLab.tabHistory.slice(-1)[0] || '',
+  );
+  const lastUpdatedActiveTab = useSelector<SqlLabRootState, string>(
+    ({ sqlLab }) => sqlLab.lastUpdatedActiveTab,
+  );
   const [updateSqlEditor, { error }] = useUpdateSqlEditorTabMutation();
+  const [updateCurrentSqlEditor] = useUpdateCurrentSqlEditorTabMutation();
 
   const debouncedUnsavedQueryEditor = useDebounceValue(
     unsavedQueryEditor,
@@ -94,21 +106,36 @@ const EditorAutoSync: FC = () => {
     ).find(({ inLocalStorage }) => Boolean(inLocalStorage)),
   );
 
+  const syncCurrentQueryEditor = useEffectEvent(() => {
+    if (
+      currentQueryEditorId &&
+      currentQueryEditorId !== lastUpdatedActiveTab &&
+      !queryEditors.find(({ id }) => id === currentQueryEditorId)
+        ?.inLocalStorage
+    ) {
+      updateCurrentSqlEditor(currentQueryEditorId).then(() => {
+        dispatch(setLastUpdatedActiveTab(currentQueryEditorId));
+      });
+    }
+  });
+
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let saveTimer: NodeJS.Timeout;
     function saveUnsavedQueryEditor() {
       const firstUnsavedQueryEditor = getUnsavedNewQueryEditor();
 
       if (firstUnsavedQueryEditor) {
         dispatch(syncQueryEditor(firstUnsavedQueryEditor));
       }
-      timer = setTimeout(saveUnsavedQueryEditor, INTERVAL);
+      saveTimer = setTimeout(saveUnsavedQueryEditor, INTERVAL);
     }
-    timer = setTimeout(saveUnsavedQueryEditor, INTERVAL);
+    const syncTimer = setInterval(syncCurrentQueryEditor, INTERVAL);
+    saveTimer = setTimeout(saveUnsavedQueryEditor, INTERVAL);
     return () => {
-      clearTimeout(timer);
+      clearTimeout(saveTimer);
+      clearInterval(syncTimer);
     };
-  }, [getUnsavedNewQueryEditor, dispatch]);
+  }, [getUnsavedNewQueryEditor, syncCurrentQueryEditor, dispatch]);
 
   useEffect(() => {
     const unsaved = getUnsavedItems(debouncedUnsavedQueryEditor);

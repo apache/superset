@@ -51,8 +51,9 @@ class CreateSSHTunnelCommand(BaseCommand):
             return ssh_tunnel
         except DAOCreateFailedError as ex:
             raise SSHTunnelCreateFailedError() from ex
-        except SSHTunnelInvalidError as ex:
-            raise ex
+        except SSHTunnelInvalidError:  # pylint: disable=try-except-raise
+            # Make sure to bubble this up
+            raise
 
     def validate(self) -> None:
         # TODO(hughhh): check to make sure the server port is not localhost

@@ -411,7 +411,8 @@ describe('SqlEditor', () => {
       await waitFor(() =>
         expect(fetchMock.calls('glob:*/tabstateview/*').length).toBe(1),
       );
-      expect(fetchMock.calls(switchTabApi).length).toBe(1);
+      // it will be called from EditorAutoSync
+      expect(fetchMock.calls(switchTabApi).length).toBe(0);
     });
   });
 });

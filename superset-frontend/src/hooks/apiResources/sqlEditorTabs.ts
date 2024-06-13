@@ -66,7 +66,17 @@ const sqlEditorApi = api.injectEndpoints({
         ),
       }),
     }),
+    updateCurrentSqlEditorTab: builder.mutation<string, string>({
+      query: queryEditorId => ({
+        method: 'POST',
+        endpoint: encodeURI(`/tabstateview/${queryEditorId}/activate`),
+        transformResponse: () => queryEditorId,
+      }),
+    }),
   }),
 });
 
-export const { useUpdateSqlEditorTabMutation } = sqlEditorApi;
+export const {
+  useUpdateSqlEditorTabMutation,
+  useUpdateCurrentSqlEditorTabMutation,
+} = sqlEditorApi;

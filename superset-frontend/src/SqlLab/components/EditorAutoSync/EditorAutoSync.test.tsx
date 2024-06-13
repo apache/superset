@@ -67,6 +67,16 @@ afterAll(() => {
   jest.useRealTimers();
 });
 
+const updateActiveEditorTabState = `glob:*/tabstateview/*/activate`;
+
+beforeEach(() => {
+  fetchMock.post(updateActiveEditorTabState, {});
+});
+
+afterEach(() => {
+  fetchMock.reset();
+});
+
 test('sync the unsaved editor tab state when there are new changes since the last update', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
@@ -109,6 +119,33 @@ test('sync the unsaved NEW editor state when there are new in local storage', as
   });
   expect(fetchMock.calls(createEditorTabState)).toHaveLength(1);
   fetchMock.restore();
+});
+
+test('sync the active editor id when there are updates in tab history', async () => {
+  expect(fetchMock.calls(updateActiveEditorTabState)).toHaveLength(0);
+  render(<EditorAutoSync />, {
+    useRedux: true,
+    initialState: {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        lastUpdatedActiveTab: 'old-tab-id',
+        queryEditors: [
+          ...initialState.sqlLab.queryEditors,
+          {
+            id: 'rnd-new-id12',
+            name: 'new tab name',
+            inLocalStorage: false,
+          },
+        ],
+        tabHistory: ['old-tab-id', 'rnd-new-id12'],
+      },
+    },
+  });
+  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  expect(fetchMock.calls(updateActiveEditorTabState)).toHaveLength(1);
+  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  expect(fetchMock.calls(updateActiveEditorTabState)).toHaveLength(1);
 });
 
 test('skip syncing the unsaved editor tab state when the updates are already synced', async () => {

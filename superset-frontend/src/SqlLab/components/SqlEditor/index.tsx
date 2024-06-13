@@ -79,7 +79,7 @@ import {
   setActiveSouthPaneTab,
   updateSavedQuery,
   formatQuery,
-  switchQueryEditor,
+  fetchQueryEditor,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -506,7 +506,7 @@ const SqlEditor: FC<Props> = ({
 
   const loadQueryEditor = useEffectEvent(() => {
     if (shouldLoadQueryEditor) {
-      dispatch(switchQueryEditor(queryEditor, displayLimit));
+      dispatch(fetchQueryEditor(queryEditor, displayLimit));
     }
   });
 

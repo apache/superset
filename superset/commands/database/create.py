@@ -68,7 +68,7 @@ class CreateDatabaseCommand(BaseCommand):
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
             )
             # So we can show the original message
-            raise ex
+            raise
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
@@ -141,7 +141,7 @@ class CreateDatabaseCommand(BaseCommand):
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
             )
             # So we can show the original message
-            raise ex
+            raise
         except (
             DAOCreateFailedError,
             DatabaseInvalidError,
