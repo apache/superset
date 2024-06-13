@@ -1382,6 +1382,7 @@ ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
+# You can also assign a function to the config that returns the expected integer
 ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 
