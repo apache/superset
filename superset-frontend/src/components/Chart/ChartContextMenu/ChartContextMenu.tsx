@@ -18,6 +18,7 @@
  */
 import {
   forwardRef,
+  Key,
   ReactNode,
   RefObject,
   useCallback,
@@ -104,6 +105,7 @@ const ChartContextMenu = (
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
+  const [openKeys, setOpenKeys] = useState<Key[]>([]);
 
   const isDisplayed = (item: ContextMenuItem) =>
     displayedItems === ContextMenuItem.All ||
@@ -254,6 +256,8 @@ const ChartContextMenu = (
         formData={formData}
         contextMenuY={clientY}
         submenuIndex={submenuIndex}
+        open={openKeys.includes('drill-by-submenu')}
+        key="drill-by-submenu"
         {...(additionalConfig?.drillBy || {})}
       />,
     );
@@ -288,7 +292,13 @@ const ChartContextMenu = (
   return ReactDOM.createPortal(
     <Dropdown
       overlay={
-        <Menu className="chart-context-menu" data-test="chart-context-menu">
+        <Menu
+          className="chart-context-menu"
+          data-test="chart-context-menu"
+          onOpenChange={openKeys => {
+            setOpenKeys(openKeys);
+          }}
+        >
           {menuItems.length ? (
             menuItems
           ) : (
