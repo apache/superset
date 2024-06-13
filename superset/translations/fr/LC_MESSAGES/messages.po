@@ -325,7 +325,7 @@ msgstr "%s colonne(s)"
 #: superset-frontend/src/explore/components/DatasourcePanel/DatasourcePanelItem.tsx:230
 #, python-format
 msgid "%s ineligible item(s) are hidden"
-msgstr ""
+msgstr "%s article(s) non éligible(s) sont caché(s)."
 
 #: superset-frontend/src/features/tags/BulkTagModal.tsx:74
 #, python-format
