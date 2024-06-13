@@ -59,7 +59,9 @@ const unsavedSqlLabState = {
   editorTabLastUpdatedAt,
 };
 
-jest.useFakeTimers();
+beforeAll(() => {
+  jest.useFakeTimers();
+});
 
 afterAll(() => {
   jest.useRealTimers();

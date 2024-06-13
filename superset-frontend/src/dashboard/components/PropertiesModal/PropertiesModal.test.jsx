@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 
