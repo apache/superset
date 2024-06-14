@@ -158,7 +158,7 @@ export const DrillByMenuItems = ({
 
   useEffect(() => {
     async function loadOptions() {
-      const datasetId = +formData.datasource.split('__')[0];
+      const datasetId = Number(formData.datasource.split('__')[0]);
       try {
         setIsLoadingColumns(true);
         let response: JsonResponse;
