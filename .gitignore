@@ -113,3 +113,4 @@ docker/requirements-local.txt
 
 cache/
 docker/*local*
+.temp_cache
