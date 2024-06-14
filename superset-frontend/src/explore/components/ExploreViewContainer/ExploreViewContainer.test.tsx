@@ -22,6 +22,7 @@ import {
   getChartMetadataRegistry,
   ChartMetadata,
 } from '@superset-ui/core';
+import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
 import { MemoryRouter, Route } from 'react-router-dom';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -220,4 +221,76 @@ test('preserves unknown parameters', async () => {
     expect.stringMatching(unknownParam),
   );
   replaceState.mockRestore();
+});
+
+test('retains query mode requirements when query_mode is enabled', async () => {
+  const customState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      controls: {
+        ...reduxState.explore.controls,
+        query_mode: { value: 'raw' },
+        optional_key1: { value: 'value1' },
+        all_columns: { value: ['all_columns'] },
+        groupby: { value: ['groupby'] },
+      },
+      hiddenFormData: {
+        all_columns: ['all_columns'],
+        groupby: ['groupby'],
+        optional_key1: 'value1',
+      },
+    },
+  };
+
+  await waitFor(() => renderWithRouter({ initialState: customState }));
+
+  const formDataEndpointCalls = fetchMock.calls(/api\/v1\/explore\/form_data/);
+  expect(formDataEndpointCalls.length).toBeGreaterThan(0);
+  const lastCall = formDataEndpointCalls[formDataEndpointCalls.length - 1];
+
+  const body = JSON.parse(lastCall[1]?.body as string);
+  const formData = JSON.parse(body.form_data);
+
+  const queryModeFields = Object.keys(
+    customState.explore.hiddenFormData,
+  ).filter(key => QUERY_MODE_REQUISITES.has(key));
+
+  queryModeFields.forEach(key => {
+    expect(formData[key]).toBeDefined();
+  });
+  expect(formData.optional_key1).toBeUndefined();
+});
+
+test('does omit hiddenFormData when query_mode is not enabled', async () => {
+  const customState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      controls: {
+        ...reduxState.explore.controls,
+        optional_key1: { value: 'value1' },
+        all_columns: { value: ['all_columns'] },
+        groupby: { value: ['groupby'] },
+      },
+      hiddenFormData: {
+        all_columns: ['all_columns'],
+        groupby: ['groupby'],
+        optional_key1: 'value1',
+      },
+    },
+  };
+
+  await waitFor(() => renderWithRouter({ initialState: customState }));
+
+  const formDataEndpointCalls = fetchMock.calls(/api\/v1\/explore\/form_data/);
+  expect(formDataEndpointCalls.length).toBeGreaterThan(0);
+  const lastCall = formDataEndpointCalls[formDataEndpointCalls.length - 1];
+
+  const body = JSON.parse(lastCall[1]?.body as string);
+  const formData = JSON.parse(body.form_data);
+
+  Object.keys(customState.explore.hiddenFormData).forEach(key => {
+    expect(formData[key]).toBeUndefined();
+  });
 });
