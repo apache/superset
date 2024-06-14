@@ -33,8 +33,9 @@ WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = 'pk.eyJ1Ijoic3VwcmFhZG1pbiIsImEiOiJjbHhibDlpeTkwZ3lpMmxzM3RtYzE2bzRkIn0.kQnZj_sVLaRr6-ZcM_dBgw'
 APP_NAME = "My Reporting Application"
-APP_ICON = "/static/assets/images/favicon-16x16.png"
-
+APP_ICON = "/static/assets/images/scpl.png"
+# APP_ICON = "/static/assets/images/scplLogo.jpeg"
+MY_FEATURE_FLAG= True,
 # Setting it to '/' would take the user to '/superset/welcome/'
 LOGO_TARGET_PATH = '/'
 
@@ -42,7 +43,7 @@ LOGO_TARGET_PATH = '/'
 LOGO_TOOLTIP = "Supra Controls Pvt.Ltd"
 
 # Specify any text that should appear to the right of the logo
-LOGO_RIGHT_TEXT = "Supra Controls Pvt.Ltd"
+LOGO_RIGHT_TEXT = "SAMA Web Reports"
 FAVICONS=[{
     "href":"/static/assets/images/favicon-16x16.png",
     "sizes":"16*16",

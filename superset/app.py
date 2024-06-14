@@ -46,6 +46,5 @@ def create_app(superset_config_module: Optional[str] = None) -> Flask:
         logger.exception("Failed to create app")
         raise ex
 
-
 class SupersetApp(Flask):
     pass

@@ -107,7 +107,9 @@ const SavedQueryList = lazy(
 const SqlLab = lazy(
   () => import(/* webpackChunkName: "SqlLab" */ 'src/pages/SqlLab'),
 );
-
+const ReportViewer = lazy(
+  () => import(/* webpackChunkName: "ReportViewer" */ 'src/pages/ReportViewer'),
+);
 const AllEntities = lazy(
   () => import(/* webpackChunkName: "AllEntities" */ 'src/pages/AllEntities'),
 );
@@ -224,6 +226,10 @@ export const routes: Routes = [
   {
     path: '/sqllab/',
     Component: SqlLab,
+  },
+  {
+    path: '/reportViewer',
+    Component: ReportViewer,
   },
 ];
 
