@@ -44,7 +44,6 @@ import {
 } from '@superset-ui/core';
 import rison from 'rison';
 import { debounce } from 'lodash';
-import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
 import { AntdInput } from 'src/components';
 import Icons from 'src/components/Icons';
@@ -62,7 +61,7 @@ import { getSubmenuYOffset } from '../utils';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
 import { Dataset } from '../types';
 
-const MAX_SUBMENU_HEIGHT = 200;
+const SUBMENU_HEIGHT = 200;
 const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
 const SEARCH_INPUT_HEIGHT = 48;
 
@@ -227,7 +226,7 @@ export const DrillByMenuItems = ({
         contextMenuY,
         filteredColumns.length || 1,
         submenuIndex,
-        MAX_SUBMENU_HEIGHT,
+        SUBMENU_HEIGHT,
         showSearch ? SEARCH_INPUT_HEIGHT : 0,
       ),
     [contextMenuY, filteredColumns.length, submenuIndex, showSearch],
@@ -321,26 +320,16 @@ export const DrillByMenuItems = ({
               <Loading position="inline-centered" />
             </div>
           ) : filteredColumns.length ? (
-            <div
-              css={css`
-                height: ${MAX_SUBMENU_HEIGHT}px;
-              `}
+            <List
+              width="100%"
+              height={SUBMENU_HEIGHT}
+              itemSize={40}
+              itemCount={filteredColumns.length}
+              itemData={{ columns: filteredColumns, ...rest }}
+              overscanCount={20}
             >
-              <AutoSizer>
-                {({ height, width }: { height: number; width: number }) => (
-                  <List
-                    width={width}
-                    height={height}
-                    itemSize={40}
-                    itemCount={filteredColumns.length}
-                    itemData={{ columns: filteredColumns, ...rest }}
-                    overscanCount={20}
-                  >
-                    {Row}
-                  </List>
-                )}
-              </AutoSizer>
-            </div>
+              {Row}
+            </List>
           ) : (
             <Menu.Item disabled key="no-drill-by-columns-found" {...rest}>
               {t('No columns found')}
