@@ -19,7 +19,6 @@ from typing import Any, Optional
 
 from flask import current_app
 from flask_appbuilder.models.sqla import Model
-from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled
@@ -41,6 +40,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.daos.database import DatabaseDAO
 from superset.daos.exceptions import DAOCreateFailedError
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.exceptions import SupersetErrorsException
 from superset.extensions import db, event_logger, security_manager
 from superset.models.core import Database
@@ -98,12 +98,29 @@ class CreateDatabaseCommand(BaseCommand):
 
             db.session.commit()
 
-            # adding a new database we always want to force refresh schema list
-            schemas = database.get_all_schema_names(cache=False, ssh_tunnel=ssh_tunnel)
-            for schema in schemas:
-                security_manager.add_permission_view_menu(
-                    "schema_access", security_manager.get_schema_perm(database, schema)
+            # add catalog/schema permissions
+            if database.db_engine_spec.supports_catalog:
+                catalogs = database.get_all_catalog_names(
+                    cache=False,
+                    ssh_tunnel=ssh_tunnel,
                 )
+                for catalog in catalogs:
+                    security_manager.add_permission_view_menu(
+                        "catalog_access",
+                        security_manager.get_catalog_perm(
+                            database.database_name, catalog
+                        ),
+                    )
+            else:
+                # add a dummy catalog for DBs that don't support them
+                catalogs = [None]
+
+            for catalog in catalogs:
+                try:
+                    self.add_schema_permissions(database, catalog, ssh_tunnel)
+                except Exception:
+                    logger.warning("Error processing catalog '%s'", catalog)
+                    continue
 
         except (
             SSHTunnelInvalidError,
@@ -134,6 +151,22 @@ class CreateDatabaseCommand(BaseCommand):
             stats_logger.incr("db_creation_success.ssh_tunnel")
 
         return database
+
+    def add_schema_permissions(
+        self, database: Database, catalog: Optional[str], ssh_tunnel: SSHTunnel
+    ) -> None:
+        for schema in database.get_all_schema_names(
+            catalog=catalog,
+            cache=False,
+            ssh_tunnel=ssh_tunnel,
+        ):
+            security_manager.add_permission_view_menu(
+                "schema_access",
+                security_manager.get_schema_perm(
+                    database.database_name,
+                    schema,
+                ),
+            )
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
