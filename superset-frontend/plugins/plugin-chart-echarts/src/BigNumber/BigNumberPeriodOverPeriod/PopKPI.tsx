@@ -89,11 +89,11 @@ export default function PopKPI(props: PopKPIProps) {
     if (!currentTimeRangeFilter || (!shift && !startDateOffset)) {
       setComparisonRange('');
     } else if (!isEmpty(shift) || startDateOffset) {
-      const newShift = getTimeOffset(
-        currentTimeRangeFilter,
-        ensureIsArray(shift),
-        startDateOffset || '',
-      );
+      const newShift = getTimeOffset({
+        timeRangeFilter: currentTimeRangeFilter,
+        shifts: ensureIsArray(shift),
+        startDate: startDateOffset || '',
+      });
       const promise: any = fetchTimeRange(
         (currentTimeRangeFilter as any).comparator,
         currentTimeRangeFilter.subject,

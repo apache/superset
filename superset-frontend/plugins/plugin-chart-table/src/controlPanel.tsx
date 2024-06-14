@@ -43,9 +43,12 @@ import {
   ColumnMeta,
   defineSavedMetrics,
   getStandardizedControls,
+  sections,
 } from '@superset-ui/chart-controls';
 
+import { isEmpty } from 'lodash';
 import { PAGE_SIZE_OPTIONS } from './consts';
+import { ColorSchemeEnum } from './types';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -141,6 +144,33 @@ const percentMetricsControl: typeof sharedControls.metrics = {
   default: [],
   validators: [],
 };
+
+const processComparisonColumns = (columns: any[], suffix: string) =>
+  columns
+    .map(col => {
+      if (!col.label.includes(suffix)) {
+        return [
+          {
+            label: `${t('Main')} ${col.label}`,
+            value: `${t('Main')} ${col.value}`,
+          },
+          {
+            label: `# ${col.label}`,
+            value: `# ${col.value}`,
+          },
+          {
+            label: `△ ${col.label}`,
+            value: `△ ${col.value}`,
+          },
+          {
+            label: `% ${col.label}`,
+            value: `% ${col.value}`,
+          },
+        ];
+      }
+      return [];
+    })
+    .flat();
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -397,44 +427,6 @@ const config: ControlPanelConfig = {
               description: t('Whether to include a client-side search box'),
             },
           },
-          {
-            name: 'show_cell_bars',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Cell bars'),
-              renderTrigger: true,
-              default: true,
-              description: t(
-                'Whether to display a bar chart background in table columns',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'align_pn',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Align +/-'),
-              renderTrigger: true,
-              default: false,
-              description: t(
-                'Whether to align background charts with both positive and negative values at 0',
-              ),
-            },
-          },
-          {
-            name: 'color_pn',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Color +/-'),
-              renderTrigger: true,
-              default: true,
-              description: t(
-                'Whether to colorize numeric values by whether they are positive or negative',
-              ),
-            },
-          },
         ],
         [
           {
@@ -447,6 +439,8 @@ const config: ControlPanelConfig = {
               description: t(
                 "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
               ),
+              visibility: ({ controls }) =>
+                isEmpty(controls?.time_compare?.value),
             },
           },
         ],
@@ -485,13 +479,111 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+      ],
+    },
+    {
+      label: t('Visual formatting'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'show_cell_bars',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Cell bars'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Whether to display a bar chart background in table columns',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'align_pn',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Align +/-'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Whether to align background charts with both positive and negative values at 0',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'color_pn',
+            config: {
+              type: 'CheckboxControl',
+              label: t('add colors to cell bars for +/-'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Whether to colorize numeric values by whether they are positive or negative',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_color_enabled',
+            config: {
+              type: 'CheckboxControl',
+              label: t('basic conditional formatting'),
+              renderTrigger: true,
+              visibility: ({ controls }) =>
+                !isEmpty(controls?.time_compare?.value),
+              default: false,
+              description: t(
+                'This will be applied to the whole table. Arrows (↑ and ↓) will be added to ' +
+                  'main columns for increase and decrease. Basic conditional formatting can be ' +
+                  'overwritten by conditional formatting below.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_color_scheme',
+            config: {
+              type: 'SelectControl',
+              label: t('color type'),
+              default: ColorSchemeEnum.Green,
+              renderTrigger: true,
+              choices: [
+                [ColorSchemeEnum.Green, 'Green for increase, red for decrease'],
+                [ColorSchemeEnum.Red, 'Red for increase, green for decrease'],
+              ],
+              visibility: ({ controls }) =>
+                !isEmpty(controls?.time_compare?.value) &&
+                Boolean(controls?.comparison_color_enabled?.value),
+              description: t(
+                'Adds color to the chart symbols based on the positive or ' +
+                  'negative change from the comparison value.',
+              ),
+            },
+          },
+        ],
         [
           {
             name: 'conditional_formatting',
             config: {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
-              label: t('Conditional formatting'),
+              label: t('Custom Conditional Formatting'),
+              extraColorChoices: [
+                {
+                  value: ColorSchemeEnum.Green,
+                  label: t('Green for increase, red for decrease'),
+                },
+                {
+                  value: ColorSchemeEnum.Red,
+                  label: t('Red for increase, green for decrease'),
+                },
+              ],
               description: t(
                 'Apply conditional color formatting to numeric columns',
               ),
@@ -519,9 +611,18 @@ const config: ControlPanelConfig = {
                           label: verboseMap[colname] ?? colname,
                         }))
                     : [];
+                const columnOptions = explore?.controls?.time_compare?.value
+                  ? processComparisonColumns(
+                      numericColumns || [],
+                      ensureIsArray(
+                        explore?.controls?.time_compare?.value,
+                      )[0]?.toString() || '',
+                    )
+                  : numericColumns;
+
                 return {
                   removeIrrelevantConditions: chartStatus === 'success',
-                  columnOptions: numericColumns,
+                  columnOptions,
                   verboseMap,
                 };
               },
@@ -529,6 +630,14 @@ const config: ControlPanelConfig = {
           },
         ],
       ],
+    },
+    {
+      ...sections.timeComparisonControls({
+        multi: false,
+        showCalculationType: false,
+        showFullChoices: false,
+      }),
+      visibility: isAggMode,
     },
   ],
   formDataOverrides: formData => ({

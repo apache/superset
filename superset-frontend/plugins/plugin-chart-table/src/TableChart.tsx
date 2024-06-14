@@ -50,9 +50,23 @@ import {
   css,
   t,
   tn,
+  useTheme,
 } from '@superset-ui/core';
+import { Dropdown, Menu } from '@superset-ui/chart-controls';
+import {
+  CheckOutlined,
+  DownOutlined,
+  MinusCircleOutlined,
+  PlusCircleOutlined,
+  TableOutlined,
+} from '@ant-design/icons';
 
-import { DataColumnMeta, TableChartTransformedProps } from './types';
+import { isEmpty } from 'lodash';
+import {
+  ColorSchemeEnum,
+  DataColumnMeta,
+  TableChartTransformedProps,
+} from './types';
 import DataTable, {
   DataTableProps,
   SearchInputProps,
@@ -242,7 +256,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     allowRenderHtml = true,
     onContextMenu,
     emitCrossFilters,
+    isUsingTimeComparison,
+    basicColorFormatters,
+    basicColorColumnFormatters,
   } = props;
+  const comparisonColumns = [
+    { key: 'all', label: t('Display all') },
+    { key: '#', label: '#' },
+    { key: '△', label: '△' },
+    { key: '%', label: '%' },
+  ];
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
     [timeGrain],
@@ -253,6 +276,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   });
   // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
+  const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
+  const [selectedComparisonColumns, setSelectedComparisonColumns] = useState([
+    comparisonColumns[0].key,
+  ]);
+  const [hideComparisonKeys, setHideComparisonKeys] = useState<string[]>([]);
+  const theme = useTheme();
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
@@ -362,15 +391,45 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getSharedStyle = (column: DataColumnMeta): CSSProperties => {
     const { isNumeric, config = {} } = column;
-    const textAlign = config.horizontalAlign
-      ? config.horizontalAlign
-      : isNumeric
-        ? 'right'
-        : 'left';
+    const textAlign =
+      config.horizontalAlign ||
+      (isNumeric && !isUsingTimeComparison ? 'right' : 'left');
     return {
       textAlign,
     };
   };
+
+  const comparisonLabels = [t('Main'), '#', '△', '%'];
+  const filteredColumnsMeta = useMemo(() => {
+    if (!isUsingTimeComparison) {
+      return columnsMeta;
+    }
+    const allColumns = comparisonColumns[0].key;
+    const main = comparisonLabels[0];
+    const showAllColumns = selectedComparisonColumns.includes(allColumns);
+
+    return columnsMeta.filter(({ label, key }) => {
+      // Extract the key portion after the space, assuming the format is always "label key"
+      const keyPortion = key.substring(label.length);
+      const isKeyHidded = hideComparisonKeys.includes(keyPortion);
+      const isLableMain = label === main;
+
+      return (
+        isLableMain ||
+        (!isKeyHidded &&
+          (!comparisonLabels.includes(label) ||
+            showAllColumns ||
+            selectedComparisonColumns.includes(label)))
+      );
+    });
+  }, [
+    columnsMeta,
+    comparisonColumns,
+    comparisonLabels,
+    isUsingTimeComparison,
+    hideComparisonKeys,
+    selectedComparisonColumns,
+  ]);
 
   const handleContextMenu =
     onContextMenu && !isRawRecords
@@ -385,7 +444,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           clientY: number,
         ) => {
           const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
-          columnsMeta.forEach(col => {
+          filteredColumnsMeta.forEach(col => {
             if (!col.isMetric) {
               const dataRecordValue = value[col.key];
               drillToDetailFilters.push({
@@ -416,6 +475,198 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           });
         }
       : undefined;
+
+  const getHeaderColumns = (
+    columnsMeta: DataColumnMeta[],
+    enableTimeComparison?: boolean,
+  ) => {
+    const resultMap: Record<string, number[]> = {};
+
+    if (!enableTimeComparison) {
+      return resultMap;
+    }
+
+    columnsMeta.forEach((element, index) => {
+      // Check if element's label is one of the comparison labels
+      if (comparisonLabels.includes(element.label)) {
+        // Extract the key portion after the space, assuming the format is always "label key"
+        const keyPortion = element.key.substring(element.label.length);
+
+        // If the key portion is not in the map, initialize it with the current index
+        if (!resultMap[keyPortion]) {
+          resultMap[keyPortion] = [index];
+        } else {
+          // Add the index to the existing array
+          resultMap[keyPortion].push(index);
+        }
+      }
+    });
+
+    return resultMap;
+  };
+
+  const renderTimeComparisonDropdown = (): JSX.Element => {
+    const allKey = comparisonColumns[0].key;
+    const handleOnClick = (data: any) => {
+      const { key } = data;
+      // Toggle 'All' key selection
+      if (key === allKey) {
+        setSelectedComparisonColumns([allKey]);
+      } else if (selectedComparisonColumns.includes(allKey)) {
+        setSelectedComparisonColumns([key]);
+      } else {
+        // Toggle selection for other keys
+        setSelectedComparisonColumns(
+          selectedComparisonColumns.includes(key)
+            ? selectedComparisonColumns.filter(k => k !== key) // Deselect if already selected
+            : [...selectedComparisonColumns, key],
+        ); // Select if not already selected
+      }
+    };
+
+    const handleOnBlur = () => {
+      if (selectedComparisonColumns.length === 3) {
+        setSelectedComparisonColumns([comparisonColumns[0].key]);
+      }
+    };
+
+    return (
+      <Dropdown
+        placement="bottomRight"
+        visible={showComparisonDropdown}
+        onVisibleChange={(flag: boolean) => {
+          setShowComparisonDropdown(flag);
+        }}
+        overlay={
+          <Menu
+            multiple
+            onClick={handleOnClick}
+            onBlur={handleOnBlur}
+            selectedKeys={selectedComparisonColumns}
+          >
+            <div
+              css={css`
+                max-width: 242px;
+                padding: 0 ${theme.gridUnit * 2}px;
+                color: ${theme.colors.grayscale.base};
+                font-size: ${theme.typography.sizes.s}px;
+              `}
+            >
+              {t(
+                'Select columns that will be displayed in the table. You can multiselect columns.',
+              )}
+            </div>
+            {comparisonColumns.map(column => (
+              <Menu.Item key={column.key}>
+                <span
+                  css={css`
+                    color: ${theme.colors.grayscale.dark2};
+                  `}
+                >
+                  {column.label}
+                </span>
+                <span
+                  css={css`
+                    float: right;
+                    font-size: ${theme.typography.sizes.s}px;
+                  `}
+                >
+                  {selectedComparisonColumns.includes(column.key) && (
+                    <CheckOutlined />
+                  )}
+                </span>
+              </Menu.Item>
+            ))}
+          </Menu>
+        }
+        trigger={['click']}
+      >
+        <span>
+          <TableOutlined /> <DownOutlined />
+        </span>
+      </Dropdown>
+    );
+  };
+
+  const renderGroupingHeaders = (): JSX.Element => {
+    // TODO: Make use of ColumnGroup to render the aditional headers
+    const headers: any = [];
+    let currentColumnIndex = 0;
+
+    Object.entries(groupHeaderColumns || {}).forEach(([key, value]) => {
+      // Calculate the number of placeholder columns needed before the current header
+      const startPosition = value[0];
+      const colSpan = value.length;
+
+      // Add placeholder <th> for columns before this header
+      for (let i = currentColumnIndex; i < startPosition; i += 1) {
+        headers.push(
+          <th
+            key={`placeholder-${i}`}
+            style={{ borderBottom: 0 }}
+            aria-label={`Header-${i}`}
+          />,
+        );
+      }
+
+      // Add the current header <th>
+      headers.push(
+        <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
+          {key}
+          <span
+            css={css`
+              float: right;
+              & svg {
+                color: ${theme.colors.grayscale.base} !important;
+              }
+            `}
+          >
+            {hideComparisonKeys.includes(key) ? (
+              <PlusCircleOutlined
+                onClick={() =>
+                  setHideComparisonKeys(
+                    hideComparisonKeys.filter(k => k !== key),
+                  )
+                }
+              />
+            ) : (
+              <MinusCircleOutlined
+                onClick={() =>
+                  setHideComparisonKeys([...hideComparisonKeys, key])
+                }
+              />
+            )}
+          </span>
+        </th>,
+      );
+
+      // Update the current column index
+      currentColumnIndex = startPosition + colSpan;
+    });
+
+    return (
+      <tr
+        css={css`
+          th {
+            border-right: 2px solid ${theme.colors.grayscale.light2};
+          }
+          th:first-child {
+            border-left: none;
+          }
+          th:last-child {
+            border-right: none;
+          }
+        `}
+      >
+        {headers}
+      </tr>
+    );
+  };
+
+  const groupHeaderColumns = useMemo(
+    () => getHeaderColumns(filteredColumnsMeta, isUsingTimeComparison),
+    [filteredColumnsMeta, isUsingTimeComparison],
+  );
 
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
@@ -451,7 +702,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         Array.isArray(columnColorFormatters) &&
         columnColorFormatters.length > 0;
 
+      const hasBasicColorFormatters =
+        isUsingTimeComparison &&
+        Array.isArray(basicColorFormatters) &&
+        basicColorFormatters.length > 0;
+
       const valueRange =
+        !hasBasicColorFormatters &&
         !hasColumnColorFormatters &&
         (config.showCellBars === undefined
           ? showCellBars
@@ -462,6 +719,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       let className = '';
       if (emitCrossFilters && !isMetric) {
         className += ' dt-is-filter';
+      }
+
+      if (!isMetric && !isPercentMetric) {
+        className += ' right-border-only';
+      } else if (comparisonLabels.includes(label)) {
+        const groupinHeader = key.substring(label.length);
+        const columnsUnderHeader = groupHeaderColumns[groupinHeader] || [];
+        if (i === columnsUnderHeader[columnsUnderHeader.length - 1]) {
+          className += ' right-border-only';
+        }
       }
 
       return {
@@ -475,6 +742,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
 
           let backgroundColor;
+          let arrow = '';
+          const originKey = column.key.substring(column.label.length).trim();
+          if (!hasColumnColorFormatters && hasBasicColorFormatters) {
+            backgroundColor =
+              basicColorFormatters[row.index][originKey]?.backgroundColor;
+            arrow =
+              column.label === comparisonLabels[0]
+                ? basicColorFormatters[row.index][originKey]?.mainArrow
+                : '';
+          }
+
           if (hasColumnColorFormatters) {
             columnColorFormatters!
               .filter(formatter => formatter.column === column.key)
@@ -487,6 +765,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   backgroundColor = formatterResult;
                 }
               });
+          }
+
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
+            backgroundColor =
+              basicColorColumnFormatters[row.index][column.key]
+                ?.backgroundColor || backgroundColor;
+            arrow =
+              column.label === comparisonLabels[0]
+                ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
+                : '';
           }
 
           const StyledCell = styled.td`
@@ -519,6 +810,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 })};
               `}
           `;
+
+          let arrowStyles = css`
+            color: ${basicColorFormatters &&
+            basicColorFormatters[row.index][originKey]?.arrowColor ===
+              ColorSchemeEnum.Green
+              ? theme.colors.success.base
+              : theme.colors.error.base};
+            margin-right: ${theme.gridUnit}px;
+          `;
+
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
+            arrowStyles = css`
+              color: ${basicColorColumnFormatters[row.index][column.key]
+                ?.arrowColor === ColorSchemeEnum.Green
+                ? theme.colors.success.base
+                : theme.colors.error.base};
+              margin-right: ${theme.gridUnit}px;
+            `;
+          }
 
           const cellProps = {
             'aria-labelledby': `header-${column.key}`,
@@ -589,10 +902,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   className="dt-truncate-cell"
                   style={columnWidth ? { width: columnWidth } : undefined}
                 >
+                  {arrow && <span css={arrowStyles}>{arrow}</span>}
                   {text}
                 </div>
               ) : (
-                text
+                <>
+                  {arrow && <span css={arrowStyles}>{arrow}</span>}
+                  {text}
+                </>
               )}
             </StyledCell>
           );
@@ -676,8 +993,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const columns = useMemo(
-    () => columnsMeta.map(getColumnConfigs),
-    [columnsMeta, getColumnConfigs],
+    () => filteredColumnsMeta.map(getColumnConfigs),
+    [filteredColumnsMeta, getColumnConfigs],
   );
 
   const handleServerPaginationChange = useCallback(
@@ -744,6 +1061,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         selectPageSize={pageSize !== null && SelectPageSize}
         // not in use in Superset, but needed for unit tests
         sticky={sticky}
+        renderGroupingHeaders={
+          !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
+        }
+        renderTimeComparisonDropdown={
+          isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
+        }
       />
     </Styles>
   );
