@@ -40,6 +40,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.daos.database import DatabaseDAO
 from superset.daos.exceptions import DAOCreateFailedError
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.exceptions import SupersetErrorsException
 from superset.extensions import db, event_logger, security_manager
 from superset.models.core import Database
@@ -82,7 +83,7 @@ class CreateDatabaseCommand(BaseCommand):
             "{}",
         )
 
-        ssh_tunnel = None
+        ssh_tunnel: Optional[SSHTunnel] = None
 
         try:
             database = self._create_database()
@@ -115,19 +116,11 @@ class CreateDatabaseCommand(BaseCommand):
                 catalogs = [None]
 
             for catalog in catalogs:
-                for schema in database.get_all_schema_names(
-                    catalog=catalog,
-                    cache=False,
-                    ssh_tunnel=ssh_tunnel,
-                ):
-                    security_manager.add_permission_view_menu(
-                        "schema_access",
-                        security_manager.get_schema_perm(
-                            database.database_name,
-                            catalog,
-                            schema,
-                        ),
-                    )
+                try:
+                    self.add_schema_permissions(database, catalog, ssh_tunnel)
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning("Error processing catalog '%s'", catalog)
+                    continue
 
         except (
             SSHTunnelInvalidError,
@@ -158,6 +151,26 @@ class CreateDatabaseCommand(BaseCommand):
             stats_logger.incr("db_creation_success.ssh_tunnel")
 
         return database
+
+    def add_schema_permissions(
+        self,
+        database: Database,
+        catalog: str,
+        ssh_tunnel: Optional[SSHTunnel],
+    ) -> None:
+        for schema in database.get_all_schema_names(
+            catalog=catalog,
+            cache=False,
+            ssh_tunnel=ssh_tunnel,
+        ):
+            security_manager.add_permission_view_menu(
+                "schema_access",
+                security_manager.get_schema_perm(
+                    database.database_name,
+                    catalog,
+                    schema,
+                ),
+            )
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
