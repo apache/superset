@@ -36,7 +36,6 @@ Added functionality to do [table time comparisons](https://github.com/apache/sup
     <image src="media/table_with_time.png" alt="Image" width="100%">
 </div>
 
-
 ### New ECharts Versions
 
 The new ECharts [Heatmap](https://github.com/apache/superset/pull/25353) has been added. Compared to the legacy Heatmap, it has more accurate percentage calculations, server side sorting to respect row limits, and a more interactive legend control that allows selecting a subset of values.
