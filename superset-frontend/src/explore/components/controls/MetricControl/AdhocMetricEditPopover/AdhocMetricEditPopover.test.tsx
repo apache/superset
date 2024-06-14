@@ -17,7 +17,6 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricEditPopover from '.';

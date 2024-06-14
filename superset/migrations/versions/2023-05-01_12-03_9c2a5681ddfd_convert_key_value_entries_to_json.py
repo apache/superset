@@ -26,17 +26,17 @@ Create Date: 2023-05-01 12:03:17.079862
 revision = "9c2a5681ddfd"
 down_revision = "f3c2d8ec8595"
 
-import io
-import json
-import pickle
+import io  # noqa: E402
+import pickle  # noqa: E402
 
-from alembic import op
-from sqlalchemy import Column, Integer, LargeBinary, String
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, Integer, LargeBinary, String  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
-from superset import db
-from superset.migrations.shared.utils import paginated_update
+from superset import db  # noqa: E402
+from superset.migrations.shared.utils import paginated_update  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 VALUE_MAX_SIZE = 2**24 - 1

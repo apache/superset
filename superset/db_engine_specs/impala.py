@@ -74,13 +74,12 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def get_schema_names(cls, inspector: Inspector) -> list[str]:
-        schemas = [
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
+        return {
             row[0]
             for row in inspector.engine.execute("SHOW SCHEMAS")
             if not row[0].startswith("_")
-        ]
-        return schemas
+        }
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:
@@ -105,7 +104,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         try:
             cursor.execute_async(query)
         except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:

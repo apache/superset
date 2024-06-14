@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import { AnyAction, combineReducers } from 'redux';
 import Mousetrap from 'mousetrap';
 import configureStore from 'redux-mock-store';
@@ -61,7 +61,7 @@ describe('SqlLab App', () => {
   });
 
   it('is valid', () => {
-    expect(React.isValidElement(<App />)).toBe(true);
+    expect(isValidElement(<App />)).toBe(true);
   });
 
   it('should render', () => {

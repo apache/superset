@@ -20,9 +20,9 @@ Revises: be1b217cd8cd
 Create Date: 2024-04-01 22:44:40.386543
 
 """
+
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "c22cb5c2e546"

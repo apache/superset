@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-import json
+
 import unittest
 from uuid import uuid4
 
@@ -28,6 +28,7 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.utils.database import get_example_database
 from superset.utils.dict_import_export import export_to_dict
+from superset.utils import json
 
 from .base_tests import SupersetTestCase
 

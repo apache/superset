@@ -19,17 +19,13 @@ from __future__ import annotations
 import logging
 from typing import Any, TYPE_CHECKING
 
-import simplejson as json
-
-import superset.utils.core as utils
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from superset.models.sql_lab import Query
-    from superset.sqllab.sql_json_executer import SqlResults
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 
@@ -58,10 +54,12 @@ class ExecutionContextConvertor:
                 apply_display_max_row_configuration_if_require(
                     self.payload, self._max_row_in_display_configuration
                 ),
-                default=utils.pessimistic_json_iso_dttm_ser,
+                default=json.pessimistic_json_iso_dttm_ser,
                 ignore_nan=True,
             )
 
         return json.dumps(
-            {"query": self.payload}, default=utils.json_int_dttm_ser, ignore_nan=True
+            {"query": self.payload},
+            default=json.json_int_dttm_ser,
+            ignore_nan=True,
         )

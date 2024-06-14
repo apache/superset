@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useEffect,
-  useCallback,
-  useMemo,
-  useState,
-  useRef,
-} from 'react';
+import { memo, useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { uniq, isEqual, sortBy, debounce, isEmpty } from 'lodash';
 import {
   Filter,
@@ -687,4 +681,4 @@ function FiltersConfigModal({
   );
 }
 
-export default React.memo(FiltersConfigModal);
+export default memo(FiltersConfigModal);

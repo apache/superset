@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { bindActionCreators } from 'redux';
@@ -32,6 +32,7 @@ import DragDroppable, {
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
+import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -88,7 +89,7 @@ const TabTitleContainer = styled.div`
 const renderDraggableContent = dropProps =>
   dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />;
 
-class Tab extends React.PureComponent {
+class Tab extends PureComponent {
   constructor(props) {
     super(props);
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -137,6 +138,10 @@ class Tab extends React.PureComponent {
         },
       });
     }
+  }
+
+  shouldDropToChild(item) {
+    return item.type !== TAB_TYPE;
   }
 
   renderTabContent() {
@@ -218,7 +223,7 @@ class Tab extends React.PureComponent {
           />
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
-          <React.Fragment key={componentId}>
+          <Fragment key={componentId}>
             <DashboardComponent
               id={componentId}
               parentId={tabComponent.id}
@@ -248,7 +253,7 @@ class Tab extends React.PureComponent {
                 {renderDraggableContent}
               </Droppable>
             )}
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
     );
@@ -275,6 +280,7 @@ class Tab extends React.PureComponent {
         onDrop={this.handleDrop}
         onHover={this.handleOnHover}
         editMode={editMode}
+        dropToChild={this.shouldDropToChild}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <TabTitleContainer

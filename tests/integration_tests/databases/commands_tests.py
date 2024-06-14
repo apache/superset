@@ -22,14 +22,14 @@ import yaml
 from func_timeout import FunctionTimedOut
 from sqlalchemy.exc import DBAPIError
 
-from superset import db, event_logger, security_manager
+from superset import db, event_logger, security_manager  # noqa: F401
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.exceptions import (
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseSecurityUnsafeError,
     DatabaseTablesUnexpectedError,
-    DatabaseTestConnectionDriverError,
+    DatabaseTestConnectionDriverError,  # noqa: F401
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.commands.database.export import ExportDatabasesCommand
@@ -40,7 +40,7 @@ from superset.commands.database.validate import ValidateDatabaseParametersComman
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
-from superset.databases.schemas import DatabaseTestConnectionSchema
+from superset.databases.schemas import DatabaseTestConnectionSchema  # noqa: F401
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -54,12 +54,12 @@ from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
 )
 from tests.integration_tests.fixtures.importexport import (
     database_config,
@@ -386,7 +386,6 @@ class TestExportDatabasesCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         example_db = get_example_database()
-        db_uuid = example_db.uuid
 
         command = ExportDatabasesCommand([example_db.id], export_related=False)
         contents = dict(command.run())
@@ -623,9 +622,9 @@ class TestImportDatabasesCommand(SupersetTestCase):
     def test_import_v1_database_masked_password(self):
         """Test that database imports with masked passwords are rejected"""
         masked_database_config = database_config.copy()
-        masked_database_config[
-            "sqlalchemy_uri"
-        ] = "postgresql://username:XXXXXXXXXX@host:12345/db"
+        masked_database_config["sqlalchemy_uri"] = (
+            "postgresql://username:XXXXXXXXXX@host:12345/db"
+        )
         contents = {
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
@@ -1096,7 +1095,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
     def test_database_tables_list_with_unknown_database(self, mock_find_by_id):
         mock_find_by_id.return_value = None
-        command = TablesDatabaseCommand(1, "test", False)
+        command = TablesDatabaseCommand(1, None, "test", False)
 
         with pytest.raises(DatabaseNotFoundError) as excinfo:
             command.run()
@@ -1116,7 +1115,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = SupersetException("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        command = TablesDatabaseCommand(database.id, "main", False)
+        command = TablesDatabaseCommand(database.id, None, "main", False)
         with pytest.raises(SupersetException) as excinfo:
             command.run()
             assert str(excinfo.value) == "Test Error"
@@ -1132,7 +1131,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = Exception("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        command = TablesDatabaseCommand(database.id, "main", False)
+        command = TablesDatabaseCommand(database.id, None, "main", False)
         with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:
             command.run()
             assert (
@@ -1155,7 +1154,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         if database.backend == "postgresql" or database.backend == "mysql":
             return
 
-        command = TablesDatabaseCommand(database.id, schema_name, False)
+        command = TablesDatabaseCommand(database.id, None, schema_name, False)
         result = command.run()
 
         assert result["count"] > 0

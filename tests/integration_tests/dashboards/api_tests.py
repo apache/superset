@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-import json
+
 from io import BytesIO
 from time import sleep
 from unittest.mock import ANY, patch
@@ -30,16 +30,18 @@ import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
-from superset import app, db, security_manager
+from superset import app, db, security_manager  # noqa: F401
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
+from superset.tags.models import Tag, TaggedObject, TagType, ObjectType
 from superset.utils.core import backend, override_user
+from superset.utils import json
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.conftest import with_feature_flags  # noqa: F401
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -56,12 +58,12 @@ from tests.integration_tests.fixtures.importexport import (
 )
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 DASHBOARDS_FIXTURE_COUNT = 10
@@ -148,7 +150,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         with self.create_app().app_context():
             admin = self.get_user("admin")
             dashboard = self.insert_dashboard(
-                f"dashboard_report", "dashboard_report", [admin.id]
+                "dashboard_report",
+                "dashboard_report",
+                [admin.id],  # noqa: F541
             )
             report_schedule = ReportSchedule(
                 type=ReportScheduleType.REPORT,
@@ -162,6 +166,52 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
             # rollback changes
             db.session.delete(report_schedule)
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_custom_tags(self):
+        with self.create_app().app_context():
+            tags: list[Tag] = []
+            for tag_name in {"one_tag", "new_tag"}:
+                tag = Tag(
+                    name=tag_name,
+                    type="custom",
+                )
+                db.session.add(tag)
+                db.session.commit()
+                tags.append(tag)
+
+            yield tags
+
+            for tags in tags:
+                db.session.delete(tags)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_dashboard_with_tag(self, create_custom_tags):
+        with self.create_app().app_context():
+            gamma = self.get_user("gamma")
+
+            dashboard = self.insert_dashboard(
+                "dash with tag",
+                None,
+                [gamma.id],
+            )
+            tag = db.session.query(Tag).filter(Tag.name == "one_tag").first()
+            tag_association = TaggedObject(
+                object_id=dashboard.id,
+                object_type=ObjectType.dashboard,
+                tag=tag,
+            )
+
+            db.session.add(tag_association)
+            db.session.commit()
+
+            yield dashboard
+
+            # rollback changes
+            db.session.delete(tag_association)
             db.session.delete(dashboard)
             db.session.commit()
 
@@ -186,8 +236,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     def test_get_dashboard_datasets_as_guest(self, is_guest_user, has_guest_access):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/world_health/datasets"
-        is_guest_user = True
-        has_guest_access = True
         response = self.get_assert_metric(uri, "get_datasets")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data.decode("utf-8"))
@@ -422,11 +470,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
         self.assertIn("changed_on_delta_humanized", data["result"])
+        self.assertIn("created_on_delta_humanized", data["result"])
         for key, value in data["result"].items():
             # We can't assert timestamp values
             if key not in (
                 "changed_on",
                 "changed_on_delta_humanized",
+                "created_on_delta_humanized",
             ):
                 self.assertEqual(value, expected_result[key])
         # rollback changes
@@ -1708,7 +1758,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         rv = self.get_assert_metric(uri, "export")
 
-        headers = f"attachment; filename=dashboard_export_20220101T000000.zip"
+        headers = "attachment; filename=dashboard_export_20220101T000000.zip"  # noqa: F541
         assert rv.status_code == 200
         assert rv.headers["Content-Disposition"] == headers
 
@@ -2017,7 +2067,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         API: Test get filter related roles
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/related/roles"
+        uri = "api/v1/dashboard/related/roles"  # noqa: F541
 
         rv = self.client.get(uri)
         assert rv.status_code == 200
@@ -2059,7 +2109,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "superset.views.filters.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
         ):
-            uri = f"api/v1/dashboard/related/roles"
+            uri = "api/v1/dashboard/related/roles"  # noqa: F541
             rv = self.client.get(uri)
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
@@ -2088,8 +2138,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertNotEqual(result["uuid"], "")
         self.assertEqual(result["allowed_domains"], allowed_domains)
 
-        db.session.expire_all()
-
         # get returns value
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 200)
@@ -2110,8 +2158,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertNotEqual(result["uuid"], "")
         self.assertEqual(result["allowed_domains"], [])
 
-        db.session.expire_all()
-
         # get returns changed value
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 200)
@@ -2122,8 +2168,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         # delete succeeds
         resp = self.delete_assert_metric(uri, "delete_embedded")
         self.assertEqual(resp.status_code, 200)
-
-        db.session.expire_all()
 
         # get returns 404
         resp = self.get_assert_metric(uri, "get_embedded")
@@ -2153,7 +2197,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertEqual(data["count"], len(expected_models))
 
     def test_gets_not_created_by_user_dashboards_filter(self):
-        dashboard = self.insert_dashboard(f"title", f"slug", [])
+        dashboard = self.insert_dashboard("title", "slug", [])  # noqa: F541
         expected_models = (
             db.session.query(Dashboard).filter(Dashboard.created_by_fk.is_(None)).all()
         )
@@ -2266,3 +2310,229 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         db.session.delete(dash)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_add_tags_can_write_on_tag(self):
+        """
+        Validates a user with can write on tag permission can
+        add tags while updating a dashboard
+        """
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(tag_list, new_tags)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_remove_tags_can_write_on_tag(self):
+        """
+        Validates a user with can write on tag permission can
+        remove tags while updating a dashboard
+        """
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
+        new_tags.pop()
+
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(tag_list, new_tags)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_add_tags_can_tag_on_dashboard(self):
+        """
+        Validates an owner with can tag on dashboard permission can
+        add tags while updating a dashboard
+        """
+        self.login(GAMMA_USERNAME)
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.del_permission_role(gamma_role, write_tags_perm)
+        assert "can tag on Dashboard" in str(gamma_role.permissions)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(tag_list, new_tags)
+
+        security_manager.add_permission_role(gamma_role, write_tags_perm)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_remove_tags_can_tag_on_dashboard(self):
+        """
+        Validates an owner with can tag on dashboard permission can
+        remove tags from a dashboard
+        """
+        self.login(GAMMA_USERNAME)
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.del_permission_role(gamma_role, write_tags_perm)
+        assert "can tag on Dashboard" in str(gamma_role.permissions)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        update_payload = {"tags": []}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(tag_list, [])
+
+        security_manager.add_permission_role(gamma_role, write_tags_perm)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_add_tags_missing_permission(self):
+        """
+        Validates an owner can't add tags to a dashboard if they don't
+        have permission to it
+        """
+        self.login(GAMMA_USERNAME)
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        tag_dashboards_perm = security_manager.add_permission_view_menu(
+            "can_tag", "Dashboard"
+        )
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.del_permission_role(gamma_role, write_tags_perm)
+        security_manager.del_permission_role(gamma_role, tag_dashboards_perm)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(
+            rv.json["message"],
+            "You do not have permission to manage tags on dashboards",
+        )
+
+        security_manager.add_permission_role(gamma_role, write_tags_perm)
+        security_manager.add_permission_role(gamma_role, tag_dashboards_perm)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_remove_tags_missing_permission(self):
+        """
+        Validates an owner can't remove tags from a dashboard if they don't
+        have permission to it
+        """
+        self.login(GAMMA_USERNAME)
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        tag_dashboards_perm = security_manager.add_permission_view_menu(
+            "can_tag", "Dashboard"
+        )
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.del_permission_role(gamma_role, write_tags_perm)
+        security_manager.del_permission_role(gamma_role, tag_dashboards_perm)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        update_payload = {"tags": []}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(
+            rv.json["message"],
+            "You do not have permission to manage tags on dashboards",
+        )
+
+        security_manager.add_permission_role(gamma_role, write_tags_perm)
+        security_manager.add_permission_role(gamma_role, tag_dashboards_perm)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_no_tag_changes(self):
+        """
+        Validates an owner without permission to change tags is able to
+        update a dashboard when tags haven't changed
+        """
+        self.login(GAMMA_USERNAME)
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        tag_dashboards_perm = security_manager.add_permission_view_menu(
+            "can_tag", "Dashboard"
+        )
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.del_permission_role(gamma_role, write_tags_perm)
+        security_manager.del_permission_role(gamma_role, tag_dashboards_perm)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        existing_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
+        update_payload = {"tags": existing_tags}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+
+        security_manager.add_permission_role(gamma_role, write_tags_perm)
+        security_manager.add_permission_role(gamma_role, tag_dashboards_perm)

@@ -89,6 +89,7 @@ export default function getInitialState({
         autorun: Boolean(activeTab.autorun),
         templateParams: activeTab.template_params || undefined,
         dbId: activeTab.database_id,
+        catalog: activeTab.catalog,
         schema: activeTab.schema,
         queryLimit: activeTab.query_limit,
         hideLeftBar: activeTab.hide_left_bar,
@@ -109,6 +110,7 @@ export default function getInitialState({
     };
   });
   const tabHistory = activeTab ? [activeTab.id.toString()] : [];
+  let lastUpdatedActiveTab = activeTab ? activeTab.id.toString() : '';
   let tables = {} as Record<string, Table>;
   let editorTabLastUpdatedAt = Date.now();
   if (activeTab) {
@@ -121,6 +123,7 @@ export default function getInitialState({
         const table = {
           dbId: tableSchema.database_id,
           queryEditorId: tableSchema.tab_state_id.toString(),
+          catalog: tableSchema.catalog,
           schema: tableSchema.schema,
           name: tableSchema.table,
           expanded: tableSchema.expanded,
@@ -215,6 +218,7 @@ export default function getInitialState({
         if (sqlLab.tabHistory) {
           tabHistory.push(...sqlLab.tabHistory);
         }
+        lastUpdatedActiveTab = tabHistory.slice(tabHistory.length - 1)[0] || '';
       }
     }
   } catch (error) {
@@ -248,6 +252,7 @@ export default function getInitialState({
       editorTabLastUpdatedAt,
       queryCostEstimates: {},
       unsavedQueryEditor,
+      lastUpdatedActiveTab,
     },
     localStorageUsageInKilobytes: 0,
     common,

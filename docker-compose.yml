@@ -39,7 +39,6 @@ x-common-build: &common-build
   cache_from:
     - apache/superset-cache:3.10-slim-bookworm
 
-version: "4.0"
 services:
   nginx:
     image: nginx:latest
@@ -94,12 +93,11 @@ services:
     depends_on: *superset-depends-on
     volumes: *superset-volumes
     environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
 
   superset-websocket:
     container_name: superset_websocket
     build: ./superset-websocket
-    image: superset-websocket
     ports:
       - 8080:8080
     extra_hosts:
@@ -120,6 +118,10 @@ services:
       - ./superset-websocket:/home/superset-websocket
       - /home/superset-websocket/node_modules
       - /home/superset-websocket/dist
+
+      # Mounting a config file that contains a dummy secret required to boot up.
+      # do not use this docker-compose in production
+      - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
     environment:
       - PORT=8080
       - REDIS_HOST=redis
@@ -140,7 +142,7 @@ services:
     user: *superset-user
     volumes: *superset-volumes
     environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
     healthcheck:
       disable: true
 
@@ -149,7 +151,7 @@ services:
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
-      SCARF_ANALYTICS: "${SCARF_ANALYTICS}"
+      SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
@@ -170,6 +172,8 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    environment:
+      CELERYD_CONCURRENCY: 2
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: *superset-user
@@ -209,12 +213,15 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    profiles:
+      - optional
     environment:
       DATABASE_HOST: localhost
       DATABASE_DB: test
       REDIS_CELERY_DB: 2
       REDIS_RESULTS_DB: 3
       REDIS_HOST: localhost
+      CELERYD_CONCURRENCY: 8
     network_mode: host
     depends_on: *superset-depends-on
     user: *superset-user

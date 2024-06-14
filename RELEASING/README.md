@@ -445,8 +445,16 @@ Create the distribution
 ```bash
 cd superset-frontend/
 npm ci && npm run build
+# Compile translations for the frontend
+npm run build-translation
+
 cd ../
-flask fab babel-compile --target superset/translations
+
+
+# Compile translations for the backend
+./scripts/translations/generate_po_files.sh
+
+# build the python distribution
 python setup.py sdist
 ```
 
@@ -506,3 +514,18 @@ and re-push the proper images and tags through this interface. The action
 takes the version (ie `3.1.1`), the git reference (any SHA, tag or branch
 reference), and whether to force the `latest` Docker tag on the
 generated images.
+
+### Npm Release
+You might want to publish the latest @superset-ui release to npm
+```bash
+cd superset/superset-frontend
+```
+An automated GitHub action will run and generate a new tag, which will contain a version number provided as a parameter.
+```bash
+export GH_TOKEN={GITHUB_TOKEN}
+npx lerna version {VERSION} --conventional-commits --create-release github --no-private --yes --message {COMMIT_MESSAGE}
+```
+This action will publish the specified version to npm registry.
+```bash
+npx lerna publish from-package --yes
+```

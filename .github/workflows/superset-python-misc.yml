@@ -31,10 +31,6 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outputs.python
-      - name: pylint
-        if: steps.check.outputs.python
-        # `-j 0` run Pylint in parallel
-        run: pylint -j 0 superset
 
   babel-extract:
     runs-on: ubuntu-20.04
@@ -54,4 +50,4 @@ jobs:
         uses: ./.github/actions/setup-backend/
       - name: Test babel extraction
         if: steps.check.outputs.python
-        run: flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _,__,t,tn,tct
+        run: scripts/translations/babel_update.sh

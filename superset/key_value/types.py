@@ -59,12 +59,10 @@ class SharedKey(StrEnum):
 
 class KeyValueCodec(ABC):
     @abstractmethod
-    def encode(self, value: Any) -> bytes:
-        ...
+    def encode(self, value: Any) -> bytes: ...
 
     @abstractmethod
-    def decode(self, value: bytes) -> Any:
-        ...
+    def decode(self, value: bytes) -> Any: ...
 
 
 class JsonKeyValueCodec(KeyValueCodec):

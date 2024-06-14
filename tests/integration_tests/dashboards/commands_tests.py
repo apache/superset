@@ -15,8 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import itertools
-import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch  # noqa: F401
 
 import pytest
 import yaml
@@ -36,6 +35,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
@@ -47,8 +47,8 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_metadata_config,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 

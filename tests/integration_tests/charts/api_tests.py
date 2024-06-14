@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
-import json
+
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
@@ -31,29 +31,31 @@ from sqlalchemy.sql import func
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import cache_manager, db, security_manager
+from superset.extensions import cache_manager, db, security_manager  # noqa: F401
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.reports.models import ReportSchedule, ReportScheduleType
+from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
+from superset.utils import json
 from superset.utils.core import get_example_default_schema
-from superset.utils.database import get_example_database
-from superset.viz import viz_types
+from superset.utils.database import get_example_database  # noqa: F401
+from superset.viz import viz_types  # noqa: F401
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.conftest import with_feature_flags  # noqa: F401
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
     GAMMA_USERNAME,
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
 )
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
@@ -63,12 +65,12 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_metadata_config,
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
-    load_unicode_dashboard_with_slice,
-    load_unicode_data,
+    load_unicode_dashboard_with_slice,  # noqa: F401
+    load_unicode_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from tests.integration_tests.test_app import app
@@ -151,7 +153,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     def create_chart_with_report(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
-            chart = self.insert_chart(f"chart_report", [admin.id], 1)
+            chart = self.insert_chart("chart_report", [admin.id], 1)  # noqa: F541
             report_schedule = ReportSchedule(
                 type=ReportScheduleType.REPORT,
                 name="report_with_chart",
@@ -196,6 +198,53 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             db.session.delete(self.original_dashboard)
             db.session.delete(self.new_dashboard)
             db.session.delete(self.chart)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_custom_tags(self):
+        with self.create_app().app_context():
+            tags: list[Tag] = []
+            for tag_name in {"one_tag", "new_tag"}:
+                tag = Tag(
+                    name=tag_name,
+                    type="custom",
+                )
+                db.session.add(tag)
+                db.session.commit()
+                tags.append(tag)
+
+            yield tags
+
+            for tags in tags:
+                db.session.delete(tags)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_chart_with_tag(self, create_custom_tags):
+        with self.create_app().app_context():
+            alpha_user = self.get_user(ALPHA_USERNAME)
+
+            chart = self.insert_chart(
+                "chart with tag",
+                [alpha_user.id],
+                1,
+            )
+
+            tag = db.session.query(Tag).filter(Tag.name == "one_tag").first()
+            tag_association = TaggedObject(
+                object_id=chart.id,
+                object_type=ObjectType.chart,
+                tag=tag,
+            )
+
+            db.session.add(tag_association)
+            db.session.commit()
+
+            yield chart
+
+            # rollback changes
+            db.session.delete(tag_association)
+            db.session.delete(chart)
             db.session.commit()
 
     def test_info_security_chart(self):
@@ -551,7 +600,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             {
                 "message": {
                     "datasource_type": [
-                        "Must be one of: sl_table, table, dataset, query, saved_query, view."
+                        "Must be one of: table, dataset, query, saved_query, view."
                     ]
                 }
             },
@@ -761,7 +810,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         Chart API: Test update chart admin can clear owner list
         """
         chart_data = {"slice_name": "title1_changed", "owners": []}
-        admin = self.get_user("admin")
+        self.get_user("admin")  # noqa: F841
         self.login(username="admin")
         uri = f"api/v1/chart/{self.chart.id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
@@ -912,7 +961,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             {
                 "message": {
                     "datasource_type": [
-                        "Must be one of: sl_table, table, dataset, query, saved_query, view."
+                        "Must be one of: table, dataset, query, saved_query, view."
                     ]
                 }
             },
@@ -940,7 +989,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "owners": [1000],
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/"
+        uri = "api/v1/chart/"  # noqa: F541
         rv = self.client.post(uri, json=chart_data)
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
@@ -1031,7 +1080,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         Chart API: Test get charts
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/"
+        uri = "api/v1/chart/"  # noqa: F541
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1293,6 +1342,33 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 0)
 
+    @pytest.mark.usefixtures("load_energy_charts")
+    def test_user_gets_all_charts(self):
+        # test filtering on datasource_name
+        gamma_user = security_manager.find_user(username="gamma")
+
+        def count_charts():
+            uri = "api/v1/chart/"
+            rv = self.client.get(uri, "get_list")
+            self.assertEqual(rv.status_code, 200)
+            data = rv.get_json()
+            return data["count"]
+
+        with self.temporary_user(gamma_user, login=True):
+            self.assertEqual(count_charts(), 0)
+
+        perm = ("all_database_access", "all_database_access")
+        with self.temporary_user(gamma_user, extra_pvms=[perm], login=True):
+            assert count_charts() > 0
+
+        perm = ("all_datasource_access", "all_datasource_access")
+        with self.temporary_user(gamma_user, extra_pvms=[perm], login=True):
+            assert count_charts() > 0
+
+        # Back to normal
+        with self.temporary_user(gamma_user, login=True):
+            self.assertEqual(count_charts(), 0)
+
     @pytest.mark.usefixtures("create_charts")
     def test_get_charts_favorite_filter(self):
         """
@@ -1491,6 +1567,20 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert "since" in data["result"][0]
         assert "until" in data["result"][0]
         assert "timeRange" in data["result"][0]
+
+        humanize_time_range = [
+            {"timeRange": "2021-01-01 : 2022-02-01", "shift": "1 year ago"},
+            {"timeRange": "2022-01-01 : 2023-02-01", "shift": "2 year ago"},
+        ]
+        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert len(data["result"]) == 2
+        assert "since" in data["result"][0]
+        assert "until" in data["result"][0]
+        assert "timeRange" in data["result"][0]
+        assert "shift" in data["result"][0]
 
     def test_query_form_data(self):
         """
@@ -1919,7 +2009,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
             assert json.loads(
                 self.client.put(
-                    f"/api/v1/chart/warm_up_cache",
+                    "/api/v1/chart/warm_up_cache",  # noqa: F541
                     json={"chart_id": slc.id},
                 ).data
             ) == {
@@ -1946,7 +2036,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
             assert json.loads(
                 self.client.put(
-                    f"/api/v1/chart/warm_up_cache",
+                    "/api/v1/chart/warm_up_cache",  # noqa: F541
                     json={"chart_id": slc.id},
                 ).data
             ) == {
@@ -1958,3 +2048,214 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                     },
                 ],
             }
+
+    @pytest.mark.usefixtures("create_chart_with_tag")
+    def test_update_chart_add_tags_can_write_on_tag(self):
+        """
+        Validates a user with can write on tag permission can
+        add tags while updating a chart
+        """
+        self.login(ADMIN_USERNAME)
+
+        chart = (
+            db.session.query(Slice).filter(Slice.slice_name == "chart with tag").first()
+        )
+        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Slice).get(chart.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(tag_list, new_tags)
+
+    @pytest.mark.usefixtures("create_chart_with_tag")
+    def test_update_chart_remove_tags_can_write_on_tag(self):
+        """
+        Validates a user with can write on tag permission can
+        remove tags while updating a chart
+        """
+        self.login(ADMIN_USERNAME)
+
+        chart = (
+            db.session.query(Slice).filter(Slice.slice_name == "chart with tag").first()
+        )
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
+        new_tags.pop()
+
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Slice).get(chart.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(tag_list, new_tags)
+
+    @pytest.mark.usefixtures("create_chart_with_tag")
+    def test_update_chart_add_tags_can_tag_on_chart(self):
+        """
+        Validates an owner with can tag on chart permission can
+        add tags while updating a chart
+        """
+        self.login(ALPHA_USERNAME)
+
+        alpha_role = security_manager.find_role("Alpha")
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        security_manager.del_permission_role(alpha_role, write_tags_perm)
+        assert "can tag on Chart" in str(alpha_role.permissions)
+
+        chart = (
+            db.session.query(Slice).filter(Slice.slice_name == "chart with tag").first()
+        )
+        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Slice).get(chart.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(tag_list, new_tags)
+
+        security_manager.add_permission_role(alpha_role, write_tags_perm)
+
+    @pytest.mark.usefixtures("create_chart_with_tag")
+    def test_update_chart_remove_tags_can_tag_on_chart(self):
+        """
+        Validates an owner with can tag on chart permission can
+        remove tags from a chart
+        """
+        self.login(ALPHA_USERNAME)
+
+        alpha_role = security_manager.find_role("Alpha")
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        security_manager.del_permission_role(alpha_role, write_tags_perm)
+        assert "can tag on Chart" in str(alpha_role.permissions)
+
+        chart = (
+            db.session.query(Slice).filter(Slice.slice_name == "chart with tag").first()
+        )
+
+        update_payload = {"tags": []}
+
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Slice).get(chart.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(tag_list, [])
+
+        security_manager.add_permission_role(alpha_role, write_tags_perm)
+
+    @pytest.mark.usefixtures("create_chart_with_tag")
+    def test_update_chart_add_tags_missing_permission(self):
+        """
+        Validates an owner can't add tags to a chart if they don't
+        have permission to it
+        """
+        self.login(ALPHA_USERNAME)
+
+        alpha_role = security_manager.find_role("Alpha")
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        tag_charts_perm = security_manager.add_permission_view_menu("can_tag", "Chart")
+        security_manager.del_permission_role(alpha_role, write_tags_perm)
+        security_manager.del_permission_role(alpha_role, tag_charts_perm)
+
+        chart = (
+            db.session.query(Slice).filter(Slice.slice_name == "chart with tag").first()
+        )
+        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(
+            rv.json["message"],
+            "You do not have permission to manage tags on charts",
+        )
+
+        security_manager.add_permission_role(alpha_role, write_tags_perm)
+        security_manager.add_permission_role(alpha_role, tag_charts_perm)
+
+    @pytest.mark.usefixtures("create_chart_with_tag")
+    def test_update_chart_remove_tags_missing_permission(self):
+        """
+        Validates an owner can't remove tags from a chart if they don't
+        have permission to it
+        """
+        self.login(ALPHA_USERNAME)
+
+        alpha_role = security_manager.find_role("Alpha")
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        tag_charts_perm = security_manager.add_permission_view_menu("can_tag", "Chart")
+        security_manager.del_permission_role(alpha_role, write_tags_perm)
+        security_manager.del_permission_role(alpha_role, tag_charts_perm)
+
+        chart = (
+            db.session.query(Slice).filter(Slice.slice_name == "chart with tag").first()
+        )
+
+        update_payload = {"tags": []}
+
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(
+            rv.json["message"],
+            "You do not have permission to manage tags on charts",
+        )
+
+        security_manager.add_permission_role(alpha_role, write_tags_perm)
+        security_manager.add_permission_role(alpha_role, tag_charts_perm)
+
+    @pytest.mark.usefixtures("create_chart_with_tag")
+    def test_update_chart_no_tag_changes(self):
+        """
+        Validates an owner without permission to change tags is able to
+        update a chart when tags haven't changed
+        """
+        self.login(ALPHA_USERNAME)
+
+        alpha_role = security_manager.find_role("Alpha")
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        tag_charts_perm = security_manager.add_permission_view_menu("can_tag", "Chart")
+        security_manager.del_permission_role(alpha_role, write_tags_perm)
+        security_manager.del_permission_role(alpha_role, tag_charts_perm)
+
+        chart = (
+            db.session.query(Slice).filter(Slice.slice_name == "chart with tag").first()
+        )
+        existing_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
+        update_payload = {"tags": existing_tags}
+
+        uri = f"api/v1/chart/{chart.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+
+        security_manager.add_permission_role(alpha_role, write_tags_perm)
+        security_manager.add_permission_role(alpha_role, tag_charts_perm)

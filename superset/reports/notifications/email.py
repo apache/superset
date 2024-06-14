@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 import textwrap
 from dataclasses import dataclass
@@ -29,6 +28,7 @@ from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
+from superset.utils import json
 from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
 

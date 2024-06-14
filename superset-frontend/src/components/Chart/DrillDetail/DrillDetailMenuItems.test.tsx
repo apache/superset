@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import setupPlugins from 'src/setup/setupPlugins';
@@ -75,7 +75,7 @@ const MockRenderChart = ({
   isContextMenu,
   filters,
 }: Partial<DrillDetailMenuItemsProps>) => {
-  const [showMenu, setShowMenu] = React.useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   return (
     <Menu>

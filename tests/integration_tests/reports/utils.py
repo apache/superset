@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 from contextlib import contextmanager
 from typing import Any, Optional
 from uuid import uuid4
@@ -35,8 +34,9 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportState,
 )
+from superset.utils import json
 from superset.utils.core import override_user
-from tests.integration_tests.test_app import app
+from tests.integration_tests.test_app import app  # noqa: F401
 from tests.integration_tests.utils import read_fixture
 
 TEST_ID = str(uuid4())

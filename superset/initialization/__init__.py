@@ -156,7 +156,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.sqllab.api import SqlLabRestApi
         from superset.tags.api import TagRestApi
         from superset.views.alerts import AlertView, ReportView
-        from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
+        from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.chart.views import SliceAsync, SliceModelView
@@ -170,7 +170,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             DashboardModelView,
             DashboardModelViewAsync,
         )
-        from superset.views.database.views import ColumnarToDatabaseView, DatabaseView
+        from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.explore import ExplorePermalinkView, ExploreView
@@ -291,7 +291,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         appbuilder.add_view_no_menu(Api)
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
-        appbuilder.add_view_no_menu(ColumnarToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
@@ -310,7 +309,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
-        appbuilder.add_view_no_menu(TaggedObjectView)
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)

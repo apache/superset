@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useEffect, useRef, RefObject } from 'react';
+import { useMemo, useState, useEffect, useRef, RefObject } from 'react';
 import {
   css,
   GenericDataType,

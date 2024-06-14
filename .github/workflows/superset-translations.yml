@@ -43,7 +43,7 @@ jobs:
         if: steps.check.outputs.frontend
         working-directory: ./superset-frontend
         run: |
-          npm run check-translation
+          npm run build-translation
 
   babel-extract:
     runs-on: ubuntu-20.04
@@ -64,4 +64,4 @@ jobs:
         uses: ./.github/actions/setup-backend/
       - name: Test babel extraction
         if: steps.check.outputs.python
-        run: ./scripts/babel_update.sh
+        run: ./scripts/translations/babel_update.sh

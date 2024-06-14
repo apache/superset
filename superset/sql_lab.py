@@ -24,7 +24,6 @@ from typing import Any, cast, Optional, Union
 
 import backoff
 import msgpack
-import simplejson as json
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as __
 
@@ -46,7 +45,7 @@ from superset.exceptions import (
     SupersetErrorException,
     SupersetErrorsException,
 )
-from superset.extensions import celery_app
+from superset.extensions import celery_app, event_logger
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
@@ -55,11 +54,12 @@ from superset.sql_parse import (
     insert_rls_as_subquery,
     insert_rls_in_predicate,
     ParsedQuery,
+    Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
+from superset.utils import json
 from superset.utils.core import (
-    json_iso_dttm_ser,
     override_user,
     QuerySource,
     zlib_compress,
@@ -73,7 +73,6 @@ SQLLAB_TIMEOUT = config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
 SQL_MAX_ROW = config["SQL_MAX_ROW"]
 SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
-SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
 
@@ -264,11 +263,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements
         sql = apply_limit_if_exists(database, increased_limit, query, sql)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
-    sql = SQL_QUERY_MUTATOR(
-        sql,
-        security_manager=security_manager,
-        database=database,
-    )
+    sql = database.mutate_sql_based_on_config(sql)
     try:
         query.executed_sql = sql
         if log_query:
@@ -281,21 +276,26 @@ def execute_sql_statement(  # pylint: disable=too-many-statements
                 log_params,
             )
         db.session.commit()
-        with stats_timing("sqllab.query.time_executing_query", stats_logger):
-            db_engine_spec.execute_with_cursor(cursor, sql, query)
+        with event_logger.log_context(
+            action="execute_sql",
+            database=database,
+            object_ref=__name__,
+        ):
+            with stats_timing("sqllab.query.time_executing_query", stats_logger):
+                db_engine_spec.execute_with_cursor(cursor, sql, query)
 
-        with stats_timing("sqllab.query.time_fetching_results", stats_logger):
-            logger.debug(
-                "Query %d: Fetching data for query object: %s",
-                query.id,
-                str(query.to_dict()),
-            )
-            data = db_engine_spec.fetch_data(cursor, increased_limit)
-            if query.limit is None or len(data) <= query.limit:
-                query.limiting_factor = LimitingFactor.NOT_LIMITED
-            else:
-                # return 1 row less than increased_query
-                data = data[:-1]
+            with stats_timing("sqllab.query.time_fetching_results", stats_logger):
+                logger.debug(
+                    "Query %d: Fetching data for query object: %s",
+                    query.id,
+                    str(query.to_dict()),
+                )
+                data = db_engine_spec.fetch_data(cursor, increased_limit)
+                if query.limit is None or len(data) <= query.limit:
+                    query.limiting_factor = LimitingFactor.NOT_LIMITED
+                else:
+                    # return 1 row less than increased_query
+                    data = data[:-1]
     except SoftTimeLimitExceeded as ex:
         query.status = QueryStatus.TIMED_OUT
 
@@ -312,9 +312,9 @@ def execute_sql_statement(  # pylint: disable=too-many-statements
                 level=ErrorLevel.ERROR,
             )
         ) from ex
-    except OAuth2RedirectError as ex:
+    except OAuth2RedirectError:
         # user needs to authenticate with OAuth2 in order to run query
-        raise ex
+        raise
     except Exception as ex:
         # query is stopped in another thread/worker
         # stopping raises expected exceptions which we should skip
@@ -348,9 +348,9 @@ def _serialize_payload(
 ) -> Union[bytes, str]:
     logger.debug("Serializing to msgpack: %r", use_msgpack)
     if use_msgpack:
-        return msgpack.dumps(payload, default=json_iso_dttm_ser, use_bin_type=True)
+        return msgpack.dumps(payload, default=json.json_iso_dttm_ser, use_bin_type=True)
 
-    return json.dumps(payload, default=json_iso_dttm_ser, ignore_nan=True)
+    return json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True)
 
 
 def _serialize_and_expand_data(
@@ -470,7 +470,11 @@ def execute_sql_statements(
             )
         )
 
-    with database.get_raw_connection(query.schema, source=QuerySource.SQL_LAB) as conn:
+    with database.get_raw_connection(
+        catalog=query.catalog,
+        schema=query.schema,
+        source=QuerySource.SQL_LAB,
+    ) as conn:
         # Sharing a single connection and cursor across the
         # execution of all statements (if many)
         cursor = conn.cursor()
@@ -539,8 +543,7 @@ def execute_sql_statements(
     query.set_extra_json_key("columns", result_set.columns)
     if query.select_as_cta:
         query.select_sql = database.select_star(
-            query.tmp_table_name,
-            schema=query.tmp_schema_name,
+            Table(query.tmp_table_name, query.tmp_schema_name),
             limit=query.limit,
             show_cols=False,
             latest_partition=False,
@@ -645,7 +648,9 @@ def cancel_query(query: Query) -> bool:
         return False
 
     with query.database.get_sqla_engine(
-        query.schema, source=QuerySource.SQL_LAB
+        catalog=query.catalog,
+        schema=query.schema,
+        source=QuerySource.SQL_LAB,
     ) as engine:
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:

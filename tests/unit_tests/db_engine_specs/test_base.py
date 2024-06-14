@@ -23,7 +23,7 @@ from textwrap import dedent
 from typing import Any
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy import types
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import URL
@@ -74,7 +74,7 @@ def test_parse_sql_multi_statement() -> None:
     ]
 
 
-def test_validate_db_uri(mocker: MockFixture) -> None:
+def test_validate_db_uri(mocker: MockerFixture) -> None:
     """
     Ensures that the `validate_database_uri` method invokes the validator correctly
     """
@@ -197,7 +197,7 @@ def test_convert_inspector_columns(
     assert convert_inspector_columns(cols) == expected_result
 
 
-def test_select_star(mocker: MockFixture) -> None:
+def test_select_star(mocker: MockerFixture) -> None:
     """
     Test the ``select_star`` method.
     """
@@ -232,9 +232,8 @@ def test_select_star(mocker: MockFixture) -> None:
 
     sql = BaseEngineSpec.select_star(
         database=database,
-        table_name="my_table",
+        table=Table("my_table"),
         engine=engine,
-        schema=None,
         limit=100,
         show_cols=True,
         indent=True,
@@ -252,9 +251,8 @@ OFFSET ?"""
 
     sql = NoLimitDBEngineSpec.select_star(
         database=database,
-        table_name="my_table",
+        table=Table("my_table"),
         engine=engine,
-        schema=None,
         limit=100,
         show_cols=True,
         indent=True,
@@ -269,7 +267,7 @@ FROM my_table"""
     )
 
 
-def test_extra_table_metadata(mocker: MockFixture) -> None:
+def test_extra_table_metadata(mocker: MockerFixture) -> None:
     """
     Test the deprecated `extra_table_metadata` method.
     """
@@ -303,3 +301,13 @@ def test_extra_table_metadata(mocker: MockFixture) -> None:
     )
 
     warnings.warn.assert_called()
+
+
+def test_get_default_catalog(mocker: MockerFixture) -> None:
+    """
+    Test the `get_default_catalog` method.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = mocker.MagicMock()
+    assert BaseEngineSpec.get_default_catalog(database) is None

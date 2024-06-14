@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
@@ -110,7 +110,7 @@ const defaultRefreshIntervalModalProps = {
 
 test('is valid', () => {
   expect(
-    React.isValidElement(
+    isValidElement(
       <RefreshIntervalModal {...defaultRefreshIntervalModalProps} />,
     ),
   ).toBe(true);
@@ -168,6 +168,23 @@ test('should change selected value', async () => {
 
   // Selected value should now be "10 seconds"
   expect(selectedValue.title).toMatch(/10 seconds/i);
+  expect(selectedValue.title).not.toMatch(/don't refresh/i);
+});
+
+test('should change selected value to custom value', async () => {
+  render(setup(editModeOnProps));
+  await openRefreshIntervalModal();
+
+  // Initial selected value should be "Don't refresh"
+  const selectedValue = screen.getByText(/don't refresh/i);
+  expect(selectedValue.title).toMatch(/don't refresh/i);
+
+  // Display options and select "Custom interval"
+  await displayOptions();
+  userEvent.click(screen.getByText(/Custom interval/i));
+
+  // Selected value should now be "Custom interval"
+  expect(selectedValue.title).toMatch(/Custom interval/i);
   expect(selectedValue.title).not.toMatch(/don't refresh/i);
 });
 

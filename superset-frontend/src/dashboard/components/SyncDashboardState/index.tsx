@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import { FC, useEffect } from 'react';
+
 import { pick } from 'lodash';
 import { shallowEqual, useSelector } from 'react-redux';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
@@ -58,7 +59,7 @@ const updateDashboardTabLocalStorage = (
   });
 };
 
-const SyncDashboardState: React.FC<Props> = ({ dashboardPageId }) => {
+const SyncDashboardState: FC<Props> = ({ dashboardPageId }) => {
   const dashboardContextForExplore = useSelector<
     RootState,
     DashboardContextForExplore

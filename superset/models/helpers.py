@@ -16,16 +16,15 @@
 # under the License.
 # pylint: disable=too-many-lines
 """a collection of model-related helper classes and functions"""
+
 import builtins
 import dataclasses
-import json
 import logging
 import re
 import uuid
 from collections import defaultdict
 from collections.abc import Hashable
 from datetime import datetime, timedelta
-from json.decoder import JSONDecodeError
 from typing import Any, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
 import dateutil.parser
@@ -87,10 +86,11 @@ from superset.superset_typing import (
     OrderBy,
     QueryObjectDict,
 )
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import (
     GenericDataType,
     get_column_name,
+    get_non_base_axis_columns,
     get_user_id,
     is_adhoc_column,
     MediumText,
@@ -200,9 +200,7 @@ class ImportExportMixin:
             for u in cls.__table_args__  # type: ignore
             if isinstance(u, UniqueConstraint)
         ]
-        unique.extend(
-            {c.name} for c in cls.__table__.columns if c.unique  # type: ignore
-        )
+        unique.extend({c.name} for c in cls.__table__.columns if c.unique)  # type: ignore
         return unique
 
     @classmethod
@@ -210,7 +208,10 @@ class ImportExportMixin:
         """Get a mapping of foreign name to the local name of foreign keys"""
         parent_rel = cls.__mapper__.relationships.get(cls.export_parent)
         if parent_rel:
-            return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}
+            return {
+                local.name: remote.name
+                for (local, remote) in parent_rel.local_remote_pairs
+            }
         return {}
 
     @classmethod
@@ -309,7 +310,7 @@ class ImportExportMixin:
         try:
             obj_query = db.session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
-        except MultipleResultsFound as ex:
+        except MultipleResultsFound:
             logger.error(
                 "Error importing %s \n %s \n %s",
                 cls.__name__,
@@ -317,7 +318,7 @@ class ImportExportMixin:
                 yaml.safe_dump(dict_rep),
                 exc_info=True,
             )
-            raise ex
+            raise
 
         if not obj:
             is_new_obj = True
@@ -556,7 +557,6 @@ class AuditMixinNullable(AuditMixin):
 
 
 class QueryResult:  # pylint: disable=too-few-public-methods
-
     """Object returned by the query interface"""
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -596,7 +596,7 @@ class ExtraJSONMixin:
     def extra(self) -> dict[str, Any]:
         try:
             return json.loads(self.extra_json or "{}") or {}
-        except (TypeError, JSONDecodeError) as exc:
+        except (TypeError, json.JSONDecodeError) as exc:
             logger.error(
                 "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
             )
@@ -775,6 +775,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
+    def catalog(self) -> str:
+        raise NotImplementedError()
+
+    @property
     def schema(self) -> str:
         raise NotImplementedError()
 
@@ -802,7 +806,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_sqla_row_level_filters(
         self,
-        template_processor: BaseTemplateProcessor,
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> list[TextClause]:
         """
         Return the appropriate row level security filters for this table and the
@@ -812,6 +816,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param template_processor: The template processor to apply to the filters.
         :returns: A list of SQL clauses to be ANDed together.
         """
+        template_processor = template_processor or self.get_template_processor()
+
         all_filters: list[TextClause] = []
         filter_groups: dict[Union[int, str], list[TextClause]] = defaultdict(list)
         try:
@@ -880,18 +886,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         sqla_col.key = label_expected
         return sqla_col
 
-    def mutate_query_from_config(self, sql: str) -> str:
-        """Apply config's SQL_QUERY_MUTATOR
-
-        Typically adds comments to the query with context"""
-        if sql_query_mutator := config["SQL_QUERY_MUTATOR"]:
-            sql = sql_query_mutator(
-                sql,
-                security_manager=security_manager,
-                database=self.database,
-            )
-        return sql
-
     @staticmethod
     def _apply_cte(sql: str, cte: Optional[str]) -> str:
         """
@@ -919,7 +913,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             logger.warning("Unable to parse SQL to format it, passing it as-is")
 
         if mutate:
-            sql = self.mutate_query_from_config(sql)
+            sql = self.database.mutate_sql_based_on_config(sql)
         return QueryStringExtended(
             applied_template_filters=sqlaq.applied_template_filters,
             applied_filter_columns=sqlaq.applied_filter_columns,
@@ -1039,7 +1033,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return df
 
         try:
-            df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
+            df = self.database.get_df(
+                sql,
+                self.catalog,
+                self.schema,
+                mutator=assign_column_label,
+            )
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
             status = QueryStatus.FAILED
@@ -1258,7 +1257,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def adhoc_column_to_sqla(
         self,
-        col: "AdhocColumn",  # type: ignore
+        col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
@@ -1337,7 +1336,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         )
 
-        l = []
+        l = []  # noqa: E741
         if start_dttm:
             l.append(
                 col
@@ -1391,9 +1390,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
 
         with self.database.get_sqla_engine() as engine:
-            sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
+            sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
             sql = self._apply_cte(sql, cte)
-            sql = self.mutate_query_from_config(sql)
+            sql = self.database.mutate_sql_based_on_config(sql)
+
+            # pylint: disable=protected-access
+            if engine.dialect.identifier_preparer._double_percents:
+                sql = sql.replace("%%", "%")
 
             df = pd.read_sql_query(sql=sql, con=engine)
             # replace NaN with None to ensure it can be serialized to JSON
@@ -2081,7 +2084,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "filter": filter,
                     "orderby": orderby,
                     "extras": extras,
-                    "columns": columns,
+                    "columns": get_non_base_axis_columns(columns),
                     "order_desc": True,
                 }
 

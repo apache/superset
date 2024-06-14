@@ -79,6 +79,7 @@ export type AlertObject = {
   dashboard_id?: number;
   database?: MetaObject;
   description?: string;
+  email_subject?: string;
   error?: string;
   force_screenshot: boolean;
   grace_period?: number;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { createRef, PureComponent, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { debounce } from 'lodash';
@@ -107,9 +107,6 @@ const GridRow = styled.div`
         &:first-child {
           inset-inline-start: 0;
         }
-        &:last-child {
-          inset-inline-end: 0;
-        }
       }
     }
 
@@ -129,7 +126,7 @@ const emptyRowContentStyles = theme => css`
   color: ${theme.colors.text.label};
 `;
 
-class Row extends React.PureComponent {
+class Row extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -150,7 +147,7 @@ class Row extends React.PureComponent {
       FAST_DEBOUNCE,
     );
 
-    this.containerRef = React.createRef();
+    this.containerRef = createRef();
     this.observerEnabler = null;
     this.observerDisabler = null;
   }
@@ -323,14 +320,14 @@ class Row extends React.PureComponent {
                   {...(rowItems.length === 0
                     ? {
                         component: rowComponent,
-                        parentComponent,
+                        parentComponent: rowComponent,
                         dropToChild: true,
                       }
                     : {
-                        component: rowItems,
+                        component: rowItems[0],
                         parentComponent: rowComponent,
                       })}
-                  depth={depth + 1}
+                  depth={depth}
                   index={0}
                   orientation="row"
                   onDrop={handleComponentDrop}
@@ -355,7 +352,7 @@ class Row extends React.PureComponent {
               )}
               {rowItems.length > 0 &&
                 rowItems.map((componentId, itemIndex) => (
-                  <React.Fragment key={componentId}>
+                  <Fragment key={componentId}>
                     <DashboardComponent
                       key={componentId}
                       id={componentId}
@@ -375,7 +372,7 @@ class Row extends React.PureComponent {
                       <Droppable
                         component={rowItems}
                         parentComponent={rowComponent}
-                        depth={depth + 1}
+                        depth={depth}
                         index={itemIndex + 1}
                         orientation="row"
                         onDrop={handleComponentDrop}
@@ -398,7 +395,7 @@ class Row extends React.PureComponent {
                         }
                       </Droppable>
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 ))}
             </GridRow>
           </WithPopoverMenu>

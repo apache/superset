@@ -15,13 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
-import json
+
 import os
 from typing import Any
 
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
+from superset.utils import json
 
 BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"
 

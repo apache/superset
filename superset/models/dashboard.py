@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 import uuid
 from collections import defaultdict
@@ -32,7 +31,6 @@ from sqlalchemy import (
     Column,
     ForeignKey,
     Integer,
-    MetaData,
     String,
     Table,
     Text,
@@ -52,7 +50,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
@@ -152,11 +150,12 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     )
     tags = relationship(
         "Tag",
-        overlaps="objects,tag,tags,tags",
+        overlaps="objects,tag,tags",
         secondary="tagged_object",
-        primaryjoin="and_(Dashboard.id == TaggedObject.object_id)",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        primaryjoin="and_(Dashboard.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'dashboard')",
+        secondaryjoin="TaggedObject.tag_id == Tag.id",
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
     )
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
@@ -215,13 +214,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         return [slc.chart for slc in self.slices]
 
     @property
-    def sqla_metadata(self) -> None:
-        # pylint: disable=no-member
-        with self.get_sqla_engine() as engine:
-            meta = MetaData(bind=engine)
-            meta.reflect()
-
-    @property
     def status(self) -> utils.DashboardStatus:
         if self.published:
             return utils.DashboardStatus.PUBLISHED
@@ -272,9 +264,9 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
     def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
         # Verbose but efficient database enumeration of dashboard datasources.
-        slices_by_datasource: dict[
-            tuple[type[BaseDatasource], int], set[Slice]
-        ] = defaultdict(set)
+        slices_by_datasource: dict[tuple[type[BaseDatasource], int], set[Slice]] = (
+            defaultdict(set)
+        )
 
         for slc in self.slices:
             slices_by_datasource[(slc.cls_model, slc.datasource_id)].add(slc)
@@ -380,7 +372,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
         return json.dumps(
             {"dashboards": copied_dashboards, "datasources": eager_datasources},
-            cls=utils.DashboardEncoder,
+            cls=json.DashboardEncoder,
             indent=4,
         )
 
@@ -426,6 +418,6 @@ def id_or_slug_filter(id_or_slug: int | str) -> BinaryExpression:
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
 
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
-    update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()
+    update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()  # noqa: E731
     sqla.event.listen(Dashboard, "after_insert", update_thumbnail)
     sqla.event.listen(Dashboard, "after_update", update_thumbnail)

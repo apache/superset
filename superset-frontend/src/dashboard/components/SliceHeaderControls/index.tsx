@@ -16,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   MouseEvent,
   Key,
+  KeyboardEvent,
   ReactChild,
   useState,
   useRef,
   RefObject,
   useCallback,
+  ReactElement,
 } from 'react';
+
 import { RouteComponentProps, useHistory, withRouter } from 'react-router-dom';
 import moment from 'moment';
 import {
@@ -345,9 +348,9 @@ const getNavigationKeys = (
 };
 
 export const handleDropdownNavigation = (
-  e: React.KeyboardEvent<HTMLElement>,
+  e: KeyboardEvent<HTMLElement>,
   dropdownIsOpen: boolean,
-  menu: React.ReactElement,
+  menu: ReactElement,
   toggleDropdown: () => void,
   setSelectedKeys: (keys: string[]) => void,
   setOpenKeys: (keys: string[]) => void,
@@ -557,7 +560,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
   const canDatasourceSamples = useSelector((state: RootState) =>
     findPermission('can_samples', 'Datasource', state.user?.roles),
   );
-  const canDrillToDetail = canExplore && canDatasourceSamples;
+  const canDrill = useSelector((state: RootState) =>
+    findPermission('can_drill', 'Dashboard', state.user?.roles),
+  );
+  const canDrillToDetail = (canExplore || canDrill) && canDatasourceSamples;
   const canViewQuery = useSelector((state: RootState) =>
     findPermission('can_view_query', 'Dashboard', state.user?.roles),
   );

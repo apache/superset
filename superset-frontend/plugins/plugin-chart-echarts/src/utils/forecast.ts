@@ -95,23 +95,26 @@ export const formatForecastTooltipSeries = ({
   seriesName: string;
   marker: TooltipMarker;
   formatter: ValueFormatter;
-}): string => {
-  let row = `${marker}${sanitizeHtml(seriesName)}: `;
-  let isObservation = false;
-  if (isNumber(observation)) {
-    isObservation = true;
-    row += `${formatter(observation)}`;
+}): string[] => {
+  const name = `${marker}${sanitizeHtml(seriesName)}`;
+  let value = isNumber(observation) ? formatter(observation) : '';
+  if (forecastTrend || forecastLower || forecastUpper) {
+    // forecast values take the form of "20, y = 30 (10, 40)"
+    // where the first part is the observation, the second part is the forecast trend
+    // and the third part is the lower and upper bounds
+    if (forecastTrend) {
+      if (value) value += ', ';
+      value += `ŷ = ${formatter(forecastTrend)}`;
+    }
+    if (forecastLower && forecastUpper) {
+      if (value) value += ' ';
+      // the lower bound needs to be added to the upper bound
+      value += `(${formatter(forecastLower)}, ${formatter(
+        forecastLower + forecastUpper,
+      )})`;
+    }
   }
-  if (forecastTrend) {
-    if (isObservation) row += ', ';
-    row += `ŷ = ${formatter(forecastTrend)}`;
-  }
-  if (forecastLower && forecastUpper)
-    // the lower bound needs to be added to the upper bound
-    row = `${row.trim()} (${formatter(forecastLower)}, ${formatter(
-      forecastLower + forecastUpper,
-    )})`;
-  return `${row.trim()}`;
+  return [name, value];
 };
 
 export function rebaseForecastDatum(
