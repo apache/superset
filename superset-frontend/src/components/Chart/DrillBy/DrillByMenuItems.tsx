@@ -323,7 +323,7 @@ export const DrillByMenuItems = ({
             <List
               width="100%"
               height={SUBMENU_HEIGHT}
-              itemSize={40}
+              itemSize={35}
               itemCount={filteredColumns.length}
               itemData={{ columns: filteredColumns, ...rest }}
               overscanCount={20}
