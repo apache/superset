@@ -83,7 +83,7 @@ class CreateDatabaseCommand(BaseCommand):
             "{}",
         )
 
-        ssh_tunnel = None
+        ssh_tunnel: Optional[SSHTunnel] = None
 
         try:
             database = self._create_database()
@@ -118,7 +118,7 @@ class CreateDatabaseCommand(BaseCommand):
             for catalog in catalogs:
                 try:
                     self.add_schema_permissions(database, catalog, ssh_tunnel)
-                except Exception:
+                except Exception:  # pylint: disable=broad-except
                     logger.warning("Error processing catalog '%s'", catalog)
                     continue
 
@@ -153,7 +153,10 @@ class CreateDatabaseCommand(BaseCommand):
         return database
 
     def add_schema_permissions(
-        self, database: Database, catalog: Optional[str], ssh_tunnel: SSHTunnel
+        self,
+        database: Database,
+        catalog: Optional[str],
+        ssh_tunnel: Optional[SSHTunnel],
     ) -> None:
         for schema in database.get_all_schema_names(
             catalog=catalog,
