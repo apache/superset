@@ -146,6 +146,29 @@ test('sync the active editor id when there are updates in tab history', async ()
   expect(fetchMock.calls(updateActiveEditorTabState)).toHaveLength(1);
 });
 
+test('sync the destroyed editor id when there are updates in destroyed editors', async () => {
+  const removeId = 'removed-tab-id';
+  const deleteEditorState = `glob:*/tabstateview/${removeId}`;
+  fetchMock.delete(deleteEditorState, { id: removeId });
+  expect(fetchMock.calls(deleteEditorState)).toHaveLength(0);
+  render(<EditorAutoSync />, {
+    useRedux: true,
+    initialState: {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        destroyedQueryEditors: {
+          [removeId]: 123,
+        },
+      },
+    },
+  });
+  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  expect(fetchMock.calls(deleteEditorState)).toHaveLength(1);
+  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  expect(fetchMock.calls(deleteEditorState)).toHaveLength(1);
+});
+
 test('skip syncing the unsaved editor tab state when the updates are already synced', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);

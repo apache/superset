@@ -163,8 +163,17 @@ export default function sqlLabReducer(state = {}, action) {
           ...(action.queryEditor.id !== state.unsavedQueryEditor.id &&
             state.unsavedQueryEditor),
         },
+        destroyedQueryEditors: {
+          ...newState.destroyedQueryEditors,
+          [queryEditor.id]: Date.now(),
+        },
       };
       return newState;
+    },
+    [actions.CLEAR_DESTROYED_QUERY_EDITOR]() {
+      const destroyedQueryEditors = { ...state.destroyedQueryEditors };
+      delete destroyedQueryEditors[action.queryEditorId];
+      return { ...state, destroyedQueryEditors };
     },
     [actions.REMOVE_QUERY]() {
       const newQueries = { ...state.queries };

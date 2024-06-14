@@ -50,6 +50,7 @@ const sqlLabPersistStateConfig = {
             queries,
             tabHistory,
             lastUpdatedActiveTab,
+            destroyedQueryEditors,
           } = state.sqlLab;
           const unsavedQueryEditors = filterUnsavedQueryEditorList(
             queryEditors,
@@ -58,7 +59,13 @@ const sqlLabPersistStateConfig = {
           );
           const hasUnsavedActiveTabState =
             tabHistory.slice(-1)[0] !== lastUpdatedActiveTab;
-          if (unsavedQueryEditors.length > 0 || hasUnsavedActiveTabState) {
+          const hasUnsavedDeletedQueryEditors =
+            Object.keys(destroyedQueryEditors).length > 0;
+          if (
+            unsavedQueryEditors.length > 0 ||
+            hasUnsavedActiveTabState ||
+            hasUnsavedDeletedQueryEditors
+          ) {
             const hasFinishedMigrationFromLocalStorage =
               unsavedQueryEditors.every(
                 ({ inLocalStorage }) => !inLocalStorage,
@@ -76,6 +83,7 @@ const sqlLabPersistStateConfig = {
               ...(hasUnsavedActiveTabState && {
                 tabHistory,
               }),
+              destroyedQueryEditors,
             };
           }
           return;

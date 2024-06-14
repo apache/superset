@@ -146,6 +146,8 @@ export default function getInitialState({
     }),
   };
 
+  const destroyedQueryEditors = {};
+
   /**
    * If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user
    * hasn't used SQL Lab after it has been turned on, the state will be stored
@@ -219,6 +221,15 @@ export default function getInitialState({
           tabHistory.push(...sqlLab.tabHistory);
         }
         lastUpdatedActiveTab = tabHistory.slice(tabHistory.length - 1)[0] || '';
+
+        if (sqlLab.destroyedQueryEditors) {
+          Object.entries(sqlLab.destroyedQueryEditors).forEach(([id, ts]) => {
+            if (queryEditors[id]) {
+              destroyedQueryEditors[id] = ts;
+              delete queryEditors[id];
+            }
+          });
+        }
       }
     }
   } catch (error) {
@@ -253,6 +264,7 @@ export default function getInitialState({
       queryCostEstimates: {},
       unsavedQueryEditor,
       lastUpdatedActiveTab,
+      destroyedQueryEditors,
     },
     localStorageUsageInKilobytes: 0,
     common,

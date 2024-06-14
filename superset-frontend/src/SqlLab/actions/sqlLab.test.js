@@ -610,7 +610,7 @@ describe('async actions', () => {
 
     describe('removeQueryEditor', () => {
       it('updates the tab state in the backend', () => {
-        expect.assertions(2);
+        expect.assertions(1);
 
         const store = mockStore({});
         const expectedActions = [
@@ -619,12 +619,8 @@ describe('async actions', () => {
             queryEditor,
           },
         ];
-        return store
-          .dispatch(actions.removeQueryEditor(queryEditor))
-          .then(() => {
-            expect(store.getActions()).toEqual(expectedActions);
-            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
-          });
+        store.dispatch(actions.removeQueryEditor(queryEditor));
+        expect(store.getActions()).toEqual(expectedActions);
       });
     });
 
