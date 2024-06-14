@@ -87,7 +87,7 @@ def test_df_to_escaped_csv():
         ["col_a"],
         ["'=func()"],
         ["-10"],
-        [r"'=cmd\\|' /C calc'!A0"],
+        ["\"'=cmd\\|' /C calc'!A0\""],
         ['"\'""""=b"'],
         ["' =a"],
         ["\x00"],
