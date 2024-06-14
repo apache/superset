@@ -44,6 +44,7 @@ InteractiveSwitch.args = {
 InteractiveSwitch.argTypes = {
   size: {
     defaultValue: 'default',
-    control: { type: 'radio', options: ['small', 'default'] },
+    control: { type: 'radio' },
+    options: ['small', 'default'],
   },
 };

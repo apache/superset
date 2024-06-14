@@ -42,19 +42,19 @@ InteractiveProgressBar.argTypes = {
   status: {
     control: {
       type: 'select',
-      options: ['normal', 'success', 'exception', 'active'],
     },
+    options: ['normal', 'success', 'exception', 'active'],
   },
   strokeLinecap: {
     control: {
       type: 'select',
-      options: ['round', 'square'],
     },
+    options: ['round', 'square'],
   },
   type: {
     control: {
       type: 'select',
-      options: ['line', 'circle', 'dashboard'],
     },
+    options: ['line', 'circle', 'dashboard'],
   },
 };

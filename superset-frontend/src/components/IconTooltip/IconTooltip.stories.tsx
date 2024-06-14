@@ -53,6 +53,7 @@ InteractiveIconTooltip.args = {
 InteractiveIconTooltip.argTypes = {
   placement: {
     defaultValue: 'top',
-    control: { type: 'select', options: PLACEMENTS },
+    control: { type: 'select' },
+    options: PLACEMENTS,
   },
 };
