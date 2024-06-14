@@ -20,4 +20,5 @@
 # DON'T ignore the .gitignore
 !.gitignore
 !superset_config.py
+!custom_sso_security_manager.py
 !superset_config_local.example
