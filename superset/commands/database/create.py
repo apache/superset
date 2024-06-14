@@ -155,7 +155,7 @@ class CreateDatabaseCommand(BaseCommand):
     def add_schema_permissions(
         self,
         database: Database,
-        catalog: Optional[str],
+        catalog: str,
         ssh_tunnel: Optional[SSHTunnel],
     ) -> None:
         for schema in database.get_all_schema_names(
@@ -167,6 +167,7 @@ class CreateDatabaseCommand(BaseCommand):
                 "schema_access",
                 security_manager.get_schema_perm(
                     database.database_name,
+                    catalog,
                     schema,
                 ),
             )
