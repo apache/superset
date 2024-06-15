@@ -18,7 +18,7 @@
  */
 import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
-describe('Visualization > Line', () => {
+describe('Visualization > Line', { testIsolation: false }, () => {
   beforeEach(() => {
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });

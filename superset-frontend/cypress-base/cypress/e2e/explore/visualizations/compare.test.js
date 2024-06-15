@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-describe('Visualization > Compare', () => {
+describe('Visualization > Compare', { testIsolation: false }, () => {
   beforeEach(() => {
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });

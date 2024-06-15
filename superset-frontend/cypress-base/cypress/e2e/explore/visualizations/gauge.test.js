@@ -17,7 +17,7 @@
  * under the License.
  */
 
-describe('Visualization > Gauge', () => {
+describe('Visualization > Gauge', { testIsolation: false }, () => {
   beforeEach(() => {
     cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
   });

@@ -26,7 +26,7 @@ function closeModal() {
   });
 }
 
-describe('Add database', () => {
+describe('Add database', { testIsolation: false }, () => {
   before(() => {
     cy.visit(DATABASE_LIST);
   });

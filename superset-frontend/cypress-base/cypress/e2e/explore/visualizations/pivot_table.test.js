@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-describe('Visualization > Pivot Table', () => {
+describe('Visualization > Pivot Table', { testIsolation: false }, () => {
   beforeEach(() => {
     cy.intercept('POST', '/api/v1/chart/data**').as('chartData');
   });

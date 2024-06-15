@@ -88,7 +88,7 @@ function saveAndVerifyDashboard(number) {
   verifyDashboardsSubmenuItem(`${number} - Sample dashboard`);
 }
 
-describe('Cross-referenced dashboards', () => {
+describe('Cross-referenced dashboards', { testIsolation: false }, () => {
   beforeEach(() => {
     interceptFiltering();
 
@@ -122,7 +122,7 @@ describe('Cross-referenced dashboards', () => {
   });
 });
 
-describe('No Results', () => {
+describe('No Results', { testIsolation: false }, () => {
   beforeEach(() => {
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });

@@ -132,19 +132,19 @@ function testTimeChart(vizType: string) {
   });
 }
 
-describe('Drill to detail modal', () => {
+describe('Drill to detail modal', { testIsolation: false }, () => {
   beforeEach(() => {
     closeModal();
   });
 
-  describe('Tier 1 charts', () => {
+  describe('Tier 1 charts', { testIsolation: false }, () => {
     before(() => {
       cy.visit(SUPPORTED_CHARTS_DASHBOARD);
       openTopLevelTab('Tier 1');
       SUPPORTED_TIER1_CHARTS.forEach(waitForChartLoad);
     });
 
-    describe('Modal actions', () => {
+    describe('Modal actions', { testIsolation: false }, () => {
       it('opens the modal from the context menu', () => {
         openModalFromMenu('big_number_total');
 
@@ -201,7 +201,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Big number total', () => {
+    describe('Big number total', { testIsolation: false }, () => {
       it('opens the modal with no filters', () => {
         interceptSamples();
 
@@ -216,7 +216,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Big number with trendline', () => {
+    describe('Big number with trendline', { testIsolation: false }, () => {
       it('opens the modal with the correct data', () => {
         interceptSamples();
 
@@ -246,7 +246,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Table', () => {
+    describe('Table', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -279,7 +279,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Pivot Table V2', () => {
+    describe('Pivot Table V2', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -340,13 +340,13 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Line Chart', () => {
+    describe('Line Chart', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_timeseries_line');
       });
     });
 
-    describe('Bar Chart', () => {
+    describe('Bar Chart', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -380,19 +380,19 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Area Chart', () => {
+    describe('Area Chart', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_area');
       });
     });
 
-    describe('Scatter Chart', () => {
+    describe('Scatter Chart', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_timeseries_scatter');
       });
     });
 
-    describe('Pie', () => {
+    describe('Pie', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -412,7 +412,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('World Map', () => {
+    describe('World Map', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -430,7 +430,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Bar Chart', () => {
+    describe('Bar Chart', { testIsolation: false }, () => {
       it('opens the modal for unsupported chart without filters', () => {
         interceptSamples();
 
@@ -443,14 +443,14 @@ describe('Drill to detail modal', () => {
     });
   });
 
-  describe('Tier 2 charts', () => {
+  describe('Tier 2 charts', { testIsolation: false }, () => {
     before(() => {
       cy.visit(SUPPORTED_CHARTS_DASHBOARD);
       openTopLevelTab('Tier 2');
       SUPPORTED_TIER2_CHARTS.forEach(waitForChartLoad);
     });
 
-    describe('Modal actions', () => {
+    describe('Modal actions', { testIsolation: false }, () => {
       it('clears filters', () => {
         interceptSamples();
 
@@ -492,7 +492,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Box plot', () => {
+    describe('Box plot', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -517,25 +517,25 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Generic Chart', () => {
+    describe('Generic Chart', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_timeseries');
       });
     });
 
-    describe('Smooth Chart', () => {
+    describe('Smooth Chart', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_timeseries_smooth');
       });
     });
 
-    describe('Step Line Chart', () => {
+    describe('Step Line Chart', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_timeseries_step');
       });
     });
 
-    describe('Funnel Chart', () => {
+    describe('Funnel Chart', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -554,7 +554,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Gauge Chart', () => {
+    describe('Gauge Chart', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -573,13 +573,13 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Mixed Chart', () => {
+    describe('Mixed Chart', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('mixed_timeseries');
       });
     });
 
-    describe('Radar Chart', () => {
+    describe('Radar Chart', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -598,7 +598,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Treemap', () => {
+    describe('Treemap', { testIsolation: false }, () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 

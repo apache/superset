@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-describe('SqlLab query tabs', () => {
+describe('SqlLab query tabs', { testIsolation: false }, () => {
   beforeEach(() => {
     cy.visit('/sqllab');
   });

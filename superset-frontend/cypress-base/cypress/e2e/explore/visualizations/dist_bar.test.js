@@ -18,77 +18,81 @@
  */
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
-describe('Visualization > Distribution bar chart', () => {
-  beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
-
-  const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'dist_bar' };
-  const DISTBAR_FORM_DATA = {
-    ...VIZ_DEFAULTS,
-    metrics: NUM_METRIC,
-    groupby: ['state'],
-  };
-
-  it('should work with adhoc metric', () => {
-    cy.visitChartByParams(DISTBAR_FORM_DATA);
-    cy.verifySliceSuccess({
-      waitAlias: '@getJson',
-      querySubstring: NUM_METRIC.label,
-      chartSelector: 'svg',
+describe(
+  'Visualization > Distribution bar chart',
+  { testIsolation: false },
+  () => {
+    beforeEach(() => {
+      cy.intercept('POST', '/superset/explore_json/**').as('getJson');
     });
-  });
 
-  it('should work with series', () => {
-    const formData = {
+    const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'dist_bar' };
+    const DISTBAR_FORM_DATA = {
       ...VIZ_DEFAULTS,
       metrics: NUM_METRIC,
       groupby: ['state'],
-      columns: ['gender'],
     };
 
-    cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
-  });
+    it('should work with adhoc metric', () => {
+      cy.visitChartByParams(DISTBAR_FORM_DATA);
+      cy.verifySliceSuccess({
+        waitAlias: '@getJson',
+        querySubstring: NUM_METRIC.label,
+        chartSelector: 'svg',
+      });
+    });
 
-  it('should work with row limit', () => {
-    const formData = {
-      ...VIZ_DEFAULTS,
-      metrics: NUM_METRIC,
-      groupby: ['state'],
-      row_limit: 10,
-    };
+    it('should work with series', () => {
+      const formData = {
+        ...VIZ_DEFAULTS,
+        metrics: NUM_METRIC,
+        groupby: ['state'],
+        columns: ['gender'],
+      };
 
-    cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
-  });
+      cy.visitChartByParams(formData);
+      cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    });
 
-  it('should work with contribution', () => {
-    const formData = {
-      ...VIZ_DEFAULTS,
-      metrics: NUM_METRIC,
-      groupby: ['state'],
-      columns: ['gender'],
-      contribution: true,
-    };
+    it('should work with row limit', () => {
+      const formData = {
+        ...VIZ_DEFAULTS,
+        metrics: NUM_METRIC,
+        groupby: ['state'],
+        row_limit: 10,
+      };
 
-    cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
-  });
+      cy.visitChartByParams(formData);
+      cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    });
 
-  it('should allow type to search color schemes and apply the scheme', () => {
-    cy.visitChartByParams(DISTBAR_FORM_DATA);
+    it('should work with contribution', () => {
+      const formData = {
+        ...VIZ_DEFAULTS,
+        metrics: NUM_METRIC,
+        groupby: ['state'],
+        columns: ['gender'],
+        contribution: true,
+      };
 
-    cy.get('#controlSections-tab-display').click();
-    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
-    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
-      .focus()
-      .type('bnbColors{enter}');
-    cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
-    ).should('exist');
-    cy.get('.dist_bar .nv-legend .nv-legend-symbol')
-      .first()
-      .should('have.css', 'fill', 'rgb(41, 105, 107)');
-  });
-});
+      cy.visitChartByParams(formData);
+      cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    });
+
+    it('should allow type to search color schemes and apply the scheme', () => {
+      cy.visitChartByParams(DISTBAR_FORM_DATA);
+
+      cy.get('#controlSections-tab-display').click();
+      cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+      cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+        .focus()
+        .type('bnbColors{enter}');
+      cy.get(
+        '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
+      ).should('exist');
+      cy.get('.dist_bar .nv-legend .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(41, 105, 107)');
+    });
+  },
+);

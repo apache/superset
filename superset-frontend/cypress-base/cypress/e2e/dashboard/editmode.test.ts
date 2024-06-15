@@ -182,8 +182,8 @@ function openExplore(chartName: string) {
   cy.wait('@getJson');
 }
 
-describe('Dashboard edit', () => {
-  describe('Color consistency', () => {
+describe('Dashboard edit', { testIsolation: false }, () => {
+  describe('Color consistency', { testIsolation: false }, () => {
     beforeEach(() => {
       visitResetTabbedDashboard();
     });
@@ -624,7 +624,7 @@ describe('Dashboard edit', () => {
     });
   });
 
-  describe('Edit properties', () => {
+  describe('Edit properties', { testIsolation: false }, () => {
     before(() => {
       visitEdit();
     });
@@ -678,7 +678,7 @@ describe('Dashboard edit', () => {
     });
   });
 
-  describe('Edit mode', () => {
+  describe('Edit mode', { testIsolation: false }, () => {
     before(() => {
       visitEdit();
     });
@@ -718,7 +718,7 @@ describe('Dashboard edit', () => {
     });
   });
 
-  describe('Components', () => {
+  describe('Components', { testIsolation: false }, () => {
     beforeEach(() => {
       visitEdit();
     });
@@ -766,7 +766,7 @@ describe('Dashboard edit', () => {
     });
   });
 
-  describe('Save', () => {
+  describe('Save', { testIsolation: false }, () => {
     beforeEach(() => {
       visitEdit();
     });

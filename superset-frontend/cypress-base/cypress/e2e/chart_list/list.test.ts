@@ -53,8 +53,8 @@ function visitChartList() {
   cy.wait('@filtering');
 }
 
-describe('Charts list', () => {
-  describe('Cross-referenced dashboards', () => {
+describe('Charts list', { testIsolation: false }, () => {
+  describe('Cross-referenced dashboards', { testIsolation: false }, () => {
     beforeEach(() => {
       cy.createSampleDashboards([0, 1, 2, 3]);
       cy.createSampleCharts([0]);
@@ -99,7 +99,7 @@ describe('Charts list', () => {
     });
   });
 
-  describe('list mode', () => {
+  describe('list mode', { testIsolation: false }, () => {
     before(() => {
       cy.createSampleDashboards([0, 1, 2, 3]);
       cy.createSampleCharts([0]);
@@ -144,7 +144,7 @@ describe('Charts list', () => {
     });
   });
 
-  describe('card mode', () => {
+  describe('card mode', { testIsolation: false }, () => {
     before(() => {
       visitChartList();
       setGridMode('card');
@@ -183,7 +183,7 @@ describe('Charts list', () => {
     });
   });
 
-  describe('common actions', () => {
+  describe('common actions', { testIsolation: false }, () => {
     beforeEach(() => {
       cy.createSampleCharts([0, 1, 2, 3]);
       visitChartList();
