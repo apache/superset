@@ -1,7 +1,7 @@
 {
   "name": "superset-cypress",
   "version": "1.0.0",
-  "description": "run cypress against superset",
+  "description": "run Cypress against superset",
   "license": "Apache-2.0",
   "author": "Apache",
   "scripts": {
@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@applitools/eyes-cypress": "^3.41.0",
-    "@cypress/code-coverage": "^3.10.4",
+    "@cypress/code-coverage": "^3.12.39",
     "@superset-ui/core": "^2.1.0",
     "brace": "^0.11.1",
     "cy-verify-downloads": "^0.1.6",
@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@types/querystringify": "^2.0.0",
-    "cypress": "^10.11.0",
-    "eslint-plugin-cypress": "^2.12.1"
+    "cypress": "^11.1.0",
+    "eslint-plugin-cypress": "^3.3.0"
   }
 }
