@@ -28,7 +28,6 @@ export default eyesPlugin(
     experimentalFetchPolyfill: true,
     requestTimeout: 10000,
     video: false,
-    videoUploadOnPasses: false,
     viewportWidth: 1280,
     viewportHeight: 1024,
     projectId: 'ukwxzo',
