@@ -55,6 +55,7 @@ InteractiveCopyToClipboard.argTypes = {
   onCopyEnd: { action: 'onCopyEnd' },
   copyNode: {
     defaultValue: 'Button',
-    control: { type: 'radio', options: ['Button', 'Icon', 'Text'] },
+    control: { type: 'radio' },
+    options: ['Button', 'Icon', 'Text'],
   },
 };

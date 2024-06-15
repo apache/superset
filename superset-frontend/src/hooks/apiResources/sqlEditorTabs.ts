@@ -73,10 +73,18 @@ const sqlEditorApi = api.injectEndpoints({
         transformResponse: () => queryEditorId,
       }),
     }),
+    deleteSqlEditorTab: builder.mutation<void, string>({
+      query: queryEditorId => ({
+        method: 'DELETE',
+        endpoint: encodeURI(`/tabstateview/${queryEditorId}`),
+        transformResponse: () => queryEditorId,
+      }),
+    }),
   }),
 });
 
 export const {
   useUpdateSqlEditorTabMutation,
   useUpdateCurrentSqlEditorTabMutation,
+  useDeleteSqlEditorTabMutation,
 } = sqlEditorApi;

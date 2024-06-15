@@ -20,6 +20,8 @@ import math
 from copy import copy
 from datetime import timedelta
 
+from sqlalchemy.engine import make_url
+
 from superset.config import *  # noqa: F403
 from superset.config import DATA_DIR
 from tests.integration_tests.superset_test_custom_template_processors import (
@@ -52,11 +54,14 @@ if "SUPERSET__SQLALCHEMY_EXAMPLES_URI" in os.environ:  # noqa: F405
 if "UPLOAD_FOLDER" in os.environ:  # noqa: F405
     UPLOAD_FOLDER = os.environ["UPLOAD_FOLDER"]  # noqa: F405
 
-if "sqlite" in SQLALCHEMY_DATABASE_URI:
+if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() == "sqlite":
     logger.warning(  # noqa: F405
         "SQLite Database support for metadata databases will be "
         "removed in a future version of Superset."
     )
+
+if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() in ("postgresql", "mysql"):
+    SQLALCHEMY_ENGINE_OPTIONS["isolation_level"] = "READ COMMITTED"  # noqa: F405
 
 # Speeding up the tests.integration_tests.
 PRESTO_POLL_INTERVAL = 0.1

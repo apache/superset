@@ -43,6 +43,7 @@ import {
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
+import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
 import { areObjectsEqual } from 'src/reduxUtils';
 import * as logActions from 'src/logger/actions';
 import {
@@ -710,6 +711,11 @@ function ExploreViewContainer(props) {
 
 ExploreViewContainer.propTypes = propTypes;
 
+const retainQueryModeRequirements = hiddenFormData =>
+  Object.keys(hiddenFormData ?? {}).filter(
+    key => !QUERY_MODE_REQUISITES.has(key),
+  );
+
 function mapStateToProps(state) {
   const {
     explore,
@@ -722,10 +728,11 @@ function mapStateToProps(state) {
     saveModal,
   } = state;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
-  const form_data = omit(
-    getFormDataFromControls(controls),
-    Object.keys(hiddenFormData ?? {}),
-  );
+  const hasQueryMode = !!controls.query_mode?.value;
+  const fieldsToOmit = hasQueryMode
+    ? retainQueryModeRequirements(hiddenFormData)
+    : Object.keys(hiddenFormData ?? {});
+  const form_data = omit(getFormDataFromControls(controls), fieldsToOmit);
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },

@@ -146,9 +146,6 @@ def stats_timing(stats_key: str, stats_logger: BaseStatsLogger) -> Iterator[floa
     start_ts = now_as_float()
     try:
         yield start_ts
-    except Exception:  # pylint: disable=try-except-raise
-        # Make sure to bubble this up
-        raise
     finally:
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 

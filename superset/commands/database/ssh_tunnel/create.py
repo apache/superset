@@ -45,15 +45,19 @@ class CreateSSHTunnelCommand(BaseCommand):
         self._database = database
 
     def run(self) -> Model:
+        """
+        Create an SSH tunnel.
+
+        :returns: The SSH tunnel model
+        :raises SSHTunnelCreateFailedError: If the model creation fails
+        :raises SSHTunnelInvalidError: If the configuration are invalid
+        """
+
         try:
             self.validate()
-            ssh_tunnel = SSHTunnelDAO.create(attributes=self._properties, commit=False)
-            return ssh_tunnel
+            return SSHTunnelDAO.create(attributes=self._properties, commit=False)
         except DAOCreateFailedError as ex:
             raise SSHTunnelCreateFailedError() from ex
-        except SSHTunnelInvalidError:  # pylint: disable=try-except-raise
-            # Make sure to bubble this up
-            raise
 
     def validate(self) -> None:
         # TODO(hughhh): check to make sure the server port is not localhost

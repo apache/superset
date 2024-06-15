@@ -274,6 +274,9 @@ describe('getInitialState', () => {
                 name: expectedValue,
               },
             ],
+            destroyedQueryEditors: {
+              10: 12345,
+            },
           },
         }),
       );
@@ -291,7 +294,10 @@ describe('getInitialState', () => {
             updatedAt: lastUpdatedTime,
           },
         },
-        tab_state_ids: [{ id: 1, label: '' }],
+        tab_state_ids: [
+          { id: 1, label: '' },
+          { id: 10, label: 'removed' },
+        ],
       };
       expect(
         getInitialState(apiDataWithLocalStorage).sqlLab.queryEditors[0],
@@ -299,6 +305,13 @@ describe('getInitialState', () => {
         expect.objectContaining({
           id: '1',
           name: expectedValue,
+        }),
+      );
+      expect(
+        getInitialState(apiDataWithLocalStorage).sqlLab.queryEditors,
+      ).not.toContainEqual(
+        expect.objectContaining({
+          id: '10',
         }),
       );
       expect(

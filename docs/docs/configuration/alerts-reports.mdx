@@ -204,6 +204,17 @@ ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=10).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=5).total_seconds())
 ```
 
+Alternatively, you can assign a function to `ALERT_MINIMUM_INTERVAL` and/or `REPORT_MINIMUM_INTERVAL`. This is useful to dynamically retrieve a value as needed:
+
+``` python
+def alert_dynamic_minimal_interval(**kwargs) -> int:
+    """
+    Define logic here to retrieve the value dynamically
+    """
+
+ALERT_MINIMUM_INTERVAL = alert_dynamic_minimal_interval
+```
+
 ## Custom Dockerfile
 
 If you're running the dev version of a released Superset image, like `apache/superset:3.1.0-dev`, you should be set with the above.

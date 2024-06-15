@@ -71,6 +71,7 @@ const ConditionalFormattingControl = ({
   columnOptions,
   verboseMap,
   removeIrrelevantConditions,
+  extraColorChoices,
   ...props
 }: ConditionalFormattingControlProps) => {
   const theme = useTheme();
@@ -155,6 +156,7 @@ const ConditionalFormattingControl = ({
                 onEdit(newConfig, index)
               }
               destroyTooltipOnHide
+              extraColorChoices={extraColorChoices}
             >
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
@@ -170,6 +172,7 @@ const ConditionalFormattingControl = ({
           columns={columnOptions}
           onChange={onSave}
           destroyTooltipOnHide
+          extraColorChoices={extraColorChoices}
         >
           <AddControlLabel>
             <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />

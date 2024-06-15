@@ -103,6 +103,7 @@ export const CREATE_DATASOURCE_FAILED = 'CREATE_DATASOURCE_FAILED';
 
 export const SET_EDITOR_TAB_LAST_UPDATE = 'SET_EDITOR_TAB_LAST_UPDATE';
 export const SET_LAST_UPDATED_ACTIVE_TAB = 'SET_LAST_UPDATED_ACTIVE_TAB';
+export const CLEAR_DESTROYED_QUERY_EDITOR = 'CLEAR_DESTROYED_QUERY_EDITOR';
 
 export const addInfoToast = addInfoToastAction;
 export const addSuccessToast = addSuccessToastAction;
@@ -715,29 +716,12 @@ export function toggleLeftBar(queryEditor) {
   };
 }
 
-export function removeQueryEditor(queryEditor) {
-  return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.delete({
-          endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
-        })
-      : Promise.resolve();
+export function clearDestoryedQueryEditor(queryEditorId) {
+  return { type: CLEAR_DESTROYED_QUERY_EDITOR, queryEditorId };
+}
 
-    return sync
-      .then(() => dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor }))
-      .catch(({ status }) => {
-        if (status !== 404) {
-          return dispatch(
-            addDangerToast(
-              t(
-                'An error occurred while removing tab. Please contact your administrator.',
-              ),
-            ),
-          );
-        }
-        return dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor });
-      });
-  };
+export function removeQueryEditor(queryEditor) {
+  return { type: REMOVE_QUERY_EDITOR, queryEditor };
 }
 
 export function removeAllOtherQueryEditors(queryEditor) {

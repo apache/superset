@@ -68,11 +68,13 @@ export const InteractivePopoverDropdown = (props: Props) => {
 InteractivePopoverDropdown.argTypes = {
   buttonType: {
     defaultValue: 'default',
-    control: { type: 'radio', options: ['default', 'button'] },
+    control: { type: 'radio' },
+    options: ['default', 'button'],
   },
   optionType: {
     defaultValue: 'default',
-    control: { type: 'radio', options: ['default', 'button'] },
+    control: { type: 'radio' },
+    options: ['default', 'button'],
   },
   value: {
     defaultValue: OPTIONS[0].value,
