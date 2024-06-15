@@ -62,8 +62,9 @@ Cypress.Commands.add('loadDashboardFixtures', () =>
 );
 
 before(() => {
-  cy.login();
-  Cypress.Cookies.defaults({ preserve: 'session' });
+  cy.session('session', cy.login, {
+    cacheAcrossSpecs: true,
+  })
   cy.loadChartFixtures();
   cy.loadDashboardFixtures();
 });
