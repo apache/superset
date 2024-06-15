@@ -66,10 +66,12 @@ class TestExportChartsCommand(SupersetTestCase):
         command = ExportChartsCommand([example_chart.id])
         contents = dict(command.run())
 
+        dataset = db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
+
         expected = [
             "metadata.yaml",
             f"charts/Energy_Sankey_{example_chart.id}.yaml",
-            "datasets/examples/energy_usage.yaml",
+            f"datasets/examples/energy_usage_{dataset.id}.yaml",
             "databases/examples.yaml",
         ]
         assert expected == list(contents.keys())

@@ -66,10 +66,16 @@ class TestExportDashboardsCommand(SupersetTestCase):
         command = ExportDashboardsCommand([example_dashboard.id])
         contents = dict(command.run())
 
+        dataset = (
+            db.session.query(SqlaTable)
+            .filter_by(table_name="wb_health_population")
+            .one()
+        )
+
         expected_paths = {
             "metadata.yaml",
             f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml",
-            "datasets/examples/wb_health_population.yaml",
+            f"datasets/examples/wb_health_population_{dataset.id}.yaml",
             "databases/examples.yaml",
         }
         for chart in example_dashboard.slices:
