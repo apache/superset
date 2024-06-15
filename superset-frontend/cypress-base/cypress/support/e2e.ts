@@ -64,7 +64,7 @@ Cypress.Commands.add('loadDashboardFixtures', () =>
 before(() => {
   cy.session('session', cy.login, {
     cacheAcrossSpecs: true,
-  })
+  });
   cy.loadChartFixtures();
   cy.loadDashboardFixtures();
 });
