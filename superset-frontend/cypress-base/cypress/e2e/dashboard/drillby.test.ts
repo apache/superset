@@ -219,7 +219,7 @@ const testEchart = (
   });
 };
 
-describe('Drill by modal', () => {
+describe('Drill by modal', { testIsolation: false }, () => {
   beforeEach(() => {
     closeModal();
   });
@@ -227,7 +227,7 @@ describe('Drill by modal', () => {
     cy.visit(SUPPORTED_CHARTS_DASHBOARD);
   });
 
-  describe('Modal actions + Table', () => {
+  describe('Modal actions + Table', { testIsolation: false }, () => {
     before(() => {
       closeModal();
       openTopLevelTab('Tier 1');
@@ -375,7 +375,7 @@ describe('Drill by modal', () => {
     });
   });
 
-  describe('Tier 1 charts', () => {
+  describe('Tier 1 charts', { testIsolation: false }, () => {
     before(() => {
       closeModal();
       openTopLevelTab('Tier 1');
@@ -538,7 +538,7 @@ describe('Drill by modal', () => {
     });
   });
 
-  describe('Tier 2 charts', () => {
+  describe('Tier 2 charts', { testIsolation: false }, () => {
     before(() => {
       closeModal();
       openTopLevelTab('Tier 2');

@@ -402,13 +402,13 @@ describe('Horizontal FilterBar', { testIsolation: false }, () => {
     cy.getBySel('filter-bar').within(() => {
       cy.get(nativeFilters.filterItem).contains('Albania').should('be.visible');
       cy.get(nativeFilters.filterItem).contains('+ 1 ...').should('be.visible');
-      cy.get('.ant-select-selection-search-input').click();
+      cy.get('.ant-select-selection-search-input').click({ multiple: true });
       cy.get(nativeFilters.filterItem).contains('+ 2 ...').should('be.visible');
     });
   });
 });
 
-describe('Native filters', () => {
+describe('Native filters', { testIsolation: false }, () => {
   describe('Nativefilters tests initial state required', () => {
     beforeEach(() => {
       cy.session('session', cy.login);
