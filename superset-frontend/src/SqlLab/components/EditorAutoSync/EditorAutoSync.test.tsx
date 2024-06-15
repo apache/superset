@@ -171,9 +171,13 @@ test('sync the destroyed editor id when there are updates in destroyed editors',
       },
     },
   });
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
   expect(fetchMock.calls(deleteEditorState)).toHaveLength(1);
-  await waitFor(() => jest.advanceTimersByTime(INTERVAL));
+  await act(async () => {
+    jest.advanceTimersByTime(INTERVAL);
+  });
   expect(fetchMock.calls(deleteEditorState)).toHaveLength(1);
 });
 
