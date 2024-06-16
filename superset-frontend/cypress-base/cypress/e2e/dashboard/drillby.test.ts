@@ -719,7 +719,7 @@ describe('Drill by modal', { testIsolation: false }, () => {
     it('Gauge Chart', () => {
       testEchart('gauge_chart', 'Gauge Chart', [
         [151, 95],
-        [300, NaN], // this fixes the test after upgrading to Cypress 13 
+        [300, NaN], // this fixes the test after upgrading to Cypress 13
       ]);
     });
 
