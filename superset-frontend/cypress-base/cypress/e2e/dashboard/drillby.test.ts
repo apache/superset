@@ -524,10 +524,141 @@ describe('Drill by modal', { testIsolation: false }, () => {
     });
 
     it('Bar Chart V2', () => {
-      testEchart('echarts_timeseries_bar', 'Bar Chart V2', [
+      const vizType = 'echarts_timeseries_bar';
+      const chartName = 'Bar Chart V2';
+      const drillClickCoordinates = [
         [70, 94],
-        [362, 68],
-      ]);
+        [362, 474],
+      ];
+      const furtherDrillDimension = 'name';
+
+      cy.get(`[data-test-viz-type='${vizType}'] canvas`).then($canvas => {
+        // click 'boy'
+        cy.wrap($canvas)
+          .scrollIntoView()
+          .trigger(
+            'mouseover',
+            drillClickCoordinates[0][0],
+            drillClickCoordinates[0][1],
+          )
+          .rightclick(drillClickCoordinates[0][0], drillClickCoordinates[0][1]);
+
+        drillBy('state').then(intercepted => {
+          verifyExpectedFormData(intercepted, {
+            groupby: ['state'],
+            adhoc_filters: [
+              {
+                clause: 'WHERE',
+                comparator: 'boy',
+                expressionType: 'SIMPLE',
+                operator: '==',
+                operatorId: 'EQUALS',
+                subject: 'gender',
+              },
+            ],
+          });
+        });
+
+        cy.getBySel(`"Drill by: ${chartName}-modal"`).as('drillByModal');
+
+        cy.get('@drillByModal')
+          .find('.draggable-trigger')
+          .should('contain', chartName);
+
+        cy.get('@drillByModal')
+          .find('.ant-breadcrumb')
+          .should('be.visible')
+          .and('contain', 'gender (boy)')
+          .and('contain', '/')
+          .and('contain', 'state');
+
+        cy.get('@drillByModal')
+          .find('[data-test="drill-by-chart"]')
+          .should('be.visible');
+
+        // further drill
+        cy.get(`[data-test="drill-by-chart"] canvas`).then($canvas => {
+          // click 'other'
+          cy.wrap($canvas)
+            .scrollIntoView()
+            .trigger(
+              'mouseenter',
+              drillClickCoordinates[1][0],
+              drillClickCoordinates[1][1],
+            )
+            .rightclick(
+              drillClickCoordinates[1][0],
+              drillClickCoordinates[1][1],
+            );
+
+          drillBy(furtherDrillDimension).then(intercepted => {
+            const actualFormData = intercepted.request.body?.form_data;
+            expect(actualFormData.groupby).to.eql([furtherDrillDimension]);
+            expect(actualFormData.adhoc_filters).to.have.length(2);
+            expect(actualFormData.adhoc_filters[0]).to.eql({
+              clause: 'WHERE',
+              comparator: 'boy',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'gender',
+            });
+            Object.entries({
+              clause: 'WHERE',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'state',
+            }).forEach(([key, val]) => {
+              expect(actualFormData.adhoc_filters[1][key]).to.eql(val);
+            });
+          });
+
+          cy.get('@drillByModal')
+            .find('[data-test="drill-by-chart"]')
+            .should('be.visible');
+
+          // undo - back to drill by state
+          interceptV1ChartData('drillByUndo');
+          cy.get('@drillByModal')
+            .find('.ant-breadcrumb')
+            .should('be.visible')
+            .and('contain', 'gender (boy)')
+            .and('contain', '/')
+            .and('contain', 'state')
+            .and('contain', furtherDrillDimension)
+            .contains('state (')
+            .click();
+          cy.wait('@drillByUndo').then(intercepted => {
+            verifyExpectedFormData(intercepted, {
+              groupby: ['state'],
+              adhoc_filters: [
+                {
+                  clause: 'WHERE',
+                  comparator: 'boy',
+                  expressionType: 'SIMPLE',
+                  operator: '==',
+                  operatorId: 'EQUALS',
+                  subject: 'gender',
+                },
+              ],
+            });
+          });
+
+          cy.get('@drillByModal')
+            .find('.ant-breadcrumb')
+            .should('be.visible')
+            .and('contain', 'gender (boy)')
+            .and('contain', '/')
+            .and('not.contain', furtherDrillDimension)
+            .and('not.contain', 'state (')
+            .and('contain', 'state');
+
+          cy.get('@drillByModal')
+            .find('[data-test="drill-by-chart"]')
+            .should('be.visible');
+        });
+      });
     });
 
     it('Pie Chart', () => {
