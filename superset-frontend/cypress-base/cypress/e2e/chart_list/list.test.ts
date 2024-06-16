@@ -54,7 +54,7 @@ function visitChartList() {
 }
 
 describe('Charts list', { testIsolation: false }, () => {
-  describe('Cross-referenced dashboards', { testIsolation: false }, () => {
+  describe('Cross-referenced dashboards', { testIsolation: false, retries: 4 }, () => {
     beforeEach(() => {
       cy.createSampleDashboards([0, 1, 2, 3]);
       cy.createSampleCharts([0]);

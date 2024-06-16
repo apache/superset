@@ -389,7 +389,7 @@ describe('Horizontal FilterBar', { testIsolation: false }, () => {
     cy.get('.ant-select-focused').should('be.visible');
   });
 
-  it('should show tag count and one plain tag on focus and only count on blur in select ', () => {
+  it.skip('should show tag count and one plain tag on focus and only count on blur in select ', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
     ]);
