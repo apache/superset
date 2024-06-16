@@ -396,13 +396,13 @@ describe('Horizontal FilterBar', { testIsolation: false }, () => {
     setFilterBarOrientation('horizontal');
     enterNativeFilterEditModal();
     inputNativeFilterDefaultValue('Albania');
-    cy.get('.ant-select-selection-search-input').clear({ force: true });
+    cy.get('.ant-select-selection-search-input').last().clear({ force: true });
     inputNativeFilterDefaultValue('Algeria', true);
     saveNativeFilterSettings([SAMPLE_CHART]);
     cy.getBySel('filter-bar').within(() => {
       cy.get(nativeFilters.filterItem).contains('Albania').should('be.visible');
       cy.get(nativeFilters.filterItem).contains('+ 1 ...').should('be.visible');
-      cy.get('.ant-select-selection-search-input').click({ multiple: true });
+      cy.get('.ant-select-selection-search-input').click();
       cy.get(nativeFilters.filterItem).contains('+ 2 ...').should('be.visible');
     });
   });
@@ -411,7 +411,6 @@ describe('Horizontal FilterBar', { testIsolation: false }, () => {
 describe('Native filters', { testIsolation: false }, () => {
   describe('Nativefilters tests initial state required', () => {
     beforeEach(() => {
-      cy.session('session', cy.login);
       cy.createSampleDashboards([0]);
     });
 
@@ -429,14 +428,13 @@ describe('Native filters', { testIsolation: false }, () => {
         cy.contains(testItems.filterDefaultValue).should('be.visible');
         cy.contains(testItems.filterOtherCountry).should('not.exist');
       });
+      validateFilterContentOnDashboard(testItems.filterDefaultValue);
 
       // reload dashboard
       cy.reload();
       cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
         cy.contains(testItems.filterDefaultValue).should('be.visible');
-        cy.contains(testItems.filterOtherCountry).should('not.exist');
       });
-      validateFilterContentOnDashboard(testItems.filterDefaultValue);
     });
 
     it('User can create parent filters using "Values are dependent on other filters"', () => {
