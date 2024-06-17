@@ -30,7 +30,7 @@ We released a [Big Number with Comparison](https://github.com/apache/superset/pu
 </div>
 
 ### Time Comparisson With Table
-Added functionality to do [table time comparisons](https://github.com/apache/superset/pull/28057) behind the `CHART_PLUGINS_EXPERIMENTAL` feature flag. This will help improve and facilitate efficient data analysis. 
+Added functionality to do [table time comparisons](https://github.com/apache/superset/pull/28057) behind the `CHART_PLUGINS_EXPERIMENTAL` feature flag. This will help improve and facilitate efficient data analysis.
 
 <div>
     <image src="media/table_with_time.png" alt="Image" width="100%">
