@@ -54,50 +54,54 @@ function visitChartList() {
 }
 
 describe('Charts list', { testIsolation: false }, () => {
-  describe('Cross-referenced dashboards', { testIsolation: false, retries: 4 }, () => {
-    beforeEach(() => {
-      cy.createSampleDashboards([0, 1, 2, 3]);
-      cy.createSampleCharts([0]);
-      visitChartList();
-    });
+  describe(
+    'Cross-referenced dashboards',
+    { testIsolation: false, retries: 4 },
+    () => {
+      beforeEach(() => {
+        cy.createSampleDashboards([0, 1, 2, 3]);
+        cy.createSampleCharts([0]);
+        visitChartList();
+      });
 
-    it('should show the cross-referenced dashboards in the table cell', () => {
-      interceptDashboardGet();
-      cy.getBySel('table-row')
-        .first()
-        .find('[data-test="table-row-cell"]')
-        .find('[data-test="crosslinks"]')
-        .should('be.empty');
-      cy.getBySel('table-row')
-        .eq(10)
-        .find('[data-test="table-row-cell"]')
-        .find('[data-test="crosslinks"]')
-        .contains('Supported Charts Dashboard')
-        .invoke('removeAttr', 'target')
-        .click();
-      cy.wait('@get');
-    });
+      it('should show the cross-referenced dashboards in the table cell', () => {
+        interceptDashboardGet();
+        cy.getBySel('table-row')
+          .first()
+          .find('[data-test="table-row-cell"]')
+          .find('[data-test="crosslinks"]')
+          .should('be.empty');
+        cy.getBySel('table-row')
+          .eq(10)
+          .find('[data-test="table-row-cell"]')
+          .find('[data-test="crosslinks"]')
+          .contains('Supported Charts Dashboard')
+          .invoke('removeAttr', 'target')
+          .click();
+        cy.wait('@get');
+      });
 
-    it('should show the newly added dashboards in a tooltip', () => {
-      interceptDashboardGet();
-      visitSampleChartFromList('1 - Sample chart');
-      saveChartToDashboard('1 - Sample dashboard');
-      saveChartToDashboard('2 - Sample dashboard');
-      saveChartToDashboard('3 - Sample dashboard');
-      visitChartList();
-      cy.getBySel('count-crosslinks').should('be.visible');
-      cy.getBySel('crosslinks')
-        .first()
-        .trigger('mouseover')
-        .then(() => {
-          cy.get('.ant-tooltip')
-            .contains('3 - Sample dashboard')
-            .invoke('removeAttr', 'target')
-            .click();
-          cy.wait('@get');
-        });
-    });
-  });
+      it('should show the newly added dashboards in a tooltip', () => {
+        interceptDashboardGet();
+        visitSampleChartFromList('1 - Sample chart');
+        saveChartToDashboard('1 - Sample dashboard');
+        saveChartToDashboard('2 - Sample dashboard');
+        saveChartToDashboard('3 - Sample dashboard');
+        visitChartList();
+        cy.getBySel('count-crosslinks').should('be.visible');
+        cy.getBySel('crosslinks')
+          .first()
+          .trigger('mouseover')
+          .then(() => {
+            cy.get('.ant-tooltip')
+              .contains('3 - Sample dashboard')
+              .invoke('removeAttr', 'target')
+              .click();
+            cy.wait('@get');
+          });
+      });
+    },
+  );
 
   describe('list mode', { testIsolation: false }, () => {
     before(() => {
