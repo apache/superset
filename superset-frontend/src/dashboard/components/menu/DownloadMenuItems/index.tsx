@@ -17,15 +17,18 @@
  * under the License.
  */
 import { Menu } from 'src/components/Menu';
-import DownloadAsImage from './DownloadAsImage';
-import DownloadAsPdf from './DownloadAsPdf';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import DownloadScreenshot from './DownloadScreenshot';
+import { DownloadScreenshotFormat } from './types';
 
 export interface DownloadMenuItemProps {
   pdfMenuItemTitle: string;
   imageMenuItemTitle: string;
   addDangerToast: Function;
+  addSuccessToast: Function;
   dashboardTitle: string;
   logEvent?: Function;
+  dashboardId: string;
 }
 
 const DownloadMenuItems = (props: DownloadMenuItemProps) => {
@@ -33,25 +36,35 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
     pdfMenuItemTitle,
     imageMenuItemTitle,
     addDangerToast,
+    addSuccessToast,
     dashboardTitle,
     logEvent,
+    dashboardId,
     ...rest
   } = props;
 
+  const { addInfoToast } = useToasts();
+
   return (
     <Menu selectable={false}>
-      <DownloadAsPdf
+      <DownloadScreenshot
         text={pdfMenuItemTitle}
+        dashboardId={dashboardId}
         addDangerToast={addDangerToast}
-        dashboardTitle={dashboardTitle}
+        addSuccessToast={addSuccessToast}
         logEvent={logEvent}
+        addInfoToast={addInfoToast}
+        format={DownloadScreenshotFormat.PDF}
         {...rest}
       />
-      <DownloadAsImage
+      <DownloadScreenshot
         text={imageMenuItemTitle}
+        dashboardId={dashboardId}
         addDangerToast={addDangerToast}
-        dashboardTitle={dashboardTitle}
+        addSuccessToast={addSuccessToast}
+        addInfoToast={addInfoToast}
         logEvent={logEvent}
+        format={DownloadScreenshotFormat.PNG}
         {...rest}
       />
     </Menu>

@@ -268,6 +268,8 @@ class HeaderActionsDropdown extends PureComponent {
             imageMenuItemTitle={t('Download as Image')}
             dashboardTitle={dashboardTitle}
             addDangerToast={addDangerToast}
+            addSuccessToast={addSuccessToast}
+            dashboardId={dashboardId}
           />
         </Menu.SubMenu>
         {userCanShare && (
