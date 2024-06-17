@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { api, JsonResponse } from './queryApi';
 
@@ -72,7 +72,6 @@ export const {
 export const EMPTY_SCHEMAS = [] as SchemaOption[];
 
 export function useSchemas(options: Params) {
-  const isMountedRef = useRef(false);
   const { dbId, catalog, onSuccess, onError } = options || {};
   const [trigger] = useLazySchemasQuery();
   const result = useSchemasQuery(
@@ -92,20 +91,24 @@ export function useSchemas(options: Params) {
     onError?.();
   });
 
+  const resolver = useEffectEvent(() =>
+    result.currentData
+      ? undefined
+      : trigger({ dbId, catalog, forceRefresh: false }),
+  );
+
   useEffect(() => {
     if (dbId) {
-      trigger({ dbId, catalog, forceRefresh: false }).then(
-        ({ isSuccess, isError, data }) => {
-          if (isSuccess) {
-            handleOnSuccess(data || EMPTY_SCHEMAS, true);
-          }
-          if (isError) {
-            handleOnError();
-          }
-        },
-      );
+      resolver()?.then(({ isSuccess, isError, data }) => {
+        if (isSuccess) {
+          handleOnSuccess(data || EMPTY_SCHEMAS, false);
+        }
+        if (isError) {
+          handleOnError();
+        }
+      });
     }
-  }, [dbId, catalog, handleOnError, handleOnSuccess, trigger]);
+  }, [dbId, catalog, handleOnError, handleOnSuccess, resolver]);
 
   const refetch = useCallback(() => {
     if (dbId) {
@@ -121,23 +124,6 @@ export function useSchemas(options: Params) {
       );
     }
   }, [dbId, catalog, handleOnError, handleOnSuccess, trigger]);
-
-  useEffect(() => {
-    if (isMountedRef.current) {
-      const { requestId, isSuccess, isError, isFetching, data, originalArgs } =
-        result;
-      if (!originalArgs?.forceRefresh && requestId && !isFetching) {
-        if (isSuccess) {
-          handleOnSuccess(data || EMPTY_SCHEMAS, false);
-        }
-        if (isError) {
-          handleOnError();
-        }
-      }
-    } else {
-      isMountedRef.current = true;
-    }
-  }, [catalog, result, handleOnSuccess, handleOnError]);
 
   return {
     ...result,

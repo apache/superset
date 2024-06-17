@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { api, JsonResponse } from './queryApi';
 
@@ -68,7 +68,6 @@ export const {
 export const EMPTY_CATALOGS = [] as CatalogOption[];
 
 export function useCatalogs(options: Params) {
-  const isMountedRef = useRef(false);
   const { dbId, onSuccess, onError } = options || {};
   const [trigger] = useLazyCatalogsQuery();
   const result = useCatalogsQuery(
@@ -88,6 +87,10 @@ export function useCatalogs(options: Params) {
     onError?.();
   });
 
+  const resolver = useEffectEvent(() =>
+    result.currentData ? undefined : trigger({ dbId, forceRefresh: false }),
+  );
+
   const refetch = useCallback(() => {
     if (dbId) {
       trigger({ dbId, forceRefresh: true }).then(
@@ -104,21 +107,17 @@ export function useCatalogs(options: Params) {
   }, [dbId, handleOnError, handleOnSuccess, trigger]);
 
   useEffect(() => {
-    if (isMountedRef.current) {
-      const { requestId, isSuccess, isError, isFetching, data, originalArgs } =
-        result;
-      if (!originalArgs?.forceRefresh && requestId && !isFetching) {
+    if (dbId) {
+      resolver()?.then(({ isSuccess, isError, data }) => {
         if (isSuccess) {
           handleOnSuccess(data || EMPTY_CATALOGS, false);
         }
         if (isError) {
           handleOnError();
         }
-      }
-    } else {
-      isMountedRef.current = true;
+      });
     }
-  }, [result, handleOnSuccess, handleOnError]);
+  }, [dbId, result, handleOnSuccess, handleOnError, resolver]);
 
   return {
     ...result,
