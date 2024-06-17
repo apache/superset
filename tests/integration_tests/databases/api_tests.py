@@ -30,6 +30,7 @@ import yaml
 
 from unittest.mock import Mock
 
+from sqlalchemy import text
 from sqlalchemy.engine.url import make_url  # noqa: F401
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
@@ -897,13 +898,19 @@ class TestDatabaseApi(SupersetTestCase):
             query = query.replace('"', "`")
 
         with database.get_sqla_engine() as engine:
-            engine.execute(query)
+            with engine.connect() as connection:
+                connection.execute(text(query))
+                connection.execute(text("COMMIT"))
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{database.id}/table/{table_name}/null/"
         rv = self.client.get(uri)
-
         self.assertEqual(rv.status_code, 200)
+
+        with database.get_sqla_engine() as engine:
+            with engine.connect() as connection:
+                connection.execute(text(f'DROP TABLE "{table_name}"'))
+                connection.execute(text("COMMIT"))
 
     def test_create_database_invalid_configuration_method(self):
         """
