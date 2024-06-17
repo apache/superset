@@ -47,6 +47,9 @@ const renderComponent = () => {
     <Menu>
       <DownloadScreenshot {...defaultProps()} />
     </Menu>,
+    {
+      useRedux: true,
+    },
   );
 };
 
