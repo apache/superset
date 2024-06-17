@@ -102,6 +102,7 @@ export default function getInitialState({
         id: id.toString(),
         loaded: false,
         name: label,
+        dbId: undefined,
       };
     }
     queryEditors = {
