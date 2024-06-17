@@ -35,7 +35,6 @@ apache_superset.egg-info
 # Generated doc files
 env/*
 docs/.htaccess*
-docs/src/intro_header.txt
 .nojekyll
 _build/*
 _static/*
@@ -72,3 +71,4 @@ snowflake.svg
 # docs-related
 erd.puml
 erd.svg
+intro_header.txt
