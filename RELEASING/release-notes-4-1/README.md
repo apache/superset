@@ -23,13 +23,13 @@ Superset 4.1.0 brings a range of new features and quality of life improvements. 
 
 ### Big Number With Time Period Updates
 
-We released a [Big Number with Comparison](https://github.com/apache/superset/pull/26908) chart as part of Superset 4.0. With the latest update, there are now [color options](https://github.com/apache/superset/pull/27524) for comparisons. The chart now also uses [standardize controls](https://github.com/apache/superset/pull/27193) such that when switching charts will maintain the selected metrics. To enable the new chart, you'll need to enable the `CHART_PLUGINS_EXPERIMENTAL` feature flag.
+We released a [Big Number with Time Period Comparison](https://github.com/apache/superset/pull/26908) chart as part of Superset 4.0. With the latest update, there are now [color options](https://github.com/apache/superset/pull/27524) for comparisons. The chart now also uses [standardize controls](https://github.com/apache/superset/pull/27193) such that when switching charts will maintain the selected metrics. To enable the new chart, you'll need to enable the `CHART_PLUGINS_EXPERIMENTAL` feature flag.
 
 <div>
     <image src="media/big_number_chart.png" alt="Image" width="100%">
 </div>
 
-### Time Comparisson With Table
+### Table with Time Comparison
 Added functionality to do [table time comparisons](https://github.com/apache/superset/pull/28057) behind the `CHART_PLUGINS_EXPERIMENTAL` feature flag. This will help improve and facilitate efficient data analysis.
 
 <div>
