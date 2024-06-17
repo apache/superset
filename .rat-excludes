@@ -35,6 +35,7 @@ apache_superset.egg-info
 # Generated doc files
 env/*
 docs/.htaccess*
+docs/src/intro_header.txt
 .nojekyll
 _build/*
 _static/*
