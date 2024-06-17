@@ -986,7 +986,6 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
 
 # CG hack, fallback value is used only for DEVELOPMENT purpose
 BW_PUBLIC_KEY = os.environ.get("BW_PUBLIC_KEY", "dcd99566a5e29e7bfd9e771f1b9a2558")
-ASSET_BASE_URL = os.environ.get("ASSET_BASE_URL", "https://cdn.brightwrite-staging.com")
 BW_APP_ID = os.environ.get("BW_APP_ID", "superset_local")
 
 # This is used as a workaround for the alerts & reports scheduler task to get the time

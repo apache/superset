@@ -40,7 +40,8 @@ build_superset:
     - *docker_login
   script:
     - >
-      docker build --build-arg="ASSET_BASE_URL=${ASSET_BASE_URL}" 
+      docker build --build-arg="ASSET_BASE_URL=${ASSET_BASE_URL}"
+      --build-arg="CI_COMMIT_SHORT_SHA=${CI_COMMIT_SHORT_SHA}" 
       --build-arg="BW_PUBLIC_KEY=${BW_PUBLIC_KEY}" 
       --build-arg="BW_APP_ID=${BW_APP_ID}" -t ${NEXUS_IMAGE_NAME} .
     - docker push ${NEXUS_IMAGE_NAME}
@@ -100,8 +101,7 @@ sync_CDN_stag:
     - docker pull "${GOOGLE_PREFIX}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     - docker run -d -v ./static/:/superset/static "${GOOGLE_PREFIX}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     - docker cp $(docker ps -lq):/app/superset/static/ ./
-    - gcloud storage rm -r gs://${CDN_BUCKET}/superset
-    - gsutil rsync -cr ./static "gs://${CDN_BUCKET}/superset/static"
+    - gsutil rsync -cr ./static "gs://${CDN_BUCKET}/superset/${CI_COMMIT_SHORT_SHA}/static"
   rules:
     - if: $CI_COMMIT_TAG == "staging"
 
@@ -123,7 +123,8 @@ sync_CDN_prod:
     - docker pull "${GOOGLE_PREFIX}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     - docker run -d -v ./static/:/superset/static "${GOOGLE_PREFIX}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     - docker cp $(docker ps -lq):/app/superset/static/ ./
-    - gcloud storage rm -r gs://${CDN_BUCKET}/superset
-    - gsutil rsync -cr ./static "gs://${CDN_BUCKET}/superset/static"
+    - gsutil rsync -cr ./static "gs://${CDN_BUCKET}/superset/${CI_COMMIT_SHORT_SHA}/static"
   rules:
     - if: $CI_COMMIT_TAG == "production"
+  environment:
+    name: production

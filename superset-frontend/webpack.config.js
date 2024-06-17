@@ -52,10 +52,13 @@ const {
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
 const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
+const commitHashPath = process.env.CI_COMMIT_SHORT_SHA
+  ? process.env.CI_COMMIT_SHORT_SHA + '/'
+  : '';
 
 const output = {
   path: BUILD_DIR,
-  publicPath: `${ASSET_BASE_URL}/superset/static/assets/`,
+  publicPath: `${ASSET_BASE_URL}/superset/${commitHashPath}static/assets/`,
 };
 if (isDevMode) {
   output.filename = '[name].[contenthash:8].entry.js';
