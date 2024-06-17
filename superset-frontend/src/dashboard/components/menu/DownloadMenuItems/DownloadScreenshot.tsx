@@ -17,13 +17,14 @@
  * under the License.
  */
 
-import React, { SyntheticEvent } from 'react';
 import { logging, t, SupersetClient } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
 } from 'src/logger/LogUtils';
+import { RootState } from 'src/dashboard/types';
+import { useSelector } from 'react-redux';
 import { DownloadScreenshotFormat } from './types';
 
 // parameters for adjustments
@@ -48,7 +49,11 @@ export default function DownloadScreenshot({
   addSuccessToast: Function;
   addInfoToast: Function;
 }) {
-  const onDownloadScreenshot = (e: SyntheticEvent) => {
+  const dashboardState = useSelector(
+    (state: RootState) => state.dashboardState,
+  );
+  const anchor = dashboardState.directPathToChild?.pop();
+  const onDownloadScreenshot = () => {
     let retries = 0;
 
     // this function checks if the image is ready
@@ -93,6 +98,9 @@ export default function DownloadScreenshot({
 
     SupersetClient.post({
       endpoint: `/api/v1/dashboard/${dashboardId}/cache_screenshot`,
+      jsonPayload: {
+        anchor,
+      },
     })
       .then(({ json }) => {
         const imageUrl = json?.image_url;

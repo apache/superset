@@ -37,7 +37,6 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
     imageMenuItemTitle,
     addDangerToast,
     addSuccessToast,
-    dashboardTitle,
     logEvent,
     dashboardId,
     ...rest
