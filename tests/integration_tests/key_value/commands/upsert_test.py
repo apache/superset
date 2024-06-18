@@ -98,4 +98,3 @@ def test_upsert_missing_entry(app_context: AppContext, admin: User) -> None:  # 
     assert key is not None
     assert key.id == 456
     db.session.query(KeyValueEntry).filter_by(id=456).delete()
-    db.session.commit()
