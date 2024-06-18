@@ -73,8 +73,9 @@ export default function InfoTooltip({
   viewBox = '0 -1 24 24',
 }: InfoTooltipProps) {
   const theme = useTheme();
-  if (iconStyle.color === undefined) {
-    iconStyle.color = theme.colors.grayscale.base;
+  const alteredIconStyle = { ...iconStyle };
+  if (alteredIconStyle.color === undefined) {
+    alteredIconStyle.color = theme.colors.grayscale.base;
   }
   return (
     <StyledTooltip
@@ -84,7 +85,7 @@ export default function InfoTooltip({
       overlayStyle={overlayStyle}
       color={bgColor}
     >
-      <Icons.InfoSolidSmall style={iconStyle} viewBox={viewBox} />
+      <Icons.InfoSolidSmall style={alteredIconStyle} viewBox={viewBox} />
     </StyledTooltip>
   );
 }
