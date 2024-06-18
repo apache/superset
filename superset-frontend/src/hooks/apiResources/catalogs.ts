@@ -77,47 +77,28 @@ export function useCatalogs(options: Params) {
     },
   );
 
-  const handleOnSuccess = useEffectEvent(
-    (data: CatalogOption[], isRefetched: boolean) => {
-      onSuccess?.(data, isRefetched);
+  const fetchData = useEffectEvent(
+    (dbId: FetchCatalogsQueryParams['dbId'], forceRefresh = false) => {
+      if (dbId && (!result.currentData || forceRefresh)) {
+        trigger({ dbId, forceRefresh }).then(({ isSuccess, isError, data }) => {
+          if (isSuccess) {
+            onSuccess?.(data || EMPTY_CATALOGS, forceRefresh);
+          }
+          if (isError) {
+            onError?.();
+          }
+        });
+      }
     },
   );
 
-  const handleOnError = useEffectEvent(() => {
-    onError?.();
-  });
-
-  const resolver = useEffectEvent(() =>
-    result.currentData ? undefined : trigger({ dbId, forceRefresh: false }),
-  );
-
   const refetch = useCallback(() => {
-    if (dbId) {
-      trigger({ dbId, forceRefresh: true }).then(
-        ({ isSuccess, isError, data }) => {
-          if (isSuccess) {
-            handleOnSuccess(data || EMPTY_CATALOGS, true);
-          }
-          if (isError) {
-            handleOnError();
-          }
-        },
-      );
-    }
-  }, [dbId, handleOnError, handleOnSuccess, trigger]);
+    fetchData(dbId, true);
+  }, [dbId, fetchData]);
 
   useEffect(() => {
-    if (dbId) {
-      resolver()?.then(({ isSuccess, isError, data }) => {
-        if (isSuccess) {
-          handleOnSuccess(data || EMPTY_CATALOGS, false);
-        }
-        if (isError) {
-          handleOnError();
-        }
-      });
-    }
-  }, [dbId, result, handleOnSuccess, handleOnError, resolver]);
+    fetchData(dbId, false);
+  }, [dbId, fetchData]);
 
   return {
     ...result,

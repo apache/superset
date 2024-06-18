@@ -81,49 +81,34 @@ export function useSchemas(options: Params) {
     },
   );
 
-  const handleOnSuccess = useEffectEvent(
-    (data: SchemaOption[], isRefetched: boolean) => {
-      onSuccess?.(data, isRefetched);
+  const fetchData = useEffectEvent(
+    (
+      dbId: FetchSchemasQueryParams['dbId'],
+      catalog: FetchSchemasQueryParams['catalog'],
+      forceRefresh = false,
+    ) => {
+      if (dbId && (!result.currentData || forceRefresh)) {
+        trigger({ dbId, catalog, forceRefresh }).then(
+          ({ isSuccess, isError, data }) => {
+            if (isSuccess) {
+              onSuccess?.(data || EMPTY_SCHEMAS, forceRefresh);
+            }
+            if (isError) {
+              onError?.();
+            }
+          },
+        );
+      }
     },
   );
 
-  const handleOnError = useEffectEvent(() => {
-    onError?.();
-  });
-
-  const resolver = useEffectEvent(() =>
-    result.currentData
-      ? undefined
-      : trigger({ dbId, catalog, forceRefresh: false }),
-  );
-
   useEffect(() => {
-    if (dbId) {
-      resolver()?.then(({ isSuccess, isError, data }) => {
-        if (isSuccess) {
-          handleOnSuccess(data || EMPTY_SCHEMAS, false);
-        }
-        if (isError) {
-          handleOnError();
-        }
-      });
-    }
-  }, [dbId, catalog, handleOnError, handleOnSuccess, resolver]);
+    fetchData(dbId, catalog, false);
+  }, [dbId, catalog, fetchData]);
 
   const refetch = useCallback(() => {
-    if (dbId) {
-      trigger({ dbId, catalog, forceRefresh: true }).then(
-        ({ isSuccess, isError, data }) => {
-          if (isSuccess) {
-            handleOnSuccess(data || EMPTY_SCHEMAS, true);
-          }
-          if (isError) {
-            handleOnError();
-          }
-        },
-      );
-    }
-  }, [dbId, catalog, handleOnError, handleOnSuccess, trigger]);
+    fetchData(dbId, catalog, true);
+  }, [dbId, catalog, fetchData]);
 
   return {
     ...result,
