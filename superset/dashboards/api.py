@@ -280,6 +280,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     """ Override the name set for this collection of endpoints """
     openapi_spec_component_schemas = (
         ChartEntityResponseSchema,
+        DashboardCacheScreenshotResponseSchema,
         DashboardCopySchema,
         DashboardGetResponseSchema,
         DashboardDatasetSchema,
