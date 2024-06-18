@@ -532,6 +532,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "can_get_embedded",
             "can_delete_embedded",
             "can_set_embedded",
+            "can_cache_dashboard_screenshot",
         }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
