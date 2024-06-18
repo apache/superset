@@ -63,6 +63,7 @@ from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+from superset.utils.database_connect_modifier import BaseDBConnectModifier
 
 logger = logging.getLogger(__name__)
 
@@ -1260,6 +1261,42 @@ DASHBOARD_TEMPLATE_ID = None
 # Note that the returned uri and params are passed directly to sqlalchemy's
 # as such `create_engine(url, **params)`
 DB_CONNECTION_MUTATOR = None
+
+
+# Whether to enable the DB_CONNECTION_MODIFIER feature
+DB_CONNECTION_MODIFIER_ENABLED = False
+
+# A dictionary of database connect modifiers (by engine) that allows altering
+# the database connection URL and params on the fly, at runtime. This allows for things
+# like impersonation or arbitrary logic. For instance you can wire different users to
+# use different connection parameters, or pass their email address as the
+# username. The function receives the connection uri object, connection
+# params, the username, and returns the mutated uri and params objects.
+# Example:
+#     class PostgresDBConnectModifier(BaseDBConnectModifier):
+#         # When connecting to a postgres data source,
+#         # replace the default connection username and password
+#
+#         @classmethod
+#         def run(cls, sqlalchemy_url: URL, params: dict[str, Any], username: str, *args: Any,
+#                 **kwargs: Any) -> (URL, dict[str, Any]):
+#             new_password = cls._get_new_password(username)
+#             sqlalchemy_url.username = username
+#             sqlalchemy_url.password = new_password
+#             return sqlalchemy_url, params
+#
+#         @staticmethod
+#         def _get_new_password(username):
+#             # 实现密码生成逻辑
+#             return 'new_password_' + username
+#
+#      DB_CONNECTION_MODIFIER: dict[str, type[BaseDBConnectModifier]] = {
+#         "postgresql": PostgresDBConnectModifier,
+#     }
+#
+# Note that the returned uri and params are passed directly to sqlalchemy's
+# as such `create_engine(url, **params)`
+DB_CONNECTION_MODIFIER: dict[str, type[BaseDBConnectModifier]] = {}
 
 
 # A callable that is invoked for every invocation of DB Engine Specs

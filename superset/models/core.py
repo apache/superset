@@ -93,6 +93,9 @@ if TYPE_CHECKING:
 
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
+DB_CONNECTION_MODIFIER_ENABLED = config["DB_CONNECTION_MODIFIER_ENABLED"]
+DB_CONNECTION_MODIFIER = config["DB_CONNECTION_MODIFIER"]
+
 
 class KeyValue(Model):  # pylint: disable=too-few-public-methods
     """Used for any type of key-value store"""
@@ -535,6 +538,16 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 security_manager,
                 source,
             )
+
+        is_db_connect_modify = (
+            DB_CONNECTION_MODIFIER_ENABLED and DB_CONNECTION_MODIFIER
+            and sqlalchemy_url.drivername in DB_CONNECTION_MODIFIER
+        )
+        if is_db_connect_modify:
+            url_modified = DB_CONNECTION_MODIFIER[sqlalchemy_url.drivername]
+            sqlalchemy_url, params = url_modified.run(
+                sqlalchemy_url, params, effective_username)
+
         try:
             return create_engine(sqlalchemy_url, **params)
         except Exception as ex:
