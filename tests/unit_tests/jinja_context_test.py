@@ -19,7 +19,7 @@
 from typing import Any
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
 
@@ -346,7 +346,7 @@ def test_safe_proxy_nested_lambda() -> None:
         safe_proxy(func, {"foo": lambda: "bar"})
 
 
-def test_user_macros(mocker: MockFixture):
+def test_user_macros(mocker: MockerFixture):
     """
     Test all user macros:
         - ``current_user_id``
@@ -367,7 +367,7 @@ def test_user_macros(mocker: MockFixture):
     assert mock_cache_key_wrapper.call_count == 3
 
 
-def test_user_macros_without_cache_key_inclusion(mocker: MockFixture):
+def test_user_macros_without_cache_key_inclusion(mocker: MockerFixture):
     """
     Test all user macros with ``add_to_cache_keys`` set to ``False``.
     """
@@ -385,7 +385,7 @@ def test_user_macros_without_cache_key_inclusion(mocker: MockFixture):
     assert mock_cache_key_wrapper.call_count == 0
 
 
-def test_user_macros_without_user_info(mocker: MockFixture):
+def test_user_macros_without_user_info(mocker: MockerFixture):
     """
     Test all user macros when no user info is available.
     """
@@ -410,7 +410,7 @@ def test_where_in() -> None:
     assert where_in(["O'Malley's"]) == "('O''Malley''s')"
 
 
-def test_dataset_macro(mocker: MockFixture) -> None:
+def test_dataset_macro(mocker: MockerFixture) -> None:
     """
     Test the ``dataset_macro`` macro.
     """
@@ -526,7 +526,7 @@ GROUP BY
     assert str(excinfo.value) == "Dataset 1 not found!"
 
 
-def test_dataset_macro_mutator_with_comments(mocker: MockFixture) -> None:
+def test_dataset_macro_mutator_with_comments(mocker: MockerFixture) -> None:
     """
     Test ``dataset_macro`` when the mutator adds comment.
     """
@@ -549,7 +549,7 @@ SELECT 1
     )
 
 
-def test_metric_macro_with_dataset_id(mocker: MockFixture) -> None:
+def test_metric_macro_with_dataset_id(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when passing a dataset ID.
     """
@@ -568,7 +568,7 @@ def test_metric_macro_with_dataset_id(mocker: MockFixture) -> None:
     mock_get_form_data.assert_not_called()
 
 
-def test_metric_macro_with_dataset_id_invalid_key(mocker: MockFixture) -> None:
+def test_metric_macro_with_dataset_id_invalid_key(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when passing a dataset ID and an invalid key.
     """
@@ -589,7 +589,7 @@ def test_metric_macro_with_dataset_id_invalid_key(mocker: MockFixture) -> None:
     mock_get_form_data.assert_not_called()
 
 
-def test_metric_macro_invalid_dataset_id(mocker: MockFixture) -> None:
+def test_metric_macro_invalid_dataset_id(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when specifying a dataset that doesn't exist.
     """
@@ -602,7 +602,7 @@ def test_metric_macro_invalid_dataset_id(mocker: MockFixture) -> None:
     mock_get_form_data.assert_not_called()
 
 
-def test_metric_macro_no_dataset_id_no_context(mocker: MockFixture) -> None:
+def test_metric_macro_no_dataset_id_no_context(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and it's
     not available in the context.
@@ -620,7 +620,7 @@ def test_metric_macro_no_dataset_id_no_context(mocker: MockFixture) -> None:
 
 
 def test_metric_macro_no_dataset_id_with_context_missing_info(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and request
@@ -644,7 +644,7 @@ def test_metric_macro_no_dataset_id_with_context_missing_info(
 
 
 def test_metric_macro_no_dataset_id_with_context_datasource_id(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and it's
@@ -675,7 +675,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id(
 
 
 def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and it's
@@ -703,7 +703,9 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
     DatasetDAO.find_by_id.assert_not_called()
 
 
-def test_metric_macro_no_dataset_id_with_context_chart_id(mocker: MockFixture) -> None:
+def test_metric_macro_no_dataset_id_with_context_chart_id(
+    mocker: MockerFixture,
+) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context
     includes an existing chart ID (url_params.slice_id).
@@ -735,7 +737,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_id(mocker: MockFixture) -
 
 
 def test_metric_macro_no_dataset_id_with_context_slice_id_none(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context
@@ -761,7 +763,7 @@ def test_metric_macro_no_dataset_id_with_context_slice_id_none(
     DatasetDAO.find_by_id.assert_not_called()
 
 
-def test_metric_macro_no_dataset_id_with_context_chart(mocker: MockFixture) -> None:
+def test_metric_macro_no_dataset_id_with_context_chart(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context
     includes an existing chart (get_form_data()[1]).
@@ -791,7 +793,7 @@ def test_metric_macro_no_dataset_id_with_context_chart(mocker: MockFixture) -> N
 
 
 def test_metric_macro_no_dataset_id_with_context_deleted_chart(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context
@@ -818,7 +820,7 @@ def test_metric_macro_no_dataset_id_with_context_deleted_chart(
 
 
 def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context

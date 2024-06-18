@@ -163,8 +163,17 @@ export default function sqlLabReducer(state = {}, action) {
           ...(action.queryEditor.id !== state.unsavedQueryEditor.id &&
             state.unsavedQueryEditor),
         },
+        destroyedQueryEditors: {
+          ...newState.destroyedQueryEditors,
+          [queryEditor.id]: Date.now(),
+        },
       };
       return newState;
+    },
+    [actions.CLEAR_DESTROYED_QUERY_EDITOR]() {
+      const destroyedQueryEditors = { ...state.destroyedQueryEditors };
+      delete destroyedQueryEditors[action.queryEditorId];
+      return { ...state, destroyedQueryEditors };
     },
     [actions.REMOVE_QUERY]() {
       const newQueries = { ...state.queries };
@@ -741,6 +750,9 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.SET_EDITOR_TAB_LAST_UPDATE]() {
       return { ...state, editorTabLastUpdatedAt: action.timestamp };
+    },
+    [actions.SET_LAST_UPDATED_ACTIVE_TAB]() {
+      return { ...state, lastUpdatedActiveTab: action.queryEditorId };
     },
   };
   if (action.type in actionHandlers) {

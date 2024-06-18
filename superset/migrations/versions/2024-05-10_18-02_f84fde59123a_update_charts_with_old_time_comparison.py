@@ -111,7 +111,7 @@ def upgrade():
                 f"An error occurred: Upgrading params for slice {slc.id} failed."
                 f"You need to fix it before upgrading your DB."
             )
-            raise Exception(f"An error occurred while upgrading slice: {ex}")
+            raise Exception(f"An error occurred while upgrading slice: {ex}") from ex
 
     session.commit()
     session.close()
@@ -206,7 +206,7 @@ def downgrade():
                 f"An error occurred: Downgrading params for slice {slc.id} failed."
                 f"You need to fix it before downgrading your DB."
             )
-            raise Exception(f"An error occurred while downgrading slice: {ex}")
+            raise Exception(f"An error occurred while downgrading slice: {ex}") from ex
 
     session.commit()
     session.close()

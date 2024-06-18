@@ -16,21 +16,34 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
+
 from datetime import datetime
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
+# sample config for OAuth2 tests
+oauth2_client_info = {
+    "oauth2_client_info": {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:SYSADMIN",
+    }
+}
 
-def test_get_metrics(mocker: MockFixture) -> None:
+
+def test_get_metrics(mocker: MockerFixture) -> None:
     """
     Tests for ``get_metrics``.
     """
@@ -76,7 +89,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
     ]
 
 
-def test_get_db_engine_spec(mocker: MockFixture) -> None:
+def test_get_db_engine_spec(mocker: MockerFixture) -> None:
     """
     Tests for ``get_db_engine_spec``.
     """
@@ -215,7 +228,7 @@ def test_table_column_database() -> None:
     assert TableColumn(database=database).database is database
 
 
-def test_get_prequeries(mocker: MockFixture) -> None:
+def test_get_prequeries(mocker: MockerFixture) -> None:
     """
     Tests for ``get_prequeries``.
     """
@@ -259,7 +272,7 @@ def test_get_default_catalog() -> None:
     assert database.get_default_catalog() == "examples"
 
 
-def test_get_default_schema(mocker: MockFixture) -> None:
+def test_get_default_schema(mocker: MockerFixture) -> None:
     """
     Test the `get_default_schema` method.
     """
@@ -276,7 +289,7 @@ def test_get_default_schema(mocker: MockFixture) -> None:
     get_inspector.assert_called_with(catalog="examples")
 
 
-def test_get_all_catalog_names(mocker: MockFixture) -> None:
+def test_get_all_catalog_names(mocker: MockerFixture) -> None:
     """
     Test the `get_all_catalog_names` method.
     """
@@ -293,7 +306,7 @@ def test_get_all_catalog_names(mocker: MockFixture) -> None:
     get_inspector.assert_called_with(ssh_tunnel=None)
 
 
-def test_get_sqla_engine(mocker: MockFixture) -> None:
+def test_get_sqla_engine(mocker: MockerFixture) -> None:
     """
     Test `_get_sqla_engine`.
     """
@@ -321,7 +334,7 @@ def test_get_sqla_engine(mocker: MockFixture) -> None:
     )
 
 
-def test_get_sqla_engine_user_impersonation(mocker: MockFixture) -> None:
+def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     """
     Test user impersonation in `_get_sqla_engine`.
     """
@@ -351,7 +364,7 @@ def test_get_sqla_engine_user_impersonation(mocker: MockFixture) -> None:
 
 
 @with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
-def test_get_sqla_engine_user_impersonation_email(mocker: MockFixture) -> None:
+def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None:
     """
     Test user impersonation in `_get_sqla_engine` with `username_from_email`.
     """
@@ -378,3 +391,73 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockFixture) -> None:
         make_url("trino:///"),
         connect_args={"user": "alice.doe", "source": "Apache Superset"},
     )
+
+
+def test_is_oauth2_enabled() -> None:
+    """
+    Test the `is_oauth2_enabled` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    assert not database.is_oauth2_enabled()
+
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+    assert database.is_oauth2_enabled()
+
+
+def test_get_oauth2_config(app_context: None) -> None:
+    """
+    Test the `get_oauth2_config` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    assert database.get_oauth2_config() is None
+
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+    assert database.get_oauth2_config() == {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:SYSADMIN",
+        "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+    }
+
+
+def test_raw_connection_oauth(mocker: MockerFixture) -> None:
+    """
+    Test that we can start OAuth2 from `raw_connection()` errors.
+
+    Some databases that use OAuth2 need to trigger the flow when the connection is
+    created, rather than when the query runs. This happens when the SQLAlchemy engine
+    URI cannot be built without the user personal token.
+
+    This test verifies that the exception is captured and raised correctly so that the
+    frontend can trigger the OAuth2 dance.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = mocker.MagicMock()
+    g.user.id = 42
+
+    database = Database(
+        id=1,
+        database_name="my_db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
+    get_sqla_engine().__enter__().raw_connection.side_effect = OAuth2Error(
+        "OAuth2 required"
+    )
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        with database.get_raw_connection() as conn:
+            conn.cursor()
+    assert str(excinfo.value) == "You don't have permission to access the data."
