@@ -35,7 +35,11 @@ from superset.css_templates.schemas import (
 )
 from superset.extensions import event_logger
 from superset.models.core import CssTemplate
-from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    RelatedFieldFilter,
+    statsd_metrics,
+)
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)

@@ -51,8 +51,11 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedRoles, BaseFilterRelatedUsers, FilterRelatedOwners
-
+from superset.views.filters import (
+    BaseFilterRelatedRoles,
+    BaseFilterRelatedUsers,
+    FilterRelatedOwners,
+)
 logger = logging.getLogger(__name__)
 
 
