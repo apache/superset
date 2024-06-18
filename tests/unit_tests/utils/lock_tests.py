@@ -26,8 +26,9 @@ from pytest_mock import MockerFixture
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.key_value.types import KeyValueResource
-from superset.utils.lock import KeyValueDistributedLock
+from superset.utils.lock import get_key, KeyValueDistributedLock
 
+from superset.commands.key_value.get import GetKeyValueCommand
 
 def test_KeyValueDistributedLock_happy_path(mocker: MockerFixture) -> None:
     """
@@ -45,6 +46,8 @@ def test_KeyValueDistributedLock_happy_path(mocker: MockerFixture) -> None:
     PickleKeyValueCodec = mocker.patch("superset.utils.lock.PickleKeyValueCodec")
 
     with freeze_time("2024-01-01"):
+        key = get_key("ns", a=1, b=2)
+        lock = GetKeyValueCommand(resource=KeyValueResource.LOCK, key=key, codec=PickleKeyValueCodec()).run()
         with KeyValueDistributedLock("ns", a=1, b=2) as key:
             DeleteExpiredKeyValueCommand.assert_called_with(
                 resource=KeyValueResource.LOCK,
