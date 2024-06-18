@@ -385,6 +385,26 @@ class DashboardPutSchema(BaseDashboardSchema):
     )
 
 
+class DashboardScreenshotPostSchema(Schema):
+    dataMask = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Raw(),
+        metadata={"description": "An object representing the data mask."},
+    )
+    activeTabs = fields.List(
+        fields.Str(), metadata={"description": "A list representing active tabs."}
+    )
+    anchor = fields.String(
+        metadata={"description": "A string representing the anchor."}
+    )
+    urlParams = fields.List(
+        fields.Tuple(
+            (fields.Str(), fields.Str()),
+        ),
+        metadata={"description": "A list of tuples, each containing two strings."},
+    )
+
+
 class ChartFavStarResponseResult(Schema):
     id = fields.Integer(metadata={"description": "The Chart id"})
     value = fields.Boolean(metadata={"description": "The FaveStar value"})

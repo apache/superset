@@ -914,24 +914,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                   schema:
-                  type: object
-                  properties:
-                    dataMask:
-                      type: object
-                    activeTabs:
-                      type: array
-                    items:
-                      type: string
-                    anchor:
-                      type: string
-                    urlParams:
-                      type: array
-                      items:
-                        type: array
-                        items:
-                          type: string
-                        minItems: 2
-                        maxItems: 2
+                    $ref: '#/components/schemas/DashboardScreenshotPostSchema'
           responses:
             202:
               description: Dashboard async result
