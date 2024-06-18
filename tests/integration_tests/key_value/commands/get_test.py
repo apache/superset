@@ -76,9 +76,11 @@ def test_get_expired_entry(app_context: AppContext) -> None:
         expires_on=datetime.now() - timedelta(days=1),
     )
     db.session.add(entry)
+    db.session.flush()
     value = GetKeyValueCommand(resource=RESOURCE, key=ID_KEY, codec=JSON_CODEC).run()
     assert value is None
     db.session.delete(entry)
+    db.session.commit()
 
 
 def test_get_future_expiring_entry(app_context: AppContext) -> None:
@@ -94,6 +96,8 @@ def test_get_future_expiring_entry(app_context: AppContext) -> None:
         expires_on=datetime.now() + timedelta(days=1),
     )
     db.session.add(entry)
+    db.session.flush()
     value = GetKeyValueCommand(resource=RESOURCE, key=id_, codec=JSON_CODEC).run()
     assert value == JSON_VALUE
     db.session.delete(entry)
+    db.session.commit()

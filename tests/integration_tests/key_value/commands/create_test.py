@@ -50,6 +50,7 @@ def test_create_id_entry(app_context: AppContext, admin: User) -> None:  # noqa:
         assert json.loads(entry.value) == JSON_VALUE
         assert entry.created_by_fk == admin.id
         db.session.delete(entry)
+        db.session.commit()
 
 
 def test_create_uuid_entry(app_context: AppContext, admin: User) -> None:  # noqa: F811
@@ -64,6 +65,7 @@ def test_create_uuid_entry(app_context: AppContext, admin: User) -> None:  # noq
     assert json.loads(entry.value) == JSON_VALUE
     assert entry.created_by_fk == admin.id
     db.session.delete(entry)
+    db.session.commit()
 
 
 def test_create_fail_json_entry(app_context: AppContext, admin: User) -> None:  # noqa: F811
@@ -91,3 +93,4 @@ def test_create_pickle_entry(app_context: AppContext, admin: User) -> None:  # n
         assert type(pickle.loads(entry.value)) == type(PICKLE_VALUE)
         assert entry.created_by_fk == admin.id
         db.session.delete(entry)
+        db.session.commit()
