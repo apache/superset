@@ -298,7 +298,10 @@ const SqlEditor: React.FC<Props> = ({
   );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
-  const [showEmptyState, setShowEmptyState] = useState(false);
+  const showEmptyState = useMemo(
+    () => !database || isEmpty(database),
+    [database],
+  );
 
   const sqlEditorRef = useRef<HTMLDivElement>(null);
   const northPaneRef = useRef<HTMLDivElement>(null);
@@ -556,12 +559,6 @@ const SqlEditor: React.FC<Props> = ({
     };
     // TODO: Remove useEffectEvent deps once https://github.com/facebook/react/pull/25881 is released
   }, [onBeforeUnload, loadQueryEditor, isActive]);
-
-  useEffect(() => {
-    if (!database || isEmpty(database)) {
-      setShowEmptyState(true);
-    }
-  }, [database]);
 
   useEffect(() => {
     // setup hotkeys
@@ -893,7 +890,6 @@ const SqlEditor: React.FC<Props> = ({
               <SqlEditorLeftBar
                 database={database}
                 queryEditorId={queryEditor.id}
-                setEmptyState={bool => setShowEmptyState(bool)}
               />
             </StyledSidebar>
           )}
