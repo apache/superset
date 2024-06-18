@@ -42,15 +42,19 @@ def _get_lock(key: UUID, session: Session) -> Any:
     ).run()
 
 
-def test_key_value_distributed_lock_happy_path() -> None:
-    """
-    Test successfully acquiring and returning the distributed lock.
-    """
+def _get_session() -> Session:
     from superset import db
 
     bind = db.session.get_bind()
     SessionMaker = sessionmaker(bind=bind)
-    session = SessionMaker()
+    return SessionMaker()
+
+
+def test_key_value_distributed_lock_happy_path() -> None:
+    """
+    Test successfully acquiring and returning the distributed lock.
+    """
+    session = _get_session()
 
     with freeze_time("2021-01-01"):
         assert _get_lock(MAIN_KEY, session) is None
@@ -69,11 +73,7 @@ def test_key_value_distributed_lock_expired() -> None:
     """
     Test expiration of the distributed lock
     """
-    from superset import db
-
-    bind = db.session.get_bind()
-    SessionMaker = sessionmaker(bind=bind)
-    session = SessionMaker()
+    session = _get_session()
 
     with freeze_time("2021-01-01T"):
         assert _get_lock(MAIN_KEY, session) is None
