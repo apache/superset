@@ -24,9 +24,8 @@ import pytest
 from freezegun import freeze_time
 from sqlalchemy.orm import Session, sessionmaker
 
-from superset.commands.key_value.get import GetKeyValueCommand
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
-from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
+from superset.key_value.types import JsonKeyValueCodec
 from superset.utils.lock import get_key, KeyValueDistributedLock
 
 MAIN_KEY = get_key("ns", a=1, b=2)
@@ -34,12 +33,13 @@ OTHER_KEY = get_key("ns2", a=1, b=2)
 
 
 def _get_lock(key: UUID, session: Session) -> Any:
-    return GetKeyValueCommand(
-        resource=KeyValueResource.LOCK,
-        key=key,
-        codec=JsonKeyValueCodec(),
-        session=session,
-    ).run()
+    from superset.key_value.models import KeyValueEntry
+
+    entry = session.query(KeyValueEntry).filter_by(uuid=key).first()
+    if entry is None or entry.is_expired():
+        return None
+
+    return JsonKeyValueCodec().decode(entry.value)
 
 
 def _get_session() -> Session:
