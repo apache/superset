@@ -67,6 +67,7 @@ from superset.dashboards.filters import (
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.dashboards.schemas import (
     CacheScreenshotSchema,
+    DashboardCacheScreenshotResponseSchema,
     DashboardCopySchema,
     DashboardDatasetSchema,
     DashboardGetResponseSchema,
