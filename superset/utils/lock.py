@@ -27,7 +27,7 @@ from typing import Any, cast, TypeVar, Union
 from superset import db
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.key_value.exceptions import KeyValueCreateFailedError
-from superset.key_value.types import KeyValueResource, PickleKeyValueCodec
+from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.utils import json
 
 LOCK_EXPIRATION = timedelta(seconds=30)
@@ -88,7 +88,7 @@ def KeyValueDistributedLock(  # pylint: disable=invalid-name
         DeleteExpiredKeyValueCommand(resource=KeyValueResource.LOCK).run()
         CreateKeyValueCommand(
             resource=KeyValueResource.LOCK,
-            codec=PickleKeyValueCodec(),
+            codec=JsonKeyValueCodec(),
             key=key,
             value=True,
             expires_on=datetime.now() + LOCK_EXPIRATION,

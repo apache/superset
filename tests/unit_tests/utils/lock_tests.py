@@ -22,6 +22,7 @@ from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
+from sqlalchemy.orm import Session, sessionmaker
 
 from superset.commands.key_value.get import GetKeyValueCommand
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
@@ -32,9 +33,12 @@ MAIN_KEY = get_key("ns", a=1, b=2)
 OTHER_KEY = get_key("ns2", a=1, b=2)
 
 
-def _get_lock(key: UUID) -> Any:
+def _get_lock(key: UUID, session: Session) -> Any:
     return GetKeyValueCommand(
-        resource=KeyValueResource.LOCK, key=key, codec=JsonKeyValueCodec()
+        resource=KeyValueResource.LOCK,
+        key=key,
+        codec=JsonKeyValueCodec(),
+        session=session,
     ).run()
 
 
@@ -42,28 +46,40 @@ def test_key_value_distributed_lock_happy_path() -> None:
     """
     Test successfully acquiring and returning the distributed lock.
     """
+    from superset import db
+
+    bind = db.session.get_bind()
+    SessionMaker = sessionmaker(bind=bind)
+    session = SessionMaker()
+
     with freeze_time("2021-01-01"):
-        assert _get_lock(MAIN_KEY) is None
+        assert _get_lock(MAIN_KEY, session) is None
         with KeyValueDistributedLock("ns", a=1, b=2) as key:
             assert key == MAIN_KEY
-            assert _get_lock(key) is True
-            assert _get_lock(OTHER_KEY) is None
+            assert _get_lock(key, session) is True
+            assert _get_lock(OTHER_KEY, session) is None
             with pytest.raises(CreateKeyValueDistributedLockFailedException):
                 with KeyValueDistributedLock("ns", a=1, b=2):
                     pass
 
-        assert _get_lock(MAIN_KEY) is None
+        assert _get_lock(MAIN_KEY, session) is None
 
 
 def test_key_value_distributed_lock_expired() -> None:
     """
     Test expiration of the distributed lock
     """
-    with freeze_time("2021-01-01T"):
-        assert _get_lock(MAIN_KEY) is None
-        with KeyValueDistributedLock("ns", a=1, b=2):
-            assert _get_lock(MAIN_KEY) is True
-            with freeze_time("2022-01-01T"):
-                assert _get_lock(MAIN_KEY) is None
+    from superset import db
 
-        assert _get_lock(MAIN_KEY) is None
+    bind = db.session.get_bind()
+    SessionMaker = sessionmaker(bind=bind)
+    session = SessionMaker()
+
+    with freeze_time("2021-01-01T"):
+        assert _get_lock(MAIN_KEY, session) is None
+        with KeyValueDistributedLock("ns", a=1, b=2):
+            assert _get_lock(MAIN_KEY, session) is True
+            with freeze_time("2022-01-01T"):
+                assert _get_lock(MAIN_KEY, session) is None
+
+        assert _get_lock(MAIN_KEY, session) is None

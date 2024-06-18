@@ -21,6 +21,7 @@ from typing import Any, Optional, Union
 from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -36,12 +37,14 @@ class GetKeyValueCommand(BaseCommand):
     resource: KeyValueResource
     key: Union[int, UUID]
     codec: KeyValueCodec
+    session: Session  # pylint: disable=disallowed-name
 
     def __init__(
         self,
         resource: KeyValueResource,
         key: Union[int, UUID],
         codec: KeyValueCodec,
+        session: Session | None = None,  # pylint: disable=disallowed-name
     ):
         """
         Retrieve a key value entry
@@ -49,11 +52,13 @@ class GetKeyValueCommand(BaseCommand):
         :param resource: the resource (dashboard, chart etc)
         :param key: the key to retrieve
         :param codec: codec used to decode the value
+        :param session: session to bind to (defaults to superset.db.session)
         :return: the value associated with the key if present
         """
         self.resource = resource
         self.key = key
         self.codec = codec
+        self.session = session or db.session  # pylint: disable=disallowed-name
 
     def run(self) -> Any:
         try:
@@ -66,7 +71,7 @@ class GetKeyValueCommand(BaseCommand):
 
     def get(self) -> Optional[Any]:
         filter_ = get_filter(self.resource, self.key)
-        entry = db.session.query(KeyValueEntry).filter_by(**filter_).first()
+        entry = self.session.query(KeyValueEntry).filter_by(**filter_).first()
         if entry and (entry.expires_on is None or entry.expires_on > datetime.now()):
             return self.codec.decode(entry.value)
         return None
