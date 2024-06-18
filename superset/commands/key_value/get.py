@@ -44,7 +44,7 @@ class GetKeyValueCommand(BaseCommand):
         resource: KeyValueResource,
         key: Union[int, UUID],
         codec: KeyValueCodec,
-        session: Session | None = None,  # pylint: disable=disallowed-name
+        session: Optional[Session] = None,  # pylint: disable=disallowed-name
     ):
         """
         Retrieve a key value entry
