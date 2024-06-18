@@ -1198,4 +1198,4 @@ def test_virtual_dataset_with_comments(app_context, virtual_dataset_with_comment
     )
     query_object = qc.queries[0]
     df = qc.get_df_payload(query_object)["df"]
-    assert len(df) == 10
+    assert len(df) == 3
