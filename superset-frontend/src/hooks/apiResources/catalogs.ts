@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { api, JsonResponse } from './queryApi';
 
@@ -68,7 +68,6 @@ export const {
 export const EMPTY_CATALOGS = [] as CatalogOption[];
 
 export function useCatalogs(options: Params) {
-  const isMountedRef = useRef(false);
   const { dbId, onSuccess, onError } = options || {};
   const [trigger] = useLazyCatalogsQuery();
   const result = useCatalogsQuery(
@@ -78,47 +77,28 @@ export function useCatalogs(options: Params) {
     },
   );
 
-  const handleOnSuccess = useEffectEvent(
-    (data: CatalogOption[], isRefetched: boolean) => {
-      onSuccess?.(data, isRefetched);
+  const fetchData = useEffectEvent(
+    (dbId: FetchCatalogsQueryParams['dbId'], forceRefresh = false) => {
+      if (dbId && (!result.currentData || forceRefresh)) {
+        trigger({ dbId, forceRefresh }).then(({ isSuccess, isError, data }) => {
+          if (isSuccess) {
+            onSuccess?.(data || EMPTY_CATALOGS, forceRefresh);
+          }
+          if (isError) {
+            onError?.();
+          }
+        });
+      }
     },
   );
 
-  const handleOnError = useEffectEvent(() => {
-    onError?.();
-  });
-
   const refetch = useCallback(() => {
-    if (dbId) {
-      trigger({ dbId, forceRefresh: true }).then(
-        ({ isSuccess, isError, data }) => {
-          if (isSuccess) {
-            handleOnSuccess(data || EMPTY_CATALOGS, true);
-          }
-          if (isError) {
-            handleOnError();
-          }
-        },
-      );
-    }
-  }, [dbId, handleOnError, handleOnSuccess, trigger]);
+    fetchData(dbId, true);
+  }, [dbId, fetchData]);
 
   useEffect(() => {
-    if (isMountedRef.current) {
-      const { requestId, isSuccess, isError, isFetching, data, originalArgs } =
-        result;
-      if (!originalArgs?.forceRefresh && requestId && !isFetching) {
-        if (isSuccess) {
-          handleOnSuccess(data || EMPTY_CATALOGS, false);
-        }
-        if (isError) {
-          handleOnError();
-        }
-      }
-    } else {
-      isMountedRef.current = true;
-    }
-  }, [result, handleOnSuccess, handleOnError]);
+    fetchData(dbId, false);
+  }, [dbId, fetchData]);
 
   return {
     ...result,
