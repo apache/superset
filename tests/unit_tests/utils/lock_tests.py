@@ -17,66 +17,53 @@
 
 # pylint: disable=invalid-name
 
-from datetime import datetime
+from typing import Any
+from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
-from pytest_mock import MockerFixture
-
-from superset.exceptions import CreateKeyValueDistributedLockFailedException
-from superset.key_value.exceptions import KeyValueCreateFailedError
-from superset.key_value.types import KeyValueResource
-from superset.utils.lock import get_key, KeyValueDistributedLock
 
 from superset.commands.key_value.get import GetKeyValueCommand
+from superset.exceptions import CreateKeyValueDistributedLockFailedException
+from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
+from superset.utils.lock import get_key, KeyValueDistributedLock
 
-def test_KeyValueDistributedLock_happy_path(mocker: MockerFixture) -> None:
-    """
-    Test successfully acquiring the global auth lock.
-    """
-    CreateKeyValueCommand = mocker.patch(
-        "superset.commands.key_value.create.CreateKeyValueCommand"
-    )
-    DeleteKeyValueCommand = mocker.patch(
-        "superset.commands.key_value.delete.DeleteKeyValueCommand"
-    )
-    DeleteExpiredKeyValueCommand = mocker.patch(
-        "superset.commands.key_value.delete_expired.DeleteExpiredKeyValueCommand"
-    )
-    PickleKeyValueCodec = mocker.patch("superset.utils.lock.PickleKeyValueCodec")
+MAIN_KEY = get_key("ns", a=1, b=2)
+OTHER_KEY = get_key("ns2", a=1, b=2)
 
-    with freeze_time("2024-01-01"):
-        key = get_key("ns", a=1, b=2)
-        lock = GetKeyValueCommand(resource=KeyValueResource.LOCK, key=key, codec=PickleKeyValueCodec()).run()
+
+def _get_lock(key: UUID) -> Any:
+    return GetKeyValueCommand(
+        resource=KeyValueResource.LOCK, key=key, codec=JsonKeyValueCodec()
+    ).run()
+
+
+def test_key_value_distributed_lock_happy_path() -> None:
+    """
+    Test successfully acquiring and returning the distributed lock.
+    """
+    with freeze_time("2021-01-01"):
+        assert _get_lock(MAIN_KEY) is None
         with KeyValueDistributedLock("ns", a=1, b=2) as key:
-            DeleteExpiredKeyValueCommand.assert_called_with(
-                resource=KeyValueResource.LOCK,
-            )
-            CreateKeyValueCommand.assert_called_with(
-                resource=KeyValueResource.LOCK,
-                codec=PickleKeyValueCodec(),
-                key=key,
-                value=True,
-                expires_on=datetime(2024, 1, 1, 0, 0, 30),
-            )
-            DeleteKeyValueCommand.assert_not_called()
+            assert key == MAIN_KEY
+            assert _get_lock(key) is True
+            assert _get_lock(OTHER_KEY) is None
+            with pytest.raises(CreateKeyValueDistributedLockFailedException):
+                with KeyValueDistributedLock("ns", a=1, b=2):
+                    pass
 
-        DeleteKeyValueCommand.assert_called_with(
-            resource=KeyValueResource.LOCK,
-            key=key,
-        )
+        assert _get_lock(MAIN_KEY) is None
 
 
-def test_KeyValueDistributedLock_no_lock(mocker: MockerFixture) -> None:
+def test_key_value_distributed_lock_expired() -> None:
     """
-    Test unsuccessfully acquiring the global auth lock.
+    Test expiration of the distributed lock
     """
-    mocker.patch(
-        "superset.commands.key_value.create.CreateKeyValueCommand",
-        side_effect=KeyValueCreateFailedError(),
-    )
-
-    with pytest.raises(CreateKeyValueDistributedLockFailedException) as excinfo:
+    with freeze_time("2021-01-01T"):
+        assert _get_lock(MAIN_KEY) is None
         with KeyValueDistributedLock("ns", a=1, b=2):
-            pass
-    assert str(excinfo.value) == "Error acquiring lock"
+            assert _get_lock(MAIN_KEY) is True
+            with freeze_time("2022-01-01T"):
+                assert _get_lock(MAIN_KEY) is None
+
+        assert _get_lock(MAIN_KEY) is None
