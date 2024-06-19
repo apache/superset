@@ -54,10 +54,6 @@ def serialize(params: dict[str, Any]) -> str:
     return json.dumps(params)
 
 
-def get_key(namespace: str, **kwargs: Any) -> uuid.UUID:
-    return uuid.uuid5(uuid.uuid5(uuid.NAMESPACE_DNS, namespace), serialize(kwargs))
-
-
 @contextmanager
 def KeyValueDistributedLock(  # pylint: disable=invalid-name
     namespace: str,
@@ -82,7 +78,7 @@ def KeyValueDistributedLock(  # pylint: disable=invalid-name
     from superset.commands.key_value.delete import DeleteKeyValueCommand
     from superset.commands.key_value.delete_expired import DeleteExpiredKeyValueCommand
 
-    key = get_key(namespace, **kwargs)
+    key = uuid.uuid5(uuid.uuid5(uuid.NAMESPACE_DNS, namespace), serialize(kwargs))
     logger.debug("Acquiring lock on namespace %s for key %s", namespace, key)
     try:
         DeleteExpiredKeyValueCommand(resource=KeyValueResource.LOCK).run()

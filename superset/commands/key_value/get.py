@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+from datetime import datetime
 from typing import Any, Optional, Union
 from uuid import UUID
 
@@ -66,6 +67,6 @@ class GetKeyValueCommand(BaseCommand):
     def get(self) -> Optional[Any]:
         filter_ = get_filter(self.resource, self.key)
         entry = db.session.query(KeyValueEntry).filter_by(**filter_).first()
-        if entry and not entry.is_expired():
+        if entry and (entry.expires_on is None or entry.expires_on > datetime.now()):
             return self.codec.decode(entry.value)
         return None

@@ -211,7 +211,7 @@ def dumps(  # pylint: disable=too-many-arguments
             cls=cls,
         )
     except UnicodeDecodeError:
-        results_string = simplejson.dumps(
+        results_string = simplejson.dumps(  # type: ignore[call-overload]
             obj,
             default=default,
             allow_nan=allow_nan,

@@ -133,5 +133,4 @@ class SupersetMetastoreCache(BaseCache):
         # pylint: disable=import-outside-toplevel
         from superset.commands.key_value.delete import DeleteKeyValueCommand
 
-        ret = DeleteKeyValueCommand(resource=RESOURCE, key=self.get_key(key)).run()
-        return ret
+        return DeleteKeyValueCommand(resource=RESOURCE, key=self.get_key(key)).run()
