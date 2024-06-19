@@ -172,6 +172,7 @@ Join our growing community!
 
 ### Travel
 - [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
+- [Agoda](https://www.agoda.com/) [@maiake, @obombayo]
 
 ### Others
 - [AI inside](https://inside.ai/en/)
