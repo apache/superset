@@ -42,7 +42,9 @@ def _get_lock(key: UUID, session: Session) -> Any:
     return JsonKeyValueCodec().decode(entry.value)
 
 
-def _get_session() -> Session:
+def _get_other_session() -> Session:
+    # This session is used to simulate what another worker will find in the metastore
+    # during the locking process.
     from superset import db
 
     bind = db.session.get_bind()
@@ -54,7 +56,7 @@ def test_key_value_distributed_lock_happy_path() -> None:
     """
     Test successfully acquiring and returning the distributed lock.
     """
-    session = _get_session()
+    session = _get_other_session()
 
     with freeze_time("2021-01-01"):
         assert _get_lock(MAIN_KEY, session) is None
@@ -73,7 +75,7 @@ def test_key_value_distributed_lock_expired() -> None:
     """
     Test expiration of the distributed lock
     """
-    session = _get_session()
+    session = _get_other_session()
 
     with freeze_time("2021-01-01T"):
         assert _get_lock(MAIN_KEY, session) is None
