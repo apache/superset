@@ -130,7 +130,7 @@ jobs:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           PARALLEL_ID: ${{ matrix.parallel_id }}
           PARALLELISM: 6
-          CYPRESS_KEY: YjljODE2MzAtODcwOC00NTA3LWE4NmMtMTU3YmFmMjIzOTRhCg==
+          CYPRESS_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
         with:
           run: cypress-run-all ${{ env.USE_DASHBOARD }}
       - name: Upload Artifacts
