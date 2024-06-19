@@ -121,6 +121,8 @@ class ChartRenderer extends Component {
       },
     };
 
+    this.timers = {};
+
     // TODO: queriesResponse comes from Redux store but it's being edited by
     // the plugins, hence we need to clone it to avoid state mutation
     // until we change the reducers to use Redux Toolkit with Immer
@@ -242,8 +244,52 @@ class ChartRenderer extends Component {
     }
   }
 
+  timer(details) {
+    this.timers.start = { start: Date.now(), details };
+  }
+
+  timerEnd() {
+    if (!this.timers.start) return [];
+    const time = Date.now() - this.timers.start?.start;
+    const details = this.timers.start?.details;
+
+    delete this.timers.start;
+    return [Math.floor(time), details];
+  }
+
+  componentWillUnmount() {
+    const [loadTime, details] = this.timerEnd();
+    if (loadTime) {
+      window.bwtag('record', 'loading_interrupted', {
+        duration: loadTime,
+        ...details,
+      });
+    }
+  }
+
   render() {
     const { chartAlert, chartStatus, chartId, emitCrossFilters } = this.props;
+
+    if (chartStatus === 'loading') {
+      const details = {
+        vizType: this.props.vizType,
+        dashboardId: this.props.dashboardId,
+        chartId,
+      };
+      this.timer(details);
+      window.bwtag('record', 'loading_started', details);
+    }
+
+    if (['rendered', 'success'].includes(chartStatus)) {
+      const [loadTime, details] = this.timerEnd();
+
+      if (loadTime) {
+        window.bwtag('record', 'loading_finished', {
+          duration: loadTime,
+          ...details,
+        });
+      }
+    }
 
     // Skip chart rendering
     if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {

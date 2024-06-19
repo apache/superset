@@ -110,27 +110,6 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
       post(transform(pre(chartProps))),
   );
 
-  private timers = {};
-
-  private timer = (details: any) => {
-    this.timers.start = { start: Date.now(), details };
-  };
-
-  private timerEnd = () => {
-    if (!this.timers.start) return [];
-    const time = Date.now() - this.timers.start?.start;
-    const details = this.timers.start?.details;
-    const amount = (this.timers.amount = this.timers.amount
-      ? this.timers.amount + 1
-      : 1);
-    const sum = (this.timers.sum = this.timers.sum
-      ? this.timers.sum + time
-      : time);
-
-    delete this.timers.start;
-    return [Math.floor(time), details];
-  };
-
   /**
    * memoized function so it will not recompute
    * and return previous value
@@ -144,10 +123,8 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
       (input: { chartType: string; overrideTransformProps?: TransformProps }) =>
         input.chartType,
       input => input.overrideTransformProps,
-      input => input.id,
-      input => input?.chartProps?.formData?.dashboardId,
     ],
-    (chartType, overrideTransformProps, chartId, dashboardId) => {
+    (chartType, overrideTransformProps) => {
       if (chartType) {
         const Renderer = createLoadableRenderer({
           loader: {
@@ -156,27 +133,10 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
               ? () => Promise.resolve(overrideTransformProps)
               : () => getChartTransformPropsRegistry().getAsPromise(chartType),
           },
-          loading: (loadingProps: LoadingProps) => {
-            const details = {
-              chartType,
-              dashboardId,
-              chartId,
-            };
-            this.timer(details);
-            window.bwtag('record', 'loading_started', { ...details });
-            return this.renderLoading(loadingProps, chartType);
-          },
-          render: (loaded: LoadedModules, props: RenderProps) => {
-            const [loadTime, details] = this.timerEnd();
-
-            if (loadTime) {
-              window.bwtag('record', 'loading_finished', {
-                duration: loadTime,
-                ...details,
-              });
-            }
-            return this.renderChart(loaded, props);
-          },
+          loading: (loadingProps: LoadingProps) =>
+            this.renderLoading(loadingProps, chartType),
+          render: (loaded: LoadedModules, props: RenderProps) =>
+            this.renderChart(loaded, props),
         });
 
         // Trigger preloading.
@@ -226,16 +186,6 @@ export default class SuperChartCore extends PureComponent<Props, {}> {
   private setRef = (container: HTMLElement | null) => {
     this.container = container;
   };
-
-  componentWillUnmount() {
-    const [loadTime, details] = this.timerEnd();
-    if (loadTime) {
-      window.bwtag('record', 'loading_interrupted', {
-        duration: loadTime,
-        ...details,
-      });
-    }
-  }
 
   render() {
     const {
