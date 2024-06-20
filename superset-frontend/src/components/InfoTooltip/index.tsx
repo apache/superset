@@ -73,9 +73,9 @@ export default function InfoTooltip({
   viewBox = '0 -1 24 24',
 }: InfoTooltipProps) {
   const theme = useTheme();
-  const alteredIconStyle = { 
+  const alteredIconStyle = {
     ...iconStyle,
-    color:  iconStyle.color || theme.colors.grayscale.base,
+    color: iconStyle.color || theme.colors.grayscale.base,
   };
   return (
     <StyledTooltip
