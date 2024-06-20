@@ -25,10 +25,14 @@ const createProps = () => ({
   imageMenuItemTitle: 'Download as Image',
   dashboardTitle: 'Test Dashboard',
   logEvent: jest.fn(),
+  addSuccessToast: jest.fn(),
+  dashboardId: '123',
 });
 
 const renderComponent = () => {
-  render(<DownloadMenuItems {...createProps()} />);
+  render(<DownloadMenuItems {...createProps()} />, {
+    useRedux: true,
+  });
 };
 
 test('Should render menu items', () => {
