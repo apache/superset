@@ -318,4 +318,3 @@ export const getSliceDashboards =
       throw error;
     }
   };
-export { QueryFormData };

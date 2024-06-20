@@ -276,7 +276,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return None
         except QueryObjectValidationError as ex:
             if raise_exceptions:
-                raise ex
+                raise
             return ex
 
     def _validate_no_have_duplicate_labels(self) -> None:

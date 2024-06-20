@@ -29,7 +29,7 @@ maintainers:
   - name: craig-rueda
     email: craig@craigrueda.com
     url: https://github.com/craig-rueda
-version: 0.12.11
+version: 0.12.12
 dependencies:
   - name: postgresql
     version: 12.1.6

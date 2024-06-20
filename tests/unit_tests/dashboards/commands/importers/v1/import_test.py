@@ -21,7 +21,7 @@ from collections.abc import Generator
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import security_manager
@@ -61,7 +61,7 @@ def session_with_schema(session: Session) -> Generator[Session, None, None]:
     session.rollback()
 
 
-def test_import_dashboard(mocker: MockFixture, session_with_schema: Session) -> None:
+def test_import_dashboard(mocker: MockerFixture, session_with_schema: Session) -> None:
     """
     Test importing a dashboard.
     """
@@ -77,7 +77,7 @@ def test_import_dashboard(mocker: MockFixture, session_with_schema: Session) -> 
 
 
 def test_import_dashboard_managed_externally(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session_with_schema: Session,
 ) -> None:
     """
@@ -97,7 +97,7 @@ def test_import_dashboard_managed_externally(
 
 
 def test_import_dashboard_without_permission(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session_with_schema: Session,
 ) -> None:
     """
@@ -117,7 +117,7 @@ def test_import_dashboard_without_permission(
 
 
 def test_import_existing_dashboard_without_permission(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """
@@ -146,7 +146,7 @@ def test_import_existing_dashboard_without_permission(
 
 
 def test_import_existing_dashboard_with_permission(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """

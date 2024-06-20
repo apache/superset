@@ -75,7 +75,7 @@ def load_metadata(contents: dict[str, str]) -> dict[str, str]:
 
         # otherwise we raise the validation error
         ex.messages = {METADATA_FILE_NAME: ex.messages}
-        raise ex
+        raise
 
     return metadata
 

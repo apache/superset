@@ -16,7 +16,7 @@
 # under the License.
 from typing import Callable
 
-from flask import abort, request
+from flask import abort, current_app, request
 from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, login_user
 from flask_wtf.csrf import same_origin
@@ -77,6 +77,9 @@ class EmbeddedView(BaseSupersetView):
         )
 
         bootstrap_data = {
+            "config": {
+                "GUEST_TOKEN_HEADER_NAME": current_app.config["GUEST_TOKEN_HEADER_NAME"]
+            },
             "common": common_bootstrap_payload(),
             "embedded": {
                 "dashboard_id": embedded.dashboard_id,

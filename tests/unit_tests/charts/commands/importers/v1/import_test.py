@@ -21,7 +21,7 @@ from collections.abc import Generator
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import security_manager
@@ -71,7 +71,7 @@ def session_with_schema(session: Session) -> Generator[Session, None, None]:
     yield session
 
 
-def test_import_chart(mocker: MockFixture, session_with_schema: Session) -> None:
+def test_import_chart(mocker: MockerFixture, session_with_schema: Session) -> None:
     """
     Test importing a chart.
     """
@@ -93,7 +93,7 @@ def test_import_chart(mocker: MockFixture, session_with_schema: Session) -> None
 
 
 def test_import_chart_managed_externally(
-    mocker: MockFixture, session_with_schema: Session
+    mocker: MockerFixture, session_with_schema: Session
 ) -> None:
     """
     Test importing a chart that is managed externally.
@@ -115,7 +115,7 @@ def test_import_chart_managed_externally(
 
 
 def test_import_chart_without_permission(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session_with_schema: Session,
 ) -> None:
     """
@@ -156,7 +156,7 @@ def test_filter_chart_annotations(session: Session) -> None:
 
 
 def test_import_existing_chart_without_permission(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """
@@ -185,7 +185,7 @@ def test_import_existing_chart_without_permission(
 
 
 def test_import_existing_chart_with_permission(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """

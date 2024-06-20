@@ -212,7 +212,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             # bubble up the exception to return a 408
-            raise ex
+            raise
         except SSHTunnelingNotEnabledError as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(
@@ -221,7 +221,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             # bubble up the exception to return a 400
-            raise ex
+            raise
         except Exception as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(

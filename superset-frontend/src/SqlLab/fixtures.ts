@@ -681,6 +681,7 @@ export const initialState = {
     queriesLastUpdate: 0,
     activeSouthPaneTab: 'Results',
     unsavedQueryEditor: {},
+    destroyedQueryEditors: {},
   },
   messageToasts: [],
   user,

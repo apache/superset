@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import Badge, { BadgeProps } from '.';
 
 export default {
@@ -58,7 +59,11 @@ const SIZES = {
   defaultValue: undefined,
 };
 
-export const InteractiveBadge = (args: BadgeProps) => <Badge {...args} />;
+export const InteractiveBadge = (args: BadgeProps) => (
+  <AntdThemeProvider>
+    <Badge {...args} />
+  </AntdThemeProvider>
+);
 
 InteractiveBadge.args = {
   count: null,
@@ -72,26 +77,32 @@ InteractiveBadge.argTypes = {
   status: {
     control: {
       type: 'select',
-      options: [undefined, ...STATUSES],
     },
+    options: [undefined, ...STATUSES],
   },
   size: {
     control: {
       type: 'select',
-      options: SIZES.options,
     },
+    options: SIZES.options,
   },
   color: {
     control: {
       type: 'select',
-      options: [undefined, ...COLORS.options],
     },
+    options: [undefined, ...COLORS.options],
+  },
+  textColor: {
+    control: {
+      type: 'select',
+    },
+    options: [undefined, ...COLORS.options],
   },
   count: {
     control: {
       type: 'select',
-      options: [undefined, ...Array(100).keys()],
     },
+    options: [undefined, ...Array(100).keys()],
   },
 };
 
@@ -100,21 +111,23 @@ export const BadgeGallery = () => (
     {SIZES.options.map(size => (
       <div key={size} style={{ marginBottom: 40 }}>
         <h4>{size}</h4>
-        {COLORS.options.map(color => (
-          <Badge
-            count={9}
-            size={size}
-            key={`${color}_${size}`}
-            style={{ marginRight: '15px' }}
-          />
-        ))}
+        <AntdThemeProvider>
+          {COLORS.options.map(color => (
+            <Badge
+              count={9}
+              size={size}
+              key={`${color}_${size}`}
+              style={{ marginRight: '15px' }}
+            />
+          ))}
+        </AntdThemeProvider>
       </div>
     ))}
   </>
 );
 
 export const BadgeTextGallery = () => (
-  <>
+  <AntdThemeProvider>
     {COLORS.options.map(color => (
       <Badge
         text="Hello"
@@ -123,7 +136,7 @@ export const BadgeTextGallery = () => (
         style={{ marginRight: '15px' }}
       />
     ))}
-  </>
+  </AntdThemeProvider>
 );
 
 BadgeGallery.parameters = {

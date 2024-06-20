@@ -85,9 +85,9 @@ class UpdateDatabaseCommand(BaseCommand):
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
             ssh_tunnel = self._handle_ssh_tunnel(database)
             self._refresh_catalogs(database, original_database_name, ssh_tunnel)
-        except SSHTunnelError as ex:
+        except SSHTunnelError:  # pylint: disable=try-except-raise
             # allow exception to bubble for debugbing information
-            raise ex
+            raise
         except (DAOUpdateFailedError, DAOCreateFailedError) as ex:
             raise DatabaseUpdateFailedError() from ex
 

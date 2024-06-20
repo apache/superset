@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType, smartDateFormatter, t } from '@superset-ui/core';
+import { GenericDataType, SMART_DATE_ID, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
@@ -71,7 +71,7 @@ export default {
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: D3_FORMAT_DOCS,
-              default: smartDateFormatter.id,
+              default: SMART_DATE_ID,
             },
           },
         ],

@@ -21,7 +21,7 @@ from typing import Optional, Union
 import pandas as pd
 import pytest
 from flask.ctx import AppContext
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from superset.commands.report.exceptions import AlertQueryError
 from superset.reports.models import ReportCreationMethod, ReportScheduleType
@@ -61,7 +61,7 @@ def test_execute_query_as_report_executor(
     creator_name: Optional[str],
     config: list[ExecutorType],
     expected_result: Union[tuple[ExecutorType, str], Exception],
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app_context: AppContext,
     get_user,
 ) -> None:
@@ -99,7 +99,7 @@ def test_execute_query_as_report_executor(
 
 
 def test_execute_query_succeeded_no_retry(
-    mocker: MockFixture, app_context: None
+    mocker: MockerFixture, app_context: None
 ) -> None:
     from superset.commands.report.alert import AlertCommand
 
@@ -116,7 +116,7 @@ def test_execute_query_succeeded_no_retry(
 
 
 def test_execute_query_succeeded_with_retries(
-    mocker: MockFixture, app_context: None
+    mocker: MockerFixture, app_context: None
 ) -> None:
     from superset.commands.report.alert import AlertCommand, AlertQueryError
 
@@ -147,7 +147,9 @@ def test_execute_query_succeeded_with_retries(
     assert execute_query_mock.call_count == expected_max_retries
 
 
-def test_execute_query_failed_no_retry(mocker: MockFixture, app_context: None) -> None:
+def test_execute_query_failed_no_retry(
+    mocker: MockerFixture, app_context: None
+) -> None:
     from superset.commands.report.alert import AlertCommand, AlertQueryTimeout
 
     execute_query_mock = mocker.patch(
@@ -168,7 +170,7 @@ def test_execute_query_failed_no_retry(mocker: MockFixture, app_context: None) -
 
 
 def test_execute_query_failed_max_retries(
-    mocker: MockFixture, app_context: None
+    mocker: MockerFixture, app_context: None
 ) -> None:
     from superset.commands.report.alert import AlertCommand, AlertQueryError
 

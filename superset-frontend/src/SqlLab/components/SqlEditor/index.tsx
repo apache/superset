@@ -79,7 +79,7 @@ import {
   setActiveSouthPaneTab,
   updateSavedQuery,
   formatQuery,
-  switchQueryEditor,
+  fetchQueryEditor,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -100,6 +100,17 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import useLogAction from 'src/logger/useLogAction';
+import {
+  LOG_ACTIONS_SQLLAB_CREATE_TABLE_AS,
+  LOG_ACTIONS_SQLLAB_CREATE_VIEW_AS,
+  LOG_ACTIONS_SQLLAB_ESTIMATE_QUERY_COST,
+  LOG_ACTIONS_SQLLAB_FORMAT_SQL,
+  LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE,
+  LOG_ACTIONS_SQLLAB_RUN_QUERY,
+  LOG_ACTIONS_SQLLAB_STOP_QUERY,
+  Logger,
+} from 'src/logger/LogUtils';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
@@ -273,6 +284,7 @@ const SqlEditor: FC<Props> = ({
       };
     }, shallowEqual);
 
+  const logAction = useLogAction({ queryEditorId: queryEditor.id });
   const isActive = currentQueryEditorId === queryEditor.id;
   const [height, setHeight] = useState(0);
   const [autorun, setAutorun] = useState(queryEditor.autorun);
@@ -291,7 +303,10 @@ const SqlEditor: FC<Props> = ({
   );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
-  const [showEmptyState, setShowEmptyState] = useState(false);
+  const showEmptyState = useMemo(
+    () => !database || isEmpty(database),
+    [database],
+  );
 
   const sqlEditorRef = useRef<HTMLDivElement>(null);
   const northPaneRef = useRef<HTMLDivElement>(null);
@@ -319,9 +334,15 @@ const SqlEditor: FC<Props> = ({
     [ctas, database, defaultQueryLimit, dispatch, queryEditor],
   );
 
-  const formatCurrentQuery = useCallback(() => {
-    dispatch(formatQuery(queryEditor));
-  }, [dispatch, queryEditor]);
+  const formatCurrentQuery = useCallback(
+    (useShortcut?: boolean) => {
+      logAction(LOG_ACTIONS_SQLLAB_FORMAT_SQL, {
+        shortcut: Boolean(useShortcut),
+      });
+      dispatch(formatQuery(queryEditor));
+    },
+    [dispatch, queryEditor, logAction],
+  );
 
   const stopQuery = useCallback(() => {
     if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
@@ -360,6 +381,7 @@ const SqlEditor: FC<Props> = ({
         descr: KEY_MAP[KeyboardShortcut.CtrlR],
         func: () => {
           if (queryEditor.sql.trim() !== '') {
+            logAction(LOG_ACTIONS_SQLLAB_RUN_QUERY, { shortcut: true });
             startQuery();
           }
         },
@@ -370,6 +392,7 @@ const SqlEditor: FC<Props> = ({
         descr: KEY_MAP[KeyboardShortcut.CtrlEnter],
         func: () => {
           if (queryEditor.sql.trim() !== '') {
+            logAction(LOG_ACTIONS_SQLLAB_RUN_QUERY, { shortcut: true });
             startQuery();
           }
         },
@@ -386,6 +409,7 @@ const SqlEditor: FC<Props> = ({
               descr: KEY_MAP[KeyboardShortcut.CtrlT],
             }),
         func: () => {
+          Logger.markTimeOrigin();
           dispatch(addNewQueryEditor());
         },
       },
@@ -400,14 +424,17 @@ const SqlEditor: FC<Props> = ({
               key: KeyboardShortcut.CtrlE,
               descr: KEY_MAP[KeyboardShortcut.CtrlE],
             }),
-        func: stopQuery,
+        func: () => {
+          logAction(LOG_ACTIONS_SQLLAB_STOP_QUERY, { shortcut: true });
+          stopQuery();
+        },
       },
       {
         name: 'formatQuery',
         key: KeyboardShortcut.CtrlShiftF,
         descr: KEY_MAP[KeyboardShortcut.CtrlShiftF],
         func: () => {
-          formatCurrentQuery();
+          formatCurrentQuery(true);
         },
       },
     ];
@@ -505,8 +532,15 @@ const SqlEditor: FC<Props> = ({
     !queryEditor.loaded;
 
   const loadQueryEditor = useEffectEvent(() => {
+    const duration = Logger.getTimestamp();
+    logAction(LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE, {
+      duration,
+      queryEditorId: queryEditor.id,
+      inLocalStorage: Boolean(queryEditor.inLocalStorage),
+      hasLoaded: !shouldLoadQueryEditor,
+    });
     if (shouldLoadQueryEditor) {
-      dispatch(switchQueryEditor(queryEditor, displayLimit));
+      dispatch(fetchQueryEditor(queryEditor, displayLimit));
     }
   });
 
@@ -530,12 +564,6 @@ const SqlEditor: FC<Props> = ({
     };
     // TODO: Remove useEffectEvent deps once https://github.com/facebook/react/pull/25881 is released
   }, [onBeforeUnload, loadQueryEditor, isActive]);
-
-  useEffect(() => {
-    if (!database || isEmpty(database)) {
-      setShowEmptyState(true);
-    }
-  }, [database]);
 
   useEffect(() => {
     // setup hotkeys
@@ -602,6 +630,7 @@ const SqlEditor: FC<Props> = ({
   });
 
   const getQueryCostEstimate = () => {
+    logAction(LOG_ACTIONS_SQLLAB_ESTIMATE_QUERY_COST, { shortcut: false });
     if (database) {
       dispatch(estimateQueryCost(queryEditor));
     }
@@ -668,7 +697,9 @@ const SqlEditor: FC<Props> = ({
             />
           </Menu.Item>
         )}
-        <Menu.Item onClick={formatCurrentQuery}>{t('Format SQL')}</Menu.Item>
+        <Menu.Item onClick={() => formatCurrentQuery()}>
+          {t('Format SQL')}
+        </Menu.Item>
         {!isEmpty(scheduledQueriesConf) && (
           <Menu.Item>
             <ScheduleQueryButton
@@ -706,6 +737,9 @@ const SqlEditor: FC<Props> = ({
         {allowCTAS && (
           <Menu.Item
             onClick={() => {
+              logAction(LOG_ACTIONS_SQLLAB_CREATE_TABLE_AS, {
+                shortcut: false,
+              });
               setShowCreateAsModal(true);
               setCreateAs(CtasEnum.Table);
             }}
@@ -717,6 +751,9 @@ const SqlEditor: FC<Props> = ({
         {allowCVAS && (
           <Menu.Item
             onClick={() => {
+              logAction(LOG_ACTIONS_SQLLAB_CREATE_VIEW_AS, {
+                shortcut: false,
+              });
               setShowCreateAsModal(true);
               setCreateAs(CtasEnum.View);
             }}
@@ -871,7 +908,6 @@ const SqlEditor: FC<Props> = ({
               <SqlEditorLeftBar
                 database={database}
                 queryEditorId={queryEditor.id}
-                setEmptyState={bool => setShowEmptyState(bool)}
               />
             </StyledSidebar>
           )}

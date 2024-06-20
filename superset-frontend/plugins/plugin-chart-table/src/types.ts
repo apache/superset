@@ -102,6 +102,12 @@ export interface TableChartProps extends ChartProps {
   queriesData: ChartDataResponseResult[];
 }
 
+export type BasicColorFormatterType = {
+  backgroundColor: string;
+  arrowColor: string;
+  mainArrow: string;
+};
+
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   timeGrain?: TimeGranularity;
   height: number;
@@ -136,6 +142,15 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
     clientY: number,
     filters?: ContextMenuFilters,
   ) => void;
+  isUsingTimeComparison?: boolean;
+  basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  startDateOffset?: string;
+}
+
+export enum ColorSchemeEnum {
+  'Green' = 'Green',
+  'Red' = 'Red',
 }
 
 export default {};

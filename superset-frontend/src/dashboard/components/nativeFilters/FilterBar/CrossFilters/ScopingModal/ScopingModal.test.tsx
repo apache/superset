@@ -18,7 +18,13 @@
  */
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  selectOption,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
@@ -199,21 +205,7 @@ it('add new custom scoping', async () => {
   expect(screen.getByText('[new custom scoping]')).toBeInTheDocument();
   expect(screen.getByText('[new custom scoping]')).toHaveClass('active');
 
-  await waitFor(() =>
-    userEvent.click(screen.getByRole('combobox', { name: 'Select chart' })),
-  );
-  await waitFor(() => {
-    userEvent.click(
-      within(document.querySelector('.rc-virtual-list')!).getByText('chart 1'),
-    );
-  });
-
-  expect(
-    within(document.querySelector('.ant-select-selection-item')!).getByText(
-      'chart 1',
-    ),
-  ).toBeInTheDocument();
-
+  await selectOption('chart 1', 'Select chart');
   expect(
     document.querySelectorAll(
       '[data-test="scoping-tree-panel"] .ant-tree-checkbox-checked',
@@ -250,14 +242,8 @@ it('edit scope and save', async () => {
 
   // create custom scoping for chart 1 with unselected chart 2 (from global) and chart 4
   userEvent.click(screen.getByText('Add custom scoping'));
-  await waitFor(() =>
-    userEvent.click(screen.getByRole('combobox', { name: 'Select chart' })),
-  );
-  await waitFor(() => {
-    userEvent.click(
-      within(document.querySelector('.rc-virtual-list')!).getByText('chart 1'),
-    );
-  });
+  await selectOption('chart 1', 'Select chart');
+
   userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 4'),
   );

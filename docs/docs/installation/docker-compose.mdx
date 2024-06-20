@@ -117,11 +117,11 @@ its metadata database. In production, this database should be backed up.  The de
 with docker compose will store that data in a PostgreSQL database contained in a Docker
 [volume](https://docs.docker.com/storage/volumes/), which is not backed up.
 
-Again **DO NOT USE THIS FOR PRODUCTION**
+Again, **DO NOT USE THIS FOR PRODUCTION**
 
 :::
 
-You should see a wall of logging output from the containers being launched on your machine. Once
+You should see a stream of logging output from the containers being launched on your machine. Once
 this output slows, you should have a running instance of Superset on your local machine!  To avoid
 the wall of text on future runs, add the `-d` option to the end of the `docker compose up` command.
 

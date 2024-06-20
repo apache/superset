@@ -599,7 +599,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     self.update_report_schedule_and_log(
                         ReportState.ERROR, error_message=second_error_message
                     )
-            raise first_ex
+            raise
 
 
 class ReportWorkingState(BaseReportState):
@@ -662,7 +662,7 @@ class ReportSuccessState(BaseReportState):
                     ReportState.ERROR,
                     error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
                 )
-                raise ex
+                raise
 
         try:
             self.send()
@@ -737,8 +737,8 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 ReportScheduleStateMachine(
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()
-        except CommandException as ex:
-            raise ex
+        except CommandException:
+            raise
         except Exception as ex:
             raise ReportScheduleUnexpectedError(str(ex)) from ex
 

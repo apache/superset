@@ -143,6 +143,7 @@ export default function transformProps(
     labelsOutside,
     labelLine,
     labelType,
+    labelTemplate,
     legendMargin,
     legendOrientation,
     legendType,
@@ -242,6 +243,38 @@ export default function transformProps(
     {},
   );
 
+  const formatTemplate = (
+    template: string,
+    formattedParams: {
+      name: string;
+      value: string;
+      percent: string;
+    },
+    rawParams: CallbackDataParams,
+  ) => {
+    // This function supports two forms of template variables:
+    // 1. {name}, {value}, {percent}, for values formatted by number formatter.
+    // 2. {a}, {b}, {c}, {d}, compatible with ECharts formatter.
+    //
+    // \n is supported to represent a new line.
+
+    const items = {
+      '{name}': formattedParams.name,
+      '{value}': formattedParams.value,
+      '{percent}': formattedParams.percent,
+      '{a}': rawParams.seriesName || '',
+      '{b}': rawParams.name,
+      '{c}': `${rawParams.value}`,
+      '{d}': `${rawParams.percent}`,
+      '\\n': '\n',
+    };
+
+    return Object.entries(items).reduce(
+      (acc, [key, value]) => acc.replaceAll(key, value),
+      template,
+    );
+  };
+
   const formatter = (params: CallbackDataParams) => {
     const [name, formattedValue, formattedPercent] = parseParams({
       params,
@@ -262,6 +295,19 @@ export default function transformProps(
         return `${name}: ${formattedPercent}`;
       case EchartsPieLabelType.ValuePercent:
         return `${formattedValue} (${formattedPercent})`;
+      case EchartsPieLabelType.Template:
+        if (!labelTemplate) {
+          return '';
+        }
+        return formatTemplate(
+          labelTemplate,
+          {
+            name,
+            value: formattedValue,
+            percent: formattedPercent,
+          },
+          params,
+        );
       default:
         return name;
     }

@@ -87,6 +87,7 @@ InteractiveAlert.args = {
 InteractiveAlert.argTypes = {
   onClose: { action: 'onClose' },
   type: {
-    control: { type: 'select', options: types },
+    control: { type: 'select' },
+    options: types,
   },
 };

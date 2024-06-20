@@ -85,14 +85,14 @@ const StyledFilterCount = styled.div`
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
     margin-left: ${theme.gridUnit * 2}px;
-    &>sup.ant-badge-count {
+    &>sup.antd5-badge-count {
+      padding: 0 ${theme.gridUnit}px;
       min-width: ${theme.gridUnit * 4}px;
       height: ${theme.gridUnit * 4}px;
       line-height: 1.5;
       font-weight: ${theme.typography.weights.medium};
       font-size: ${theme.typography.sizes.s - 1}px;
       box-shadow: none;
-      padding: 0 ${theme.gridUnit}px;
     }
   `}
 `;

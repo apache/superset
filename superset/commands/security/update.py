@@ -47,7 +47,7 @@ class UpdateRLSRuleCommand(BaseCommand):
             rule = RLSDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise ex
+            raise
 
         return rule
 

@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from marshmallow import fields, Schema, ValidationError
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 if TYPE_CHECKING:
     from superset.databases.schemas import DatabaseParametersSchemaMixin
@@ -48,7 +48,7 @@ def dummy_schema() -> "DatabaseParametersSchemaMixin":
 
 
 @pytest.fixture
-def dummy_engine(mocker: MockFixture) -> None:
+def dummy_engine(mocker: MockerFixture) -> None:
     """
     Fixture proving a dummy DB engine spec.
     """

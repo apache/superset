@@ -53,6 +53,7 @@ import {
   AdvancedFrame,
   DateLabel,
 } from './components';
+import { CurrentCalendarFrame } from './components/CurrentCalendarFrame';
 
 const StyledRangeType = styled(Select)`
   width: 272px;
@@ -201,6 +202,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         if (
           guessedFrame === 'Common' ||
           guessedFrame === 'Calendar' ||
+          guessedFrame === 'Current' ||
           guessedFrame === 'No filter'
         ) {
           setActualTimeRange(value);
@@ -295,6 +297,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       )}
       {frame === 'Calendar' && (
         <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+      )}
+      {frame === 'Current' && (
+        <CurrentCalendarFrame
+          value={timeRangeValue}
+          onChange={setTimeRangeValue}
+        />
       )}
       {frame === 'Advanced' && (
         <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />

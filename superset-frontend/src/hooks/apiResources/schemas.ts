@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { api, JsonResponse } from './queryApi';
 
@@ -72,7 +72,6 @@ export const {
 export const EMPTY_SCHEMAS = [] as SchemaOption[];
 
 export function useSchemas(options: Params) {
-  const isMountedRef = useRef(false);
   const { dbId, catalog, onSuccess, onError } = options || {};
   const [trigger] = useLazySchemasQuery();
   const result = useSchemasQuery(
@@ -82,62 +81,34 @@ export function useSchemas(options: Params) {
     },
   );
 
-  const handleOnSuccess = useEffectEvent(
-    (data: SchemaOption[], isRefetched: boolean) => {
-      onSuccess?.(data, isRefetched);
+  const fetchData = useEffectEvent(
+    (
+      dbId: FetchSchemasQueryParams['dbId'],
+      catalog: FetchSchemasQueryParams['catalog'],
+      forceRefresh = false,
+    ) => {
+      if (dbId && (!result.currentData || forceRefresh)) {
+        trigger({ dbId, catalog, forceRefresh }).then(
+          ({ isSuccess, isError, data }) => {
+            if (isSuccess) {
+              onSuccess?.(data || EMPTY_SCHEMAS, forceRefresh);
+            }
+            if (isError) {
+              onError?.();
+            }
+          },
+        );
+      }
     },
   );
 
-  const handleOnError = useEffectEvent(() => {
-    onError?.();
-  });
-
   useEffect(() => {
-    if (dbId) {
-      trigger({ dbId, catalog, forceRefresh: false }).then(
-        ({ isSuccess, isError, data }) => {
-          if (isSuccess) {
-            handleOnSuccess(data || EMPTY_SCHEMAS, true);
-          }
-          if (isError) {
-            handleOnError();
-          }
-        },
-      );
-    }
-  }, [dbId, catalog, handleOnError, handleOnSuccess, trigger]);
+    fetchData(dbId, catalog, false);
+  }, [dbId, catalog, fetchData]);
 
   const refetch = useCallback(() => {
-    if (dbId) {
-      trigger({ dbId, catalog, forceRefresh: true }).then(
-        ({ isSuccess, isError, data }) => {
-          if (isSuccess) {
-            handleOnSuccess(data || EMPTY_SCHEMAS, true);
-          }
-          if (isError) {
-            handleOnError();
-          }
-        },
-      );
-    }
-  }, [dbId, catalog, handleOnError, handleOnSuccess, trigger]);
-
-  useEffect(() => {
-    if (isMountedRef.current) {
-      const { requestId, isSuccess, isError, isFetching, data, originalArgs } =
-        result;
-      if (!originalArgs?.forceRefresh && requestId && !isFetching) {
-        if (isSuccess) {
-          handleOnSuccess(data || EMPTY_SCHEMAS, false);
-        }
-        if (isError) {
-          handleOnError();
-        }
-      }
-    } else {
-      isMountedRef.current = true;
-    }
-  }, [catalog, result, handleOnSuccess, handleOnError]);
+    fetchData(dbId, catalog, true);
+  }, [dbId, catalog, fetchData]);
 
   return {
     ...result,

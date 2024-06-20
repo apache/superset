@@ -102,6 +102,8 @@ export const CREATE_DATASOURCE_SUCCESS = 'CREATE_DATASOURCE_SUCCESS';
 export const CREATE_DATASOURCE_FAILED = 'CREATE_DATASOURCE_FAILED';
 
 export const SET_EDITOR_TAB_LAST_UPDATE = 'SET_EDITOR_TAB_LAST_UPDATE';
+export const SET_LAST_UPDATED_ACTIVE_TAB = 'SET_LAST_UPDATED_ACTIVE_TAB';
+export const CLEAR_DESTROYED_QUERY_EDITOR = 'CLEAR_DESTROYED_QUERY_EDITOR';
 
 export const addInfoToast = addInfoToastAction;
 export const addSuccessToast = addSuccessToastAction;
@@ -134,11 +136,12 @@ export const convertQueryToClient = fieldConverter(queryClientMapping);
 
 export function getUpToDateQuery(rootState, queryEditor, key) {
   const {
-    sqlLab: { unsavedQueryEditor },
+    sqlLab: { unsavedQueryEditor, queryEditors },
   } = rootState;
   const id = key ?? queryEditor.id;
   return {
-    ...queryEditor,
+    id,
+    ...queryEditors.find(qe => qe.id === id),
     ...(id === unsavedQueryEditor.id && unsavedQueryEditor),
   };
 }
@@ -610,29 +613,17 @@ export function cloneQueryToNewTab(query, autorun) {
   };
 }
 
-export function setActiveQueryEditor(queryEditor) {
-  return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.post({
-          endpoint: encodeURI(`/tabstateview/${queryEditor.id}/activate`),
-        })
-      : Promise.resolve();
+export function setLastUpdatedActiveTab(queryEditorId) {
+  return {
+    type: SET_LAST_UPDATED_ACTIVE_TAB,
+    queryEditorId,
+  };
+}
 
-    return sync
-      .then(() => dispatch({ type: SET_ACTIVE_QUERY_EDITOR, queryEditor }))
-      .catch(response => {
-        if (response.status !== 404) {
-          return dispatch(
-            addDangerToast(
-              t(
-                'An error occurred while setting the active tab. Please contact ' +
-                  'your administrator.',
-              ),
-            ),
-          );
-        }
-        return dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor });
-      });
+export function setActiveQueryEditor(queryEditor) {
+  return {
+    type: SET_ACTIVE_QUERY_EDITOR,
+    queryEditor,
   };
 }
 
@@ -673,51 +664,42 @@ export function setTables(tableSchemas) {
   return { type: SET_TABLES, tables };
 }
 
-export function switchQueryEditor(queryEditor, displayLimit) {
+export function fetchQueryEditor(queryEditor, displayLimit) {
   return function (dispatch) {
-    if (
-      isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
-      queryEditor &&
-      !queryEditor.loaded
-    ) {
-      SupersetClient.get({
-        endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+    SupersetClient.get({
+      endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+    })
+      .then(({ json }) => {
+        const loadedQueryEditor = {
+          id: json.id.toString(),
+          loaded: true,
+          name: json.label,
+          sql: json.sql,
+          selectedText: null,
+          latestQueryId: json.latest_query?.id,
+          autorun: json.autorun,
+          dbId: json.database_id,
+          templateParams: json.template_params,
+          catalog: json.catalog,
+          schema: json.schema,
+          queryLimit: json.query_limit,
+          remoteId: json.saved_query?.id,
+          hideLeftBar: json.hide_left_bar,
+        };
+        dispatch(loadQueryEditor(loadedQueryEditor));
+        dispatch(setTables(json.table_schemas || []));
+        if (json.latest_query && json.latest_query.resultsKey) {
+          dispatch(fetchQueryResults(json.latest_query, displayLimit));
+        }
       })
-        .then(({ json }) => {
-          const loadedQueryEditor = {
-            id: json.id.toString(),
-            loaded: true,
-            name: json.label,
-            sql: json.sql,
-            selectedText: null,
-            latestQueryId: json.latest_query?.id,
-            autorun: json.autorun,
-            dbId: json.database_id,
-            templateParams: json.template_params,
-            catalog: json.catalog,
-            schema: json.schema,
-            queryLimit: json.query_limit,
-            remoteId: json.saved_query?.id,
-            hideLeftBar: json.hide_left_bar,
-          };
-          dispatch(loadQueryEditor(loadedQueryEditor));
-          dispatch(setTables(json.table_schemas || []));
-          dispatch(setActiveQueryEditor(loadedQueryEditor));
-          if (json.latest_query && json.latest_query.resultsKey) {
-            dispatch(fetchQueryResults(json.latest_query, displayLimit));
-          }
-        })
-        .catch(response => {
-          if (response.status !== 404) {
-            return dispatch(
-              addDangerToast(t('An error occurred while fetching tab state')),
-            );
-          }
-          return dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor });
-        });
-    } else {
-      dispatch(setActiveQueryEditor(queryEditor));
-    }
+      .catch(response => {
+        if (response.status !== 404) {
+          return dispatch(
+            addDangerToast(t('An error occurred while fetching tab state')),
+          );
+        }
+        return dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor });
+      });
   };
 }
 
@@ -734,29 +716,12 @@ export function toggleLeftBar(queryEditor) {
   };
 }
 
-export function removeQueryEditor(queryEditor) {
-  return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.delete({
-          endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
-        })
-      : Promise.resolve();
+export function clearDestoryedQueryEditor(queryEditorId) {
+  return { type: CLEAR_DESTROYED_QUERY_EDITOR, queryEditorId };
+}
 
-    return sync
-      .then(() => dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor }))
-      .catch(({ status }) => {
-        if (status !== 404) {
-          return dispatch(
-            addDangerToast(
-              t(
-                'An error occurred while removing tab. Please contact your administrator.',
-              ),
-            ),
-          );
-        }
-        return dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor });
-      });
-  };
+export function removeQueryEditor(queryEditor) {
+  return { type: REMOVE_QUERY_EDITOR, queryEditor };
 }
 
 export function removeAllOtherQueryEditors(queryEditor) {

@@ -442,9 +442,15 @@ class ChartDataRestApi(ChartRestApi):
     def _create_query_context_from_form(
         self, form_data: dict[str, Any]
     ) -> QueryContext:
+        """
+        Create the query context from the form data.
+
+        :param form_data: The chart form data
+        :returns: The query context
+        :raises ValidationError: If the request is incorrect
+        """
+
         try:
             return ChartDataQueryContextSchema().load(form_data)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
-        except ValidationError as error:
-            raise error

@@ -101,6 +101,7 @@ class SupersetMetastoreCache(BaseCache):
         from superset.commands.key_value.create import CreateKeyValueCommand
 
         try:
+            self._prune()
             CreateKeyValueCommand(
                 resource=RESOURCE,
                 value=value,
@@ -108,7 +109,6 @@ class SupersetMetastoreCache(BaseCache):
                 key=self.get_key(key),
                 expires_on=self._get_expiry(timeout),
             ).run()
-            self._prune()
             return True
         except KeyValueCreateFailedError:
             return False

@@ -17,6 +17,12 @@
  * under the License.
  */
 import {
+  getTimeFormatterRegistry,
+  SMART_DATE_ID,
+  createSmartDateFormatter,
+} from '@superset-ui/core';
+
+import {
   computeStackedYDomain,
   computeYDomain,
   getTimeOrNumberFormatter,
@@ -111,6 +117,13 @@ const DATA_WITH_DISABLED_SERIES = [
 ];
 
 describe('nvd3/utils', () => {
+  beforeEach(() => {
+    getTimeFormatterRegistry().registerValue(
+      SMART_DATE_ID,
+      createSmartDateFormatter(),
+    );
+  });
+
   describe('getTimeOrNumberFormatter(format)', () => {
     it('is a function', () => {
       expect(typeof getTimeOrNumberFormatter).toBe('function');

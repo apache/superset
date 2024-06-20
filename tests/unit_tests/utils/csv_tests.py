@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import io
 
 import pandas as pd
 import pyarrow as pa
@@ -59,24 +58,39 @@ def test_escape_value():
 
 
 def test_df_to_escaped_csv():
-    csv_rows = [
-        ["col_a", "=func()"],
-        ["-10", "=cmd|' /C calc'!A0"],
-        ["a", '""=b'],
-        [" =a", "b"],
-    ]
-    csv_str = "\n".join([",".join(row) for row in csv_rows])
+    df = pd.DataFrame(
+        data={
+            "value": [
+                "a",
+                "col_a",
+                "=func()",
+                "-10",
+                "=cmd|' /C calc'!A0",
+                '""=b',
+                " =a",
+                "\x00",
+            ]
+        }
+    )
 
-    df = pd.read_csv(io.StringIO(csv_str))
+    escaped_csv_str = csv.df_to_escaped_csv(
+        df,
+        encoding="utf8",
+        index=False,
+        header=False,
+    )
 
-    escaped_csv_str = csv.df_to_escaped_csv(df, encoding="utf8", index=False)
     escaped_csv_rows = [row.split(",") for row in escaped_csv_str.strip().split("\n")]
 
     assert escaped_csv_rows == [
-        ["col_a", "'=func()"],
-        ["-10", r"'=cmd\|' /C calc'!A0"],
-        ["a", "'=b"],  # pandas seems to be removing the leading ""
-        ["' =a", "b"],
+        ["a"],
+        ["col_a"],
+        ["'=func()"],
+        ["-10"],
+        [r"'=cmd\\|' /C calc'!A0"],
+        ['"\'""""=b"'],
+        ["' =a"],
+        ["\x00"],
     ]
 
     df = pa.array([1, None]).to_pandas(integer_object_nulls=True).to_frame()

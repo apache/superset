@@ -97,8 +97,8 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             )
             self._query_dao.update_saved_query_exec_info(query_id)
             execution_context.set_execution_result(data)
-        except SupersetTimeoutException as ex:
-            raise ex
+        except SupersetTimeoutException:
+            raise
         except Exception as ex:
             logger.exception("Query %i failed unexpectedly", query_id)
             raise SupersetGenericDBErrorException(

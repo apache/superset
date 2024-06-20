@@ -17,7 +17,7 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import { render, screen, selectOption } from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricEditPopover from '.';
 
@@ -132,10 +132,7 @@ test('Clicking on "Save" should call onChange and onClose', async () => {
       name: 'Select saved metrics',
     }),
   );
-  const sumOption = await waitFor(() =>
-    within(document.querySelector('.rc-virtual-list')!).getByText('sum'),
-  );
-  userEvent.click(sumOption);
+  await selectOption('sum');
   userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(props.onChange).toBeCalledTimes(1);
   expect(props.onClose).toBeCalledTimes(1);

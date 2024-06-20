@@ -24,6 +24,10 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [29274](https://github.com/apache/superset/pull/29274): We made it easier to trigger CI on your
+  forks, whether they are public or private. Simply push to a branch that fits `[0-9].[0-9]*` and
+  should run on your fork, giving you flexibility on naming your release branches and triggering
+  CI
 - [27505](https://github.com/apache/superset/pull/27505): We simplified the files under
   `requirements/` folder. If you use these files for your builds you may want to double
   check that your builds are not affected. `base.txt` should be the same as before, though

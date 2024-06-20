@@ -267,6 +267,23 @@ describe('sqlLabReducer', () => {
       expect(newState.tabHistory).toContain('updatedNewId');
       expect(newState.tabHistory).not.toContain(qe.id);
     });
+    it('should clear the destroyed query editors', () => {
+      const expectedQEId = '1233289';
+      const action = {
+        type: actions.CLEAR_DESTROYED_QUERY_EDITOR,
+        queryEditorId: expectedQEId,
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          destroyedQueryEditors: {
+            [expectedQEId]: Date.now(),
+          },
+        },
+        action,
+      );
+      expect(newState.destroyedQueryEditors).toEqual({});
+    });
   });
   describe('Tables', () => {
     let newState;

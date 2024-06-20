@@ -419,6 +419,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "locale": language,
         "language_pack": get_language_pack(language),
         "d3_format": conf.get("D3_FORMAT"),
+        "d3_time_format": conf.get("D3_TIME_FORMAT"),
         "currencies": conf.get("CURRENCIES"),
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],

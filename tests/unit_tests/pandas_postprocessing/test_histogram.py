@@ -120,3 +120,25 @@ def test_histogram_with_non_numeric_column():
         histogram(data, "b", ["group"], bins)
     except ValueError as e:
         assert str(e) == "The column 'b' must be numeric."
+
+
+# test histogram ignore null values
+def test_histogram_ignore_null_values():
+    data_with_null = DataFrame(
+        {
+            "group": ["A", "A", "B", "B", "A", "A", "B", "B", "A", "A"],
+            "a": [1, 2, 3, 4, 5, 6, 7, 8, 9, None],
+            "b": [1, 2, 3, 4, 5, 6, 7, 8, 9, None],
+        }
+    )
+    result = histogram(data_with_null, "a", ["group"], bins)
+    assert result.shape == (2, bins + 1)
+    assert result.columns.tolist() == [
+        "group",
+        "1 - 2",
+        "2 - 4",
+        "4 - 5",
+        "5 - 7",
+        "7 - 9",
+    ]
+    assert result.values.tolist() == [["A", 2, 0, 1, 1, 1], ["B", 0, 2, 0, 1, 1]]

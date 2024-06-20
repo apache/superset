@@ -25,7 +25,9 @@ import {
   SimpleAdhocFilter,
   ensureIsArray,
   getTimeOffset,
+  parseDttmToDate,
 } from '@superset-ui/core';
+import { isEmpty } from 'lodash';
 import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
 export const parseMetricValue = (metricValue: number | string | null) => {
@@ -90,22 +92,39 @@ export default function transformProps(chartProps: ChartProps) {
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
-  const metricName = getMetricLabel(metric);
+  const metricName = metric ? getMetricLabel(metric) : '';
   const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
     (adhoc_filter: SimpleAdhocFilter) =>
       adhoc_filter.operator === 'TEMPORAL_RANGE',
   )?.[0];
+  // In case the viz is using all version of controls, we try to load them
+  const previousCustomTimeRangeFilters: any =
+    chartProps.rawFormData?.adhoc_custom?.filter(
+      (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
+    ) || [];
+
+  let previousCustomStartDate = '';
+  if (
+    !isEmpty(previousCustomTimeRangeFilters) &&
+    previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
+  ) {
+    previousCustomStartDate =
+      previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
+  }
   const isCustomOrInherit =
     timeComparison === 'custom' || timeComparison === 'inherit';
   let dataOffset: string[] = [];
   if (isCustomOrInherit) {
-    dataOffset = getTimeOffset(
-      currentTimeRangeFilter,
-      ensureIsArray(timeComparison),
-      startDateOffset || '',
-    );
+    dataOffset = getTimeOffset({
+      timeRangeFilter: currentTimeRangeFilter,
+      shifts: ensureIsArray(timeComparison),
+      startDate:
+        previousCustomStartDate && !startDateOffset
+          ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
+          : startDateOffset,
+    });
   }
 
   const { value1, value2 } = data.reduce(

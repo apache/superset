@@ -20,7 +20,7 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { Dispatch } from 'redux';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
-import { DatasourceType } from '@superset-ui/core';
+import { DatasourceType, QueryFormData } from '@superset-ui/core';
 import {
   createDashboard,
   createSlice,
@@ -30,7 +30,6 @@ import {
   updateSlice,
   getSlicePayload,
   PayloadSlice,
-  QueryFormData,
 } from './saveModalActions';
 
 // Define test constants and mock data using imported types

@@ -136,9 +136,10 @@ export default function transformProps(
   const echartOptions: EChartsOption = {
     grid: {
       ...defaultGrid,
-      bottom: 30,
-      left: 30,
-      right: 30,
+      left: '5%',
+      right: '5%',
+      top: '10%',
+      bottom: '10%',
     },
     xAxis: {
       data: xAxisData,

@@ -19,7 +19,7 @@
 import copy
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
@@ -27,7 +27,7 @@ from superset.commands.exceptions import ImportFailedError
 from superset.utils import json
 
 
-def test_import_database(mocker: MockFixture, session: Session) -> None:
+def test_import_database(mocker: MockerFixture, session: Session) -> None:
     """
     Test importing a database.
     """
@@ -67,7 +67,9 @@ def test_import_database(mocker: MockFixture, session: Session) -> None:
     assert database.allow_dml is False
 
 
-def test_import_database_sqlite_invalid(mocker: MockFixture, session: Session) -> None:
+def test_import_database_sqlite_invalid(
+    mocker: MockerFixture, session: Session
+) -> None:
     """
     Test importing a database.
     """
@@ -94,7 +96,7 @@ def test_import_database_sqlite_invalid(mocker: MockFixture, session: Session) -
 
 
 def test_import_database_managed_externally(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
@@ -120,7 +122,7 @@ def test_import_database_managed_externally(
 
 
 def test_import_database_without_permission(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
@@ -146,7 +148,7 @@ def test_import_database_without_permission(
     )
 
 
-def test_import_database_with_version(mocker: MockFixture, session: Session) -> None:
+def test_import_database_with_version(mocker: MockerFixture, session: Session) -> None:
     """
     Test importing a database with a version set.
     """

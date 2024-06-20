@@ -83,8 +83,8 @@ InteractiveTableView.argTypes = {
   emptyWrapperType: {
     control: {
       type: 'select',
-      options: [EmptyWrapperType.Default, EmptyWrapperType.Small],
     },
+    options: [EmptyWrapperType.Default, EmptyWrapperType.Small],
   },
   pageSize: {
     control: {

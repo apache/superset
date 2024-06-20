@@ -53,7 +53,7 @@ def histogram(
         raise ValueError(f"The column '{column}' must be numeric.")
 
     # calculate the histogram bin edges
-    bin_edges = np.histogram_bin_edges(df[column], bins=bins)
+    bin_edges = np.histogram_bin_edges(df[column].dropna(), bins=bins)
 
     # convert the bin edges to strings
     bin_edges_str = [
@@ -62,7 +62,7 @@ def histogram(
     ]
 
     def hist_values(series: Series) -> np.ndarray:
-        result = np.histogram(series, bins=bin_edges)[0]
+        result = np.histogram(series.dropna(), bins=bin_edges)[0]
         return result if not cumulative else np.cumsum(result)
 
     if len(groupby) == 0:

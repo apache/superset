@@ -42,7 +42,7 @@ class CreateRLSRuleCommand(BaseCommand):
             return RLSDAO.create(attributes=self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
-            raise ex
+            raise
 
     def validate(self) -> None:
         roles = populate_roles(self._roles)

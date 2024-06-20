@@ -176,7 +176,7 @@ start Python in the Superset application container or host environment and try t
 directly to the desired database and fetch data. This eliminates Superset for the
 purposes of isolating the problem.
 
-Repeat this process for each different type of database you want Superset to be able to connect to.
+Repeat this process for each type of database you want Superset to connect to.
 
 
 ### Database-specific Instructions
@@ -830,7 +830,7 @@ You should then be able to connect to your BigQuery datasets.
 To be able to upload CSV or Excel files to BigQuery in Superset, you'll need to also add the
 [pandas_gbq](https://github.com/pydata/pandas-gbq) library.
 
-Currently, Google BigQuery python sdk is not compatible with `gevent`, due to some dynamic monkeypatching on python core library by `gevent`.
+Currently, the Google BigQuery Python SDK is not compatible with `gevent`, due to some dynamic monkeypatching on python core library by `gevent`.
 So, when you deploy Superset with `gunicorn` server, you have to use worker type except `gevent`.
 
 

@@ -207,6 +207,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
         closePopover={closePopover}
         visible={newColumnPopoverVisible}
         isTemporal={isTemporal}
+        disabledTabs={disabledTabs}
       >
         <div />
       </ColumnSelectPopoverTrigger>

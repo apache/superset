@@ -27,6 +27,7 @@ export const FormattingPopover = ({
   onChange,
   config,
   children,
+  extraColorChoices,
   ...props
 }: FormattingPopoverProps) => {
   const [visible, setVisible] = useState(false);
@@ -47,6 +48,7 @@ export const FormattingPopover = ({
           onChange={handleSave}
           config={config}
           columns={columns}
+          extraColorChoices={extraColorChoices}
         />
       }
       visible={visible}

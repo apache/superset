@@ -22,14 +22,14 @@ from pathlib import Path
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from superset import security_manager
 from superset.utils import json
 
 
 def test_export_assets(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -69,7 +69,7 @@ def test_export_assets(
 
 
 def test_import_assets(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -116,7 +116,7 @@ def test_import_assets(
 
 
 def test_import_assets_not_zip(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -154,7 +154,7 @@ def test_import_assets_not_zip(
 
 
 def test_import_assets_no_form_data(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -188,7 +188,7 @@ def test_import_assets_no_form_data(
 
 
 def test_import_assets_incorrect_form_data(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -207,7 +207,7 @@ def test_import_assets_incorrect_form_data(
 
 
 def test_import_assets_no_contents(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:

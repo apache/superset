@@ -39,7 +39,6 @@ const propTypes = {
     ]),
   ).isRequired,
   height: PropTypes.number.isRequired,
-  activeKey: PropTypes.string.isRequired,
 };
 
 const StyledSelect = styled(Select)`
@@ -56,10 +55,6 @@ export default class AdhocFilterEditPopoverSqlTabContent extends Component {
     this.onSqlExpressionClauseChange =
       this.onSqlExpressionClauseChange.bind(this);
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
-
-    this.selectProps = {
-      ariaLabel: t('Select column'),
-    };
   }
 
   componentDidUpdate() {
@@ -95,11 +90,6 @@ export default class AdhocFilterEditPopoverSqlTabContent extends Component {
   render() {
     const { adhocFilter, height, options } = this.props;
 
-    const clauseSelectProps = {
-      placeholder: t('choose WHERE or HAVING...'),
-      value: adhocFilter.clause,
-      onChange: this.onSqlExpressionClauseChange,
-    };
     const keywords = sqlKeywords.concat(
       options
         .map(option => {
@@ -115,7 +105,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends Component {
         })
         .filter(Boolean),
     );
-    const selectOptions = Object.keys(Clauses).map(clause => ({
+    const selectOptions = Object.values(Clauses).map(clause => ({
       label: clause,
       value: clause,
     }));
@@ -123,11 +113,15 @@ export default class AdhocFilterEditPopoverSqlTabContent extends Component {
     return (
       <span>
         <div className="filter-edit-clause-section">
-          <StyledSelect
-            options={selectOptions}
-            {...this.selectProps}
-            {...clauseSelectProps}
-          />
+          <div>
+            <StyledSelect
+              options={selectOptions}
+              ariaLabel={t('Select column')}
+              placeholder={t('choose WHERE or HAVING...')}
+              value={adhocFilter.clause}
+              onChange={this.onSqlExpressionClauseChange}
+            />
+          </div>
           <span className="filter-edit-clause-info">
             <strong>WHERE</strong> {t('Filters by columns')}
             <br />

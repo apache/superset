@@ -22,7 +22,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -91,7 +91,7 @@ def test_validate_parameters_simple_with_in_root_catalog() -> None:
 
 
 def test_validate_parameters_catalog(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -181,7 +181,7 @@ def test_validate_parameters_catalog(
 
 
 def test_validate_parameters_catalog_and_credentials(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -321,7 +321,7 @@ def test_unmask_encrypted_extra_when_new_is_none() -> None:
     assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) is None
 
 
-def test_upload_new(mocker: MockFixture) -> None:
+def test_upload_new(mocker: MockerFixture) -> None:
     """
     Test file upload when the table does not exist.
     """
@@ -350,7 +350,7 @@ def test_upload_new(mocker: MockFixture) -> None:
     )
 
 
-def test_upload_existing(mocker: MockFixture) -> None:
+def test_upload_existing(mocker: MockerFixture) -> None:
     """
     Test file upload when the table does exist.
     """
@@ -409,7 +409,7 @@ def test_upload_existing(mocker: MockFixture) -> None:
     )
 
 
-def test_get_url_for_impersonation_username(mocker: MockFixture) -> None:
+def test_get_url_for_impersonation_username(mocker: MockerFixture) -> None:
     """
     Test passing a username to `get_url_for_impersonation`.
     """
@@ -444,7 +444,7 @@ def test_get_url_for_impersonation_access_token() -> None:
     ) == make_url("gsheets://?access_token=access-token")
 
 
-def test_is_oauth2_enabled_no_config(mocker: MockFixture) -> None:
+def test_is_oauth2_enabled_no_config(mocker: MockerFixture) -> None:
     """
     Test `is_oauth2_enabled` when OAuth2 is not configured.
     """
@@ -458,7 +458,7 @@ def test_is_oauth2_enabled_no_config(mocker: MockFixture) -> None:
     assert GSheetsEngineSpec.is_oauth2_enabled() is False
 
 
-def test_is_oauth2_enabled_config(mocker: MockFixture) -> None:
+def test_is_oauth2_enabled_config(mocker: MockerFixture) -> None:
     """
     Test `is_oauth2_enabled` when OAuth2 is configured.
     """
@@ -501,7 +501,7 @@ def oauth2_config() -> OAuth2ClientConfig:
 
 
 def test_get_oauth2_authorization_uri(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
 ) -> None:
     """
@@ -532,7 +532,7 @@ def test_get_oauth2_authorization_uri(
 
 
 def test_get_oauth2_token(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
 ) -> None:
     """
@@ -570,7 +570,7 @@ def test_get_oauth2_token(
 
 
 def test_get_oauth2_fresh_token(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
 ) -> None:
     """

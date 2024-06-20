@@ -42,9 +42,9 @@ def create_app(superset_config_module: Optional[str] = None) -> Flask:
         return app
 
     # Make sure that bootstrap errors ALWAYS get logged
-    except Exception as ex:
+    except Exception:
         logger.exception("Failed to create app")
-        raise ex
+        raise
 
 
 class SupersetApp(Flask):

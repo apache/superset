@@ -115,10 +115,10 @@ class ExecuteSqlCommand(BaseCommand):
                 "status": status,
                 "payload": self._execution_context_convertor.serialize_payload(),
             }
-        except (SupersetErrorException, SupersetErrorsException) as ex:
+        except (SupersetErrorException, SupersetErrorsException):
             # to make sure we raising the original
             # SupersetErrorsException || SupersetErrorsException
-            raise ex
+            raise
         except Exception as ex:
             raise SqlLabException(self._execution_context, exception=ex) from ex
 
@@ -158,9 +158,9 @@ class ExecuteSqlCommand(BaseCommand):
             return self._sql_json_executor.execute(
                 self._execution_context, rendered_query, self._log_params
             )
-        except Exception as ex:
+        except Exception:
             self._query_dao.update(query, {"status": QueryStatus.FAILED})
-            raise ex
+            raise
 
     def _get_the_query_db(self) -> Database:
         mydb: Any = self._database_dao.find_by_id(self._execution_context.database_id)

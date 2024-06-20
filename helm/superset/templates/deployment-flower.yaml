@@ -129,6 +129,9 @@ spec:
           {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- end }}
+      {{- if .Values.supersetCeleryFlower.priorityClassName }}
+      priorityClassName: {{ .Values.supersetCeleryFlower.priorityClassName }}
+      {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.supersetCeleryFlower.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- with .Values.topologySpreadConstraints }}

@@ -57,7 +57,7 @@ def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
                     current_app.config["STATS_LOGGER"].gauge(
                         f"{metric_prefix_}.error", 1
                     )
-                raise ex
+                raise
 
         return wrapped
 
@@ -146,8 +146,6 @@ def stats_timing(stats_key: str, stats_logger: BaseStatsLogger) -> Iterator[floa
     start_ts = now_as_float()
     try:
         yield start_ts
-    except Exception as ex:
-        raise ex
     finally:
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 

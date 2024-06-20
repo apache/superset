@@ -94,7 +94,7 @@ const StyledTableTabs = styled(Tabs)`
 `;
 
 const StyledBadge = styled(Badge)`
-  .ant-badge-count {
+  .antd5-badge-count {
     line-height: ${({ theme }) => theme.gridUnit * 4}px;
     height: ${({ theme }) => theme.gridUnit * 4}px;
     margin-left: ${({ theme }) => theme.gridUnit}px;
