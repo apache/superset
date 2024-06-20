@@ -166,7 +166,7 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = "http://localhost:8088"
 ```
 
 You also need
-to specify on behalf of which username to render the dashboards. In general dashboards and charts
+to specify on behalf of which username to render the dashboards. In general, dashboards and charts
 are not accessible to unauthorized requests, that is why the worker needs to take over credentials
 of an existing user to take a snapshot.
 
@@ -202,6 +202,17 @@ It's also possible to specify a minimum interval between each report's execution
 # Value should be an integer
 ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=10).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=5).total_seconds())
+```
+
+Alternatively, you can assign a function to `ALERT_MINIMUM_INTERVAL` and/or `REPORT_MINIMUM_INTERVAL`. This is useful to dynamically retrieve a value as needed:
+
+``` python
+def alert_dynamic_minimal_interval(**kwargs) -> int:
+    """
+    Define logic here to retrieve the value dynamically
+    """
+
+ALERT_MINIMUM_INTERVAL = alert_dynamic_minimal_interval
 ```
 
 ## Custom Dockerfile

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { isValidElement } from 'react';
 import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import Label from '.';
@@ -28,7 +28,7 @@ describe('Label', () => {
 
   // test the basic component
   it('renders the base component (no onClick)', () => {
-    expect(React.isValidElement(<Label />)).toBe(true);
+    expect(isValidElement(<Label />)).toBe(true);
   });
 
   it('renders with role=undefined when onClick is not present', () => {

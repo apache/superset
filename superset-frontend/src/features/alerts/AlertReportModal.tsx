@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  ChangeEvent,
   FunctionComponent,
   useState,
   useEffect,
@@ -24,6 +25,7 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
+
 import {
   css,
   isFeatureEnabled,
@@ -885,7 +887,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Handle input/textarea updates
   const onInputChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
     const {
       target: { type, value, name },
@@ -904,7 +906,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onTimeoutVerifyChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
     const { target } = event;
     const value = +target.value;
@@ -960,7 +962,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('validator_config_json', config);
   };
 
-  const onThresholdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onThresholdChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { target } = event;
 
     const config = {

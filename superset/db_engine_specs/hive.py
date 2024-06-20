@@ -79,6 +79,12 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
         )
 
     s3 = boto3.client("s3")
+
+    # The location is merely an S3 prefix and thus we first need to ensure that there is
+    # one and only one key associated with the table.
+    bucket = s3.Bucket(bucket_path)
+    bucket.objects.filter(Prefix=os.path.join(upload_prefix, table.table)).delete()
+
     location = os.path.join("s3a://", bucket_path, upload_prefix, table.table)
     s3.upload_file(
         filename,

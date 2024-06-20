@@ -42,7 +42,7 @@ def test_KeyValueDistributedLock_happy_path(mocker: MockerFixture) -> None:
     DeleteExpiredKeyValueCommand = mocker.patch(
         "superset.commands.key_value.delete_expired.DeleteExpiredKeyValueCommand"
     )
-    PickleKeyValueCodec = mocker.patch("superset.utils.lock.PickleKeyValueCodec")
+    JsonKeyValueCodec = mocker.patch("superset.utils.lock.JsonKeyValueCodec")
 
     with freeze_time("2024-01-01"):
         with KeyValueDistributedLock("ns", a=1, b=2) as key:
@@ -51,7 +51,7 @@ def test_KeyValueDistributedLock_happy_path(mocker: MockerFixture) -> None:
             )
             CreateKeyValueCommand.assert_called_with(
                 resource=KeyValueResource.LOCK,
-                codec=PickleKeyValueCodec(),
+                codec=JsonKeyValueCodec(),
                 key=key,
                 value=True,
                 expires_on=datetime(2024, 1, 1, 0, 0, 30),

@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 import simplejson
 from flask_babel.speaklater import LazyString
-from simplejson import JSONDecodeError  # noqa: F401 # pylint: disable=unused-import
+from simplejson import JSONDecodeError
 
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
@@ -122,11 +122,11 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> Any:
 
     try:
         return base_json_conv(obj)
-    except TypeError as ex:
+    except TypeError:
         if pessimistic:
             logger.error("Failed to serialize %s", obj)
             return f"Unserializable [{type(obj)}]"
-        raise ex
+        raise
 
 
 def pessimistic_json_iso_dttm_ser(obj: Any) -> Any:
@@ -249,4 +249,4 @@ def loads(
         )
     except JSONDecodeError as ex:
         logger.error("JSON is not valid %s", str(ex), exc_info=True)
-        raise ex
+        raise

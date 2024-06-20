@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   forwardRef,
+  FocusEvent,
   ReactElement,
   RefObject,
   useEffect,
@@ -26,6 +27,7 @@ import React, {
   useCallback,
   ClipboardEvent,
 } from 'react';
+
 import {
   ensureIsArray,
   formatNumber,
@@ -442,7 +444,7 @@ const Select = forwardRef(
       [selectAllEligible],
     );
 
-    const handleOnBlur = (event: React.FocusEvent<HTMLElement>) => {
+    const handleOnBlur = (event: FocusEvent<HTMLElement>) => {
       setInputValue('');
       onBlur?.(event);
     };

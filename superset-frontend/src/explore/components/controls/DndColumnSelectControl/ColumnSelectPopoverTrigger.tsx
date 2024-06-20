@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, ReactNode } from 'react';
+
 import { useSelector } from 'react-redux';
 import { AdhocColumn, t, isAdhocColumn } from '@superset-ui/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
@@ -34,8 +35,9 @@ interface ColumnSelectPopoverTriggerProps {
   visible?: boolean;
   togglePopover?: (visible: boolean) => void;
   closePopover?: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
   isTemporal?: boolean;
+  disabledTabs?: Set<string>;
 }
 
 const defaultPopoverLabel = t('My column');
@@ -48,6 +50,7 @@ const ColumnSelectPopoverTrigger = ({
   isControlledComponent,
   children,
   isTemporal,
+  disabledTabs,
   ...props
 }: ColumnSelectPopoverTriggerProps) => {
   // @ts-ignore
@@ -108,6 +111,7 @@ const ColumnSelectPopoverTrigger = ({
           setLabel={setPopoverLabel}
           getCurrentTab={getCurrentTab}
           isTemporal={isTemporal}
+          disabledTabs={disabledTabs}
         />
       </ExplorePopoverContent>
     ),
@@ -120,6 +124,7 @@ const ColumnSelectPopoverTrigger = ({
       isTemporal,
       onColumnEdit,
       popoverLabel,
+      disabledTabs,
     ],
   );
 

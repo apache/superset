@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import * as AntdIcons from '@ant-design/icons/lib/icons';
 import { StyledIcon } from './Icon';
 import IconType from './IconType';

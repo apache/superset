@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ChangeEvent, EventHandler } from 'react';
+import { ChangeEvent, EventHandler } from 'react';
 import cx from 'classnames';
 import {
   t,

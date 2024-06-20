@@ -56,7 +56,6 @@
  * in tandem with `controlPanels/index.js` that defines how controls are composed into sections for
  * each and every visualization type.
  */
-import React from 'react';
 import {
   t,
   getCategoricalSchemeRegistry,

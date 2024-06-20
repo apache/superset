@@ -50,6 +50,7 @@ These features are **finished** but currently being tested. They are usable, but
 - ESTIMATE_QUERY_COST
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - HORIZONTAL_FILTER_BAR
+- IMPERSONATE_WITH_EMAIL_PREFIX
 - PLAYWRIGHT_REPORTS_AND_THUMBNAILS
 - RLS_IN_SQLLAB
 - SSH_TUNNELING [(docs)](https://superset.apache.org/docs/configuration/setup-ssh-tunneling)

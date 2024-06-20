@@ -90,6 +90,7 @@ from superset.utils import core as utils, json
 from superset.utils.core import (
     GenericDataType,
     get_column_name,
+    get_non_base_axis_columns,
     get_user_id,
     is_adhoc_column,
     MediumText,
@@ -309,7 +310,7 @@ class ImportExportMixin:
         try:
             obj_query = db.session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
-        except MultipleResultsFound as ex:
+        except MultipleResultsFound:
             logger.error(
                 "Error importing %s \n %s \n %s",
                 cls.__name__,
@@ -317,7 +318,7 @@ class ImportExportMixin:
                 yaml.safe_dump(dict_rep),
                 exc_info=True,
             )
-            raise ex
+            raise
 
         if not obj:
             is_new_obj = True
@@ -2083,7 +2084,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "filter": filter,
                     "orderby": orderby,
                     "extras": extras,
-                    "columns": columns,
+                    "columns": get_non_base_axis_columns(columns),
                     "order_desc": True,
                 }
 

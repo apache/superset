@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
+
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -600,7 +601,7 @@ const RightMenu = ({
   );
 };
 
-const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
+const RightMenuWithQueryWrapper: FC<RightMenuProps> = props => {
   const [, setQuery] = useQueryParams({
     databaseAdded: BooleanParam,
     datasetAdded: BooleanParam,
@@ -614,7 +615,7 @@ const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
 // Superset still has multiple entry points, and not all of them have
 // the same setup, and critically, not all of them have the QueryParamProvider.
 // This wrapper ensures the RightMenu renders regardless of the provider being present.
-class RightMenuErrorWrapper extends React.PureComponent<RightMenuProps> {
+class RightMenuErrorWrapper extends PureComponent<RightMenuProps> {
   state = {
     hasError: false,
   };
@@ -634,7 +635,7 @@ class RightMenuErrorWrapper extends React.PureComponent<RightMenuProps> {
   }
 }
 
-const RightMenuWrapper: React.FC<RightMenuProps> = props => (
+const RightMenuWrapper: FC<RightMenuProps> = props => (
   <RightMenuErrorWrapper {...props}>
     <RightMenuWithQueryWrapper {...props} />
   </RightMenuErrorWrapper>

@@ -104,7 +104,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         try:
             cursor.execute_async(query)
         except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:

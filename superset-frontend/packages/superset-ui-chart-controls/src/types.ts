@@ -17,7 +17,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactElement, ReactNode, ReactText } from 'react';
+import { ReactElement, ReactNode, ReactText, ComponentType } from 'react';
+
 import type {
   AdhocColumn,
   Column,
@@ -175,7 +176,7 @@ export type InternalControlType =
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ControlType = InternalControlType | React.ComponentType<any>;
+export type ControlType = InternalControlType | ComponentType<any>;
 
 export type TabOverride = 'data' | 'customize' | boolean;
 
@@ -314,9 +315,7 @@ export type SharedControlConfig<
 /** --------------------------------------------
  * Custom controls
  * --------------------------------------------- */
-export type CustomControlConfig<P = {}> = BaseControlConfig<
-  React.ComponentType<P>
-> &
+export type CustomControlConfig<P = {}> = BaseControlConfig<ComponentType<P>> &
   // two run-time properties from superset-frontend/src/explore/components/Control.jsx
   Omit<P, 'onChange' | 'hovered'>;
 

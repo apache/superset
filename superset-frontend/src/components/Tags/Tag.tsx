@@ -20,7 +20,7 @@
 import { styled } from '@superset-ui/core';
 import TagType from 'src/types/TagType';
 import AntdTag from 'antd/lib/tag';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 import { CloseOutlined } from '@ant-design/icons';
 

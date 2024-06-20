@@ -24,7 +24,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from flask import current_app
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
@@ -35,7 +35,7 @@ from superset.commands.dataset.importers.v1.utils import validate_data_uri
 from superset.utils import json
 
 
-def test_import_dataset(mocker: MockFixture, session: Session) -> None:
+def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     """
     Test importing a dataset.
     """
@@ -152,7 +152,9 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
     assert sqla_table.database.id == database.id
 
 
-def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) -> None:
+def test_import_dataset_duplicate_column(
+    mocker: MockerFixture, session: Session
+) -> None:
     """
     Test importing a dataset with a column that already exists.
     """
@@ -277,7 +279,7 @@ def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) 
     assert sqla_table.database.id == database.id
 
 
-def test_import_column_extra_is_string(mocker: MockFixture, session: Session) -> None:
+def test_import_column_extra_is_string(mocker: MockerFixture, session: Session) -> None:
     """
     Test importing a dataset when the column extra is a string.
     """
@@ -361,7 +363,7 @@ def test_import_column_extra_is_string(mocker: MockFixture, session: Session) ->
 
 
 def test_import_dataset_extra_empty_string(
-    mocker: MockFixture, session: Session
+    mocker: MockerFixture, session: Session
 ) -> None:
     """
     Test importing a dataset when the extra field is an empty string.
@@ -426,7 +428,7 @@ def test_import_dataset_extra_empty_string(
 @patch("superset.commands.dataset.importers.v1.utils.request")
 def test_import_column_allowed_data_url(
     request: Mock,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
@@ -503,7 +505,7 @@ def test_import_column_allowed_data_url(
 
 
 def test_import_dataset_managed_externally(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session: Session,
 ) -> None:
     """

@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState, FormEvent } from 'react';
+
 import { Radio } from 'src/components/Radio';
 import { RadioChangeEvent, AsyncSelect } from 'src/components';
 import { Input } from 'src/components/Input';
@@ -328,7 +329,7 @@ export const SaveDatasetModal = ({
     setSelectedDatasetToOverwrite(value);
   };
 
-  const handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
+  const handleDatasetNameChange = (e: FormEvent<HTMLInputElement>) => {
     // @ts-expect-error
     setDatasetName(e.target.value);
   };

@@ -19,9 +19,6 @@
 
 // import { Meta, Source, Story, ArgsTable } from '@storybook/addon-docs';
 import Markdown from 'markdown-to-jsx';
-// import { ActionMenuItem } from 'src/components/Table/cell-renderers/index';
-// import ActionCell from './index';
-import React from 'react';
 
 export default {
   title: 'Design System/Components/Table/Cell Renderers/ActionCell/Overview"',

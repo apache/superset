@@ -28,6 +28,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.reports.models import ReportSchedule
 from superset.utils import json
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
@@ -81,6 +82,7 @@ def load_world_bank_dashboard_with_slices_module_scope(load_world_bank_data):
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = create_dashboard_for_loaded_data()
         yield
+        _cleanup_reports(dash_id_to_delete, slices_ids_to_delete)
         _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
@@ -140,6 +142,21 @@ def _cleanup(dash_id: int, slices_ids: list[int]) -> None:
     db.session.delete(dash)
     for slice_id in slices_ids:
         db.session.query(Slice).filter_by(id=slice_id).delete()
+    db.session.commit()
+
+
+def _cleanup_reports(dash_id: int, slices_ids: list[int]) -> None:
+    reports_with_dash = (
+        db.session.query(ReportSchedule).filter_by(dashboard_id=dash_id).all()
+    )
+    reports_with_slices = (
+        db.session.query(ReportSchedule)
+        .filter(ReportSchedule.chart_id.in_(slices_ids))
+        .all()
+    )
+
+    for report in reports_with_dash + reports_with_slices:
+        db.session.delete(report)
     db.session.commit()
 
 

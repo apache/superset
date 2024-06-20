@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { List } from 'src/components';
 import shortid from 'shortid';
@@ -73,7 +73,7 @@ const SortableDragger = SortableHandle(() => (
   />
 ));
 
-class CollectionControl extends React.Component {
+class CollectionControl extends Component {
   constructor(props) {
     super(props);
     this.onAdd = this.onAdd.bind(this);

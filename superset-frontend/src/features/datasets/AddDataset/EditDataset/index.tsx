@@ -17,7 +17,6 @@
  * under the License.
  */
 import { styled, t } from '@superset-ui/core';
-import React from 'react';
 import useGetDatasetRelatedCounts from 'src/features/datasets/hooks/useGetDatasetRelatedCounts';
 import Badge from 'src/components/Badge';
 import Tabs from 'src/components/Tabs';

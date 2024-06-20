@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
+import { HeaderActionsDropdown } from 'src/dashboard/components/Header/HeaderActionsDropdown';
 
 const createProps = () => ({
   addSuccessToast: jest.fn(),
@@ -110,7 +110,7 @@ const defaultRefreshIntervalModalProps = {
 
 test('is valid', () => {
   expect(
-    React.isValidElement(
+    isValidElement(
       <RefreshIntervalModal {...defaultRefreshIntervalModalProps} />,
     ),
   ).toBe(true);
