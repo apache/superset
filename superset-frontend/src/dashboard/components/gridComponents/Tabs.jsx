@@ -429,4 +429,5 @@ function mapStateToProps(state) {
     directPathToChild: state.dashboardState.directPathToChild,
   };
 }
+
 export default connect(mapStateToProps)(Tabs);
