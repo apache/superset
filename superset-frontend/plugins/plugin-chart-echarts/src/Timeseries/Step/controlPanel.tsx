@@ -170,7 +170,6 @@ const config: ControlPanelConfig = {
             name: 'x_axis_time_format',
             config: {
               ...sharedControls.x_axis_time_format,
-              default: 'smart_date',
               description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
             },
           },

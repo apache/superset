@@ -190,7 +190,6 @@ const tooltipTimeFormatControl: ControlSetItem = {
   config: {
     ...sharedControls.x_axis_time_format,
     label: t('Tooltip time format'),
-    default: 'smart_date',
     clearable: false,
   },
 };
