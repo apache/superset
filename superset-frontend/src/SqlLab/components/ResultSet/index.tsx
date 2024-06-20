@@ -78,11 +78,11 @@ import {
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
 } from 'src/logger/LogUtils';
 import Icons from 'src/components/Icons';
+import { findPermission } from 'src/utils/findPermission';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
-import { findPermission } from 'src/utils/findPermission';
 
 enum LimitingFactor {
   Query = 'QUERY',
