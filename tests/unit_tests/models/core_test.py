@@ -24,9 +24,8 @@ from pytest_mock import MockerFixture
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 
-from superset.connectors.sqla.models import SqlaTable, TableColumn
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.connectors.sqla.models import Dataset, TableColumn
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.utils import json
