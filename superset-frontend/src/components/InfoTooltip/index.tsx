@@ -73,10 +73,10 @@ export default function InfoTooltip({
   viewBox = '0 -1 24 24',
 }: InfoTooltipProps) {
   const theme = useTheme();
-  const alteredIconStyle = { ...iconStyle };
-  if (alteredIconStyle.color === undefined) {
-    alteredIconStyle.color = theme.colors.grayscale.base;
-  }
+  const alteredIconStyle = { 
+    ...iconStyle,
+    color:  iconStyle.color || theme.colors.grayscale.base,
+  };
   return (
     <StyledTooltip
       title={<StyledTooltipTitle>{tooltip}</StyledTooltipTitle>}
