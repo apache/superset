@@ -17,63 +17,71 @@
 
 # pylint: disable=invalid-name
 
-from datetime import datetime
+from typing import Any
+from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
-from pytest_mock import MockerFixture
+from sqlalchemy.orm import Session, sessionmaker
 
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
-from superset.key_value.exceptions import KeyValueCreateFailedError
-from superset.key_value.types import KeyValueResource
-from superset.utils.lock import KeyValueDistributedLock
+from superset.key_value.types import JsonKeyValueCodec
+from superset.utils.lock import get_key, KeyValueDistributedLock
+
+MAIN_KEY = get_key("ns", a=1, b=2)
+OTHER_KEY = get_key("ns2", a=1, b=2)
 
 
-def test_KeyValueDistributedLock_happy_path(mocker: MockerFixture) -> None:
+def _get_lock(key: UUID, session: Session) -> Any:
+    from superset.key_value.models import KeyValueEntry
+
+    entry = session.query(KeyValueEntry).filter_by(uuid=key).first()
+    if entry is None or entry.is_expired():
+        return None
+
+    return JsonKeyValueCodec().decode(entry.value)
+
+
+def _get_other_session() -> Session:
+    # This session is used to simulate what another worker will find in the metastore
+    # during the locking process.
+    from superset import db
+
+    bind = db.session.get_bind()
+    SessionMaker = sessionmaker(bind=bind)
+    return SessionMaker()
+
+
+def test_key_value_distributed_lock_happy_path() -> None:
     """
-    Test successfully acquiring the global auth lock.
+    Test successfully acquiring and returning the distributed lock.
     """
-    CreateKeyValueCommand = mocker.patch(
-        "superset.commands.key_value.create.CreateKeyValueCommand"
-    )
-    DeleteKeyValueCommand = mocker.patch(
-        "superset.commands.key_value.delete.DeleteKeyValueCommand"
-    )
-    DeleteExpiredKeyValueCommand = mocker.patch(
-        "superset.commands.key_value.delete_expired.DeleteExpiredKeyValueCommand"
-    )
-    JsonKeyValueCodec = mocker.patch("superset.utils.lock.JsonKeyValueCodec")
+    session = _get_other_session()
 
-    with freeze_time("2024-01-01"):
+    with freeze_time("2021-01-01"):
+        assert _get_lock(MAIN_KEY, session) is None
         with KeyValueDistributedLock("ns", a=1, b=2) as key:
-            DeleteExpiredKeyValueCommand.assert_called_with(
-                resource=KeyValueResource.LOCK,
-            )
-            CreateKeyValueCommand.assert_called_with(
-                resource=KeyValueResource.LOCK,
-                codec=JsonKeyValueCodec(),
-                key=key,
-                value=True,
-                expires_on=datetime(2024, 1, 1, 0, 0, 30),
-            )
-            DeleteKeyValueCommand.assert_not_called()
+            assert key == MAIN_KEY
+            assert _get_lock(key, session) is True
+            assert _get_lock(OTHER_KEY, session) is None
+            with pytest.raises(CreateKeyValueDistributedLockFailedException):
+                with KeyValueDistributedLock("ns", a=1, b=2):
+                    pass
 
-        DeleteKeyValueCommand.assert_called_with(
-            resource=KeyValueResource.LOCK,
-            key=key,
-        )
+        assert _get_lock(MAIN_KEY, session) is None
 
 
-def test_KeyValueDistributedLock_no_lock(mocker: MockerFixture) -> None:
+def test_key_value_distributed_lock_expired() -> None:
     """
-    Test unsuccessfully acquiring the global auth lock.
+    Test expiration of the distributed lock
     """
-    mocker.patch(
-        "superset.commands.key_value.create.CreateKeyValueCommand",
-        side_effect=KeyValueCreateFailedError(),
-    )
+    session = _get_other_session()
 
-    with pytest.raises(CreateKeyValueDistributedLockFailedException) as excinfo:
+    with freeze_time("2021-01-01T"):
+        assert _get_lock(MAIN_KEY, session) is None
         with KeyValueDistributedLock("ns", a=1, b=2):
-            pass
-    assert str(excinfo.value) == "Error acquiring lock"
+            assert _get_lock(MAIN_KEY, session) is True
+            with freeze_time("2022-01-01T"):
+                assert _get_lock(MAIN_KEY, session) is None
+
+        assert _get_lock(MAIN_KEY, session) is None
