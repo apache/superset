@@ -99,5 +99,5 @@ class CreateKeyValueCommand(BaseCommand):
             except ValueError as ex:
                 raise KeyValueCreateFailedError() from ex
         db.session.add(entry)
-        db.session.commit()
+        db.session.flush()
         return Key(id=entry.id, uuid=entry.uuid)
