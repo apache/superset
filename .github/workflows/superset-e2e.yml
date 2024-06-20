@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       use_dashboard:
-        description: 'Use Cypress Dashboard (true/false) [paid service - trigger manually when needed]'
+        description: 'Use Cypress Dashboard (true/false) [paid service - trigger manually when needed]. You MUST provide a branch and/or PR number below for this to work.'
         required: false
         default: 'false'
       ref:
