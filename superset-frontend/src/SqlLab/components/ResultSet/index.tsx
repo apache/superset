@@ -82,7 +82,7 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
-import { findPermission } from '../../../utils/findPermission';
+import { findPermission } from 'src/utils/findPermission';
 
 enum LimitingFactor {
   Query = 'QUERY',
