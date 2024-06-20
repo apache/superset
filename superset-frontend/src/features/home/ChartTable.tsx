@@ -174,7 +174,7 @@ function ChartTable({
       <PropertiesModal
         onHide={closeChartEditModal}
         onSave={handleChartUpdated}
-        show
+        show={sliceCurrentlyEditing}
         slice={sliceCurrentlyEditing}
       />
       <SubMenu
