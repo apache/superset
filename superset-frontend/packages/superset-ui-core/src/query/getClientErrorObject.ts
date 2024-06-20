@@ -23,6 +23,8 @@ import {
   t,
   SupersetError,
   ErrorTypeEnum,
+  isProbablyHTML,
+  isJsonString,
 } from '@superset-ui/core';
 
 // The response always contains an error attribute, can contain anything from the
@@ -88,6 +90,19 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
   return { ...error, error: error.error }; // explicit ClientErrorObject
 }
 
+export function parseErrorString(response: string): ClientErrorObject {
+  if (!isJsonString(response) && isProbablyHTML(response)) {
+    if (/500|server error/i.test(response)) {
+      return { error: t('Server error') };
+    }
+    if (/404|not found/i.test(response)) {
+      return { error: t('Page not found') };
+    }
+    return { error: 'Server error' };
+  }
+  return { error: response };
+}
+
 export function getClientErrorObject(
   response:
     | SupersetClientResponse
@@ -99,7 +114,7 @@ export function getClientErrorObject(
   // and returns a Promise that resolves to a plain object with error key and text value.
   return new Promise(resolve => {
     if (typeof response === 'string') {
-      resolve({ error: response });
+      resolve(parseErrorString(response));
       return;
     }
 
