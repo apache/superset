@@ -809,6 +809,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
                 dataSize={20}
                 isRequest
                 isVisible
+                canDownload={!!props.supersetCanCSV}
               />
             }
           />
