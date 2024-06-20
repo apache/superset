@@ -20,6 +20,8 @@ outputs:
 runs:
   using: 'composite'
   steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
     - name: Detect file changes
       id: change-detector
       run: |
