@@ -55,7 +55,6 @@ def get_cypress_cmd(
 
     if use_dashboard:
         # Run using cypress.io service
-        os.environ["CYPRESS_RECORD_KEY"] = os.getenv("CYPRESS_RECORD_KEY", "")
         spec: str = "*/**/*"
         cmd = (
             f"{XVFB_PRE_CMD} "
