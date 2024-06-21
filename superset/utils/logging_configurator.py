@@ -43,9 +43,7 @@ class DefaultLoggingConfigurator(  # pylint: disable=too-few-public-methods
 
         # basicConfig() will set up a default StreamHandler on stderr
         logging.basicConfig(format=app_config["LOG_FORMAT"])
-        logging.getLogger().setLevel(
-            logging.DEBUG if debug_mode else app_config["LOG_LEVEL"]
-        )
+        logging.getLogger().setLevel(app_config["LOG_LEVEL"])
 
         if app_config["ENABLE_TIME_ROTATE"]:
             logging.getLogger().setLevel(app_config["TIME_ROTATE_LOG_LEVEL"])
