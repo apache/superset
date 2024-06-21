@@ -61,7 +61,7 @@ export function parseErrorString(response: string): string {
     if (/404|not found/i.test(response)) {
       return t('Not found');
     }
-    return t('Server error');
+    return t('Internal error');
   }
   return response;
 }
