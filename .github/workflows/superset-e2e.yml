@@ -137,5 +137,5 @@ jobs:
         uses: actions/upload-artifact@v4
         if: github.event_name == 'workflow_dispatch' && (steps.check.outputs.python || steps.check.outputs.frontend)
         with:
-          name: screenshots
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
+          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}
