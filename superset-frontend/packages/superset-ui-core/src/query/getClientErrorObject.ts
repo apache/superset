@@ -193,24 +193,18 @@ export function getClientErrorObject(
         });
       return;
     }
-    // check response http status code and return a generic error message
-    if ((response as any).status) {
-      const { status } = response as any;
-      const error = ERROR_CODE_LOOKUP[status];
-      if (error) {
-        resolve({
-          error,
-        });
-        return;
-      }
-    }
 
     // fall back to Response.statusText or generic error of we cannot read the response
     let error = (response as any).statusText || (response as any).message;
     if (!error) {
-      // eslint-disable-next-line no-console
-      console.error('non-standard error:', response);
-      error = t('An error occurred');
+      // check response http status code and return a generic error message
+      const { status } = response as any;
+      error = ERROR_CODE_LOOKUP[status];
+      if (!error) {
+        // eslint-disable-next-line no-console
+        console.error('non-standard error:', response);
+        error = t('An error occurred');
+      }
     }
     resolve({
       ...responseObject,
