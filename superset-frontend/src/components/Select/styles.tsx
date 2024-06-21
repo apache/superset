@@ -19,7 +19,7 @@
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Spin, Tag } from 'antd-next';
-import AntdSelect from 'antd-next/lib/select';
+import AntdSelect from 'antd/lib/select';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `

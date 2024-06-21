@@ -35,9 +35,7 @@ import {
   t,
   usePrevious,
 } from '@superset-ui/core';
-import AntdSelect, {
-  LabeledValue as AntdLabeledValue,
-} from 'antd-next/lib/select';
+import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import { debounce, isEqual, uniq } from 'lodash';
 import { FAST_DEBOUNCE } from 'src/constants';
 import {
