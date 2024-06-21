@@ -52,7 +52,12 @@ from superset.utils.core import (
     get_user_id,
 )
 from superset.utils.decorators import logs_context
-from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
+from superset.views.base import (
+    CsvResponse,
+    generate_download_headers,
+    handle_api_exception,
+    XlsxResponse,
+)
 from superset.views.base_api import statsd_metrics
 
 if TYPE_CHECKING:
@@ -71,6 +76,7 @@ class ChartDataRestApi(ChartRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
     )
+    @handle_api_exception
     def get_data(self, pk: int) -> Response:
         """
         Take a chart ID and uses the query context stored when the chart was saved
@@ -184,6 +190,7 @@ class ChartDataRestApi(ChartRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
     )
+    @handle_api_exception
     def data(self) -> Response:
         """
         Take a query context constructed in the client and return payload
@@ -224,6 +231,7 @@ class ChartDataRestApi(ChartRestApi):
               $ref: '#/components/responses/500'
         """
         json_body = None
+
         if request.is_json:
             json_body = request.json
         elif request.form.get("form_data"):
@@ -269,6 +277,7 @@ class ChartDataRestApi(ChartRestApi):
         f".data_from_cache",
         log_to_statsd=False,
     )
+    @handle_api_exception
     def data_from_cache(self, cache_key: str) -> Response:
         """
         Take a query context cache key and return payload

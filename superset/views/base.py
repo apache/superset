@@ -522,6 +522,7 @@ def show_command_errors(ex: CommandException) -> FlaskResponse:
 
 # Catch-all, to ensure all errors from the backend conform to SIP-40
 @superset_app.errorhandler(Exception)
+@superset_app.errorhandler(500)
 def show_unexpected_exception(ex: Exception) -> FlaskResponse:
     logger.exception(ex)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
