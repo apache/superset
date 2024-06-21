@@ -53,6 +53,19 @@ type ErrorType =
 
 type ErrorTextSource = 'dashboard' | 'chart' | 'query' | 'dataset' | 'database';
 
+export function parseErrorString(response: string): string {
+  if (!isJsonString(response) && isProbablyHTML(response)) {
+    if (/500|server error/i.test(response)) {
+      return t('Server error');
+    }
+    if (/404|not found/i.test(response)) {
+      return t('Not found');
+    }
+    return t('Server error');
+  }
+  return response;
+}
+
 export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
   let error = { ...responseObject };
   // Backwards compatibility for old error renderers with the new error object
@@ -69,7 +82,7 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
         t('Invalid input');
     }
     if (typeof error.message === 'string') {
-      error.error = error.message;
+      error.error = parseErrorString(error.message);
     }
   }
   if (error.stack) {
@@ -90,19 +103,6 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
   return { ...error, error: error.error }; // explicit ClientErrorObject
 }
 
-export function parseErrorString(response: string): ClientErrorObject {
-  if (!isJsonString(response) && isProbablyHTML(response)) {
-    if (/500|server error/i.test(response)) {
-      return { error: t('Server error') };
-    }
-    if (/404|not found/i.test(response)) {
-      return { error: t('Page not found') };
-    }
-    return { error: 'Server error' };
-  }
-  return { error: response };
-}
-
 export function getClientErrorObject(
   response:
     | SupersetClientResponse
@@ -114,7 +114,7 @@ export function getClientErrorObject(
   // and returns a Promise that resolves to a plain object with error key and text value.
   return new Promise(resolve => {
     if (typeof response === 'string') {
-      resolve(parseErrorString(response));
+      resolve({ error: parseErrorString(response) });
       return;
     }
 
@@ -177,7 +177,7 @@ export function getClientErrorObject(
         .catch(() => {
           // fall back to reading as text
           responseObject.text().then((errorText: any) => {
-            resolve({ ...responseObject, error: errorText });
+            resolve({ ...responseObject, error: parseErrorString(errorText) });
           });
         });
       return;

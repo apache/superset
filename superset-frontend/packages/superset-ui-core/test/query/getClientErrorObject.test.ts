@@ -54,14 +54,14 @@ test('should handle HTML response with "500" or "server error"', async () => {
 test('should handle HTML response with "404" or "not found"', async () => {
   const htmlString404 = '<div>404: Page not found</div>';
   const clientErrorObject404 = await getClientErrorObject(htmlString404);
-  expect(clientErrorObject404).toEqual({ error: 'Page not found' });
+  expect(clientErrorObject404).toEqual({ error: 'Not found' });
 
   const htmlStringNotFoundError = '<div>Not found message</div>';
   const clientErrorObjectNotFoundError = await getClientErrorObject(
     htmlStringNotFoundError,
   );
   expect(clientErrorObjectNotFoundError).toEqual({
-    error: 'Page not found',
+    error: 'Not found',
   });
 });
 
@@ -104,6 +104,13 @@ test('Handles backwards compatibility between old error messages and the new SIP
 });
 
 test('Handles Response that can be parsed as text', async () => {
+  const textError = 'Hello I am a text error';
+
+  const errorObj = await getClientErrorObject(new Response(textError));
+  expect(errorObj).toMatchObject({ error: textError });
+});
+
+test('Handles Response that contains raw html be parsed as text', async () => {
   const textError = 'Hello I am a text error';
 
   const errorObj = await getClientErrorObject(new Response(textError));
@@ -218,6 +225,17 @@ test('parseErrorJson with message', () => {
   ).toEqual({
     message: {},
     error: 'Invalid input',
+  });
+});
+
+test('parseErrorJson with HTML message', () => {
+  expect(
+    parseErrorJson({
+      message: '<div>error message</div>',
+    }),
+  ).toEqual({
+    message: '<div>error message</div>',
+    error: 'Server error',
   });
 });
 
