@@ -55,12 +55,7 @@ def get_cypress_cmd(
 
     if use_dashboard:
         # Run using cypress.io service
-        cypress_key = os.getenv("CYPRESS_KEY")
-        command = f"echo {cypress_key} | base64 --decode"
-        cypress_record_key = (
-            subprocess.check_output(command, shell=True).decode("utf-8").strip()
-        )
-        os.environ["CYPRESS_RECORD_KEY"] = cypress_record_key
+        os.environ["CYPRESS_RECORD_KEY"] = os.getenv("CYPRESS_RECORD_KEY", "")
         spec: str = "*/**/*"
         cmd = (
             f"{XVFB_PRE_CMD} "
@@ -70,7 +65,7 @@ def get_cypress_cmd(
         )
     else:
         # Run local, but split the execution
-        os.environ.pop("CYPRESS_KEY", None)
+        os.environ.pop("CYPRESS_RECORD_KEY", None)
         spec_list_str = ",".join(sorted(spec_list))
         if _filter:
             spec_list_str = ",".join(sorted([s for s in spec_list if _filter in s]))
