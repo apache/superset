@@ -56,13 +56,12 @@ def get_cypress_cmd(
 
     if use_dashboard:
         # Run using cypress.io service
-        spec: str = "*/**/*"
+        spec: str = "cypress/e2e/*/**/*"
         cmd = (
             f"{XVFB_PRE_CMD} "
             f'{cypress_cmd} --spec "{spec}" --browser {browser} '
             f"--record --group {group} --tag {REPO},{GITHUB_EVENT_NAME} "
-            f"--parallel --ci-build-id {build_id} "
-            f"--key {CYPRESS_RECORD_KEY}"
+            f"--parallel --ci-build-id {build_id}"
         )
     else:
         # Run local, but split the execution
