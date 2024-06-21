@@ -193,7 +193,7 @@ export function getClientErrorObject(
         });
       return;
     }
-    // check response http status code for generic error return
+    // check response http status code and return a generic error message
     if ((response as any).status) {
       const { status } = response as any;
       const error = ERROR_CODE_LOOKUP[status];
