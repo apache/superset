@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import textwrap
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import security_manager
+from superset import app, security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.dashboard.exceptions import (
     DashboardForbiddenError,
@@ -31,11 +32,14 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.commands.utils import populate_roles, update_tags, validate_tags
 from superset.daos.dashboard import DashboardDAO
+from superset.daos.report import ReportScheduleDAO
 from superset.daos.exceptions import DAODeleteFailedError, DAOUpdateFailedError
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
+from superset.reports.models import ReportSchedule
 from superset.tags.models import ObjectType
+from superset.utils.core import send_email_smtp
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -119,3 +123,66 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             exceptions.append(ex)
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
+
+        # Validate tabs
+        def find_deleted_tabs() -> list[str]:
+            if current_tabs := self._model.tabs:
+                metadata = json.loads(self._properties["json_metadata"])
+                positions = metadata["positions"]
+                deleted_tabs = [tab for tab in current_tabs["all_tabs"] if tab not in positions]
+                return deleted_tabs
+            else:
+                return []
+
+        def find_reports_containing_tabs(tabs: list[str]) -> list[ReportSchedule]:
+            alert_reports_list = []
+            for tab in tabs:
+                for report in ReportScheduleDAO.find_by_extra_metadata(tab):
+                    alert_reports_list.append(report)
+            return alert_reports_list
+
+        def send_deactivated_email_warning(report) -> None:
+            description = textwrap.dedent(
+                """
+                The dashboard tab used in this report has been deleted and your report has not been sent.
+                Please update your report settings to remove or change the tab used."
+                """)
+
+            html_content = textwrap.dedent(
+                    f"""
+                    <html>
+                    <head>
+                        <style type="text/css">
+                        table, th, td {{
+                            border-collapse: collapse;
+                            border-color: rgb(200, 212, 227);
+                            color: rgb(42, 63, 95);
+                            padding: 4px 8px;
+                        }}
+                        .image{{
+                            margin-bottom: 18px;
+                        }}
+                        </style>
+                    </head>
+                    <body>
+                        <div>{description}</div>
+                        <br>
+                    </body>
+                    </html>
+                    """
+                )
+            send_email_smtp(
+                    to='jack.fisher@preset.io',
+                    subject='Report Deactivated',
+                    html_content=html_content,
+                    config=app.config
+                    )
+
+        def deal_with_reports_with_missing_tabs(reports_list: list[ReportSchedule]) -> None:
+            for report in reports_list:
+                # deactivate
+                report.active = False
+                # send email to report owner
+                send_deactivated_email_warning(report)
+            db.session.commit()
+                

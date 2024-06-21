@@ -30,6 +30,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    JSON,
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
