@@ -164,6 +164,15 @@ test('Handles plain text as input', async () => {
   expect(errorObj).toMatchObject({ error });
 });
 
+test('Handles error with status code', async () => {
+  const status = 500;
+
+  // @ts-ignore
+  expect(await getClientErrorObject({ status })).toMatchObject({
+    error: 'Server error',
+  });
+});
+
 test('Handles error with status text and message', async () => {
   const statusText = 'status';
   const message = 'message';

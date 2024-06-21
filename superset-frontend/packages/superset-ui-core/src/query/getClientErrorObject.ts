@@ -53,13 +53,24 @@ type ErrorType =
 
 type ErrorTextSource = 'dashboard' | 'chart' | 'query' | 'dataset' | 'database';
 
+const ERROR_CODE_LOOKUP = {
+  400: t('Bad request'),
+  401: t('Unauthorized'),
+  403: t('Forbidden'),
+  404: t('Not found'),
+  500: t('Server error'),
+  502: t('Bad gateway'),
+  503: t('Service unavailable'),
+  599: t('Network error'),
+};
+
 export function parseErrorString(response: string): string {
   if (!isJsonString(response) && isProbablyHTML(response)) {
     if (/500|server error/i.test(response)) {
-      return t('Server error');
+      return ERROR_CODE_LOOKUP[500];
     }
     if (/404|not found/i.test(response)) {
-      return t('Not found');
+      return ERROR_CODE_LOOKUP[404];
     }
     return t('Internal error');
   }
@@ -181,6 +192,17 @@ export function getClientErrorObject(
           });
         });
       return;
+    }
+    // check response http status code for generic error return
+    if ((response as any).status) {
+      const { status } = response as any;
+      const error = ERROR_CODE_LOOKUP[status];
+      if (error) {
+        resolve({
+          error,
+        });
+        return;
+      }
     }
 
     // fall back to Response.statusText or generic error of we cannot read the response
