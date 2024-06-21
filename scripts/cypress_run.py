@@ -66,7 +66,7 @@ def get_cypress_cmd(
         )
     else:
         # Run local, but split the execution
-        os.environ.pop("CYPRESS_KEY", None)
+        os.environ.pop("CYPRESS_RECORD_KEY", None)
         spec_list_str = ",".join(sorted(spec_list))
         if _filter:
             spec_list_str = ",".join(sorted([s for s in spec_list if _filter in s]))
