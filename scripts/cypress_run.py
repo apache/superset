@@ -61,7 +61,7 @@ def get_cypress_cmd(
             subprocess.check_output(command, shell=True).decode("utf-8").strip()
         )
         os.environ["CYPRESS_RECORD_KEY"] = cypress_record_key
-        spec: str = "*/**/*"
+        spec: str = "cypress/e2e/*/**/*"
         cmd = (
             f"{XVFB_PRE_CMD} "
             f'{cypress_cmd} --spec "{spec}" --browser {browser} '
