@@ -68,12 +68,12 @@ test('should handle HTML response with "404" or "not found"', async () => {
 test('should handle HTML response without common error code', async () => {
   const htmlString = '<!doctype html><div>Foo bar Lorem Ipsum</div>';
   const clientErrorObject = await getClientErrorObject(htmlString);
-  expect(clientErrorObject).toEqual({ error: 'Server error' });
+  expect(clientErrorObject).toEqual({ error: 'Internal error' });
 
   const htmlString2 = '<div><p>An error occurred</p></div>';
   const clientErrorObject2 = await getClientErrorObject(htmlString2);
   expect(clientErrorObject2).toEqual({
-    error: 'Server error',
+    error: 'Internal error',
   });
 });
 
@@ -235,7 +235,7 @@ test('parseErrorJson with HTML message', () => {
     }),
   ).toEqual({
     message: '<div>error message</div>',
-    error: 'Server error',
+    error: 'Internal error',
   });
 });
 
