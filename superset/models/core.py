@@ -403,6 +403,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         nullpool: bool = True,
         source: utils.QuerySource | None = None,
         override_ssh_tunnel: SSHTunnel | None = None,
+        fetch_metadata: bool = False
     ) -> Engine:
         """
         Context manager for a SQLAlchemy engine.
@@ -448,6 +449,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 nullpool=nullpool,
                 source=source,
                 sqlalchemy_uri=sqlalchemy_uri,
+                fetch_metadata=fetch_metadata
             )
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals
@@ -457,6 +459,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         nullpool: bool = True,
         source: utils.QuerySource | None = None,
         sqlalchemy_uri: str | None = None,
+        fetch_metadata: bool = False
     ) -> Engine:
         sqlalchemy_url = make_url_safe(
             sqlalchemy_uri if sqlalchemy_uri else self.sqlalchemy_uri_decrypted
@@ -534,6 +537,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 effective_username,
                 security_manager,
                 source,
+                fetch_metadata
             )
         try:
             return create_engine(sqlalchemy_url, **params)
@@ -816,6 +820,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             catalog=catalog,
             schema=schema,
             override_ssh_tunnel=ssh_tunnel,
+            fetch_metadata=True,
         ) as engine:
             yield sqla.inspect(engine)
 
@@ -916,7 +921,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     def get_table(self, table: Table) -> SqlaTable:
         extra = self.get_extra()
         meta = MetaData(**extra.get("metadata_params", {}))
-        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
+        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema, fetch_metadata=True) as engine:
             return SqlaTable(
                 table.table,
                 meta,
@@ -1027,12 +1032,12 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return self.perm  # type: ignore
 
     def has_table(self, table: Table) -> bool:
-        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
+        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema, fetch_metadata=True) as engine:
             # do not pass "" as an empty schema; force null
             return engine.has_table(table.table, table.schema or None)
 
     def has_view(self, table: Table) -> bool:
-        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
+        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema, fetch_metadata=True) as engine:
             connection = engine.connect()
             try:
                 views = engine.dialect.get_view_names(
