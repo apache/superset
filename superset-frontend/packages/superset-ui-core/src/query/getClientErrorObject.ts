@@ -54,27 +54,74 @@ type ErrorType =
 type ErrorTextSource = 'dashboard' | 'chart' | 'query' | 'dataset' | 'database';
 
 const ERROR_CODE_LOOKUP = {
-  400: t('Bad request'),
-  401: t('Unauthorized'),
-  403: t('Forbidden'),
-  404: t('Not found'),
-  500: t('Server error'),
-  502: t('Bad gateway'),
-  503: t('Service unavailable'),
-  599: t('Network error'),
+  400: 'Bad request',
+  401: 'Unauthorized',
+  402: 'Payment required',
+  403: 'Forbidden',
+  404: 'Not found',
+  405: 'Method not allowed',
+  406: 'Not acceptable',
+  407: 'Proxy authentication required',
+  408: 'Request timeout',
+  409: 'Conflict',
+  410: 'Gone',
+  411: 'Length required',
+  412: 'Precondition failed',
+  413: 'Payload too large',
+  414: 'URI too long',
+  415: 'Unsupported media type',
+  416: 'Range not satisfiable',
+  417: 'Expectation failed',
+  418: "I'm a teapot",
+  500: 'Server error',
+  501: 'Not implemented',
+  502: 'Bad gateway',
+  503: 'Service unavailable',
+  504: 'Gateway timeout',
+  505: 'HTTP version not supported',
+  506: 'Variant also negotiates',
+  507: 'Insufficient storage',
+  508: 'Loop detected',
+  510: 'Not extended',
+  511: 'Network authentication required',
+  599: 'Network error',
 };
 
-export function parseErrorString(response: string): string {
-  if (!isJsonString(response) && isProbablyHTML(response)) {
-    if (/500|server error/i.test(response)) {
-      return ERROR_CODE_LOOKUP[500];
+export function checkForHtml(str: string): boolean {
+  return !isJsonString(str) && isProbablyHTML(str);
+}
+
+export function parseStringResponse(str: string): string {
+  if (checkForHtml(str)) {
+    for (const [code, message] of Object.entries(ERROR_CODE_LOOKUP)) {
+      const regex = new RegExp(`${code}|${message}`, 'i');
+      if (regex.test(str)) {
+        return t(message);
+      }
     }
-    if (/404|not found/i.test(response)) {
-      return ERROR_CODE_LOOKUP[404];
-    }
-    return t('Internal error');
+    return t('Unknown error');
   }
-  return response;
+  return str;
+}
+
+export function getErrorFromStatusCode(status: number): string {
+  return ERROR_CODE_LOOKUP[status] || null;
+}
+
+export function retrieveErrorMessage(
+  str: string,
+  response: Response | JsonObject,
+): string {
+  if (checkForHtml(str) && 'status' in response) {
+    // Prefer the error message from the response status if it exists
+    return getErrorFromStatusCode(response.status)
+      ? getErrorFromStatusCode(response.status)
+      : parseStringResponse(str);
+  }
+  if (checkForHtml(str)) {
+    return parseStringResponse(str);
+  }
+  return str;
 }
 
 export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
@@ -93,7 +140,7 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
         t('Invalid input');
     }
     if (typeof error.message === 'string') {
-      error.error = parseErrorString(error.message);
+      error.error = retrieveErrorMessage(error.message, error);
     }
   }
   if (error.stack) {
@@ -125,7 +172,7 @@ export function getClientErrorObject(
   // and returns a Promise that resolves to a plain object with error key and text value.
   return new Promise(resolve => {
     if (typeof response === 'string') {
-      resolve({ error: parseErrorString(response) });
+      resolve({ error: parseStringResponse(response) });
       return;
     }
 
@@ -175,9 +222,23 @@ export function getClientErrorObject(
 
     const responseObject =
       response instanceof Response ? response : response.response;
+
+    // Check for HTTP status code in ERROR_CODE_LOOKUP
+    if (responseObject && 'status' in responseObject) {
+      const errorCode = ERROR_CODE_LOOKUP[responseObject.status];
+      if (errorCode) {
+        resolve({
+          ...responseObject,
+          error: t(errorCode),
+        });
+        return;
+      }
+    }
+
     if (responseObject && !responseObject.bodyUsed) {
-      // attempt to read the body as json, and fallback to text. we must clone the
-      // response in order to fallback to .text() because Response is single-read
+      // attempt to read the body as json, and fallback to text. we must clone
+      // the response in order to fallback to .text() because Response is
+      // single-read
       responseObject
         .clone()
         .json()
@@ -188,7 +249,10 @@ export function getClientErrorObject(
         .catch(() => {
           // fall back to reading as text
           responseObject.text().then((errorText: any) => {
-            resolve({ ...responseObject, error: parseErrorString(errorText) });
+            resolve({
+              ...responseObject,
+              error: retrieveErrorMessage(errorText, responseObject),
+            });
           });
         });
       return;
@@ -197,14 +261,9 @@ export function getClientErrorObject(
     // fall back to Response.statusText or generic error of we cannot read the response
     let error = (response as any).statusText || (response as any).message;
     if (!error) {
-      // check response http status code and return a generic error message
-      const { status } = response as any;
-      error = ERROR_CODE_LOOKUP[status];
-      if (!error) {
-        // eslint-disable-next-line no-console
-        console.error('non-standard error:', response);
-        error = t('An error occurred');
-      }
+      // eslint-disable-next-line no-console
+      console.error('non-standard error:', response);
+      error = t('An error occurred');
     }
     resolve({
       ...responseObject,

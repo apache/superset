@@ -68,12 +68,12 @@ test('should handle HTML response with "404" or "not found"', async () => {
 test('should handle HTML response without common error code', async () => {
   const htmlString = '<!doctype html><div>Foo bar Lorem Ipsum</div>';
   const clientErrorObject = await getClientErrorObject(htmlString);
-  expect(clientErrorObject).toEqual({ error: 'Internal error' });
+  expect(clientErrorObject).toEqual({ error: 'Unknown error' });
 
   const htmlString2 = '<div><p>An error occurred</p></div>';
   const clientErrorObject2 = await getClientErrorObject(htmlString2);
   expect(clientErrorObject2).toEqual({
-    error: 'Internal error',
+    error: 'Unknown error',
   });
 });
 
@@ -165,11 +165,18 @@ test('Handles plain text as input', async () => {
 });
 
 test('Handles error with status code', async () => {
-  const status = 500;
+  const status500 = new Response(null, { status: 500 });
+  const status404 = new Response(null, { status: 404 });
+  const status502 = new Response(null, { status: 502 });
 
-  // @ts-ignore
-  expect(await getClientErrorObject({ status })).toMatchObject({
+  expect(await getClientErrorObject(status500)).toMatchObject({
     error: 'Server error',
+  });
+  expect(await getClientErrorObject(status404)).toMatchObject({
+    error: 'Not found',
+  });
+  expect(await getClientErrorObject(status502)).toMatchObject({
+    error: 'Bad gateway',
   });
 });
 
@@ -244,7 +251,15 @@ test('parseErrorJson with HTML message', () => {
     }),
   ).toEqual({
     message: '<div>error message</div>',
-    error: 'Internal error',
+    error: 'Unknown error',
+  });
+  expect(
+    parseErrorJson({
+      message: '<div>Server error</div>',
+    }),
+  ).toEqual({
+    message: '<div>Server error</div>',
+    error: 'Server error',
   });
 });
 
