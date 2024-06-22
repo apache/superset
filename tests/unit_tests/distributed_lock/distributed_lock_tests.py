@@ -24,9 +24,10 @@ import pytest
 from freezegun import freeze_time
 from sqlalchemy.orm import Session, sessionmaker
 
+from superset.distributed_lock import KeyValueDistributedLock
+from superset.distributed_lock.utils import get_key
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.key_value.types import JsonKeyValueCodec
-from superset.utils.lock import get_key, KeyValueDistributedLock
 
 MAIN_KEY = get_key("ns", a=1, b=2)
 OTHER_KEY = get_key("ns2", a=1, b=2)

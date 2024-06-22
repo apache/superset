@@ -20,8 +20,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
 from superset.commands.dashboard.permalink.base import BaseDashboardPermalinkCommand
-from superset.commands.key_value.upsert import UpsertKeyValueCommand
 from superset.daos.dashboard import DashboardDAO
+from superset.daos.key_value import KeyValueDAO
 from superset.dashboards.permalink.exceptions import DashboardPermalinkCreateFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.key_value.exceptions import KeyValueCodecEncodeException
@@ -56,15 +56,15 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 "state": self.state,
             }
             user_id = get_user_id()
-            key = UpsertKeyValueCommand(
+            entry = KeyValueDAO.upsert_entry(
                 resource=self.resource,
-                key=get_deterministic_uuid(self.salt, (user_id, value)),
                 value=value,
                 codec=self.codec,
-            ).run()
-            assert key.id  # for type checks
+                key=get_deterministic_uuid(self.salt, (user_id, value)),
+            )
+            assert entry.id  # for type checks
             db.session.commit()
-            return encode_permalink_key(key=key.id, salt=self.salt)
+            return encode_permalink_key(key=entry.id, salt=self.salt)
         except KeyValueCodecEncodeException as ex:
             raise DashboardPermalinkCreateFailedError(str(ex)) from ex
         except SQLAlchemyError as ex:

@@ -21,41 +21,21 @@ import logging
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime, timedelta
-from typing import Any, cast, TypeVar, Union
+from datetime import timedelta
+from typing import Any
+
+from sqlalchemy.exc import IntegrityError
 
 from superset import db
+from superset.distributed_lock.utils import get_key
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
-from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
-from superset.utils import json
 
-LOCK_EXPIRATION = timedelta(seconds=30)
 logger = logging.getLogger(__name__)
 
-
-def serialize(params: dict[str, Any]) -> str:
-    """
-    Serialize parameters into a string.
-    """
-
-    T = TypeVar(
-        "T",
-        bound=Union[dict[str, Any], list[Any], int, float, str, bool, None],
-    )
-
-    def sort(obj: T) -> T:
-        if isinstance(obj, dict):
-            return cast(T, {k: sort(v) for k, v in sorted(obj.items())})
-        if isinstance(obj, list):
-            return cast(T, [sort(x) for x in obj])
-        return obj
-
-    return json.dumps(params)
-
-
-def get_key(namespace: str, **kwargs: Any) -> uuid.UUID:
-    return uuid.uuid5(uuid.uuid5(uuid.NAMESPACE_DNS, namespace), serialize(kwargs))
+CODEC = JsonKeyValueCodec()
+LOCK_EXPIRATION = timedelta(seconds=30)
+RESOURCE = KeyValueResource.LOCK
 
 
 @contextmanager
@@ -77,30 +57,22 @@ def KeyValueDistributedLock(  # pylint: disable=invalid-name
     :yields: A unique identifier (UUID) for the acquired lock (the KV key).
     :raises CreateKeyValueDistributedLockFailedException: If the lock is taken.
     """
+
     # pylint: disable=import-outside-toplevel
-    from superset.commands.key_value.create import CreateKeyValueCommand
-    from superset.commands.key_value.delete import DeleteKeyValueCommand
-    from superset.commands.key_value.delete_expired import DeleteExpiredKeyValueCommand
+    from superset.commands.distributed_lock.create import CreateDistributedLock
+
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.distributed_lock.delete import DeleteDistributedLock
 
     key = get_key(namespace, **kwargs)
     logger.debug("Acquiring lock on namespace %s for key %s", namespace, key)
     try:
-        DeleteExpiredKeyValueCommand(resource=KeyValueResource.LOCK).run()
-        CreateKeyValueCommand(
-            resource=KeyValueResource.LOCK,
-            codec=JsonKeyValueCodec(),
-            key=key,
-            value=True,
-            expires_on=datetime.now() + LOCK_EXPIRATION,
-        ).run()
-        db.session.commit()
-
+        CreateDistributedLock(namespace=namespace, params=kwargs).run()
         yield key
-
-        DeleteKeyValueCommand(resource=KeyValueResource.LOCK, key=key).run()
-        db.session.commit()
+        DeleteDistributedLock(namespace=namespace, params=kwargs).run()
         logger.debug("Removed lock on namespace %s for key %s", namespace, key)
-    except KeyValueCreateFailedError as ex:
+    except IntegrityError as ex:
+        db.session.rollback()
         raise CreateKeyValueDistributedLockFailedException(
             "Error acquiring lock"
         ) from ex

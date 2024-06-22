@@ -14,3 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+import logging
+import uuid
+
+from flask import current_app
+
+from superset import db
+from superset.commands.distributed_lock.base import BaseDistributedLockCommand
+from superset.daos.key_value import KeyValueDAO
+from superset.key_value.types import KeyValueResource
+
+logger = logging.getLogger(__name__)
+stats_logger = current_app.config["STATS_LOGGER"]
+
+RESOURCE = KeyValueResource.LOCK
+
+
+class DeleteDistributedLock(BaseDistributedLockCommand):
+    key: uuid.UUID
+
+    def validate(self) -> None:
+        pass
+
+    def run(self) -> None:
+        KeyValueDAO.delete_entry(RESOURCE, self.key)
+        db.session.commit()

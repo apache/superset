@@ -29,23 +29,18 @@ CODEC = JsonKeyValueCodec()
 
 def get_shared_value(key: SharedKey) -> Optional[Any]:
     # pylint: disable=import-outside-toplevel
-    from superset.commands.key_value.get import GetKeyValueCommand
+    from superset.daos.key_value import KeyValueDAO
 
     uuid_key = uuid3(NAMESPACE, key)
-    return GetKeyValueCommand(RESOURCE, key=uuid_key, codec=CODEC).run()
+    return KeyValueDAO.get_value(RESOURCE, uuid_key, CODEC)
 
 
 def set_shared_value(key: SharedKey, value: Any) -> None:
     # pylint: disable=import-outside-toplevel
-    from superset.commands.key_value.create import CreateKeyValueCommand
+    from superset.daos.key_value import KeyValueDAO
 
     uuid_key = uuid3(NAMESPACE, key)
-    CreateKeyValueCommand(
-        resource=RESOURCE,
-        value=value,
-        key=uuid_key,
-        codec=CODEC,
-    ).run()
+    KeyValueDAO.create_entry(RESOURCE, value, CODEC, uuid_key)
     db.session.commit()
 
 

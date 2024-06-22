@@ -21,7 +21,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
 from superset.commands.explore.permalink.base import BaseExplorePermalinkCommand
-from superset.commands.key_value.create import CreateKeyValueCommand
+from superset.daos.key_value import KeyValueDAO
 from superset.explore.permalink.exceptions import ExplorePermalinkCreateFailedError
 from superset.explore.utils import check_access as check_chart_access
 from superset.key_value.exceptions import KeyValueCodecEncodeException
@@ -51,16 +51,13 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
                 "datasource": self.datasource,
                 "state": self.state,
             }
-            command = CreateKeyValueCommand(
-                resource=self.resource,
-                value=value,
-                codec=self.codec,
-            )
-            key = command.run()
-            if key.id is None:
+            entry = KeyValueDAO.create_entry(self.resource, value, self.codec)
+            db.session.flush()
+            key = entry.id
+            if key is None:
                 raise ExplorePermalinkCreateFailedError("Unexpected missing key id")
             db.session.commit()
-            return encode_permalink_key(key=key.id, salt=self.salt)
+            return encode_permalink_key(key=key, salt=self.salt)
         except KeyValueCodecEncodeException as ex:
             raise ExplorePermalinkCreateFailedError(str(ex)) from ex
         except SQLAlchemyError as ex:

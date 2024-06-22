@@ -14,3 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+import logging
+import uuid
+from typing import Any
+
+from flask import current_app
+
+from superset.commands.base import BaseCommand
+from superset.distributed_lock.utils import get_key
+from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
+
+logger = logging.getLogger(__name__)
+stats_logger = current_app.config["STATS_LOGGER"]
+
+CODEC = JsonKeyValueCodec()
+RESOURCE = KeyValueResource.LOCK
+
+
+class BaseDistributedLockCommand(BaseCommand):
+    key: uuid.UUID
+
+    def __init__(self, namespace: str, params: dict[str, Any] | None = None):
+        self.key = get_key(namespace, **(params or {}))
+
+    def validate(self) -> None:
+        pass
