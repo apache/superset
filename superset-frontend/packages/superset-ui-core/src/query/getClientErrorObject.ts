@@ -104,7 +104,7 @@ export function parseStringResponse(str: string): string {
   return str;
 }
 
-export function getErrorFromStatusCode(status: number): string {
+export function getErrorFromStatusCode(status: number): string | null {
   return ERROR_CODE_LOOKUP[status] || null;
 }
 
@@ -112,16 +112,11 @@ export function retrieveErrorMessage(
   str: string,
   response: Response | JsonObject,
 ): string {
-  if (checkForHtml(str) && 'status' in response) {
-    // Prefer the error message from the response status if it exists
-    return getErrorFromStatusCode(response.status)
-      ? getErrorFromStatusCode(response.status)
-      : parseStringResponse(str);
-  }
-  if (checkForHtml(str)) {
-    return parseStringResponse(str);
-  }
-  return str;
+  const statusError =
+    'status' in response ? getErrorFromStatusCode(response.status) : null;
+
+  // Prefer status code message over the response text
+  return statusError || parseStringResponse(str);
 }
 
 export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
@@ -140,7 +135,11 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
         t('Invalid input');
     }
     if (typeof error.message === 'string') {
-      error.error = retrieveErrorMessage(error.message, error);
+      if (checkForHtml(error.message)) {
+        error.error = t(retrieveErrorMessage(error.message, error));
+      } else {
+        error.error = error.message;
+      }
     }
   }
   if (error.stack) {
@@ -168,8 +167,9 @@ export function getClientErrorObject(
     | { response: Response }
     | string,
 ): Promise<ClientErrorObject> {
-  // takes a SupersetClientResponse as input, attempts to read response as Json if possible,
-  // and returns a Promise that resolves to a plain object with error key and text value.
+  // takes a SupersetClientResponse as input, attempts to read response as Json
+  // if possible, and returns a Promise that resolves to a plain object with
+  // error key and text value.
   return new Promise(resolve => {
     if (typeof response === 'string') {
       resolve({ error: parseStringResponse(response) });
@@ -223,18 +223,6 @@ export function getClientErrorObject(
     const responseObject =
       response instanceof Response ? response : response.response;
 
-    // Check for HTTP status code in ERROR_CODE_LOOKUP
-    if (responseObject && 'status' in responseObject) {
-      const errorCode = ERROR_CODE_LOOKUP[responseObject.status];
-      if (errorCode) {
-        resolve({
-          ...responseObject,
-          error: t(errorCode),
-        });
-        return;
-      }
-    }
-
     if (responseObject && !responseObject.bodyUsed) {
       // attempt to read the body as json, and fallback to text. we must clone
       // the response in order to fallback to .text() because Response is
@@ -251,7 +239,7 @@ export function getClientErrorObject(
           responseObject.text().then((errorText: any) => {
             resolve({
               ...responseObject,
-              error: retrieveErrorMessage(errorText, responseObject),
+              error: t(retrieveErrorMessage(errorText, responseObject)),
             });
           });
         });
