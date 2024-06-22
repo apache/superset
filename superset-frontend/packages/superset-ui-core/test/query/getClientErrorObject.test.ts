@@ -263,6 +263,29 @@ test('parseErrorJson with HTML message', () => {
   });
 });
 
+test('parseErrorJson with HTML message and status code', () => {
+  expect(
+    parseErrorJson({
+      status: 502,
+      message: '<div>error message</div>',
+    }),
+  ).toEqual({
+    status: 502,
+    message: '<div>error message</div>',
+    error: 'Bad gateway',
+  });
+  expect(
+    parseErrorJson({
+      status: 999,
+      message: '<div>Server error</div>',
+    }),
+  ).toEqual({
+    status: 999,
+    message: '<div>Server error</div>',
+    error: 'Server error',
+  });
+});
+
 test('parseErrorJson with stacktrace', () => {
   expect(
     parseErrorJson({ error: 'error message', stack: 'stacktrace' }),
