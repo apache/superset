@@ -39,7 +39,7 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule
 from superset.tags.models import ObjectType
-from superset.utils.core import send_email_smtp
+from superset.utils.core import send_email_smtp, get_user_email
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -145,7 +145,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             description = textwrap.dedent(
                 """
                 The dashboard tab used in this report has been deleted and your report has not been sent.
-                Please update your report settings to remove or change the tab used."
+                Please update your report settings to remove or change the tab used.
                 """)
 
             html_content = textwrap.dedent(
@@ -171,18 +171,23 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     </html>
                     """
                 )
-            send_email_smtp(
-                    to='jack.fisher@preset.io',
-                    subject='Report Deactivated',
-                    html_content=html_content,
-                    config=app.config
-                    )
+            for report_owner in report.owners:
+                if email := report_owner.email:
+                    send_email_smtp(
+                            to=email,
+                            subject=f'[Report: {report.name}] Deactivated',
+                            html_content=html_content,
+                            config=app.config
+                            )
 
-        def deal_with_reports_with_missing_tabs(reports_list: list[ReportSchedule]) -> None:
+        def process_reports_with_missing_tabs(reports_list: list[ReportSchedule]) -> None:
             for report in reports_list:
                 # deactivate
                 report.active = False
                 # send email to report owner
                 send_deactivated_email_warning(report)
             db.session.commit()
-                
+
+        deleted_tabs = find_deleted_tabs()
+        reports = find_reports_containing_tabs(deleted_tabs)
+        process_reports_with_missing_tabs(reports)
