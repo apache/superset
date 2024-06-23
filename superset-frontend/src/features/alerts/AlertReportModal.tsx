@@ -1030,15 +1030,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         .every(email => EMAIL_REGEX.test(email.trim()));
     };
 
-    for (const setting of notificationSettings) {
+    // Use array method to check conditions
+    return notificationSettings.every(setting => {
       if (!!setting.method && setting.method === 'Email') {
-        if (setting.recipients?.length && !validateEmails(setting.recipients))
-          return false;
-        if (setting.cc && !validateEmails(setting.cc)) return false;
-        if (setting.bcc && !validateEmails(setting.bcc)) return false;
+        return (
+          (!setting.recipients?.length || validateEmails(setting.recipients)) &&
+          (!setting.cc || validateEmails(setting.cc)) &&
+          (!setting.bcc || validateEmails(setting.bcc))
+        );
       }
-    }
-    return true;
+      return true; // Non-Email methods are considered valid
+    });
   };
 
   const validateGeneralSection = () => {
