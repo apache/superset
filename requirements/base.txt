@@ -19,6 +19,7 @@ attrs==23.2.0
     # via
     #   cattrs
     #   jsonschema
+    #   referencing
     #   requests-cache
 babel==2.15.0
     # via flask-babel
@@ -173,8 +174,10 @@ jinja2==3.1.4
     # via
     #   flask
     #   flask-babel
-jsonschema==4.17.3
+jsonschema==4.22.0
     # via flask-appbuilder
+jsonschema-specifications==2023.12.1
+    # via jsonschema
 kombu==5.3.7
     # via celery
 korean-lunar-calendar==0.3.1
@@ -278,8 +281,6 @@ pyopenssl==24.1.0
     # via shillelagh
 pyparsing==3.1.2
     # via apache-superset
-pyrsistent==0.20.0
-    # via jsonschema
 python-dateutil==2.9.0.post0
     # via
     #   apache-superset
@@ -304,6 +305,10 @@ pyyaml==6.0.1
     #   apispec
 redis==4.6.0
     # via apache-superset
+referencing==0.35.1
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
 requests==2.32.2
     # via
     #   requests-cache
@@ -312,6 +317,10 @@ requests-cache==1.2.0
     # via shillelagh
 rich==13.7.1
     # via flask-limiter
+rpds-py==0.18.1
+    # via
+    #   jsonschema
+    #   referencing
 rsa==4.9
     # via google-auth
 selenium==3.141.0
