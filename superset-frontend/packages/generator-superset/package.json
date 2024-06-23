@@ -32,7 +32,7 @@
   "devDependencies": {
     "fs-extra": "^11.2.0",
     "yeoman-assert": "^3.1.1",
-    "yeoman-test": "^6.2.0"
+    "yeoman-test": "^8.3.0"
   },
   "engines": {
     "npm": ">= 4.0.0"
