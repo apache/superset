@@ -546,7 +546,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         except TagDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose("/get_objects/", methods=("GET",))
+    @expose("/get_objects/<tag_id>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -554,7 +554,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_objects",
         log_to_statsd=False,
     )
-    def get_objects(self) -> Response:
+    def get_objects(self, tag_id: int) -> Response:
         """Get all objects associated with a tag.
         ---
         get:
@@ -587,21 +587,9 @@ class TagRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        tag_ids = [
-            tag_id for tag_id in request.args.get("tagIds", "").split(",") if tag_id
-        ]
-        tags = [tag for tag in request.args.get("tags", "").split(",") if tag]
-        # filter types
-        types = [type_ for type_ in request.args.get("types", "").split(",") if type_]
 
         try:
-            if tag_ids:
-                # priotize using ids for lookups vs. names mainly using this
-                # for backward compatibility
-                tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tag_ids, types)
-            else:
-                tagged_objects = TagDAO.get_tagged_objects_for_tags(tags, types)
-
+            tagged_objects = TagDAO.get_tagged_objects_by_tag_id([tag_id])
             result = [
                 self.object_entity_response_schema.dump(tagged_object)
                 for tagged_object in tagged_objects
