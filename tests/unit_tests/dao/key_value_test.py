@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=unused-argument, import-outside-toplevel
+# pylint: disable=unused-argument, import-outside-toplevel, unused-import
 from __future__ import annotations
 
 import pickle
@@ -38,7 +38,7 @@ from superset.key_value.types import (
 )
 from superset.utils import json
 from superset.utils.core import override_user
-from tests.unit_tests.fixtures.common import admin_user
+from tests.unit_tests.fixtures.common import admin_user  # noqa: F401
 
 if TYPE_CHECKING:
     from superset.key_value.models import KeyValueEntry
