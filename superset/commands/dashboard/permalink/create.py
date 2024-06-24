@@ -58,9 +58,9 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
             user_id = get_user_id()
             entry = KeyValueDAO.upsert_entry(
                 resource=self.resource,
+                key=get_deterministic_uuid(self.salt, (user_id, value)),
                 value=value,
                 codec=self.codec,
-                key=get_deterministic_uuid(self.salt, (user_id, value)),
             )
             db.session.flush()
             assert entry.id  # for type checks
