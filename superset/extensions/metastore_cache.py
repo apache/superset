@@ -113,7 +113,6 @@ class SupersetMetastoreCache(BaseCache):
             db.session.rollback()
             return False
 
-
     def get(self, key: str) -> Any:
         # pylint: disable=import-outside-toplevel
         from superset.daos.key_value import KeyValueDAO

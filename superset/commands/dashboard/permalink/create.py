@@ -62,6 +62,7 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 codec=self.codec,
                 key=get_deterministic_uuid(self.salt, (user_id, value)),
             )
+            db.session.flush()
             assert entry.id  # for type checks
             db.session.commit()
             return encode_permalink_key(key=entry.id, salt=self.salt)
