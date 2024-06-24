@@ -435,6 +435,7 @@ const SqlEditor: FC<Props> = ({
         descr: KEY_MAP[KeyboardShortcut.CtrlShiftF],
         func: () => {
           formatCurrentQuery(true);
+          logAction(LOG_ACTIONS_SQLLAB_FORMAT_SQL, { shortcut: true });
         },
       },
     ];
