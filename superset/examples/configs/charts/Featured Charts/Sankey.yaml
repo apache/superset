@@ -1,0 +1,25 @@
+slice_name: Sankey
+description: null
+certified_by: null
+certification_details: null
+viz_type: sankey_v2
+params:
+  datasource: 22__table
+  viz_type: sankey_v2
+  source: product_line
+  target: deal_size
+  metric: count
+  adhoc_filters:
+    - clause: WHERE
+      subject: order_date
+      operator: TEMPORAL_RANGE
+      comparator: No filter
+      expressionType: SIMPLE
+  row_limit: 10000
+  color_scheme: supersetColors
+  extra_form_data: {}
+  dashboards: []
+cache_timeout: null
+uuid: fead4d46-ecb9-4fd9-8b9c-420629269c02
+version: 1.0.0
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005

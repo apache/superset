@@ -49,7 +49,7 @@ position:
     parents:
       - ROOT_ID
       - GRID_ID
-      - ROW-Jq9auQfs6-
+      - ROW-3XARWMYOfz
     type: CHART
   CHART-3tEC_8e-uS:
     children: []
@@ -147,7 +147,7 @@ position:
     parents:
       - ROOT_ID
       - GRID_ID
-      - ROW-3XARWMYOfz
+      - ROW-ux6j1ePT8I
     type: CHART
   CHART-EpsTnvUMuW:
     children: []
@@ -273,7 +273,7 @@ position:
     parents:
       - ROOT_ID
       - GRID_ID
-      - ROW-ux6j1ePT8I
+      - ROW-we3i1eOT75
     type: CHART
   CHART-gfrGP3BD76:
     children: []
@@ -288,6 +288,20 @@ position:
       - ROOT_ID
       - GRID_ID
       - ROW-W7YILGiS0-
+    type: CHART
+  CHART-Yi0u5d9otw:
+    children: []
+    id: CHART-Yi0u5d9otw
+    meta:
+      chartId: 359
+      height: 50
+      sliceName: Sankey
+      uuid: fead4d46-ecb9-4fd9-8b9c-420629269c02
+      width: 4
+    parents:
+      - ROOT_ID
+      - GRID_ID
+      - ROW-Jq9auQfs6-
     type: CHART
   CHART-j2o9aZo4HY:
     children: []
@@ -370,6 +384,7 @@ position:
       - ROW-Jq9auQfs6-
       - ROW-3XARWMYOfz
       - ROW-ux6j1ePT8I
+      - ROW-we3i1eOT75
     id: GRID_ID
     parents:
       - ROOT_ID
@@ -386,9 +401,9 @@ position:
     type: ROOT
   ROW-3XARWMYOfz:
     children:
+      - CHART-33vjmwrGX1
       - CHART-3tEC_8e-uS
       - CHART-A4qrvR24Ne
-      - CHART-DqaJJ8Fse6
     id: ROW-3XARWMYOfz
     meta:
       background: BACKGROUND_TRANSPARENT
@@ -400,7 +415,7 @@ position:
     children:
       - CHART-qZh51tuuRH
       - CHART-j2o9aZo4HY
-      - CHART-33vjmwrGX1
+      - CHART-Yi0u5d9otw
     id: ROW-Jq9auQfs6-
     meta:
       background: BACKGROUND_TRANSPARENT
@@ -470,10 +485,20 @@ position:
     type: ROW
   ROW-ux6j1ePT8I:
     children:
+      - CHART-DqaJJ8Fse6
       - CHART-XwFZukVv8E
       - CHART-KE7lk61Tbt
-      - CHART-aAhaxRYu_t
     id: ROW-ux6j1ePT8I
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - GRID_ID
+    type: ROW
+  ROW-we3i1eOT75:
+    children:
+      - CHART-aAhaxRYu_t
+    id: ROW-we3i1eOT75
     meta:
       background: BACKGROUND_TRANSPARENT
     parents:

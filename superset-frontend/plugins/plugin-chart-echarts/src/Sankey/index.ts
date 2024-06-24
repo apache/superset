@@ -48,11 +48,16 @@ export default class EchartsSankeyChartPlugin extends ChartPlugin<
       metadata: new ChartMetadata({
         behaviors: [Behavior.InteractiveChart],
         credits: ['https://echarts.apache.org'],
-        category: t('TODO'),
-        description: t(`TODO`),
+        category: t('Flow'),
+        description: t(
+          `The Sankey chart visually tracks the movement and transformation of values across
+          system stages. Nodes represent stages, connected by links depicting value flow. Node
+          height corresponds to the visualized metric, providing a clear representation of
+          value distribution and transformation.`,
+        ),
         exampleGallery: [{ url: example1 }, { url: example2 }],
         name: t('Sankey Chart'),
-        tags: [],
+        tags: [t('Directional'), t('Distribution'), t('Flow')],
         thumbnail,
       }),
       transformProps,
