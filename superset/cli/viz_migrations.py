@@ -33,6 +33,7 @@ class VizType(str, Enum):
     HISTOGRAM = "histogram"
     LINE = "line"
     PIVOT_TABLE = "pivot_table"
+    SANKEY = "sankey"
     SUNBURST = "sunburst"
     TREEMAP = "treemap"
 
@@ -89,6 +90,7 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
         MigrateHistogramChart,
         MigrateLineChart,
         MigratePivotTable,
+        MigrateSankey,
         MigrateSunburst,
         MigrateTreeMap,
     )
@@ -103,6 +105,7 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
         VizType.HISTOGRAM: MigrateHistogramChart,
         VizType.LINE: MigrateLineChart,
         VizType.PIVOT_TABLE: MigratePivotTable,
+        VizType.SANKEY: MigrateSankey,
         VizType.SUNBURST: MigrateSunburst,
         VizType.TREEMAP: MigrateTreeMap,
     }
