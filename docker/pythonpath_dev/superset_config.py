@@ -173,9 +173,13 @@ OAUTH_PROVIDERS = [
 
 # Enable CORS 
 ENABLE_CORS = True
-CORS_OPTIONS = {
+CORS_OPTIONS = {   # Replace with your frontend domain(s)
     'origins': [
-        'http://localhost:3000', # Replace with your frontend domain(s)
+        'http://localhost:3000',
+        'http://localhost:4000',
+        'https://product-portal-fe.vercel.app',
+        'https://product-portal-fe-git-dev-datakimia-portal.vercel.app',
+        'https://product-portal-fe-git-staging-datakimia-portal.vercel.app'
     ],
     'supports_credentials': True,
     "allow_headers": ["*"],
