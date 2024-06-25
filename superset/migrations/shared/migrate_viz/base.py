@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import annotations
-
 import copy
 from typing import Any
 
@@ -153,13 +151,8 @@ class MigrateViz:
                 slc.query_context = json.dumps(query_context)
 
     @classmethod
-    def upgrade(cls, session: Session, chart_id: int | None = None) -> None:
-        slices = session.query(Slice).filter(
-            and_(
-                Slice.viz_type == cls.source_viz_type,
-                Slice.id == chart_id if chart_id is not None else True,
-            )
-        )
+    def upgrade(cls, session: Session) -> None:
+        slices = session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
         for slc in paginated_update(
             slices,
             lambda current, total: print(f"Upgraded {current}/{total} charts"),
@@ -167,12 +160,11 @@ class MigrateViz:
             cls.upgrade_slice(slc)
 
     @classmethod
-    def downgrade(cls, session: Session, chart_id: int | None = None) -> None:
+    def downgrade(cls, session: Session) -> None:
         slices = session.query(Slice).filter(
             and_(
                 Slice.viz_type == cls.target_viz_type,
                 Slice.params.like(f"%{FORM_DATA_BAK_FIELD_NAME}%"),
-                Slice.id == chart_id if chart_id is not None else True,
             )
         )
         for slc in paginated_update(

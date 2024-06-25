@@ -17,11 +17,32 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Type
 
 import click
+from click_option_group import optgroup, RequiredAnyOptionGroup
 from flask.cli import with_appcontext
 
 from superset import db
+from superset.migrations.shared.migrate_viz.base import (
+    MigrateViz,
+    Slice,
+)
+from superset.migrations.shared.migrate_viz.processors import (
+    MigrateAreaChart,
+    MigrateBarChart,
+    MigrateBubbleChart,
+    MigrateDistBarChart,
+    MigrateDualLine,
+    MigrateHeatmapChart,
+    MigrateHistogramChart,
+    MigrateLineChart,
+    MigratePivotTable,
+    MigrateSankey,
+    MigrateSunburst,
+    MigrateTreeMap,
+)
+from superset.migrations.shared.utils import paginated_update
 
 
 class VizType(str, Enum):
@@ -39,6 +60,26 @@ class VizType(str, Enum):
     TREEMAP = "treemap"
 
 
+MIGRATIONS: dict[VizType, Type[MigrateViz]] = {
+    VizType.AREA: MigrateAreaChart,
+    VizType.BAR: MigrateBarChart,
+    VizType.BUBBLE: MigrateBubbleChart,
+    VizType.DIST_BAR: MigrateDistBarChart,
+    VizType.DUAL_LINE: MigrateDualLine,
+    VizType.HEATMAP: MigrateHeatmapChart,
+    VizType.HISTOGRAM: MigrateHistogramChart,
+    VizType.LINE: MigrateLineChart,
+    VizType.PIVOT_TABLE: MigratePivotTable,
+    VizType.SANKEY: MigrateSankey,
+    VizType.SUNBURST: MigrateSunburst,
+    VizType.TREEMAP: MigrateTreeMap,
+}
+
+PREVIOUS_VERSION = {
+    migration.target_viz_type: migration for migration in MIGRATIONS.values()
+}
+
+
 @click.group()
 def migrate_viz() -> None:
     """
@@ -48,75 +89,82 @@ def migrate_viz() -> None:
 
 @migrate_viz.command()
 @with_appcontext
-@click.option(
+@optgroup.group(
+    cls=RequiredAnyOptionGroup,
+)
+@optgroup.option(
     "--viz_type",
     "-t",
     help=f"The viz type to upgrade: {', '.join(list(VizType))}",
-    required=True,
+    type=str,
 )
-@click.option(
-    "--chart_id",
-    help="The chart ID to upgrade",
-    type=int,
+@optgroup.option(
+    "-ids",
+    help="A comma separated list of chart IDs to upgrade",
+    type=str,
 )
-def upgrade(viz_type: str, chart_id: int | None = None) -> None:
+def upgrade(viz_type: str, ids: str | None = None) -> None:
     """Upgrade a viz to the latest version."""
-    migrate(VizType(viz_type), chart_id)
+    if ids is None:
+        migrate_by_viz_type(VizType(viz_type))
+    else:
+        migrate_by_ids(ids)
 
 
 @migrate_viz.command()
 @with_appcontext
-@click.option(
+@optgroup.group(
+    cls=RequiredAnyOptionGroup,
+)
+@optgroup.option(
     "--viz_type",
     "-t",
     help=f"The viz type to downgrade: {', '.join(list(VizType))}",
-    required=True,
+    type=str,
 )
-@click.option(
-    "--chart_id",
-    help="The chart ID to downgrade",
-    type=int,
+@optgroup.option(
+    "-ids",
+    help="A comma separated list of chart IDs to downgrade",
+    type=str,
 )
-def downgrade(viz_type: str, chart_id: int | None = None) -> None:
+def downgrade(viz_type: str, ids: str | None = None) -> None:
     """Downgrade a viz to the previous version."""
-    migrate(VizType(viz_type), chart_id, is_downgrade=True)
-
-
-def migrate(
-    viz_type: VizType, chart_id: int | None = None, is_downgrade: bool = False
-) -> None:
-    """Migrate a viz from one type to another."""
-    # pylint: disable=import-outside-toplevel
-    from superset.migrations.shared.migrate_viz.processors import (
-        MigrateAreaChart,
-        MigrateBarChart,
-        MigrateBubbleChart,
-        MigrateDistBarChart,
-        MigrateDualLine,
-        MigrateHeatmapChart,
-        MigrateHistogramChart,
-        MigrateLineChart,
-        MigratePivotTable,
-        MigrateSankey,
-        MigrateSunburst,
-        MigrateTreeMap,
-    )
-
-    migrations = {
-        VizType.AREA: MigrateAreaChart,
-        VizType.BAR: MigrateBarChart,
-        VizType.BUBBLE: MigrateBubbleChart,
-        VizType.DIST_BAR: MigrateDistBarChart,
-        VizType.DUAL_LINE: MigrateDualLine,
-        VizType.HEATMAP: MigrateHeatmapChart,
-        VizType.HISTOGRAM: MigrateHistogramChart,
-        VizType.LINE: MigrateLineChart,
-        VizType.PIVOT_TABLE: MigratePivotTable,
-        VizType.SANKEY: MigrateSankey,
-        VizType.SUNBURST: MigrateSunburst,
-        VizType.TREEMAP: MigrateTreeMap,
-    }
-    if is_downgrade:
-        migrations[viz_type].downgrade(db.session, chart_id)
+    if ids is None:
+        migrate_by_viz_type(VizType(viz_type), is_downgrade=True)
     else:
-        migrations[viz_type].upgrade(db.session, chart_id)
+        migrate_by_ids(ids, is_downgrade=True)
+
+
+def migrate_by_viz_type(viz_type: VizType, is_downgrade: bool = False) -> None:
+    """
+    Migrate all charts of a viz type.
+
+    :param viz_type: The viz type to migrate
+    :param is_downgrade: Whether to downgrade the charts. Default is upgrade.
+    """
+    migration: Type[MigrateViz] = MIGRATIONS[viz_type]
+    if is_downgrade:
+        migration.downgrade(db.session)
+    else:
+        migration.upgrade(db.session)
+
+
+def migrate_by_ids(ids: str, is_downgrade: bool = False) -> None:
+    """
+    Migrate a subset of charts by a list of IDs.
+
+    :param ids: List of chart IDs to migrate
+    :param is_downgrade: Whether to downgrade the charts. Default is upgrade.
+    """
+    id_list = [int(i) for i in ids.split(",")]
+    slices = db.session.query(Slice).filter(Slice.id.in_(id_list))
+    for slc in paginated_update(
+        slices,
+        lambda current, total: print(
+            f"{('Downgraded' if is_downgrade else 'Upgraded')} {current}/{total} charts"
+        ),
+    ):
+        if is_downgrade:
+            PREVIOUS_VERSION[slc.viz_type].downgrade_slice(slc)
+        else:
+            MIGRATIONS[slc.viz_type].upgrade_slice(slc)
