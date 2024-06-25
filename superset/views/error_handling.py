@@ -18,9 +18,7 @@ from flask_wtf.csrf import CSRFError
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
 
-from superset import (
-    appbuilder,
-)
+from superset import appbuilder
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
