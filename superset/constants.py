@@ -152,6 +152,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "data_from_cache": "read",
     "get_charts": "read",
     "get_datasets": "read",
+    "get_tabs": "read",
     "function_names": "read",
     "available": "read",
     "validate_sql": "read",

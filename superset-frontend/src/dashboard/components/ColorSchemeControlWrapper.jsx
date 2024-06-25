@@ -27,11 +27,11 @@ const propTypes = {
   onChange: PropTypes.func,
   labelMargin: PropTypes.number,
   colorScheme: PropTypes.string,
-  hasCustomLabelColors: PropTypes.bool,
+  hasCustomLabelsColor: PropTypes.bool,
 };
 
 const defaultProps = {
-  hasCustomLabelColors: false,
+  hasCustomLabelsColor: false,
   colorScheme: undefined,
   onChange: () => {},
 };
@@ -50,7 +50,7 @@ class ColorSchemeControlWrapper extends PureComponent {
   }
 
   render() {
-    const { colorScheme, labelMargin = 0, hasCustomLabelColors } = this.props;
+    const { colorScheme, labelMargin = 0, hasCustomLabelsColor } = this.props;
     return (
       <ColorSchemeControl
         description={t(
@@ -64,7 +64,7 @@ class ColorSchemeControlWrapper extends PureComponent {
         clearable
         schemes={this.schemes}
         hovered={this.state.hovered}
-        hasCustomLabelColors={hasCustomLabelColors}
+        hasCustomLabelsColor={hasCustomLabelsColor}
       />
     );
   }

@@ -28,7 +28,7 @@ class CommandException(SupersetException):
     def __repr__(self) -> str:
         if self._exception:
             return repr(self._exception)
-        return repr(self)
+        return super().__repr__()
 
 
 class ObjectNotFoundError(CommandException):

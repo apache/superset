@@ -173,7 +173,7 @@ export default function transformProps(
         value: data_point[metricLabel] as number,
         name,
         itemStyle: {
-          color: colorFn(index, sliceId),
+          color: colorFn(index, sliceId, colorScheme),
         },
         title: {
           offsetCenter: [
@@ -201,7 +201,7 @@ export default function transformProps(
         item = {
           ...item,
           itemStyle: {
-            color: colorFn(index, sliceId),
+            color: colorFn(index, sliceId, colorScheme),
             opacity: OpacityEnum.SemiTransparent,
           },
           detail: {

@@ -19,6 +19,7 @@ from typing import Any, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import db
 from superset.commands.explore.permalink.base import BaseExplorePermalinkCommand
 from superset.commands.key_value.create import CreateKeyValueCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkCreateFailedError
@@ -58,6 +59,7 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
             key = command.run()
             if key.id is None:
                 raise ExplorePermalinkCreateFailedError("Unexpected missing key id")
+            db.session.commit()
             return encode_permalink_key(key=key.id, salt=self.salt)
         except KeyValueCodecEncodeException as ex:
             raise ExplorePermalinkCreateFailedError(str(ex)) from ex
