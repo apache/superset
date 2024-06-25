@@ -42,7 +42,7 @@ from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
 from superset.tags.models import Tag
 from superset.utils.core import get_user_id, time_function
-from superset.views.base import handle_api_exception
+from superset.views.error_handling import handle_api_exception
 
 logger = logging.getLogger(__name__)
 get_related_schema = {

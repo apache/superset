@@ -123,13 +123,13 @@ from superset.utils import json
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
-from superset.views.base import json_errors_response
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
     requires_json,
     statsd_metrics,
 )
+from superset.views.error_handling import json_errors_response
 
 logger = logging.getLogger(__name__)
 
