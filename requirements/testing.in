@@ -16,7 +16,7 @@
 #
 -r development.in
 -r integration.in
--e file:.[bigquery,hive,presto,prophet,trino,gsheets,playwright]
+-e file:.[bigquery,hive,presto,prophet,trino,gsheets,gsheets-export,playwright]
 docker
 flask-testing
 freezegun

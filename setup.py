@@ -166,6 +166,7 @@ setup(
         "firebolt": ["firebolt-sqlalchemy>=1.0.0, <2"],
         "gevent": ["gevent>=23.9.1"],
         "gsheets": ["shillelagh[gsheetsapi]>=1.2.10, <2"],
+        "gsheets-export": ["gspread>=6.0.1, <7"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": [
             "pyhive[hive]>=0.6.5;python_version<'3.11'",
