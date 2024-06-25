@@ -306,9 +306,7 @@ describe('RTL', () => {
       .getAllByRole('checkbox', {
         name: '',
       })
-      .find(
-        checkbox => checkbox.getAttribute('name') === 'header-toggle-all',
-      );
+      .find(checkbox => checkbox.getAttribute('name') === 'header-toggle-all');
     userEvent.click(selectAllCheckbox);
 
     // Grab and assert that export button is visible
