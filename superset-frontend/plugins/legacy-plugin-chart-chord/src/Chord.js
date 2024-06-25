@@ -93,7 +93,7 @@ function Chord(element, props) {
     .append('path')
     .attr('id', (d, i) => `group${i}`)
     .attr('d', arc)
-    .style('fill', (d, i) => colorFn(nodes[i], sliceId));
+    .style('fill', (d, i) => colorFn(nodes[i], sliceId, colorScheme));
 
   // Add a text label.
   const groupText = group.append('text').attr('x', 6).attr('dy', 15);
@@ -121,7 +121,7 @@ function Chord(element, props) {
     .on('mouseover', d => {
       chord.classed('fade', p => p !== d);
     })
-    .style('fill', d => colorFn(nodes[d.source.index], sliceId))
+    .style('fill', d => colorFn(nodes[d.source.index], sliceId, colorScheme))
     .attr('d', path);
 
   // Add an elaborate mouseover title for each chord.

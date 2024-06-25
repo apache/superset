@@ -89,6 +89,7 @@ These features flags currently default to True and **will be removed in a future
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
+- AVOID_COLORS_COLLISION
 - DASHBOARD_CROSS_FILTERS
 - ENABLE_JAVASCRIPT_CONTROLS
 - KV_STORE

@@ -174,7 +174,7 @@ export default function transformProps(
       value,
       name,
       itemStyle: {
-        color: colorFn(name, sliceId),
+        color: colorFn(name, sliceId, colorScheme),
         opacity: isFiltered
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,

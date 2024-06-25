@@ -24,6 +24,7 @@ from datetime import datetime
 XVFB_PRE_CMD = "xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' "
 REPO = os.getenv("GITHUB_REPOSITORY") or "apache/superset"
 GITHUB_EVENT_NAME = os.getenv("GITHUB_REPOSITORY") or "push"
+CYPRESS_RECORD_KEY = os.getenv("CYPRESS_RECORD_KEY") or ""
 
 
 def compute_hash(file_path: str) -> str:
@@ -55,13 +56,7 @@ def get_cypress_cmd(
 
     if use_dashboard:
         # Run using cypress.io service
-        cypress_key = os.getenv("CYPRESS_KEY")
-        command = f"echo {cypress_key} | base64 --decode"
-        cypress_record_key = (
-            subprocess.check_output(command, shell=True).decode("utf-8").strip()
-        )
-        os.environ["CYPRESS_RECORD_KEY"] = cypress_record_key
-        spec: str = "*/**/*"
+        spec: str = "cypress/e2e/*/**/*"
         cmd = (
             f"{XVFB_PRE_CMD} "
             f'{cypress_cmd} --spec "{spec}" --browser {browser} '
@@ -70,7 +65,7 @@ def get_cypress_cmd(
         )
     else:
         # Run local, but split the execution
-        os.environ.pop("CYPRESS_KEY", None)
+        os.environ.pop("CYPRESS_RECORD_KEY", None)
         spec_list_str = ",".join(sorted(spec_list))
         if _filter:
             spec_list_str = ",".join(sorted([s for s in spec_list if _filter in s]))

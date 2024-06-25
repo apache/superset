@@ -56,7 +56,7 @@ def key_value_entry() -> Generator[KeyValueEntry, None, None]:
         value=bytes(json.dumps(JSON_VALUE), encoding="utf-8"),
     )
     db.session.add(entry)
-    db.session.commit()
+    db.session.flush()
     yield entry
     db.session.delete(entry)
     db.session.commit()

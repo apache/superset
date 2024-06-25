@@ -78,6 +78,7 @@ import {
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
 } from 'src/logger/LogUtils';
 import Icons from 'src/components/Icons';
+import { findPermission } from 'src/utils/findPermission';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -309,6 +310,12 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
+      const canExportData = findPermission(
+        'can_export_csv',
+        'SQLLab',
+        user?.roles,
+      );
+
       return (
         <ResultSetControls>
           <SaveDatasetModal
@@ -328,29 +335,35 @@ const ResultSet = ({
                 onClick={createExploreResultsOnClick}
               />
             )}
-            {csv && (
+            {csv && canExportData && (
               <Button
                 buttonSize="small"
                 href={getExportCsvUrl(query.id)}
+                data-test="export-csv-button"
                 onClick={() => logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {})}
               >
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
 
-            <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data, columns)}
-              wrapped={false}
-              copyNode={
-                <Button buttonSize="small">
-                  <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
-                </Button>
-              }
-              hideTooltip
-              onCopyEnd={() =>
-                logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
-              }
-            />
+            {canExportData && (
+              <CopyToClipboard
+                text={prepareCopyToClipboardTabularData(data, columns)}
+                wrapped={false}
+                copyNode={
+                  <Button
+                    buttonSize="small"
+                    data-test="copy-to-clipboard-button"
+                  >
+                    <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
+                  </Button>
+                }
+                hideTooltip
+                onCopyEnd={() =>
+                  logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
+                }
+              />
+            )}
           </ResultSetButtons>
           {search && (
             <input

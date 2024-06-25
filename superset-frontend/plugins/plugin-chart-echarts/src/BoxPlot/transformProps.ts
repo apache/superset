@@ -108,9 +108,9 @@ export default function transformProps(
             datum[`${metric}__outliers`],
           ],
           itemStyle: {
-            color: colorFn(groupbyLabel, sliceId),
+            color: colorFn(groupbyLabel, sliceId, colorScheme),
             opacity: isFiltered ? OpacityEnum.SemiTransparent : 0.6,
-            borderColor: colorFn(groupbyLabel, sliceId),
+            borderColor: colorFn(groupbyLabel, sliceId, colorScheme),
           },
         };
       });
@@ -149,7 +149,7 @@ export default function transformProps(
             },
           },
           itemStyle: {
-            color: colorFn(groupbyLabel, sliceId),
+            color: colorFn(groupbyLabel, sliceId, colorScheme),
             opacity: isFiltered
               ? OpacityEnum.SemiTransparent
               : OpacityEnum.NonTransparent,

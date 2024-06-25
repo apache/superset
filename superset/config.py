@@ -261,7 +261,7 @@ WTF_CSRF_EXEMPT_LIST = [
 ]
 
 # Whether to run the web server in debug mode or not
-DEBUG = os.environ.get("FLASK_DEBUG")
+DEBUG = parse_boolean_string(os.environ.get("FLASK_DEBUG"))
 FLASK_USE_RELOAD = True
 
 # Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
@@ -537,6 +537,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
     "CHART_PLUGINS_EXPERIMENTAL": False,
+    # Regardless of database configuration settings, force SQLLAB to run async using Celery
+    "SQLLAB_FORCE_RUN_ASYNC": False,
 }
 
 # ------------------------------

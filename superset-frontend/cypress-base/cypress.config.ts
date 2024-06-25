@@ -31,7 +31,7 @@ export default eyesPlugin(
     videoUploadOnPasses: false,
     viewportWidth: 1280,
     viewportHeight: 1024,
-    projectId: 'ukwxzo',
+    projectId: 'ud5x2f',
     retries: {
       runMode: 2,
       openMode: 0,

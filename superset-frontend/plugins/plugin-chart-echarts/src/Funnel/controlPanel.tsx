@@ -62,12 +62,8 @@ const config: ControlPanelConfig = {
           {
             name: 'sort_by_metric',
             config: {
+              ...sharedControls.sort_by_metric,
               default: true,
-              type: 'CheckboxControl',
-              label: t('Sort by metric'),
-              description: t(
-                'Whether to sort results by the selected metric in descending order.',
-              ),
             },
           },
         ],

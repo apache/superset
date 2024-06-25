@@ -63,9 +63,12 @@ github:
         # combination here.
         contexts:
           - lint-check
+          - cypress-matrix (0, chrome)
           - cypress-matrix (1, chrome)
           - cypress-matrix (2, chrome)
           - cypress-matrix (3, chrome)
+          - cypress-matrix (4, chrome)
+          - cypress-matrix (5, chrome)
           - frontend-build
           - pre-commit
           - python-lint
