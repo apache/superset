@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 from enum import Enum
 
 import click
-from click_option_group import optgroup, RequiredMutuallyExclusiveOptionGroup
 from flask.cli import with_appcontext
 
 from superset import db
@@ -47,37 +48,43 @@ def migrate_viz() -> None:
 
 @migrate_viz.command()
 @with_appcontext
-@optgroup.group(
-    "Grouped options",
-    cls=RequiredMutuallyExclusiveOptionGroup,
-)
-@optgroup.option(
+@click.option(
     "--viz_type",
     "-t",
-    help=f"The viz type to migrate: {', '.join(list(VizType))}",
+    help=f"The viz type to upgrade: {', '.join(list(VizType))}",
+    required=True,
 )
-def upgrade(viz_type: str) -> None:
+@click.option(
+    "--chart_id",
+    help="The chart ID to upgrade",
+    type=int,
+)
+def upgrade(viz_type: str, chart_id: int | None = None) -> None:
     """Upgrade a viz to the latest version."""
-    migrate(VizType(viz_type))
+    migrate(VizType(viz_type), chart_id)
 
 
 @migrate_viz.command()
 @with_appcontext
-@optgroup.group(
-    "Grouped options",
-    cls=RequiredMutuallyExclusiveOptionGroup,
-)
-@optgroup.option(
+@click.option(
     "--viz_type",
     "-t",
-    help=f"The viz type to migrate: {', '.join(list(VizType))}",
+    help=f"The viz type to downgrade: {', '.join(list(VizType))}",
+    required=True,
 )
-def downgrade(viz_type: str) -> None:
+@click.option(
+    "--chart_id",
+    help="The chart ID to downgrade",
+    type=int,
+)
+def downgrade(viz_type: str, chart_id: int | None = None) -> None:
     """Downgrade a viz to the previous version."""
-    migrate(VizType(viz_type), is_downgrade=True)
+    migrate(VizType(viz_type), chart_id, is_downgrade=True)
 
 
-def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
+def migrate(
+    viz_type: VizType, chart_id: int | None = None, is_downgrade: bool = False
+) -> None:
     """Migrate a viz from one type to another."""
     # pylint: disable=import-outside-toplevel
     from superset.migrations.shared.migrate_viz.processors import (
@@ -110,6 +117,6 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
         VizType.TREEMAP: MigrateTreeMap,
     }
     if is_downgrade:
-        migrations[viz_type].downgrade(db.session)
+        migrations[viz_type].downgrade(db.session, chart_id)
     else:
-        migrations[viz_type].upgrade(db.session)
+        migrations[viz_type].upgrade(db.session, chart_id)
