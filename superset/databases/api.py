@@ -129,7 +129,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.error_handling import json_errors_response
+from superset.views.error_handling import json_error_response
 
 logger = logging.getLogger(__name__)
 
@@ -458,7 +458,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseConnectionFailedError as ex:
             return self.response_422(message=str(ex))
         except SupersetErrorsException as ex:
-            return json_errors_response(errors=ex.errors, status=ex.status)
+            return json_error_response(ex.errors, status=ex.status)
         except DatabaseCreateFailedError as ex:
             logger.error(
                 "Error creating model %s: %s",

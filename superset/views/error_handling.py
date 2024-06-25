@@ -36,43 +36,37 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+JSON_MIMETYPE = "application/json; charset=utf-8"
 
-def get_error_level_from_status_code(  # pylint: disable=invalid-name
-    status: int,
+
+def get_error_level_from_status(
+    status_code: int,
 ) -> ErrorLevel:
-    if status < 400:
+    if status_code < 400:
         return ErrorLevel.INFO
-    if status < 500:
+    if status_code < 500:
         return ErrorLevel.WARNING
     return ErrorLevel.ERROR
 
 
 def json_error_response(
-    msg: str | None = None,
-    status: int = 500,
-    payload: dict[str, Any] | None = None,
-) -> FlaskResponse:
-    payload = payload or {"error": f"{msg}"}
-
-    return Response(
-        json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
-        status=status,
-        mimetype="application/json",
-    )
-
-
-def json_errors_response(
-    errors: list[SupersetError],
+    error_details: str | SupersetError | list[SupersetError] | None = None,
     status: int = 500,
     payload: dict[str, Any] | None = None,
 ) -> FlaskResponse:
     payload = payload or {}
 
-    payload["errors"] = [dataclasses.asdict(error) for error in errors]
+    if isinstance(error_details, list):
+        payload["errors"] = [dataclasses.asdict(error) for error in error_details]
+    elif isinstance(error_details, SupersetError):
+        payload["errors"] = [dataclasses.asdict(error_details)]
+    elif isinstance(error_details, str):
+        payload["error"] = error_details
+
     return Response(
         json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
         status=status,
-        mimetype="application/json; charset=utf-8",
+        mimetype=JSON_MIMETYPE,
     )
 
 
@@ -90,15 +84,13 @@ def handle_api_exception(
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
             logger.warning("SupersetSecurityException", exc_info=True)
-            return json_errors_response(
-                errors=[ex.error], status=ex.status, payload=ex.payload
-            )
+            return json_error_response([ex.error], status=ex.status, payload=ex.payload)
         except SupersetErrorsException as ex:
             logger.warning(ex, exc_info=True)
-            return json_errors_response(errors=ex.errors, status=ex.status)
+            return json_error_response(ex.errors, status=ex.status)
         except SupersetErrorException as ex:
             logger.warning("SupersetErrorException", exc_info=True)
-            return json_errors_response(errors=[ex.error], status=ex.status)
+            return json_error_response([ex.error], status=ex.status)
         except SupersetException as ex:
             if ex.status >= 500:
                 logger.exception(ex)
@@ -129,12 +121,12 @@ def set_app_error_handlers(app: Flask) -> None:
     @app.errorhandler(SupersetErrorException)
     def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
         logger.warning("SupersetErrorException", exc_info=True)
-        return json_errors_response(errors=[ex.error], status=ex.status)
+        return json_error_response([ex.error], status=ex.status)
 
     @app.errorhandler(SupersetErrorsException)
     def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
         logger.warning("SupersetErrorsException", exc_info=True)
-        return json_errors_response(errors=ex.errors, status=ex.status)
+        return json_error_response(ex.errors, status=ex.status)
 
     @app.errorhandler(CSRFError)
     def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
@@ -157,8 +149,8 @@ def set_app_error_handlers(app: Flask) -> None:
             path = files("superset") / f"static/assets/{ex.code}.html"
             return send_file(path, max_age=0), ex.code
 
-        return json_errors_response(
-            errors=[
+        return json_error_response(
+            [
                 SupersetError(
                     message=utils.error_msg_from_exception(ex),
                     error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
@@ -181,12 +173,12 @@ def set_app_error_handlers(app: Flask) -> None:
             return send_file(path, max_age=0), 500
 
         extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
-        return json_errors_response(
-            errors=[
+        return json_error_response(
+            [
                 SupersetError(
                     message=ex.message,
                     error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
-                    level=get_error_level_from_status_code(ex.status),
+                    level=get_error_level_from_status(ex.status),
                     extra=extra,
                 ),
             ],
@@ -197,13 +189,14 @@ def set_app_error_handlers(app: Flask) -> None:
     @app.errorhandler(500)
     def show_unexpected_exception(ex: Exception) -> FlaskResponse:
         """Catch-all, to ensure all errors from the backend conform to SIP-40"""
+        logger.warning("Exception", exc_info=True)
         logger.exception(ex)
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
             return send_file(path, max_age=0), 500
 
-        return json_errors_response(
-            errors=[
+        return json_error_response(
+            [
                 SupersetError(
                     message=utils.error_msg_from_exception(ex),
                     error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
