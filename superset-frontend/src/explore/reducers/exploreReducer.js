@@ -267,7 +267,7 @@ export default function exploreReducer(state = {}, action) {
           ...form_data,
           ...restoredField,
         },
-        hiddenFormData,
+        hiddenFormData: omit(hiddenFormData, fieldNames),
       };
     },
     [actions.SLICE_UPDATED]() {

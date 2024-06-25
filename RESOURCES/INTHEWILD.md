@@ -154,6 +154,7 @@ Join our growing community!
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
 - [Beans](https://www.beans.fi) [@kakoni]
+- [Bluesquare](https://www.bluesquarehub.com/) [@madewulf]
 - [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
@@ -171,6 +172,7 @@ Join our growing community!
 - [RIS3 Strategy of CZ, MIT CR](https://www.ris3.cz/) [@RIS3CZ]
 
 ### Travel
+- [Agoda](https://www.agoda.com/) [@lostseaway, @maiake, @obombayo]
 - [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
 
 ### Others

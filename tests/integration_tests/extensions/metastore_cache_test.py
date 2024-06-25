@@ -77,15 +77,28 @@ def test_caching_flow(app_context: AppContext, cache: SupersetMetastoreCache) ->
 def test_expiry(app_context: AppContext, cache: SupersetMetastoreCache) -> None:
     delta = timedelta(days=90)
     dttm = datetime(2022, 3, 18, 0, 0, 0)
+
+    # 1. initialize cached values, ensure they're found
     with freeze_time(dttm):
-        cache.set(FIRST_KEY, FIRST_KEY_INITIAL_VALUE, int(delta.total_seconds()))
+        assert (
+            cache.set(FIRST_KEY, FIRST_KEY_INITIAL_VALUE, int(delta.total_seconds()))
+            is True
+        )
         assert cache.get(FIRST_KEY) == FIRST_KEY_INITIAL_VALUE
+
+    # 2. ensure cached values are available a moment before expiration
     with freeze_time(dttm + delta - timedelta(seconds=1)):
-        assert cache.has(FIRST_KEY)
+        assert cache.has(FIRST_KEY) is True
         assert cache.get(FIRST_KEY) == FIRST_KEY_INITIAL_VALUE
+
+    # 3. ensure cached entries expire
     with freeze_time(dttm + delta + timedelta(seconds=1)):
         assert cache.has(FIRST_KEY) is False
         assert cache.get(FIRST_KEY) is None
+
+        # adding a value with the same key as an expired entry works
+        assert cache.add(FIRST_KEY, SECOND_VALUE, int(delta.total_seconds())) is True
+        assert cache.get(FIRST_KEY) == SECOND_VALUE
 
 
 @pytest.mark.parametrize(

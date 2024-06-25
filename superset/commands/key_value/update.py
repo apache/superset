@@ -84,7 +84,7 @@ class UpdateKeyValueCommand(BaseCommand):
             entry.expires_on = self.expires_on
             entry.changed_on = datetime.now()
             entry.changed_by_fk = get_user_id()
-            db.session.commit()
+            db.session.flush()
             return Key(id=entry.id, uuid=entry.uuid)
 
         return None

@@ -594,19 +594,19 @@ const shoppingData: ShoppingData[] = [
   {
     key: 1,
     item: 'Floppy Disk 10 pack',
-    orderDate: Date.now(),
+    orderDate: new Date('2015-07-02T16:16:00Z').getTime(),
     price: 9.99,
   },
   {
     key: 2,
     item: 'DVD 100 pack',
-    orderDate: Date.now(),
+    orderDate: new Date('2015-07-02T16:16:00Z').getTime(),
     price: 7.99,
   },
   {
     key: 3,
     item: '128 GB SSD',
-    orderDate: Date.now(),
+    orderDate: new Date('2015-07-02T16:16:00Z').getTime(),
     price: 3.99,
   },
 ];

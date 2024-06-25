@@ -152,6 +152,7 @@ export interface SliceHeaderControlsProps {
   logEvent?: (eventName: string, eventData?: object) => void;
   toggleExpandSlice?: (sliceId: number) => void;
   exportCSV?: (sliceId: number) => void;
+  exportPivotCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
@@ -608,6 +609,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         // eslint-disable-next-line no-unused-expressions
         props.exportCSV?.(props.slice.slice_id);
         break;
+      case MenuKeys.ExportPivotCsv:
+        // eslint-disable-next-line no-unused-expressions
+        props.exportPivotCSV?.(props.slice.slice_id);
+        break;
       case MenuKeys.Fullscreen:
         props.handleToggleFullSize();
         break;
@@ -685,6 +690,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     isCached = [],
   } = props;
   const isTable = slice.viz_type === 'table';
+  const isPivotTable = slice.viz_type === 'pivot_table_v2';
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     moment.utc(itemCachedDttm).fromNow(),
   );
@@ -809,6 +815,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
                 dataSize={20}
                 isRequest
                 isVisible
+                canDownload={!!props.supersetCanCSV}
               />
             }
           />
@@ -865,6 +872,14 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
           >
             {t('Export to .CSV')}
           </Menu.Item>
+          {isPivotTable && (
+            <Menu.Item
+              key={MenuKeys.ExportPivotCsv}
+              icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+            >
+              {t('Export to Pivoted .CSV')}
+            </Menu.Item>
+          )}
           <Menu.Item
             key={MenuKeys.ExportXlsx}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}

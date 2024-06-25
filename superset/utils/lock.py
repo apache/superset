@@ -24,9 +24,10 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any, cast, TypeVar, Union
 
+from superset import db
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.key_value.exceptions import KeyValueCreateFailedError
-from superset.key_value.types import KeyValueResource, PickleKeyValueCodec
+from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.utils import json
 
 LOCK_EXPIRATION = timedelta(seconds=30)
@@ -53,6 +54,10 @@ def serialize(params: dict[str, Any]) -> str:
     return json.dumps(params)
 
 
+def get_key(namespace: str, **kwargs: Any) -> uuid.UUID:
+    return uuid.uuid5(uuid.uuid5(uuid.NAMESPACE_DNS, namespace), serialize(kwargs))
+
+
 @contextmanager
 def KeyValueDistributedLock(  # pylint: disable=invalid-name
     namespace: str,
@@ -77,21 +82,23 @@ def KeyValueDistributedLock(  # pylint: disable=invalid-name
     from superset.commands.key_value.delete import DeleteKeyValueCommand
     from superset.commands.key_value.delete_expired import DeleteExpiredKeyValueCommand
 
-    key = uuid.uuid5(uuid.uuid5(uuid.NAMESPACE_DNS, namespace), serialize(kwargs))
+    key = get_key(namespace, **kwargs)
     logger.debug("Acquiring lock on namespace %s for key %s", namespace, key)
     try:
         DeleteExpiredKeyValueCommand(resource=KeyValueResource.LOCK).run()
         CreateKeyValueCommand(
             resource=KeyValueResource.LOCK,
-            codec=PickleKeyValueCodec(),
+            codec=JsonKeyValueCodec(),
             key=key,
             value=True,
             expires_on=datetime.now() + LOCK_EXPIRATION,
         ).run()
+        db.session.commit()
 
         yield key
 
         DeleteKeyValueCommand(resource=KeyValueResource.LOCK, key=key).run()
+        db.session.commit()
         logger.debug("Removed lock on namespace %s for key %s", namespace, key)
     except KeyValueCreateFailedError as ex:
         raise CreateKeyValueDistributedLockFailedException(
