@@ -136,7 +136,7 @@ export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
     }
     if (typeof error.message === 'string') {
       if (checkForHtml(error.message)) {
-        error.error = t(retrieveErrorMessage(error.message, error));
+        error.error = retrieveErrorMessage(error.message, error);
       } else {
         error.error = error.message;
       }
@@ -246,7 +246,7 @@ export function getClientErrorObject(
             resolve({
               // Destructuring not necessary here
               ...responseObject,
-              error: t(retrieveErrorMessage(errorText, responseObject)),
+              error: retrieveErrorMessage(errorText, responseObject),
             });
           });
         });
@@ -262,7 +262,7 @@ export function getClientErrorObject(
     }
     resolve({
       ...responseObject,
-      error: t(parseStringResponse(error)),
+      error: parseStringResponse(error),
     });
   });
 }
