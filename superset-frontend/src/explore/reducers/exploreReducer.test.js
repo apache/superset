@@ -33,3 +33,13 @@ test('reset hiddenFormData on SET_STASH_FORM_DATA', () => {
   expect(newState2.form_data).toEqual({ c: 4 });
   expect(newState2.hiddenFormData).toEqual({ a: 3 });
 });
+
+test('skips updates when the field is already updated on SET_STASH_FORM_DATA', () => {
+  const initialState = {
+    form_data: { a: 3, c: 4 },
+    hiddenFormData: { b: 2 },
+  };
+  const restoreAction = setStashFormData(false, ['c', 'd']);
+  const newState = exploreReducer(initialState, restoreAction);
+  expect(newState).toBe(initialState);
+});
