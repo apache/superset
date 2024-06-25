@@ -99,7 +99,7 @@ def migrate_viz() -> None:
     type=str,
 )
 @optgroup.option(
-    "-ids",
+    "--ids",
     help="A comma separated list of chart IDs to upgrade",
     type=str,
 )
@@ -123,7 +123,7 @@ def upgrade(viz_type: str, ids: str | None = None) -> None:
     type=str,
 )
 @optgroup.option(
-    "-ids",
+    "--ids",
     help="A comma separated list of chart IDs to downgrade",
     type=str,
 )
