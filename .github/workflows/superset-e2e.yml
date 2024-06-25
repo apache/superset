@@ -130,12 +130,12 @@ jobs:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           PARALLEL_ID: ${{ matrix.parallel_id }}
           PARALLELISM: 6
-          CYPRESS_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
         with:
           run: cypress-run-all ${{ env.USE_DASHBOARD }}
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         if: github.event_name == 'workflow_dispatch' && (steps.check.outputs.python || steps.check.outputs.frontend)
         with:
-          name: screenshots
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
+          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}
