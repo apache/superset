@@ -27,8 +27,8 @@ import {
   isJsonString,
 } from '@superset-ui/core';
 
-// The response always contains an error attribute, can contain anything from the
-// SupersetClientResponse object, and can contain a spread JSON blob
+// The response always contains an error attribute, can contain anything from
+// the SupersetClientResponse object, and can contain a spread JSON blob
 export type ClientErrorObject = {
   error: string;
   errors?: SupersetError[];
@@ -110,17 +110,17 @@ export function getErrorFromStatusCode(status: number): string | null {
 
 export function retrieveErrorMessage(
   str: string,
-  response: Response | JsonObject,
+  errorObject: JsonObject,
 ): string {
   const statusError =
-    'status' in response ? getErrorFromStatusCode(response.status) : null;
+    'status' in errorObject ? getErrorFromStatusCode(errorObject.status) : null;
 
-  // Prefer status code message over the response text
+  // Prefer status code message over the response or HTML text
   return statusError || parseStringResponse(str);
 }
 
-export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
-  let error = { ...responseObject };
+export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
+  let error = { ...responseJson };
   // Backwards compatibility for old error renderers with the new error object
   if (error.errors && error.errors.length > 0) {
     error.error = error.description = error.errors[0].message;
@@ -231,13 +231,20 @@ export function getClientErrorObject(
         .clone()
         .json()
         .then(errorJson => {
-          const error = { ...responseObject, ...errorJson };
+          // Destructuring instead of spreading to avoid loss of sibling properties to the body
+          const { url, status, statusText, redirected, type } = responseObject;
+          const responseSummary = { url, status, statusText, redirected, type };
+          const error = {
+            ...errorJson,
+            ...responseSummary,
+          };
           resolve(parseErrorJson(error));
         })
         .catch(() => {
           // fall back to reading as text
           responseObject.text().then((errorText: any) => {
             resolve({
+              // Destructuring not necessary here
               ...responseObject,
               error: t(retrieveErrorMessage(errorText, responseObject)),
             });
@@ -255,7 +262,7 @@ export function getClientErrorObject(
     }
     resolve({
       ...responseObject,
-      error,
+      error: t(parseStringResponse(error)),
     });
   });
 }
