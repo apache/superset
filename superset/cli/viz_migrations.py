@@ -99,16 +99,18 @@ def migrate_viz() -> None:
     type=str,
 )
 @optgroup.option(
-    "--ids",
-    help="A comma separated list of chart IDs to upgrade",
-    type=str,
+    "--id",
+    "ids",
+    help="The chart ID to upgrade. It can set set multiple times.",
+    type=int,
+    multiple=True,
 )
-def upgrade(viz_type: str, ids: str | None = None) -> None:
+def upgrade(viz_type: str, ids: tuple[int, ...] | None = None) -> None:
     """Upgrade a viz to the latest version."""
     if ids is None:
         migrate_by_viz_type(VizType(viz_type))
     else:
-        migrate_by_ids(ids)
+        migrate_by_id(ids)
 
 
 @migrate_viz.command()
@@ -123,16 +125,18 @@ def upgrade(viz_type: str, ids: str | None = None) -> None:
     type=str,
 )
 @optgroup.option(
-    "--ids",
-    help="A comma separated list of chart IDs to downgrade",
-    type=str,
+    "--id",
+    "ids",
+    help="The chart ID to downgrade. It can set set multiple times.",
+    type=int,
+    multiple=True,
 )
-def downgrade(viz_type: str, ids: str | None = None) -> None:
+def downgrade(viz_type: str, ids: tuple[int, ...] | None = None) -> None:
     """Downgrade a viz to the previous version."""
     if ids is None:
         migrate_by_viz_type(VizType(viz_type), is_downgrade=True)
     else:
-        migrate_by_ids(ids, is_downgrade=True)
+        migrate_by_id(ids, is_downgrade=True)
 
 
 def migrate_by_viz_type(viz_type: VizType, is_downgrade: bool = False) -> None:
@@ -149,15 +153,14 @@ def migrate_by_viz_type(viz_type: VizType, is_downgrade: bool = False) -> None:
         migration.upgrade(db.session)
 
 
-def migrate_by_ids(ids: str, is_downgrade: bool = False) -> None:
+def migrate_by_id(ids: tuple[int, ...], is_downgrade: bool = False) -> None:
     """
-    Migrate a subset of charts by a list of IDs.
+    Migrate a subset of charts by IDs.
 
-    :param ids: List of chart IDs to migrate
+    :param id: Tuple of chart IDs to migrate
     :param is_downgrade: Whether to downgrade the charts. Default is upgrade.
     """
-    id_list = [int(i) for i in ids.split(",")]
-    slices = db.session.query(Slice).filter(Slice.id.in_(id_list))
+    slices = db.session.query(Slice).filter(Slice.id.in_(ids))
     for slc in paginated_update(
         slices,
         lambda current, total: print(
@@ -166,5 +169,5 @@ def migrate_by_ids(ids: str, is_downgrade: bool = False) -> None:
     ):
         if is_downgrade:
             PREVIOUS_VERSION[slc.viz_type].downgrade_slice(slc)
-        else:
+        elif slc.viz_type in MIGRATIONS:
             MIGRATIONS[slc.viz_type].upgrade_slice(slc)
