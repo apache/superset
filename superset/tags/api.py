@@ -576,9 +576,8 @@ class TagRestApi(BaseSupersetModelRestApi):
             name: types
             schema:
               type: array
-              schema:
-                items:
-                  type: string
+              items:
+                type: string
 
           responses:
             200:
