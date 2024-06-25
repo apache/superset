@@ -256,8 +256,8 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
 def test_run_async_query_cta_config(test_client, ctas_method):
-    if backend() in {"sqlite", "mysql"}:
-        # sqlite doesn't support schemas, mysql is flaky
+    if backend() == "sqlite":
+        # sqlite doesn't support schemas
         return
     tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.lower()}"
     result = run_sql(
@@ -287,10 +287,6 @@ def test_run_async_query_cta_config(test_client, ctas_method):
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 def test_run_async_cta_query(test_client, ctas_method):
-    if backend() == "mysql":
-        # failing
-        return
-
     table_name = f"{TEST_ASYNC_CTA}_{ctas_method.lower()}"
     result = run_sql(
         test_client,
@@ -318,10 +314,6 @@ def test_run_async_cta_query(test_client, ctas_method):
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
-    if backend() == "mysql":
-        # failing
-        return
-
     tmp_table = f"{TEST_ASYNC_LOWER_LIMIT}_{ctas_method.lower()}"
     result = run_sql(
         test_client,
