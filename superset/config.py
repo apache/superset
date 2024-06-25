@@ -1573,7 +1573,7 @@ USER_SK_REDIS_CONFIG = {
 }
 
 # Embedded config options
-GUEST_ROLE_NAME = "Gamma"
+GUEST_ROLE_NAME = "EkaUser"
 GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"
 GUEST_TOKEN_JWT_ALGO = "HS256"
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
