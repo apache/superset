@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
-import { shallow } from 'enzyme';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 
 import MetricDefinitionOption from 'src/explore/components/controls/MetricControl/MetricDefinitionOption';
 import AggregateOption from 'src/explore/components/controls/MetricControl/AggregateOption';
@@ -25,29 +24,35 @@ import {
   StyledMetricOption,
   StyledColumnOption,
 } from 'src/explore/components/optionRenderers';
+import userEvent from '@testing-library/user-event';
 
-describe('MetricDefinitionOption', () => {
-  const mockStore = configureStore([]);
-  const store = mockStore({});
+const renderMetricDefinitionOption = props => {
+  waitFor(() => {
+    render(<MetricDefinitionOption {...props} />, {
+      useRedux: true,
+      useRouter: true,
+    })
+  })
+}
 
-  function setup(props) {
-    return shallow(<MetricDefinitionOption store={store} {...props} />).dive();
-  }
-
-  it('renders a StyledMetricOption given a saved metric', () => {
-    const wrapper = setup({
-      option: { metric_name: 'a_saved_metric', expression: 'COUNT(*)' },
-    });
-    expect(wrapper.find(StyledMetricOption)).toExist();
+test('MetricDefinitionOption - renders a given saved metric and display SQL expression popover when hovered', async () => {
+  renderMetricDefinitionOption({
+    option: { metric_name: 'a_saved_metric', expression: 'COUNT(*)' },
   });
+  expect(await screen.findByText('a_saved_metric')).toBeInTheDocument();
 
-  it('renders a StyledColumnOption given a column', () => {
-    const wrapper = setup({ option: { column_name: 'a_column' } });
-    expect(wrapper.find(StyledColumnOption)).toExist();
-  });
+  // Grab calculator icon and mock mouse hovering over it
+  const calculatorIcon = await screen.findByLabelText('calculator')
+  userEvent.hover(calculatorIcon)
+  expect(await screen.findByText('SQL expression')).toBeInTheDocument();
+});
 
-  it('renders an AggregateOption given an aggregate metric', () => {
-    const wrapper = setup({ option: { aggregate_name: 'an_aggregate' } });
-    expect(wrapper.find(AggregateOption)).toExist();
-  });
+test('MetricDefinitionOption - renders when given a column', async () => {
+  renderMetricDefinitionOption({ option: { column_name: 'a_column' } });
+  expect(await screen.findByText('a_column')).toBeInTheDocument();
+});
+
+test('MetricDefinitionOption - renders when given an aggregate metric', async () => {
+  renderMetricDefinitionOption({ option: { aggregate_name: 'an_aggregate' } });
+  expect(await screen.findByText('an_aggregate')).toBeInTheDocument();
 });
