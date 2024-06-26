@@ -217,6 +217,7 @@ class FilterOperator(StrEnum):
     GREATER_THAN_OR_EQUALS = ">="
     LESS_THAN_OR_EQUALS = "<="
     LIKE = "LIKE"
+    NOT_LIKE = "NOT LIKE"
     ILIKE = "ILIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"

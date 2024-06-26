@@ -103,7 +103,6 @@ if TYPE_CHECKING:
     from superset.db_engine_specs import BaseEngineSpec
     from superset.models.core import Database
 
-
 config = app.config
 logger = logging.getLogger(__name__)
 
@@ -200,7 +199,8 @@ class ImportExportMixin:
             for u in cls.__table_args__  # type: ignore
             if isinstance(u, UniqueConstraint)
         ]
-        unique.extend({c.name} for c in cls.__table__.columns if c.unique)  # type: ignore
+        unique.extend(
+            {c.name} for c in cls.__table__.columns if c.unique)  # type: ignore
         return unique
 
     @classmethod
@@ -1028,7 +1028,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         _("Db engine did not return all queried columns")
                     )
                 if len(df.columns) > len(labels_expected):
-                    df = df.iloc[:, 0 : len(labels_expected)]
+                    df = df.iloc[:, 0: len(labels_expected)]
                 df.columns = labels_expected
             return df
 
@@ -1200,9 +1200,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_generic_type == utils.GenericDataType.NUMERIC
                     and operator
                     not in {
-                        utils.FilterOperator.ILIKE,
-                        utils.FilterOperator.LIKE,
-                    }
+                    utils.FilterOperator.ILIKE,
+                    utils.FilterOperator.LIKE,
+                }
                 ):
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
@@ -1448,7 +1448,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col = self.make_sqla_column_compatible(col, label)
         return col
 
-    def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
+    def get_sqla_query(
+        # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
         apply_fetch_values_predicate: bool = False,
         columns: Optional[list[Column]] = None,
@@ -1819,8 +1820,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if (
                     col_advanced_data_type != ""
                     and feature_flag_manager.is_feature_enabled(
-                        "ENABLE_ADVANCED_DATA_TYPES"
-                    )
+                    "ENABLE_ADVANCED_DATA_TYPES"
+                )
                     and col_advanced_data_type in ADVANCED_DATA_TYPES
                 ):
                     values = eq if is_list_target else [eq]  # type: ignore
@@ -1873,9 +1874,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if (
                         op
                         not in {
-                            utils.FilterOperator.EQUALS.value,
-                            utils.FilterOperator.NOT_EQUALS.value,
-                        }
+                        utils.FilterOperator.EQUALS.value,
+                        utils.FilterOperator.NOT_EQUALS.value,
+                    }
                         and eq is None
                     ):
                         raise QueryObjectValidationError(
@@ -1907,6 +1908,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             where_clause_and.append(sqla_col.like(eq))
                         else:
                             where_clause_and.append(sqla_col.ilike(eq))
+                    elif op in {
+                        utils.FilterOperator.NOT_LIKE.value
+                    }:
+                        if target_generic_type != GenericDataType.STRING:
+                            sqla_col = sa.cast(sqla_col, sa.String)
+
+                        where_clause_and.append(sqla_col.not_like(eq))
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE.value
                         and isinstance(eq, str)
@@ -2112,21 +2120,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         filter_columns = [flt.get("col") for flt in filter] if filter else []
         rejected_filter_columns = [
-            col
-            for col in filter_columns
-            if col
-            and not is_adhoc_column(col)
-            and col not in self.column_names
-            and col not in applied_template_filters
-        ] + rejected_adhoc_filters_columns
+                                      col
+                                      for col in filter_columns
+                                      if col
+                                         and not is_adhoc_column(col)
+                                         and col not in self.column_names
+                                         and col not in applied_template_filters
+                                  ] + rejected_adhoc_filters_columns
 
         applied_filter_columns = [
-            col
-            for col in filter_columns
-            if col
-            and not is_adhoc_column(col)
-            and (col in self.column_names or col in applied_template_filters)
-        ] + applied_adhoc_filters_columns
+                                     col
+                                     for col in filter_columns
+                                     if col
+                                        and not is_adhoc_column(col)
+                                        and (
+                                            col in self.column_names or col in applied_template_filters)
+                                 ] + applied_adhoc_filters_columns
 
         return SqlaQuery(
             applied_template_filters=applied_template_filters,
