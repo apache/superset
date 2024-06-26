@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setStashFormData } from 'src/explore/actions/exploreActions';
 import useEffectEvent from 'src/hooks/useEffectEvent';
@@ -32,16 +32,11 @@ const StashFormDataContainer: React.FC<Props> = ({
   children,
 }) => {
   const dispatch = useDispatch();
-  const isMounted = useRef(false);
   const onVisibleUpdate = useEffectEvent((shouldStash: boolean) =>
     dispatch(setStashFormData(shouldStash, fieldNames)),
   );
   useEffect(() => {
-    if (!isMounted.current && !shouldStash) {
-      isMounted.current = true;
-    } else {
-      onVisibleUpdate(shouldStash);
-    }
+    onVisibleUpdate(shouldStash);
   }, [shouldStash, onVisibleUpdate]);
 
   return <>{children}</>;
