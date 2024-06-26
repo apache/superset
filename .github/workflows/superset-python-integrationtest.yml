@@ -58,9 +58,11 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-mysql
-      - name: Run celery
+      - name: Start Celery worker
         if: steps.check.outputs.python
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
       - name: Python integration tests (MySQL)
         if: steps.check.outputs.python
         run: |
@@ -117,9 +119,11 @@ jobs:
         with:
           run: |
             setup-postgres
-      - name: Run celery
+      - name: Start Celery worker
         if: steps.check.outputs.python
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
       - name: Python integration tests (PostgreSQL)
         if: steps.check.outputs.python
         run: |
@@ -167,9 +171,11 @@ jobs:
           run: |
             # sqlite needs this working directory
             mkdir ${{ github.workspace }}/.temp
-      - name: Run celery
+      - name: Start Celery worker
         if: steps.check.outputs.python
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
       - name: Python integration tests (SQLite)
         if: steps.check.outputs.python
         run: |

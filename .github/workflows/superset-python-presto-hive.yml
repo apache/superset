@@ -67,9 +67,11 @@ jobs:
           run: |
             echo "${{ steps.check.outputs.python }}"
             setup-postgres
-      - name: Run celery
+      - name: Start Celery worker
         if: steps.check.outputs.python
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
       - name: Python unit tests (PostgreSQL)
         if: steps.check.outputs.python
         run: |
@@ -132,9 +134,11 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
-      - name: Run celery
+      - name: Start Celery worker
         if: steps.check.outputs.python
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
       - name: Python unit tests (PostgreSQL)
         if: steps.check.outputs.python
         run: |
