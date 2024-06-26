@@ -88,6 +88,29 @@ def test_get_column_spec(
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
 
+@pytest.mark.parametrize(
+    "name,data_type",
+    [
+        ("columnVarchar", types.VARCHAR),
+        ("columnString", types.String),
+        ("columnChar", types.CHAR),
+        ("columnInteger", types.Integer),
+        ("columnTime", types.Time),
+        ("columnTimestamp", types.TIMESTAMP),
+    ],
+)
+def test_create_column_info(
+    name: str, data_type: types.TypeEngine
+) -> None:
+    from superset.db_engine_specs.presto import PrestoEngineSpec as spec
+
+    assert (column_info := spec._create_column_info(name, data_type)) is not None
+    assert column_info["column_name"] == name
+    assert column_info["name"] == name
+    assert column_info["type"] == data_type
+    assert column_info["is_dttm"] == None
+    assert column_info["type_generic"] == None
+
 def test_get_schema_from_engine_params() -> None:
     """
     Test the ``get_schema_from_engine_params`` method.
