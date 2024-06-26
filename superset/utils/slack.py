@@ -38,7 +38,7 @@ def get_slack_client() -> WebClient:
     return WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
 
 
-def get_channels_with_search(search_string: str = "", limit: int = 200) -> list[str]:
+def get_channels_with_search(search_string: str = "", limit: int = 500) -> list[str]:
     """
     The slack api is paginated but does not include search, so we need to fetch
     all channels and filter them ourselves
@@ -51,7 +51,9 @@ def get_channels_with_search(search_string: str = "", limit: int = 200) -> list[
         cursor = None
 
         while True:
-            response = client.conversations_list(limit=limit, cursor=cursor)
+            response = client.conversations_list(
+                limit=limit, cursor=cursor, exclude_archived=True
+            )
             channels.extend(response.data["channels"])
             cursor = response.data.get("response_metadata", {}).get("next_cursor")
             if not cursor:
@@ -59,14 +61,16 @@ def get_channels_with_search(search_string: str = "", limit: int = 200) -> list[
 
         # The search string can be multiple channels separated by commas
         if search_string:
-            search_array = search_string.split(",")
+            search_array = [
+                search.lower()
+                for search in (search_string.split(",") if search_string else [])
+            ]
 
             channels = [
                 channel
                 for channel in channels
                 if any(
-                    search.lower() in channel["name"].lower()
-                    or search.lower() in channel["id"].lower()
+                    search in channel["name"].lower() or search in channel["id"].lower()
                     for search in search_array
                 )
             ]

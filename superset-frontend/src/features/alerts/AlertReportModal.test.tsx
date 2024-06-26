@@ -21,7 +21,7 @@ import fetchMock from 'fetch-mock';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
-import { AlertObject } from './types';
+import { AlertObject, NotificationMethodOption } from './types';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -135,7 +135,7 @@ const validAlert: AlertObject = {
   ],
   recipients: [
     {
-      type: 'Email',
+      type: NotificationMethodOption.Email,
       recipient_config_json: { target: 'test@user.com' },
     },
   ],

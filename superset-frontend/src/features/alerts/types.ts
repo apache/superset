@@ -41,7 +41,11 @@ export type DatabaseObject = {
   id: number;
 };
 
-export type NotificationMethodOption = 'Email' | 'Slack' | 'SlackV2';
+export enum NotificationMethodOption {
+  Email = 'Email',
+  Slack = 'Slack',
+  SlackV2 = 'SlackV2',
+}
 
 export type NotificationSetting = {
   method?: NotificationMethodOption;

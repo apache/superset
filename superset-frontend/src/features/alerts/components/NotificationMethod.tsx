@@ -32,8 +32,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import rison from 'rison';
-import { AsyncSelect, Select } from 'src/components';
+import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
 import { NotificationMethodOption, NotificationSetting } from '../types';
 import { StyledInputContainer } from '../AlertReportModal';
@@ -87,6 +86,26 @@ const TRANSLATIONS = {
   ),
 };
 
+export const mapSlackOptions = ({
+  method,
+  recipientValue,
+  slackOptions,
+}: {
+  method: string;
+  recipientValue: string;
+  slackOptions: { data: { label: string; value: string }[] };
+}) => {
+  const prop = method === NotificationMethodOption.SlackV2 ? 'value' : 'label';
+  return recipientValue
+    .split(',')
+    .map(recipient =>
+      slackOptions.data.find(
+        option => option[prop].toLowerCase() === recipient.toLowerCase(),
+      ),
+    )
+    .filter(val => !!val) as { label: string; value: string }[];
+};
+
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   setting = null,
   index,
@@ -106,42 +125,19 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   >([]);
   const [error, setError] = useState(false);
   const theme = useTheme();
+  const [slackOptions, setSlackOptions] = useState<{
+    data: { label: string; value: string }[];
+    totalCount: number;
+  }>({ data: [], totalCount: 0 });
 
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
 
-  const mapChannelsToOptions = (result: { name: any; id: any }[]) =>
-    result.map((result: { name: any; id: any }) => ({
-      label: result.name,
+  const mapChannelsToOptions = (result: { name: string; id: string }[]) =>
+    result.map((result: { name: string; id: string; is_member: boolean }) => ({
+      label: `${result.name} ${result.is_member ? '' : '(Bot not in channel)'}`,
       value: result.id,
     }));
 
-  const loadChannels = async (
-    search_string: string | undefined = '',
-  ): Promise<{
-    data: { label: any; value: any }[];
-    totalCount: number;
-  }> => {
-    const query = rison.encode({ search_string });
-    const endpoint = `/api/v1/report/slack_channels/?q=${query}`;
-    const noResults = { data: [], totalCount: 0 };
-    return SupersetClient.get({ endpoint })
-      .then(({ json }) => {
-        const { result, count } = json;
-
-        const options: { label: any; value: any }[] =
-          mapChannelsToOptions(result);
-
-        return {
-          data: options,
-          totalCount: (count ?? options.length) as number,
-        };
-      })
-      .catch(() => {
-        // Fallback to slack v1 if slack v2 is not compatible
-        setUseSlackV1(true);
-        return noResults;
-      });
-  };
   const onMethodChange = (selected: {
     label: string;
     value: NotificationMethodOption;
@@ -160,16 +156,58 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   };
 
   useEffect(() => {
-    // fetch slack channel names from
-    // ids on first load
-    if (method && ['Slack', 'SlackV2'].includes(method)) {
-      loadChannels(recipients).then(response => {
-        setSlackRecipients(response.data || []);
-        // if fetch succeeds, set the method to SlackV2
-        onMethodChange({ label: 'Slack', value: 'SlackV2' });
+    const endpoint = '/api/v1/report/slack_channels/';
+    SupersetClient.get({ endpoint })
+      .then(({ json }) => {
+        const { result, count } = json;
+
+        const options: { label: any; value: any }[] =
+          mapChannelsToOptions(result);
+
+        setSlackOptions({
+          data: options,
+          totalCount: (count ?? options.length) as number,
+        });
+
+        // on first load, if the Slack channels api succeeds,
+        // then convert this to SlackV2
+        if (
+          method === NotificationMethodOption.Slack &&
+          isFeatureEnabled(FeatureFlag.AlertReportSlackV2)
+        ) {
+          // convert v1 names to v2 ids
+          setSlackRecipients(
+            mapSlackOptions({
+              method: NotificationMethodOption.Slack,
+              recipientValue,
+              slackOptions,
+            }),
+          );
+          onMethodChange({
+            label: NotificationMethodOption.Slack,
+            value: NotificationMethodOption.SlackV2,
+          });
+        }
+      })
+      .catch(() => {
+        // Fallback to slack v1 if slack v2 is not compatible
+        setUseSlackV1(true);
       });
-    }
   }, []);
+
+  useEffect(() => {
+    // after the slackOptions load, get the ids from the names
+    // we only save the ids but we want to display the names in the UI
+    if (!useSlackV1 && slackOptions.data.length > 0) {
+      setSlackRecipients(
+        mapSlackOptions({
+          method: NotificationMethodOption.SlackV2,
+          recipientValue,
+          slackOptions,
+        }),
+      );
+    }
+  }, [slackOptions, useSlackV1]);
 
   const formattedOptions = useMemo(
     () =>
@@ -178,14 +216,17 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           method =>
             (isFeatureEnabled(FeatureFlag.AlertReportSlackV2) &&
               !useSlackV1 &&
-              method === 'SlackV2') ||
+              method === NotificationMethodOption.SlackV2) ||
             ((!isFeatureEnabled(FeatureFlag.AlertReportSlackV2) ||
               useSlackV1) &&
-              method === 'Slack') ||
-            method === 'Email',
+              method === NotificationMethodOption.Slack) ||
+            method === NotificationMethodOption.Email,
         )
         .map(method => ({
-          label: method === 'SlackV2' ? 'Slack' : method,
+          label:
+            method === NotificationMethodOption.SlackV2
+              ? NotificationMethodOption.Slack
+              : method,
           value: method,
         })),
     [options],
@@ -279,7 +320,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         <>
           <div className="inline-container">
             <StyledInputContainer>
-              {method === 'Email' ? (
+              {method === NotificationMethodOption.Email ? (
                 <>
                   <div className="control-label">
                     {TRANSLATIONS.EMAIL_SUBJECT_NAME}
@@ -310,11 +351,19 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           <div className="inline-container">
             <StyledInputContainer>
               <div className="control-label">
-                {t('%s recipients', method === 'SlackV2' ? 'Slack' : method)}
+                {t(
+                  '%s recipients',
+                  method === NotificationMethodOption.SlackV2
+                    ? NotificationMethodOption.Slack
+                    : method,
+                )}
                 <span className="required">*</span>
               </div>
               <div>
-                {['Email', 'Slack'].includes(method) ? (
+                {[
+                  NotificationMethodOption.Email,
+                  NotificationMethodOption.Slack,
+                ].includes(method) ? (
                   <>
                     <div className="input-container">
                       <textarea
@@ -330,15 +379,17 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   </>
                 ) : (
                   // for SlackV2
-                  <AsyncSelect
+                  <Select
                     ariaLabel={t('Select channels')}
                     mode="multiple"
                     name="recipients"
                     value={slackRecipients}
-                    options={loadChannels}
+                    options={slackOptions.data}
                     onChange={onSlackRecipientsChange}
                     allowClear
                     data-test="recipients"
+                    allowSelectAll={false}
+                    labelInValue
                   />
                 )}
               </div>
