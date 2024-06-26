@@ -236,7 +236,7 @@
     "@storybook/client-api": "^7.6.13",
     "@storybook/components": "^7.6.13",
     "@storybook/react": "^7.6.13",
-    "@storybook/react-webpack5": "^7.6.13",
+    "@storybook/react-webpack5": "^8.1.10",
     "@svgr/webpack": "^8.0.1",
     "@testing-library/dom": "^7.29.4",
     "@testing-library/jest-dom": "^5.11.6",
