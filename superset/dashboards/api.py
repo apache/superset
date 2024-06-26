@@ -23,7 +23,7 @@ from io import BytesIO
 from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import redirect, request, Response, send_file, url_for
+from flask import g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
@@ -34,7 +34,10 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
-from superset.charts.schemas import ChartEntityResponseSchema
+from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
+from superset.charts.schemas import ChartDataQueryContextSchema, ChartEntityResponseSchema
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.exceptions import ChartInvalidError
 from superset.commands.dashboard.create import CreateDashboardCommand
 from superset.commands.dashboard.delete import DeleteDashboardCommand
 from superset.commands.dashboard.exceptions import (
@@ -53,6 +56,7 @@ from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.daos.exceptions import DatasourceNotFound
 from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
@@ -78,6 +82,7 @@ from superset.dashboards.schemas import (
     openapi_spec_methods_override,
     thumbnail_query_schema,
 )
+from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -97,6 +102,10 @@ from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedOwners,
 )
+from superset.utils.google_sheets import GoogleSheetsExport
+import pandas as pd
+
+from superset.views.utils import get_dashboard_extra_filters, get_form_data, get_viz
 
 logger = logging.getLogger(__name__)
 
@@ -1363,3 +1372,97 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 ).timestamp(),
             },
         )
+
+    @expose("/<id_or_slug>/export/google-sheets", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_to_google_sheet",
+        log_to_statsd=False,
+    )
+    def export_to_google_sheet(self, id_or_slug: str) -> Response:
+        """Export a dashboard's charts to a google sheet.
+        ---
+        get:
+          summary: Get a dashboard's charts to a google sheet.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+          responses:
+            200:
+              description: SQL Export Spreadsheet
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      sheetId:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        if not is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
+            return self.response(501, message="GOOGLE_SHEETS_EXPORT is not enabled")
+        dashboard_id = id_or_slug
+        try:
+            dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+            charts = DashboardDAO.get_charts_for_dashboard(dashboard_id)
+            chart_dfs = {}
+            # this is based on the structure of "chart_warmup" to pull down the data
+            for chart in charts:
+                form_data = get_form_data(chart.id, use_slice_data=True)[0]
+                # Legacy visualizations.
+                if not chart.datasource:
+                    raise ChartInvalidError("Chart's datasource does not exist")
+
+                form_data["extra_filters"] = get_dashboard_extra_filters(chart.id, dashboard_id)
+
+                g.form_data = form_data
+                result = get_viz(
+                    datasource_type=chart.datasource.type,
+                    datasource_id=chart.datasource.id,
+                    form_data=form_data,
+                ).get_payload()
+                delattr(g, "form_data")
+
+                chart_data = result["data"]
+
+                chart_df = pd.DataFrame(chart_data)
+                chart_dfs[chart.slice_name] = chart_df
+
+                event_info = {
+                    "event_type": "data_export",
+                    "dashboard_id": dashboard_id,
+                    "chart_id": chart.id,
+                    "row_count": len(chart_df.index),
+                    "exported_format": "gsheet",
+                }
+                event_rep = repr(event_info)
+                logger.debug(
+                    "GSheet exported: %s", event_rep, extra={"superset_event": event_info}
+                )
+            google_sheets_export = GoogleSheetsExport()
+            sheet_id = google_sheets_export.upload_dfs_to_new_sheet(dashboard.dashboard_title, chart_dfs)
+            return self.response(200, sheet_id=sheet_id)
+        except DatasourceNotFound:
+            return self.response_404()
+        except QueryObjectValidationError as error:
+            return self.response_400(message=error.message)
+        except ValidationError as error:
+            return self.response_400(
+                message=error.message
+            )
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
+        
