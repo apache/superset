@@ -19,11 +19,6 @@
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 
 import MetricDefinitionOption from 'src/explore/components/controls/MetricControl/MetricDefinitionOption';
-import AggregateOption from 'src/explore/components/controls/MetricControl/AggregateOption';
-import {
-  StyledMetricOption,
-  StyledColumnOption,
-} from 'src/explore/components/optionRenderers';
 import userEvent from '@testing-library/user-event';
 
 const renderMetricDefinitionOption = props => {
@@ -31,9 +26,9 @@ const renderMetricDefinitionOption = props => {
     render(<MetricDefinitionOption {...props} />, {
       useRedux: true,
       useRouter: true,
-    })
-  })
-}
+    });
+  });
+};
 
 test('MetricDefinitionOption - renders a given saved metric and display SQL expression popover when hovered', async () => {
   renderMetricDefinitionOption({
@@ -42,8 +37,8 @@ test('MetricDefinitionOption - renders a given saved metric and display SQL expr
   expect(await screen.findByText('a_saved_metric')).toBeInTheDocument();
 
   // Grab calculator icon and mock mouse hovering over it
-  const calculatorIcon = await screen.findByLabelText('calculator')
-  userEvent.hover(calculatorIcon)
+  const calculatorIcon = await screen.findByLabelText('calculator');
+  userEvent.hover(calculatorIcon);
   expect(await screen.findByText('SQL expression')).toBeInTheDocument();
 });
 
