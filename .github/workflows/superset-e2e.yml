@@ -118,7 +118,7 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
-          CYPRESS_KEY: YjljODE2MzAtODcwOC00NTA3LWE4NmMtMTU3YmFmMjIzOTRhCg==
+          CYPRESS_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
         with:
           run: cypress-run-all
       - name: Upload Artifacts
