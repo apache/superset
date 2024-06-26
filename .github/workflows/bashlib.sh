@@ -157,7 +157,7 @@ cypress-run() {
   if [[ -z $CYPRESS_KEY ]]; then
     xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser"
   else
-    export CYPRESS_RECORD_KEY=$(echo $CYPRESS_KEY | base64 --decode)
+    export CYPRESS_RECORD_KEY=$(echo $CYPRESS_KEY)
     # additional flags for Cypress dashboard recording
     xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser" \
       --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
