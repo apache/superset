@@ -48,7 +48,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
-      USE_DASHBOARD: ${{ github.event.inputs.use_dashboard || 'false' }}
+      USE_DASHBOARD: ${{ github.event.inputs.use_dashboard || (github.ref == 'refs/heads/master' && 'true') || 'false' }}
     services:
       postgres:
         image: postgres:15-alpine
