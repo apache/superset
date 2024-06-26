@@ -20,12 +20,14 @@ import React from 'react';
 import { Menu } from 'src/components/Menu';
 import DownloadAsImage from './DownloadAsImage';
 import DownloadAsPdf from './DownloadAsPdf';
+import ExportToGoogleSheet from './ExportToGoogleSheet';
 
 export interface DownloadMenuItemProps {
   pdfMenuItemTitle: string;
   imageMenuItemTitle: string;
   addDangerToast: Function;
   dashboardTitle: string;
+  dashboardId: number;
   logEvent?: Function;
 }
 
@@ -35,6 +37,7 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
     imageMenuItemTitle,
     addDangerToast,
     dashboardTitle,
+    dashboardId,
     logEvent,
     ...rest
   } = props;
@@ -55,6 +58,12 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
         logEvent={logEvent}
         {...rest}
       />
+      <ExportToGoogleSheet
+        addDangerToast={addDangerToast}
+        dashboardId={dashboardId}
+        logEvent={logEvent}
+        {...rest}
+        />
     </Menu>
   );
 };
