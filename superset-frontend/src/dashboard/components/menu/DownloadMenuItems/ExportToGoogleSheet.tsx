@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import React from 'react';
 import { FeatureFlag, isFeatureEnabled, logging, t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import Icons from '../../../../components/Icons';
-import { getExportGoogleSheetsUrl } from '../../../util/exportToGoogleSheet';
+import Icons from 'src/components/Icons';
+import { getExportGoogleSheetsUrl } from 'src/dashboard/util/exportToGoogleSheet';
 
 export default function ExportToGoogleSheet({
   logEvent,
@@ -39,7 +39,8 @@ export default function ExportToGoogleSheet({
   const handleGoogleSheetsExport = async () => {
     try {
       const googleSheetUrl = await getExportGoogleSheetsUrl(dashboardId);
-      window.open(googleSheetUrl, '_blank')?.focus();
+      logging.info(`Exported to Google Sheets ${googleSheetUrl}`);
+      window.open(googleSheetUrl, '_blank');
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
@@ -47,8 +48,10 @@ export default function ExportToGoogleSheet({
   };
 
   return (
-    <Menu.Item key="google-sheets" onClick={handleGoogleSheetsExport} {...rest}>
-      <Icons.GoogleOutlined /> {t('Google Sheets')}
+    <Menu.Item key="google-sheets" {...rest}>
+      <div onClick={handleGoogleSheetsExport} role="button" tabIndex={0}>
+        <Icons.GoogleOutlined /> {t('Google Sheets')}
+      </div>
     </Menu.Item>
   );
 }

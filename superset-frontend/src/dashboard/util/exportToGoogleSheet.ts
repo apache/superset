@@ -5,7 +5,7 @@ export async function getExportGoogleSheetsUrl(
 ): Promise<string> {
   try {
     const res = await SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${dashboardId}/export/google-sheets/`,
+      endpoint: `/api/v1/dashboard/${dashboardId}/export/google-sheets`,
     });
 
     return `https://docs.google.com/spreadsheets/d/${res.json.sheet_id}/`;
