@@ -19,6 +19,7 @@
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
+import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 import { DragSource, DropTarget } from 'react-dnd';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
@@ -40,6 +41,7 @@ const propTypes = {
   style: PropTypes.object,
   onDrop: PropTypes.func,
   onHover: PropTypes.func,
+  onDropIndicatorChange: PropTypes.func,
   editMode: PropTypes.bool,
   useEmptyDragPreview: PropTypes.bool,
 
@@ -61,6 +63,7 @@ const defaultProps = {
   children() {},
   onDrop() {},
   onHover() {},
+  onDropIndicatorChange() {},
   orientation: 'row',
   useEmptyDragPreview: false,
   isDragging: false,
@@ -129,6 +132,30 @@ export class UnwrappedDragDroppable extends PureComponent {
     this.mounted = false;
   }
 
+  componentDidUpdate(prevProps, prevState) {
+    const { onDropIndicatorChange, isDraggingOver, component, index } =
+      this.props;
+    const { dropIndicator } = this.state;
+    const isTabsType = component.type === TAB_TYPE;
+    const validStateChange =
+      dropIndicator !== prevState.dropIndicator ||
+      isDraggingOver !== prevProps.isDraggingOver ||
+      index !== prevProps.index;
+    // console.log(
+    //   'index',
+    //   index,
+    //   'isTabsType:',
+    //   isTabsType,
+    //   'component:',
+    //   component,
+    //   'validStateChange:',
+    //   validStateChange,
+    // );
+    if (onDropIndicatorChange && isTabsType && validStateChange) {
+      onDropIndicatorChange({ dropIndicator, isDraggingOver, index });
+    }
+  }
+
   setRef(ref) {
     this.ref = ref;
     // this is needed for a custom drag preview
@@ -160,14 +187,15 @@ export class UnwrappedDragDroppable extends PureComponent {
 
     const { dropIndicator } = this.state;
     const dropIndicatorProps =
-      // isDraggingOver && dropIndicator && !disableDragDrop
-      dropIndicator && !disableDragDrop
+      // dropIndicator && !disableDragDrop
+      isDraggingOver && dropIndicator && !disableDragDrop
         ? {
             className: cx(
               'drop-indicator',
               dropIndicator === DROP_FORBIDDEN && 'drop-indicator--forbidden',
             ),
             // css: !!dropIndicatorStyles && dropIndicatorStyles,
+            dropIndicator,
           }
         : null;
 

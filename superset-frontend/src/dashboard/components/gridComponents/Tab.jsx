@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, css, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import EditableTitle from 'src/components/EditableTitle';
@@ -47,6 +47,7 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
   onDropOnTab: PropTypes.func,
+  onDropPositionChange: PropTypes.func,
   onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   canEdit: PropTypes.bool.isRequired,
@@ -69,6 +70,7 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   onDropOnTab() {},
+  onDropPositionChange() {},
   onHoverTab() {},
   onResizeStart() {},
   onResize() {},
@@ -76,6 +78,7 @@ const defaultProps = {
 };
 
 const TabTitleContainer = styled.div`
+  // TODO remove tab title container from visible if dragging it in edit mode
   ${({ isHighlighted, theme: { gridUnit, colors } }) => `
     padding: ${gridUnit}px ${gridUnit * 2}px;
     margin: ${-gridUnit}px ${gridUnit * -2}px;
@@ -86,11 +89,25 @@ const TabTitleContainer = styled.div`
   `}
 `;
 
-const TabDropIndicator = styled.div`
+// .drop-indicator {
+//         display: block;
+//         background-color: ${theme.colors.primary.base};
+//         position: absolute;
+//         z-index: 10;
+//         opacity: 0.3;
+//         width: 100%;
+//         height: 100%;
+//         &.drop-indicator--forbidden {
+//           background-color: ${theme.colors.error.light1};
+//         }
+//       }
+
+const TitleDropIndicator = styled.div`
   &.drop-indicator {
-    display: inline;
-    width: 5px;
-    margin-left: 4px;
+    // width: 5px;
+    position: absolute;
+    top: 0;
+    // left: -12px;
     border-radius: 4px;
   }
 `;
@@ -106,6 +123,8 @@ class Tab extends PureComponent {
     this.handleOnHover = this.handleOnHover.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
     this.handleChangeTab = this.handleChangeTab.bind(this);
+    this.logDropIndicator = this.logDropIndicator.bind(this);
+    // this.handleGetDropPosition = this.handleGetDropPosition.bind(this);
   }
 
   handleChangeTab({ pathToTabIndex }) {
@@ -133,8 +152,21 @@ class Tab extends PureComponent {
   }
 
   handleOnHover() {
+    // this.logDropIndicator(dropIndicatorProps);
     this.props.onHoverTab();
   }
+
+  logDropIndicator(dropIndicatorProps) {
+    if (dropIndicatorProps?.dropIndicator) {
+      // eslint-disable-next-line no-console
+      console.log('dropIndicatorProps:', dropIndicatorProps);
+      // this.setState({ dropPosition: dropIndicatorProps.dropIndicator});
+    }
+  }
+
+  // handleGetDropPosition(dropIndicator, isDraggingOver) {
+  //   this.props.onDropPositionChange(dropIndicator, isDraggingOver);
+  // }
 
   handleTopDropTargetDrop(dropResult) {
     if (dropResult) {
@@ -277,6 +309,7 @@ class Tab extends PureComponent {
       editMode,
       isFocused,
       isHighlighted,
+      onDropPositionChange,
     } = this.props;
 
     return (
@@ -288,6 +321,7 @@ class Tab extends PureComponent {
         depth={depth}
         onDrop={this.handleDrop}
         onHover={this.handleOnHover}
+        onDropIndicatorChange={onDropPositionChange}
         editMode={editMode}
         dropToChild={this.shouldDropToChild}
       >
@@ -313,9 +347,8 @@ class Tab extends PureComponent {
                 placement={index >= 5 ? 'left' : 'right'}
               />
             )}
-
             {dropIndicatorProps && (
-              <TabDropIndicator className={dropIndicatorProps.className} />
+              <TitleDropIndicator className={dropIndicatorProps.className} />
             )}
           </TabTitleContainer>
         )}
