@@ -17,9 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, logging, t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import { getExportGoogleSheetsUrl } from 'src/dashboard/util/exportToGoogleSheet';
+
+const getExportGoogleSheetsUrl = (dashboardId: number) =>
+  `/export/dashboard/${dashboardId}/google-sheets/`;
 
 export default function ExportToGoogleSheet({
   logEvent,
@@ -35,15 +37,8 @@ export default function ExportToGoogleSheet({
     return <></>;
   }
 
-  const handleGoogleSheetsExport = async () => {
-    try {
-      const googleSheetUrl = await getExportGoogleSheetsUrl(dashboardId);
-      logging.info(`Exported to Google Sheets ${googleSheetUrl}`);
-      window.open(googleSheetUrl, '_blank');
-    } catch (error) {
-      logging.error(error);
-      addDangerToast(t('Sorry, something went wrong. Try again later.'));
-    }
+  const handleGoogleSheetsExport = () => {
+    window.open(getExportGoogleSheetsUrl(dashboardId), '_blank')?.focus();
   };
 
   return (

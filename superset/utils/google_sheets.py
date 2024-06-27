@@ -18,6 +18,7 @@
 "Google Sheets Export features"
 
 import datetime
+import logging
 import os
 
 import pandas as pd
@@ -62,6 +63,7 @@ class GoogleSheetsExport:
             ].keys()
         self.client = gspread.service_account_from_dict(
             current_app.config["GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON"],
+            http_client=gspread.BackOffHTTPClient
         )
         self.share_permissions = current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"]
 
@@ -74,11 +76,12 @@ class GoogleSheetsExport:
         spreadsheet.share(**self.share_permissions)
         return spreadsheet.id
     
-    def upload_dfs_to_new_sheet(self, name: str, dfs: dict[str, pd.DataFrame]) -> str:
+    def upload_dfs_to_new_sheet(self, name: str, dfs: list[tuple[str, pd.DataFrame]]) -> str:
         spreadsheet = self.client.create(f"{name} {datetime.datetime.utcnow().isoformat()}")
-        for sheet_name, df in dfs.items():
+        for sheet_name, df in dfs:
+            logging.info(f"Uploading {sheet_name} to {spreadsheet.id} with shape {df.shape}.")
             worksheet = spreadsheet.add_worksheet(sheet_name, df.shape[0], df.shape[1])
-            set_with_dataframe(worksheet, df, include_index=True, include_column_header=True)
+            set_with_dataframe(worksheet, df, include_index=True)
         spreadsheet.share(**self.share_permissions)
         spreadsheet.del_worksheet(spreadsheet.sheet1) # delete the default sheet
         return spreadsheet.id
