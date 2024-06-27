@@ -16,21 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 
 import MetricDefinitionOption from 'src/explore/components/controls/MetricControl/MetricDefinitionOption';
 import userEvent from '@testing-library/user-event';
 
+// @ts-ignore-next-line
 const renderMetricDefinitionOption = props => {
-  waitFor(() => {
-    render(<MetricDefinitionOption {...props} />, {
-      useRedux: true,
-      useRouter: true,
-    });
+  render(<MetricDefinitionOption {...props} />, {
+    useRedux: true,
+    useRouter: true,
   });
 };
 
 test('renders a given saved metric and display SQL expression popover when hovered', async () => {
+  // @ts-ignore-next-line
   renderMetricDefinitionOption({
     option: { metric_name: 'a_saved_metric', expression: 'COUNT(*)' },
   });
@@ -43,11 +43,13 @@ test('renders a given saved metric and display SQL expression popover when hover
 });
 
 test('renders when given a column', async () => {
+  // @ts-ignore-next-line
   renderMetricDefinitionOption({ option: { column_name: 'a_column' } });
   expect(await screen.findByText('a_column')).toBeInTheDocument();
 });
 
 test('renders when given an aggregate metric', async () => {
+  // @ts-ignore-next-line
   renderMetricDefinitionOption({ option: { aggregate_name: 'an_aggregate' } });
   expect(await screen.findByText('an_aggregate')).toBeInTheDocument();
 });
