@@ -62,7 +62,7 @@ Commands:
   upgrade    Upgrade a viz to the latest version.
 ```
 
-Note: When migrating dashboards from one Superset instance to another (using import/export features or the Superset CLI), or restoring a backup of prior charts and dashboards, Superset will apply the existing migrations that are used during version upgrades. This will ensure that your charts and dashboards are using the latest and greatest charts that Superset officially supports. For any migration issues, feel free to [open a new issue](https://github.com/apache/superset/issues/new?assignees=&labels=bug&projects=&template=bug-report.yml) in the repo. 
+Note: When migrating dashboards from one Superset instance to another (using import/export features or the Superset CLI), or restoring a backup of prior charts and dashboards, Superset will apply the existing migrations that are used during version upgrades. This will ensure that your charts and dashboards are using the latest and greatest charts that Superset officially supports. For any migration issues, feel free to [open a new issue](https://github.com/apache/superset/issues/new?assignees=&labels=bug&projects=&template=bug-report.yml) in the repo.
 
 ### Improved Upload Forms
 
