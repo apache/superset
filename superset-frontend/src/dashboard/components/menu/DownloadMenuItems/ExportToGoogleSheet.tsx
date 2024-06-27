@@ -19,7 +19,6 @@
 import React from 'react';
 import { FeatureFlag, isFeatureEnabled, logging, t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
 import { getExportGoogleSheetsUrl } from 'src/dashboard/util/exportToGoogleSheet';
 
 export default function ExportToGoogleSheet({
@@ -50,7 +49,7 @@ export default function ExportToGoogleSheet({
   return (
     <Menu.Item key="google-sheets" {...rest}>
       <div onClick={handleGoogleSheetsExport} role="button" tabIndex={0}>
-        <Icons.GoogleOutlined /> {t('Google Sheets')}
+        {t('Export to Google Sheets')}
       </div>
     </Menu.Item>
   );
