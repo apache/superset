@@ -73,8 +73,8 @@ Superset provides:
 
 **Video Overview**
 <!-- File hosted here https://github.com/apache/superset-site/raw/lfs/superset-video-4k.mp4 -->
-<video src="https://superset.staged.apache.org/superset-video-4k.mp4" width="100%" height="auto" controls preload="none">
-   https://superset.staged.apache.org/superset-video-4k.mp4
+<video src="https://superset.staged.apache.org/superset-video-4k.webm" width="100%" height="auto" controls preload="none">
+   https://superset.staged.apache.org/superset-video-4k.webm
 </video>
 
 <br/>
