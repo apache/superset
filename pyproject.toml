@@ -132,6 +132,7 @@ gevent = ["gevent>=23.9.1"]
 gsheets = ["shillelagh[gsheetsapi]>=1.2.18, <2"]
 hana = ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"]
 hive = [
+    "boto3",
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
@@ -154,7 +155,7 @@ pinot = ["pinotdb>=0.3.3, <0.4"]
 playwright = ["playwright>=1.37.0, <2"]
 postgres = ["psycopg2-binary==2.9.6"]
 presto = ["pyhive[presto]>=0.6.5"]
-trino = ["trino>=0.328.0"]
+trino = ["boto3", "trino>=0.328.0"]
 prophet = ["prophet>=1.1.5, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 rockset = ["rockset-sqlalchemy>=0.0.1, <1"]
@@ -251,9 +252,8 @@ setenv =
     SUPERSET_HOME = {envtmpdir}
     mysql: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
     postgres: SUPERSET__SQLALCHEMY_DATABASE_URI = postgresql+psycopg2://superset:superset@localhost/test
-    sqlite:
-        SUPERSET__SQLALCHEMY_DATABASE_URI = sqlite:////{envtmpdir}/superset.db
-        SUPERSET__SQLALCHEMY_EXAMPLES_URI = sqlite:////{envtmpdir}/examples.db
+    sqlite: SUPERSET__SQLALCHEMY_DATABASE_URI = sqlite:////{envtmpdir}/superset.db
+    sqlite: SUPERSET__SQLALCHEMY_EXAMPLES_URI = sqlite:////{envtmpdir}/examples.db
     mysql-presto: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
     # docker run -p 8080:8080 --name presto starburstdata/presto
     mysql-presto: SUPERSET__SQLALCHEMY_EXAMPLES_URI = presto://localhost:8080/memory/default
@@ -435,7 +435,14 @@ target-version = "py310"
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
-select = ["E4", "E7", "E9", "F"]
+select = [
+    "B904",
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "TRY201",
+]
 ignore = []
 
 extend-select = ["I"]

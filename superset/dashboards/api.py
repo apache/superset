@@ -81,6 +81,7 @@ from superset.dashboards.schemas import (
     GetFavStarIdsSchema,
     openapi_spec_methods_override,
     screenshot_query_schema,
+    TabsPayloadSchema,
     thumbnail_query_schema,
 )
 from superset.extensions import event_logger
@@ -154,6 +155,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "remove_favorite",
         "get_charts",
         "get_datasets",
+        "get_tabs",
         "get_embedded",
         "set_embedded",
         "delete_embedded",
@@ -251,6 +253,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     chart_entity_response_schema = ChartEntityResponseSchema()
     dashboard_get_response_schema = DashboardGetResponseSchema()
     dashboard_dataset_schema = DashboardDatasetSchema()
+    tab_schema = TabsPayloadSchema()
     embedded_response_schema = EmbeddedDashboardResponseSchema()
     embedded_config_schema = EmbeddedDashboardConfigSchema()
 
@@ -284,6 +287,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         DashboardCopySchema,
         DashboardGetResponseSchema,
         DashboardDatasetSchema,
+        TabsPayloadSchema,
         GetFavStarIdsSchema,
         EmbeddedDashboardResponseSchema,
     )
@@ -404,6 +408,64 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_400(
                 message=gettext(
                     "Dataset schema is invalid, caused by: %(error)s", error=str(err)
+                )
+            )
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
+
+    @expose("/<id_or_slug>/tabs", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_tabs",
+        log_to_statsd=False,
+    )
+    def get_tabs(self, id_or_slug: str) -> Response:
+        """Get dashboard's tabs.
+        ---
+        get:
+          summary: Get dashboard's tabs
+          description: >-
+            Returns a list of a dashboard's tabs and dashboard's nested tree structure for associated tabs.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: Either the id of the dashboard, or its slug
+          responses:
+            200:
+              description: Dashboard tabs
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        items:
+                          $ref: '#/components/schemas/TabsPayloadSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            tabs = DashboardDAO.get_tabs_for_dashboard(id_or_slug)
+            result = self.tab_schema.dump(tabs)
+            return self.response(200, result=result)
+
+        except (TypeError, ValueError) as err:
+            return self.response_400(
+                message=gettext(
+                    "Tab schema is invalid, caused by: %(error)s", error=str(err)
                 )
             )
         except DashboardAccessDeniedError:

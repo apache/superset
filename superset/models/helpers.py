@@ -310,7 +310,7 @@ class ImportExportMixin:
         try:
             obj_query = db.session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
-        except MultipleResultsFound as ex:
+        except MultipleResultsFound:
             logger.error(
                 "Error importing %s \n %s \n %s",
                 cls.__name__,
@@ -318,7 +318,7 @@ class ImportExportMixin:
                 yaml.safe_dump(dict_rep),
                 exc_info=True,
             )
-            raise ex
+            raise
 
         if not obj:
             is_new_obj = True
@@ -1070,8 +1070,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         Render sql with template engine (Jinja).
         """
-
-        sql = self.sql
+        sql = self.sql.strip("\t\r\n; ")
         if template_processor:
             try:
                 sql = template_processor.process_template(sql)
@@ -1083,13 +1082,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 ) from ex
 
-        script = SQLScript(sql.strip("\t\r\n; "), engine=self.db_engine_spec.engine)
+        script = SQLScript(sql, engine=self.db_engine_spec.engine)
         if len(script.statements) > 1:
             raise QueryObjectValidationError(
                 _("Virtual dataset query cannot consist of multiple statements")
             )
 
-        sql = script.statements[0].format(comments=False)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         return sql
@@ -1106,7 +1104,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         CTE, the CTE is returned as the second value in the return tuple.
         """
 
-        from_sql = self.get_rendered_sql(template_processor)
+        from_sql = self.get_rendered_sql(template_processor) + "\n"
         parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
         if not (
             parsed_query.is_unknown()

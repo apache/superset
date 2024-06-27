@@ -78,7 +78,7 @@ class CustomHistogram extends PureComponent {
     const keys = data.map(d => d.key);
     const colorScale = scaleOrdinal({
       domain: keys,
-      range: keys.map(x => colorFn(x, sliceId)),
+      range: keys.map(x => colorFn(x, sliceId, colorScheme)),
     });
 
     return (

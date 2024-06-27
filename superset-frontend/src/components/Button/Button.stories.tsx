@@ -117,11 +117,13 @@ InteractiveButton.args = {
 InteractiveButton.argTypes = {
   target: {
     name: TARGETS.label,
-    control: { type: 'select', options: Object.values(TARGETS.options) },
+    control: { type: 'select' },
+    options: Object.values(TARGETS.options),
   },
   href: {
     name: HREFS.label,
-    control: { type: 'select', options: Object.values(HREFS.options) },
+    control: { type: 'select' },
+    options: Object.values(HREFS.options),
   },
   onClick: { action: 'clicked' },
 };

@@ -17,6 +17,8 @@
 # type: ignore
 from copy import copy
 
+from sqlalchemy.engine import make_url
+
 from superset.config import *  # noqa: F403
 from superset.config import DATA_DIR
 
@@ -33,11 +35,14 @@ DEBUG = True
 if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:  # noqa: F405
     SQLALCHEMY_DATABASE_URI = os.environ["SUPERSET__SQLALCHEMY_DATABASE_URI"]  # noqa: F405
 
-if "sqlite" in SQLALCHEMY_DATABASE_URI:
+if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() == "sqlite":
     logger.warning(  # noqa: F405
         "SQLite Database support for metadata databases will be removed \
         in a future version of Superset."
     )
+
+if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() in ("postgresql", "mysql"):
+    SQLALCHEMY_ENGINE_OPTIONS["isolation_level"] = "READ COMMITTED"  # noqa: F405
 
 SQL_SELECT_AS_CTA = True
 SQL_MAX_ROW = 666

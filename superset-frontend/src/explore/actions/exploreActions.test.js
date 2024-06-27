@@ -231,9 +231,7 @@ describe('reducers', () => {
       newState,
       actions.setStashFormData(false, ['y_axis_format']),
     );
-    expect(updatedState.hiddenFormData).toEqual({
-      y_axis_format: defaultState.form_data.y_axis_format,
-    });
+    expect(updatedState.hiddenFormData.y_axis_format).toBeFalsy();
     expect(updatedState.form_data.y_axis_format).toEqual(
       defaultState.form_data.y_axis_format,
     );

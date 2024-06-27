@@ -114,6 +114,34 @@ describe('DataTablesPane', () => {
     fetchMock.restore();
   });
 
+  test('Should not allow copy data table content when canDownload=false', async () => {
+    fetchMock.post(
+      'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
+      {
+        result: [
+          {
+            data: [{ __timestamp: 1230768000000, genre: 'Action' }],
+            colnames: ['__timestamp', 'genre'],
+            coltypes: [2, 1],
+            rowcount: 1,
+            sql_rowcount: 1,
+          },
+        ],
+      },
+    );
+    const props = {
+      ...createDataTablesPaneProps(456),
+      canDownload: false,
+    };
+    render(<DataTablesPane {...props} />, {
+      useRedux: true,
+    });
+    userEvent.click(screen.getByText('Results'));
+    expect(await screen.findByText('1 row')).toBeVisible();
+    expect(screen.queryByLabelText('Copy')).not.toBeInTheDocument();
+    fetchMock.restore();
+  });
+
   test('Search table', async () => {
     fetchMock.post(
       'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A789%7D',

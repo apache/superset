@@ -1017,9 +1017,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 == None,  # noqa: E711
             )
         )
-        self.get_session.commit()
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
+        self.get_session.commit()
 
     def sync_role_definitions(self) -> None:
         """
@@ -1047,9 +1047,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
         self.create_missing_perms()
-
-        # commit role and view menu updates
-        self.get_session.commit()
         self.clean_perms()
 
     def _get_all_pvms(self) -> list[PermissionView]:
@@ -2446,8 +2443,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_roles = [role.id for role in self.get_user_roles(g.user)]
         regular_filter_roles = (
-            self.get_session()
-            .query(RLSFilterRoles.c.rls_filter_id)
+            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
@@ -2455,22 +2451,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
         base_filter_roles = (
-            self.get_session()
-            .query(RLSFilterRoles.c.rls_filter_id)
+            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
-        filter_tables = (
-            self.get_session()
-            .query(RLSFilterTables.c.rls_filter_id)
-            .filter(RLSFilterTables.c.table_id == table.id)
+        filter_tables = self.get_session.query(RLSFilterTables.c.rls_filter_id).filter(
+            RLSFilterTables.c.table_id == table.id
         )
         query = (
-            self.get_session()
-            .query(
+            self.get_session.query(
                 RowLevelSecurityFilter.id,
                 RowLevelSecurityFilter.group_key,
                 RowLevelSecurityFilter.clause,
@@ -2673,12 +2665,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the current user is not an owner
         """
 
-        # pylint: disable=import-outside-toplevel
-        from superset import db
-
         if self.is_admin():
             return
-        orig_resource = db.session.query(resource.__class__).get(resource.id)
+        orig_resource = self.get_session.query(resource.__class__).get(resource.id)
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:
