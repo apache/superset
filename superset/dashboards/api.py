@@ -1439,7 +1439,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 query_context = chart.get_query_context()
 
                 if not query_context:
-                    raise ChartInvalidError("Chart's query context does not exist")
+                    logger.warn(f"Skipping chart {chart.slice_name} {chart.id} as it does not have a query context this generally is due to a very old chart never being executed and never being added to a dashboard. This can be fixed by force saving the chart.")
+                    continue
 
                 command = ChartDataCommand(query_context)
                 command.validate()
