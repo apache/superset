@@ -37,6 +37,7 @@ function DefaultSelectRenderer({
     <span className="dt-select-page-size form-inline">
       {t('Show')}{' '}
       <select
+        aria-label={t('Show %s entries', current)}
         className="form-control input-sm"
         value={current}
         onBlur={() => {}}

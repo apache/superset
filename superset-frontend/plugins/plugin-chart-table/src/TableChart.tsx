@@ -200,6 +200,9 @@ function SelectPageSize({
     <span className="dt-select-page-size form-inline">
       {t('page_size.show')}{' '}
       <select
+        aria-label={`${t('page_size.show')} ${current} ${t(
+          'page_size.entries',
+        )}`}
         className="form-control input-sm"
         value={current}
         onBlur={() => {}}
