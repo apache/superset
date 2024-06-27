@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Loads datasets, dashboards and slices in a new superset instance"""
-
 import textwrap
 
 import pandas as pd
@@ -79,7 +77,6 @@ def load_energy(
             SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
         )
 
-    db.session.commit()
     tbl.fetch_metadata()
 
     slc = Slice(

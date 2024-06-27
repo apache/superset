@@ -15,10 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Union
 from uuid import UUID
-
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -26,6 +25,7 @@ from superset.key_value.exceptions import KeyValueDeleteFailedError
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import get_filter
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -45,20 +45,19 @@ class DeleteKeyValueCommand(BaseCommand):
         self.resource = resource
         self.key = key
 
+    @transaction(on_error=partial(on_error, reraise=KeyValueDeleteFailedError))
     def run(self) -> bool:
-        try:
-            return self.delete()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise KeyValueDeleteFailedError() from ex
+        return self.delete()
 
     def validate(self) -> None:
         pass
 
     def delete(self) -> bool:
-        filter_ = get_filter(self.resource, self.key)
-        if entry := db.session.query(KeyValueEntry).filter_by(**filter_).first():
+        if (
+            entry := db.session.query(KeyValueEntry)
+            .filter_by(**get_filter(self.resource, self.key))
+            .first()
+        ):
             db.session.delete(entry)
-            db.session.flush()
             return True
         return False

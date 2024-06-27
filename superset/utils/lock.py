@@ -24,7 +24,6 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any, cast, TypeVar, Union
 
-from superset import db
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
@@ -72,7 +71,6 @@ def KeyValueDistributedLock(  # pylint: disable=invalid-name
     store.
 
     :param namespace: The namespace for which the lock is to be acquired.
-    :type namespace: str
     :param kwargs: Additional keyword arguments.
     :yields: A unique identifier (UUID) for the acquired lock (the KV key).
     :raises CreateKeyValueDistributedLockFailedException: If the lock is taken.
@@ -93,12 +91,10 @@ def KeyValueDistributedLock(  # pylint: disable=invalid-name
             value=True,
             expires_on=datetime.now() + LOCK_EXPIRATION,
         ).run()
-        db.session.commit()
 
         yield key
 
         DeleteKeyValueCommand(resource=KeyValueResource.LOCK, key=key).run()
-        db.session.commit()
         logger.debug("Removed lock on namespace %s for key %s", namespace, key)
     except KeyValueCreateFailedError as ex:
         raise CreateKeyValueDistributedLockFailedException(

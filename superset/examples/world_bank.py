@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Loads datasets, dashboards and slices in a new superset instance"""
-
 import os
 
 import pandas as pd
@@ -41,7 +39,7 @@ from superset.utils import core as utils, json
 from superset.utils.core import DatasourceType
 
 
-def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements
+def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
     only_metadata: bool = False,
     force: bool = False,
     sample: bool = False,
@@ -110,7 +108,6 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
                 SqlMetric(metric_name=metric, expression=f"{aggr_func}({col})")
             )
 
-    db.session.commit()
     tbl.fetch_metadata()
 
     slices = create_slices(tbl)
@@ -134,7 +131,6 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = slug
     dash.slices = slices
-    db.session.commit()
 
 
 def create_slices(tbl: BaseDatasource) -> list[Slice]:

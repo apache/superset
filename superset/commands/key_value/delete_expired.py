@@ -16,15 +16,16 @@
 # under the License.
 import logging
 from datetime import datetime
+from functools import partial
 
 from sqlalchemy import and_
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
 from superset.commands.base import BaseCommand
 from superset.key_value.exceptions import KeyValueDeleteFailedError
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +42,9 @@ class DeleteExpiredKeyValueCommand(BaseCommand):
         """
         self.resource = resource
 
+    @transaction(on_error=partial(on_error, reraise=KeyValueDeleteFailedError))
     def run(self) -> None:
-        try:
-            self.delete_expired()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise KeyValueDeleteFailedError() from ex
+        self.delete_expired()
 
     def validate(self) -> None:
         pass
@@ -62,4 +60,3 @@ class DeleteExpiredKeyValueCommand(BaseCommand):
             )
             .delete()
         )
-        db.session.flush()

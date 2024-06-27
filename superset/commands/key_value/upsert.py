@@ -17,6 +17,7 @@
 
 import logging
 from datetime import datetime
+from functools import partial
 from typing import Any, Optional, Union
 from uuid import UUID
 
@@ -33,6 +34,7 @@ from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import Key, KeyValueCodec, KeyValueResource
 from superset.key_value.utils import get_filter
 from superset.utils.core import get_user_id
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -68,27 +70,29 @@ class UpsertKeyValueCommand(BaseCommand):
         self.codec = codec
         self.expires_on = expires_on
 
+    @transaction(
+        on_error=partial(
+            on_error,
+            catches=(KeyValueCreateFailedError, SQLAlchemyError),
+            reraise=KeyValueUpsertFailedError,
+        ),
+    )
     def run(self) -> Key:
-        try:
-            return self.upsert()
-        except (KeyValueCreateFailedError, SQLAlchemyError) as ex:
-            db.session.rollback()
-            raise KeyValueUpsertFailedError() from ex
+        return self.upsert()
 
     def validate(self) -> None:
         pass
 
     def upsert(self) -> Key:
-        filter_ = get_filter(self.resource, self.key)
-        entry: KeyValueEntry = (
-            db.session.query(KeyValueEntry).filter_by(**filter_).first()
-        )
-        if entry:
+        if (
+            entry := db.session.query(KeyValueEntry)
+            .filter_by(**get_filter(self.resource, self.key))
+            .first()
+        ):
             entry.value = self.codec.encode(self.value)
             entry.expires_on = self.expires_on
             entry.changed_on = datetime.now()
             entry.changed_by_fk = get_user_id()
-            db.session.flush()
             return Key(entry.id, entry.uuid)
 
         return CreateKeyValueCommand(

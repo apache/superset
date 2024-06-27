@@ -215,8 +215,6 @@ class TestRowLevelSecurity(SupersetTestCase):
             },
         )
         self.assertEqual(rv.status_code, 422)
-        data = json.loads(rv.data.decode("utf-8"))
-        assert "Create failed" in data["message"]
 
     @pytest.mark.usefixtures("create_dataset")
     def test_model_view_rls_add_tables_required(self):

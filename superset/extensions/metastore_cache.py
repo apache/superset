@@ -22,7 +22,6 @@ from uuid import UUID, uuid3
 from flask import current_app, Flask, has_app_context
 from flask_caching import BaseCache
 
-from superset import db
 from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.key_value.types import (
     KeyValueCodec,
@@ -95,7 +94,6 @@ class SupersetMetastoreCache(BaseCache):
             codec=self.codec,
             expires_on=self._get_expiry(timeout),
         ).run()
-        db.session.commit()
         return True
 
     def add(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
@@ -111,7 +109,6 @@ class SupersetMetastoreCache(BaseCache):
                 key=self.get_key(key),
                 expires_on=self._get_expiry(timeout),
             ).run()
-            db.session.commit()
             return True
         except KeyValueCreateFailedError:
             return False
@@ -136,6 +133,4 @@ class SupersetMetastoreCache(BaseCache):
         # pylint: disable=import-outside-toplevel
         from superset.commands.key_value.delete import DeleteKeyValueCommand
 
-        ret = DeleteKeyValueCommand(resource=RESOURCE, key=self.get_key(key)).run()
-        db.session.commit()
-        return ret
+        return DeleteKeyValueCommand(resource=RESOURCE, key=self.get_key(key)).run()
