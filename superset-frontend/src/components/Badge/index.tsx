@@ -1,3 +1,4 @@
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -24,22 +25,10 @@ export interface BadgeProps extends AntdBadgeProps {
   textColor?: string;
 }
 
-const Badge = styled(
-  (
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    { textColor, color, text, ...props }: BadgeProps,
-  ) => (
-    <AntdBadge
-      text={text}
-      color={text ? color : undefined}
-      status={props.status || 'default'}
-      {...props}
-    />
-  ),
-)`
+const Badge = styled((props: BadgeProps) => <AntdBadge {...props} />)`
   ${({ theme, color, count }) => `
     & > sup,
-    & > sup.ant-badge-count {
+    & > sup.antd5-badge-count {
       ${
         count !== undefined
           ? `background: ${color || theme.colors.primary.base};`
