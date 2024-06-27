@@ -106,6 +106,7 @@ from superset.utils.google_sheets import GoogleSheetsExport
 import pandas as pd
 
 from superset.views.utils import get_dashboard_extra_filters, get_form_data, get_viz
+from superset.viz import viz_types
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "delete_embedded",
         "thumbnail",
         "copy_dash",
+        "export_to_google_sheet"
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -1376,6 +1378,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_slug>/export/google-sheets", methods=("GET",))
     @protect()
     @safe
+    @permission_name("read")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_to_google_sheet",
@@ -1413,30 +1416,47 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         if not is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
             return self.response(501, message="GOOGLE_SHEETS_EXPORT is not enabled")
         dashboard_id = id_or_slug
+        logger.info(f"Exporting dashboard {dashboard_id} to Google Sheets")
         try:
-            dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+            dashboard = DashboardDAO().get_by_id_or_slug(id_or_slug)
             charts = DashboardDAO.get_charts_for_dashboard(dashboard_id)
             chart_dfs = {}
             # this is based on the structure of "chart_warmup" to pull down the data
             for chart in charts:
-                form_data = get_form_data(chart.id, use_slice_data=True)[0]
-                # Legacy visualizations.
+                form_data = chart.form_data
+                viz_type = chart.viz_type
+                
                 if not chart.datasource:
-                    raise ChartInvalidError("Chart's datasource does not exist")
+                    logger.info(f"Skipping chart {chart.id} as it does not have a datasource")
+                    continue
+                
+                if not viz_type in ["table", "pivot_table_v2"]:
+                    logger.info(f"Skipping chart {chart.id} as it is not a table or pivot_table")
+                    continue
 
-                form_data["extra_filters"] = get_dashboard_extra_filters(chart.id, dashboard_id)
+                logger.info(f"Exporting chart {chart.id} to Google Sheets, viz_type: {viz_type}")
 
-                g.form_data = form_data
-                result = get_viz(
-                    datasource_type=chart.datasource.type,
-                    datasource_id=chart.datasource.id,
-                    form_data=form_data,
-                ).get_payload()
-                delattr(g, "form_data")
+                query_context = chart.get_query_context()
 
-                chart_data = result["data"]
+                if not query_context:
+                    raise ChartInvalidError("Chart's query context does not exist")
+
+                command = ChartDataCommand(query_context)
+                command.validate()
+                result = command.run()
+
+                chart_data = result["queries"][0]["data"]
 
                 chart_df = pd.DataFrame(chart_data)
+
+                if viz_type == "pivot_table_v2":
+                    # pivot_table_v2 is a special case where the data is flattened
+                    # and needs to be transformed back to the format we display in superset
+                    columns = [column if isinstance(column, str) else column["label"] for column in form_data["groupbyColumns"]]
+                    rows = [row if isinstance(row, str) else row["label"] for row in form_data["groupbyRows"]]
+                    logger.info(f"Transforming pivot_table_v2 chart {chart.id} to a pivot using rows: {rows}, columns: {columns}")
+                    chart_df = chart_df.pivot(index=rows, columns=columns)
+
                 chart_dfs[chart.slice_name] = chart_df
 
                 event_info = {
@@ -1454,15 +1474,15 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             sheet_id = google_sheets_export.upload_dfs_to_new_sheet(dashboard.dashboard_title, chart_dfs)
             return self.response(200, sheet_id=sheet_id)
         except DatasourceNotFound:
+            logger.error("Datasource not found")
             return self.response_404()
         except QueryObjectValidationError as error:
+            logger.error(f"Query object validation error {error}")
             return self.response_400(message=error.message)
         except ValidationError as error:
+            logger.error(f"Validation error {error.normalized_messages()}")
             return self.response_400(
-                message=error.message
+                message=error.normalized_messages()
             )
         except DashboardAccessDeniedError:
             return self.response_403()
-        except DashboardNotFoundError:
-            return self.response_404()
-        

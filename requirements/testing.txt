@@ -70,6 +70,10 @@ grpcio==1.60.1
 grpcio-status==1.60.1
     # via google-api-core
 gspread==6.1.2
+    # via
+    #   apache-superset
+    #   gspread-dataframe
+gspread-dataframe==4.0.0
     # via apache-superset
 iniconfig==2.0.0
     # via pytest
