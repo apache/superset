@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// import { TABS_TYPE } from './componentTypes';
+// import { DROP_LEFT } from './getDropPosition';
+
 export function reorder(list, startIndex, endIndex) {
   const result = [...list];
   const [removed] = result.splice(startIndex, 1);
@@ -28,6 +32,28 @@ export default function reorderItem({ entitiesMap, source, destination }) {
   const current = [...entitiesMap[source.id].children];
   const next = [...entitiesMap[destination.id].children];
   const target = current[source.index];
+  // const { dropPosition } = destination;
+
+  // reorder tabs with positional drop
+  /*
+  if (source.type && destination.type === TABS_TYPE && dropPosition) {
+    const reordered = reorder(
+      current,
+      source.index,
+      dropPosition === DROP_LEFT ? destination.index : destination.index + 1,
+    );
+
+    const result = {
+      ...entitiesMap,
+      [source.id]: {
+        ...entitiesMap[source.id],
+        children: reordered,
+      },
+    };
+
+    return result;
+  }
+  */
 
   // moving to same list
   if (source.id === destination.id) {
