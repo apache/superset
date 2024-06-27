@@ -136,6 +136,7 @@ def with_dashboard(
     return functools.update_wrapper(wraps, f)
 
 
+# pylint: disable=too-many-public-methods
 class DashboardRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
 
