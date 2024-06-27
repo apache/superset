@@ -28,6 +28,7 @@ from superset import feature_flag_manager
 LIB_GSPREAD_AVAILABLE = False
 try:
     import gspread
+    from gspread_dataframe import set_with_dataframe
 
     LIB_GSPREAD_AVAILABLE = True
 except ModuleNotFoundError:
@@ -76,10 +77,8 @@ class GoogleSheetsExport:
     def upload_dfs_to_new_sheet(self, name: str, dfs: dict[str, pd.DataFrame]) -> str:
         spreadsheet = self.client.create(f"{name} {datetime.datetime.utcnow().isoformat()}")
         for sheet_name, df in dfs.items():
-            spreadsheet.add_worksheet(sheet_name, df.shape[0], df.shape[1])
-            spreadsheet.worksheet(sheet_name).update(
-                range_name="A1",
-                values=([df.columns.values.tolist()] + df.values.tolist()),
-            )
+            worksheet = spreadsheet.add_worksheet(sheet_name, df.shape[0], df.shape[1])
+            set_with_dataframe(worksheet, df, include_index=True, include_column_header=True)
         spreadsheet.share(**self.share_permissions)
+        spreadsheet.del_worksheet(spreadsheet.sheet1) # delete the default sheet
         return spreadsheet.id
