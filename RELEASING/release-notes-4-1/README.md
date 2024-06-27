@@ -50,7 +50,19 @@ We also added a new ECharts [Histogram](https://github.com/apache/superset/pull/
     <image src="media/histogram.png" alt="Image" width="100%">
 </div>
 
-Both the [Heatmap](https://github.com/apache/superset/pull/27771) and [Histogram](https://github.com/apache/superset/pull/28780) migration logic have been added to the CLI if you wish to migrate ahead of time.
+You can use the CLI command to migrate Area, Bubble, Line, Sankey, [Heatmap](https://github.com/apache/superset/pull/27771), and [Histogram](https://github.com/apache/superset/pull/28780) chart types but we'll add more as the ECharts migrations continue. Note that migrations for deprecated charts may be forced in upcoming major versions when the code is removed. Running migrations earlier will allow you to de-risk future upgrades while improving user experience.
+
+```bash
+Usage: superset viz-migrations [OPTIONS] COMMAND [ARGS]...
+
+  Migrates a viz from one type to another.
+
+Commands:
+  downgrade  Downgrades a viz to the previous version.
+  upgrade    Upgrade a viz to the latest version.
+```
+
+Note: When migrating dashboards from one Superset instance to another (using import/export features or the Superset CLI), or restoring a backup of prior charts and dashboards, Superset will apply the existing migrations that are used during version upgrades. This will ensure that your charts and dashboards are using the latest and greatest charts that Superset officially supports. For any migration issues, feel free to [open a new issue](https://github.com/apache/superset/issues/new?assignees=&labels=bug&projects=&template=bug-report.yml) in the repo. 
 
 ### Improved Upload Forms
 
