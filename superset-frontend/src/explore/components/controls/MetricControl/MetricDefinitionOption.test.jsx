@@ -30,7 +30,7 @@ const renderMetricDefinitionOption = props => {
   });
 };
 
-test('MetricDefinitionOption - renders a given saved metric and display SQL expression popover when hovered', async () => {
+test('renders a given saved metric and display SQL expression popover when hovered', async () => {
   renderMetricDefinitionOption({
     option: { metric_name: 'a_saved_metric', expression: 'COUNT(*)' },
   });
@@ -42,12 +42,12 @@ test('MetricDefinitionOption - renders a given saved metric and display SQL expr
   expect(await screen.findByText('SQL expression')).toBeInTheDocument();
 });
 
-test('MetricDefinitionOption - renders when given a column', async () => {
+test('renders when given a column', async () => {
   renderMetricDefinitionOption({ option: { column_name: 'a_column' } });
   expect(await screen.findByText('a_column')).toBeInTheDocument();
 });
 
-test('MetricDefinitionOption - renders when given an aggregate metric', async () => {
+test('renders when given an aggregate metric', async () => {
   renderMetricDefinitionOption({ option: { aggregate_name: 'an_aggregate' } });
   expect(await screen.findByText('an_aggregate')).toBeInTheDocument();
 });
