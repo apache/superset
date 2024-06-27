@@ -35,6 +35,7 @@ from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
+from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema, ChartEntityResponseSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartInvalidError
@@ -54,6 +55,7 @@ from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCom
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.daos.exceptions import DatasourceNotFound
@@ -1420,7 +1422,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             dashboard = DashboardDAO().get_by_id_or_slug(id_or_slug)
             charts = DashboardDAO.get_charts_for_dashboard(dashboard_id)
-            chart_dfs = {}
+            chart_dfs: list[tuple[str, pd.DataFrame]] = []
             # this is based on the structure of "chart_warmup" to pull down the data
             for chart in charts:
                 form_data = chart.form_data
@@ -1441,30 +1443,33 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 if not query_context:
                     logger.warn(f"Skipping chart {chart.slice_name} {chart.id} as it does not have a query context this generally is due to a very old chart never being executed and never being added to a dashboard. This can be fixed by force saving the chart.")
                     continue
+                
+                query_context.result_type = ChartDataResultType.POST_PROCESSED
+                query_context.result_format = ChartDataResultFormat.JSON
 
                 command = ChartDataCommand(query_context)
                 command.validate()
                 result = command.run()
 
+                for query in result["queries"]:
+                    # force the result format to be JSON
+                    query["result_format"] = ChartDataResultFormat.JSON
+
+                result = apply_post_process(result, form_data, chart.datasource)
+
                 chart_data = result["queries"][0]["data"]
 
                 chart_df = pd.DataFrame(chart_data)
-
-                if viz_type == "pivot_table_v2":
-                    # pivot_table_v2 is a special case where the data is flattened
-                    # and needs to be transformed back to the format we display in superset
-                    columns = [column if isinstance(column, str) else column["label"] for column in form_data["groupbyColumns"]]
-                    rows = [row if isinstance(row, str) else row["label"] for row in form_data["groupbyRows"]]
-                    logger.info(f"Transforming pivot_table_v2 chart {chart.id} to a pivot using rows: {rows}, columns: {columns}")
-                    chart_df = chart_df.pivot(index=rows, columns=columns)
-
-                chart_dfs[chart.slice_name] = chart_df
+                
+                logger.info(chart_df)
+                chart_dfs.append((chart.slice_name, chart_df))
 
                 event_info = {
                     "event_type": "data_export",
                     "dashboard_id": dashboard_id,
                     "chart_id": chart.id,
                     "row_count": len(chart_df.index),
+                    "df_shape": chart_df.shape,
                     "exported_format": "gsheet",
                 }
                 event_rep = repr(event_info)
