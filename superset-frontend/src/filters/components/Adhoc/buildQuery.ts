@@ -16,9 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as AdhocFilterPlugin } from './Adhoc';
-export { default as SelectFilterPlugin } from './Select';
-export { default as RangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
-export { default as TimeColumnFilterPlugin } from './TimeColumn';
-export { default as TimeGrainFilterPlugin } from './TimeGrain';
+import {
+  buildQueryContext,
+  QueryObject,
+  QueryObjectFilterClause,
+  BuildQuery,
+} from '@superset-ui/core';
+import { PluginFilterSelectQueryFormData } from './types';
+
+const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
+  formData: PluginFilterSelectQueryFormData,
+) =>
+  buildQueryContext(formData, baseQueryObject => {
+    const { filters = [] } = baseQueryObject;
+    const extraFilters: QueryObjectFilterClause[] = [];
+    const query: QueryObject[] = [
+      {
+        ...baseQueryObject,
+        result_type: 'columns',
+        filters: filters.concat(extraFilters),
+      },
+    ];
+    return query;
+  });
+
+export default buildQuery;
