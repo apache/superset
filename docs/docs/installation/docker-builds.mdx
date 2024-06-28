@@ -63,7 +63,7 @@ To accelerate builds, we follow Docker best practices and use `apache/superset-c
 ## About database drivers
 
 Our docker images come with little to zero database driver support since
-each envrionment requires different drivers, and mataining a build with
+each environment requires different drivers, and maintaining a build with
 wide database support would be both challenging (dozens of databases,
 python drivers, and os dependencies) and inefficient (longer
 build times, larger images, lower layer cache hit rate, ...).
@@ -79,7 +79,7 @@ docker-compose to point to these images and effectively be multi-platform
 as well.
 
 Pull requests and master builds
-are one-image-per-platform so that they can be parallized and the
+are one-image-per-platform so that they can be parallelized and the
 build matrix for those is more sparse as we don't need to build every
 build preset on every platform, and generally can be more selective here.
 For those builds, we suffix tags with `-arm` where it applies.
