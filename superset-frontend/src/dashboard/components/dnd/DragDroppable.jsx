@@ -141,16 +141,7 @@ export class UnwrappedDragDroppable extends PureComponent {
       dropIndicator !== prevState.dropIndicator ||
       isDraggingOver !== prevProps.isDraggingOver ||
       index !== prevProps.index;
-    // console.log(
-    //   'index',
-    //   index,
-    //   'isTabsType:',
-    //   isTabsType,
-    //   'component:',
-    //   component,
-    //   'validStateChange:',
-    //   validStateChange,
-    // );
+
     if (onDropIndicatorChange && isTabsType && validStateChange) {
       onDropIndicatorChange({ dropIndicator, isDraggingOver, index });
     }

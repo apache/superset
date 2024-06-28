@@ -89,19 +89,6 @@ const TabTitleContainer = styled.div`
   `}
 `;
 
-// .drop-indicator {
-//         display: block;
-//         background-color: ${theme.colors.primary.base};
-//         position: absolute;
-//         z-index: 10;
-//         opacity: 0.3;
-//         width: 100%;
-//         height: 100%;
-//         &.drop-indicator--forbidden {
-//           background-color: ${theme.colors.error.light1};
-//         }
-//       }
-
 const TitleDropIndicator = styled.div`
   &.drop-indicator {
     position: absolute;
@@ -121,7 +108,6 @@ class Tab extends PureComponent {
     this.handleOnHover = this.handleOnHover.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
     this.handleChangeTab = this.handleChangeTab.bind(this);
-    this.logDropIndicator = this.logDropIndicator.bind(this);
     // this.handleGetDropPosition = this.handleGetDropPosition.bind(this);
   }
 
@@ -150,21 +136,8 @@ class Tab extends PureComponent {
   }
 
   handleOnHover() {
-    // this.logDropIndicator(dropIndicatorProps);
     this.props.onHoverTab();
   }
-
-  logDropIndicator(dropIndicatorProps) {
-    if (dropIndicatorProps?.dropIndicator) {
-      // eslint-disable-next-line no-console
-      console.log('dropIndicatorProps:', dropIndicatorProps);
-      // this.setState({ dropPosition: dropIndicatorProps.dropIndicator});
-    }
-  }
-
-  // handleGetDropPosition(dropIndicator, isDraggingOver) {
-  //   this.props.onDropPositionChange(dropIndicator, isDraggingOver);
-  // }
 
   handleTopDropTargetDrop(dropResult) {
     if (dropResult) {
