@@ -18,6 +18,7 @@
  */
 import { List } from 'src/components';
 import { connect } from 'react-redux';
+import { PureComponent } from 'react';
 import {
   HandlerFunction,
   JsonObject,
@@ -81,11 +82,10 @@ const defaultProps = {
   annotationQuery: {},
   onChange: () => { },
 };
-class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
+class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
   static defaultProps = defaultProps;
 
-class AnnotationLayerControl extends React.PureComponent {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     this.state = {
       popoverVisible: {},
