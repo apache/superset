@@ -37,7 +37,6 @@ function DefaultSelectRenderer({
     <span className="dt-select-page-size form-inline">
       {t('Show')}{' '}
       <select
-        aria-label={t('Show %s entries', current)}
         className="form-control input-sm"
         value={current}
         onBlur={() => {}}
@@ -49,8 +48,13 @@ function DefaultSelectRenderer({
           const [size, text] = Array.isArray(option)
             ? option
             : [option, option];
+          const sizeLabel = size === 0 ? t('all') : size;
           return (
-            <option key={size} value={size}>
+            <option
+              aria-label={t('Show %s entries', sizeLabel)}
+              key={size}
+              value={size}
+            >
               {text}
             </option>
           );
