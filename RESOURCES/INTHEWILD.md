@@ -166,6 +166,7 @@ Join our growing community!
 ### HR / Staffing
 - [Swile](https://www.swile.co/) [@PaoloTerzi]
 - [Symmetrics](https://www.symmetrics.fyi)
+- [bluquist](https://bluquist.com/)
 
 ### Government
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
