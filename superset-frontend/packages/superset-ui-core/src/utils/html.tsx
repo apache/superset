@@ -23,7 +23,7 @@ const xssFilter = new FilterXSS({
     ...getDefaultWhiteList(),
     span: ['style', 'class', 'title'],
     div: ['style', 'class'],
-    a: ['style', 'class', 'href', 'title', 'target'],
+    a: ['style', 'class', 'href', 'title', 'target', 'onclick'],
     img: ['style', 'class', 'src', 'alt', 'title', 'width', 'height'],
     video: [
       'autoplay',
