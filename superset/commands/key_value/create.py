@@ -16,10 +16,9 @@
 # under the License.
 import logging
 from datetime import datetime
+from functools import partial
 from typing import Any, Optional, Union
 from uuid import UUID
-
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -27,6 +26,7 @@ from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import Key, KeyValueCodec, KeyValueResource
 from superset.utils.core import get_user_id
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,7 @@ class CreateKeyValueCommand(BaseCommand):
         self.key = key
         self.expires_on = expires_on
 
+    @transaction(on_error=partial(on_error, reraise=KeyValueCreateFailedError))
     def run(self) -> Key:
         """
         Persist the value
@@ -69,11 +70,8 @@ class CreateKeyValueCommand(BaseCommand):
         :return: the key associated with the persisted value
 
         """
-        try:
-            return self.create()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise KeyValueCreateFailedError() from ex
+
+        return self.create()
 
     def validate(self) -> None:
         pass
@@ -98,6 +96,7 @@ class CreateKeyValueCommand(BaseCommand):
                     entry.id = self.key
             except ValueError as ex:
                 raise KeyValueCreateFailedError() from ex
+
         db.session.add(entry)
         db.session.flush()
         return Key(id=entry.id, uuid=entry.uuid)

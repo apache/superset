@@ -116,7 +116,7 @@ class Datasource(BaseSupersetView):
             )
         orm_datasource.update_from_object(datasource_dict)
         data = orm_datasource.data
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         return self.json_response(sanitize_datasource_data(data))
 

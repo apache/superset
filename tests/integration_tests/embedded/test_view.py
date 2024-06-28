@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 def test_get_embedded_dashboard(client: FlaskClient[Any]):  # noqa: F811
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     embedded = EmbeddedDashboardDAO.upsert(dash, [])
+    db.session.flush()
     uri = f"embedded/{embedded.uuid}"
     response = client.get(uri)
     assert response.status_code == 200
@@ -57,6 +58,7 @@ def test_get_embedded_dashboard(client: FlaskClient[Any]):  # noqa: F811
 def test_get_embedded_dashboard_referrer_not_allowed(client: FlaskClient[Any]):  # noqa: F811
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     embedded = EmbeddedDashboardDAO.upsert(dash, ["test.example.com"])
+    db.session.flush()
     uri = f"embedded/{embedded.uuid}"
     response = client.get(uri)
     assert response.status_code == 403

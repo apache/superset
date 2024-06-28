@@ -23,6 +23,7 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
@@ -34,7 +35,6 @@ from superset.commands.security.exceptions import RLSRuleNotFoundError
 from superset.commands.security.update import UpdateRLSRuleCommand
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.extensions import event_logger
 from superset.row_level_security.schemas import (
     get_delete_ids_schema,
@@ -205,7 +205,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except DAOCreateFailedError as ex:
+        except SQLAlchemyError as ex:
             logger.error(
                 "Error creating RLS rule %s: %s",
                 self.__class__.__name__,
@@ -291,7 +291,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except DAOUpdateFailedError as ex:
+        except SQLAlchemyError as ex:
             logger.error(
                 "Error updating RLS rule %s: %s",
                 self.__class__.__name__,

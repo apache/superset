@@ -17,10 +17,9 @@
 
 import logging
 from datetime import datetime
+from functools import partial
 from typing import Any, Optional, Union
 from uuid import UUID
-
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -29,6 +28,7 @@ from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import Key, KeyValueCodec, KeyValueResource
 from superset.key_value.utils import get_filter
 from superset.utils.core import get_user_id
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -64,12 +64,9 @@ class UpdateKeyValueCommand(BaseCommand):
         self.codec = codec
         self.expires_on = expires_on
 
+    @transaction(on_error=partial(on_error, reraise=KeyValueUpdateFailedError))
     def run(self) -> Optional[Key]:
-        try:
-            return self.update()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise KeyValueUpdateFailedError() from ex
+        return self.update()
 
     def validate(self) -> None:
         pass

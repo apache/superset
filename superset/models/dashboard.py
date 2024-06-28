@@ -83,7 +83,7 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         user_id=target.id, welcome_dashboard_id=dashboard.id
     )
     session.add(extra_attributes)
-    session.commit()
+    session.commit()  # pylint: disable=consider-using-transaction
 
 
 sqla.event.listen(User, "after_insert", copy_dashboard)

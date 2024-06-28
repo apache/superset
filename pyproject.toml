@@ -240,6 +240,7 @@ ignore_basepython_conflict = true
 commands =
     superset db upgrade
     superset init
+    superset load-test-users
     # use -s to be able to use break pointers.
     # no args or tests/* can be passed as an argument to run all tests
     pytest -s {posargs}
