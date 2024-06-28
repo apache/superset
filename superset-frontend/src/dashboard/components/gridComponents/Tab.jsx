@@ -104,10 +104,8 @@ const TabTitleContainer = styled.div`
 
 const TitleDropIndicator = styled.div`
   &.drop-indicator {
-    // width: 5px;
     position: absolute;
     top: 0;
-    // left: -12px;
     border-radius: 4px;
   }
 `;
@@ -328,7 +326,7 @@ class Tab extends PureComponent {
         {({ dropIndicatorProps, dragSourceRef }) => (
           <TabTitleContainer
             isHighlighted={isHighlighted}
-            className="dragdroppable-tab empty-droptarget"
+            className="dragdroppable-tab"
             ref={dragSourceRef}
           >
             <EditableTitle

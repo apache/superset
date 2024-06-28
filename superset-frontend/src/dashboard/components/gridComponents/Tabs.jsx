@@ -105,6 +105,12 @@ const StyledTabsContainer = styled.div`
     }
   }
 
+  .ant-tabs-tab {
+    &:has(.dragdroppable--dragging) {
+      display: none;
+    }
+  }
+
   div .ant-tabs-tab-btn {
     text-transform: none;
   }
