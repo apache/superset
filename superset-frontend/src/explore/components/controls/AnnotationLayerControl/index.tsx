@@ -80,7 +80,7 @@ const defaultProps = {
   value: [],
   annotationError: {},
   annotationQuery: {},
-  onChange: () => { },
+  onChange: () => {},
 };
 class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
   static defaultProps = defaultProps;
@@ -125,7 +125,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
         anno === originalAnnotation ? newAnnotation : anno,
       );
     } else {
-      annotations = [ ...annotations, newAnnotation ];
+      annotations = [...annotations, newAnnotation];
       this.setState({ addedAnnotationIndex: annotations.length - 1 });
     }
 
@@ -139,7 +139,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
   handleVisibleChange = (visible: boolean, popoverKey: number | string) => {
     this.setState(prevState => ({
-      popoverVisible: { ...prevState.popoverVisible, [ popoverKey ]: visible },
+      popoverVisible: { ...prevState.popoverVisible, [popoverKey]: visible },
     }));
   };
 
@@ -182,7 +182,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
   renderInfo(anno: Annotation) {
     const { annotationError, annotationQuery, theme } = this.props;
-    if (annotationQuery[ anno.name ]) {
+    if (annotationQuery[anno.name]) {
       return (
         <i
           className="fa fa-refresh"
@@ -191,12 +191,12 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
         />
       );
     }
-    if (annotationError[ anno.name ]) {
+    if (annotationError[anno.name]) {
       return (
         <InfoTooltipWithTrigger
           label="validation-errors"
           bsStyle="danger"
-          tooltip={annotationError[ anno.name ]}
+          tooltip={annotationError[anno.name]}
         />
       );
     }
@@ -208,7 +208,9 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
   render() {
     const { addedAnnotationIndex } = this.state;
-    const addedAnnotation = addedAnnotationIndex ? this.props.value[ addedAnnotationIndex ] : null;
+    const addedAnnotation = addedAnnotationIndex
+      ? this.props.value[addedAnnotationIndex]
+      : null;
     const annotations = this.props.value.map((anno, i) => (
       <ControlPopover
         key={i}
@@ -223,9 +225,9 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
         content={this.renderPopover(
           i,
           anno,
-          this.props.annotationError[ anno.name ],
+          this.props.annotationError[anno.name],
         )}
-        visible={this.state.popoverVisible[ i ]}
+        visible={this.state.popoverVisible[i]}
         onVisibleChange={visible => this.handleVisibleChange(visible, i)}
       >
         <CustomListItem selectable>
@@ -248,7 +250,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
                 '',
               )}
               title={t('Add annotation layer')}
-              visible={this.state.popoverVisible[ addLayerPopoverKey ]}
+              visible={this.state.popoverVisible[addLayerPopoverKey]}
               destroyTooltipOnHide
               onVisibleChange={visible =>
                 this.handleVisibleChange(visible, addLayerPopoverKey)
@@ -263,7 +265,6 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
               </CustomListItem>
             </ControlPopover>
           )}
-
         </List>
       </div>
     );
@@ -284,7 +285,7 @@ function mapStateToProps({
   };
 
   const chart =
-    chartKey && charts[ chartKey ] ? charts[ chartKey ] : defaultChartState;
+    chartKey && charts[chartKey] ? charts[chartKey] : defaultChartState;
 
   return {
     colorScheme: explore.controls?.color_scheme?.value,
