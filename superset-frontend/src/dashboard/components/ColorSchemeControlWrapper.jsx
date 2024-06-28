@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import PropTypes from 'prop-types';
-import React from 'react';
+import { PureComponent } from 'react';
 import { getCategoricalSchemeRegistry, t } from '@superset-ui/core';
 
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
@@ -27,16 +27,16 @@ const propTypes = {
   onChange: PropTypes.func,
   labelMargin: PropTypes.number,
   colorScheme: PropTypes.string,
-  hasCustomLabelColors: PropTypes.bool,
+  hasCustomLabelsColor: PropTypes.bool,
 };
 
 const defaultProps = {
-  hasCustomLabelColors: false,
+  hasCustomLabelsColor: false,
   colorScheme: undefined,
   onChange: () => {},
 };
 
-class ColorSchemeControlWrapper extends React.PureComponent {
+class ColorSchemeControlWrapper extends PureComponent {
   constructor(props) {
     super(props);
     this.state = { hovered: false };
@@ -50,7 +50,7 @@ class ColorSchemeControlWrapper extends React.PureComponent {
   }
 
   render() {
-    const { colorScheme, labelMargin = 0, hasCustomLabelColors } = this.props;
+    const { colorScheme, labelMargin = 0, hasCustomLabelsColor } = this.props;
     return (
       <ColorSchemeControl
         description={t(
@@ -64,7 +64,7 @@ class ColorSchemeControlWrapper extends React.PureComponent {
         clearable
         schemes={this.schemes}
         hovered={this.state.hovered}
-        hasCustomLabelColors={hasCustomLabelColors}
+        hasCustomLabelsColor={hasCustomLabelsColor}
       />
     );
   }

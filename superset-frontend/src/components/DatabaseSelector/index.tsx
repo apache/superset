@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   ReactNode,
   useState,
   useMemo,
@@ -83,7 +83,7 @@ const LabelStyle = styled.div`
 `;
 
 type DatabaseValue = {
-  label: React.ReactNode;
+  label: ReactNode;
   value: number;
   id: number;
   database_name: string;

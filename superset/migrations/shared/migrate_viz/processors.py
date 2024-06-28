@@ -280,3 +280,38 @@ class MigrateHeatmapChart(MigrateViz):
 
     def _pre_action(self) -> None:
         self.data["legend_type"] = "continuous"
+
+
+class MigrateHistogramChart(MigrateViz):
+    source_viz_type = "histogram"
+    target_viz_type = "histogram_v2"
+    rename_keys = {
+        "x_axis_label": "x_axis_title",
+        "y_axis_label": "y_axis_title",
+        "normalized": "normalize",
+    }
+    remove_keys = {"all_columns_x", "link_length", "queryFields"}
+
+    def _pre_action(self) -> None:
+        all_columns_x = self.data.get("all_columns_x")
+        if all_columns_x and len(all_columns_x) > 0:
+            self.data["column"] = all_columns_x[0]
+
+        link_length = self.data.get("link_length")
+        self.data["bins"] = int(link_length) if link_length else 5
+
+        groupby = self.data.get("groupby")
+        if not groupby:
+            self.data["groupby"] = []
+
+
+class MigrateSankey(MigrateViz):
+    source_viz_type = "sankey"
+    target_viz_type = "sankey_v2"
+    remove_keys = {"groupby"}
+
+    def _pre_action(self) -> None:
+        groupby = self.data.get("groupby")
+        if groupby and len(groupby) > 1:
+            self.data["source"] = groupby[0]
+            self.data["target"] = groupby[1]

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { TimeFormats } from '@superset-ui/core';
 import TimeCell from '.';
@@ -31,7 +30,7 @@ export const Basic: ComponentStory<typeof TimeCell> = args => (
 );
 
 Basic.args = {
-  value: Date.now(),
+  value: new Date('2015-07-02T16:16:00Z').getTime(),
 };
 
 Basic.argTypes = {

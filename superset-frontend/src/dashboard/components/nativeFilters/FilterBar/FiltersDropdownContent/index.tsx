@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { css, Divider, Filter, SupersetTheme } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';

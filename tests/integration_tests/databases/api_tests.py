@@ -839,16 +839,12 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    @mock.patch(
-        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
-    )
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_if_ssh_tunneling_flag_is_not_active_it_raises_new_exception(
         self,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
-        mock_test_connection_database_command_run,
     ):
         """
         Database API: Test raises SSHTunneling feature flag not enabled

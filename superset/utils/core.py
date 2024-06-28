@@ -1056,16 +1056,23 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     )
 
 
+def is_base_axis(column: Column) -> bool:
+    return is_adhoc_column(column) and column.get("columnType") == "BASE_AXIS"
+
+
+def get_base_axis_columns(columns: list[Column] | None) -> list[Column]:
+    return [column for column in columns or [] if is_base_axis(column)]
+
+
+def get_non_base_axis_columns(columns: list[Column] | None) -> list[Column]:
+    return [column for column in columns or [] if not is_base_axis(column)]
+
+
 def get_base_axis_labels(columns: list[Column] | None) -> tuple[str, ...]:
-    axis_cols = [
-        col
-        for col in columns or []
-        if is_adhoc_column(col) and col.get("columnType") == "BASE_AXIS"
-    ]
-    return tuple(get_column_name(col) for col in axis_cols)
+    return tuple(get_column_name(column) for column in get_base_axis_columns(columns))
 
 
-def get_xaxis_label(columns: list[Column] | None) -> str | None:
+def get_x_axis_label(columns: list[Column] | None) -> str | None:
     labels = get_base_axis_labels(columns)
     return labels[0] if labels else None
 

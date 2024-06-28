@@ -72,6 +72,7 @@ Join our growing community!
 
 ### Enterprise Technology
 - [A3Data](https://a3data.com.br) [@neylsoncrepalde]
+- [Analytics Aura](https://analyticsaura.com/) [@Analytics-Aura]
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
 - [Astronomer](https://www.astronomer.io) [@ryw]
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
@@ -86,6 +87,7 @@ Join our growing community!
 - [ELMO Cloud HR & Payroll](https://elmosoftware.com.au/)
 - [Endress+Hauser](http://www.endress.com/) [@rumbin]
 - [FBK - ICT center](http://ict.fbk.eu)
+- [Gavagai](https://gavagai.io) [@gavagai-corp]
 - [GfK Data Lab](http://datalab.gfk.com) [@mherr]
 - [GrowthSimple](https://growthsimple.ai/)
 - [Hydrolix](https://www.hydrolix.io/)
@@ -152,6 +154,7 @@ Join our growing community!
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
 - [Beans](https://www.beans.fi) [@kakoni]
+- [Bluesquare](https://www.bluesquarehub.com/) [@madewulf]
 - [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
@@ -166,8 +169,10 @@ Join our growing community!
 
 ### Government
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
+- [RIS3 Strategy of CZ, MIT CR](https://www.ris3.cz/) [@RIS3CZ]
 
 ### Travel
+- [Agoda](https://www.agoda.com/) [@lostseaway, @maiake, @obombayo]
 - [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
 
 ### Others

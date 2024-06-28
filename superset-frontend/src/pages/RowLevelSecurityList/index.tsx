@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, styled, SupersetClient } from '@superset-ui/core';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icons from 'src/components/Icons';
 import ListView, {

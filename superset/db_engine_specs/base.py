@@ -1133,9 +1133,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cte = None
         sql_remainder = None
         sql = sql.strip(" \t\n;")
-        sql_statement = sqlparse.format(sql, strip_comments=True)
         query_limit: int | None = sql_parse.extract_top_from_query(
-            sql_statement, cls.top_keywords
+            sql, cls.top_keywords
         )
         if not limit:
             final_limit = query_limit
@@ -1144,7 +1143,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         else:
             final_limit = limit
         if not cls.allows_cte_in_subquery:
-            cte, sql_remainder = sql_parse.get_cte_remainder_query(sql_statement)
+            cte, sql_remainder = sql_parse.get_cte_remainder_query(sql)
         if cte:
             str_statement = str(sql_remainder)
             cte = cte + "\n"
@@ -1610,9 +1609,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def _get_fields(cls, cols: list[ResultSetColumnType]) -> list[Any]:
         return [
-            literal_column(query_as)
-            if (query_as := c.get("query_as"))
-            else column(c["column_name"])
+            (
+                literal_column(query_as)
+                if (query_as := c.get("query_as"))
+                else column(c["column_name"])
+            )
             for c in cols
         ]
 
@@ -1828,12 +1829,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             cursor.arraysize = cls.arraysize
         try:
             cursor.execute(query)
-        except cls.oauth2_exception as ex:
-            if database.is_oauth2_enabled() and g and g.user:
+        except Exception as ex:
+            if database.is_oauth2_enabled() and cls.needs_oauth2(ex):
                 cls.start_oauth2_dance(database)
             raise cls.get_dbapi_mapped_exception(ex) from ex
-        except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Check if the exception is one that indicates OAuth2 is needed.
+        """
+        return g and hasattr(g, "user") and isinstance(ex, cls.oauth2_exception)
 
     @classmethod
     def make_label_compatible(cls, label: str) -> str | quoted_name:
@@ -1994,7 +2000,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 extra = json.loads(database.extra)
             except json.JSONDecodeError as ex:
                 logger.error(ex, exc_info=True)
-                raise ex
+                raise
         return extra
 
     @staticmethod
@@ -2015,7 +2021,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             params.update(encrypted_extra)
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
-            raise ex
+            raise
 
     @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:

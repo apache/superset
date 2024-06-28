@@ -196,6 +196,13 @@ SQLALCHEMY_DATABASE_URI = (
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
+# The default MySQL isolation level is REPEATABLE READ whereas the default PostgreSQL
+# isolation level is READ COMMITTED. All backends should use READ COMMITTED (or similar)
+# to help ensure consistent behavior.
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "isolation_level": "SERIALIZABLE",  # SQLite does not support READ COMMITTED.
+}
+
 # In order to hook up a custom password store for all SQLALCHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
 # returns a password and set SQLALCHEMY_CUSTOM_PASSWORD_STORE.
@@ -254,7 +261,7 @@ WTF_CSRF_EXEMPT_LIST = [
 ]
 
 # Whether to run the web server in debug mode or not
-DEBUG = os.environ.get("FLASK_DEBUG")
+DEBUG = parse_boolean_string(os.environ.get("FLASK_DEBUG"))
 FLASK_USE_RELOAD = True
 
 # Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
@@ -400,6 +407,38 @@ class D3Format(TypedDict, total=False):
 
 D3_FORMAT: D3Format = {}
 
+
+# Override the default d3 locale for time format
+# Default values are equivalent to
+# D3_TIME_FORMAT = {
+#     "dateTime": "%x, %X",
+#     "date": "%-m/%-d/%Y",
+#     "time": "%-I:%M:%S %p",
+#     "periods": ["AM", "PM"],
+#     "days": ["Sunday", "Monday", "Tuesday", "Wednesday",
+#              "Thursday", "Friday", "Saturday"],
+#     "shortDays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+#     "months": ["January", "February", "March", "April",
+#                "May", "June", "July", "August",
+#                "September", "October", "November", "December"],
+#     "shortMonths": ["Jan", "Feb", "Mar", "Apr",
+#                     "May", "Jun", "Jul", "Aug",
+#                     "Sep", "Oct", "Nov", "Dec"]
+# }
+# https://github.com/d3/d3-time-format/tree/main#locales
+class D3TimeFormat(TypedDict, total=False):
+    date: str
+    dateTime: str
+    time: str
+    periods: list[str]
+    days: list[str]
+    shortDays: list[str]
+    months: list[str]
+    shortMonths: list[str]
+
+
+D3_TIME_FORMAT: D3TimeFormat = {}
+
 CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 
 # ---------------------------------------------------
@@ -498,6 +537,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
     "CHART_PLUGINS_EXPERIMENTAL": False,
+    # Regardless of database configuration settings, force SQLLAB to run async using Celery
+    "SQLLAB_FORCE_RUN_ASYNC": False,
 }
 
 # ------------------------------
@@ -854,7 +895,7 @@ LOGGING_CONFIGURATOR = DefaultLoggingConfigurator()
 # Console Log Settings
 
 LOG_FORMAT = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.DEBUG if DEBUG else logging.INFO
 
 # ---------------------------------------------------
 # Enable Time Rotate Log Handler
@@ -862,7 +903,7 @@ LOG_LEVEL = logging.INFO
 # LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 ENABLE_TIME_ROTATE = False
-TIME_ROTATE_LOG_LEVEL = logging.INFO
+TIME_ROTATE_LOG_LEVEL = logging.DEBUG if DEBUG else logging.INFO
 FILENAME = os.path.join(DATA_DIR, "superset.log")
 ROLLOVER = "midnight"
 INTERVAL = 1
@@ -1343,6 +1384,7 @@ ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
+# You can also assign a function to the config that returns the expected integer
 ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 

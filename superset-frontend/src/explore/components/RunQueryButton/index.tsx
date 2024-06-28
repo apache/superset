@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
 import Button from 'src/components/Button';
 

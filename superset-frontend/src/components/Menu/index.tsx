@@ -17,6 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
+import { ReactElement } from 'react';
 import { Menu as AntdMenu } from 'antd';
 import { MenuProps as AntdMenuProps } from 'antd/lib/menu';
 
@@ -30,7 +31,7 @@ export enum MenuItemKeyEnum {
 
 export type AntdMenuTypeRef = { current: { props: { parentMenu: AntdMenu } } };
 
-export type AntdMenuItemType = React.ReactElement & {
+export type AntdMenuItemType = ReactElement & {
   ref: AntdMenuTypeRef;
   type: { displayName: string; isSubMenu: number };
 };

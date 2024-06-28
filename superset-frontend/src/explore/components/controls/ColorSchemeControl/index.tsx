@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo, ReactNode } from 'react';
+
 import {
   css,
   ColorScheme,
@@ -45,7 +46,7 @@ export interface ColorSchemes {
 }
 
 export interface ColorSchemeControlProps {
-  hasCustomLabelColors: boolean;
+  hasCustomLabelsColor: boolean;
   dashboardId?: number;
   label: string;
   name: string;
@@ -74,14 +75,14 @@ const DASHBOARD_ALERT = t(
 
 const Label = ({
   label,
-  hasCustomLabelColors,
+  hasCustomLabelsColor,
   dashboardId,
 }: Pick<
   ColorSchemeControlProps,
-  'label' | 'hasCustomLabelColors' | 'dashboardId'
+  'label' | 'hasCustomLabelsColor' | 'dashboardId'
 >) => {
-  if (hasCustomLabelColors || dashboardId) {
-    const alertTitle = hasCustomLabelColors
+  if (hasCustomLabelsColor || dashboardId) {
+    const alertTitle = hasCustomLabelsColor
       ? CUSTOM_LABEL_ALERT
       : DASHBOARD_ALERT;
     return (
@@ -97,7 +98,7 @@ const Label = ({
 };
 
 const ColorSchemeControl = ({
-  hasCustomLabelColors = false,
+  hasCustomLabelsColor = false,
   dashboardId,
   label = t('Color scheme'),
   onChange = () => {},
@@ -161,7 +162,7 @@ const ColorSchemeControl = ({
               label={currentScheme.label}
               colors={colors}
             />
-          ) as React.ReactNode,
+          ) as ReactNode,
           label: schemesObject?.[value]?.label || value,
           value,
         };
@@ -230,7 +231,7 @@ const ColorSchemeControl = ({
         label={
           <Label
             label={label}
-            hasCustomLabelColors={hasCustomLabelColors}
+            hasCustomLabelsColor={hasCustomLabelsColor}
             dashboardId={dashboardId}
           />
         }

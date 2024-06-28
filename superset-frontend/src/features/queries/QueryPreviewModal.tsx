@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import cx from 'classnames';

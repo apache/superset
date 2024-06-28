@@ -16,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   MouseEvent,
   Key,
+  KeyboardEvent,
   ReactChild,
   useState,
   useRef,
   RefObject,
   useCallback,
+  ReactElement,
 } from 'react';
+
 import { RouteComponentProps, useHistory, withRouter } from 'react-router-dom';
 import moment from 'moment';
 import {
@@ -149,6 +152,7 @@ export interface SliceHeaderControlsProps {
   logEvent?: (eventName: string, eventData?: object) => void;
   toggleExpandSlice?: (sliceId: number) => void;
   exportCSV?: (sliceId: number) => void;
+  exportPivotCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
@@ -345,9 +349,9 @@ const getNavigationKeys = (
 };
 
 export const handleDropdownNavigation = (
-  e: React.KeyboardEvent<HTMLElement>,
+  e: KeyboardEvent<HTMLElement>,
   dropdownIsOpen: boolean,
-  menu: React.ReactElement,
+  menu: ReactElement,
   toggleDropdown: () => void,
   setSelectedKeys: (keys: string[]) => void,
   setOpenKeys: (keys: string[]) => void,
@@ -605,6 +609,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         // eslint-disable-next-line no-unused-expressions
         props.exportCSV?.(props.slice.slice_id);
         break;
+      case MenuKeys.ExportPivotCsv:
+        // eslint-disable-next-line no-unused-expressions
+        props.exportPivotCSV?.(props.slice.slice_id);
+        break;
       case MenuKeys.Fullscreen:
         props.handleToggleFullSize();
         break;
@@ -682,6 +690,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     isCached = [],
   } = props;
   const isTable = slice.viz_type === 'table';
+  const isPivotTable = slice.viz_type === 'pivot_table_v2';
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     moment.utc(itemCachedDttm).fromNow(),
   );
@@ -806,6 +815,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
                 dataSize={20}
                 isRequest
                 isVisible
+                canDownload={!!props.supersetCanCSV}
               />
             }
           />
@@ -862,6 +872,14 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
           >
             {t('Export to .CSV')}
           </Menu.Item>
+          {isPivotTable && (
+            <Menu.Item
+              key={MenuKeys.ExportPivotCsv}
+              icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+            >
+              {t('Export to Pivoted .CSV')}
+            </Menu.Item>
+          )}
           <Menu.Item
             key={MenuKeys.ExportXlsx}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}

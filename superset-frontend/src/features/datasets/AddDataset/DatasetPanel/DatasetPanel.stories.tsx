@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import DatasetPanel from './DatasetPanel';

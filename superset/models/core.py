@@ -29,7 +29,7 @@ from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable, cast, TYPE_CHECKING
 
 import numpy
 import pandas as pd
@@ -78,7 +78,7 @@ from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
 from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import DatasourceName, get_username
-from superset.utils.oauth2 import get_oauth2_access_token
+from superset.utils.oauth2 import get_oauth2_access_token, OAuth2ClientConfigSchema
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -538,7 +538,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         try:
             return create_engine(sqlalchemy_url, **params)
         except Exception as ex:
-            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @contextmanager
     def get_raw_connection(
@@ -554,17 +554,23 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             nullpool=nullpool,
             source=source,
         ) as engine:
-            with closing(engine.raw_connection()) as conn:
-                # pre-session queries are used to set the selected schema and, in the
-                # future, the selected catalog
-                for prequery in self.db_engine_spec.get_prequeries(
-                    catalog=catalog,
-                    schema=schema,
-                ):
-                    cursor = conn.cursor()
-                    cursor.execute(prequery)
+            try:
+                with closing(engine.raw_connection()) as conn:
+                    # pre-session queries are used to set the selected schema and, in the
+                    # future, the selected catalog
+                    for prequery in self.db_engine_spec.get_prequeries(
+                        catalog=catalog,
+                        schema=schema,
+                    ):
+                        cursor = conn.cursor()
+                        cursor.execute(prequery)
 
-                yield conn
+                    yield conn
+
+            except Exception as ex:
+                if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+                    self.db_engine_spec.start_oauth2_dance(self)
+                raise
 
     def get_default_catalog(self) -> str | None:
         """
@@ -763,7 +769,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     )
                 }
         except Exception as ex:
-            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:view_list",
@@ -797,7 +803,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     )
                 }
         except Exception as ex:
-            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @contextmanager
     def get_inspector(
@@ -900,7 +906,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 encrypted_extra = json.loads(self.encrypted_extra)
             except json.JSONDecodeError as ex:
                 logger.error(ex, exc_info=True)
-                raise ex
+                raise
         return encrypted_extra
 
     # pylint: disable=invalid-name
@@ -1063,20 +1069,30 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         """
         Is OAuth2 enabled in the database for authentication?
 
-        Currently this looks for a global config at the DB engine spec level, but in the
-        future we want to be allow admins to create custom OAuth2 clients from the
-        Superset UI, and assign them to specific databases.
+        Currently this checks for configuration stored in the database `extra`, and then
+        for a global config at the DB engine spec level. In the future we want to allow
+        admins to create custom OAuth2 clients from the Superset UI, and assign them to
+        specific databases.
         """
-        return self.db_engine_spec.is_oauth2_enabled()
+        encrypted_extra = json.loads(self.encrypted_extra or "{}")
+        oauth2_client_info = encrypted_extra.get("oauth2_client_info", {})
+        return bool(oauth2_client_info) or self.db_engine_spec.is_oauth2_enabled()
 
     def get_oauth2_config(self) -> OAuth2ClientConfig | None:
         """
         Return OAuth2 client configuration.
 
-        This includes client ID, client secret, scope, redirect URI, endpointsm etc.
-        Currently this reads the global DB engine spec config, but in the future it
-        should first check if there's a custom client assigned to the database.
+        Currently this checks for configuration stored in the database `extra`, and then
+        for a global config at the DB engine spec level. In the future we want to allow
+        admins to create custom OAuth2 clients from the Superset UI, and assign them to
+        specific databases.
         """
+        encrypted_extra = json.loads(self.encrypted_extra or "{}")
+        if oauth2_client_info := encrypted_extra.get("oauth2_client_info"):
+            schema = OAuth2ClientConfigSchema()
+            client_config = schema.load(oauth2_client_info)
+            return cast(OAuth2ClientConfig, client_config)
+
         return self.db_engine_spec.get_oauth2_config()
 
 

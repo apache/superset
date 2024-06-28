@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { act } from 'react-dom/test-utils';
 import fetchMock from 'fetch-mock';
 import {
@@ -273,6 +272,7 @@ test('should display options in order of the api response', async () => {
 });
 
 test('Should fetch the search keyword when total count exceeds initial options', async () => {
+  fetchMock.reset();
   fetchMock.get(
     databaseApiRoute,
     {

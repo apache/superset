@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useState,
+  memo,
+  ChangeEvent,
+  MouseEvent,
+} from 'react';
+
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
@@ -63,7 +71,14 @@ import {
   reRunQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import { URL_PARAMS } from 'src/constants';
+import useLogAction from 'src/logger/useLogAction';
+import {
+  LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD,
+  LOG_ACTIONS_SQLLAB_CREATE_CHART,
+  LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
+} from 'src/logger/LogUtils';
 import Icons from 'src/components/Icons';
+import { findPermission } from 'src/utils/findPermission';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -163,6 +178,7 @@ const ResultSet = ({
         'dbId',
         'tab',
         'sql',
+        'sqlEditorId',
         'templateParams',
         'schema',
         'rows',
@@ -193,6 +209,7 @@ const ResultSet = ({
 
   const history = useHistory();
   const dispatch = useDispatch();
+  const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
     if (
@@ -242,15 +259,15 @@ const ResultSet = ({
     dispatch(addQueryEditor(qe));
   };
 
-  const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const changeSearch = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchText(event.target.value);
   };
 
-  const createExploreResultsOnClick = async (clickEvent: React.MouseEvent) => {
+  const createExploreResultsOnClick = async (clickEvent: MouseEvent) => {
     const { results } = query;
 
     const openInNewWindow = clickEvent.metaKey;
-
+    logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
     if (results?.query_id) {
       const key = await postFormData(results.query_id, 'query', {
         ...EXPLORE_CHART_DEFAULT,
@@ -293,6 +310,12 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
+      const canExportData = findPermission(
+        'can_export_csv',
+        'SQLLab',
+        user?.roles,
+      );
+
       return (
         <ResultSetControls>
           <SaveDatasetModal
@@ -312,22 +335,35 @@ const ResultSet = ({
                 onClick={createExploreResultsOnClick}
               />
             )}
-            {csv && (
-              <Button buttonSize="small" href={getExportCsvUrl(query.id)}>
+            {csv && canExportData && (
+              <Button
+                buttonSize="small"
+                href={getExportCsvUrl(query.id)}
+                data-test="export-csv-button"
+                onClick={() => logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {})}
+              >
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
 
-            <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data, columns)}
-              wrapped={false}
-              copyNode={
-                <Button buttonSize="small">
-                  <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
-                </Button>
-              }
-              hideTooltip
-            />
+            {canExportData && (
+              <CopyToClipboard
+                text={prepareCopyToClipboardTabularData(data, columns)}
+                wrapped={false}
+                copyNode={
+                  <Button
+                    buttonSize="small"
+                    data-test="copy-to-clipboard-button"
+                  >
+                    <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
+                  </Button>
+                }
+                hideTooltip
+                onCopyEnd={() =>
+                  logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
+                }
+              />
+            )}
           </ResultSetButtons>
           {search && (
             <input
@@ -695,4 +731,4 @@ const ResultSet = ({
   );
 };
 
-export default React.memo(ResultSet);
+export default memo(ResultSet);

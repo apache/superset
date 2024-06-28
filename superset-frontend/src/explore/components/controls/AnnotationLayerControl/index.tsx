@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { List } from 'src/components';
 import { connect } from 'react-redux';
 import {
@@ -85,7 +84,8 @@ const defaultProps = {
 class AnnotationLayerControl extends React.PureComponent<Props, PopoverState> {
   static defaultProps = defaultProps;
 
-  constructor(props: Props) {
+class AnnotationLayerControl extends React.PureComponent {
+  constructor(props) {
     super(props);
     this.state = {
       popoverVisible: {},

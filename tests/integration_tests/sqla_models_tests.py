@@ -25,7 +25,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from flask.ctx import AppContext
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 
@@ -253,7 +253,7 @@ class TestDatabaseModel(SupersetTestCase):
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
 
         # assert virtual dataset
-        assert "SELECT\n  'user_abc' AS user,\n  'xyz_P1D' AS time_grain" in query
+        assert "SELECT 'user_abc' as user, 'xyz_P1D' as time_grain" in query
         # assert dataset calculated column
         assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert adhoc column
@@ -856,7 +856,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
     ],
 )
 def test__normalize_prequery_result_type(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     row: pd.Series,
     dimension: str,
     result: Any,

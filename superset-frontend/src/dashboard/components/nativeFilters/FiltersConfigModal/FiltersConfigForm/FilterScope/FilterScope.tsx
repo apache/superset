@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { FC, useCallback, useRef, useState } from 'react';
+import { FC, useCallback, useRef, useState } from 'react';
 import {
   NativeFilterScope,
   styled,

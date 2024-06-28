@@ -151,6 +151,7 @@ export function transformSeries(
     areaOpacity?: number;
     seriesType?: EchartsTimeseriesSeriesType;
     stack?: StackType;
+    stackIdSuffix?: string;
     yAxisIndex?: number;
     showValue?: boolean;
     onlyTotal?: boolean;
@@ -179,6 +180,7 @@ export function transformSeries(
     areaOpacity = 1,
     seriesType,
     stack,
+    stackIdSuffix,
     yAxisIndex = 0,
     showValue,
     onlyTotal,
@@ -224,6 +226,9 @@ export function transformSeries(
     stackId = getTimeCompareStackId('obs', timeCompare, name);
   } else if (stack && isTrend) {
     stackId = getTimeCompareStackId(forecastSeries.type, timeCompare, name);
+  }
+  if (stackId && stackIdSuffix) {
+    stackId += stackIdSuffix;
   }
   let plotType;
   if (
@@ -566,10 +571,6 @@ export function getPadding(
     ? TIMESERIES_CONSTANTS.yAxisLabelTopOffset
     : 0;
   const xAxisOffset = addXAxisTitleOffset ? Number(xAxisTitleMargin) || 0 : 0;
-  const showLegendTopOffset =
-    isHorizontal && showLegend && legendOrientation === LegendOrientation.Top
-      ? 100
-      : 0;
 
   return getChartPadding(
     showLegend,
@@ -578,12 +579,8 @@ export function getPadding(
     {
       top:
         yAxisTitlePosition && yAxisTitlePosition === 'Top'
-          ? TIMESERIES_CONSTANTS.gridOffsetTop +
-            showLegendTopOffset +
-            (Number(yAxisTitleMargin) || 0)
-          : TIMESERIES_CONSTANTS.gridOffsetTop +
-            showLegendTopOffset +
-            yAxisOffset,
+          ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
+          : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
       bottom:
         zoomable && !isHorizontal
           ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset

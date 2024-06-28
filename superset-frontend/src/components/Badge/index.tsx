@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Badge as AntdBadge } from 'antd';
 import { BadgeProps as AntdBadgeProps } from 'antd/lib/badge';

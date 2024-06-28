@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { isEqual } from 'lodash';
 import { css } from '@superset-ui/core';
 import Select from '../Select/Select';
@@ -62,7 +62,7 @@ const generateItems = (overflowingState?: OverflowingState) =>
 export const Component = (props: DropdownContainerProps) => {
   const [items, setItems] = useState<ItemsType>([]);
   const [overflowingState, setOverflowingState] = useState<OverflowingState>();
-  const containerRef = React.useRef<Ref>(null);
+  const containerRef = useRef<Ref>(null);
   const onOverflowingStateChange = useCallback(
     value => {
       if (!isEqual(overflowingState, value)) {

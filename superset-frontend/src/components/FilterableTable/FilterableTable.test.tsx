@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import FilterableTable from 'src/components/FilterableTable';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -32,9 +32,7 @@ describe('FilterableTable', () => {
     height: 500,
   };
   it('is valid element', () => {
-    expect(React.isValidElement(<FilterableTable {...mockedProps} />)).toBe(
-      true,
-    );
+    expect(isValidElement(<FilterableTable {...mockedProps} />)).toBe(true);
   });
   it('renders a grid with 3 Table rows', () => {
     const { getByRole, getByText } = render(

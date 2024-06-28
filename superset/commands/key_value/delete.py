@@ -59,6 +59,6 @@ class DeleteKeyValueCommand(BaseCommand):
         filter_ = get_filter(self.resource, self.key)
         if entry := db.session.query(KeyValueEntry).filter_by(**filter_).first():
             db.session.delete(entry)
-            db.session.commit()
+            db.session.flush()
             return True
         return False

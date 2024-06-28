@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
@@ -39,7 +39,7 @@ describe('EditableTitle', () => {
     <EditableTable title="my title" onSaveTitle={callback} />,
   );
   it('is valid', () => {
-    expect(React.isValidElement(<EditableTable {...mockProps} />)).toBe(true);
+    expect(isValidElement(<EditableTable {...mockProps} />)).toBe(true);
   });
   it('should render title', () => {
     const titleElement = editableWrapper.find('input');

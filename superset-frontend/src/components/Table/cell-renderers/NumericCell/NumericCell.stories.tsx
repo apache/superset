@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { CurrencyCode, NumericCell, LocaleCode, Style } from './index';
 

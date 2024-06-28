@@ -18,6 +18,7 @@
 from typing import Any, Optional
 from uuid import uuid3
 
+from superset import db
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource, SharedKey
 from superset.key_value.utils import get_uuid_namespace, random_key
 
@@ -45,6 +46,7 @@ def set_shared_value(key: SharedKey, value: Any) -> None:
         key=uuid_key,
         codec=CODEC,
     ).run()
+    db.session.commit()
 
 
 def get_permalink_salt(key: SharedKey) -> str:
