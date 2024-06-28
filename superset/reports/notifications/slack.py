@@ -96,10 +96,6 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
             # if we can fetch channels, then raise an error and use the v2 api
             raise SlackV1NotificationError
 
-        # use the v1 api but warn with a deprecation message
-        logger.warning(
-            "Your current Slack scopes are missing `channels:read`. Please add this to your Slack app in order to continue using the v1 API. Support for the old Slack API will be removed in Superset version 6.0.0."
-        )
         try:
             client = get_slack_client()
             channel = self._get_channel()

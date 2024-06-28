@@ -53,6 +53,12 @@ export type NotificationSetting = {
   options: NotificationMethodOption[];
 };
 
+export type SlackChannel = {
+  id: string;
+  name: string;
+  is_member: boolean;
+};
+
 export type Recipient = {
   recipient_config_json: {
     target: string;

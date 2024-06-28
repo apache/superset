@@ -143,7 +143,7 @@ class BaseReportState:
                     )
 
                 updated_recipients.append(recipient_copy)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
         except Exception as ex:
             logger.warning(
                 "Failed to update slack recipients to v2: %s", str(ex), exc_info=True

@@ -22,6 +22,7 @@ from flask import current_app
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+from superset import feature_flag_manager
 from superset.exceptions import SupersetException
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ def get_slack_client() -> WebClient:
     return WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
 
 
-def get_channels_with_search(search_string: str = "", limit: int = 500) -> list[str]:
+def get_channels_with_search(search_string: str = "", limit: int = 999) -> list[str]:
     """
     The slack api is paginated but does not include search, so we need to fetch
     all channels and filter them ourselves
@@ -80,12 +81,20 @@ def get_channels_with_search(search_string: str = "", limit: int = 500) -> list[
 
 
 def should_use_v2_api() -> bool:
+    if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_SLACK_V2"):
+        return False
     try:
         client = get_slack_client()
         client.conversations_list()
         logger.info("Slack API v2 is available")
         return True
     except SlackApiError:
+        # use the v1 api but warn with a deprecation message
+        logger.warning(
+            """Your current Slack scopes are missing `channels:read`. Please add
+            this to your Slack app in order to continue using the v1 API. Support
+            for the old Slack API will be removed in Superset version 6.0.0."""
+        )
         return False
 
 

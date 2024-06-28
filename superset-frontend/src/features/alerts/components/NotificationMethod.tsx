@@ -34,7 +34,11 @@ import {
 } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
-import { NotificationMethodOption, NotificationSetting } from '../types';
+import {
+  NotificationMethodOption,
+  NotificationSetting,
+  SlackChannel,
+} from '../types';
 import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
@@ -100,7 +104,8 @@ export const mapSlackOptions = ({
     .split(',')
     .map(recipient =>
       slackOptions.data.find(
-        option => option[prop].toLowerCase() === recipient.toLowerCase(),
+        option =>
+          option[prop].trim().toLowerCase() === recipient.trim().toLowerCase(),
       ),
     )
     .filter(val => !!val) as { label: string; value: string }[];
@@ -132,10 +137,12 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
 
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
 
-  const mapChannelsToOptions = (result: { name: string; id: string }[]) =>
-    result.map((result: { name: string; id: string; is_member: boolean }) => ({
-      label: `${result.name} ${result.is_member ? '' : '(Bot not in channel)'}`,
-      value: result.id,
+  const mapChannelsToOptions = (result: SlackChannel[]) =>
+    result.map((channel: SlackChannel) => ({
+      label: `${channel.name} ${
+        channel.is_member ? '' : '<i>(Bot not in channel)</i>'
+      }`,
+      value: channel.id,
     }));
 
   const onMethodChange = (selected: {
@@ -157,57 +164,51 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
 
   useEffect(() => {
     const endpoint = '/api/v1/report/slack_channels/';
-    SupersetClient.get({ endpoint })
-      .then(({ json }) => {
-        const { result, count } = json;
+    if (
+      method &&
+      [
+        NotificationMethodOption.Slack,
+        NotificationMethodOption.SlackV2,
+      ].includes(method) &&
+      !slackOptions.data.length
+    ) {
+      SupersetClient.get({ endpoint })
+        .then(({ json }) => {
+          const { result, count } = json;
 
-        const options: { label: any; value: any }[] =
-          mapChannelsToOptions(result);
+          const options: { label: any; value: any }[] =
+            mapChannelsToOptions(result);
 
-        setSlackOptions({
-          data: options,
-          totalCount: (count ?? options.length) as number,
-        });
-
-        // on first load, if the Slack channels api succeeds,
-        // then convert this to SlackV2
-        if (
-          method === NotificationMethodOption.Slack &&
-          isFeatureEnabled(FeatureFlag.AlertReportSlackV2)
-        ) {
-          // convert v1 names to v2 ids
-          setSlackRecipients(
-            mapSlackOptions({
-              method: NotificationMethodOption.Slack,
-              recipientValue,
-              slackOptions,
-            }),
-          );
-          onMethodChange({
-            label: NotificationMethodOption.Slack,
-            value: NotificationMethodOption.SlackV2,
+          setSlackOptions({
+            data: options,
+            totalCount: (count ?? options.length) as number,
           });
-        }
-      })
-      .catch(() => {
-        // Fallback to slack v1 if slack v2 is not compatible
-        setUseSlackV1(true);
-      });
-  }, []);
 
-  useEffect(() => {
-    // after the slackOptions load, get the ids from the names
-    // we only save the ids but we want to display the names in the UI
-    if (!useSlackV1 && slackOptions.data.length > 0) {
-      setSlackRecipients(
-        mapSlackOptions({
-          method: NotificationMethodOption.SlackV2,
-          recipientValue,
-          slackOptions,
-        }),
-      );
+          // on first load, if the Slack channels api succeeds,
+          // then convert this to SlackV2
+          if (isFeatureEnabled(FeatureFlag.AlertReportSlackV2)) {
+            // convert v1 names to v2 ids
+            setSlackRecipients(
+              mapSlackOptions({
+                method,
+                recipientValue,
+                slackOptions: { data: options },
+              }),
+            );
+            if (method === NotificationMethodOption.Slack) {
+              onMethodChange({
+                label: NotificationMethodOption.Slack,
+                value: NotificationMethodOption.SlackV2,
+              });
+            }
+          }
+        })
+        .catch(() => {
+          // Fallback to slack v1 if slack v2 is not compatible
+          setUseSlackV1(true);
+        });
     }
-  }, [slackOptions, useSlackV1]);
+  }, [method]);
 
   const formattedOptions = useMemo(
     () =>
