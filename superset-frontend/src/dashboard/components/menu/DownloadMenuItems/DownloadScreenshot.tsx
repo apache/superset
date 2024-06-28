@@ -49,13 +49,19 @@ export default function DownloadScreenshot({
   );
   const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
   const anchor = directPathToChild?.pop();
+
   const onDownloadScreenshot = () => {
     let retries = 0;
 
     // this function checks if the image is ready
     const checkImageReady = (imageUrl: string) =>
       fetch(`${imageUrl}?download_format=${format}`)
-        .then(response => response.blob())
+        .then(response => {
+          if (response.status === 404) {
+            throw new Error('Image not ready');
+          }
+          return response.blob();
+        })
         .then(blob => {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -82,12 +88,12 @@ export default function DownloadScreenshot({
             retries += 1;
             setTimeout(() => fetchImageWithRetry(imageUrl), RETRY_INTERVAL);
           } else {
-            logging.error(error);
             addDangerToast(
               t(
                 'The screenshot could not be downloaded. Please, try again later.',
               ),
             );
+            logging.error(error);
           }
         });
     };
@@ -127,7 +133,7 @@ export default function DownloadScreenshot({
   };
 
   return (
-    <Menu.Item key={`download-${format}`} {...rest}>
+    <Menu.Item key={format} {...rest}>
       <div onClick={onDownloadScreenshot} role="button" tabIndex={0}>
         {text}
       </div>
