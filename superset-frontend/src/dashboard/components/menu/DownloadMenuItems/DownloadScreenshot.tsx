@@ -25,6 +25,7 @@ import {
 } from 'src/logger/LogUtils';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DownloadScreenshotFormat } from './types';
 
 // parameters for adjustments
@@ -35,24 +36,19 @@ export default function DownloadScreenshot({
   text,
   logEvent,
   dashboardId,
-  addDangerToast,
   format,
-  addSuccessToast,
-  addInfoToast,
   ...rest
 }: {
   text: string;
-  addDangerToast: Function;
   dashboardId: string;
   logEvent?: Function;
   format: string;
-  addSuccessToast: Function;
-  addInfoToast: Function;
 }) {
-  const dashboardState = useSelector(
-    (state: RootState) => state.dashboardState,
+  const directPathToChild = useSelector(
+    (state: RootState) => state.dashboardState.directPathToChild,
   );
-  const anchor = dashboardState.directPathToChild?.pop();
+  const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
+  const anchor = directPathToChild?.pop();
   const onDownloadScreenshot = () => {
     let retries = 0;
 
@@ -78,7 +74,7 @@ export default function DownloadScreenshot({
     const fetchImageWithRetry = (imageUrl: string) => {
       checkImageReady(imageUrl)
         .then(() => {
-          addSuccessToast(t('The screenshot is now ready to be downloaded.'));
+          addSuccessToast(t('The screenshot is now being downloaded.'));
         })
         .catch(error => {
           // we check how many retries have been made
@@ -106,7 +102,9 @@ export default function DownloadScreenshot({
         const imageUrl = json?.image_url;
         if (imageUrl) {
           addInfoToast(
-            'The screenshot is being generated. Please, do not leave the page.',
+            t(
+              'The screenshot is being generated. Please, do not leave the page.',
+            ),
           );
         } else {
           throw new Error('No image URL in response');
@@ -128,11 +126,8 @@ export default function DownloadScreenshot({
       });
   };
 
-  const item_key =
-    format === DownloadScreenshotFormat.PDF ? 'download-pdf' : 'download-image';
-
   return (
-    <Menu.Item key={item_key} {...rest}>
+    <Menu.Item key={`download-${format}`} {...rest}>
       <div onClick={onDownloadScreenshot} role="button" tabIndex={0}>
         {text}
       </div>

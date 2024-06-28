@@ -20,12 +20,10 @@ import { render, screen } from 'spec/helpers/testing-library';
 import DownloadMenuItems from '.';
 
 const createProps = () => ({
-  addDangerToast: jest.fn(),
   pdfMenuItemTitle: 'Export to PDF',
   imageMenuItemTitle: 'Download as Image',
   dashboardTitle: 'Test Dashboard',
   logEvent: jest.fn(),
-  addSuccessToast: jest.fn(),
   dashboardId: '123',
 });
 

@@ -32,13 +32,18 @@ const mockAddInfoToast = jest.fn();
 
 jest.spyOn(logging, 'error').mockImplementation(() => {});
 
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  useToasts: () => ({
+    addDangerToast: mockAddDangerToast,
+    addSuccessToast: mockAddSuccessToast,
+    addInfoToast: mockAddInfoToast,
+  }),
+}));
+
 const defaultProps = () => ({
   text: 'Download',
   dashboardId: '123',
   format: DownloadScreenshotFormat.PDF,
-  addDangerToast: mockAddDangerToast,
-  addSuccessToast: mockAddSuccessToast,
-  addInfoToast: mockAddInfoToast,
   logEvent: mockLogEvent,
 });
 
@@ -87,7 +92,7 @@ describe('DownloadScreenshot component', () => {
     userEvent.click(screen.getByRole('button', { name: 'Download' }));
 
     await waitFor(() => {
-      expect(defaultProps().addDangerToast).toHaveBeenCalledWith(
+      expect(mockAddDangerToast).toHaveBeenCalledWith(
         'The screenshot could not be downloaded. Please, try again later.',
       );
     });
@@ -115,7 +120,7 @@ describe('DownloadScreenshot component', () => {
     userEvent.click(screen.getByRole('button', { name: 'Download' }));
 
     await waitFor(() => {
-      expect(props.addInfoToast).toHaveBeenCalledWith(
+      expect(mockAddInfoToast).toHaveBeenCalledWith(
         'The screenshot is being generated. Please, do not leave the page.',
       );
     });
@@ -139,7 +144,7 @@ describe('DownloadScreenshot component', () => {
     userEvent.click(screen.getByRole('button', { name: 'Download' }));
 
     await waitFor(() => {
-      expect(props.addDangerToast).toHaveBeenCalledWith(
+      expect(mockAddDangerToast).toHaveBeenCalledWith(
         'The screenshot could not be downloaded. Please, try again later.',
       );
     });
@@ -213,8 +218,8 @@ describe('DownloadScreenshot component', () => {
 
     // Wait for the successful image retrieval message
     await waitFor(() => {
-      expect(props.addSuccessToast).toHaveBeenCalledWith(
-        'The screenshot is now ready to be downloaded.',
+      expect(mockAddSuccessToast).toHaveBeenCalledWith(
+        'The screenshot is now being downloaded.',
       );
     });
   });
