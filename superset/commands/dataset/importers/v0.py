@@ -260,6 +260,7 @@ class ImportDatasetsCommand(BaseCommand):
                     )
                     dataset["database_id"] = database.id
                     SqlaTable.import_from_dict(dataset, sync=self.sync)
+                db.session.commit()
 
     def validate(self) -> None:
         # ensure all files are YAML

@@ -1,7 +1,3 @@
----
-hide_title: true
-sidebar_position: 1
----
 <!--
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
@@ -77,9 +73,7 @@ Superset provides:
 
 **Video Overview**
 <!-- File hosted here https://github.com/apache/superset-site/raw/lfs/superset-video-4k.mp4 -->
-<video src="https://superset.staged.apache.org/superset-video-4k.mp4" width="100%" height="auto" controls preload="none">
-   https://superset.staged.apache.org/superset-video-4k.mp4
-</video>
+[superset-video-4k.webm](https://github.com/apache/superset/assets/812905/da036bc2-150c-4ee7-80f9-75e63210ff76)
 
 <br/>
 

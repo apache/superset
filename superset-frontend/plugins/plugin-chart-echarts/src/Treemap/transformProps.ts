@@ -183,7 +183,7 @@ export default function transformProps(
           colorSaturation: COLOR_SATURATION,
           itemStyle: {
             borderColor: BORDER_COLOR,
-            color: colorFn(name, sliceId),
+            color: colorFn(name, sliceId, colorScheme),
             borderWidth: BORDER_WIDTH,
             gapWidth: GAP_WIDTH,
           },
@@ -216,7 +216,7 @@ export default function transformProps(
       colorSaturation: COLOR_SATURATION,
       itemStyle: {
         borderColor: BORDER_COLOR,
-        color: colorFn(`${metricLabel}`, sliceId),
+        color: colorFn(`${metricLabel}`, sliceId, colorScheme),
         borderWidth: BORDER_WIDTH,
         gapWidth: GAP_WIDTH,
       },

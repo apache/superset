@@ -24,6 +24,10 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [29274](https://github.com/apache/superset/pull/29274): We made it easier to trigger CI on your
+  forks, whether they are public or private. Simply push to a branch that fits `[0-9].[0-9]*` and
+  should run on your fork, giving you flexibility on naming your release branches and triggering
+  CI
 - [27505](https://github.com/apache/superset/pull/27505): We simplified the files under
   `requirements/` folder. If you use these files for your builds you may want to double
   check that your builds are not affected. `base.txt` should be the same as before, though
@@ -43,6 +47,8 @@ assists people when migrating to a new version.
   set `SLACK_API_TOKEN` to fetch and serve Slack avatar links
 - [28134](https://github.com/apache/superset/pull/28134/) The default logging level was changed
   from DEBUG to INFO - which is the normal/sane default logging level for most software.
+- [27777](https://github.com/apache/superset/pull/27777) Moves debug logging logic to config.py.
+  See `LOG_LEVEL` in `superset/config.py` for the recommended default.
 - [28205](https://github.com/apache/superset/pull/28205) The permission `all_database_access` now
   more clearly provides access to all databases, as specified in its name. Before it only allowed
   listing all databases in CRUD-view and dropdown and didn't provide access to data as it

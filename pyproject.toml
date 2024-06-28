@@ -252,9 +252,8 @@ setenv =
     SUPERSET_HOME = {envtmpdir}
     mysql: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
     postgres: SUPERSET__SQLALCHEMY_DATABASE_URI = postgresql+psycopg2://superset:superset@localhost/test
-    sqlite:
-        SUPERSET__SQLALCHEMY_DATABASE_URI = sqlite:////{envtmpdir}/superset.db
-        SUPERSET__SQLALCHEMY_EXAMPLES_URI = sqlite:////{envtmpdir}/examples.db
+    sqlite: SUPERSET__SQLALCHEMY_DATABASE_URI = sqlite:////{envtmpdir}/superset.db
+    sqlite: SUPERSET__SQLALCHEMY_EXAMPLES_URI = sqlite:////{envtmpdir}/examples.db
     mysql-presto: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
     # docker run -p 8080:8080 --name presto starburstdata/presto
     mysql-presto: SUPERSET__SQLALCHEMY_EXAMPLES_URI = presto://localhost:8080/memory/default

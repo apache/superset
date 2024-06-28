@@ -40,7 +40,6 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(  # noqa: F405
     DATA_DIR,
     "unittests.integration_tests.db",  # noqa: F405
 )
-DEBUG = False
 SILENCE_FAB = False
 # Allowing SQLALCHEMY_DATABASE_URI and SQLALCHEMY_EXAMPLES_URI to be defined as an env vars for
 # continuous integration
@@ -76,6 +75,7 @@ FEATURE_FLAGS = {
     "SHARE_QUERIES_VIA_KV_STORE": True,
     "ENABLE_TEMPLATE_PROCESSING": True,
     "ALERT_REPORTS": True,
+    "AVOID_COLORS_COLLISION": True,
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
     "HORIZONTAL_FILTER_BAR": True,

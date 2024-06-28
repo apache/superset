@@ -303,3 +303,15 @@ class MigrateHistogramChart(MigrateViz):
         groupby = self.data.get("groupby")
         if not groupby:
             self.data["groupby"] = []
+
+
+class MigrateSankey(MigrateViz):
+    source_viz_type = "sankey"
+    target_viz_type = "sankey_v2"
+    remove_keys = {"groupby"}
+
+    def _pre_action(self) -> None:
+        groupby = self.data.get("groupby")
+        if groupby and len(groupby) > 1:
+            self.data["source"] = groupby[0]
+            self.data["target"] = groupby[1]

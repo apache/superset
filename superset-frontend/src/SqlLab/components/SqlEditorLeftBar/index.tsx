@@ -16,14 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  useEffect,
-  useCallback,
-  useMemo,
-  useState,
-  Dispatch,
-  SetStateAction,
-} from 'react';
+import { useEffect, useCallback, useMemo, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import querystring from 'query-string';
 
@@ -60,7 +53,6 @@ export interface SqlEditorLeftBarProps {
   queryEditorId: string;
   height?: number;
   database?: DatabaseObject;
-  setEmptyState?: Dispatch<SetStateAction<boolean>>;
 }
 
 const StyledScrollbarContainer = styled.div`
@@ -108,7 +100,6 @@ const SqlEditorLeftBar = ({
   database,
   queryEditorId,
   height = 500,
-  setEmptyState,
 }: SqlEditorLeftBarProps) => {
   const tables = useSelector<SqlLabRootState, Table[]>(
     ({ sqlLab }) =>
@@ -148,7 +139,6 @@ const SqlEditorLeftBar = ({
   }, []);
 
   const onDbChange = ({ id: dbId }: { id: number }) => {
-    setEmptyState?.(false);
     dispatch(queryEditorSetDb(queryEditor, dbId));
   };
 

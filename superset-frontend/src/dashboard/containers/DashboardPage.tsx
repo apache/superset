@@ -19,13 +19,7 @@
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import {
-  CategoricalColorNamespace,
-  getSharedLabelColor,
-  SharedLabelColorSource,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
@@ -101,7 +95,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
-  const { dashboard_title, css, metadata, id = 0 } = dashboard || {};
+  const { dashboard_title, css, id = 0 } = dashboard || {};
 
   useEffect(() => {
     // mark tab id as redundant when user closes browser tab - a new id will be
@@ -186,19 +180,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
     return () => {};
   }, [css]);
-
-  useEffect(() => {
-    const sharedLabelColor = getSharedLabelColor();
-    sharedLabelColor.source = SharedLabelColorSource.Dashboard;
-    return () => {
-      // clean up label color
-      const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-        metadata?.color_namespace,
-      );
-      categoricalNamespace.resetColors();
-      sharedLabelColor.clear();
-    };
-  }, [metadata?.color_namespace]);
 
   useEffect(() => {
     if (datasetsApiError) {

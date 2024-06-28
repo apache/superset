@@ -23,10 +23,12 @@ import {
   t,
   SupersetError,
   ErrorTypeEnum,
+  isProbablyHTML,
+  isJsonString,
 } from '@superset-ui/core';
 
-// The response always contains an error attribute, can contain anything from the
-// SupersetClientResponse object, and can contain a spread JSON blob
+// The response always contains an error attribute, can contain anything from
+// the SupersetClientResponse object, and can contain a spread JSON blob
 export type ClientErrorObject = {
   error: string;
   errors?: SupersetError[];
@@ -51,8 +53,74 @@ type ErrorType =
 
 type ErrorTextSource = 'dashboard' | 'chart' | 'query' | 'dataset' | 'database';
 
-export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
-  let error = { ...responseObject };
+const ERROR_CODE_LOOKUP = {
+  400: 'Bad request',
+  401: 'Unauthorized',
+  402: 'Payment required',
+  403: 'Forbidden',
+  404: 'Not found',
+  405: 'Method not allowed',
+  406: 'Not acceptable',
+  407: 'Proxy authentication required',
+  408: 'Request timeout',
+  409: 'Conflict',
+  410: 'Gone',
+  411: 'Length required',
+  412: 'Precondition failed',
+  413: 'Payload too large',
+  414: 'URI too long',
+  415: 'Unsupported media type',
+  416: 'Range not satisfiable',
+  417: 'Expectation failed',
+  418: "I'm a teapot",
+  500: 'Server error',
+  501: 'Not implemented',
+  502: 'Bad gateway',
+  503: 'Service unavailable',
+  504: 'Gateway timeout',
+  505: 'HTTP version not supported',
+  506: 'Variant also negotiates',
+  507: 'Insufficient storage',
+  508: 'Loop detected',
+  510: 'Not extended',
+  511: 'Network authentication required',
+  599: 'Network error',
+};
+
+export function checkForHtml(str: string): boolean {
+  return !isJsonString(str) && isProbablyHTML(str);
+}
+
+export function parseStringResponse(str: string): string {
+  if (checkForHtml(str)) {
+    for (const [code, message] of Object.entries(ERROR_CODE_LOOKUP)) {
+      const regex = new RegExp(`${code}|${message}`, 'i');
+      if (regex.test(str)) {
+        return t(message);
+      }
+    }
+    return t('Unknown error');
+  }
+  return str;
+}
+
+export function getErrorFromStatusCode(status: number): string | null {
+  return ERROR_CODE_LOOKUP[status] || null;
+}
+
+export function retrieveErrorMessage(
+  str: string,
+  errorObject: JsonObject,
+): string {
+  const statusError =
+    'status' in errorObject ? getErrorFromStatusCode(errorObject.status) : null;
+
+  // Prefer status code message over the response or HTML text
+  return statusError || parseStringResponse(str);
+}
+
+export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
+  let error = { ...responseJson };
   // Backwards compatibility for old error renderers with the new error object
   if (error.errors && error.errors.length > 0) {
     error.error = error.description = error.errors[0].message;
@@ -67,7 +135,11 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
         t('Invalid input');
     }
     if (typeof error.message === 'string') {
-      error.error = error.message;
+      if (checkForHtml(error.message)) {
+        error.error = retrieveErrorMessage(error.message, error);
+      } else {
+        error.error = error.message;
+      }
     }
   }
   if (error.stack) {
@@ -95,11 +167,12 @@ export function getClientErrorObject(
     | { response: Response }
     | string,
 ): Promise<ClientErrorObject> {
-  // takes a SupersetClientResponse as input, attempts to read response as Json if possible,
-  // and returns a Promise that resolves to a plain object with error key and text value.
+  // takes a SupersetClientResponse as input, attempts to read response as Json
+  // if possible, and returns a Promise that resolves to a plain object with
+  // error key and text value.
   return new Promise(resolve => {
     if (typeof response === 'string') {
-      resolve({ error: response });
+      resolve({ error: parseStringResponse(response) });
       return;
     }
 
@@ -149,20 +222,32 @@ export function getClientErrorObject(
 
     const responseObject =
       response instanceof Response ? response : response.response;
+
     if (responseObject && !responseObject.bodyUsed) {
-      // attempt to read the body as json, and fallback to text. we must clone the
-      // response in order to fallback to .text() because Response is single-read
+      // attempt to read the body as json, and fallback to text. we must clone
+      // the response in order to fallback to .text() because Response is
+      // single-read
       responseObject
         .clone()
         .json()
         .then(errorJson => {
-          const error = { ...responseObject, ...errorJson };
+          // Destructuring instead of spreading to avoid loss of sibling properties to the body
+          const { url, status, statusText, redirected, type } = responseObject;
+          const responseSummary = { url, status, statusText, redirected, type };
+          const error = {
+            ...errorJson,
+            ...responseSummary,
+          };
           resolve(parseErrorJson(error));
         })
         .catch(() => {
           // fall back to reading as text
           responseObject.text().then((errorText: any) => {
-            resolve({ ...responseObject, error: errorText });
+            resolve({
+              // Destructuring not necessary here
+              ...responseObject,
+              error: retrieveErrorMessage(errorText, responseObject),
+            });
           });
         });
       return;
@@ -177,7 +262,7 @@ export function getClientErrorObject(
     }
     resolve({
       ...responseObject,
-      error,
+      error: parseStringResponse(error),
     });
   });
 }

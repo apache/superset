@@ -97,8 +97,5 @@ describe('Visualization > Compare', () => {
     cy.get(
       '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
     ).should('exist');
-    cy.get('.compare .nv-legend .nv-legend-symbol')
-      .first()
-      .should('have.css', 'fill', 'rgb(31, 168, 201)');
   });
 });

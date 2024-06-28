@@ -35,7 +35,9 @@ module.exports = {
   testEnvironment: 'jsdom',
   modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
-  testURL: 'http://localhost',
+  testEnvironmentOptions: {
+    url: 'http://localhost',
+  },
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '{packages,plugins}/**/src/**/*.{js,jsx,ts,tsx}',
@@ -60,4 +62,13 @@ module.exports = {
     __DEV__: true,
     caches: true,
   },
+  reporters: [
+    'default',
+    [
+      './node_modules/jest-html-reporter',
+      {
+        pageTitle: 'Test Report',
+      },
+    ],
+  ],
 };

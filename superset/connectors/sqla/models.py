@@ -1450,7 +1450,7 @@ class SqlaTable(
         if not self.is_virtual:
             return self.get_sqla_table(), None
 
-        from_sql = self.get_rendered_sql(template_processor)
+        from_sql = self.get_rendered_sql(template_processor) + "\n"
         parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
         if not (
             parsed_query.is_unknown()
