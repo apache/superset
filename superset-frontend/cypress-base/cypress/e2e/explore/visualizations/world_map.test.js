@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-describe('Visualization > World Map', () => {
+describe('Visualization > World Map', { testIsolation: false }, () => {
   beforeEach(() => {
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });

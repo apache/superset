@@ -23,7 +23,7 @@ function parseClockStr(node: JQuery) {
   return Number.parseFloat(node.text().replace(/:/g, ''));
 }
 
-describe('SqlLab query panel', () => {
+describe('SqlLab query panel', { testIsolation: false }, () => {
   beforeEach(() => {
     cy.visit('/sqllab');
   });

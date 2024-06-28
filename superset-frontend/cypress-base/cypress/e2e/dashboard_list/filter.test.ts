@@ -20,7 +20,7 @@ import { DASHBOARD_LIST } from 'cypress/utils/urls';
 import { setGridMode, clearAllInputs } from 'cypress/utils';
 import { setFilter } from '../dashboard/utils';
 
-describe('Dashboards filters', () => {
+describe('Dashboards filters', { testIsolation: false }, () => {
   before(() => {
     cy.visit(DASHBOARD_LIST);
     setGridMode('card');

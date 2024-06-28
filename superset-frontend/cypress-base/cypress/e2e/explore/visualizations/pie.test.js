@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-describe('Visualization > Pie', () => {
+describe('Visualization > Pie', { testIsolation: false }, () => {
   beforeEach(() => {
     cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
   });

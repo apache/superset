@@ -18,7 +18,7 @@
  */
 import { QueryFormData } from '@superset-ui/core';
 
-describe('Visualization > Histogram', () => {
+describe('Visualization > Histogram', { testIsolation: false }, () => {
   beforeEach(() => {
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });

@@ -45,8 +45,8 @@ function confirmDelete() {
   cy.getBySel('modal-confirm-button').click();
 }
 
-describe('Dashboards list', () => {
-  describe('list mode', () => {
+describe('Dashboards list', { testIsolation: false }, () => {
+  describe('list mode', { testIsolation: false }, () => {
     before(() => {
       cy.visit(DASHBOARD_LIST);
       setGridMode('list');
@@ -87,7 +87,7 @@ describe('Dashboards list', () => {
     });
   });
 
-  describe('card mode', () => {
+  describe('card mode', { testIsolation: false }, () => {
     before(() => {
       cy.visit(DASHBOARD_LIST);
       setGridMode('card');
@@ -126,7 +126,7 @@ describe('Dashboards list', () => {
     });
   });
 
-  describe('common actions', () => {
+  describe('common actions', { testIsolation: false }, () => {
     beforeEach(() => {
       cy.createSampleDashboards([0, 1, 2, 3]);
       cy.visit(DASHBOARD_LIST);

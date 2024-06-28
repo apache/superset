@@ -28,7 +28,7 @@ import { HEALTH_POP_FORM_DATA_DEFAULTS } from './visualizations/shared.helper';
 const apiURL = (endpoint: string, queryObject: Record<string, unknown>) =>
   `${endpoint}?q=${rison.encode(queryObject)}`;
 
-describe('Test explore links', () => {
+describe('Test explore links', { testIsolation: false }, () => {
   beforeEach(() => {
     interceptChart({ legacy: true }).as('chartData');
   });

@@ -22,7 +22,7 @@
 import { interceptChart } from 'cypress/utils';
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
-describe('Datasource control', () => {
+describe('Datasource control', { testIsolation: false }, () => {
   const newMetricName = `abc${Date.now()}`;
 
   it('should allow edit dataset', () => {
@@ -83,7 +83,7 @@ describe('Datasource control', () => {
   });
 });
 
-describe('Color scheme control', () => {
+describe('Color scheme control', { testIsolation: false }, () => {
   beforeEach(() => {
     interceptChart({ legacy: true }).as('chartData');
 
@@ -113,7 +113,7 @@ describe('Color scheme control', () => {
     cy.get('.color-scheme-tooltip').should('not.exist');
   });
 });
-describe('VizType control', () => {
+describe('VizType control', { testIsolation: false }, () => {
   beforeEach(() => {
     interceptChart({ legacy: false }).as('tableChartData');
     interceptChart({ legacy: false }).as('bigNumberChartData');
@@ -138,7 +138,7 @@ describe('VizType control', () => {
   });
 });
 
-describe('Test datatable', () => {
+describe('Test datatable', { testIsolation: false }, () => {
   beforeEach(() => {
     interceptChart({ legacy: false }).as('tableChartData');
     interceptChart({ legacy: true }).as('lineChartData');
@@ -164,7 +164,7 @@ describe('Test datatable', () => {
   });
 });
 
-describe('Time range filter', () => {
+describe('Time range filter', { testIsolation: false }, () => {
   beforeEach(() => {
     interceptChart({ legacy: true }).as('chartData');
   });
@@ -277,7 +277,7 @@ describe('Time range filter', () => {
   });
 });
 
-describe('Groupby control', () => {
+describe('Groupby control', { testIsolation: false }, () => {
   it('Set groupby', () => {
     interceptChart({ legacy: true }).as('chartData');
 

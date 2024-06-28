@@ -20,7 +20,7 @@ import { CHART_LIST } from 'cypress/utils/urls';
 import { setGridMode, clearAllInputs } from 'cypress/utils';
 import { setFilter } from '../explore/utils';
 
-describe('Charts filters', () => {
+describe('Charts filters', { testIsolation: false }, () => {
   before(() => {
     cy.visit(CHART_LIST);
     setGridMode('card');

@@ -20,7 +20,7 @@ import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 import { waitForChartLoad } from 'cypress/utils';
 import { WORLD_HEALTH_CHARTS, interceptLog } from './utils';
 
-describe('Dashboard load', () => {
+describe('Dashboard load', { testIsolation: false }, () => {
   it('should load dashboard', () => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);

@@ -19,7 +19,7 @@
 import { interceptChart } from 'cypress/utils';
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
-describe('Visualization > Big Number Total', () => {
+describe('Visualization > Big Number Total', { testIsolation: false }, () => {
   beforeEach(() => {
     interceptChart({ legacy: false }).as('chartData');
   });

@@ -26,7 +26,7 @@ import {
 } from './shared.helper';
 
 // Table
-describe('Visualization > Table', () => {
+describe('Visualization > Table', { testIsolation: false }, () => {
   beforeEach(() => {
     interceptChart({ legacy: false }).as('chartData');
   });

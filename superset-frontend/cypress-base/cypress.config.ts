@@ -28,7 +28,6 @@ export default eyesPlugin(
     experimentalFetchPolyfill: true,
     requestTimeout: 10000,
     video: false,
-    videoUploadOnPasses: false,
     viewportWidth: 1280,
     viewportHeight: 1024,
     projectId: 'ud5x2f',
@@ -37,30 +36,10 @@ export default eyesPlugin(
       openMode: 0,
     },
     e2e: {
+      experimentalMemoryManagement: true,
       // We've imported your old cypress plugins here.
       // You may want to clean this up later by importing these.
       setupNodeEvents(on, config) {
-        // ECONNRESET on Chrome/Chromium 117.0.5851.0 when using Cypress <12.15.0
-        // Check https://github.com/cypress-io/cypress/issues/27804 for context
-        // TODO: This workaround should be removed when upgrading Cypress
-        on('before:browser:launch', (browser, launchOptions) => {
-          if (browser.name === 'chrome' && browser.isHeadless) {
-            // eslint-disable-next-line no-param-reassign
-            launchOptions.args = launchOptions.args.map(arg => {
-              if (arg === '--headless') {
-                return '--headless=new';
-              }
-
-              return arg;
-            });
-
-            launchOptions.args.push(
-              ...['--disable-dev-shm-usage', '--disable-gpu'],
-            );
-          }
-          return launchOptions;
-        });
-
         // eslint-disable-next-line global-require,import/extensions
         return require('./cypress/plugins/index.js')(on, config);
       },

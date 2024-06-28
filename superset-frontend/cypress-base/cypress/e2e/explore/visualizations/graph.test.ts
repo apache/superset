@@ -26,7 +26,7 @@ type adhocFilter = {
   filterOptionName: string;
 };
 
-describe('Visualization > Graph', () => {
+describe('Visualization > Graph', { testIsolation: false }, () => {
   beforeEach(() => {
     cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
   });
