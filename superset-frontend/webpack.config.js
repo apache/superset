@@ -324,7 +324,12 @@ const config = {
       'moment/min/moment-with-locales': false,
       // Temporary workaround to allow Storybook 8 to work with existing React v16-compatible stories.
       // Remove below alias once React has been upgreade to v18.
-      '@storybook/react-dom-shim': path.resolve(path.join(APP_DIR, './node_modules/@storybook/react-dom-shim/dist/react-16')),
+      '@storybook/react-dom-shim': path.resolve(
+        path.join(
+          APP_DIR,
+          './node_modules/@storybook/react-dom-shim/dist/react-16',
+        ),
+      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {

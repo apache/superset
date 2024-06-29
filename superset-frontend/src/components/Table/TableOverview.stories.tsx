@@ -46,8 +46,6 @@ This component provides a general use Table.
 `}
     </Markdown>
 
-    {/* <Story id="design-system-components-table-examples--basic" /> */}
-
     <Markdown>
       {`
 ### Data and Columns
