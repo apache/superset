@@ -56,13 +56,26 @@ class SavedQueryFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-p
     model = SavedQuery
 
 
-class SavedQueryTagFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+class SavedQueryTagNameFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
     """
-    Custom filter for the GET list that filters all dashboards that a user has favored
+    Custom filter for the GET list that filters all saved queries associated with
+    a certain tag (by its name).
     """
 
     arg_name = "saved_query_tags"
     class_name = "query"
+    model = SavedQuery
+
+
+class SavedQueryTagIdFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all saved queries associated with
+    a certain tag (by its ID).
+    """
+
+    arg_name = "saved_query_tag_id"
+    class_name = "query"
+    id_based_filter = True
     model = SavedQuery
 
 

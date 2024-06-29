@@ -180,8 +180,19 @@ class BaseTagFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """ The Tag class_name to user """
     model: type[Dashboard | Slice | SqllabQuery | SqlaTable] = Dashboard
     """ The SQLAlchemy model """
+    id_based_filter = False
 
     def apply(self, query: Query, value: Any) -> Query:
+        # ID based filter
+        if self.id_based_filter:
+            tags_query = (
+                db.session.query(self.model.id)
+                .join(self.model.tags)
+                .filter(Tag.id == value)
+            )
+            return query.filter(self.model.id.in_(tags_query))
+
+        # Name based filter
         ilike_value = f"%{value}%"
         tags_query = (
             db.session.query(self.model.id)
