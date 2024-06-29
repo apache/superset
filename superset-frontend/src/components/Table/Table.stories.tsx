@@ -332,9 +332,7 @@ Basic.args = {
   usePagination: false,
 };
 
-export const Pagination: StoryFn<typeof Table> = args => (
-  <Table {...args} />
-);
+export const Pagination: StoryFn<typeof Table> = args => <Table {...args} />;
 
 Pagination.args = {
   data: basicData,
@@ -471,9 +469,7 @@ VirtualizedPerformance.args = {
   usePagination: false,
 };
 
-export const Loading: StoryFn<typeof Table> = args => (
-  <Table {...args} />
-);
+export const Loading: StoryFn<typeof Table> = args => <Table {...args} />;
 
 Loading.args = {
   data: basicData,
@@ -572,9 +568,7 @@ const rendererData: RendererData[] = [
   },
 ];
 
-export const CellRenderers: StoryFn<typeof Table> = args => (
-  <Table {...args} />
-);
+export const CellRenderers: StoryFn<typeof Table> = args => <Table {...args} />;
 
 CellRenderers.args = {
   data: rendererData,
