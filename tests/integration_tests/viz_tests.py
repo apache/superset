@@ -885,11 +885,14 @@ class TestBaseDeckGLViz(SupersetTestCase):
         datasource = self.get_datasource_mock()
         viz_instance = viz.BaseDeckGLViz(datasource, form_data)
 
-        coord = viz_instance.parse_coordinates("1.23, 3.21")
-        self.assertEqual(coord, (1.23, 3.21))
+        coord = viz_instance.parse_coordinates("1.23, 113.21")
+        self.assertEqual(coord, (113.21, 1.23))
 
-        coord = viz_instance.parse_coordinates("1.23 3.21")
-        self.assertEqual(coord, (1.23, 3.21))
+        coord = viz_instance.parse_coordinates("1.23 113.21", True)
+        self.assertEqual(coord, (113.21, 1.23))
+
+        coord = viz_instance.parse_coordinates("113.21,1.23", False)
+        self.assertEqual(coord, (113.21, 1.23))
 
         self.assertEqual(viz_instance.parse_coordinates(None), None)
 
