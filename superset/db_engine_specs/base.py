@@ -196,7 +196,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                                                 used in GROUP BY when a column in SELECT
                                                 has an alias that is the same as a source
                                                 column.
-        
+
         allows_hidden_orderby_agg:              Whether the engine allows ORDER BY to
                                                 directly use aggregation clauses, without
                                                 having to add the same aggregation in SELECT.
