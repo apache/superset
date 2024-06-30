@@ -43,7 +43,10 @@ from tests.integration_tests.fixtures.importexport import (
     saved_queries_config,
     saved_queries_metadata_config,
 )
-from tests.integration_tests.fixtures.tags import create_custom_tags  # noqa: F401
+from tests.integration_tests.fixtures.tags import (
+    create_custom_tags,  # noqa: F401
+    get_filter_params,
+)
 
 
 SAVED_QUERIES_FIXTURE_COUNT = 10
@@ -456,38 +459,21 @@ class TestSavedQueryApi(SupersetTestCase):
             for tag in tags.values()
         }
 
-        # Helper function to return filter parameters
-        def get_filter_params(opr, value):
-            return {
-                "filters": [
-                    {
-                        "col": "tags",
-                        "opr": opr,
-                        "value": value,
-                    }
-                ]
-            }
-
-        # Helper function to test chart filtering by tag
-        def get_saved_queries_filtered_list(filter):
-            self.login(ADMIN_USERNAME)
-            uri = f"api/v1/saved_query/?q={prison.dumps(filter)}"
-            response = self.get_assert_metric(uri, "get_list")
-            self.assertEqual(response.status_code, 200)
-            data = json.loads(response.data.decode("utf-8"))
-            return data
-
         # Validate API results for each tag
         for tag_name, tag in tags.items():
             expected_saved_queries = saved_queries_tag_relationship[tag_name]
 
             # Filter by tag ID
             filter_params = get_filter_params("saved_query_tag_id", tag.id)
-            data_by_id = get_saved_queries_filtered_list(filter_params)
+            response_by_id = self.get_list("saved_query", filter_params)
+            self.assertEqual(response_by_id.status_code, 200)
+            data_by_id = json.loads(response_by_id.data.decode("utf-8"))
 
             # Filter by tag name
             filter_params = get_filter_params("saved_query_tags", tag.name)
-            data_by_name = get_saved_queries_filtered_list(filter_params)
+            response_by_name = self.get_list("saved_query", filter_params)
+            self.assertEqual(response_by_name.status_code, 200)
+            data_by_name = json.loads(response_by_name.data.decode("utf-8"))
 
             # Compare results
             self.assertEqual(

@@ -53,3 +53,16 @@ def create_custom_tags():
         for tags in tags:
             db.session.delete(tags)
         db.session.commit()
+
+
+# Helper function to return filter parameters
+def get_filter_params(opr, value):
+    return {
+        "filters": [
+            {
+                "col": "tags",
+                "opr": opr,
+                "value": value,
+            }
+        ]
+    }
