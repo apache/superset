@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import { selectResultsTab, assertSQLLabResultsAreEqual } from './sqllab.helper';
 
 function parseClockStr(node: JQuery) {
@@ -86,7 +86,7 @@ describe('SqlLab query panel', () => {
 
     const query =
       'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';
-    const savedQueryTitle = `CYPRESS TEST QUERY ${shortid.generate()}`;
+    const savedQueryTitle = `CYPRESS TEST QUERY ${nanoid()}`;
 
     // we will assert that the results of the query we save, and the saved query are the same
     let initialResultsTable: HTMLElement | null = null;

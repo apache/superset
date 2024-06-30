@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import { BroadcastChannel } from 'broadcast-channel';
 
 interface TabIdChannelMessage {
@@ -43,7 +43,7 @@ export function useTabId() {
   useEffect(() => {
     if (!isStorageAvailable()) {
       if (!tabId) {
-        setTabId(shortid.generate());
+        setTabId(nanoid());
       }
       return;
     }

@@ -199,7 +199,7 @@
     "rimraf": "^3.0.2",
     "rison": "^0.1.1",
     "scroll-into-view-if-needed": "^3.1.0",
-    "shortid": "^2.2.16",
+    "nanoid": "^5.0.7",
     "tinycolor2": "^1.4.2",
     "urijs": "^1.19.8",
     "use-event-callback": "^0.1.0",

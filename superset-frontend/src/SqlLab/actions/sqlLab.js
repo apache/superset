@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import rison from 'rison';
 import {
   FeatureFlag,
@@ -239,7 +239,7 @@ export function clearInactiveQueries(interval) {
 
 export function startQuery(query) {
   Object.assign(query, {
-    id: query.id ? query.id : shortid.generate(),
+    id: query.id ? query.id : nanoid(),
     progress: 0,
     startDttm: now(),
     state: query.runAsync ? 'pending' : 'running',
@@ -404,7 +404,7 @@ export function runQueryFromSqlEditor(
 export function reRunQuery(query) {
   // run Query with a new id
   return function (dispatch) {
-    dispatch(runQuery({ ...query, id: shortid.generate() }));
+    dispatch(runQuery({ ...query, id: nanoid() }));
   };
 }
 
@@ -534,7 +534,7 @@ export function syncQueryEditor(queryEditor) {
 export function addQueryEditor(queryEditor) {
   const newQueryEditor = {
     ...queryEditor,
-    id: shortid.generate().toString(),
+    id: nanoid(),
     loaded: true,
     inLocalStorage: true,
   };
@@ -942,7 +942,7 @@ export function addTable(queryEditor, tableName, catalogName, schemaName) {
       mergeTable(
         {
           ...table,
-          id: shortid.generate(),
+          id: nanoid(),
           expanded: true,
         },
         null,
@@ -962,7 +962,7 @@ export function runTablePreviewQuery(newTable) {
 
     if (database && !database.disable_data_preview) {
       const dataPreviewQuery = {
-        id: shortid.generate(),
+        id: nanoid(),
         dbId,
         catalog,
         schema,
@@ -1039,7 +1039,7 @@ export function changeDataPreviewId(oldQueryId, newQuery) {
 export function reFetchQueryResults(query) {
   return function (dispatch) {
     const newQuery = {
-      id: shortid.generate(),
+      id: nanoid(),
       dbId: query.dbId,
       sql: query.sql,
       tableName: query.tableName,
