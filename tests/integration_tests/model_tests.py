@@ -577,7 +577,7 @@ class TestSqlaTableModel(SupersetTestCase):
         )
 
         sql = tbl.get_query_str(query_obj)
-        self.assertIn('name AS "Given Name"', sql)
+        self.assertRegex(sql, r'name AS ["`]?Given Name["`]?')
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_data_for_slices_with_no_query_context(self):
