@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import pickle
 from abc import ABC, abstractmethod
-from typing import Any, TypedDict
+from typing import Any, TypedDict, Union
 from uuid import UUID
 
 from marshmallow import Schema, ValidationError
@@ -29,6 +29,8 @@ from superset.key_value.exceptions import (
     KeyValueCodecEncodeException,
 )
 from superset.utils.backports import StrEnum
+
+Key = Union[int, UUID]
 
 
 class KeyValueFilter(TypedDict, total=False):

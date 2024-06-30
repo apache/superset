@@ -30,7 +30,7 @@ from superset.key_value.exceptions import (
     KeyValueUpdateFailedError,
 )
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import KeyValueCodec, KeyValueResource
+from superset.key_value.types import Key, KeyValueCodec, KeyValueResource
 from superset.key_value.utils import get_filter
 from superset.utils.core import get_user_id
 
@@ -41,14 +41,8 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
     @staticmethod
     def get_entry(
         resource: KeyValueResource,
-        key: int | UUID,
+        key: Key,
     ) -> KeyValueEntry | None:
-        """
-
-        :param resource:
-        :param key:
-        :return:
-        """
         filter_ = get_filter(resource, key)
         return db.session.query(KeyValueEntry).filter_by(**filter_).first()
 
@@ -56,7 +50,7 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
     def get_value(
         cls,
         resource: KeyValueResource,
-        key: int | UUID,
+        key: Key,
         codec: KeyValueCodec,
     ) -> Any:
         entry = cls.get_entry(resource, key)
@@ -66,7 +60,7 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         return codec.decode(entry.value)
 
     @staticmethod
-    def delete_entry(resource: KeyValueResource, key: int | UUID) -> bool:
+    def delete_entry(resource: KeyValueResource, key: Key) -> bool:
         if entry := KeyValueDAO.get_entry(resource, key):
             db.session.delete(entry)
             return True
@@ -91,7 +85,7 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         resource: KeyValueResource,
         value: Any,
         codec: KeyValueCodec,
-        key: int | UUID | None = None,
+        key: Key | None = None,
         expires_on: datetime | None = None,
     ) -> KeyValueEntry:
         try:
@@ -121,7 +115,7 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         resource: KeyValueResource,
         value: Any,
         codec: KeyValueCodec,
-        key: int | UUID,
+        key: Key,
         expires_on: datetime | None = None,
     ) -> KeyValueEntry:
         if entry := KeyValueDAO.get_entry(resource, key):
@@ -138,7 +132,7 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         resource: KeyValueResource,
         value: Any,
         codec: KeyValueCodec,
-        key: int | UUID,
+        key: Key,
         expires_on: datetime | None = None,
     ) -> KeyValueEntry:
         if entry := KeyValueDAO.get_entry(resource, key):
