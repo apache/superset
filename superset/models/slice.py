@@ -285,7 +285,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     def get_query_context(self) -> QueryContext | None:
         if self.query_context:
             try:
-                return self.get_query_context_factory().create(
+                return self.get_query_context_factory().create(slice=self,
                     **json.loads(self.query_context)
                 )
             except json.JSONDecodeError as ex:
