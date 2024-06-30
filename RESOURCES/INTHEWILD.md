@@ -136,6 +136,7 @@ Join our growing community!
 - [Zaihang](http://www.zaih.com/)
 
 ### Education
+- [Aveti Learning](https://avetilearning.com/) [@TheShubhendra]
 - [Brilliant.org](https://brilliant.org/)
 - [Platzi.com](https://platzi.com/)
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
