@@ -79,7 +79,6 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
         )
         db.session.flush()
         assert entry.id  # for type checks
-        db.session.commit()  # pylint: disable=consider-using-transaction
         return encode_permalink_key(key=entry.id, salt=self.salt)
 
     def validate(self) -> None:
