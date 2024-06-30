@@ -29,8 +29,6 @@ def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database with catalogs and schemas.
     """
-    mocker.patch("superset.commands.database.update.db")
-
     database = mocker.MagicMock()
     database.database_name = "my_db"
     database.db_engine_spec.__name__ = "test_engine"
@@ -50,8 +48,6 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database without catalogs.
     """
-    mocker.patch("superset.commands.database.update.db")
-
     database = mocker.MagicMock()
     database.database_name = "my_db"
     database.db_engine_spec.__name__ = "test_engine"

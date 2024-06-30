@@ -41,7 +41,7 @@ def set_shared_value(key: SharedKey, value: Any) -> None:
 
     uuid_key = uuid3(NAMESPACE, key)
     KeyValueDAO.create_entry(RESOURCE, value, CODEC, uuid_key)
-    db.session.commit()
+    db.session.commit()  # pylint: disable=consider-using-transaction
 
 
 def get_permalink_salt(key: SharedKey) -> str:

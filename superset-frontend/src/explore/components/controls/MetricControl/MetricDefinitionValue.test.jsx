@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
 import { shallow } from 'enzyme';
 
 import { AGGREGATES } from 'src/explore/constants';

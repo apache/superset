@@ -64,6 +64,7 @@ def get_log_connection_action(
 
 
 class TestConnectionDatabaseCommand(BaseCommand):
+    __test__ = False
     _model: Optional[Database] = None
     _context: dict[str, Any]
     _uri: str

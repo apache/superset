@@ -16,27 +16,34 @@
 # under the License.
 
 import logging
-import uuid
+from functools import partial
 
 from flask import current_app
+from sqlalchemy.exc import SQLAlchemyError
 
-from superset import db
 from superset.commands.distributed_lock.base import BaseDistributedLockCommand
 from superset.daos.key_value import KeyValueDAO
-from superset.key_value.types import KeyValueResource
+from superset.exceptions import DeleteKeyValueDistributedLockFailedException
+from superset.key_value.exceptions import KeyValueDeleteFailedError
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 stats_logger = current_app.config["STATS_LOGGER"]
 
-RESOURCE = KeyValueResource.LOCK
-
 
 class DeleteDistributedLock(BaseDistributedLockCommand):
-    key: uuid.UUID
-
     def validate(self) -> None:
         pass
 
+    @transaction(
+        on_error=partial(
+            on_error,
+            catches=(
+                KeyValueDeleteFailedError,
+                SQLAlchemyError,
+            ),
+            reraise=DeleteKeyValueDistributedLockFailedException,
+        ),
+    )
     def run(self) -> None:
-        KeyValueDAO.delete_entry(RESOURCE, self.key)
-        db.session.commit()
+        KeyValueDAO.delete_entry(self.resource, self.key)

@@ -16,44 +16,49 @@
 # under the License.
 
 import logging
-import uuid
 from datetime import datetime, timedelta
+from functools import partial
 
 from flask import current_app
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import SQLAlchemyError
 
-from superset import db
 from superset.commands.distributed_lock.base import BaseDistributedLockCommand
 from superset.daos.key_value import KeyValueDAO
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
-from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
+from superset.key_value.exceptions import (
+    KeyValueCodecEncodeException,
+    KeyValueUpsertFailedError,
+)
+from superset.key_value.types import KeyValueResource
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 stats_logger = current_app.config["STATS_LOGGER"]
 
 
 class CreateDistributedLock(BaseDistributedLockCommand):
-    key: uuid.UUID
     lock_expiration = timedelta(seconds=30)
-    resource = KeyValueResource.LOCK
-    codec = JsonKeyValueCodec()
 
     def validate(self) -> None:
         pass
 
+    @transaction(
+        on_error=partial(
+            on_error,
+            catches=(
+                KeyValueCodecEncodeException,
+                KeyValueUpsertFailedError,
+                SQLAlchemyError,
+            ),
+            reraise=CreateKeyValueDistributedLockFailedException,
+        ),
+    )
     def run(self) -> None:
-        try:
-            KeyValueDAO.delete_expired_entries(self.resource)
-            KeyValueDAO.create_entry(
-                resource=KeyValueResource.LOCK,
-                value=True,
-                codec=self.codec,
-                key=self.key,
-                expires_on=datetime.now() + self.lock_expiration,
-            )
-            db.session.commit()
-        except IntegrityError as ex:
-            db.session.rollback()
-            raise CreateKeyValueDistributedLockFailedException(
-                "Lock already taken"
-            ) from ex
+        KeyValueDAO.delete_expired_entries(self.resource)
+        KeyValueDAO.create_entry(
+            resource=KeyValueResource.LOCK,
+            value={"value": True},
+            codec=self.codec,
+            key=self.key,
+            expires_on=datetime.now() + self.lock_expiration,
+        )

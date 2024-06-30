@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.dataset.exceptions import (
@@ -31,10 +31,10 @@ from superset.commands.dataset.exceptions import (
     TableNotFoundValidationError,
 )
 from superset.daos.dataset import DatasetDAO
-from superset.daos.exceptions import DAOCreateFailedError
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db, security_manager
+from superset.extensions import security_manager
 from superset.sql_parse import Table
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -43,19 +43,12 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
+    @transaction(on_error=partial(on_error, reraise=DatasetCreateFailedError))
     def run(self) -> Model:
         self.validate()
-        try:
-            # Creates SqlaTable (Dataset)
-            dataset = DatasetDAO.create(attributes=self._properties, commit=False)
 
-            # Updates columns and metrics from the dataset
-            dataset.fetch_metadata(commit=False)
-            db.session.commit()
-        except (SQLAlchemyError, DAOCreateFailedError) as ex:
-            logger.warning(ex, exc_info=True)
-            db.session.rollback()
-            raise DatasetCreateFailedError() from ex
+        dataset = DatasetDAO.create(attributes=self._properties)
+        dataset.fetch_metadata()
         return dataset
 
     def validate(self) -> None:

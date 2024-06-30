@@ -24,9 +24,8 @@ from uuid import UUID
 
 import pytest
 from flask.ctx import AppContext
-from flask_appbuilder.security.sqla.models import User
 
-from superset.extensions import db
+from superset.extensions import db, security_manager
 from superset.key_value.exceptions import (
     KeyValueCreateFailedError,
     KeyValueUpdateFailedError,
@@ -38,7 +37,6 @@ from superset.key_value.types import (
 )
 from superset.utils import json
 from superset.utils.core import override_user
-from tests.unit_tests.fixtures.common import admin_user  # noqa: F401
 
 if TYPE_CHECKING:
     from superset.key_value.models import KeyValueEntry
@@ -68,10 +66,11 @@ def key_value_entry() -> Generator[KeyValueEntry, None, None]:
     yield entry
 
 
-def test_create_id_entry(app_context: AppContext, admin_user: User) -> None:  # noqa: F811
+def test_create_id_entry(app_context: AppContext) -> None:
     from superset.daos.key_value import KeyValueDAO
     from superset.key_value.models import KeyValueEntry
 
+    admin_user = security_manager.find_user(username="admin")
     with override_user(admin_user):
         created_entry = KeyValueDAO.create_entry(
             resource=RESOURCE,
@@ -88,10 +87,11 @@ def test_create_id_entry(app_context: AppContext, admin_user: User) -> None:  # 
     db.session.rollback()
 
 
-def test_create_uuid_entry(app_context: AppContext, admin_user: User) -> None:  # noqa: F811
+def test_create_uuid_entry(app_context: AppContext) -> None:
     from superset.daos.key_value import KeyValueDAO
     from superset.key_value.models import KeyValueEntry
 
+    admin_user = security_manager.find_user(username="admin")
     with override_user(admin_user):
         created_entry = KeyValueDAO.create_entry(
             resource=RESOURCE, value=JSON_VALUE, codec=JSON_CODEC
@@ -106,7 +106,7 @@ def test_create_uuid_entry(app_context: AppContext, admin_user: User) -> None:  
     db.session.rollback()
 
 
-def test_create_fail_json_entry(app_context: AppContext, admin_user: User) -> None:  # noqa: F811
+def test_create_fail_json_entry(app_context: AppContext) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     with pytest.raises(KeyValueCreateFailedError):
@@ -119,10 +119,11 @@ def test_create_fail_json_entry(app_context: AppContext, admin_user: User) -> No
     db.session.rollback()
 
 
-def test_create_pickle_entry(app_context: AppContext, admin_user: User) -> None:  # noqa: F811
+def test_create_pickle_entry(app_context: AppContext) -> None:
     from superset.daos.key_value import KeyValueDAO
     from superset.key_value.models import KeyValueEntry
 
+    admin_user = security_manager.find_user(username="admin")
     with override_user(admin_user):
         created_entry = KeyValueDAO.create_entry(
             resource=RESOURCE,
@@ -135,10 +136,11 @@ def test_create_pickle_entry(app_context: AppContext, admin_user: User) -> None:
         )
         assert type(pickle.loads(found_entry.value)) == type(PICKLE_VALUE)
         assert found_entry.created_by_fk == admin_user.id
-        db.session.rollback()
+
+    db.session.rollback()
 
 
-def test_get_value(app_context: AppContext, key_value_entry: KeyValueEntry) -> None:  # noqa: F811
+def test_get_value(app_context: AppContext, key_value_entry: KeyValueEntry) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     value = KeyValueDAO.get_value(
@@ -150,7 +152,7 @@ def test_get_value(app_context: AppContext, key_value_entry: KeyValueEntry) -> N
     db.session.rollback()
 
 
-def test_get_id_entry(app_context: AppContext, key_value_entry: KeyValueEntry) -> None:  # noqa: F811
+def test_get_id_entry(app_context: AppContext, key_value_entry: KeyValueEntry) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     found_entry = KeyValueDAO.get_entry(resource=RESOURCE, key=key_value_entry.id)
@@ -171,9 +173,7 @@ def test_get_uuid_entry(
     db.session.rollback()
 
 
-def test_get_id_entry_missing(
-    app_context: AppContext,
-) -> None:
+def test_get_id_entry_missing(app_context: AppContext) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     entry = KeyValueDAO.get_entry(resource=RESOURCE, key=456)
@@ -214,11 +214,11 @@ def test_get_future_expiring_entry(app_context: AppContext) -> None:
 
 def test_update_id_entry(
     app_context: AppContext,
-    admin_user: User,  # noqa: F811
     key_value_entry: KeyValueEntry,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
+    admin_user = security_manager.find_user(username="admin")
     with override_user(admin_user):
         updated_entry = KeyValueDAO.update_entry(
             resource=RESOURCE,
@@ -235,16 +235,16 @@ def test_update_id_entry(
         assert found_entry is not None
         assert JSON_CODEC.decode(found_entry.value) == NEW_VALUE
         assert found_entry.changed_by_fk == admin_user.id
-        db.session.rollback()
+    db.session.rollback()
 
 
 def test_update_uuid_entry(
-    app_context: AppContext,
-    admin_user: User,  # noqa: F811
+    app_context: AppContext,  # noqa: F811
     key_value_entry: KeyValueEntry,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
+    admin_user = security_manager.find_user(username="admin")
     with override_user(admin_user):
         updated_entry = KeyValueDAO.update_entry(
             resource=RESOURCE,
@@ -264,9 +264,10 @@ def test_update_uuid_entry(
     db.session.rollback()
 
 
-def test_update_missing_entry(app_context: AppContext, admin_user: User) -> None:  # noqa: F811
+def test_update_missing_entry(app_context: AppContext) -> None:  # noqa: F811
     from superset.daos.key_value import KeyValueDAO
 
+    admin_user = security_manager.find_user(username="admin")
     with override_user(admin_user):
         with pytest.raises(KeyValueUpdateFailedError):
             KeyValueDAO.update_entry(
@@ -281,11 +282,11 @@ def test_update_missing_entry(app_context: AppContext, admin_user: User) -> None
 
 def test_upsert_id_entry(
     app_context: AppContext,
-    admin_user: User,  # noqa: F811
     key_value_entry: KeyValueEntry,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
+    admin_user = security_manager.find_user(username="admin")
     with override_user(admin_user):
         entry = KeyValueDAO.upsert_entry(
             resource=RESOURCE,
@@ -303,11 +304,11 @@ def test_upsert_id_entry(
 
 def test_upsert_uuid_entry(
     app_context: AppContext,
-    admin_user: User,  # noqa: F811
     key_value_entry: KeyValueEntry,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
+    admin_user = security_manager.find_user(username="admin")
     with override_user(admin_user):
         entry = KeyValueDAO.upsert_entry(
             resource=RESOURCE,

@@ -151,7 +151,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                         needs_commit = True
 
                     if needs_commit:
-                        db.session.commit()
+                        db.session.commit()  # pylint: disable=consider-using-transaction
                 sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )

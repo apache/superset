@@ -1410,7 +1410,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             database_id=state["database_id"],
         )
         if existing:
-            DatabaseUserOAuth2TokensDAO.delete([existing], commit=True)
+            DatabaseUserOAuth2TokensDAO.delete([existing])
 
         # store tokens
         expiration = datetime.now() + timedelta(seconds=token_response["expires_in"])
@@ -1422,7 +1422,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "access_token_expiration": expiration,
                 "refresh_token": token_response.get("refresh_token"),
             },
-            commit=True,
         )
 
         # return blank page that closes itself

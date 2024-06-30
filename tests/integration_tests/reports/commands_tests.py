@@ -1548,8 +1548,6 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
                 datetime.utcnow(),
             ).run()
 
-    # Only needed for MySQL, understand why
-    db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
     # Two logs, first is created by fixture
     assert len(logs) == 2
@@ -2075,9 +2073,6 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
                 create_invalid_sql_alert_email_chart.id,
                 datetime.utcnow(),
             ).run()
-
-        # Only needed for MySQL, understand why
-        db.session.commit()
 
         # Assert the email smtp address, asserts a notification was sent with the error
         assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL

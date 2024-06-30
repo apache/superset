@@ -455,4 +455,4 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         catalog[table.table] = spreadsheet_url
         database.extra = json.dumps(extra)
         db.session.add(database)
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction

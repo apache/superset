@@ -24,9 +24,6 @@ from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any
 
-from sqlalchemy.exc import IntegrityError
-
-from superset import db
 from superset.distributed_lock.utils import get_key
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
@@ -52,7 +49,6 @@ def KeyValueDistributedLock(  # pylint: disable=invalid-name
     store.
 
     :param namespace: The namespace for which the lock is to be acquired.
-    :type namespace: str
     :param kwargs: Additional keyword arguments.
     :yields: A unique identifier (UUID) for the acquired lock (the KV key).
     :raises CreateKeyValueDistributedLockFailedException: If the lock is taken.
@@ -60,19 +56,22 @@ def KeyValueDistributedLock(  # pylint: disable=invalid-name
 
     # pylint: disable=import-outside-toplevel
     from superset.commands.distributed_lock.create import CreateDistributedLock
-
-    # pylint: disable=import-outside-toplevel
     from superset.commands.distributed_lock.delete import DeleteDistributedLock
+    from superset.commands.distributed_lock.get import GetDistributedLock
 
     key = get_key(namespace, **kwargs)
+    value = GetDistributedLock(namespace=namespace, params=kwargs).run()
+    if value:
+        logger.debug("Lock on namespace %s for key %s already taken", namespace, key)
+        raise CreateKeyValueDistributedLockFailedException("Lock already taken")
+
     logger.debug("Acquiring lock on namespace %s for key %s", namespace, key)
     try:
         CreateDistributedLock(namespace=namespace, params=kwargs).run()
-        yield key
-        DeleteDistributedLock(namespace=namespace, params=kwargs).run()
-        logger.debug("Removed lock on namespace %s for key %s", namespace, key)
-    except IntegrityError as ex:
-        db.session.rollback()
-        raise CreateKeyValueDistributedLockFailedException(
-            "Error acquiring lock"
-        ) from ex
+    except CreateKeyValueDistributedLockFailedException as ex:
+        logger.debug("Lock on namespace %s for key %s already taken", namespace, key)
+        raise CreateKeyValueDistributedLockFailedException("Lock already taken") from ex
+
+    yield key
+    DeleteDistributedLock(namespace=namespace, params=kwargs).run()
+    logger.debug("Removed lock on namespace %s for key %s", namespace, key)

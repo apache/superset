@@ -16,10 +16,12 @@
 # under the License.
 import logging
 from collections import Counter
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
@@ -39,9 +41,9 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.exceptions import SupersetSecurityException
 from superset.sql_parse import Table
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -59,19 +61,20 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         self.override_columns = override_columns
         self._properties["override_columns"] = override_columns
 
+    @transaction(
+        on_error=partial(
+            on_error,
+            catches=(
+                SQLAlchemyError,
+                ValueError,
+            ),
+            reraise=DatasetUpdateFailedError,
+        )
+    )
     def run(self) -> Model:
         self.validate()
-        if self._model:
-            try:
-                dataset = DatasetDAO.update(
-                    self._model,
-                    attributes=self._properties,
-                )
-                return dataset
-            except DAOUpdateFailedError as ex:
-                logger.exception(ex.exception)
-                raise DatasetUpdateFailedError() from ex
-        raise DatasetUpdateFailedError()
+        assert self._model
+        return DatasetDAO.update(self._model, attributes=self._properties)
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

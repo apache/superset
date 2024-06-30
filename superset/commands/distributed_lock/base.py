@@ -28,12 +28,11 @@ from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 logger = logging.getLogger(__name__)
 stats_logger = current_app.config["STATS_LOGGER"]
 
-CODEC = JsonKeyValueCodec()
-RESOURCE = KeyValueResource.LOCK
-
 
 class BaseDistributedLockCommand(BaseCommand):
     key: uuid.UUID
+    codec = JsonKeyValueCodec()
+    resource = KeyValueResource.LOCK
 
     def __init__(self, namespace: str, params: dict[str, Any] | None = None):
         self.key = get_key(namespace, **(params or {}))

@@ -24,9 +24,7 @@ from flask_caching import BaseCache
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
-from superset.key_value.exceptions import (
-    KeyValueCreateFailedError,
-)
+from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.key_value.types import (
     KeyValueCodec,
     KeyValueResource,
@@ -89,7 +87,7 @@ class SupersetMetastoreCache(BaseCache):
             codec=self.codec,
             expires_on=self._get_expiry(timeout),
         )
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
         return True
 
     def add(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
@@ -105,12 +103,12 @@ class SupersetMetastoreCache(BaseCache):
                 key=self.get_key(key),
                 expires_on=self._get_expiry(timeout),
             )
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
             return True
         except KeyValueCreateFailedError:
             return False
         except SQLAlchemyError:
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             return False
 
     def get(self, key: str) -> Any:
@@ -133,5 +131,5 @@ class SupersetMetastoreCache(BaseCache):
         from superset.daos.key_value import KeyValueDAO
 
         ret = KeyValueDAO.delete_entry(RESOURCE, self.get_key(key))
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
         return ret

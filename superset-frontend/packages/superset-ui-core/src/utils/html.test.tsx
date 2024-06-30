@@ -22,6 +22,8 @@ import {
   sanitizeHtmlIfNeeded,
   safeHtmlSpan,
   removeHTMLTags,
+  isJsonString,
+  getParagraphContents,
 } from './html';
 
 describe('sanitizeHtml', () => {
@@ -111,5 +113,79 @@ describe('removeHTMLTags', () => {
     const input = '<div><h1>Unclosed tag';
     const output = removeHTMLTags(input);
     expect(output).toBe('Unclosed tag');
+  });
+});
+
+describe('isJsonString', () => {
+  test('valid JSON object', () => {
+    const jsonString = '{"name": "John", "age": 30, "city": "New York"}';
+    expect(isJsonString(jsonString)).toBe(true);
+  });
+
+  test('valid JSON array', () => {
+    const jsonString = '[1, 2, 3, 4, 5]';
+    expect(isJsonString(jsonString)).toBe(true);
+  });
+
+  test('valid JSON string', () => {
+    const jsonString = '"Hello, world!"';
+    expect(isJsonString(jsonString)).toBe(true);
+  });
+
+  test('invalid JSON with syntax error', () => {
+    const jsonString = '{"name": "John", "age": 30, "city": "New York"';
+    expect(isJsonString(jsonString)).toBe(false);
+  });
+
+  test('empty string', () => {
+    const jsonString = '';
+    expect(isJsonString(jsonString)).toBe(false);
+  });
+
+  test('non-JSON string', () => {
+    const jsonString = '<p>Hello, <strong>World!</strong></p>';
+    expect(isJsonString(jsonString)).toBe(false);
+  });
+
+  test('non-JSON formatted number', () => {
+    const jsonString = '12345abc';
+    expect(isJsonString(jsonString)).toBe(false);
+  });
+});
+
+describe('getParagraphContents', () => {
+  test('should return an object with keys for each paragraph tag', () => {
+    const htmlString =
+      '<div><p>First paragraph.</p><p>Second paragraph.</p></div>';
+    const result = getParagraphContents(htmlString);
+    expect(result).toEqual({
+      p1: 'First paragraph.',
+      p2: 'Second paragraph.',
+    });
+  });
+
+  test('should return null if the string is not HTML', () => {
+    const nonHtmlString = 'Just a plain text string.';
+    expect(getParagraphContents(nonHtmlString)).toBeNull();
+  });
+
+  test('should return null if there are no <p> tags in the HTML string', () => {
+    const htmlStringWithoutP = '<div><span>No paragraph here.</span></div>';
+    expect(getParagraphContents(htmlStringWithoutP)).toBeNull();
+  });
+
+  test('should return an object with empty string for empty <p> tag', () => {
+    const htmlStringWithEmptyP = '<div><p></p></div>';
+    const result = getParagraphContents(htmlStringWithEmptyP);
+    expect(result).toEqual({ p1: '' });
+  });
+
+  test('should handle HTML strings with nested <p> tags correctly', () => {
+    const htmlStringWithNestedP =
+      '<div><p>First paragraph <span>with nested</span> content.</p></div>';
+    const result = getParagraphContents(htmlStringWithNestedP);
+    expect(result).toEqual({
+      p1: 'First paragraph with nested content.',
+    });
   });
 });

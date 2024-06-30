@@ -24,10 +24,7 @@ from typing import Any
 
 import pandas as pd
 import pytest
-from flask_appbuilder.security.sqla.models import Role, User
 from werkzeug.datastructures import FileStorage
-
-from superset import db
 
 
 @pytest.fixture
@@ -76,18 +73,3 @@ def create_columnar_file(
     df.to_parquet(buffer, index=False)
     buffer.seek(0)
     return FileStorage(stream=buffer, filename=filename)
-
-
-@pytest.fixture
-def admin_user() -> User:
-    role = db.session.query(Role).filter_by(name="Admin").one()
-    user = User(
-        first_name="Alice",
-        last_name="Doe",
-        email="adoe@example.org",
-        username="admin",
-        roles=[role],
-    )
-    db.session.add(user)
-    db.session.flush()
-    yield user

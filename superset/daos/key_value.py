@@ -59,13 +59,6 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         key: int | UUID,
         codec: KeyValueCodec,
     ) -> Any:
-        """
-
-        :param resource:
-        :param key:
-        :param codec:
-        :return:
-        """
         entry = cls.get_entry(resource, key)
         if not entry:
             return None
@@ -74,13 +67,6 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
 
     @staticmethod
     def delete_entry(resource: KeyValueResource, key: int | UUID) -> bool:
-        """
-        Delete an entry if it exists
-
-        :param resource: The resource
-        :param key:
-        :return: `True` if an entry was deleted, `False` if not
-        """
         if entry := KeyValueDAO.get_entry(resource, key):
             db.session.delete(entry)
             return True
@@ -108,15 +94,6 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         key: int | UUID | None = None,
         expires_on: datetime | None = None,
     ) -> KeyValueEntry:
-        """
-
-        :param resource:
-        :param value:
-        :param codec:
-        :param key:
-        :param expires_on:
-        :return:
-        """
         try:
             encoded_value = codec.encode(value)
         except Exception as ex:
@@ -136,10 +113,7 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
                     entry.id = key
             except ValueError as ex:
                 raise KeyValueCreateFailedError() from ex
-        try:
-            db.session.add(entry)
-        except Exception as ex:
-            raise KeyValueCreateFailedError from ex
+        db.session.add(entry)
         return entry
 
     @staticmethod
@@ -150,15 +124,6 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         key: int | UUID,
         expires_on: datetime | None = None,
     ) -> KeyValueEntry:
-        """
-
-        :param resource:
-        :param value:
-        :param codec:
-        :param key:
-        :param expires_on:
-        :return:
-        """
         if entry := KeyValueDAO.get_entry(resource, key):
             entry.value = codec.encode(value)
             entry.expires_on = expires_on
@@ -176,15 +141,6 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         key: int | UUID,
         expires_on: datetime | None = None,
     ) -> KeyValueEntry:
-        """
-
-        :param resource:
-        :param value:
-        :param codec:
-        :param key:
-        :param expires_on:
-        :return:
-        """
         if entry := KeyValueDAO.get_entry(resource, key):
             entry.value = codec.encode(value)
             entry.expires_on = expires_on
