@@ -115,10 +115,7 @@ class SupersetMetastoreCache(BaseCache):
         # pylint: disable=import-outside-toplevel
         from superset.daos.key_value import KeyValueDAO
 
-        entry = KeyValueDAO.get_entry(RESOURCE, self.get_key(key))
-        if entry and not entry.is_expired():
-            return self.codec.decode(entry.value)
-        return None
+        return KeyValueDAO.get_value(RESOURCE, self.get_key(key), self.codec)
 
     def has(self, key: str) -> bool:
         entry = self.get(key)
