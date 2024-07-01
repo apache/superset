@@ -71,7 +71,6 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
         key = entry.id
         if key is None:
             raise ExplorePermalinkCreateFailedError("Unexpected missing key id")
-        db.session.commit()  # pylint: disable=consider-using-transaction
         return encode_permalink_key(key=key, salt=self.salt)
 
     def validate(self) -> None:

@@ -83,11 +83,12 @@ def admin_user() -> User:
     role = db.session.query(Role).filter_by(name="Admin").one()
     user = User(
         first_name="Alice",
-        last_name="Doe",
-        email="adoe@example.org",
+        last_name="Admin",
+        email="alice_admin@example.org",
         username="alice_admin",
         roles=[role],
     )
     db.session.add(user)
     db.session.flush()
     yield user
+    db.session.rollback()

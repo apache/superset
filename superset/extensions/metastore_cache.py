@@ -32,6 +32,7 @@ from superset.key_value.types import (
     PickleKeyValueCodec,
 )
 from superset.key_value.utils import get_uuid_namespace
+from superset.utils.decorators import transaction
 
 RESOURCE = KeyValueResource.METASTORE_CACHE
 
@@ -100,9 +101,7 @@ class SupersetMetastoreCache(BaseCache):
             )
             db.session.commit()  # pylint: disable=consider-using-transaction
             return True
-        except KeyValueCreateFailedError:
-            return False
-        except SQLAlchemyError:
+        except (SQLAlchemyError, KeyValueCreateFailedError):
             db.session.rollback()  # pylint: disable=consider-using-transaction
             return False
 
@@ -115,7 +114,7 @@ class SupersetMetastoreCache(BaseCache):
             return True
         return False
 
+    @transaction()
     def delete(self, key: str) -> Any:
         ret = KeyValueDAO.delete_entry(RESOURCE, self.get_key(key))
-        db.session.commit()  # pylint: disable=consider-using-transaction
         return ret

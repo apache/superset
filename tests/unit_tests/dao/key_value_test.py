@@ -66,6 +66,7 @@ def key_value_entry() -> Generator[KeyValueEntry, None, None]:
     db.session.add(entry)
     db.session.flush()
     yield entry
+    db.session.rollback()
 
 
 def test_create_id_entry(
