@@ -28,12 +28,16 @@ import {
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
+import { DownOutlined, FileOutlined, GoogleOutlined } from '@ant-design/icons';
+import { Space } from 'antd';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import {
+  FeatureFlag,
   QueryState,
+  isFeatureEnabled,
   styled,
   t,
   tn,
@@ -60,7 +64,6 @@ import { Tooltip } from 'src/components/Tooltip';
 import FilterableTable from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import {
   addQueryEditor,
@@ -77,8 +80,13 @@ import {
   LOG_ACTIONS_SQLLAB_CREATE_CHART,
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
 } from 'src/logger/LogUtils';
+import { AntdDropdown } from 'src/components';
 import Icons from 'src/components/Icons';
+import { Menu } from 'src/components/Menu';
 import { findPermission } from 'src/utils/findPermission';
+
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -155,7 +163,7 @@ const extensionsRegistry = getExtensionsRegistry();
 
 const ResultSet = ({
   cache = false,
-  csv = true,
+  isExportable = true,
   database = {},
   displayLimit,
   height,
@@ -290,10 +298,13 @@ const ResultSet = ({
   };
 
   const getExportCsvUrl = (clientId: string) =>
-    `/api/v1/sqllab/export/${clientId}/`;
+    `/api/v1/sqllab/export/${clientId}/csv/`;
+
+  const getExportGoogleSheetsUrl = (clientId: string) =>
+    `/export/${clientId}/google-sheets/`;
 
   const renderControls = () => {
-    if (search || visualize || csv) {
+    if (search || visualize || isExportable) {
       let { data } = query.results;
       if (cache && query.cached) {
         data = cachedData;
@@ -316,6 +327,37 @@ const ResultSet = ({
         user?.roles,
       );
 
+      // Antd >= 4.24.0 format:
+      const exportMenuItems = [];
+      exportMenuItems.push({
+        label: t('CSV'),
+        key: 'csv',
+        icon: <Icons.FileOutlined />,
+        onClick: () => {
+          logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+          window.open(getExportCsvUrl(query.id), '_blank')?.focus();
+        },
+      });
+      if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
+        exportMenuItems.push({
+          label: t('Google Sheets'),
+          key: 'google-sheets',
+          icon: <Icons.GoogleOutlined />,
+          onClick: () =>
+            window.open(getExportGoogleSheetsUrl(query.id), '_blank')?.focus(),
+        });
+      }
+      const ExportMenu = (
+        <Menu>
+          {exportMenuItems.map(item => (
+            <Menu.Item key={item.key} onClick={item.onClick}>
+              {item.icon} {item.label}
+            </Menu.Item>
+          ))}
+        </Menu>
+      );
+      const hasExports = exportMenuItems.length > 0 && canExportData;
+
       return (
         <ResultSetControls>
           <SaveDatasetModal
@@ -335,15 +377,15 @@ const ResultSet = ({
                 onClick={createExploreResultsOnClick}
               />
             )}
-            {csv && canExportData && (
-              <Button
-                buttonSize="small"
-                href={getExportCsvUrl(query.id)}
-                data-test="export-csv-button"
-                onClick={() => logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {})}
-              >
-                <i className="fa fa-file-text-o" /> {t('Download to CSV')}
-              </Button>
+            {hasExports && (
+              <AntdDropdown overlay={ExportMenu}>
+                <Button>
+                  <Space>
+                    Export
+                    <Icons.DownOutlined iconSize="s" />
+                  </Space>
+                </Button>
+              </AntdDropdown>
             )}
 
             {canExportData && (
