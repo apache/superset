@@ -26,7 +26,11 @@ import {
   SORT_SERIES_CHOICES,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_LEGEND_FORM_DATA, StackControlOptions } from './constants';
+import {
+  DEFAULT_LEGEND_FORM_DATA,
+  StackControlOptions,
+  TIMESERIES_CONSTANTS,
+} from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 import { defaultXAxis } from './defaults';
 
@@ -314,7 +318,7 @@ export const dataZoom: ControlSetItem = {
   config: {
     type: 'CheckboxControl',
     label: t('Data Zoom'),
-    default: false,
+    default: DEFAULT_FORM_DATA.zoomable,
     renderTrigger: true,
     description: t('Enable data zooming controls'),
   },
@@ -331,7 +335,7 @@ export const dataZoomSliderOptions: ControlSetItem[][] = [
         min: 0,
         max: 100,
         step: 1,
-        default: 0,
+        default: TIMESERIES_CONSTANTS.dataZoomStart,
         description: t(
           'The start percentage of the window out of the data extent, in the range of 0 ~ 100.',
         ),
@@ -350,7 +354,7 @@ export const dataZoomSliderOptions: ControlSetItem[][] = [
         min: 0,
         max: 100,
         step: 1,
-        default: 0,
+        default: TIMESERIES_CONSTANTS.dataZoomEnd,
         description: t(
           'The end percentage of the window out of the data extent, in the range of 0 ~ 100.',
         ),
