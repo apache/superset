@@ -381,7 +381,7 @@ class CreateKeyValueDistributedLockFailedException(Exception):
 
 class DeleteKeyValueDistributedLockFailedException(Exception):
     """
-    Exception to signalize failure to acquire lock.
+    Exception to signalize failure to delete lock.
     """
 
 
