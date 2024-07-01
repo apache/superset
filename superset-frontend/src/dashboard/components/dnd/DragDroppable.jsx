@@ -19,6 +19,7 @@
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
+import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 import { DragSource, DropTarget } from 'react-dnd';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
@@ -40,6 +41,7 @@ const propTypes = {
   style: PropTypes.object,
   onDrop: PropTypes.func,
   onHover: PropTypes.func,
+  onDropIndicatorChange: PropTypes.func,
   editMode: PropTypes.bool,
   useEmptyDragPreview: PropTypes.bool,
 
@@ -61,6 +63,7 @@ const defaultProps = {
   children() {},
   onDrop() {},
   onHover() {},
+  onDropIndicatorChange() {},
   orientation: 'row',
   useEmptyDragPreview: false,
   isDragging: false,
@@ -127,6 +130,21 @@ export class UnwrappedDragDroppable extends PureComponent {
 
   componentWillUnmount() {
     this.mounted = false;
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const { onDropIndicatorChange, isDraggingOver, component, index } =
+      this.props;
+    const { dropIndicator } = this.state;
+    const isTabsType = component.type === TAB_TYPE;
+    const validStateChange =
+      dropIndicator !== prevState.dropIndicator ||
+      isDraggingOver !== prevProps.isDraggingOver ||
+      index !== prevProps.index;
+
+    if (onDropIndicatorChange && isTabsType && validStateChange) {
+      onDropIndicatorChange({ dropIndicator, isDraggingOver, index });
+    }
   }
 
   setRef(ref) {

@@ -47,6 +47,7 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
   onDropOnTab: PropTypes.func,
+  onDropPositionChange: PropTypes.func,
   onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   canEdit: PropTypes.bool.isRequired,
@@ -69,6 +70,7 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   onDropOnTab() {},
+  onDropPositionChange() {},
   onHoverTab() {},
   onResizeStart() {},
   onResize() {},
@@ -76,6 +78,7 @@ const defaultProps = {
 };
 
 const TabTitleContainer = styled.div`
+  // TODO remove tab title container from visible if dragging it in edit mode
   ${({ isHighlighted, theme: { gridUnit, colors } }) => `
     padding: ${gridUnit}px ${gridUnit * 2}px;
     margin: ${-gridUnit}px ${gridUnit * -2}px;
@@ -84,6 +87,14 @@ const TabTitleContainer = styled.div`
       isHighlighted && `box-shadow: 0 0 ${gridUnit}px ${colors.primary.light1};`
     }
   `}
+`;
+
+const TitleDropIndicator = styled.div`
+  &.drop-indicator {
+    position: absolute;
+    top: 0;
+    border-radius: 4px;
+  }
 `;
 
 const renderDraggableContent = dropProps =>
@@ -97,6 +108,7 @@ class Tab extends PureComponent {
     this.handleOnHover = this.handleOnHover.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
     this.handleChangeTab = this.handleChangeTab.bind(this);
+    // this.handleGetDropPosition = this.handleGetDropPosition.bind(this);
   }
 
   handleChangeTab({ pathToTabIndex }) {
@@ -268,6 +280,7 @@ class Tab extends PureComponent {
       editMode,
       isFocused,
       isHighlighted,
+      onDropPositionChange,
     } = this.props;
 
     return (
@@ -279,6 +292,7 @@ class Tab extends PureComponent {
         depth={depth}
         onDrop={this.handleDrop}
         onHover={this.handleOnHover}
+        onDropIndicatorChange={onDropPositionChange}
         editMode={editMode}
         dropToChild={this.shouldDropToChild}
       >
@@ -304,8 +318,9 @@ class Tab extends PureComponent {
                 placement={index >= 5 ? 'left' : 'right'}
               />
             )}
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
+            {dropIndicatorProps && (
+              <TitleDropIndicator className={dropIndicatorProps.className} />
+            )}
           </TabTitleContainer>
         )}
       </DragDroppable>
