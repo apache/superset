@@ -21,6 +21,7 @@ from uuid import uuid3
 from superset import db
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource, SharedKey
 from superset.key_value.utils import get_uuid_namespace, random_key
+from superset.utils.decorators import transaction
 
 RESOURCE = KeyValueResource.APP
 NAMESPACE = get_uuid_namespace("")
@@ -35,13 +36,13 @@ def get_shared_value(key: SharedKey) -> Optional[Any]:
     return KeyValueDAO.get_value(RESOURCE, uuid_key, CODEC)
 
 
+@transaction()
 def set_shared_value(key: SharedKey, value: Any) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.daos.key_value import KeyValueDAO
 
     uuid_key = uuid3(NAMESPACE, key)
     KeyValueDAO.create_entry(RESOURCE, value, CODEC, uuid_key)
-    db.session.commit()  # pylint: disable=consider-using-transaction
 
 
 def get_permalink_salt(key: SharedKey) -> str:
