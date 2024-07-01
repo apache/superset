@@ -20,7 +20,7 @@ from __future__ import annotations
 import csv
 from datetime import datetime
 from io import BytesIO, StringIO
-from typing import Any
+from typing import Any, Generator
 
 import pandas as pd
 import pytest
@@ -79,7 +79,7 @@ def create_columnar_file(
 
 
 @pytest.fixture
-def admin_user() -> User:
+def admin_user() -> Generator[User, None, None]:
     role = db.session.query(Role).filter_by(name="Admin").one()
     user = User(
         first_name="Alice",
@@ -91,4 +91,9 @@ def admin_user() -> User:
     db.session.add(user)
     db.session.flush()
     yield user
+
+
+@pytest.fixture
+def after_each() -> Generator[None, None, None]:
+    yield
     db.session.rollback()

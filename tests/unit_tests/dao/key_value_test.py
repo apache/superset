@@ -38,7 +38,7 @@ from superset.key_value.types import (
 )
 from superset.utils import json
 from superset.utils.core import override_user
-from tests.unit_tests.fixtures.common import admin_user  # noqa: F401
+from tests.unit_tests.fixtures.common import admin_user, after_each  # noqa: F401
 
 if TYPE_CHECKING:
     from superset.key_value.models import KeyValueEntry
@@ -66,12 +66,12 @@ def key_value_entry() -> Generator[KeyValueEntry, None, None]:
     db.session.add(entry)
     db.session.flush()
     yield entry
-    db.session.rollback()
 
 
 def test_create_id_entry(
     app_context: AppContext,
     admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
     from superset.key_value.models import KeyValueEntry
@@ -89,12 +89,11 @@ def test_create_id_entry(
         assert json.loads(found_entry.value) == JSON_VALUE
         assert found_entry.created_by_fk == admin_user.id
 
-    db.session.rollback()
-
 
 def test_create_uuid_entry(
     app_context: AppContext,
     admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
     from superset.key_value.models import KeyValueEntry
@@ -110,10 +109,12 @@ def test_create_uuid_entry(
     )
     assert json.loads(found_entry.value) == JSON_VALUE
     assert found_entry.created_by_fk == admin_user.id
-    db.session.rollback()
 
 
-def test_create_fail_json_entry(app_context: AppContext) -> None:
+def test_create_fail_json_entry(
+    app_context: AppContext,
+    after_each: None,  # noqa: F811
+) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     with pytest.raises(KeyValueCreateFailedError):
@@ -123,12 +124,11 @@ def test_create_fail_json_entry(app_context: AppContext) -> None:
             codec=JSON_CODEC,
         )
 
-    db.session.rollback()
-
 
 def test_create_pickle_entry(
     app_context: AppContext,
     admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
     from superset.key_value.models import KeyValueEntry
@@ -146,10 +146,12 @@ def test_create_pickle_entry(
         assert type(pickle.loads(found_entry.value)) == type(PICKLE_VALUE)
         assert found_entry.created_by_fk == admin_user.id
 
-    db.session.rollback()
 
-
-def test_get_value(app_context: AppContext, key_value_entry: KeyValueEntry) -> None:
+def test_get_value(
+    app_context: AppContext,
+    key_value_entry: KeyValueEntry,
+    after_each: None,  # noqa: F811
+) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     value = KeyValueDAO.get_value(
@@ -158,38 +160,46 @@ def test_get_value(app_context: AppContext, key_value_entry: KeyValueEntry) -> N
         codec=JSON_CODEC,
     )
     assert value == JSON_VALUE
-    db.session.rollback()
 
 
-def test_get_id_entry(app_context: AppContext, key_value_entry: KeyValueEntry) -> None:
+def test_get_id_entry(
+    app_context: AppContext,
+    key_value_entry: KeyValueEntry,
+    after_each: None,  # noqa: F811
+) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     found_entry = KeyValueDAO.get_entry(resource=RESOURCE, key=key_value_entry.id)
     assert found_entry is not None
     assert found_entry.id == key_value_entry.id
-    db.session.rollback()
 
 
 def test_get_uuid_entry(
     app_context: AppContext,
     key_value_entry: KeyValueEntry,  # noqa: F811
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     found_entry = KeyValueDAO.get_entry(resource=RESOURCE, key=key_value_entry.uuid)
     assert found_entry is not None
     assert JSON_CODEC.decode(found_entry.value) == JSON_VALUE
-    db.session.rollback()
 
 
-def test_get_id_entry_missing(app_context: AppContext) -> None:
+def test_get_id_entry_missing(
+    app_context: AppContext,
+    after_each: None,  # noqa: F811
+) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     entry = KeyValueDAO.get_entry(resource=RESOURCE, key=456)
     assert entry is None
 
 
-def test_get_expired_entry(app_context: AppContext) -> None:
+def test_get_expired_entry(
+    app_context: AppContext,
+    after_each: None,  # noqa: F811
+) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     created_entry = KeyValueDAO.create_entry(
@@ -202,10 +212,12 @@ def test_get_expired_entry(app_context: AppContext) -> None:
     found_entry = KeyValueDAO.get_entry(resource=RESOURCE, key=created_entry.id)
     assert found_entry is not None
     assert found_entry.is_expired() is True
-    db.session.rollback()
 
 
-def test_get_future_expiring_entry(app_context: AppContext) -> None:
+def test_get_future_expiring_entry(
+    app_context: AppContext,
+    after_each: None,  # noqa: F811
+) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     created_entry = KeyValueDAO.create_entry(
@@ -218,13 +230,13 @@ def test_get_future_expiring_entry(app_context: AppContext) -> None:
     found_entry = KeyValueDAO.get_entry(resource=RESOURCE, key=created_entry.id)
     assert found_entry is not None
     assert found_entry.is_expired() is False
-    db.session.rollback()
 
 
 def test_update_id_entry(
     app_context: AppContext,
     key_value_entry: KeyValueEntry,  # noqa: F811
     admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
@@ -244,13 +256,13 @@ def test_update_id_entry(
         assert found_entry is not None
         assert JSON_CODEC.decode(found_entry.value) == NEW_VALUE
         assert found_entry.changed_by_fk == admin_user.id
-    db.session.rollback()
 
 
 def test_update_uuid_entry(
     app_context: AppContext,
     key_value_entry: KeyValueEntry,  # noqa: F811
     admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
@@ -270,12 +282,12 @@ def test_update_uuid_entry(
     assert found_entry is not None
     assert JSON_CODEC.decode(found_entry.value) == NEW_VALUE
     assert found_entry.changed_by_fk == admin_user.id
-    db.session.rollback()
 
 
 def test_update_missing_entry(
     app_context: AppContext,
     admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
@@ -288,13 +300,12 @@ def test_update_missing_entry(
                 codec=JSON_CODEC,
             )
 
-    db.session.rollback()
-
 
 def test_upsert_id_entry(
     app_context: AppContext,
     key_value_entry: KeyValueEntry,  # noqa: F811
     admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
@@ -310,13 +321,12 @@ def test_upsert_id_entry(
         assert JSON_CODEC.decode(found_entry.value) == NEW_VALUE
         assert entry.changed_by_fk == admin_user.id
 
-    db.session.rollback()
-
 
 def test_upsert_uuid_entry(
     app_context: AppContext,
     key_value_entry: KeyValueEntry,  # noqa: F811
     admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
@@ -336,10 +346,11 @@ def test_upsert_uuid_entry(
         assert JSON_CODEC.decode(found_entry.value) == NEW_VALUE
         assert entry.changed_by_fk == admin_user.id
 
-    db.session.rollback()
 
-
-def test_upsert_missing_entry(app_context: AppContext) -> None:  # noqa: F811
+def test_upsert_missing_entry(
+    app_context: AppContext,
+    after_each: None,  # noqa: F811
+) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     entry = KeyValueDAO.get_entry(resource=RESOURCE, key=ID_KEY)
@@ -354,33 +365,31 @@ def test_upsert_missing_entry(app_context: AppContext) -> None:  # noqa: F811
     assert entry is not None
     assert JSON_CODEC.decode(entry.value) == NEW_VALUE
 
-    db.session.rollback()
-
 
 def test_delete_id_entry(
     app_context: AppContext,
     key_value_entry: KeyValueEntry,
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     assert KeyValueDAO.delete_entry(resource=RESOURCE, key=ID_KEY) is True
-    db.session.rollback()
 
 
 def test_delete_uuid_entry(
     app_context: AppContext,
     key_value_entry: KeyValueEntry,
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     assert KeyValueDAO.delete_entry(resource=RESOURCE, key=UUID_KEY) is True
-    db.session.rollback()
 
 
 def test_delete_entry_missing(
     app_context: AppContext,
+    after_each: None,  # noqa: F811
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
     assert KeyValueDAO.delete_entry(resource=RESOURCE, key=12345678) is False
-    db.session.rollback()
