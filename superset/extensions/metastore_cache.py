@@ -116,5 +116,4 @@ class SupersetMetastoreCache(BaseCache):
 
     @transaction()
     def delete(self, key: str) -> Any:
-        ret = KeyValueDAO.delete_entry(RESOURCE, self.get_key(key))
-        return ret
+        return KeyValueDAO.delete_entry(RESOURCE, self.get_key(key))
