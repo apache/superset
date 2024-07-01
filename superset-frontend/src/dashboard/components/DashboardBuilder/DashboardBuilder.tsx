@@ -471,8 +471,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     threshold: [1],
   });
 
+  const hideFilters = getUrlParam(URL_PARAMS.showFilters) === false;
   const showFilterBar =
-    (crossFiltersEnabled || nativeFiltersEnabled) && !editMode;
+    (crossFiltersEnabled || nativeFiltersEnabled) && !editMode && !hideFilters;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
