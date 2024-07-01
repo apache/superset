@@ -54,7 +54,7 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         codec: KeyValueCodec,
     ) -> Any:
         entry = cls.get_entry(resource, key)
-        if not entry:
+        if not entry or entry.is_expired():
             return None
 
         return codec.decode(entry.value)
