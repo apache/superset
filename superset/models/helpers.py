@@ -984,7 +984,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         the same as a source column. In this case, we update the SELECT alias to
         another name to avoid the conflict.
         """
-        if self.db_engine_spec.order_by_allows_alias_to_source_column:
+        if not self.db_engine_spec.order_by_require_unique_alias:
             return
 
         def is_alias_used_in_orderby(col: ColumnElement) -> bool:
@@ -1013,7 +1013,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         the same as a source column. In this case, we update the SELECT alias to
         another name to avoid the conflict.
         """
-        if self.db_engine_spec.group_by_allows_alias_to_source_column:
+        if not self.db_engine_spec.group_by_require_unique_alias:
             return
 
         def is_alias_used_in_groupby(col: ColumnElement) -> bool:
@@ -1782,7 +1782,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         tbl, cte = self.get_from_clause(template_processor)
 
         if groupby_all_columns:
-            self.make_groupby_compatible(select_exprs, list(groupby_all_columns.values()))
+            self.make_groupby_compatible(
+                select_exprs, list(groupby_all_columns.values())
+            )
             qry = qry.group_by(*groupby_all_columns.values())
 
         where_clause_and = []

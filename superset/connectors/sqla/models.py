@@ -1585,7 +1585,7 @@ class SqlaTable(
         the same as a source column. In this case, we update the SELECT alias to
         another name to avoid the conflict.
         """
-        if self.db_engine_spec.order_by_allows_alias_to_source_column:
+        if not self.db_engine_spec.order_by_require_unique_alias:
             return
 
         def is_alias_used_in_orderby(col: ColumnElement) -> bool:
@@ -1614,7 +1614,7 @@ class SqlaTable(
         the same as a source column. In this case, we update the SELECT alias to
         another name to avoid the conflict.
         """
-        if self.db_engine_spec.group_by_allows_alias_to_source_column:
+        if not self.db_engine_spec.group_by_require_unique_alias:
             return
 
         def is_alias_used_in_groupby(col: ColumnElement) -> bool:
@@ -1630,7 +1630,6 @@ class SqlaTable(
         for col in select_exprs:
             if is_alias_used_in_groupby(col):
                 col.name = f"{col.name}__"
-
 
     def text(self, clause: str) -> TextClause:
         return self.db_engine_spec.get_text_clause(clause)

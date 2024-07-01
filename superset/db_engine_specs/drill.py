@@ -35,8 +35,8 @@ class DrillEngineSpec(BaseEngineSpec):
     engine = "drill"
     engine_name = "Apache Drill"
     default_driver = "sadrill"
-    order_by_allows_alias_to_source_column = True
-    group_by_allows_alias_to_source_column = False
+    order_by_require_unique_alias = False
+    group_by_require_unique_alias = True
 
     supports_dynamic_schema = True
 

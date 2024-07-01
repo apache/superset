@@ -101,7 +101,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     engine = "hive"
     engine_name = "Apache Hive"
     max_column_name_length = 767
-    order_by_allows_alias_to_source_column = True
+    order_by_require_unique_alias = False
     allows_hidden_orderby_agg = False
 
     supports_dynamic_schema = True

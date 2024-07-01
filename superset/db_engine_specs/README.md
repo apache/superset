@@ -205,9 +205,9 @@ LIMIT 10000;
 
 In practice, the attribute doesn't seem to be working as of 2023-07-27.
 
-### `order_by_allows_alias_to_source_column = True`
+### `order_by_require_unique_alias = True`
 
-When this is true the database allows ORDER BY statements where an alias can have the same name as the selected source column. For example, in this query:
+When this is true the database requires aliases to have a different name than the selected source column when used in ORDER BY statements. This example query will not work as the alias has the same name:
 
 ```sql
 SELECT
@@ -218,9 +218,9 @@ ORDER BY
   foo  -- references the source column `foo`, not the column alias `foo + 1`
 ```
 
-### `group_by_allows_alias_to_source_column = True`
+### `group_by_require_unique_alias = True`
 
-When this is true the database allows GROUP BY statements where an alias can have the same name as the selected source column. For example, in this query:
+When this is true the database requires aliases to have a different name than the selected source column when used in GROUP BY statements. This example query will not work as the alias has the same name:
 
 ```sql
 SELECT

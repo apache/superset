@@ -185,21 +185,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """Abstract class for database engine specific configurations
 
     Attributes:
-        order_by_allows_alias_to_source_column: Whether the engine is able to pick the
-                                                source column for aggregation clauses
-                                                used in ORDER BY when a column in SELECT
-                                                has an alias that is the same as a source
-                                                column.
+        order_by_require_unique_alias: Whether the engine requires an alias of a
+                                       column in SELECT to be unique as it otherwise
+                                       is not able to pick the source column for
+                                       aggregation clauses in ORDER BY.
 
-        group_by_allows_alias_to_source_column: Whether the engine is able to pick the
-                                                source column for aggregation clauses
-                                                used in GROUP BY when a column in SELECT
-                                                has an alias that is the same as a source
-                                                column.
+        group_by_require_unique_alias: Whether the engine requires an alias of a
+                                       column in SELECT to be unique as it otheriwse
+                                       is not able to pick the source column for
+                                       aggregation clauses in GROUP BY.
 
-        allows_hidden_orderby_agg:              Whether the engine allows ORDER BY to
-                                                directly use aggregation clauses, without
-                                                having to add the same aggregation in SELECT.
+        allows_hidden_orderby_agg:     Whether the engine allows ORDER BY to
+                                       directly use aggregation clauses, without
+                                       having to add the same aggregation in SELECT.
     """
 
     engine_name: str | None = None  # for user messages, overridden in child classes
@@ -354,13 +352,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_sql_comments = True
     allows_escaped_colons = True
 
-    # Whether ORDER BY clause can handle aliases created in SELECT
-    # that are the same as a source column
-    order_by_allows_alias_to_source_column = True
+    # Whether ORDER BY clause requires aliases create in SELECT
+    # to have a unique name.
+    order_by_require_unique_alias = False
 
-    # Whether GROUP BY clause can handle aliases created in SELECT
-    # that are the same as a source column
-    group_by_allows_alias_to_source_column = True
+    # Whether GROUP BY clause requires aliases create in SELECT
+    # to have a unique name.
+    group_by_require_unique_alias = False
 
     # Whether ORDER BY clause must appear in SELECT
     # if True, then it doesn't have to.
