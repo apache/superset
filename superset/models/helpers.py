@@ -1782,7 +1782,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         tbl, cte = self.get_from_clause(template_processor)
 
         if groupby_all_columns:
-            self.make_groupby_compatible(select_exprs, groupby_all_columns.values())
+            self.make_groupby_compatible(select_exprs, list(groupby_all_columns.values()))
             qry = qry.group_by(*groupby_all_columns.values())
 
         where_clause_and = []
