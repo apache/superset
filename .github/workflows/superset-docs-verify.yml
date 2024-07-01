@@ -14,7 +14,7 @@ concurrency:
 jobs:
   build-deploy:
     name: Build & Deploy
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: docs
