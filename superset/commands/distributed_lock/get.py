@@ -14,3 +14,32 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
+import logging
+from typing import cast
+
+from flask import current_app
+
+from superset.commands.distributed_lock.base import BaseDistributedLockCommand
+from superset.daos.key_value import KeyValueDAO
+from superset.distributed_lock.types import LockValue
+
+logger = logging.getLogger(__name__)
+stats_logger = current_app.config["STATS_LOGGER"]
+
+
+class GetDistributedLock(BaseDistributedLockCommand):
+    def validate(self) -> None:
+        pass
+
+    def run(self) -> LockValue | None:
+        entry = KeyValueDAO.get_entry(
+            resource=self.resource,
+            key=self.key,
+        )
+        if not entry or entry.is_expired():
+            return None
+
+        return cast(LockValue, self.codec.decode(entry.value))
