@@ -79,47 +79,27 @@ export default function Loading({
       aria-label="Loading"
     >
       <svg
-        width="50"
-        height="40"
-        viewBox="0 0 202 202"
-        fill="none"
+        id="Identity"
         xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 570 570"
       >
+        <defs>
+          <style>{`.cls-1{fill:url(#linear-gradient);}`}</style>
+          <linearGradient
+            id="linear-gradient"
+            x1="102.8"
+            y1="411.52"
+            x2="427.29"
+            y2="87.02"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset=".17" stop-color="#aa83ff" />
+            <stop offset=".75" stop-color="#7822ff" />
+          </linearGradient>
+        </defs>
         <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M178.85 112.675V8.14886L126.587 60.412L178.85 112.675Z"
-          fill="#EF4A42"
-        />
-        <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M176.466 126.587L118.44 68.5613L60.4146 126.587L118.44 184.612L176.466 126.587Z"
-          fill="#824EF0"
-        />
-        <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M52.2631 134.737L0 187H104.526L52.2631 134.737Z"
-          fill="#364EED"
-        />
-        <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M46.501 112.675L46.501 66.1744L0.000244141 66.1744L46.501 112.675Z"
-          fill="#1FA089"
-        />
-        <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M110.288 60.4132L58.025 8.1501L58.025 112.676L110.288 60.4132Z"
-          fill="#99DBEF"
-        />
-        <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M235.601 0L190.377 0L190.377 45.2237L235.601 0Z"
-          fill="#F8B03B"
+          className="cls-1"
+          d="m372.93,326.81l-86.68,86.68-86.68-86.68,86.68-86.68,86.68,86.68Zm-272.09,98.68h173.36l-86.68-86.68-86.68,86.68Zm284.08-110.73v-86.68s0-86.68,0-86.68l-86.68,86.68,86.68,86.68Zm-110.76-86.68l-86.68-86.68v86.68s0,86.68,0,86.68l86.68-86.68Zm127.89-22.98l31.85-31.85,31.85-31.85h-63.7s0,63.7,0,63.7Zm-292.75,31.48l30.65,30.65,30.65,30.65v-61.29s-61.29,0-61.29,0Z"
         />
       </svg>
     </LoaderImg>

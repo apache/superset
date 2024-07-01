@@ -49,7 +49,7 @@ const headerStyles = (theme: SupersetTheme) => css`
   flex-wrap: nowrap;
   justify-content: space-between;
   background-color: ${theme.colors.grayscale.light5};
-  height: 105px;
+  height: 65px;
   padding: 0 ${theme.gridUnit * 4}px;
 
   .editable-title {

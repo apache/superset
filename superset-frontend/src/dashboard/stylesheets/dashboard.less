@@ -10,20 +10,20 @@
 * --------------------------
 */
 
-/* Import fonts - Axiforma */
+/* Import fonts - Inter */
 /*@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&display=swap');*/
 
 @font-face {
-  font-family: 'Axiforma-Regular';
+  font-family: 'Inter-Regular';
   font-weight: normal;
   font-style: normal;
   font-display: swap;
-  src: url(../../assets/fonts/axiforma/Axiforma-Regular.ttf),
-    url(../../assets/fonts/axiforma/Axiforma-Regular.woff);
+  src: url(../../assets/fonts/inter/Inter-Regular.ttf),
+    url(../../assets/fonts/inter/Inter-Regular.woff);
 }
 
 body {
-  font-family: 'Axiforma-Regular' !important;
+  font-family: 'Inter-Regular', sans-serif !important;
 }
 
 /*!
@@ -1052,7 +1052,7 @@ body h6 {
   letter-spacing: 0.2px;
   margin-top: 8px;
   margin-bottom: 4px;
-  font-family: 'Axiforma', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 body p {
   margin: 0 0 8px;
@@ -1311,7 +1311,7 @@ i.warning {
 .filters-scope-selector .react-checkbox-tree .rct-icon.rct-icon-expand-all {
   font-size: 14px;
   font-family: Inter, Helvetica, Arial;
-  color: #824ef0;
+  color: #7822ff;
 }
 .filters-scope-selector
   .react-checkbox-tree
@@ -1474,7 +1474,7 @@ i.warning {
   outline: none;
 }
 .filters-scope-selector .scope-search:focus {
-  border: 1px solid #824ef0;
+  border: 1px solid #7822ff;
 }
 .grid-container > div:first-child {
   height: inherit !important;
@@ -1501,7 +1501,7 @@ i.warning {
   left: 0;
   bottom: 2;
   height: 2;
-  background-color: #824ef0;
+  background-color: #7822ff;
   z-index: 10;
 }
 .hover-menu {
@@ -1581,7 +1581,7 @@ div:hover > .hover-menu {
   left: 0;
   width: 100%;
   height: 100%;
-  border: 2px solid #824ef0;
+  border: 2px solid #7822ff;
   pointer-events: none;
 }
 .popover-menu {
@@ -1691,10 +1691,10 @@ div:hover > .hover-menu {
   left: 0;
   width: 100%;
   height: 100%;
-  box-shadow: inset 0 0 0 2px #824ef0;
+  box-shadow: inset 0 0 0 2px #7822ff;
 }
 .resizable-container--resizing > span .resize-handle {
-  border-color: #824ef0;
+  border-color: #7822ff;
 }
 .resize-handle {
   opacity: 0;
@@ -1770,7 +1770,7 @@ div:hover > .hover-menu {
 }
 .dashboard-component-chart-holder.fade-in {
   border-radius: 4px;
-  box-shadow: inset 0 0 0 2px #824ef0, 0 0 0 3px rgba(32, 167, 201, 0.1);
+  box-shadow: inset 0 0 0 2px #7822ff, 0 0 0 3px rgba(32, 167, 201, 0.1);
   transition: box-shadow 1s ease-in-out;
 }
 .dashboard-component-chart-holder.fade-out {
@@ -1798,7 +1798,7 @@ div:hover > .hover-menu {
   border: 1px solid transparent;
 }
 .dashboard--editing .dashboard-component-chart-holder:hover:after {
-  border: 1px dashed #824ef0;
+  border: 1px dashed #7822ff;
   z-index: 2;
 }
 .dashboard--editing
@@ -1807,7 +1807,7 @@ div:hover > .hover-menu {
 .dashboard--editing
   .resizable-container:hover
   > .dashboard-component-chart-holder:after {
-  border: 1px dashed #824ef0;
+  border: 1px dashed #7822ff;
 }
 .dashboard--editing
   .resizable-container
@@ -1878,7 +1878,7 @@ a[role='menuitem'] .dot {
 .dashboard--editing
   .resizable-container.resizable-container--resizing:hover
   > .grid-column:after {
-  border: 1px dashed #824ef0;
+  border: 1px dashed #7822ff;
   z-index: 2;
 }
 .grid-column--empty {
@@ -1936,7 +1936,7 @@ a[role='menuitem'] .dot {
   pointer-events: none;
 }
 .dashboard--editing .dashboard-grid .dashboard-component-header:hover:after {
-  border: 1px dashed #824ef0;
+  border: 1px dashed #7822ff;
   z-index: 2;
 }
 .dashboard--editing .dragdroppable-row .dashboard-component-header {
@@ -2033,7 +2033,7 @@ a[role='menuitem'] .dot {
 .dashboard--editing
   .resizable-container.resizable-container--resizing:hover
   > .grid-row:after {
-  border: 1px dashed #824ef0;
+  border: 1px dashed #7822ff;
   z-index: 2;
 }
 .dashboard--editing .dashboard-component-tabs > .hover-menu + div:after,
@@ -2103,9 +2103,9 @@ a[role='menuitem'] .dot {
 /* Variables */
 
 :root {
-  --primaryColor: #824ef0;
-  --secondaryColor: #f2f3ff;
-  --txtColor: #353538;
+  --primaryColor: #7822ff;
+  --secondaryColor: #f5f7f8;
+  --txtColor: #10181b;
   --txtColor2: #989eaa;
   --backgroundColor: #fcfdff;
   --borderColor: #eee;
@@ -2151,7 +2151,7 @@ a[role='menuitem'] .dot {
 .dashboard {
   background-color: var(--backgroundColor);
   color: var(--txtColor);
-  font-family: 'Axiforma-Regular', sans-serif !important;
+  font-family: 'Inter-Regular', sans-serif !important;
 }
 
 .dashboard > div > div {
@@ -2269,8 +2269,8 @@ a[role='menuitem'] .dot {
 }
 
 .button-container .ant-dropdown-trigger {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2302,10 +2302,10 @@ a[role='menuitem'] .dot {
   max-height: 50px;
   font-size: 16px;
   font-weight: 400 !important; */
-  padding: 12px 16px !important;
+  padding: 4px 15px !important;
   font-weight: 400 !important;
-  font-size: 16px !important;
-  height: 40px;
+  font-size: 14px !important;
+  height: 32px;
   display: inline-flex;
   align-items: center;
 }
@@ -2316,10 +2316,17 @@ a[role='menuitem'] .dot {
 
 .button-container .ant-btn:nth-child(1),
 .button-container .ant-btn:nth-child(2) {
-  background-color: var(--secondaryColor);
+  background-color: transparent;
   color: var(--primaryColor);
   text-transform: capitalize;
   //padding: 6px;
+  border: 1px solid #d9d9d9;
+  color: var(--txtColor);
+}
+.button-container .ant-btn:nth-child(1):hover,
+.button-container .ant-btn:nth-child(2):hover {
+  background-color: #f5f7f8;
+  border: 1px solid #10181b;
 }
 
 .button-container .ant-btn:nth-child(3) {
@@ -2528,7 +2535,7 @@ a:hover {
 }
 
 .ant-tabs {
-  font-family: 'Axiforma-Regular' !important;
+  font-family: 'Inter-Regular' !important;
 }
 
 .ant-tabs-nav::before {
@@ -2731,7 +2738,7 @@ a:hover {
   content: 'Iki';
   color: #6560e9 !important;
   font-weight: 600;
-  font-family: 'Axiforma-Regular' !important;
+  font-family: 'Inter-Regular' !important;
   font-size: 22px;
   padding-right: 16px;
 }
