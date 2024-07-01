@@ -250,7 +250,7 @@ const ResultSet = ({
 
   const popSelectStar = (tempSchema: string | null, tempTable: string) => {
     const qe = {
-      id: nanoid(),
+      id: nanoid(11),
       name: tempTable,
       autorun: false,
       dbId: query.dbId,

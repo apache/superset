@@ -139,7 +139,7 @@ const SouthPane = ({
         activeKey={activeSouthPaneTab}
         className="SouthPaneTabs"
         onChange={switchTab}
-        id={nanoid()}
+        id={nanoid(11)}
         fullWidth={false}
         animated={false}
       >

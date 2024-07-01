@@ -57,7 +57,7 @@ const defaultProps = {
   description: null,
   onChange: () => {},
   placeholder: t('Empty collection'),
-  itemGenerator: () => ({ key: nanoid() }),
+  itemGenerator: () => ({ key: nanoid(11) }),
   keyAccessor: o => o.key,
   value: [],
   addTooltip: t('Add an item'),

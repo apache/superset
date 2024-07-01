@@ -239,7 +239,7 @@ export function clearInactiveQueries(interval) {
 
 export function startQuery(query) {
   Object.assign(query, {
-    id: query.id ? query.id : nanoid(),
+    id: query.id ? query.id : nanoid(11),
     progress: 0,
     startDttm: now(),
     state: query.runAsync ? 'pending' : 'running',
@@ -404,7 +404,7 @@ export function runQueryFromSqlEditor(
 export function reRunQuery(query) {
   // run Query with a new id
   return function (dispatch) {
-    dispatch(runQuery({ ...query, id: nanoid() }));
+    dispatch(runQuery({ ...query, id: nanoid(11) }));
   };
 }
 
@@ -534,7 +534,7 @@ export function syncQueryEditor(queryEditor) {
 export function addQueryEditor(queryEditor) {
   const newQueryEditor = {
     ...queryEditor,
-    id: nanoid(),
+    id: nanoid(11),
     loaded: true,
     inLocalStorage: true,
   };
@@ -942,7 +942,7 @@ export function addTable(queryEditor, tableName, catalogName, schemaName) {
       mergeTable(
         {
           ...table,
-          id: nanoid(),
+          id: nanoid(11),
           expanded: true,
         },
         null,
@@ -962,7 +962,7 @@ export function runTablePreviewQuery(newTable) {
 
     if (database && !database.disable_data_preview) {
       const dataPreviewQuery = {
-        id: nanoid(),
+        id: nanoid(11),
         dbId,
         catalog,
         schema,
