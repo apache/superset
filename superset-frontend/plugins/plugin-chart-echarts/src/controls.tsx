@@ -309,6 +309,72 @@ export const minorTicks: ControlSetItem = {
   },
 };
 
+export const dataZoom: ControlSetItem = {
+  name: 'zoomable',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Data Zoom'),
+    default: false,
+    renderTrigger: true,
+    description: t('Enable data zooming controls'),
+  },
+};
+
+export const dataZoomSliderOptions: ControlSetItem[][] = [
+  [
+    {
+      name: 'zoomStart',
+      config: {
+        type: 'SliderControl',
+        label: t('Zoom Start'),
+        renderTrigger: true,
+        min: 0,
+        max: 100,
+        step: 1,
+        default: 0,
+        description: t(
+          'The start percentage of the window out of the data extent, in the range of 0 ~ 100.',
+        ),
+        visibility: ({ controls }: ControlPanelsContainerProps) =>
+          Boolean(controls?.zoomable?.value),
+      },
+    },
+  ],
+  [
+    {
+      name: 'zoomEnd',
+      config: {
+        type: 'SliderControl',
+        label: t('Zoom End'),
+        renderTrigger: true,
+        min: 0,
+        max: 100,
+        step: 1,
+        default: 0,
+        description: t(
+          'The end percentage of the window out of the data extent, in the range of 0 ~ 100.',
+        ),
+        visibility: ({ controls }: ControlPanelsContainerProps) =>
+          Boolean(controls?.zoomable?.value),
+      },
+    },
+  ],
+  [
+    {
+      name: 'zoomLock',
+      config: {
+        type: 'CheckboxControl',
+        label: t('Zoom Lock'),
+        default: false,
+        renderTrigger: true,
+        description: t('Specify whether to lock the size of window.'),
+        visibility: ({ controls }: ControlPanelsContainerProps) =>
+          Boolean(controls?.zoomable?.value),
+      },
+    },
+  ],
+];
+
 export const forceCategorical: ControlSetItem = {
   name: 'forceCategorical',
   config: {

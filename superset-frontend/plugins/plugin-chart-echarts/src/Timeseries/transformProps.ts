@@ -185,6 +185,9 @@ export default function transformProps(
     yAxisTitleMargin,
     yAxisTitlePosition,
     zoomable,
+    zoomStart,
+    zoomEnd,
+    zoomLock,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
@@ -627,8 +630,9 @@ export default function transformProps(
       ? [
           {
             type: 'slider',
-            start: TIMESERIES_CONSTANTS.dataZoomStart,
-            end: TIMESERIES_CONSTANTS.dataZoomEnd,
+            start: zoomStart || TIMESERIES_CONSTANTS.dataZoomStart,
+            end: zoomEnd || TIMESERIES_CONSTANTS.dataZoomEnd,
+            zoomLock: zoomLock || false,
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
             yAxisIndex: isHorizontal ? 0 : undefined,
           },
