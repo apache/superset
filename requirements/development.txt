@@ -10,12 +10,12 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.4
-    # via ipython
 astroid==3.1.0
     # via pylint
 boto3==1.34.112
-    # via dataflows-tabulator
+    # via
+    #   apache-superset
+    #   dataflows-tabulator
 botocore==1.34.112
     # via
     #   boto3
@@ -27,9 +27,7 @@ cached-property==1.5.2
 cfgv==3.3.1
     # via pre-commit
 chardet==5.1.0
-    # via
-    #   dataflows-tabulator
-    #   tox
+    # via dataflows-tabulator
 cmdstanpy==1.1.0
     # via prophet
 contourpy==1.0.7
@@ -51,9 +49,7 @@ docker==7.0.0
 et-xmlfile==1.1.0
     # via openpyxl
 filelock==3.12.2
-    # via
-    #   tox
-    #   virtualenv
+    # via virtualenv
 flask-cors==4.0.0
     # via apache-superset
 flask-testing==0.8.1
@@ -156,9 +152,7 @@ pip-tools==7.4.1
 playwright==1.42.0
     # via apache-superset
 pluggy==1.4.0
-    # via
-    #   pytest
-    #   tox
+    # via pytest
 pre-commit==3.7.1
     # via apache-superset
 progress==1.6
@@ -194,8 +188,6 @@ pyinstrument==4.4.0
     # via apache-superset
 pylint==3.1.0
     # via apache-superset
-pyproject-api==1.6.1
-    # via tox
 pyproject-hooks==1.0.0
     # via
     #   build
@@ -236,27 +228,24 @@ thrift==0.16.0
     #   thrift-sasl
 thrift-sasl==0.4.3
     # via
+    #   apache-superset
+    #   pyhive
+tomli==2.0.1
+    # via
     #   build
     #   coverage
     #   pip-tools
     #   pylint
-    #   pyproject-api
     #   pyproject-hooks
     #   pytest
-    #   tox
 tomlkit==0.12.5
     # via pylint
 toposort==1.10
     # via pip-compile-multi
-tox==4.6.4
-    # via apache-superset
 tqdm==4.66.4
     # via
     #   cmdstanpy
     #   prophet
-traitlets==5.14.3
-    # via
-    #   matplotlib-inline
 trino==0.328.0
     # via apache-superset
 tzlocal==5.2
@@ -266,9 +255,7 @@ unicodecsv==0.14.1
     #   dataflows-tabulator
     #   tableschema
 virtualenv==20.23.1
-    # via
-    #   pre-commit
-    #   tox
+    # via pre-commit
 wheel==0.43.0
     # via pip-tools
 xlrd==2.0.1
