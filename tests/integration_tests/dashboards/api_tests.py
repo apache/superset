@@ -532,6 +532,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "can_get_embedded",
             "can_delete_embedded",
             "can_set_embedded",
+            "can_cache_dashboard_screenshot",
         }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -2715,3 +2716,148 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         security_manager.add_permission_role(gamma_role, write_tags_perm)
         security_manager.add_permission_role(gamma_role, tag_dashboards_perm)
+
+    def _cache_screenshot(self, dashboard_id, payload=None):
+        if payload is None:
+            payload = {"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []}
+        uri = f"/api/v1/dashboard/{dashboard_id}/cache_dashboard_screenshot/"
+        return self.client.post(uri, json=payload)
+
+    def _get_screenshot(self, dashboard_id, cache_key, download_format):
+        uri = f"/api/v1/dashboard/{dashboard_id}/screenshot/{cache_key}/?download_format={download_format}"
+        return self.client.get(uri)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_success(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        response = self._cache_screenshot(dashboard.id)
+        self.assertEqual(response.status_code, 202)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_dashboard_validation(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        invalid_payload = {
+            "dataMask": ["should be a dict"],
+            "activeTabs": "should be a list",
+            "anchor": 1,
+            "urlParams": "should be a list",
+        }
+        response = self._cache_screenshot(dashboard.id, invalid_payload)
+        self.assertEqual(response.status_code, 400)
+
+    def test_cache_dashboard_screenshot_dashboard_not_found(self):
+        self.login(ADMIN_USERNAME)
+        non_existent_id = 999
+        response = self._cache_screenshot(non_existent_id)
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_success_png(self, mock_get_cache, mock_cache_task):
+        """
+        Validate screenshot returns png
+        """
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_cache.return_value = BytesIO(b"fake image data")
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "png")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "image/png")
+        self.assertEqual(response.data, b"fake image data")
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.build_pdf_from_screenshots")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_success_pdf(
+        self, mock_get_from_cache, mock_build_pdf, mock_cache_task
+    ):
+        """
+        Validate screenshot can return pdf.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_from_cache.return_value = BytesIO(b"fake image data")
+        mock_build_pdf.return_value = b"fake pdf data"
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "pdf")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "application/pdf")
+        self.assertEqual(response.data, b"fake pdf data")
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_not_in_cache(self, mock_get_cache, mock_cache_task):
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_cache.return_value = None
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "pdf")
+        self.assertEqual(response.status_code, 404)
+
+    def test_screenshot_dashboard_not_found(self):
+        self.login(ADMIN_USERNAME)
+        non_existent_id = 999
+        response = self._get_screenshot(non_existent_id, "some_cache_key", "png")
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_invalid_download_format(self, mock_get_cache, mock_cache_task):
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_cache.return_value = BytesIO(b"fake png data")
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "invalid")
+        self.assertEqual(response.status_code, 404)
