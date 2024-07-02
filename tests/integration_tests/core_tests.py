@@ -1162,6 +1162,35 @@ class TestCore(SupersetTestCase):
         "TODO This test was wrong - 'Error message' was in the language pack"
     )
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch("superset.models.core.DB_CONNECTION_MODIFIER")
+    def test_explore_with_modifier_injected_exceptions(self, mock_db_connection_modifier):
+        """
+        Handle injected exceptions from the db modifier
+        """
+        # Assert we can handle a custom exception at the modifier level
+        exception = SupersetException("Error message")
+        mock_db_connection_modifier.side_effect = exception
+        slice = db.session.query(Slice).first()
+        url = f"/explore/?form_data=%7B%22slice_id%22%3A%20{slice.id}%7D"
+
+        self.login(ADMIN_USERNAME)
+        data = self.get_resp(url)
+        self.assertIn("Error message", data)
+
+        # Assert we can handle a driver exception at the modifier level
+        exception = SQLAlchemyError("Error message")
+        mock_db_connection_modifier.side_effect = exception
+        slice = db.session.query(Slice).first()
+        url = f"/explore/?form_data=%7B%22slice_id%22%3A%20{slice.id}%7D"
+
+        self.login(ADMIN_USERNAME)
+        data = self.get_resp(url)
+        self.assertIn("Error message", data)
+
+    @pytest.mark.skip(
+        "TODO This test was wrong - 'Error message' was in the language pack"
+    )
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @mock.patch("superset.models.core.DB_CONNECTION_MUTATOR")
     def test_dashboard_injected_exceptions(self, mock_db_connection_mutator):
         """
@@ -1181,6 +1210,36 @@ class TestCore(SupersetTestCase):
         # Assert we can handle a driver exception at the mutator level
         exception = SQLAlchemyError("Error message")
         mock_db_connection_mutator.side_effect = exception
+        dash = db.session.query(Dashboard).first()
+        url = f"/superset/dashboard/{dash.id}/"
+
+        self.login(ADMIN_USERNAME)
+        data = self.get_resp(url)
+        self.assertIn("Error message", data)
+
+    @pytest.mark.skip(
+        "TODO This test was wrong - 'Error message' was in the language pack"
+    )
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch("superset.models.core.DB_CONNECTION_MODIFIER")
+    def test_dashboard_with_modifier_injected_exceptions(self, mock_db_connection_modifier):
+        """
+        Handle injected exceptions from the db modifier
+        """
+
+        # Assert we can handle a custom exception at the modifier level
+        exception = SupersetException("Error message")
+        mock_db_connection_modifier.side_effect = exception
+        dash = db.session.query(Dashboard).first()
+        url = f"/superset/dashboard/{dash.id}/"
+
+        self.login(ADMIN_USERNAME)
+        data = self.get_resp(url)
+        self.assertIn("Error message", data)
+
+        # Assert we can handle a driver exception at the modifier level
+        exception = SQLAlchemyError("Error message")
+        mock_db_connection_modifier.side_effect = exception
         dash = db.session.query(Dashboard).first()
         url = f"/superset/dashboard/{dash.id}/"
 
