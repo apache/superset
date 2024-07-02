@@ -56,6 +56,10 @@ def cache() -> SupersetMetastoreCache:
     )
 
 
+def test_instantiation(cache: SupersetMetastoreCache) -> None:
+    assert cache
+
+
 def test_caching_flow(app_context: AppContext, cache: SupersetMetastoreCache) -> None:
     assert cache.has(FIRST_KEY) is False
     assert cache.add(FIRST_KEY, FIRST_KEY_INITIAL_VALUE) is True

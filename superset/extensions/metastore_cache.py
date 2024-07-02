@@ -24,7 +24,6 @@ from flask_caching import BaseCache
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
-from superset.daos.key_value import KeyValueDAO
 from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.key_value.types import (
     KeyValueCodec,
@@ -79,6 +78,9 @@ class SupersetMetastoreCache(BaseCache):
         return None
 
     def set(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.key_value import KeyValueDAO
+
         KeyValueDAO.upsert_entry(
             resource=RESOURCE,
             key=self.get_key(key),
@@ -90,6 +92,9 @@ class SupersetMetastoreCache(BaseCache):
         return True
 
     def add(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.key_value import KeyValueDAO
+
         try:
             KeyValueDAO.delete_expired_entries(RESOURCE)
             KeyValueDAO.create_entry(
@@ -106,6 +111,9 @@ class SupersetMetastoreCache(BaseCache):
             return False
 
     def get(self, key: str) -> Any:
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.key_value import KeyValueDAO
+
         return KeyValueDAO.get_value(RESOURCE, self.get_key(key), self.codec)
 
     def has(self, key: str) -> bool:
@@ -116,4 +124,7 @@ class SupersetMetastoreCache(BaseCache):
 
     @transaction()
     def delete(self, key: str) -> Any:
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.key_value import KeyValueDAO
+
         return KeyValueDAO.delete_entry(RESOURCE, self.get_key(key))
