@@ -1622,7 +1622,7 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
     return (
         tables
         | ParsedQuery(
-            sql_statement=processor.process_template(template),
+            sql_statement=processor.process_template(sql),
             engine=database.db_engine_spec.engine,
         ).tables
     )
