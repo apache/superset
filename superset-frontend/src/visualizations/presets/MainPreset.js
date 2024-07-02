@@ -44,6 +44,7 @@ import {
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
+import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
 import {
   BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
@@ -177,6 +178,19 @@ export default class MainPreset extends Preset {
         new EchartsSunburstChartPlugin().configure({ key: 'sunburst_v2' }),
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
+        new CartodiagramPlugin({
+          defaultLayers: [
+            {
+              type: 'WMS',
+              version: '1.3.0',
+              url: 'https://ows.terrestris.de/osm-gray/service',
+              layersParam: 'OSM-WMS',
+              title: 'OpenStreetMap',
+              attribution:
+                '© Map data from <a href="openstreetmap.org/copyright">OpenStreetMap</a>. Service provided by <a href="https://www.terrestris.de">terrestris GmbH & Co. KG</a>',
+            },
+          ],
+        }).configure({ key: 'cartodiagram' }),
         ...experimentalPlugins,
       ],
     });

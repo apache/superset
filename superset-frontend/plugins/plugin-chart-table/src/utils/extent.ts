@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { isNil } from 'lodash';
 
 export default function extent<T = number | string | Date | undefined | null>(
