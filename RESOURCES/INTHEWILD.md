@@ -136,6 +136,7 @@ Join our growing community!
 - [Zaihang](http://www.zaih.com/)
 
 ### Education
+- [Aveti Learning](https://avetilearning.com/) [@TheShubhendra]
 - [Brilliant.org](https://brilliant.org/)
 - [Platzi.com](https://platzi.com/)
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
@@ -177,6 +178,7 @@ Join our growing community!
 - [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
 
 ### Others
+- [10Web](https://10web.io/)
 - [AI inside](https://inside.ai/en/)
 - [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
