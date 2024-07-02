@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2024-06-26 16:36+0400\n"
-"PO-Revision-Date: 2024-06-26 16:55+0400\n"
+"PO-Revision-Date: 2024-07-03 03:10+0400\n"
 "Last-Translator: Daniel Checheta\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -43,6 +43,11 @@ msgid ""
 "doesn't change your\n"
 "                original data, it just changes the way the histogram is displayed."
 msgstr ""
+"Опция позволяет увидеть, как накапливаются данные при различных значениях. Если "
+"включено, столбцы гистограммы представляют собой общую сумму частот до каждого "
+"бина. Это поможет вам понять, насколько велика вероятность встретить значения "
+"ниже определенной точки. Помните, что включение этого режима не изменяет исходные "
+"данные, а лишь меняет способ отображения гистограммы."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Histogram/controlPanel.tsx:79
 msgid ""
@@ -58,6 +63,11 @@ msgid ""
 "                clearer understanding of the proportion of data points within "
 "each bin."
 msgstr ""
+"Нормировка преобразует значения гистограммы в пропорции или вероятности путем "
+"деления количества точек в каждом бине на общее количество точек данных. Такой "
+"процесс гарантирует, что итоговые суммы будут равны 1, что позволяет сравнить "
+"распределение данных и получить более четкое представление о доле точек данных в "
+"каждом бине."
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/Option.tsx:71
 #: superset-frontend/src/explore/components/controls/OptionControls/index.tsx:395
@@ -2718,9 +2728,8 @@ msgid "Big Number with Trendline"
 msgstr "Карточка с линией тренда"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Histogram/controlPanel.tsx:65
-#, fuzzy
 msgid "Bins"
-msgstr "в"
+msgstr "Бины"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:87
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:374
@@ -10570,9 +10579,8 @@ msgid "Normal"
 msgstr "Обычный"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Histogram/controlPanel.tsx:78
-#, fuzzy
 msgid "Normalize"
-msgstr "Нормализовать"
+msgstr "Нормировать"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:132
 #: superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx:76
@@ -10764,9 +10772,8 @@ msgid "Number of steps to take between ticks when displaying the Y scale"
 msgstr "Количество шагов между делениями оси Y"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Histogram/controlPanel.tsx:46
-#, fuzzy
 msgid "Numeric column used to calculate the histogram."
-msgstr "Выберите числовые столбцы для отрисовки гистограммы"
+msgstr "Числовой столбец для расчета гистограммы"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:324
 msgid "Numerical range"
@@ -15829,9 +15836,8 @@ msgid "The number color \"steps\""
 msgstr "Количество цветов в цветовой схеме"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Histogram/controlPanel.tsx:68
-#, fuzzy
 msgid "The number of bins for the histogram"
-msgstr "Выберите количество бинов гистограммы"
+msgstr "Количество бинов гистограммы"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:980
 msgid ""
