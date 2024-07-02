@@ -49,6 +49,12 @@ openapi_spec_methods_override = {
 }
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_slack_channels_schema = {
+    "type": "object",
+    "properties": {
+        "seach_string": {"type": "string"},
+    },
+}
 
 type_description = "The report schedule type"
 name_description = "The report schedule name."

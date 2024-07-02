@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import string
+from operator import or_
 from random import choice, randint, random, uniform
 from typing import Any
 
@@ -146,16 +147,14 @@ def _cleanup(dash_id: int, slices_ids: list[int]) -> None:
 
 
 def _cleanup_reports(dash_id: int, slices_ids: list[int]) -> None:
-    reports_with_dash = (
-        db.session.query(ReportSchedule).filter_by(dashboard_id=dash_id).all()
-    )
-    reports_with_slices = (
-        db.session.query(ReportSchedule)
-        .filter(ReportSchedule.chart_id.in_(slices_ids))
-        .all()
+    reports = db.session.query(ReportSchedule).filter(
+        or_(
+            ReportSchedule.dashboard_id == dash_id,
+            ReportSchedule.chart_id.in_(slices_ids),
+        )
     )
 
-    for report in reports_with_dash + reports_with_slices:
+    for report in reports:
         db.session.delete(report)
     db.session.commit()
 

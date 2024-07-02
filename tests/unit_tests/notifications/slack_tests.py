@@ -59,18 +59,19 @@ def test_send_slack(
         description='<p>This is <a href="#">a test</a> alert</p><br />',
     )
 
-    SlackNotification(
+    notification = SlackNotification(
         recipient=ReportRecipients(
             type=ReportRecipientType.SLACK,
             recipient_config_json='{"target": "some_channel"}',
         ),
         content=content,
-    ).send()
+    )
+    notification.send()
     logger_mock.info.assert_called_with(
         "Report sent to slack", extra={"execution_id": execution_id}
     )
     slack_client_mock.return_value.chat_postMessage.assert_called_with(
-        channel="123",
+        channel="some_channel",
         text="""*test alert*
 
 <p>This is <a href="#">a test</a> alert</p><br />

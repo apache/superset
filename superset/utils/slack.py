@@ -16,8 +16,16 @@
 # under the License.
 
 
+import logging
+
 from flask import current_app
 from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
+
+from superset import feature_flag_manager
+from superset.exceptions import SupersetException
+
+logger = logging.getLogger(__name__)
 
 
 class SlackClientError(Exception):
@@ -29,6 +37,65 @@ def get_slack_client() -> WebClient:
     if callable(token):
         token = token()
     return WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
+
+
+def get_channels_with_search(search_string: str = "", limit: int = 999) -> list[str]:
+    """
+    The slack api is paginated but does not include search, so we need to fetch
+    all channels and filter them ourselves
+    This will search by slack name or id
+    """
+
+    try:
+        client = get_slack_client()
+        channels = []
+        cursor = None
+
+        while True:
+            response = client.conversations_list(
+                limit=limit, cursor=cursor, exclude_archived=True
+            )
+            channels.extend(response.data["channels"])
+            cursor = response.data.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
+
+        # The search string can be multiple channels separated by commas
+        if search_string:
+            search_array = [
+                search.lower()
+                for search in (search_string.split(",") if search_string else [])
+            ]
+
+            channels = [
+                channel
+                for channel in channels
+                if any(
+                    search in channel["name"].lower() or search in channel["id"].lower()
+                    for search in search_array
+                )
+            ]
+        return channels
+    except (SlackClientError, SlackApiError) as ex:
+        raise SupersetException(f"Failed to list channels: {ex}") from ex
+
+
+def should_use_v2_api() -> bool:
+    if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_SLACK_V2"):
+        return False
+    try:
+        client = get_slack_client()
+        client.conversations_list()
+        logger.info("Slack API v2 is available")
+        return True
+    except SlackApiError:
+        # use the v1 api but warn with a deprecation message
+        logger.warning(
+            """Your current Slack scopes are missing `channels:read`. Please add
+            this to your Slack app in order to continue using the v1 API. Support
+            for the old Slack API will be removed in Superset version 6.0.0."""
+        )
+        return False
 
 
 def get_user_avatar(email: str, client: WebClient = None) -> str:

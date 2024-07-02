@@ -57,6 +57,7 @@ assists people when migrating to a new version.
   translations inside the python package. This includes the .mo files needed by pybabel on the
   backend, as well as the .json files used by the frontend. If you were doing anything before
   as part of your bundling to expose translation packages, it's probably not needed anymore.
+- [29264](https://github.com/apache/superset/pull/29264) Slack has updated its file upload api, and we are now supporting this new api in Superset, although the Slack api is not backward compatible. The original Slack integration is deprecated and we will require a new Slack scope `channels:read` to be added to Slack workspaces in order to use this new api. In an upcoming release, we will make this new Slack scope mandatory and remove the old Slack functionality.
 
 ### Potential Downtime
 

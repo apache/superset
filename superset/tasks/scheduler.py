@@ -94,7 +94,7 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
         ).run()
     except ReportScheduleUnexpectedError:
         logger.exception(
-            "An unexpected occurred while executing the report: %s", task_id
+            "An unexpected error occurred while executing the report: %s", task_id
         )
         self.update_state(state="FAILURE")
     except CommandException as ex:
