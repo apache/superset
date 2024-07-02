@@ -24,6 +24,8 @@
     "lib"
   ],
   "dependencies": {
+    "@deck.gl/geo-layers": "^8.8.27",
+    "@deck.gl/layers": "^8.8.27",
     "@mapbox/geojson-extent": "^1.0.1",
     "@math.gl/web-mercator": "^3.2.2",
     "@types/d3-array": "^2.0.0",

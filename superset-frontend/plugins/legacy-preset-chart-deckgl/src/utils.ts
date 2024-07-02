@@ -26,9 +26,14 @@ import {
   SequentialScheme,
 } from '@superset-ui/core';
 import { isNumber } from 'lodash';
+import { TileLayer, BitmapLayer } from 'deck.gl/typed';
+import { GeoBoundingBox } from '@deck.gl/geo-layers/typed';
 import { hexToRGB } from './utils/colors';
 
 const DEFAULT_NUM_BUCKETS = 10;
+
+export const TILE_LAYER_PREFIX = 'tile://';
+export const MAPBOX_LAYER_PREFIX = 'mapbox://';
 
 export type Buckets = {
   break_points: string[];
@@ -187,4 +192,25 @@ export function getBuckets(
   });
 
   return buckets;
+}
+
+export function buildTileLayer(url: string) {
+  return new TileLayer({
+    data: url,
+
+    minZoom: 0,
+    maxZoom: 19,
+    tileSize: 256,
+
+    renderSubLayers: props => {
+      const { west, north, east, south } = props.tile.bbox as GeoBoundingBox;
+      return [
+        new BitmapLayer(props, {
+          data: undefined,
+          image: props.data,
+          bounds: [west, south, east, north],
+        }),
+      ];
+    },
+  });
 }
