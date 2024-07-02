@@ -36,7 +36,7 @@
     "moment": "^2.30.1",
     "mousetrap": "^1.6.5",
     "prop-types": "^15.8.1",
-    "react-bootstrap-slider": "2.1.5",
+    "react-bootstrap-slider": "3.0.0",
     "underscore": "^1.13.6",
     "urijs": "^1.19.11",
     "xss": "^1.0.15"
