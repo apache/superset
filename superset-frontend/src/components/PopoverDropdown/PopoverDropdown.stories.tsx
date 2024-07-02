@@ -19,12 +19,7 @@
 import { useState } from 'react';
 import PopoverDropdown, { PopoverDropdownProps, OptionProps } from '.';
 
-export default {
-  title: 'PopoverDropdown',
-  includeStories: ['InteractivePopoverDropdown'],
-};
-
-export const OPTIONS: OptionProps[] = [
+const OPTIONS: OptionProps[] = [
   { label: 'Option A', value: 'A' },
   { label: 'Option B', value: 'B' },
   { label: 'Option C', value: 'C' },
@@ -77,11 +72,18 @@ InteractivePopoverDropdown.argTypes = {
     options: ['default', 'button'],
   },
   value: {
-    defaultValue: OPTIONS[0].value,
     table: { disable: true },
   },
   options: {
-    defaultValue: OPTIONS,
     table: { disable: true },
+  },
+};
+
+export default {
+  title: 'PopoverDropdown',
+  includeStories: ['InteractivePopoverDropdown'],
+  args: {
+    value: OPTIONS[0].value,
+    options: OPTIONS,
   },
 };
