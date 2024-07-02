@@ -231,7 +231,7 @@ const RightMenu = ({
     },
     {
       label: t('Dashboard'),
-      url: '/dashboard/new',
+      url: '/dashboard/new/',
       icon: 'fa-fw fa-dashboard',
       perm: 'can_write',
       view: 'Dashboard',
