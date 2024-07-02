@@ -71,6 +71,27 @@ describe('componentDidMount', () => {
       '/sqllab',
     );
   });
+  test('should handle permalink', async () => {
+    const key = '9sadkfl';
+    fetchMock.get(`glob:*/api/v1/sqllab/permalink/${key}`, {
+      label: 'test permalink',
+      sql: 'SELECT * FROM test_table',
+      dbId: 1,
+    });
+    uriStub.mockReturnValue({ p: key });
+    setup(store);
+    await waitFor(() =>
+      expect(
+        fetchMock.calls(`glob:*/api/v1/sqllab/permalink/${key}`),
+      ).toHaveLength(1),
+    );
+    expect(replaceState).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      '/sqllab',
+    );
+    fetchMock.reset();
+  });
   test('should handle savedQueryId', () => {
     uriStub.mockReturnValue({ savedQueryId: 1 });
     setup(store);
