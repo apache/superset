@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=consider-using-transaction
 import dataclasses
 import logging
 import uuid
@@ -26,6 +25,7 @@ from typing import Any, cast, Optional, Union
 import backoff
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app
 from flask_babel import gettext as __
 
 from superset import (
@@ -128,7 +128,6 @@ def handle_query_error(
 
 
 def get_query_backoff_handler(details: dict[Any, Any]) -> None:
-    print(details)
     query_id = details["kwargs"]["query_id"]
     logger.error(
         "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
@@ -175,22 +174,23 @@ def get_sql_results(  # pylint: disable=too-many-arguments
     log_params: Optional[dict[str, Any]] = None,
 ) -> Optional[dict[str, Any]]:
     """Executes the sql query returns the results."""
-    with override_user(security_manager.find_user(username)):
-        try:
-            return execute_sql_statements(
-                query_id,
-                rendered_query,
-                return_results,
-                store_results,
-                start_time=start_time,
-                expand_data=expand_data,
-                log_params=log_params,
-            )
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.debug("Query %d: %s", query_id, ex)
-            stats_logger.incr("error_sqllab_unhandled")
-            query = get_query(query_id)
-            return handle_query_error(ex, query)
+    with current_app.test_request_context():
+        with override_user(security_manager.find_user(username)):
+            try:
+                return execute_sql_statements(
+                    query_id,
+                    rendered_query,
+                    return_results,
+                    store_results,
+                    start_time=start_time,
+                    expand_data=expand_data,
+                    log_params=log_params,
+                )
+            except Exception as ex:  # pylint: disable=broad-except
+                logger.debug("Query %d: %s", query_id, ex)
+                stats_logger.incr("error_sqllab_unhandled")
+                query = get_query(query_id)
+                return handle_query_error(ex, query)
 
 
 def execute_sql_statement(  # pylint: disable=too-many-statements
@@ -314,9 +314,9 @@ def execute_sql_statement(  # pylint: disable=too-many-statements
                 level=ErrorLevel.ERROR,
             )
         ) from ex
-    except OAuth2RedirectError:
+    except OAuth2RedirectError as ex:
         # user needs to authenticate with OAuth2 in order to run query
-        raise
+        raise ex
     except Exception as ex:
         # query is stopped in another thread/worker
         # stopping raises expected exceptions which we should skip
