@@ -23,7 +23,7 @@ import {
   PureComponent,
 } from 'react';
 
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { t, styled } from '@superset-ui/core';
@@ -86,7 +86,7 @@ function createCollectionArray(collection: object) {
 function createKeyedCollection(arr: Array<object>) {
   const collectionArray = arr.map((o: any) => ({
     ...o,
-    id: o.id || shortid.generate(),
+    id: o.id || nanoid(),
   }));
 
   const collection = {};
@@ -209,7 +209,7 @@ export default class CRUDCollection extends PureComponent<
     if (this.props.itemGenerator) {
       let newItem = this.props.itemGenerator();
       if (!newItem.id) {
-        newItem = { ...newItem, id: shortid.generate() };
+        newItem = { ...newItem, id: nanoid() };
       }
       this.changeCollection(this.state.collection, newItem);
     }
