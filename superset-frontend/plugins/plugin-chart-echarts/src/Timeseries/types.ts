@@ -84,6 +84,9 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   xAxisBounds: [number | undefined | null, number | undefined | null];
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
+  zoomStart?: number;
+  zoomEnd?: number;
+  zoomLock?: boolean;
   richTooltip: boolean;
   xAxisLabelRotation: number;
   showValue: boolean;

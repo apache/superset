@@ -32,6 +32,8 @@ import {
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
 import {
+  dataZoom,
+  dataZoomSliderOptions,
   legendSection,
   minorTicks,
   richTooltipSection,
@@ -54,7 +56,6 @@ const {
   stack,
   truncateYAxis,
   yAxisBounds,
-  zoomable,
   yAxisIndex,
 } = DEFAULT_FORM_DATA;
 
@@ -301,18 +302,8 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         ...createCustomizeSection(t('Query A'), ''),
         ...createCustomizeSection(t('Query B'), 'B'),
-        [
-          {
-            name: 'zoomable',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Data Zoom'),
-              default: zoomable,
-              renderTrigger: true,
-              description: t('Enable data zooming controls'),
-            },
-          },
-        ],
+        [dataZoom],
+        ...dataZoomSliderOptions,
         [minorTicks],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
