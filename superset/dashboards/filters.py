@@ -78,13 +78,26 @@ class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
     model = Dashboard
 
 
-class DashboardTagFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+class DashboardTagNameFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
     """
-    Custom filter for the GET list that filters all dashboards that a user has favored
+    Custom filter for the GET list that filters all dashboards associated with
+    a certain tag (by its name).
     """
 
     arg_name = "dashboard_tags"
     class_name = "Dashboard"
+    model = Dashboard
+
+
+class DashboardTagIdFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all dashboards associated with
+    a certain tag (by its ID).
+    """
+
+    arg_name = "dashboard_tag_id"
+    class_name = "Dashboard"
+    id_based_filter = True
     model = Dashboard
 
 

@@ -17,7 +17,9 @@
 
 import pytest
 
+from superset import db
 from superset.tags.core import clear_sqla_event_listeners, register_sqla_event_listeners
+from superset.tags.models import Tag
 from tests.integration_tests.test_app import app
 
 
@@ -31,3 +33,36 @@ def with_tagging_system_feature():
         yield
         app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = False
         clear_sqla_event_listeners()
+
+
+@pytest.fixture
+def create_custom_tags():
+    with app.app_context():
+        tags: list[Tag] = []
+        for tag_name in {"first_tag", "second_tag", "third_tag"}:
+            tag = Tag(
+                name=tag_name,
+                type="custom",
+            )
+            db.session.add(tag)
+            db.session.commit()
+            tags.append(tag)
+
+        yield tags
+
+        for tags in tags:
+            db.session.delete(tags)
+        db.session.commit()
+
+
+# Helper function to return filter parameters
+def get_filter_params(opr, value):
+    return {
+        "filters": [
+            {
+                "col": "tags",
+                "opr": opr,
+                "value": value,
+            }
+        ]
+    }

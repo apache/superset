@@ -25,7 +25,6 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
-from superset import is_feature_enabled
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
@@ -46,7 +45,8 @@ from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
     SavedQueryFavoriteFilter,
     SavedQueryFilter,
-    SavedQueryTagFilter,
+    SavedQueryTagIdFilter,
+    SavedQueryTagNameFilter,
 )
 from superset.queries.saved_queries.schemas import (
     get_delete_ids_schema,
@@ -124,9 +124,10 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "sql_tables",
+        "tags.id",
+        "tags.name",
+        "tags.type",
     ]
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        list_columns += ["tags.id", "tags.name", "tags.type"]
     list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
     add_columns = [
         "db_id",
@@ -161,15 +162,13 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "schema",
         "created_by",
         "changed_by",
+        "tags",
     ]
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        search_columns += ["tags"]
     search_filters = {
         "id": [SavedQueryFavoriteFilter],
         "label": [SavedQueryAllTextFilter],
+        "tags": [SavedQueryTagNameFilter, SavedQueryTagIdFilter],
     }
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        search_filters["tags"] = [SavedQueryTagFilter]
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,

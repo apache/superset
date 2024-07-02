@@ -24,6 +24,7 @@ from typing import Any, Union, Optional
 from unittest.mock import Mock, patch, MagicMock
 
 import pandas as pd
+import prison
 from flask import Response, g
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
@@ -33,6 +34,7 @@ from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import dialect
 
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.test_app import app, login
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
@@ -588,6 +590,20 @@ class SupersetTestCase(TestCase):
         db.session.add(dashboard)
         db.session.commit()
         return dashboard
+
+    def get_list(
+        self,
+        asset_type: str,
+        filter: dict[str, Any] = {},
+        username: str = ADMIN_USERNAME,
+    ) -> Response:
+        """
+        Get list of assets, by default using admin account. Can be filtered.
+        """
+        self.login(username)
+        uri = f"api/v1/{asset_type}/?q={prison.dumps(filter)}"
+        response = self.get_assert_metric(uri, "get_list")
+        return response
 
 
 @contextmanager

@@ -501,7 +501,7 @@ function SavedQueryList({
               id: 'tags',
               key: 'tags',
               input: 'select',
-              operator: FilterOperator.SavedQueryTags,
+              operator: FilterOperator.SavedQueryTagById,
               fetchSelects: loadTags,
             },
           ]

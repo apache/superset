@@ -614,7 +614,7 @@ function ChartList(props: ChartListProps) {
               key: 'tags',
               id: 'tags',
               input: 'select',
-              operator: FilterOperator.ChartTags,
+              operator: FilterOperator.ChartTagById,
               unfilteredLabel: t('All'),
               fetchSelects: loadTags,
             },

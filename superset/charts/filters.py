@@ -60,13 +60,26 @@ class ChartFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-public
     model = Slice
 
 
-class ChartTagFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+class ChartTagNameFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
     """
-    Custom filter for the GET list that filters all dashboards that a user has favored
+    Custom filter for the GET list that filters all charts associated with
+    a certain tag (by its name).
     """
 
     arg_name = "chart_tags"
     class_name = "slice"
+    model = Slice
+
+
+class ChartTagIdFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all charts associated with
+    a certain tag (by its ID).
+    """
+
+    arg_name = "chart_tag_id"
+    class_name = "slice"
+    id_based_filter = True
     model = Slice
 
 
