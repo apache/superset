@@ -76,6 +76,7 @@ import {
   OPEN_FILTER_BAR_WIDTH,
   EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
+import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -462,6 +463,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const {
     showDashboard,
+    missingInitialFilters,
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,
     nativeFiltersEnabled,
@@ -673,7 +675,30 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             editMode={editMode}
             marginLeft={dashboardContentMarginLeft}
           >
-            {showDashboard ? (
+            {missingInitialFilters.length > 0 ? (
+              <div
+                css={css`
+                  display: flex;
+                  flex-direction: row;
+                  align-items: center;
+                  justify-content: center;
+                  flex: 1;
+                  & div {
+                    width: 500px;
+                  }
+                `}
+              >
+                <BasicErrorAlert
+                  title={t('Unable to load dashboard')}
+                  body={t(
+                    `The following filters have the 'Select first filter value by default'
+                    option checked and could not be loaded, which is preventing the dashboard
+                    from rendering: %s`,
+                    missingInitialFilters.join(', '),
+                  )}
+                />
+              </div>
+            ) : showDashboard ? (
               <DashboardContainer topLevelTabs={topLevelTabs} />
             ) : (
               <Loading />
