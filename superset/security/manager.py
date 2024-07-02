@@ -1019,7 +1019,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
-        self.get_session.commit()
 
     def sync_role_definitions(self) -> None:
         """
@@ -1045,7 +1044,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.auth_role_public,
                 merge=True,
             )
-
         self.create_missing_perms()
         self.clean_perms()
 
@@ -1119,7 +1117,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 ):
                     role_from_permissions.append(permission_view)
         role_to.permissions = role_from_permissions
-        self.get_session.commit()
 
     def set_role(
         self,
@@ -1140,7 +1137,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             permission_view for permission_view in pvms if pvm_check(permission_view)
         ]
         role.permissions = role_pvms
-        self.get_session.commit()
 
     def _is_admin_only(self, pvm: PermissionView) -> bool:
         """

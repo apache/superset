@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   embedded-sdk-test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: superset-embedded-sdk

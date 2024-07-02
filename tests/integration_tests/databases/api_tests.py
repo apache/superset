@@ -281,7 +281,6 @@ class TestDatabaseApi(SupersetTestCase):
             "server_cert": None,
             "extra": json.dumps(extra),
         }
-
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
@@ -713,7 +712,6 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "ssh_tunnel": ssh_tunnel_properties,
         }
-
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
@@ -923,7 +921,6 @@ class TestDatabaseApi(SupersetTestCase):
             "server_cert": None,
             "extra": json.dumps(extra),
         }
-
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))

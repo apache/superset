@@ -17,7 +17,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@algolia/client-search": "^4.23.3",
+    "@algolia/client-search": "^4.24.0",
     "@ant-design/icons": "^5.3.7",
     "@docsearch/react": "^3.6.0",
     "@docusaurus/core": "^3.3.2",
@@ -41,7 +41,7 @@
     "react-dom": "^18.3.1",
     "react-github-btn": "^1.4.0",
     "react-svg-pan-zoom": "^3.12.1",
-    "stream": "^0.0.2",
+    "stream": "^0.0.3",
     "swagger-ui-react": "^5.17.14",
     "url-loader": "^4.1.1"
   },
@@ -49,8 +49,8 @@
     "@docusaurus/module-type-aliases": "^3.4.0",
     "@docusaurus/tsconfig": "^3.4.0",
     "@types/react": "^18.3.3",
-    "typescript": "^5.4.5",
-    "webpack": "^5.91.0"
+    "typescript": "^5.5.2",
+    "webpack": "^5.92.1"
   },
   "browserslist": {
     "production": [

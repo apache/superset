@@ -203,8 +203,7 @@ class SupersetTestCase(TestCase):
         previous_g_user = g.user if hasattr(g, "user") else None
         try:
             if login:
-                resp = self.login(username=temp_user.username)
-                print(resp)
+                self.login(username=temp_user.username)
             else:
                 g.user = temp_user
             yield temp_user

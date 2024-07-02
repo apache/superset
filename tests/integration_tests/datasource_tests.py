@@ -88,7 +88,6 @@ class TestDatasource(SupersetTestCase):
         )
 
     def test_always_filter_main_dttm(self):
-        self.login(ADMIN_USERNAME)
         database = get_example_database()
 
         sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"  # noqa: F541
@@ -363,7 +362,6 @@ class TestDatasource(SupersetTestCase):
             elif k == "owners":
                 self.assertEqual([o["id"] for o in resp[k]], datasource_post["owners"])
             else:
-                print(k)
                 self.assertEqual(resp[k], datasource_post[k])
 
     def test_save_default_endpoint_validation_success(self):
