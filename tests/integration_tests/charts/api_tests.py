@@ -1266,7 +1266,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         assert data["count"] > 0
         for chart in data["result"]:
-            print(chart)
             assert (
                 "energy"
                 in " ".join(

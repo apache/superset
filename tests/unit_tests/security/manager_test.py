@@ -413,7 +413,6 @@ def test_raise_for_access_chart_owner(
         owners=[alpha],
     )
     session.add(slice)
-    session.flush()
 
     with override_user(alpha):
         sm.raise_for_access(

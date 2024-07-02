@@ -181,10 +181,10 @@ function SearchInput({ count, value, onChange }: SearchInputProps) {
     <span className="dt-global-filter">
       {t('Search')}{' '}
       <input
+        aria-label={t('Search %s records', count)}
         className="form-control input-sm"
         placeholder={tn('search.num_records', count)}
         value={value}
-        aria-label={t('Search %s records', count)}
         onChange={onChange}
       />
     </span>
@@ -211,8 +211,13 @@ function SelectPageSize({
           const [size, text] = Array.isArray(option)
             ? option
             : [option, option];
+          const sizeLabel = size === 0 ? t('all') : size;
           return (
-            <option key={size} value={size}>
+            <option
+              aria-label={t('Show %s entries', sizeLabel)}
+              key={size}
+              value={size}
+            >
               {text}
             </option>
           );

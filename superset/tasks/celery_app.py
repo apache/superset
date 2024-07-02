@@ -62,7 +62,7 @@ def teardown(  # pylint: disable=unused-argument
 
     if flask_app.config.get("SQLALCHEMY_COMMIT_ON_TEARDOWN"):
         if not isinstance(retval, Exception):
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     if not flask_app.config.get("CELERY_ALWAYS_EAGER"):
         db.session.remove()

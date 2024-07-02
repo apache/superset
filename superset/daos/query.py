@@ -53,7 +53,6 @@ class QueryDAO(BaseDAO[Query]):
             for saved_query in related_saved_queries:
                 saved_query.rows = query.rows
                 saved_query.last_run = datetime.now()
-            db.session.commit()
 
     @staticmethod
     def save_metadata(query: Query, payload: dict[str, Any]) -> None:
@@ -97,7 +96,6 @@ class QueryDAO(BaseDAO[Query]):
 
         query.status = QueryStatus.STOPPED
         query.end_time = now_as_float()
-        db.session.commit()
 
 
 class SavedQueryDAO(BaseDAO[SavedQuery]):

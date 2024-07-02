@@ -1683,7 +1683,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 select_exprs.append(
                     self.convert_tbl_column_to_sqla_col(
-                        columns_by_name[selected], template_processor=template_processor
+                        columns_by_name[selected],
+                        template_processor=template_processor,
+                        label=_column_label,
                     )
                     if isinstance(selected, str) and selected in columns_by_name
                     else self.make_sqla_column_compatible(

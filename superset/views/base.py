@@ -63,6 +63,7 @@ from superset import (
     app as superset_app,
     appbuilder,
     conf,
+    db,
     get_feature_flags,
     is_feature_enabled,
     security_manager,
@@ -698,7 +699,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
                 if view_menu:
                     security_manager.get_session.delete(view_menu)
 
-                security_manager.get_session.commit()
+                db.session.commit()  # pylint: disable=consider-using-transaction
 
             flash(*self.datamodel.message)
             self.update_redirect()

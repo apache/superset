@@ -48,7 +48,7 @@ class KV(BaseSupersetView):
             value = request.form.get("data")
             obj = models.KeyValue(value=value)
             db.session.add(obj)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
         except Exception as ex:  # pylint: disable=broad-except
             return json_error_response(utils.error_msg_from_exception(ex))
         return Response(json.dumps({"id": obj.id}), status=200)
