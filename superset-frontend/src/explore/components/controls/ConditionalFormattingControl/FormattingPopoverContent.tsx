@@ -124,7 +124,7 @@ const shouldFormItemUpdate = (
   isOperatorMultiValue(prevValues.operator) !==
     isOperatorMultiValue(currentValues.operator);
 
-const operatorField = (showOnlyNone?: boolean) => (
+const renderOperator = ({ showOnlyNone }: { showOnlyNone?: boolean } = {}) => (
   <FormItem
     name="operator"
     label={t('Operator')}
@@ -141,7 +141,7 @@ const operatorField = (showOnlyNone?: boolean) => (
 const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
   isOperatorNone(getFieldValue('operator')) ? (
     <Row gutter={12}>
-      <Col span={6}>{operatorField()}</Col>
+      <Col span={6}>{renderOperator()}</Col>
     </Row>
   ) : isOperatorMultiValue(getFieldValue('operator')) ? (
     <Row gutter={12}>
@@ -157,7 +157,7 @@ const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
           <FullWidthInputNumber />
         </FormItem>
       </Col>
-      <Col span={6}>{operatorField}</Col>
+      <Col span={6}>{renderOperator()}</Col>
       <Col span={9}>
         <FormItem
           name="targetValueRight"
@@ -173,7 +173,7 @@ const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
     </Row>
   ) : (
     <Row gutter={12}>
-      <Col span={6}>{operatorField}</Col>
+      <Col span={6}>{renderOperator()}</Col>
       <Col span={18}>
         <FormItem
           name="targetValue"
@@ -248,7 +248,7 @@ export const FormattingPopoverContent = ({
           renderOperatorFields
         ) : (
           <Row gutter={12}>
-            <Col span={6}>{operatorField(true)}</Col>
+            <Col span={6}>{renderOperator({ showOnlyNone: true })}</Col>
           </Row>
         )}
       </FormItem>
