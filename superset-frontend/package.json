@@ -81,7 +81,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
     "@emotion/cache": "^11.4.0",
-    "@emotion/react": "^11.4.1",
+    "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.3.0",
     "@fontsource/inter": "^4.0.0",
     "@reduxjs/toolkit": "^1.9.3",
