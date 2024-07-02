@@ -539,6 +539,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "CHART_PLUGINS_EXPERIMENTAL": False,
     # Regardless of database configuration settings, force SQLLAB to run async using Celery
     "SQLLAB_FORCE_RUN_ASYNC": False,
+    # Set to True to to enable factory resent CLI command
+    "ENABLE_FACTORY_RESET_COMMAND": False,
 }
 
 # ------------------------------
