@@ -37,7 +37,7 @@
     "@emotion/styled": "^11.3.0",
     "@react-icons/all-files": "^4.1.0",
     "@storybook/addon-actions": "^7.6.13",
-    "@storybook/addon-controls": "^7.6.13",
+    "@storybook/addon-controls": "^8.0.9",
     "@storybook/addon-links": "^7.6.13",
     "@storybook/addons": "^7.6.13",
     "@storybook/react": "^7.6.13",
