@@ -212,6 +212,27 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
 strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
 
+def fetch_csrf_token(headers: dict[str, str]) -> dict[str, str]:
+    """
+    Fetches a CSRF token for API requests
+
+    :param headers: A map of headers to use in the request, including the session cookie
+    :returns: A map of headers, including the session cookie and csrf token
+    """
+    url = get_url_path("SecurityRestApi.csrf_token")
+    logger.info("Fetching %s", url)
+    req = request.Request(url, headers=headers, method="GET")
+    with request.urlopen(req, timeout=600) as response:
+        body = response.read().decode("utf-8")
+        session_cookie = response.headers.get("Set-Cookie")
+        if response.code == 200:
+            data = json.loads(body)
+            return {"Cookie": session_cookie, "X-CSRF-Token": data["result"]}
+
+    logger.error("Error fetching CSRF token, status code: %s", response.code)
+    return {}
+
+
 @celery_app.task(name="fetch_url")
 def fetch_url(data: str, headers: dict[str, str]) -> dict[str, str]:
     """
@@ -219,7 +240,10 @@ def fetch_url(data: str, headers: dict[str, str]) -> dict[str, str]:
     """
     result = {}
     try:
-        url = get_url_path("Superset.warm_up_cache")
+        # Fetch CSRF token for API request
+        headers.update(fetch_csrf_token(headers))
+
+        url = get_url_path("ChartRestApi.warm_up_cache")
         logger.info("Fetching %s with payload %s", url, data)
         req = request.Request(
             url, data=bytes(data, "utf-8"), headers=headers, method="PUT"
