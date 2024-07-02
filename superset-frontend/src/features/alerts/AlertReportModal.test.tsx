@@ -106,11 +106,18 @@ const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
 const databaseEndpoint = 'glob:*/api/v1/alert/related/database?*';
 const dashboardEndpoint = 'glob:*/api/v1/alert/related/dashboard?*';
 const chartEndpoint = 'glob:*/api/v1/alert/related/chart?*';
+const tabsEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
 
 fetchMock.get(ownersEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
 fetchMock.get(dashboardEndpoint, { result: [] });
 fetchMock.get(chartEndpoint, { result: [{ text: 'table chart', value: 1 }] });
+fetchMock.get(tabsEndpoint, {
+  result: {
+    all_tabs: {},
+    tab_tree: [],
+  },
+});
 
 // Create a valid alert with all required fields entered for validation check
 
@@ -411,6 +418,21 @@ test('renders screenshot options when dashboard is selected', async () => {
       name: /ignore cache when generating report/i,
     }),
   ).toBeInTheDocument();
+});
+
+test('renders tab selection when Dashboard is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+  expect(
+    screen.getByRole('combobox', { name: /select content type/i }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('combobox', { name: /dashboard/i }),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/select tab/i)).toBeInTheDocument();
 });
 
 test('changes to content options when chart is selected', async () => {

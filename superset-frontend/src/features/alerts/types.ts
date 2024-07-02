@@ -43,10 +43,21 @@ export type DatabaseObject = {
 
 export type NotificationMethodOption = 'Email' | 'Slack';
 
+export type SelectValue = {
+  value: string;
+  label: string;
+};
+
 export type NotificationSetting = {
   method?: NotificationMethodOption;
   recipients: string;
   options: NotificationMethodOption[];
+};
+
+export type TabNode = {
+  title: string;
+  value: string;
+  children?: TabNode[];
 };
 
 export type Recipient = {
@@ -60,6 +71,16 @@ export type MetaObject = {
   id?: number;
   label?: string;
   value?: number | string;
+};
+
+export type DashboardState = {
+  activeTabs?: Array<string>;
+  dataMask?: Object;
+  anchor?: string;
+};
+
+export type Extra = {
+  dashboard?: DashboardState;
 };
 
 export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';
@@ -81,6 +102,7 @@ export type AlertObject = {
   description?: string;
   email_subject?: string;
   error?: string;
+  extra?: Extra;
   force_screenshot: boolean;
   grace_period?: number;
   id: number;

@@ -46,7 +46,7 @@ import TimezoneSelector from 'src/components/TimezoneSelector';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { AntdCheckbox, AsyncSelect, Select } from 'src/components';
+import { AntdCheckbox, AsyncSelect, Select, TreeSelect } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -57,12 +57,15 @@ import {
   ChartObject,
   DashboardObject,
   DatabaseObject,
+  Extra,
   MetaObject,
   Operator,
   Recipient,
   AlertsReportsConfig,
   ValidationObject,
   Sections,
+  TabNode,
+  SelectValue,
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -80,11 +83,6 @@ const TEXT_BASED_VISUALIZATION_TYPES = [
   'paired_ttest',
 ];
 
-type SelectValue = {
-  value: string;
-  label: string;
-};
-
 export interface AlertReportModalProps {
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
@@ -101,6 +99,12 @@ const DEFAULT_RETENTION = 90;
 
 const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
+const DEFAULT_EXTRA_DASHBOARD_OPTIONS: Extra = {
+  dashboard: {
+    anchor: '',
+  },
+};
+
 const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
@@ -437,6 +441,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [sourceOptions, setSourceOptions] = useState<MetaObject[]>([]);
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
+  const [tabOptions, setTabOptions] = useState<TabNode[]>([]);
+
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
     [Sections.General]: {
@@ -487,6 +493,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const isEditMode = alert !== null;
   const formatOptionEnabled =
     isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
+  const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -543,6 +550,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     active: true,
     creation_method: 'alerts_reports',
     crontab: ALERT_REPORTS_DEFAULT_CRON_VALUE,
+    extra: DEFAULT_EXTRA_DASHBOARD_OPTIONS,
     log_retention: ALERT_REPORTS_DEFAULT_RETENTION,
     working_timeout: ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
     name: '',
@@ -589,6 +597,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     settings.splice(index, 1);
     setNotificationSettings(settings);
     setNotificationAddState('active');
+  };
+
+  const updateAnchorState = (value: string) => {
+    setCurrentAlert(currentAlertData => {
+      const dashboardState = currentAlertData?.extra?.dashboard;
+      const extra = {
+        dashboard: {
+          ...dashboardState,
+          anchor: value,
+        },
+      };
+      return {
+        ...currentAlertData,
+        extra,
+      };
+    });
   };
 
   // Alert fetch logic
@@ -644,6 +668,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+      extra: contentType === 'dashboard' ? currentAlert?.extra : null,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -651,7 +676,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     data.context_markdown = 'string';
-
     if (isEditMode) {
       // Edit
       if (currentAlert?.id) {
@@ -773,6 +797,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       },
     [],
   );
+
+  const dashboard = currentAlert?.dashboard;
+  useEffect(() => {
+    if (!tabsEnabled) return;
+
+    if (dashboard?.value) {
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/${dashboard.value}/tabs`,
+      }).then(response => {
+        const tabs = response.json.result.tab_tree;
+        setTabOptions(tabs);
+      });
+    }
+  }, [dashboard, tabsEnabled]);
 
   const databaseLabel = currentAlert?.database && !currentAlert.database.label;
   useEffect(() => {
@@ -937,6 +975,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onDashboardChange = (dashboard: SelectValue) => {
     updateAlertState('dashboard', dashboard || undefined);
     updateAlertState('chart', null);
+    if (tabsEnabled) {
+      setTabOptions([]);
+      updateAnchorState('');
+    }
   };
 
   const onChartChange = (chart: SelectValue) => {
@@ -1602,6 +1644,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </>
             )}
           </StyledInputContainer>
+          {tabsEnabled && contentType === 'dashboard' && (
+            <StyledInputContainer>
+              <>
+                <div className="control-label">{t('Select tab')}</div>
+                <TreeSelect
+                  disabled={tabOptions?.length === 0}
+                  treeData={tabOptions}
+                  value={currentAlert?.extra?.dashboard?.anchor}
+                  onSelect={value => updateAnchorState(value)}
+                  style={{ width: '100%' }}
+                  placeholder={t('Select a tab')}
+                />
+              </>
+            </StyledInputContainer>
+          )}
           {isScreenshot && (
             <StyledInputContainer
               css={!isReport && contentType === 'chart' && noMarginBottom}
