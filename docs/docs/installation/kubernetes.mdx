@@ -323,19 +323,22 @@ supersetWorker:
     - -c
     - |
       # Install chrome webdriver
-      # See https://github.com/apache/superset/blob/4fa3b6c7185629b87c27fc2c0e5435d458f7b73d/docs/src/pages/docs/installation/email_reports.mdx
-      apt-get update
-      apt-get install -y wget
-      wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-      apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb
-      wget https://chromedriver.storage.googleapis.com/88.0.4324.96/chromedriver_linux64.zip
-      apt-get install -y zip
-      unzip chromedriver_linux64.zip
-      chmod +x chromedriver
-      mv chromedriver /usr/bin
-      apt-get autoremove -yqq --purge
-      apt-get clean
-      rm -f google-chrome-stable_current_amd64.deb chromedriver_linux64.zip
+      # See https://github.com/apache/superset/blob/master/docs/docs/configuration/alerts-reports.mdx
+      export CHROME_VERSION=115.0.5765.0
+      apt-get update \
+        && apt-get install -y --no-install-recommends \
+          curl unzip jq \
+          libglib2.0-0 libnss3 libxcb1 libatk1.0-0 libatk-bridge2.0-0 \
+          libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+          libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 \
+        && apt-get clean && rm -rf /var/lib/apt/lists/*
+      curl -s -O -O \
+        $(curl -s \
+          https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json \
+          | jq -r '.versions[] | select(.version == "'${CHROME_VERSION}'") | .downloads | [.chrome, .chromedriver][] | .[] | select(.platform == "linux64") | .url') \
+        && unzip -q -j -d /usr/local/bin chromedriver-linux64.zip \
+        && unzip -q -j -d /usr/local/bin chrome-linux64.zip \
+        && rm chromedriver-linux64.zip chrome-linux64.zip
 
       # Run
       . {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker

@@ -246,22 +246,28 @@ USER superset
 ### Using Chrome
 
 ```docker
-FROM apache/superset:3.1.0
+ARG SUPERSET_IMAGE=3.1.3
+FROM docker.io/apache/superset:${SUPERSET_IMAGE}
+
+ARG CHROME_VERSION=115.0.5765.0
 
 USER root
 
-RUN apt-get update && \
-    wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb && \
-    rm -f google-chrome-stable_current_amd64.deb
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        curl unzip jq \
+        libglib2.0-0 libnss3 libxcb1 libatk1.0-0 libatk-bridge2.0-0 \
+        libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+        libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN export CHROMEDRIVER_VERSION=$(curl --silent https://chromedriver.storage.googleapis.com/LATEST_RELEASE_102) && \
-    wget -q https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip && \
-    unzip chromedriver_linux64.zip -d /usr/bin && \
-    chmod 755 /usr/bin/chromedriver && \
-    rm -f chromedriver_linux64.zip
-
-RUN pip install --no-cache gevent psycopg2 redis
+RUN curl -s -O -O \
+    $(curl -s \
+        https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json \
+        | jq -r '.versions[] | select(.version == "'${CHROME_VERSION}'") | .downloads | [.chrome, .chromedriver][] | .[] | select(.platform == "linux64") | .url') \
+    && unzip -q -j -d /usr/local/bin chromedriver-linux64.zip \
+    && unzip -q -j -d /usr/local/bin chrome-linux64.zip \
+    && rm chromedriver-linux64.zip chrome-linux64.zip
 
 USER superset
 ```
