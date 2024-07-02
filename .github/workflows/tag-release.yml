@@ -23,7 +23,7 @@ on:
           - 'false'
 jobs:
   config:
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-22.04"
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -39,7 +39,7 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: docker-release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         build_preset: ["dev", "lean", "py310", "websocket", "dockerize"]

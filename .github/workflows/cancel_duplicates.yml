@@ -9,7 +9,7 @@ on:
 jobs:
   cancel-duplicate-runs:
     name: Cancel duplicate workflow runs
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       actions: write
       contents: read
