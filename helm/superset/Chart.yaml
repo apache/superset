@@ -24,12 +24,12 @@ keywords:
   - business intelligence
   - data science
 sources:
-  - https://github.com/apache/superset
+  - https://github.com/allclinics/superset
 maintainers:
   - name: craig-rueda
     email: craig@craigrueda.com
     url: https://github.com/craig-rueda
-version: 0.12.12
+version: 0.12.14
 dependencies:
   - name: postgresql
     version: 12.1.6
