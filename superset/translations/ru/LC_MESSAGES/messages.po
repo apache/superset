@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2024-06-26 16:36+0400\n"
-"PO-Revision-Date: 2024-07-03 03:21+0400\n"
+"PO-Revision-Date: 2024-07-03 22:19+0400\n"
 "Last-Translator: Daniel Checheta\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -1118,7 +1118,6 @@ msgid "Actual Values"
 msgstr "Фактические значения"
 
 #: superset-frontend/src/explore/components/controls/ComparisonRangeLabel.tsx:136
-#, fuzzy
 msgid "Actual range for comparison"
 msgstr "Диапазон для сравнения"
 
@@ -4228,7 +4227,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/timeComparison.tsx:67
 msgid "Compare results with other time periods."
-msgstr ""
+msgstr "Сравнить результаты с другими периодами"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/index.js:27
 msgid "Compare the same summarized metric across multiple groups."
@@ -4820,7 +4819,6 @@ msgid "Custom"
 msgstr "Пользовательский"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:576
-#, fuzzy
 msgid "Custom Conditional Formatting"
 msgstr "Условное форматирование"
 
@@ -4853,9 +4851,8 @@ msgid "Custom color palettes"
 msgstr "Автозаполнение"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/timeComparison.tsx:35
-#, fuzzy
 msgid "Custom date"
-msgstr "Пользовательский тег"
+msgstr "Пользовательская дата"
 
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:136
 msgid "Custom interval"
@@ -6094,9 +6091,8 @@ msgid "Display Name"
 msgstr "Отображаемое имя"
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:264
-#, fuzzy
 msgid "Display all"
-msgstr "Отображаемое имя"
+msgstr "Показать все"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:247
 msgid "Display column level subtotal"
@@ -7992,7 +7988,7 @@ msgstr "Граф"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:107
 msgid "Graph layout"
-msgstr "Формат графа"
+msgstr "Способ отрисовки графа"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:261
 msgid "Gravity"
@@ -8441,7 +8437,7 @@ msgstr "Личные данные"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/timeComparison.tsx:36
 msgid "Inherit range from time filter"
-msgstr ""
+msgstr "Наследовать диапазон из фильтра"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:266
 msgid "Inner Radius"
@@ -9016,7 +9012,7 @@ msgstr "Способ отрисовки графа"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:120
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:243
 msgid "Layout type of tree"
-msgstr "Внешний вид дерева"
+msgstr "Способ отрисовки дерева"
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:77
 msgid ""
@@ -9208,10 +9204,9 @@ msgid ""
 "connected by straight line segments. It is a basic type of chart common in many "
 "fields."
 msgstr ""
-"График (линейная диаграмма) используется для визуализации показателей, полученных "
-"в рамках одной категории. Линейная диаграмма - это тип диаграммы, который "
-"отображает информацию в виде ряда точек данных, соединенных прямыми отрезками. "
-"Это базовый тип диаграммы, распространенный во многих областях."
+"График используется для визуализации данных из одного ряда, категории. Информация "
+"на графике представляется в виде набора точек, соединенных отрезками. Это простая "
+"диаграмма, распространенная во многих областях."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:131
 msgid "Line interpolation as defined by d3.js"
@@ -9438,11 +9433,12 @@ msgstr "Минута"
 msgid "MON"
 msgstr "ПН"
 
+# Это название столбца таблицы, который появляется при включении сравнения с предыдущим периодом. В столбце приведены значения для текущего периода. На текущий момент, если включить этот перевод, значения в этом столбце пропадают из визуализации.
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:402
 #: superset-frontend/plugins/plugin-chart-table/src/transformProps.ts:318
 #, fuzzy
 msgid "Main"
-msgstr "минимум"
+msgstr "Значение"
 
 #: superset/connectors/sqla/views.py:417
 msgid "Main Datetime Column"
@@ -11125,23 +11121,23 @@ msgid ""
 "deltas in natural language (example:  24 hours, 7 days, 52 weeks, 365 days). Free "
 "text is supported."
 msgstr ""
-"Наложение одного или нескольких временных рядов из относительного периода "
-"времени. Можно использовать естественный язык (например, \"24 hours\", \"7 "
-"days\", \"52 weeks\", \"365 days\")."
+"Наложение одного или нескольких временных рядов из периода со сдвигом "
+"относительно текущего. Можно использовать естественный язык (например, \"24 "
+"hours\", \"7 days\", \"52 weeks\", \"365 days\")."
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:323
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:475
 #: superset-frontend/src/explore/controlPanels/sections.tsx:205
-#, fuzzy
 msgid ""
 "Overlay one or more timeseries from a relative time period. Expects relative time "
 "deltas in natural language (example: 24 hours, 7 days, 52 weeks, 365 days). Free "
 "text is supported."
 msgstr ""
-"Наложение одной или нескольких временных рядов из относительного периода времени."
+"Наложение одного или нескольких временных рядов из периода со сдвигом "
+"относительно текущего. Можно использовать естественный язык (например, \"24 "
+"hours\", \"7 days\", \"52 weeks\", \"365 days\")."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/timeComparison.tsx:79
-#, fuzzy
 msgid ""
 "Overlay results from a relative time period. Expects relative time deltas in "
 "natural language (example:  24 hours, 7 days, 52 weeks, 365 days). Free text is "
@@ -11149,9 +11145,12 @@ msgid ""
 "range by the same length as your time range and use \"Custom\" to set a custom "
 "comparison range."
 msgstr ""
-"Наложение одного или нескольких временных рядов из относительного периода "
-"времени. Можно использовать естественный язык (например, \"24 hours\", \"7 "
-"days\", \"52 weeks\", \"365 days\")."
+"Наложение значений из периода со сдвигом относительно текущего. Можно "
+"использовать естественный язык (например, \"24 hours\", \"7 days\", \"52 weeks\", "
+"\"365 days\"). Используйте вариант \"Наследовать диапазон из фильтра\", чтобы "
+"сдвинуть временной диапазон сравнения на ту же длину, что и ваш временной "
+"диапазон. Или используйте \"Пользовательскую дату\", чтобы задать свой диапазон "
+"сравнения."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Hex/index.ts:28
 msgid ""
@@ -13722,7 +13721,7 @@ msgstr "Выберите столбец"
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:555
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect columns."
-msgstr ""
+msgstr "Выберите столбцы, которые нужно показать в таблице"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:1521
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:1525
@@ -13818,7 +13817,6 @@ msgid "Select operator"
 msgstr "Выбрать оператор"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/timeComparison.tsx:76
-#, fuzzy
 msgid "Select or type a custom value..."
 msgstr "Выберите значение"
 
@@ -14337,9 +14335,8 @@ msgstr "Показывать разделительные линии"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/metrics.tsx:105
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:371
-#, fuzzy
 msgid "Show summary"
-msgstr "Показать маркеры"
+msgstr "Показать итог"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:317
 msgid "Show the value on top of the bar"
@@ -14352,8 +14349,8 @@ msgid ""
 "Show total aggregations of selected metrics. Note that row limit does not apply "
 "to the result."
 msgstr ""
-"Показать общие итоговые значения выбранных показателей. Обратите внимание, что "
-"ограничение количества строк не применяется к результату."
+"Общие итоговые значения выбранных показателей. Обратите внимание, что ограничение "
+"количества строк не применяется к результату."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:31
 msgid ""
@@ -15040,9 +15037,8 @@ msgid "Sum values"
 msgstr "Суммарные значения"
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:979
-#, fuzzy
 msgid "Summary"
-msgstr "Воскресенье"
+msgstr "Итог"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/index.ts:46
 msgid "Sunburst Chart"
@@ -16891,6 +16887,9 @@ msgid ""
 "columns for increase and decrease. Basic conditional formatting can be "
 "overwritten by conditional formatting below."
 msgstr ""
+"Будет применено ко всей таблице. В основные колонки будут добавлены стрелки (↑ и "
+"↓), отмечающие рост и падение. Простое условное форматирование можно "
+"переопределить настройками из блока ниже."
 
 #: superset-frontend/src/dashboard/components/EmbeddedModal/index.tsx:99
 msgid "This will remove your current embed configuration."
@@ -17331,7 +17330,7 @@ msgstr "Дерево"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:114
 msgid "Tree layout"
-msgstr "Вид дерева"
+msgstr "Способ отрисовки дерева"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:131
 msgid "Tree orientation"
@@ -18178,7 +18177,6 @@ msgid "Visual Tweaks"
 msgstr "Визуальные настройки"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:485
-#, fuzzy
 msgid "Visual formatting"
 msgstr "Форматирование"
 
@@ -18639,7 +18637,7 @@ msgstr "Окрашивать ячейки с числами в зависимо�
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:524
 msgid "Whether to colorize numeric values by whether they are positive or negative"
-msgstr "Окрашивать числа в зависимости от их знака"
+msgstr "Окрашивать значения в зависимости от их знака"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:496
 #: superset-frontend/src/explore/components/controls/ColumnConfigControl/constants.tsx:114
@@ -19547,7 +19545,7 @@ msgstr "Ширина должна быть не менее нуля"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:521
 msgid "add colors to cell bars for +/-"
-msgstr ""
+msgstr "Окрасить столбцы для +/-"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:455
 msgid "aggregate"
@@ -19626,9 +19624,8 @@ msgid "background"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:535
-#, fuzzy
 msgid "basic conditional formatting"
-msgstr "Условное форматирование"
+msgstr "Простое условное форматирование"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:124
 #, fuzzy
