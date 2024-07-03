@@ -185,23 +185,6 @@ export const getUserOwnedObjects = (
     endpoint: `/api/v1/${resource}/?q=${getParams(filters, selectColumns)}`,
   }).then(res => res.json?.result);
 
-export const getRecentActivityObjs = (
-  userId: string | number,
-  recent: string,
-  addDangerToast: (arg1: string, arg2: any) => any,
-  filters: Filter[],
-) =>
-  SupersetClient.get({ endpoint: recent }).then(recentsRes => {
-    const res: any = {};
-    return getFilteredChartsandDashboards(addDangerToast, filters).then(
-      ({ other }) => {
-        res.other = other;
-        res.viewed = recentsRes.json.result;
-        return res;
-      },
-    );
-  });
-
 export const getFilteredChartsandDashboards = (
   addDangerToast: (arg1: string, arg2: any) => any,
   filters: Filter[],
@@ -231,6 +214,23 @@ export const getFilteredChartsandDashboards = (
       return { other: [] };
     });
 };
+
+export const getRecentActivityObjs = (
+  userId: string | number,
+  recent: string,
+  addDangerToast: (arg1: string, arg2: any) => any,
+  filters: Filter[],
+) =>
+  SupersetClient.get({ endpoint: recent }).then(recentsRes => {
+    const res: any = {};
+    return getFilteredChartsandDashboards(addDangerToast, filters).then(
+      ({ other }) => {
+        res.other = other;
+        res.viewed = recentsRes.json.result;
+        return res;
+      },
+    );
+  });
 
 export const createFetchRelated = createFetchResourceMethod('related');
 export const createFetchDistinct = createFetchResourceMethod('distinct');
