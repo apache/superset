@@ -18,22 +18,20 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from datetime import datetime, timedelta
-from typing import Any, TYPE_CHECKING
+from typing import Any
 from uuid import UUID
 
 import pytest
 from flask.ctx import AppContext
 from freezegun import freeze_time
 
+from superset.extensions.metastore_cache import SupersetMetastoreCache
 from superset.key_value.exceptions import KeyValueCodecEncodeException
 from superset.key_value.types import (
     JsonKeyValueCodec,
     KeyValueCodec,
     PickleKeyValueCodec,
 )
-
-if TYPE_CHECKING:
-    from superset.extensions.metastore_cache import SupersetMetastoreCache
 
 NAMESPACE = UUID("ee173d1b-ccf3-40aa-941c-985c15224496")
 
@@ -47,8 +45,6 @@ SECOND_VALUE = "qwerty"
 
 @pytest.fixture
 def cache() -> SupersetMetastoreCache:
-    from superset.extensions.metastore_cache import SupersetMetastoreCache
-
     return SupersetMetastoreCache(
         namespace=NAMESPACE,
         default_timeout=600,
