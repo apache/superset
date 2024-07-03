@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=consider-using-transaction
 import dataclasses
 import logging
 import uuid
@@ -314,9 +315,9 @@ def execute_sql_statement(  # pylint: disable=too-many-statements
                 level=ErrorLevel.ERROR,
             )
         ) from ex
-    except OAuth2RedirectError as ex:
+    except OAuth2RedirectError:
         # user needs to authenticate with OAuth2 in order to run query
-        raise ex
+        raise
     except Exception as ex:
         # query is stopped in another thread/worker
         # stopping raises expected exceptions which we should skip
