@@ -122,4 +122,9 @@ export const Databases = [
     href: 'https://doris.apache.org/',
     imgName: 'doris.png',
   },
+  {
+    title: 'Couchbase',
+    href: 'https://www.couchbase.com/',
+    imgName: 'couchbase.svg',
+  },
 ];
