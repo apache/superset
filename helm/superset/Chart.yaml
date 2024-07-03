@@ -24,7 +24,7 @@ keywords:
   - business intelligence
   - data science
 sources:
-  - https://github.com/apache/superset
+  - https://github.com/allclinics/superset
 maintainers:
   - name: craig-rueda
     email: craig@craigrueda.com
