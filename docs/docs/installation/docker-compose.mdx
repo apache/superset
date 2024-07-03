@@ -214,13 +214,14 @@ connections from the Docker involves making one-line changes to the files `postg
 `pg_hba.conf`; you can find helpful links tailored to your OS / PG version on the web easily for
 this task. For Docker it suffices to only whitelist IPs `172.0.0.0/8` instead of `*`, but in any
 case you are _warned_ that doing this in a production database _may_ have disastrous consequences as
-you are opening your database to the public internet.  2. Instead of `localhost`, try using
-`host.docker.internal` (Mac users, Ubuntu) or `172.18.0.1` (Linux users) as the hostname when
-attempting to connect to the database. This is a Docker internal detail -- what is happening is
-that, in Mac systems, Docker Desktop creates a dns entry for the hostname `host.docker.internal`
-which resolves to the correct address for the host machine, whereas in Linux this is not the case
-(at least by default). If neither of these 2 hostnames work then you may want to find the exact
-hostname you want to use, for that you can do `ifconfig` or `ip addr show` and look at the IP
-address of `docker0` interface that must have been created by Docker for you. Alternately if you
-don't even see the `docker0` interface try (if needed with sudo) `docker network inspect bridge` and
-see if there is an entry for `"Gateway"` and note the IP address.
+you are opening your database to the public internet.
+1. Instead of `localhost`, try using `host.docker.internal` (Mac users, Ubuntu) or `172.18.0.1`
+(Linux users) as the hostname when attempting to connect to the database. This is a Docker internal
+detail -- what is happening is that, in Mac systems, Docker Desktop creates a dns entry for the
+hostname `host.docker.internal` which resolves to the correct address for the host machine, whereas
+in Linux this is not the case (at least by default). If neither of these 2 hostnames work then you
+may want to find the exact hostname you want to use, for that you can do `ifconfig` or
+`ip addr show` and look at the IP address of `docker0` interface that must have been created by
+Docker for you. Alternately if you don't even see the `docker0` interface try (if needed with sudo)
+`docker network inspect bridge` and see if there is an entry for `"Gateway"` and note the IP
+address.
