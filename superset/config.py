@@ -41,6 +41,7 @@ from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
 import click
 import pkg_resources
 from celery.schedules import crontab
+from dotenv import load_dotenv
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from flask_caching.backends.base import BaseCache
@@ -63,7 +64,6 @@ from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
-from dotenv import load_dotenv
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -202,7 +202,8 @@ SQLALCHEMY_DATABASE_URI = (
 # isolation level is READ COMMITTED. All backends should use READ COMMITTED (or similar)
 # to help ensure consistent behavior.
 SQLALCHEMY_ENGINE_OPTIONS = {
-    "isolation_level": "SERIALIZABLE",  # SQLite does not support READ COMMITTED.
+    # SQLite does not support READ COMMITTED.
+    "isolation_level": "SERIALIZABLE",
 }
 
 # In order to hook up a custom password store for all SQLALCHEMY connections
@@ -278,7 +279,8 @@ SHOW_STACKTRACE = False
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
 ENABLE_PROXY_FIX = False
-PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
+PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1,
+                    "x_host": 1, "x_port": 1, "x_prefix": 1}
 
 # Configuration for scheduling queries from SQL Lab.
 SCHEDULED_QUERIES: dict[str, Any] = {}
@@ -569,7 +571,7 @@ SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
     {
-        k[len("SUPERSET_FEATURE_") :]: parse_boolean_string(v)
+        k[len("SUPERSET_FEATURE_"):]: parse_boolean_string(v)
         for k, v in os.environ.items()
         if re.search(r"^SUPERSET_FEATURE_\w+", k)
     }
@@ -592,7 +594,8 @@ FEATURE_FLAGS: dict[str, bool] = {}
 #     if hasattr(g, "user") and g.user.is_active:
 #         feature_flags_dict['some_feature'] = g.user and g.user.get_id() == 5
 #     return feature_flags_dict
-GET_FEATURE_FLAGS_FUNC: Callable[[dict[str, bool]], dict[str, bool]] | None = None
+GET_FEATURE_FLAGS_FUNC: Callable[[
+    dict[str, bool]], dict[str, bool]] | None = None
 # A function that receives a feature flag name and an optional default value.
 # Has a similar utility to GET_FEATURE_FLAGS_FUNC but it's useful to not force the
 # evaluation of all feature flags when just evaluating a single one.
@@ -691,7 +694,8 @@ THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER, ExecutorType.SELENIUM]
 THUMBNAIL_DASHBOARD_DIGEST_FUNC: (
     None | (Callable[[Dashboard, ExecutorType, str], str])
 ) = None
-THUMBNAIL_CHART_DIGEST_FUNC: Callable[[Slice, ExecutorType, str], str] | None = None
+THUMBNAIL_CHART_DIGEST_FUNC: Callable[[
+    Slice, ExecutorType, str], str] | None = None
 
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_TYPE": "NullCache",
@@ -1218,7 +1222,7 @@ BLUEPRINTS: list[Blueprint] = []
 #       lambda url, query: url if is_fresh(query) else None
 #   )
 # pylint: disable-next=unnecessary-lambda-assignment
-TRACKING_URL_TRANSFORMER = lambda url: url  # noqa: E731
+def TRACKING_URL_TRANSFORMER(url): return url  # noqa: E731
 
 
 # customize the polling time of each engine
@@ -1370,7 +1374,8 @@ ALERT_REPORTS_EXECUTE_AS: list[ExecutorType] = [ExecutorType.OWNER]
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG
-ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds())
+ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(
+    timedelta(seconds=1).total_seconds())
 # Default values that user using when creating alert
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
 ALERT_REPORTS_DEFAULT_RETENTION = 90
@@ -1516,7 +1521,8 @@ DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
-TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+TALISMAN_ENABLED = utils.cast_to_boolean(
+    os.environ.get("TALISMAN_ENABLED", True))
 
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
@@ -1637,7 +1643,9 @@ SSL_CERT_PATH: str | None = None
 # conventions and such. You can find examples in the tests.
 
 # pylint: disable-next=unnecessary-lambda-assignment
-SQLA_TABLE_MUTATOR = lambda table: table  # noqa: E731
+
+
+def SQLA_TABLE_MUTATOR(table): return table  # noqa: E731
 
 
 # Global async query config options.
@@ -1813,7 +1821,8 @@ if CONFIG_PATH_ENV_VAR in os.environ:
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
 
-        click.secho(f"Loaded your LOCAL configuration at [{cfg_path}]", fg="cyan")
+        click.secho(
+            f"Loaded your LOCAL configuration at [{cfg_path}]", fg="cyan")
     except Exception:
         logger.exception(
             "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
