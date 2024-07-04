@@ -57,6 +57,7 @@ assists people when migrating to a new version.
   translations inside the python package. This includes the .mo files needed by pybabel on the
   backend, as well as the .json files used by the frontend. If you were doing anything before
   as part of your bundling to expose translation packages, it's probably not needed anymore.
+- [29471](https://github.com/apache/superset/pull/29471) We now support .env file. This change will not affect the impact of .env file in the docker folder.
 
 ### Potential Downtime
 
