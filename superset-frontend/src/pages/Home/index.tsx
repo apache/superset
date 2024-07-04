@@ -217,89 +217,100 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     ];
   }, []);
 
-  useEffect(() => {
-    if (!otherTabFilters) {
-      return;
-    }
-    const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);
-    setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
-    getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
-      .then(res => {
-        const data: ActivityData | null = {};
-        data[TableTab.Other] = res.other;
-        if (res.viewed) {
-          const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
-          data[TableTab.Viewed] = filtered;
-          if (!activeTab && data[TableTab.Viewed]) {
-            setActiveChild(TableTab.Viewed);
-          } else if (!activeTab && !data[TableTab.Viewed]) {
-            setActiveChild(TableTab.Created);
-          } else setActiveChild(activeTab || TableTab.Created);
-        } else if (!activeTab) setActiveChild(TableTab.Created);
-        else setActiveChild(activeTab);
-        setActivityData(activityData => ({ ...activityData, ...data }));
-      })
-      .catch(
-        createErrorHandler((errMsg: unknown) => {
-          setActivityData(activityData => ({
-            ...activityData,
-            [TableTab.Viewed]: [],
-          }));
-          addDangerToast(
-            t('There was an issue fetching your recent activity: %s', errMsg),
-          );
-        }),
+  if (!WelcomeTopExtension && !WelcomeMainExtension) {
+    useEffect(() => {
+      if (!otherTabFilters) {
+        return;
+      }
+      const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);
+      setActiveState(
+        collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR,
       );
+      getRecentActivityObjs(
+        user.userId!,
+        recent,
+        addDangerToast,
+        otherTabFilters,
+      )
+        .then(res => {
+          const data: ActivityData | null = {};
+          data[TableTab.Other] = res.other;
+          if (res.viewed) {
+            const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
+            data[TableTab.Viewed] = filtered;
+            if (!activeTab && data[TableTab.Viewed]) {
+              setActiveChild(TableTab.Viewed);
+            } else if (!activeTab && !data[TableTab.Viewed]) {
+              setActiveChild(TableTab.Created);
+            } else setActiveChild(activeTab || TableTab.Created);
+          } else if (!activeTab) setActiveChild(TableTab.Created);
+          else setActiveChild(activeTab);
+          setActivityData(activityData => ({ ...activityData, ...data }));
+        })
+        .catch(
+          createErrorHandler((errMsg: unknown) => {
+            setActivityData(activityData => ({
+              ...activityData,
+              [TableTab.Viewed]: [],
+            }));
+            addDangerToast(
+              t('There was an issue fetching your recent activity: %s', errMsg),
+            );
+          }),
+        );
 
-    // Sets other activity data in parallel with recents api call
-    const ownSavedQueryFilters = [
-      {
-        col: 'created_by',
-        opr: 'rel_o_m',
-        value: `${id}`,
-      },
-    ];
-    Promise.all([
-      getUserOwnedObjects(id, 'dashboard')
-        .then(r => {
-          setDashboardData(r);
-          return Promise.resolve();
-        })
-        .catch((err: unknown) => {
-          setDashboardData([]);
-          addDangerToast(
-            t('There was an issue fetching your dashboards: %s', err),
-          );
-          return Promise.resolve();
-        }),
-      getUserOwnedObjects(id, 'chart')
-        .then(r => {
-          setChartData(r);
-          return Promise.resolve();
-        })
-        .catch((err: unknown) => {
-          setChartData([]);
-          addDangerToast(t('There was an issue fetching your chart: %s', err));
-          return Promise.resolve();
-        }),
-      canReadSavedQueries
-        ? getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
-            .then(r => {
-              setQueryData(r);
-              return Promise.resolve();
-            })
-            .catch((err: unknown) => {
-              setQueryData([]);
-              addDangerToast(
-                t('There was an issue fetching your saved queries: %s', err),
-              );
-              return Promise.resolve();
-            })
-        : Promise.resolve(),
-    ]).then(() => {
-      setIsFetchingActivityData(false);
-    });
-  }, [otherTabFilters]);
+      // Sets other activity data in parallel with recents api call
+      const ownSavedQueryFilters = [
+        {
+          col: 'created_by',
+          opr: 'rel_o_m',
+          value: `${id}`,
+        },
+      ];
+      Promise.all([
+        getUserOwnedObjects(id, 'dashboard')
+          .then(r => {
+            setDashboardData(r);
+            return Promise.resolve();
+          })
+          .catch((err: unknown) => {
+            setDashboardData([]);
+            addDangerToast(
+              t('There was an issue fetching your dashboards: %s', err),
+            );
+            return Promise.resolve();
+          }),
+        getUserOwnedObjects(id, 'chart')
+          .then(r => {
+            setChartData(r);
+            return Promise.resolve();
+          })
+          .catch((err: unknown) => {
+            setChartData([]);
+            addDangerToast(
+              t('There was an issue fetching your chart: %s', err),
+            );
+            return Promise.resolve();
+          }),
+        canReadSavedQueries
+          ? getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
+              .then(r => {
+                setQueryData(r);
+                return Promise.resolve();
+              })
+              .catch((err: unknown) => {
+                setQueryData([]);
+                addDangerToast(
+                  t('There was an issue fetching your saved queries: %s', err),
+                );
+                return Promise.resolve();
+              })
+          : Promise.resolve(),
+      ]).then(() => {
+        setIsFetchingActivityData(false);
+      });
+    }, [otherTabFilters]);
+  }
 
   const handleToggle = () => {
     setChecked(!checked);
