@@ -234,6 +234,8 @@ test('Should not make data fetch calls if `welcome.main.replacement` is defined'
 
   // Clean up
   extensionsRegistry.set('welcome.banner', () => null);
+
+  // Set up
   extensionsRegistry.set('welcome.main.replacement', () => (
     <>welcome.main.replacement extension component</>
   ));
