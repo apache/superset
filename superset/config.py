@@ -1275,13 +1275,14 @@ DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
 # names, and the values are sets of disallowed functions.
 DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
     "postgresql": {
-        "version",
-        "query_to_xml",
-        "inet_server_addr",
+        "database_to_xml",
         "inet_client_addr",
+        "inet_server_addr",
+        "query_to_xml",
         "query_to_xml_and_xmlschema",
         "table_to_xml",
         "table_to_xml_and_xmlschema",
+        "version",
     },
     "clickhouse": {"url"},
     "mysql": {"version"},
