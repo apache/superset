@@ -69,8 +69,10 @@ DEFAULT_FEATURE_FLAGS = {
 from celery.schedules import crontab
 
 FEATURE_FLAGS = {
-    "ALERT_REPORTS": True
+    "ALERT_REPORTS": True,
+    # "THUMBNAILS": True
 }
+
 
 REDIS_HOST = "localhost"
 REDIS_PORT = "6379"
@@ -150,3 +152,10 @@ os.environ["PATH"] += os.pathsep + CHROMEDRIVER_PATH
 #EBDRIVER_BASEURL = "http://localhost:8080"
 # This is the link sent to the recipient. Change to your domain, e.g. https://superset.mydomain.com
 WEBDRIVER_BASEURL_USER_FRIENDLY = "http://localhost:8080"
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+# Adjust these paths based on your actual directory structure
+STATIC_FOLDER = os.path.join(BASE_DIR, 'superset-frontend', 'dist')
+STATIC_URL_PATH = '/static'
+
+PDF_PATH='/home/reports/project/superset/TEST_REPORT'

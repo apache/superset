@@ -38,8 +38,10 @@ import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupExtensions from 'src/setup/setupExtensions';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
+import { Footer } from 'antd/lib/layout/layout';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
+import './App.css';
 
 setupApp();
 setupPlugins();
@@ -90,6 +92,13 @@ const App = () => (
         ))}
       </Switch>
       <ToastContainer />
+      <Footer className="footer">
+        <strong>
+          Copyright &copy; 2024{' '}
+          <a href="http://Supracontrols.com">Supra Controls Pvt Ltd</a>.
+        </strong>{' '}
+        All rights reserved.
+      </Footer>
     </RootContextProviders>
   </Router>
 );

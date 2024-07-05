@@ -46,12 +46,12 @@ from superset.views.base import (
 from superset.views.reportViewer.mixin import DashboardMixin
 
 
-class ReportViewerView(DashboardMixin, SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
+class ReportViewerModelView(DashboardMixin, SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
     route_base = "/reportViewer"
     datamodel = SQLAInterface(DashboardModel)
     # TODO disable api_read and api_delete (used by cypress)
     # once we move to ChartRestModelApi
-    class_permission_name = "ReportViewer"
+    class_permission_name = "Dashboard"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 
     include_route_methods = {
@@ -107,7 +107,7 @@ class ReportViewerView(DashboardMixin, SupersetModelView, DeleteMixin):  # pylin
         )
 
 
-class Dashboard(BaseSupersetView):
+class ReportViewerView(BaseSupersetView):
     """The base views for Superset!"""
 
     class_permission_name = "ReportViewer"
@@ -165,7 +165,7 @@ class Dashboard(BaseSupersetView):
         )
 
 
-class DashboardModelViewAsync(ReportViewerView):  # pylint: disable=too-many-ancestors
+class ReportViewerModelViewAsync(ReportViewerView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
     class_permission_name = "Dashboard"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP

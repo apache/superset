@@ -160,7 +160,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.chart.views import SliceAsync, SliceModelView
-        from superset.views.reportViewer.views import ReportViewerView
+        from superset.views.reportViewer.views import (
+            ReportViewerView,
+            ReportViewerModelView,
+            ReportViewerModelViewAsync,
+            )
         from superset.views.core import Superset
         from superset.views.css_templates import (
             CssTemplateAsyncModelView,
@@ -263,7 +267,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
         )
         appbuilder.add_view(
-            ReportViewerView,
+            ReportViewerModelView,
             "ReportViewer",
             label=__("Report viewer"),
             icon="fa-bar-chart",
@@ -307,6 +311,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
+        appbuilder.add_view_no_menu(ReportViewerView)
+        appbuilder.add_view_no_menu(ReportViewerModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(DatasetEditor)
         appbuilder.add_view_no_menu(EmbeddedView)

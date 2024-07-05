@@ -228,7 +228,7 @@ export const routes: Routes = [
     Component: SqlLab,
   },
   {
-    path: '/reportViewer',
+    path: '/reportviewer/list',
     Component: ReportViewer,
   },
 ];

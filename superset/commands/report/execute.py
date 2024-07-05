@@ -20,6 +20,10 @@ from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 from uuid import UUID
 
+import os ,sys
+from superset_config import PDF_PATH
+from datetime import datetime as dtt
+
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 
@@ -259,6 +263,17 @@ class BaseReportState:
         screenshots = self._get_screenshots()
         pdf = build_pdf_from_screenshots(screenshots)
 
+
+        output_path=os.path.join(PDF_PATH,'reports')
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        output_path_main=os.path.join(output_path,f'{dtt.now().year}_{dtt.now().month}_{dtt.now().day}_reports')
+        if not os.path.exists(output_path_main):
+            os.makedirs(output_path_main)
+        pdf_out=os.path.join(output_path_main,f'{dtt.now().year}_{dtt.now().month}_{dtt.now().day}_{dtt.now().hour}_{dtt.now().minute}_{dtt.now().second}_report.pdf')    
+        with open(pdf_out, 'wb') as f:
+            f.write(pdf)   
+            
         return pdf
 
     def _get_csv_data(self) -> bytes:
