@@ -25,6 +25,7 @@ import os
 
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
+from flask_caching.backends.rediscache import RedisCache
 
 logger = logging.getLogger()
 
@@ -68,7 +69,17 @@ REDIS_BASE_URL = (
     else f"{REDIS_PROTO}://{REDIS_HOST}:{REDIS_PORT}"
 )
 
-RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
+if os.getenv("RESULTS_BACKEND_CACHE_TYPE") == "RedisCache":
+    RESULTS_BACKEND = RedisCache(
+        key_prefix="superset_results",
+        ssl=REDIS_PROTO == "rediss",
+        password=REDIS_PASSWORD or None,
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        db=REDIS_RESULTS_DB,
+    )
+else:
+    RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
 CACHE_CONFIG = {
     "CACHE_TYPE": "RedisCache",
