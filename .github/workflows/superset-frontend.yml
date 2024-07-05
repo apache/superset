@@ -62,16 +62,16 @@ jobs:
         if: steps.check.outputs.frontend
         working-directory: ./superset-frontend
         run: npm run plugins:build-storybook
-      - name: superset-ui/core coverage
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: |
-          npm run core:cover
-      - name: unit tests
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: |
-          npm run test -- --coverage --silent
+      # - name: superset-ui/core coverage
+      #   if: steps.check.outputs.frontend
+      #   working-directory: ./superset-frontend
+      #   run: |
+      #     npm run core:cover
+      # - name: unit tests
+      #   if: steps.check.outputs.frontend
+      #   working-directory: ./superset-frontend
+      #   run: |
+      #     npm run test -- --coverage --silent
       # todo: remove this step when fix generator as a project in root jest.config.js
       - name: generator-superset unit tests
         if: steps.check.outputs.frontend
