@@ -23,13 +23,14 @@ Different sets of images are built and/or published at different times:
 - **Merges to the main branch** (`push`): resulting in new SHAs, with tags
   prefixed with `master` for the latest `master` version.
 
-# Build presets
+## Build presets
 
 We have a set of build "presets" that each represent a combination of
 parameters for the build, mostly pointing to either different target layer
 for the build, and/or base image.
 
 Here are the build presets that are exposed through the `build_docker.py` script:
+
 - `lean`: The default Docker image, including both frontend and backend. Tags
 without a build_preset are lean builds, e.g., `latest`.
 - `dev`: For development, with a headless browser, dev-related utilities and root access.
@@ -92,7 +93,7 @@ configured in that way). Setting the environment
 variable `DOCKER_DEFAULT_PLATFORM` to `linux/amd64` seems to function in
 term of leveraging, and building upon the Superset builds provided here.
 
-```
+```bash
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 ```
 

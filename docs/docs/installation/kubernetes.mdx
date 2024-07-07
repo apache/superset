@@ -9,7 +9,6 @@ import useBaseUrl from "@docusaurus/useBaseUrl";
 
 # Installing on Kubernetes
 
-
 <img src={useBaseUrl("/img/k8s.png" )} width="150" />
 <br /><br />
 
@@ -26,7 +25,6 @@ For simpler, single host environments, we recommend using
 [minikube](https://minikube.sigs.k8s.io/docs/start/) which is easy to setup on many platforms
 and works fantastically well with the Helm chart referenced here.
 :::
-
 
 ## Running
 
@@ -434,9 +432,12 @@ configOverrides:
         "--disable-extensions",
     ]
 ```
+
 ### Load the Examples data and dashboards
+
 If you are trying Superset out and want some data and dashboards to explore, you can load some examples by creating a `my_values.yaml` and deploying it as described above in the **Configure your setting overrides** step of the **Running** section.
 To load the examples, add the following to the `my_values.yaml` file:
+
 ```yaml
 init:
   loadExamples: true
