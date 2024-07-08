@@ -121,7 +121,7 @@ export default function transformProps(chartProps: ChartProps) {
       timeRangeFilter: {
         ...currentTimeRangeFilter,
         comparator:
-          formData?.extra_form_data?.time_range ??
+          formData?.extraFormData?.time_range ??
           (currentTimeRangeFilter as any)?.comparator,
       },
       shifts: ensureIsArray(timeComparison),
