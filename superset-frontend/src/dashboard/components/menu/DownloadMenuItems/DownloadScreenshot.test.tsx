@@ -84,7 +84,7 @@ describe('DownloadScreenshot component', () => {
     const props = defaultProps();
 
     fetchMock.post(
-      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_screenshot`,
+      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot`,
       {
         status: 400,
         body: {},
@@ -105,7 +105,7 @@ describe('DownloadScreenshot component', () => {
   test('displays success message when API call succeeds', async () => {
     const props = defaultProps();
     fetchMock.post(
-      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_screenshot`,
+      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot`,
       {
         status: 200,
         body: {
@@ -133,7 +133,7 @@ describe('DownloadScreenshot component', () => {
   test('throws error when no image URL is provided', async () => {
     const props = defaultProps();
     fetchMock.post(
-      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_screenshot`,
+      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot`,
       {
         status: 200,
         body: {
@@ -161,7 +161,7 @@ describe('DownloadScreenshot component', () => {
     const props = defaultProps();
     const imageUrl = 'glob:*/mocked_image_url?download_format=pdf';
     fetchMock.post(
-      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_screenshot`,
+      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot`,
       {
         status: 200,
         body: {
@@ -191,7 +191,7 @@ describe('DownloadScreenshot component', () => {
     const props = defaultProps();
     const imageUrl = 'glob:*/mocked_image_url?download_format=pdf';
     fetchMock.post(
-      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_screenshot`,
+      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot`,
       {
         status: 200,
         body: {

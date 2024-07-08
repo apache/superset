@@ -99,7 +99,7 @@ export default function DownloadScreenshot({
     };
 
     SupersetClient.post({
-      endpoint: `/api/v1/dashboard/${dashboardId}/cache_screenshot`,
+      endpoint: `/api/v1/dashboard/${dashboardId}/cache_dashboard_screenshot`,
       jsonPayload: {
         anchor,
       },
