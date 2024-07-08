@@ -62,7 +62,6 @@ class ChartDAO(BaseDAO[Slice]):
                     dttm=datetime.now(),
                 )
             )
-            db.session.commit()
 
     @staticmethod
     def remove_favorite(chart: Slice) -> None:
@@ -77,4 +76,3 @@ class ChartDAO(BaseDAO[Slice]):
         )
         if fav:
             db.session.delete(fav)
-            db.session.commit()

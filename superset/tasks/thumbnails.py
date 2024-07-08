@@ -77,6 +77,7 @@ def cache_dashboard_thumbnail(
     dashboard_id: int,
     force: bool = False,
     thumb_size: Optional[WindowSize] = None,
+    window_size: Optional[WindowSize] = None,
 ) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
@@ -100,5 +101,43 @@ def cache_dashboard_thumbnail(
             user=user,
             cache=thumbnail_cache,
             force=force,
+            window_size=window_size,
+            thumb_size=thumb_size,
+        )
+
+
+# pylint: disable=too-many-arguments
+@celery_app.task(name="cache_dashboard_screenshot", soft_time_limit=60)
+def cache_dashboard_screenshot(
+    current_user: Optional[str],
+    dashboard_id: int,
+    dashboard_url: str,
+    force: bool = False,
+    thumb_size: Optional[WindowSize] = None,
+    window_size: Optional[WindowSize] = None,
+) -> None:
+    # pylint: disable=import-outside-toplevel
+    from superset.models.dashboard import Dashboard
+
+    if not thumbnail_cache:
+        logging.warning("No cache set, refusing to compute")
+        return
+
+    dashboard = Dashboard.get(dashboard_id)
+
+    logger.info("Caching dashboard: %s", dashboard_url)
+    _, username = get_executor(
+        executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+        model=dashboard,
+        current_user=current_user,
+    )
+    user = security_manager.find_user(username)
+    with override_user(user):
+        screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
+        screenshot.compute_and_cache(
+            user=user,
+            cache=thumbnail_cache,
+            force=force,
+            window_size=window_size,
             thumb_size=thumb_size,
         )

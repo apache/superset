@@ -379,6 +379,12 @@ class CreateKeyValueDistributedLockFailedException(Exception):
     """
 
 
+class DeleteKeyValueDistributedLockFailedException(Exception):
+    """
+    Exception to signalize failure to delete lock.
+    """
+
+
 class DatabaseNotFoundException(SupersetErrorException):
     status = 404
 

@@ -24,10 +24,14 @@ import pytest
 from freezegun import freeze_time
 from sqlalchemy.orm import Session, sessionmaker
 
+from superset import db
+from superset.distributed_lock import KeyValueDistributedLock
+from superset.distributed_lock.types import LockValue
+from superset.distributed_lock.utils import get_key
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.key_value.types import JsonKeyValueCodec
-from superset.utils.lock import get_key, KeyValueDistributedLock
 
+LOCK_VALUE: LockValue = {"value": True}
 MAIN_KEY = get_key("ns", a=1, b=2)
 OTHER_KEY = get_key("ns2", a=1, b=2)
 
@@ -35,7 +39,7 @@ OTHER_KEY = get_key("ns2", a=1, b=2)
 def _get_lock(key: UUID, session: Session) -> Any:
     from superset.key_value.models import KeyValueEntry
 
-    entry = session.query(KeyValueEntry).filter_by(uuid=key).first()
+    entry = db.session.query(KeyValueEntry).filter_by(uuid=key).first()
     if entry is None or entry.is_expired():
         return None
 
@@ -55,15 +59,21 @@ def _get_other_session() -> Session:
 def test_key_value_distributed_lock_happy_path() -> None:
     """
     Test successfully acquiring and returning the distributed lock.
+
+    Note, we're using another session for asserting the lock state in the Metastore
+    to simulate what another worker will observe. Otherwise, there's the risk that
+    the assertions would only be using the non-committed state from the main session.
     """
     session = _get_other_session()
 
     with freeze_time("2021-01-01"):
         assert _get_lock(MAIN_KEY, session) is None
+
         with KeyValueDistributedLock("ns", a=1, b=2) as key:
             assert key == MAIN_KEY
-            assert _get_lock(key, session) is True
+            assert _get_lock(key, session) == LOCK_VALUE
             assert _get_lock(OTHER_KEY, session) is None
+
             with pytest.raises(CreateKeyValueDistributedLockFailedException):
                 with KeyValueDistributedLock("ns", a=1, b=2):
                     pass
@@ -74,14 +84,18 @@ def test_key_value_distributed_lock_happy_path() -> None:
 def test_key_value_distributed_lock_expired() -> None:
     """
     Test expiration of the distributed lock
+
+    Note, we're using another session for asserting the lock state in the Metastore
+    to simulate what another worker will observe. Otherwise, there's the risk that
+    the assertions would only be using the non-committed state from the main session.
     """
     session = _get_other_session()
 
-    with freeze_time("2021-01-01T"):
+    with freeze_time("2021-01-01"):
         assert _get_lock(MAIN_KEY, session) is None
         with KeyValueDistributedLock("ns", a=1, b=2):
-            assert _get_lock(MAIN_KEY, session) is True
-            with freeze_time("2022-01-01T"):
+            assert _get_lock(MAIN_KEY, session) == LOCK_VALUE
+            with freeze_time("2022-01-01"):
                 assert _get_lock(MAIN_KEY, session) is None
 
         assert _get_lock(MAIN_KEY, session) is None

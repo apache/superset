@@ -40,13 +40,13 @@ Note that:
   - A Superset **Celery worker**, also mounting the local python repo/code
   - A Superset **Node service**, mounting, compiling and bundling the JS/TS assets
   - A Superset **Node websocket service** to power the async backend
-  - **Postgres** as the metadata database and to store example datasets, charts and dashboards whic
+  - **Postgres** as the metadata database and to store example datasets, charts and dashboards which
     should be populated upon startup
   - **Redis** as the message queue for our async backend and caching backend
 - It'll load up examples into the database upon first startup
 - all other details and pointers available in
   [docker-compose.yml](https://github.com/apache/superset/blob/master/docker-compose.yml)
-- The local repository is mounted withing the services, meaning updating
+- The local repository is mounted within the services, meaning updating
   the code on the host will be reflected in the docker images
 - Superset is served at localhost:8088/
 - You can login with admin/admin
@@ -231,7 +231,7 @@ We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node envi
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
 
-incase it shows '-bash: nvm: command not found'
+in case it shows '-bash: nvm: command not found'
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
@@ -261,7 +261,7 @@ cd superset-frontend
 npm ci
 ```
 
-Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` envinronment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` environment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
 
 ```json
 // your-package/package.json
@@ -769,7 +769,7 @@ To contribute a plugin to Superset, your plugin must meet the following criteria
 - The plugin should be written with TypeScript
 - The plugin should contain sufficient unit/e2e tests
 - The plugin should use appropriate namespacing, e.g. a folder name of `plugin-chart-whatever` and a package name of `@superset-ui/plugin-chart-whatever`
-- The plugin should use them variables via Emotion, as passed in by the ThemeProvider
+- The plugin should use theme variables via Emotion, as passed in by the ThemeProvider
 - The plugin should provide adequate error handling (no data returned, malformed data, invalid controls, etc.)
 - The plugin should contain documentation in the form of a populated `README.md` file
 - The plugin should have a meaningful and unique icon

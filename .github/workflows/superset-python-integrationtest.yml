@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   test-mysql:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -74,7 +74,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
   test-postgres:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         python-version: ["current", "next", "previous"]
@@ -136,7 +136,7 @@ jobs:
           verbose: true
 
   test-sqlite:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
