@@ -154,39 +154,6 @@ describe('DownloadScreenshot component', () => {
     });
   });
 
-  test.skip('retries fetching image when retrieval fails', async () => {
-    jest.useFakeTimers();
-
-    const maxRetries = 3;
-    const props = defaultProps();
-    const imageUrl = 'glob:*/mocked_image_url?download_format=pdf';
-    fetchMock.post(
-      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot`,
-      {
-        status: 200,
-        body: {
-          image_url: 'mocked_image_url',
-        },
-      },
-    );
-
-    fetchMock.get(imageUrl, 404);
-
-    // Render the component
-    renderComponent();
-
-    // Simulate the user clicking the download button
-    userEvent.click(screen.getByRole('button', { name: 'Download' }));
-
-    for (let i = 0; i < maxRetries; i += 1) {
-      jest.advanceTimersByTime(3000);
-    }
-
-    await waitFor(() => {
-      expect(mockAddInfoToast).toHaveBeenCalledTimes(10);
-    });
-  });
-
   test('displays success message when image retrieval succeeds', async () => {
     const props = defaultProps();
     const imageUrl = 'glob:*/mocked_image_url?download_format=pdf';

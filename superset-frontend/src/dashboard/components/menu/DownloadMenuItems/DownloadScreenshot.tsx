@@ -28,9 +28,8 @@ import { useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DownloadScreenshotFormat } from './types';
 
-// parameters for adjustments
-const RETRY_INTERVAL = 3000; // 3 seconds
-const MAX_RETRIES = 20; // 60 seconds / 3 seconds = 20 retries
+const RETRY_INTERVAL = 3000;
+const MAX_RETRIES = 30;
 
 export default function DownloadScreenshot({
   text,
@@ -44,11 +43,12 @@ export default function DownloadScreenshot({
   logEvent?: Function;
   format: string;
 }) {
-  const directPathToChild = useSelector(
-    (state: RootState) => state.dashboardState.directPathToChild,
+  const activeTabs = useSelector(
+    (state: RootState) => state.dashboardState.activeTabs || [],
   );
+  const currentTabs = [...activeTabs];
   const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
-  const anchor = directPathToChild?.pop();
+  const anchor = currentTabs.pop();
 
   const onDownloadScreenshot = () => {
     let retries = 0;
@@ -86,6 +86,14 @@ export default function DownloadScreenshot({
           // we check how many retries have been made
           if (retries < MAX_RETRIES) {
             retries += 1;
+            addInfoToast(
+              t(
+                'The screenshot is being generated. Please, do not leave the page.',
+              ),
+              {
+                noDuplicate: true,
+              },
+            );
             setTimeout(() => fetchImageWithRetry(imageUrl), RETRY_INTERVAL);
           } else {
             addDangerToast(
@@ -106,15 +114,14 @@ export default function DownloadScreenshot({
     })
       .then(({ json }) => {
         const imageUrl = json?.image_url;
-        if (imageUrl) {
-          addInfoToast(
-            t(
-              'The screenshot is being generated. Please, do not leave the page.',
-            ),
-          );
-        } else {
+        if (!imageUrl) {
           throw new Error('No image URL in response');
         }
+        addInfoToast(
+          t(
+            'The screenshot is being generated. Please, do not leave the page.',
+          ),
+        );
         fetchImageWithRetry(imageUrl);
       })
       .catch(error => {
