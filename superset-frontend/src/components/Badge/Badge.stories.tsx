@@ -120,29 +120,7 @@ export const BadgeGallery = () => (
   </>
 );
 
-export const BadgeTextGallery = () => (
-  <AntdThemeProvider>
-    {COLORS.options.map(color => (
-      <Badge
-        text="Hello"
-        color={color}
-        key={color}
-        style={{ marginRight: '15px' }}
-      />
-    ))}
-  </AntdThemeProvider>
-);
-
 BadgeGallery.parameters = {
-  actions: {
-    disable: true,
-  },
-  controls: {
-    disable: true,
-  },
-};
-
-BadgeTextGallery.parameters = {
   actions: {
     disable: true,
   },
