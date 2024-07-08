@@ -1276,7 +1276,16 @@ DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
 # unsafe SQL functions in SQL Lab and Charts. The keys of the dictionary are the engine
 # names, and the values are sets of disallowed functions.
 DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
-    "postgresql": {"version", "query_to_xml", "inet_server_addr", "inet_client_addr"},
+    "postgresql": {
+        "database_to_xml",
+        "inet_client_addr",
+        "inet_server_addr",
+        "query_to_xml",
+        "query_to_xml_and_xmlschema",
+        "table_to_xml",
+        "table_to_xml_and_xmlschema",
+        "version",
+    },
     "clickhouse": {"url"},
     "mysql": {"version"},
 }
