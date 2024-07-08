@@ -580,7 +580,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         return (
-            f"This endpoint requires the datasource {datasource.name}, "
+            f"This endpoint requires the datasource {datasource.id}, "
             "database or `all_datasource_access` permission"
         )
 
@@ -612,7 +612,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_datasource_access_link(datasource),
-                "datasource": datasource.name,
+                "datasource": datasource.id,
             },
         )
 
