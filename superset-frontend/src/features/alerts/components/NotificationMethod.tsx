@@ -35,6 +35,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { Select } from 'src/components';
+import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import {
   NotificationMethodOption,
@@ -56,6 +57,12 @@ const StyledNotificationMethod = styled.div`
         border-color: ${({ theme }) => theme.colors.error.base};
       }
     }
+
+    .helper {
+      margin-top: 5px;
+      font-size: 12px;
+      color: ${({ theme }) => theme.colors.grayscale.base};
+    }
   }
 
   .inline-container {
@@ -70,7 +77,47 @@ const StyledNotificationMethod = styled.div`
       padding-top: 3px;
     }
   }
+
+  /* New style for buttons container */
+  .buttons-container {
+    display: flex;
+    align-items: center;
+    margin-top: 8px; /* Adjust as needed */
+  }
+
+  .buttons-container .control-label {
+    margin-right: 16px;
+  }
 `;
+
+const InlineButton = styled(Button)`
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  margin-right: 16px;
+  background: none;
+  font-weight: normal;
+  text-transform: none;
+
+  .anticon {
+    margin-right: 4px;
+  }
+
+  &:hover,
+  &:focus {
+    background: none;
+  }
+`;
+
+const TRANSLATIONS = {
+  EMAIL_CC_NAME: t('CC'),
+  EMAIL_BCC_NAME: t('BCC'),
+  EMAIL_SUBJECT_NAME: t('Subject'),
+  EMAIL_SUBJECT_ERROR_TEXT: t(
+    'Please enter valid text. Spaces alone are not permitted.',
+  ),
+};
 
 interface NotificationMethodProps {
   setting?: NotificationSetting | null;
@@ -174,6 +221,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     { label: string; value: string }[]
   >([]);
   const [error, setError] = useState(false);
+  const [ccVisible, setCcVisible] = useState<boolean>(!!cc);
+  const [bccVisible, setBccVisible] = useState<boolean>(!!bcc);
   const [ccValue, setCcValue] = useState<string>(cc || '');
   const [bccValue, setBccValue] = useState<string>(bcc || '');
   const theme = useTheme();
@@ -469,7 +518,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           <textarea
 
       {method !== undefined ? (
->>>>>>> 4f823a140 (pytest and pre-commit validated)
         method === 'Email' ? (
           <StyledInputContainer>
             <div className="control-label">
@@ -484,14 +532,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 onChange={onRecipientsChange}
               />
             </div>
-            <div className="control-label">{TRANSLATIONS.EMAIL_CC_NAME}</div>
             <div className="input-container">
-              <textarea
-                name="CC"
-                data-test="cc"
-                value={ccValue}
-                onChange={onCcChange}
-              />
+              <div className="helper">
+                {t('Recipients are separated by "," or ";"')}
+              </div>
             </div>
             <div className="control-label">{TRANSLATIONS.EMAIL_BCC_NAME}</div>
             <div className="input-container">
@@ -524,9 +568,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
               </div>
             )}
-            <div className="helper">
-              {t('Recipients are separated by "," or ";"')}
-            </div>
           </StyledInputContainer>
         ) : (
           <StyledInputContainer>
@@ -542,8 +583,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 onChange={onRecipientsChange}
               />
             </div>
-            <div className="helper">
-              {t('Recipients are separated by "," or ";"')}
+            <div className="input-container">
+              <div className="helper">
+                {t('Recipients are separated by "," or ";"')}
+              </div>
             </div>
           </StyledInputContainer>
         )
