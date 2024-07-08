@@ -12,7 +12,7 @@ on:
 
 jobs:
   config:
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-22.04"
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -28,17 +28,17 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: Build & Deploy
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-22.04"
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Set up Node.js 18
+      - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
       - uses: actions/setup-java@v4

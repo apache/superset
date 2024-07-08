@@ -1035,6 +1035,11 @@ The expected connection string using username and password is formatted as follo
 pinot://<username>:<password>@<pinot-broker-host>:<pinot-broker-port>/query/sql?controller=http://<pinot-controller-host>:<pinot-controller-port>/verify_ssl=true``
 ```
 
+If you want to use explore view or joins, window functions, etc. then enable [multi-stage query engine](https://docs.pinot.apache.org/reference/multi-stage-engine).
+Add below argument while creating database connection in Advanced -> Other -> ENGINE PARAMETERS
+```
+{"connect_args":{"use_multistage_engine":"true"}}
+```
 
 #### Postgres
 

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 
 from superset.commands.base import BaseCommand
 from superset.commands.tag.exceptions import (
@@ -25,9 +26,9 @@ from superset.commands.tag.exceptions import (
     TagNotFoundError,
 )
 from superset.commands.tag.utils import to_object_type
-from superset.daos.exceptions import DAODeleteFailedError
 from superset.daos.tag import TagDAO
 from superset.tags.models import ObjectType
+from superset.utils.decorators import on_error, transaction
 from superset.views.base import DeleteMixin
 
 logger = logging.getLogger(__name__)
@@ -39,18 +40,15 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
         self._object_id = object_id
         self._tag = tag
 
+    @transaction(on_error=partial(on_error, reraise=TaggedObjectDeleteFailedError))
     def run(self) -> None:
         self.validate()
-        try:
-            object_type = to_object_type(self._object_type)
-            if object_type is None:
-                raise TaggedObjectDeleteFailedError(
-                    f"invalid object type {self._object_type}"
-                )
-            TagDAO.delete_tagged_object(object_type, self._object_id, self._tag)
-        except DAODeleteFailedError as ex:
-            logger.exception(ex.exception)
-            raise TaggedObjectDeleteFailedError() from ex
+        object_type = to_object_type(self._object_type)
+        if object_type is None:
+            raise TaggedObjectDeleteFailedError(
+                f"invalid object type {self._object_type}"
+            )
+        TagDAO.delete_tagged_object(object_type, self._object_id, self._tag)
 
     def validate(self) -> None:
         exceptions = []
@@ -92,13 +90,10 @@ class DeleteTagsCommand(DeleteMixin, BaseCommand):
     def __init__(self, tags: list[str]):
         self._tags = tags
 
+    @transaction(on_error=partial(on_error, reraise=TagDeleteFailedError))
     def run(self) -> None:
         self.validate()
-        try:
-            TagDAO.delete_tags(self._tags)
-        except DAODeleteFailedError as ex:
-            logger.exception(ex.exception)
-            raise TagDeleteFailedError() from ex
+        TagDAO.delete_tags(self._tags)
 
     def validate(self) -> None:
         exceptions = []

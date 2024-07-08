@@ -16,11 +16,11 @@
 # under the License.
 import logging
 from abc import abstractmethod
+from functools import partial
 from typing import Any, Optional, TypedDict
 
 import pandas as pd
 from flask_babel import lazy_gettext as _
-from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.datastructures import FileStorage
 
 from superset import db
@@ -37,6 +37,7 @@ from superset.daos.database import DatabaseDAO
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.utils.core import get_user
+from superset.utils.decorators import on_error, transaction
 from superset.views.database.validators import schema_allows_file_upload
 
 logger = logging.getLogger(__name__)
@@ -144,6 +145,7 @@ class UploadCommand(BaseCommand):
         self._file = file
         self._reader = reader
 
+    @transaction(on_error=partial(on_error, reraise=DatabaseUploadSaveMetadataFailed))
     def run(self) -> None:
         self.validate()
         if not self._model:
@@ -171,12 +173,6 @@ class UploadCommand(BaseCommand):
             db.session.add(sqla_table)
 
         sqla_table.fetch_metadata()
-
-        try:
-            db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise DatabaseUploadSaveMetadataFailed() from ex
 
     def validate(self) -> None:
         self._model = DatabaseDAO.find_by_id(self._model_id)
