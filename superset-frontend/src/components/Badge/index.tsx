@@ -20,11 +20,9 @@ import { styled } from '@superset-ui/core';
 import { Badge as AntdBadge } from 'antd-v5';
 import { BadgeProps as AntdBadgeProps } from 'antd-v5/lib/badge';
 
-export interface BadgeProps extends AntdBadgeProps {
-  textColor?: string;
-}
+export type { AntdBadgeProps as BadgeProps };
 
-const Badge = styled((props: BadgeProps) => <AntdBadge {...props} />)`
+const Badge = styled((props: AntdBadgeProps) => <AntdBadge {...props} />)`
   ${({ theme, color, count }) => `
     & > sup,
     & > sup.antd5-badge-count {

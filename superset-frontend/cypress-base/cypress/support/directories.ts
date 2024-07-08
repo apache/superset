@@ -48,7 +48,7 @@ export const profile = {
   favoritesSpace: '#rc-tabs-0-panel-2',
 };
 export const securityAccess = {
-  rolesBubble: '.ant-badge-count',
+  rolesBubble: '.antd5-badge-count',
 };
 export const homePage = {
   homeSection: {
