@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import Card, { CardProps } from '.';
 
 export default {
@@ -23,7 +24,11 @@ export default {
   component: Card,
 };
 
-export const InteractiveCard = (args: CardProps) => <Card {...args} />;
+export const InteractiveCard = (args: CardProps) => (
+  <AntdThemeProvider>
+    <Card {...args} />
+  </AntdThemeProvider>
+);
 
 InteractiveCard.args = {
   padded: true,

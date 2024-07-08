@@ -16,23 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme } from '@superset-ui/core';
-import { Card as AntdCard } from 'antd-v5';
-import { CardProps as AntdCardProps } from 'antd-v5/lib/card';
+import { render } from 'spec/helpers/testing-library';
+import Card from '.';
 
-export interface CardProps extends AntdCardProps {
-  padded?: boolean;
-}
-
-const Card = ({ padded, ...props }: CardProps) => (
-  <AntdCard
-    {...props}
-    css={(theme: SupersetTheme) => ({
-      '.antd5-card-body': {
-        padding: padded ? theme.gridUnit * 4 : theme.gridUnit,
-      },
-    })}
-  />
-);
-
-export default Card;
+test('should render', () => {
+  const { container } = render(<Card />);
+  expect(container).toBeInTheDocument();
+});
