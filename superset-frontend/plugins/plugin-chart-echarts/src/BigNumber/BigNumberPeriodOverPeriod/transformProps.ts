@@ -118,7 +118,12 @@ export default function transformProps(chartProps: ChartProps) {
   let dataOffset: string[] = [];
   if (isCustomOrInherit) {
     dataOffset = getTimeOffset({
-      timeRangeFilter: currentTimeRangeFilter,
+      timeRangeFilter: {
+        ...currentTimeRangeFilter,
+        comparator:
+          formData?.extra_form_data?.time_range ??
+          (currentTimeRangeFilter as any)?.comparator,
+      },
       shifts: ensureIsArray(timeComparison),
       startDate:
         previousCustomStartDate && !startDateOffset
@@ -207,5 +212,6 @@ export default function transformProps(chartProps: ChartProps) {
     currentTimeRangeFilter,
     startDateOffset,
     shift: timeComparison,
+    dashboardTimeRange: formData?.extraFormData?.time_range,
   };
 }
