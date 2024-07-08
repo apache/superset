@@ -66,11 +66,13 @@ export const InteractiveBadge = (args: BadgeProps) => (
 );
 
 InteractiveBadge.args = {
-  count: null,
-  color: null,
+  count: undefined,
+  color: undefined,
   text: 'Text',
   status: 'success',
   size: 'default',
+  showZero: false,
+  overflowCount: 99,
 };
 
 InteractiveBadge.argTypes = {
@@ -79,6 +81,8 @@ InteractiveBadge.argTypes = {
       type: 'select',
     },
     options: [undefined, ...STATUSES],
+    description:
+      'only works if `count` is `undefined` (or is set to 0) and `color` is set to `undefined`',
   },
   size: {
     control: {
@@ -95,8 +99,19 @@ InteractiveBadge.argTypes = {
   count: {
     control: {
       type: 'select',
+      defaultValue: undefined,
     },
     options: [undefined, ...Array(100).keys()],
+    defaultValue: undefined,
+  },
+  showZero: {
+    control: 'boolean',
+    defaultValue: false,
+  },
+  overflowCount: {
+    control: 'number',
+    description:
+      'The threshold at which the number overflows with a `+` e.g if you set this to 10, and the value is 11, you get `11+`',
   },
 };
 
@@ -112,6 +127,7 @@ export const BadgeGallery = () => (
               size={size}
               key={`${color}_${size}`}
               style={{ marginRight: '15px' }}
+              showZero={showZero}
             />
           ))}
         </AntdThemeProvider>
