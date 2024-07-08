@@ -195,6 +195,8 @@ class WebDriverPlaywright(WebDriverProxy):
                     logger.exception("Failed to update error messages using alert_div")
         except PlaywrightError:
             logger.exception("Failed to capture unexpected errors")
+        except PlaywrightTimeout:
+            logger.exception("Failed to capture unexpected errors")
 
         return error_messages
 
