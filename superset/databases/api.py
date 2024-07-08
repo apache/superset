@@ -674,7 +674,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 database,
                 catalogs,
             )
-            return self.response(200, result=list(catalogs))
+            default_catalog = database.get_default_catalog()
+            return self.response(200, result=list(catalogs), default=default_catalog)
         except OperationalError:
             return self.response(
                 500,
@@ -729,7 +730,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not database:
             return self.response_404()
         try:
-            catalog = kwargs["rison"].get("catalog")
+            catalog = kwargs["rison"].get("catalog") or database.get_default_catalog()
             schemas = database.get_all_schema_names(
                 catalog=catalog,
                 cache=database.schema_cache_enabled,
@@ -741,7 +742,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 catalog,
                 schemas,
             )
-            return self.response(200, result=list(schemas))
+            default_schema = database.get_default_schema(catalog)
+            return self.response(200, result=list(schemas), default=default_schema)
         except OperationalError:
             return self.response(
                 500, message="There was an error connecting to the database"
@@ -1894,9 +1896,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.columnar_upload",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.columnar_upload",
         log_to_statsd=False,
     )
     @requires_form_data

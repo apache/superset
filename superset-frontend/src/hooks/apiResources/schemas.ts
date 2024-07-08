@@ -26,11 +26,20 @@ export type SchemaOption = {
   title: string;
 };
 
+export type SchemaResponse = {
+  schemas: SchemaOption[];
+  defaultSchema: SchemaOption | null;
+};
+
 export type FetchSchemasQueryParams = {
   dbId?: string | number;
   catalog?: string;
   forceRefresh: boolean;
-  onSuccess?: (data: SchemaOption[], isRefetched: boolean) => void;
+  onSuccess?: (
+    data: SchemaOption[],
+    isRefetched: boolean,
+    defaultSchema: SchemaOption | null,
+  ) => void;
   onError?: () => void;
 };
 
@@ -38,7 +47,7 @@ type Params = Omit<FetchSchemasQueryParams, 'forceRefresh'>;
 
 const schemaApi = api.injectEndpoints({
   endpoints: builder => ({
-    schemas: builder.query<SchemaOption[], FetchSchemasQueryParams>({
+    schemas: builder.query<SchemaResponse, FetchSchemasQueryParams>({
       providesTags: [{ type: 'Schemas', id: 'LIST' }],
       query: ({ dbId, catalog, forceRefresh }) => ({
         endpoint: `/api/v1/database/${dbId}/schemas/`,
@@ -47,12 +56,21 @@ const schemaApi = api.injectEndpoints({
           force: forceRefresh,
           ...(catalog !== undefined && { catalog }),
         },
-        transformResponse: ({ json }: JsonResponse) =>
-          json.result.sort().map((value: string) => ({
+        transformResponse: ({ json }: JsonResponse) => ({
+          schemas: json.result.sort().map((value: string) => ({
             value,
             label: value,
             title: value,
           })),
+          defaultSchema:
+            json.default !== null
+              ? ({
+                  value: json.default,
+                  label: json.default,
+                  title: json.default,
+                } as SchemaOption)
+              : null,
+        }),
       }),
       serializeQueryArgs: ({ queryArgs: { dbId, catalog } }) => ({
         dbId,
@@ -91,7 +109,11 @@ export function useSchemas(options: Params) {
         trigger({ dbId, catalog, forceRefresh }).then(
           ({ isSuccess, isError, data }) => {
             if (isSuccess) {
-              onSuccess?.(data || EMPTY_SCHEMAS, forceRefresh);
+              onSuccess?.(
+                data.schemas || EMPTY_SCHEMAS,
+                forceRefresh,
+                data.defaultSchema,
+              );
             }
             if (isError) {
               onError?.();

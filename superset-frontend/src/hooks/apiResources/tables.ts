@@ -157,8 +157,8 @@ export function useTables(options: Params) {
     catalog: catalog || undefined,
   });
   const schemaOptionsMap = useMemo(
-    () => new Set(schemaOptions?.map(({ value }) => value)),
-    [schemaOptions],
+    () => new Set(schemaOptions?.schemas.map(({ value }) => value)),
+    [schemaOptions?.schemas],
   );
 
   const enabled = Boolean(

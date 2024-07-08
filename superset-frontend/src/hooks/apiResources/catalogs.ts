@@ -26,10 +26,19 @@ export type CatalogOption = {
   title: string;
 };
 
+export type CatalogResponse = {
+  catalogs: CatalogOption[];
+  defaultCatalog: CatalogOption | null;
+};
+
 export type FetchCatalogsQueryParams = {
   dbId?: string | number;
   forceRefresh: boolean;
-  onSuccess?: (data: CatalogOption[], isRefetched: boolean) => void;
+  onSuccess?: (
+    data: CatalogOption[],
+    isRefetched: boolean,
+    defaultCatalog: CatalogOption | null,
+  ) => void;
   onError?: () => void;
 };
 
@@ -37,19 +46,28 @@ type Params = Omit<FetchCatalogsQueryParams, 'forceRefresh'>;
 
 const catalogApi = api.injectEndpoints({
   endpoints: builder => ({
-    catalogs: builder.query<CatalogOption[], FetchCatalogsQueryParams>({
+    catalogs: builder.query<CatalogResponse, FetchCatalogsQueryParams>({
       providesTags: [{ type: 'Catalogs', id: 'LIST' }],
       query: ({ dbId, forceRefresh }) => ({
         endpoint: `/api/v1/database/${dbId}/catalogs/`,
         urlParams: {
           force: forceRefresh,
         },
-        transformResponse: ({ json }: JsonResponse) =>
-          json.result.sort().map((value: string) => ({
+        transformResponse: ({ json }: JsonResponse) => ({
+          catalogs: json.result.sort().map((value: string) => ({
             value,
             label: value,
             title: value,
           })),
+          defaultCatalog:
+            json.default !== null
+              ? ({
+                  value: json.default,
+                  label: json.default,
+                  title: json.default,
+                } as CatalogOption)
+              : null,
+        }),
       }),
       serializeQueryArgs: ({ queryArgs: { dbId } }) => ({
         dbId,
@@ -82,7 +100,11 @@ export function useCatalogs(options: Params) {
       if (dbId && (!result.currentData || forceRefresh)) {
         trigger({ dbId, forceRefresh }).then(({ isSuccess, isError, data }) => {
           if (isSuccess) {
-            onSuccess?.(data || EMPTY_CATALOGS, forceRefresh);
+            onSuccess?.(
+              data.catalogs || EMPTY_CATALOGS,
+              forceRefresh,
+              data.defaultCatalog,
+            );
           }
           if (isError) {
             onError?.();
