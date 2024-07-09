@@ -195,7 +195,7 @@
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",
     "redux-undo": "^1.0.0-beta9-9-7",
-    "regenerator-runtime": "^0.13.5",
+    "regenerator-runtime": "^0.14.1",
     "rimraf": "^3.0.2",
     "rison": "^0.1.1",
     "scroll-into-view-if-needed": "^3.1.0",
