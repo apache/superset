@@ -16,14 +16,12 @@
 # under the License.
 from __future__ import annotations
 
-import dataclasses
 import functools
 import logging
 import os
 import traceback
 from datetime import datetime
-from importlib.resources import files
-from typing import Any, Callable, cast
+from typing import Any, Callable
 
 import yaml
 from babel import Locale
@@ -33,9 +31,7 @@ from flask import (
     g,
     get_flashed_messages,
     redirect,
-    request,
     Response,
-    send_file,
     session,
 )
 from flask_appbuilder import BaseView, expose, Model, ModelView
@@ -52,11 +48,8 @@ from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
-from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
-from sqlalchemy import exc
 from sqlalchemy.orm import Query
-from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
 
 from superset import (
@@ -68,17 +61,9 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
-from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import (
-    SupersetErrorException,
-    SupersetErrorsException,
-    SupersetException,
-    SupersetSecurityException,
-)
 from superset.extensions import cache_manager
 from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
@@ -86,6 +71,7 @@ from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
+from superset.views.error_handling import json_error_response
 
 from .utils import bootstrap_user_data
 
@@ -144,35 +130,6 @@ def get_error_msg() -> str:
             "configuration setting to enable it"
         )
     return error_msg
-
-
-def json_error_response(
-    msg: str | None = None,
-    status: int = 500,
-    payload: dict[str, Any] | None = None,
-) -> FlaskResponse:
-    payload = payload or {"error": f"{msg}"}
-
-    return Response(
-        json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
-        status=status,
-        mimetype="application/json",
-    )
-
-
-def json_errors_response(
-    errors: list[SupersetError],
-    status: int = 500,
-    payload: dict[str, Any] | None = None,
-) -> FlaskResponse:
-    payload = payload or {}
-
-    payload["errors"] = [dataclasses.asdict(error) for error in errors]
-    return Response(
-        json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
-        status=status,
-        mimetype="application/json; charset=utf-8",
-    )
 
 
 def json_success(json_msg: str, status: int = 200) -> FlaskResponse:
@@ -239,50 +196,6 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(get_error_msg())
-
-    return functools.update_wrapper(wraps, f)
-
-
-def handle_api_exception(
-    f: Callable[..., FlaskResponse],
-) -> Callable[..., FlaskResponse]:
-    """
-    A decorator to catch superset exceptions. Use it after the @api decorator above
-    so superset exception handler is triggered before the handler for generic
-    exceptions.
-    """
-
-    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
-        try:
-            return f(self, *args, **kwargs)
-        except SupersetSecurityException as ex:
-            logger.warning("SupersetSecurityException", exc_info=True)
-            return json_errors_response(
-                errors=[ex.error], status=ex.status, payload=ex.payload
-            )
-        except SupersetErrorsException as ex:
-            logger.warning(ex, exc_info=True)
-            return json_errors_response(errors=ex.errors, status=ex.status)
-        except SupersetErrorException as ex:
-            logger.warning("SupersetErrorException", exc_info=True)
-            return json_errors_response(errors=[ex.error], status=ex.status)
-        except SupersetException as ex:
-            if ex.status >= 500:
-                logger.exception(ex)
-            return json_error_response(
-                utils.error_msg_from_exception(ex), status=ex.status
-            )
-        except HTTPException as ex:
-            logger.exception(ex)
-            return json_error_response(
-                utils.error_msg_from_exception(ex), status=cast(int, ex.code)
-            )
-        except (exc.IntegrityError, exc.DatabaseError, exc.DataError) as ex:
-            logger.exception(ex)
-            return json_error_response(utils.error_msg_from_exception(ex), status=422)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.exception(ex)
-            return json_error_response(utils.error_msg_from_exception(ex))
 
     return functools.update_wrapper(wraps, f)
 
@@ -437,107 +350,6 @@ def common_bootstrap_payload() -> dict[str, Any]:
         **cached_common_bootstrap_data(utils.get_user_id(), get_locale()),
         "flash_messages": get_flashed_messages(with_categories=True),
     }
-
-
-def get_error_level_from_status_code(  # pylint: disable=invalid-name
-    status: int,
-) -> ErrorLevel:
-    if status < 400:
-        return ErrorLevel.INFO
-    if status < 500:
-        return ErrorLevel.WARNING
-    return ErrorLevel.ERROR
-
-
-# SIP-40 compatible error responses; make sure APIs raise
-# SupersetErrorException or SupersetErrorsException
-@superset_app.errorhandler(SupersetErrorException)
-def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
-    logger.warning("SupersetErrorException", exc_info=True)
-    return json_errors_response(errors=[ex.error], status=ex.status)
-
-
-@superset_app.errorhandler(SupersetErrorsException)
-def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
-    logger.warning("SupersetErrorsException", exc_info=True)
-    return json_errors_response(errors=ex.errors, status=ex.status)
-
-
-# Redirect to login if the CSRF token is expired
-@superset_app.errorhandler(CSRFError)
-def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
-    logger.warning("Refresh CSRF token error", exc_info=True)
-
-    if request.is_json:
-        return show_http_exception(ex)
-
-    return redirect(appbuilder.get_url_for_login)
-
-
-@superset_app.errorhandler(HTTPException)
-def show_http_exception(ex: HTTPException) -> FlaskResponse:
-    logger.warning("HTTPException", exc_info=True)
-    if (
-        "text/html" in request.accept_mimetypes
-        and not config["DEBUG"]
-        and ex.code in {404, 500}
-    ):
-        path = files("superset") / f"static/assets/{ex.code}.html"
-        return send_file(path, max_age=0), ex.code
-
-    return json_errors_response(
-        errors=[
-            SupersetError(
-                message=utils.error_msg_from_exception(ex),
-                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-                level=ErrorLevel.ERROR,
-            ),
-        ],
-        status=ex.code or 500,
-    )
-
-
-# Temporary handler for CommandException; if an API raises a
-# CommandException it should be fixed to map it to SupersetErrorException
-# or SupersetErrorsException, with a specific status code and error type
-@superset_app.errorhandler(CommandException)
-def show_command_errors(ex: CommandException) -> FlaskResponse:
-    logger.warning("CommandException", exc_info=True)
-    if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
-        path = files("superset") / "static/assets/500.html"
-        return send_file(path, max_age=0), 500
-
-    extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
-    return json_errors_response(
-        errors=[
-            SupersetError(
-                message=ex.message,
-                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
-                level=get_error_level_from_status_code(ex.status),
-                extra=extra,
-            ),
-        ],
-        status=ex.status,
-    )
-
-
-# Catch-all, to ensure all errors from the backend conform to SIP-40
-@superset_app.errorhandler(Exception)
-def show_unexpected_exception(ex: Exception) -> FlaskResponse:
-    logger.exception(ex)
-    if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
-        path = files("superset") / "static/assets/500.html"
-        return send_file(path, max_age=0), 500
-
-    return json_errors_response(
-        errors=[
-            SupersetError(
-                message=utils.error_msg_from_exception(ex),
-                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-                level=ErrorLevel.ERROR,
-            ),
-        ],
-    )
 
 
 @superset_app.context_processor
