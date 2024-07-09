@@ -127,7 +127,6 @@ export const BadgeGallery = () => (
               size={size}
               key={`${color}_${size}`}
               style={{ marginRight: '15px' }}
-              showZero={showZero}
             />
           ))}
         </AntdThemeProvider>
