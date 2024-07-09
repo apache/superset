@@ -210,7 +210,7 @@ Error: %(text)s
         for channel in recipients:
             if len(files) > 0:
                 for file in files:
-                    client.files_upload(
+                    client.files_upload_v2(
                         channels=channel,
                         file=file,
                         initial_comment=body,
