@@ -1172,11 +1172,11 @@ def test_slack_chart_report_schedule_deprecated(
             ).run()
 
             assert (
-                slack_client_mock.return_value.files_upload.call_args[1]["channels"]
+                slack_client_mock.return_value.files_upload_v2.call_args[1]["channels"]
                 == channel_name
             )
             assert (
-                slack_client_mock.return_value.files_upload.call_args[1]["file"]
+                slack_client_mock.return_value.files_upload_v2.call_args[1]["file"]
                 == SCREENSHOT_FILE
             )
 
@@ -1332,11 +1332,11 @@ def test_slack_chart_report_schedule_with_csv_deprecated_api(
         ).run()
 
         assert (
-            slack_client_mock_class.return_value.files_upload.call_args[1]["channels"]
+            slack_client_mock_class.return_value.files_upload_v2.call_args[1]["channels"]
             == channel_name
         )
         assert (
-            slack_client_mock_class.return_value.files_upload.call_args[1]["file"]
+            slack_client_mock_class.return_value.files_upload_v2.call_args[1]["file"]
             == CSV_FILE
         )
 
@@ -1577,7 +1577,7 @@ def test_report_schedule_success_grace(create_alert_slack_chart_success):
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_grace")
-@patch("superset.utils.slack.WebClient.files_upload")
+@patch("superset.utils.slack.WebClient.files_upload_v2")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 @patch("superset.reports.notifications.slack.get_slack_client")
 def test_report_schedule_success_grace_end(

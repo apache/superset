@@ -246,7 +246,7 @@ Error: %(text)s
 
             files = self._get_inline_files()
 
-            # files_upload returns SlackResponse as we run it in sync mode.
+            # files_upload_v2 returns SlackResponse as we run it in sync mode.
             for channel in channels:
                 if len(files) > 0:
                     for file in files:
