@@ -53,4 +53,4 @@ jobs:
           GITHUB_ISSUE_NUMBER: ${{ github.event.issue.number }}
           COMMENT_BODY: ${{ github.event.comment.body }}${{ github.event.inputs.comment_body }}
         run: |
-          @supersetbot run "$COMMENT_BODY"
+          supersetbot run "$COMMENT_BODY"
