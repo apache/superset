@@ -64,6 +64,7 @@ are compatible with Superset.
 | [IBM Db2](/docs/configuration/databases#ibm-db2)                        | `pip install ibm_db_sa`                                                            | `db2+ibm_db://`                                                                                                                                        |
 | [IBM Netezza Performance Server](/docs/configuration/databases#ibm-netezza-performance-server) | `pip install nzalchemy`                                                            | `netezza+nzpy://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                               |
 | [MySQL](/docs/configuration/databases#mysql)                            | `pip install mysqlclient`                                                          | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                      |
+| [OceanBase](/docs/configuration/databases#oceanbase)                    | `pip install oceanbase_py`                                                         | `oceanbase://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                      |
 | [Oracle](/docs/configuration/databases#oracle)                          | `pip install cx_Oracle`                                                            | `oracle://`                                                                                                                                            |
 | [PostgreSQL](/docs/configuration/databases#postgres)                    | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                 |
 | [Presto](/docs/configuration/databases#presto)                          | `pip install pyhive`                                                               | `presto://`                                                                                                                                            |
@@ -987,6 +988,19 @@ Here's the recommended connection string:
 ```
 netezza+nzpy://{username}:{password}@{hostname}:{port}/{database}
 ```
+
+#### OceanBase
+
+The [sqlalchemy-oceanbase](https://pypi.org/project/oceanbase_py/) library is the recommended
+way to connect to OceanBase through SQLAlchemy.
+
+
+The connection string for OceanBase looks like this:
+
+```
+oceanbase://<User>:<Password>@<Host>:<Port>/<Database>
+```
+
 
 #### Ocient DB
 
