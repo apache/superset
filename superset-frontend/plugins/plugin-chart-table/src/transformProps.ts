@@ -20,6 +20,7 @@ import memoizeOne from 'memoize-one';
 import {
   ComparisonType,
   CurrencyFormatter,
+  Currency,
   DataRecord,
   ensureIsArray,
   extractTimegrain,
@@ -53,6 +54,7 @@ import {
   DataColumnMeta,
   TableChartProps,
   TableChartTransformedProps,
+  TableColumnConfig,
 } from './types';
 
 const { PERCENT_3_POINT } = NumberFormats;
@@ -293,6 +295,44 @@ const processColumns = memoizeOne(function processColumns(
   ];
 }, isEqualColumns);
 
+const getComparisonColConfig = (
+  label: string,
+  parentColKey: string,
+  columnConfig: Record<string, TableColumnConfig>,
+) => {
+  const comparisonKey = `${label} ${parentColKey}`;
+  const comparisonColConfig = columnConfig[comparisonKey] || {};
+  return comparisonColConfig;
+};
+
+const getComparisonColFormatter = (
+  label: string,
+  parentCol: DataColumnMeta,
+  columnConfig: Record<string, TableColumnConfig>,
+  savedFormat: string | undefined,
+  savedCurrency: Currency | undefined,
+) => {
+  const currentColConfig = getComparisonColConfig(
+    label,
+    parentCol.key,
+    columnConfig,
+  );
+  const hasCurrency = currentColConfig.currencyFormat?.symbol;
+  const hasNumberFormat = currentColConfig.d3NumberFormat;
+  let { formatter } = parentCol;
+  if (hasNumberFormat || hasCurrency) {
+    const currency = currentColConfig.currencyFormat || savedCurrency;
+    const numberFormat = currentColConfig.d3NumberFormat || savedFormat;
+    formatter = currency
+      ? new CurrencyFormatter({
+          d3Format: numberFormat,
+          currency,
+        })
+      : getNumberFormatter(numberFormat);
+  }
+  return formatter;
+};
+
 const processComparisonColumns = (
   columns: DataColumnMeta[],
   props: TableChartProps,
@@ -301,12 +341,14 @@ const processComparisonColumns = (
   columns
     .map(col => {
       const {
-        datasource: { columnFormats },
+        datasource: { columnFormats, currencyFormats },
         rawFormData: { column_config: columnConfig = {} },
       } = props;
-      const config = columnConfig[col.key] || {};
+      const parentColumnConfig = columnConfig[col.key] || {};
       const savedFormat = columnFormats?.[col.key];
-      const numberFormat = config.d3NumberFormat || savedFormat;
+      const savedCurrency = currencyFormats?.[col.key];
+      const parentNumberFormat =
+        parentColumnConfig.d3NumberFormat || savedFormat;
       if (
         (col.isMetric || col.isPercentMetric) &&
         !col.key.includes(comparisonSuffix) &&
@@ -317,22 +359,49 @@ const processComparisonColumns = (
             ...col,
             label: t('Main'),
             key: `${t('Main')} ${col.key}`,
+            config: getComparisonColConfig(t('Main'), col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              t('Main'),
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
           },
           {
             ...col,
             label: `#`,
             key: `# ${col.key}`,
+            config: getComparisonColConfig(`#`, col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              `#`,
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
           },
           {
             ...col,
             label: `△`,
             key: `△ ${col.key}`,
+            config: getComparisonColConfig(`△`, col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              `△`,
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
           },
           {
             ...col,
-            formatter: getNumberFormatter(numberFormat || PERCENT_3_POINT),
+            formatter: getNumberFormatter(
+              parentNumberFormat || PERCENT_3_POINT,
+            ),
             label: `%`,
             key: `% ${col.key}`,
+            config: getComparisonColConfig(`%`, col.key, columnConfig),
           },
         ];
       }
