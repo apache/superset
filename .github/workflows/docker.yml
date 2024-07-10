@@ -83,7 +83,7 @@ jobs:
             PLATFORM_ARG="--platform linux/amd64"
           fi
 
-          supersetbot docker \
+          supersetbot docker -r "allclinics/superset" \
             --preset ${{ matrix.build_preset }} \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
