@@ -117,6 +117,20 @@ testdata() {
   say "::endgroup::"
 }
 
+celery-worker() {
+  cd "$GITHUB_WORKSPACE"
+  say "::group::Start Celery worker"
+  # must specify PYTHONPATH to make `tests.superset_test_config` importable
+  export PYTHONPATH="$GITHUB_WORKSPACE"
+  celery \
+    --app=superset.tasks.celery_app:app \
+    worker \
+      --concurrency=2 \
+      --detach \
+      --optimization=fair
+  say "::endgroup::"
+}
+
 cypress-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
 

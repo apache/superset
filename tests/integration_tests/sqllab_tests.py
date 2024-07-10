@@ -71,10 +71,8 @@ QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
 
-    @pytest.mark.usefixtures("load_birth_names_data")
     def run_some_queries(self):
         db.session.query(Query).delete()
-        db.session.commit()
         self.run_sql(QUERY_1, client_id="client_id_1", username="admin")
         self.run_sql(QUERY_2, client_id="client_id_2", username="admin")
         self.run_sql(QUERY_3, client_id="client_id_3", username="gamma_sqllab")
@@ -419,6 +417,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def test_query_api_filter(self) -> None:
         """
         Test query api without can_only_access_owned_queries perm added to
@@ -438,6 +437,7 @@ class TestSqlLab(SupersetTestCase):
         assert admin.first_name in user_queries
         assert gamma_sqllab.first_name in user_queries
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def test_query_api_can_access_all_queries(self) -> None:
         """
         Test query api with can_access_all_queries perm added to
@@ -522,6 +522,7 @@ class TestSqlLab(SupersetTestCase):
             {r.get("sql") for r in self.get_json_resp(url)["result"]},
         )
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def test_query_admin_can_access_all_queries(self) -> None:
         """
         Test query api with all_query_access perm added to
@@ -573,9 +574,9 @@ class TestSqlLab(SupersetTestCase):
         assert data["status"] == "success"
 
         data = self.run_sql(
-            "SELECT * FROM birth_names WHERE state = '{{ state }}' -- blabblah {{ extra1 }} {{fake.fn()}}\nLIMIT 10",
+            "SELECT * FROM birth_names WHERE state = '{{ state }}' -- blabblah {{ extra1 }}\nLIMIT 10",
             "3",
-            template_params=json.dumps({"state": "CA"}),
+            template_params=json.dumps({"state": "CA", "extra1": "comment"}),
         )
         assert data["status"] == "success"
 

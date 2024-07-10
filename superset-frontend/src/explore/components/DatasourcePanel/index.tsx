@@ -50,7 +50,7 @@ import { DndItemType } from '../DndItemType';
 import { DndItemValue } from './types';
 import { DropzoneContext } from '../ExploreContainer';
 
-interface DatasourceControl extends ControlConfig {
+interface DatasourceControl extends Omit<ControlConfig, 'hidden'> {
   datasource?: IDatasource;
 }
 export interface IDatasource {
@@ -389,6 +389,7 @@ export default function DataSourcePanel({
           formData={formData}
         />
       )}
+      {/* @ts-ignore */}
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
     </DatasourceContainer>

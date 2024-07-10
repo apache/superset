@@ -592,7 +592,6 @@ class TestImportDashboardsCommand(SupersetTestCase):
         }
         command = v1.ImportDashboardsCommand(contents, overwrite=True)
         command.run()
-        command.run()
 
         new_num_dashboards = db.session.query(Dashboard).count()
         assert new_num_dashboards == num_dashboards + 1

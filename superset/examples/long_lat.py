@@ -97,7 +97,6 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
     obj.main_dttm_col = "datetime"
     obj.database = database
     obj.filter_select_enabled = True
-    db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 

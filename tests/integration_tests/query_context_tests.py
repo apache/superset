@@ -1168,3 +1168,34 @@ OFFSET 0
         re.search(r"WHERE\n  col6 >= .*2001-10-01", sqls[1])
         and re.search(r"AND col6 < .*2002-10-01", sqls[1])
     ) is not None
+
+
+def test_virtual_dataset_with_comments(app_context, virtual_dataset_with_comments):
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": virtual_dataset_with_comments.type,
+            "id": virtual_dataset_with_comments.id,
+        },
+        queries=[
+            {
+                "columns": ["col1", "col2"],
+                "metrics": ["count"],
+                "post_processing": [
+                    {
+                        "operation": "pivot",
+                        "options": {
+                            "aggregates": {"count": {"operator": "mean"}},
+                            "columns": ["col2"],
+                            "index": ["col1"],
+                        },
+                    },
+                    {"operation": "flatten"},
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    assert len(df) == 3

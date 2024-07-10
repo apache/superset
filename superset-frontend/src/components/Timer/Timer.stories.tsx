@@ -45,16 +45,16 @@ InteractiveTimer.argTypes = {
   status: {
     control: {
       type: 'select',
-      options: [
-        'success',
-        'warning',
-        'danger',
-        'info',
-        'default',
-        'primary',
-        'secondary',
-      ],
     },
+    options: [
+      'success',
+      'warning',
+      'danger',
+      'info',
+      'default',
+      'primary',
+      'secondary',
+    ],
   },
 };
 

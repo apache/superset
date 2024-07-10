@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections import defaultdict
+from collections import defaultdict, deque
 from typing import Any, Callable
 
 import sqlalchemy as sqla
@@ -83,7 +83,7 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         user_id=target.id, welcome_dashboard_id=dashboard.id
     )
     session.add(extra_attributes)
-    session.commit()
+    session.commit()  # pylint: disable=consider-using-transaction
 
 
 sqla.event.listen(User, "after_insert", copy_dashboard)
@@ -154,8 +154,8 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         secondary="tagged_object",
         primaryjoin="and_(Dashboard.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'dashboard')",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id)",
-        passive_deletes=True,
+        secondaryjoin="TaggedObject.tag_id == Tag.id",
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
     )
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
@@ -297,6 +297,54 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         if self.position_json:
             return json.loads(self.position_json)
         return {}
+
+    @property
+    def tabs(self) -> dict[str, Any]:
+        if self.position == {}:
+            return {}
+
+        def get_node(node_id: str) -> dict[str, Any]:
+            """
+            Helper function for getting a node from the position_data
+            """
+            return self.position[node_id]
+
+        def build_tab_tree(
+            node: dict[str, Any], children: list[dict[str, Any]]
+        ) -> None:
+            """
+            Function for building the tab tree structure and list of all tabs
+            """
+
+            new_children: list[dict[str, Any]] = []
+            # new children to overwrite parent's children
+            for child_id in node.get("children", []):
+                child = get_node(child_id)
+                if node["type"] == "TABS":
+                    # if TABS add create a new list and append children to it
+                    # new_children.append(child)
+                    children.append(child)
+                    queue.append((child, new_children))
+                elif node["type"] in ["GRID", "ROOT"]:
+                    queue.append((child, children))
+                elif node["type"] == "TAB":
+                    queue.append((child, new_children))
+            if node["type"] == "TAB":
+                node["children"] = new_children
+                node["title"] = node["meta"]["text"]
+                node["value"] = node["id"]
+                all_tabs[node["id"]] = node["title"]
+
+        root = get_node("ROOT_ID")
+        tab_tree: list[dict[str, Any]] = []
+        all_tabs: dict[str, str] = {}
+        queue: deque[tuple[dict[str, Any], list[dict[str, Any]]]] = deque()
+        queue.append((root, tab_tree))
+        while queue:
+            node, children = queue.popleft()
+            build_tab_tree(node, children)
+
+        return {"all_tabs": all_tabs, "tab_tree": tab_tree}
 
     def update_thumbnail(self) -> None:
         cache_dashboard_thumbnail.delay(

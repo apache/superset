@@ -31,10 +31,16 @@ import { DrillByMenuItems, DrillByMenuItemsProps } from './DrillByMenuItems';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
 
-const DATASET_ENDPOINT = 'glob:*/api/v1/dataset/7';
+const DATASET_ENDPOINT = 'glob:*/api/v1/dataset/7*';
 const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
 const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
 const { form_data: defaultFormData } = chartQueries[sliceId];
+
+jest.mock('lodash/debounce', () => (fn: Function & { debounce: Function }) => {
+  // eslint-disable-next-line no-param-reassign
+  fn.debounce = jest.fn();
+  return fn;
+});
 
 const defaultColumns = [
   { column_name: 'col1', groupby: true },
@@ -68,6 +74,8 @@ const renderMenu = ({
       <DrillByMenuItems
         formData={formData ?? defaultFormData}
         drillByConfig={drillByConfig}
+        canDownload
+        open
         {...rest}
       />
     </Menu>,

@@ -44,6 +44,7 @@ Join our growing community!
 - [Taveo](https://www.taveo.com) [@codek]
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
+- [bumper](https://www.bumper.co/) [@vasu-ram, @JamiePercival]
 
 ### Gaming
 - [Digit Game Studios](https://www.digitgaming.com/)
@@ -136,6 +137,7 @@ Join our growing community!
 - [Zaihang](http://www.zaih.com/)
 
 ### Education
+- [Aveti Learning](https://avetilearning.com/) [@TheShubhendra]
 - [Brilliant.org](https://brilliant.org/)
 - [Platzi.com](https://platzi.com/)
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
@@ -154,6 +156,7 @@ Join our growing community!
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
 - [Beans](https://www.beans.fi) [@kakoni]
+- [Bluesquare](https://www.bluesquarehub.com/) [@madewulf]
 - [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
@@ -165,14 +168,18 @@ Join our growing community!
 ### HR / Staffing
 - [Swile](https://www.swile.co/) [@PaoloTerzi]
 - [Symmetrics](https://www.symmetrics.fyi)
+- [bluquist](https://bluquist.com/)
 
 ### Government
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
+- [RIS3 Strategy of CZ, MIT CR](https://www.ris3.cz/) [@RIS3CZ]
 
 ### Travel
+- [Agoda](https://www.agoda.com/) [@lostseaway, @maiake, @obombayo]
 - [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
 
 ### Others
+- [10Web](https://10web.io/)
 - [AI inside](https://inside.ai/en/)
 - [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]

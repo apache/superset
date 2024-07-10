@@ -104,7 +104,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         try:
             cursor.execute_async(query)
         except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:
@@ -151,7 +151,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                         needs_commit = True
 
                     if needs_commit:
-                        db.session.commit()
+                        db.session.commit()  # pylint: disable=consider-using-transaction
                 sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )

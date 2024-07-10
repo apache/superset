@@ -71,11 +71,13 @@ InteractiveIcons.argTypes = {
   },
   iconSize: {
     defaultValue: 'xl',
-    control: { type: 'inline-radio', options: ['s', 'l', 'm', 'xl', 'xxl'] },
+    control: { type: 'inline-radio' },
+    options: ['s', 'l', 'm', 'xl', 'xxl'],
   },
   iconColor: {
     defaultValue: null,
-    control: { type: 'select', options: palette },
+    control: { type: 'select' },
+    options: palette,
   },
   theme: {
     table: {

@@ -80,5 +80,6 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
     rotation,
     width,
     sliceId,
+    colorScheme,
   };
 }

@@ -532,6 +532,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "can_get_embedded",
             "can_delete_embedded",
             "can_set_embedded",
+            "can_cache_dashboard_screenshot",
         }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -917,6 +918,185 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         for idx, response_item in enumerate(data["result"]):
             for key, value in expected_results[idx].items():
                 assert response_item[key] == value
+
+    def test_get_dashboard_tabs(self):
+        """
+        Dashboard API: Test get dashboard tabs
+        """
+        position_data = {
+            "GRID_ID": {"children": [], "id": "GRID_ID", "type": "GRID"},
+            "ROOT_ID": {
+                "children": ["TABS-tDGEcwZ82u"],
+                "id": "ROOT_ID",
+                "type": "ROOT",
+            },
+            "TAB-0TkqQRxzg7": {
+                "children": [],
+                "id": "TAB-0TkqQRxzg7",
+                "meta": {"text": "P2 - T1"},
+                "type": "TAB",
+            },
+            "TAB-1iG_yOlKA2": {
+                "children": [],
+                "id": "TAB-1iG_yOlKA2",
+                "meta": {"text": "P1 - T1"},
+                "type": "TAB",
+            },
+            "TAB-2dgADEurF": {
+                "children": ["TABS-LsyXZWG2rk"],
+                "id": "TAB-2dgADEurF",
+                "meta": {"text": "P1 - T2"},
+                "type": "TAB",
+            },
+            "TAB-BJIt5SdCx3": {
+                "children": [],
+                "id": "TAB-BJIt5SdCx3",
+                "meta": {"text": "P1 - T2 - T1"},
+                "type": "TAB",
+            },
+            "TAB-CjZlNL5Uz": {
+                "children": ["TABS-Ji_K1ZBE0M"],
+                "id": "TAB-CjZlNL5Uz",
+                "meta": {"text": "Parent Tab 2"},
+                "type": "TAB",
+            },
+            "TAB-Nct5fiHtn": {
+                "children": [],
+                "id": "TAB-Nct5fiHtn",
+                "meta": {"text": "P1 - T2 - T3"},
+                "type": "TAB",
+            },
+            "TAB-PumuDkWKq": {
+                "children": [],
+                "id": "TAB-PumuDkWKq",
+                "meta": {"text": "P2 - T2"},
+                "type": "TAB",
+            },
+            "TAB-hyTv5L7zz": {
+                "children": [],
+                "id": "TAB-hyTv5L7zz",
+                "meta": {"text": "P1 - T2 - T2"},
+                "type": "TAB",
+            },
+            "TAB-qL7fSzr3jl": {
+                "children": ["TABS-N8ODUqp2sE"],
+                "id": "TAB-qL7fSzr3jl",
+                "meta": {"text": "Parent Tab 1"},
+                "type": "TAB",
+            },
+            "TABS-Ji_K1ZBE0M": {
+                "children": ["TAB-0TkqQRxzg7", "TAB-PumuDkWKq"],
+                "id": "TABS-Ji_K1ZBE0M",
+                "meta": {},
+                "type": "TABS",
+            },
+            "TABS-LsyXZWG2rk": {
+                "children": ["TAB-BJIt5SdCx3", "TAB-hyTv5L7zz", "TAB-Nct5fiHtn"],
+                "id": "TABS-LsyXZWG2rk",
+                "meta": {},
+                "type": "TABS",
+            },
+            "TABS-N8ODUqp2sE": {
+                "children": ["TAB-1iG_yOlKA2", "TAB-2dgADEurF"],
+                "id": "TABS-N8ODUqp2sE",
+                "meta": {},
+                "type": "TABS",
+            },
+            "TABS-tDGEcwZ82u": {
+                "children": ["TAB-qL7fSzr3jl", "TAB-CjZlNL5Uz"],
+                "id": "TABS-tDGEcwZ82u",
+                "meta": {},
+                "type": "TABS",
+            },
+        }
+        admin_id = self.get_user("admin").id
+        dashboard = self.insert_dashboard(
+            "title", "slug", [admin_id], position_json=json.dumps(position_data)
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}/tabs"
+        rv = self.get_assert_metric(uri, "get_tabs")
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "result": {
+                "all_tabs": {
+                    "TAB-0TkqQRxzg7": "P2 - T1",
+                    "TAB-1iG_yOlKA2": "P1 - T1",
+                    "TAB-2dgADEurF": "P1 - T2",
+                    "TAB-BJIt5SdCx3": "P1 - T2 - T1",
+                    "TAB-CjZlNL5Uz": "Parent Tab 2",
+                    "TAB-Nct5fiHtn": "P1 - T2 - T3",
+                    "TAB-PumuDkWKq": "P2 - T2",
+                    "TAB-hyTv5L7zz": "P1 - T2 - T2",
+                    "TAB-qL7fSzr3jl": "Parent Tab 1",
+                },
+                "tab_tree": [
+                    {
+                        "children": [
+                            {
+                                "children": [],
+                                "title": "P1 - T1",
+                                "value": "TAB-1iG_yOlKA2",
+                            },
+                            {
+                                "children": [
+                                    {
+                                        "children": [],
+                                        "title": "P1 - T2 - T1",
+                                        "value": "TAB-BJIt5SdCx3",
+                                    },
+                                    {
+                                        "children": [],
+                                        "title": "P1 - T2 - T2",
+                                        "value": "TAB-hyTv5L7zz",
+                                    },
+                                    {
+                                        "children": [],
+                                        "title": "P1 - T2 - T3",
+                                        "value": "TAB-Nct5fiHtn",
+                                    },
+                                ],
+                                "title": "P1 - T2",
+                                "value": "TAB-2dgADEurF",
+                            },
+                        ],
+                        "title": "Parent Tab 1",
+                        "value": "TAB-qL7fSzr3jl",
+                    },
+                    {
+                        "children": [
+                            {
+                                "children": [],
+                                "title": "P2 - T1",
+                                "value": "TAB-0TkqQRxzg7",
+                            },
+                            {
+                                "children": [],
+                                "title": "P2 - T2",
+                                "value": "TAB-PumuDkWKq",
+                            },
+                        ],
+                        "title": "Parent Tab 2",
+                        "value": "TAB-CjZlNL5Uz",
+                    },
+                ],
+            }
+        }
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(response, expected_response)
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_tabs_not_found(self):
+        """
+        Dashboard API: Test get dashboard tabs not found
+        """
+        bad_id = self.get_nonexistent_numeric_id(Dashboard)
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{bad_id}/tabs"
+        rv = self.get_assert_metric(uri, "get_tabs")
+        self.assertEqual(rv.status_code, 404)
 
     def create_dashboard_import(self):
         buf = BytesIO()
@@ -2536,3 +2716,148 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         security_manager.add_permission_role(gamma_role, write_tags_perm)
         security_manager.add_permission_role(gamma_role, tag_dashboards_perm)
+
+    def _cache_screenshot(self, dashboard_id, payload=None):
+        if payload is None:
+            payload = {"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []}
+        uri = f"/api/v1/dashboard/{dashboard_id}/cache_dashboard_screenshot/"
+        return self.client.post(uri, json=payload)
+
+    def _get_screenshot(self, dashboard_id, cache_key, download_format):
+        uri = f"/api/v1/dashboard/{dashboard_id}/screenshot/{cache_key}/?download_format={download_format}"
+        return self.client.get(uri)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_success(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        response = self._cache_screenshot(dashboard.id)
+        self.assertEqual(response.status_code, 202)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_dashboard_validation(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        invalid_payload = {
+            "dataMask": ["should be a dict"],
+            "activeTabs": "should be a list",
+            "anchor": 1,
+            "urlParams": "should be a list",
+        }
+        response = self._cache_screenshot(dashboard.id, invalid_payload)
+        self.assertEqual(response.status_code, 400)
+
+    def test_cache_dashboard_screenshot_dashboard_not_found(self):
+        self.login(ADMIN_USERNAME)
+        non_existent_id = 999
+        response = self._cache_screenshot(non_existent_id)
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_success_png(self, mock_get_cache, mock_cache_task):
+        """
+        Validate screenshot returns png
+        """
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_cache.return_value = BytesIO(b"fake image data")
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "png")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "image/png")
+        self.assertEqual(response.data, b"fake image data")
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.build_pdf_from_screenshots")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_success_pdf(
+        self, mock_get_from_cache, mock_build_pdf, mock_cache_task
+    ):
+        """
+        Validate screenshot can return pdf.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_from_cache.return_value = BytesIO(b"fake image data")
+        mock_build_pdf.return_value = b"fake pdf data"
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "pdf")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "application/pdf")
+        self.assertEqual(response.data, b"fake pdf data")
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_not_in_cache(self, mock_get_cache, mock_cache_task):
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_cache.return_value = None
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "pdf")
+        self.assertEqual(response.status_code, 404)
+
+    def test_screenshot_dashboard_not_found(self):
+        self.login(ADMIN_USERNAME)
+        non_existent_id = 999
+        response = self._get_screenshot(non_existent_id, "some_cache_key", "png")
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_invalid_download_format(self, mock_get_cache, mock_cache_task):
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_cache.return_value = BytesIO(b"fake png data")
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "invalid")
+        self.assertEqual(response.status_code, 404)

@@ -81,6 +81,7 @@ export default function PopKPI(props: PopKPIProps) {
     currentTimeRangeFilter,
     startDateOffset,
     shift,
+    dashboardTimeRange,
   } = props;
 
   const [comparisonRange, setComparisonRange] = useState<string>('');
@@ -89,13 +90,17 @@ export default function PopKPI(props: PopKPIProps) {
     if (!currentTimeRangeFilter || (!shift && !startDateOffset)) {
       setComparisonRange('');
     } else if (!isEmpty(shift) || startDateOffset) {
-      const newShift = getTimeOffset(
-        currentTimeRangeFilter,
-        ensureIsArray(shift),
-        startDateOffset || '',
-      );
+      const newShift = getTimeOffset({
+        timeRangeFilter: {
+          ...currentTimeRangeFilter,
+          comparator:
+            dashboardTimeRange ?? (currentTimeRangeFilter as any).comparator,
+        },
+        shifts: ensureIsArray(shift),
+        startDate: startDateOffset || '',
+      });
       const promise: any = fetchTimeRange(
-        (currentTimeRangeFilter as any).comparator,
+        dashboardTimeRange ?? (currentTimeRangeFilter as any).comparator,
         currentTimeRangeFilter.subject,
         newShift || [],
       );
@@ -108,7 +113,7 @@ export default function PopKPI(props: PopKPIProps) {
         );
       });
     }
-  }, [currentTimeRangeFilter, shift, startDateOffset]);
+  }, [currentTimeRangeFilter, shift, startDateOffset, dashboardTimeRange]);
 
   const theme = useTheme();
   const flexGap = theme.gridUnit * 5;

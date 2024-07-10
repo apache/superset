@@ -272,6 +272,7 @@ test('should display options in order of the api response', async () => {
 });
 
 test('Should fetch the search keyword when total count exceeds initial options', async () => {
+  fetchMock.reset();
   fetchMock.get(
     databaseApiRoute,
     {

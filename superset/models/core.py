@@ -538,7 +538,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         try:
             return create_engine(sqlalchemy_url, **params)
         except Exception as ex:
-            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @contextmanager
     def get_raw_connection(
@@ -570,7 +570,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             except Exception as ex:
                 if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
                     self.db_engine_spec.start_oauth2_dance(self)
-                raise ex
+                raise
 
     def get_default_catalog(self) -> str | None:
         """
@@ -769,7 +769,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     )
                 }
         except Exception as ex:
-            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:view_list",
@@ -803,7 +803,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     )
                 }
         except Exception as ex:
-            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @contextmanager
     def get_inspector(
@@ -906,7 +906,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 encrypted_extra = json.loads(self.encrypted_extra)
             except json.JSONDecodeError as ex:
                 logger.error(ex, exc_info=True)
-                raise ex
+                raise
         return encrypted_extra
 
     # pylint: disable=invalid-name

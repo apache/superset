@@ -16,22 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
-import { Provider } from 'react-redux';
-import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import { act } from 'react-dom/test-utils';
-import configureStore from 'redux-mock-store';
 import * as uiCore from '@superset-ui/core';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import Welcome from 'src/pages/Home';
-import { ReactWrapper } from 'enzyme';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { render, screen } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
-
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartInfoEndpoint = 'glob:*/api/v1/chart/_info?*';
@@ -113,129 +104,104 @@ const mockedProps = {
   },
 };
 
-describe('Welcome with sql role', () => {
-  let wrapper: ReactWrapper;
+const mockedPropsWithoutSqlRole = {
+  ...{
+    ...mockedProps,
+    user: {
+      ...mockedProps.user,
+      roles: {},
+    },
+  },
+};
 
-  beforeAll(async () => {
-    await act(async () => {
-      wrapper = mount(
-        <Provider store={store}>
-          <Welcome {...mockedProps} />
-        </Provider>,
-      );
+const setupFeatureToggleMock = () =>
+  jest.spyOn(uiCore, 'isFeatureEnabled').mockReturnValue(true);
+
+const renderWelcome = (props = mockedProps) =>
+  waitFor(() => {
+    render(<Welcome {...props} />, {
+      useRedux: true,
+      useRouter: true,
     });
   });
 
-  afterAll(() => {
-    fetchMock.resetHistory();
-  });
-
-  it('renders', () => {
-    expect(wrapper).toExist();
-  });
-
-  it('renders all panels on the page on page load', () => {
-    expect(wrapper.find('CollapsePanel')).toHaveLength(8);
-  });
-
-  it('calls api methods in parallel on page load', () => {
-    const chartCall = fetchMock.calls(/chart\/\?q/);
-    const savedQueryCall = fetchMock.calls(/saved_query\/\?q/);
-    const recentCall = fetchMock.calls(/api\/v1\/log\/recent_activity\/*/);
-    const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
-    expect(chartCall).toHaveLength(2);
-    expect(recentCall).toHaveLength(1);
-    expect(savedQueryCall).toHaveLength(1);
-    expect(dashboardCall).toHaveLength(2);
-  });
+afterEach(() => {
+  fetchMock.resetHistory();
 });
 
-describe('Welcome without sql role', () => {
-  let wrapper: ReactWrapper;
-
-  beforeAll(async () => {
-    await act(async () => {
-      const props = {
-        ...mockedProps,
-        user: {
-          ...mockedProps.user,
-          roles: {},
-        },
-      };
-      wrapper = mount(
-        <Provider store={store}>
-          <Welcome {...props} />
-        </Provider>,
-      );
-    });
-  });
-
-  afterAll(() => {
-    fetchMock.resetHistory();
-  });
-
-  it('renders', () => {
-    expect(wrapper).toExist();
-  });
-
-  it('renders all panels on the page on page load', () => {
-    expect(wrapper.find('CollapsePanel')).toHaveLength(6);
-  });
-
-  it('calls api methods in parallel on page load', () => {
-    const chartCall = fetchMock.calls(/chart\/\?q/);
-    const savedQueryCall = fetchMock.calls(/saved_query\/\?q/);
-    const recentCall = fetchMock.calls(/api\/v1\/log\/recent_activity\/*/);
-    const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
-    expect(chartCall).toHaveLength(2);
-    expect(recentCall).toHaveLength(1);
-    expect(savedQueryCall).toHaveLength(0);
-    expect(dashboardCall).toHaveLength(2);
-  });
+test('With sql role - renders', async () => {
+  await renderWelcome();
+  expect(await screen.findByText('Dashboards')).toBeInTheDocument();
 });
 
-async function mountAndWait(props = mockedProps) {
-  const wrapper = mount(
-    <Provider store={store}>
-      <Welcome {...props} />
-    </Provider>,
+test('With sql role - renders all panels on the page on page load', async () => {
+  await renderWelcome();
+  const panels = await screen.findAllByText(
+    /Dashboards|Charts|Recents|Saved queries/,
   );
-  await waitForComponentToPaint(wrapper);
-  return wrapper;
-}
-
-describe('Welcome page with toggle switch', () => {
-  let wrapper: ReactWrapper;
-  let isFeatureEnabledMock: any;
-
-  beforeAll(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockReturnValue(true);
-    await act(async () => {
-      wrapper = await mountAndWait();
-    });
-  });
-
-  afterAll(() => {
-    isFeatureEnabledMock.restore();
-  });
-
-  it('shows a toggle button when feature flags is turned on', async () => {
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find('Switch')).toExist();
-  });
-  it('does not show thumbnails when switch is off', async () => {
-    act(() => {
-      // @ts-ignore
-      wrapper.find('button[role="switch"]').props().onClick();
-    });
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find('ImageLoader')).not.toExist();
-  });
+  expect(panels).toHaveLength(4);
 });
 
-test('should render an extension component if one is supplied', () => {
+test('With sql role - calls api methods in parallel on page load', async () => {
+  await renderWelcome();
+  expect(fetchMock.calls(chartsEndpoint)).toHaveLength(2);
+  expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(1);
+  expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(1);
+  expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(2);
+});
+
+test('Without sql role - renders', async () => {
+  /*
+  We ignore the ts error here because the type does not recognize the absence of a role entry
+  */
+  // @ts-ignore-next-line
+  await renderWelcome(mockedPropsWithoutSqlRole);
+  expect(await screen.findByText('Dashboards')).toBeInTheDocument();
+});
+
+test('Without sql role - renders all panels on the page on page load', async () => {
+  // @ts-ignore-next-line
+  await renderWelcome(mockedPropsWithoutSqlRole);
+  const panels = await screen.findAllByText(/Dashboards|Charts|Recents/);
+  expect(panels).toHaveLength(3);
+});
+
+test('Without sql role - calls api methods in parallel on page load', async () => {
+  // @ts-ignore-next-line
+  await renderWelcome(mockedPropsWithoutSqlRole);
+  expect(fetchMock.calls(chartsEndpoint)).toHaveLength(2);
+  expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(1);
+  expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(0);
+  expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(2);
+});
+
+// Mock specific to the tests related to the toggle switch
+fetchMock.get('glob:*/api/v1/dashboard/*', {
+  result: {
+    dashboard_title: 'Dashboard 4',
+    changed_on_utc: '24 Feb 2014 10:13:14',
+    url: '/fakeUrl/dashboard/4',
+    id: '4',
+  },
+});
+
+test('With toggle switch - shows a toggle button when feature flag is turned on', async () => {
+  setupFeatureToggleMock();
+
+  await renderWelcome();
+  expect(screen.getByRole('switch')).toBeInTheDocument();
+});
+
+test('With toggle switch - does not show thumbnails when switch is off', async () => {
+  setupFeatureToggleMock();
+
+  await renderWelcome();
+  const toggle = await screen.findByRole('switch');
+  userEvent.click(toggle);
+  expect(screen.queryByAltText('Thumbnails')).not.toBeInTheDocument();
+});
+
+test('Should render an extension component if one is supplied', async () => {
   const extensionsRegistry = getExtensionsRegistry();
 
   extensionsRegistry.set('welcome.banner', () => (
@@ -244,29 +210,46 @@ test('should render an extension component if one is supplied', () => {
 
   setupExtensions();
 
-  render(
-    <Provider store={store}>
-      <Welcome {...mockedProps} />
-    </Provider>,
-  );
+  await renderWelcome();
 
   expect(
     screen.getByText('welcome.banner extension component'),
   ).toBeInTheDocument();
 });
 
-test('should render a submenu extension component if one is supplied', () => {
+test('Should render a submenu extension component if one is supplied', async () => {
   const extensionsRegistry = getExtensionsRegistry();
 
   extensionsRegistry.set('home.submenu', () => <>submenu extension</>);
 
   setupExtensions();
 
-  render(
-    <Provider store={store}>
-      <Welcome {...mockedProps} />
-    </Provider>,
-  );
+  await renderWelcome();
 
   expect(screen.getByText('submenu extension')).toBeInTheDocument();
+});
+
+test('Should not make data fetch calls if `welcome.main.replacement` is defined', async () => {
+  const extensionsRegistry = getExtensionsRegistry();
+
+  // Clean up
+  extensionsRegistry.set('welcome.banner', () => null);
+
+  // Set up
+  extensionsRegistry.set('welcome.main.replacement', () => (
+    <>welcome.main.replacement extension component</>
+  ));
+
+  setupExtensions();
+
+  await renderWelcome();
+
+  expect(
+    screen.getByText('welcome.main.replacement extension component'),
+  ).toBeInTheDocument();
+
+  expect(fetchMock.calls(chartsEndpoint)).toHaveLength(0);
+  expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(0);
+  expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(0);
+  expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(0);
 });

@@ -362,6 +362,14 @@ const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
     ),
 };
 
+const sort_by_metric: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Sort by metric'),
+  description: t(
+    'Whether to sort results by the selected metric in descending order.',
+  ),
+};
+
 export default {
   metrics: dndAdhocMetricsControl,
   metric: dndAdhocMetricControl,
@@ -400,4 +408,5 @@ export default {
   show_empty_columns,
   temporal_columns_lookup,
   currency_format,
+  sort_by_metric,
 };

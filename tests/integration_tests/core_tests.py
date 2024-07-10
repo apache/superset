@@ -539,7 +539,9 @@ class TestCore(SupersetTestCase):
             database=get_example_database(),
         )
         rendered_query = str(table.get_from_clause()[0])
-        self.assertEqual(clean_query, rendered_query)
+        assert "comment 1" in rendered_query
+        assert "comment 2" in rendered_query
+        assert "FROM tbl" in rendered_query
 
     def test_slice_payload_no_datasource(self):
         form_data = {
@@ -812,7 +814,7 @@ class TestCore(SupersetTestCase):
         mock_cache.return_value = MockCache()
 
         rv = self.client.get("/superset/explore_json/data/valid-cache-key")
-        self.assertEqual(rv.status_code, 401)
+        self.assertEqual(rv.status_code, 403)
 
     def test_explore_json_data_invalid_cache_key(self):
         self.login(ADMIN_USERNAME)

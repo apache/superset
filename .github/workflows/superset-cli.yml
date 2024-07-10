@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - "master"
-      - "[0-9].[0-9]"
+      - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   test-load-examples:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config

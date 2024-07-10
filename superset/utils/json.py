@@ -122,11 +122,11 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> Any:
 
     try:
         return base_json_conv(obj)
-    except TypeError as ex:
+    except TypeError:
         if pessimistic:
             logger.error("Failed to serialize %s", obj)
             return f"Unserializable [{type(obj)}]"
-        raise ex
+        raise
 
 
 def pessimistic_json_iso_dttm_ser(obj: Any) -> Any:
@@ -249,4 +249,4 @@ def loads(
         )
     except JSONDecodeError as ex:
         logger.error("JSON is not valid %s", str(ex), exc_info=True)
-        raise ex
+        raise

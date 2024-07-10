@@ -123,6 +123,11 @@ export const Databases = [
     imgName: 'doris.png',
   },
   {
+    title: 'OceanBase',
+    href: 'https://www.oceanbase.com/',
+    imgName: 'oceanbase.svg',
+  },
+  {
     title: 'Couchbase',
     href: 'https://www.couchbase.com/',
     imgName: 'couchbase.svg',

@@ -253,7 +253,7 @@ class TestDatabaseModel(SupersetTestCase):
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
 
         # assert virtual dataset
-        assert "SELECT\n  'user_abc' AS user,\n  'xyz_P1D' AS time_grain" in query
+        assert "SELECT 'user_abc' as user, 'xyz_P1D' as time_grain" in query
         # assert dataset calculated column
         assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert adhoc column
@@ -543,8 +543,7 @@ class TestDatabaseModel(SupersetTestCase):
 
         # make sure the columns have been mapped properly
         assert len(table.columns) == 4
-        with db.session.no_autoflush:
-            table.fetch_metadata(commit=False)
+        table.fetch_metadata()
 
         # assert that the removed column has been dropped and
         # the physical and calculated columns are present

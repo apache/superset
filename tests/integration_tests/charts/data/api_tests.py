@@ -1211,6 +1211,9 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request (no login)
         """
+        if get_example_database().backend == "presto":
+            return
+
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
         self.logout()

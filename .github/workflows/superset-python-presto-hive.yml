@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - "master"
-      - "[0-9].[0-9]"
+      - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   test-postgres-presto:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -67,9 +67,11 @@ jobs:
           run: |
             echo "${{ steps.check.outputs.python }}"
             setup-postgres
-      - name: Run celery
+      - name: Start Celery worker
         if: steps.check.outputs.python
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
       - name: Python unit tests (PostgreSQL)
         if: steps.check.outputs.python
         run: |
@@ -82,7 +84,7 @@ jobs:
           verbose: true
 
   test-postgres-hive:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -132,9 +134,11 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
-      - name: Run celery
+      - name: Start Celery worker
         if: steps.check.outputs.python
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
       - name: Python unit tests (PostgreSQL)
         if: steps.check.outputs.python
         run: |

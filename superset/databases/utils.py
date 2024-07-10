@@ -123,8 +123,8 @@ def make_url_safe(raw_url: str | URL) -> URL:
         url = raw_url.strip()
         try:
             return make_url(url)  # noqa
-        except Exception:
-            raise DatabaseInvalidError()  # pylint: disable=raise-missing-from
+        except Exception as ex:
+            raise DatabaseInvalidError() from ex
 
     else:
         return raw_url

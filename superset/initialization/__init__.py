@@ -56,6 +56,7 @@ from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
 from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
+from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
 if TYPE_CHECKING:
@@ -173,6 +174,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
+        from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
@@ -186,6 +188,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
+
+        set_app_error_handlers(self.superset_app)
 
         #
         # Setup API views
@@ -513,6 +517,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def configure_feature_flags(self) -> None:
         feature_flag_manager.init_app(self.superset_app)
 
+    @transaction()
     def configure_fab(self) -> None:
         if self.config["SILENCE_FAB"]:
             logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
@@ -586,7 +591,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         talisman_enabled = self.config["TALISMAN_ENABLED"]
         talisman_config = (
             self.config["TALISMAN_DEV_CONFIG"]
-            if self.superset_app.debug
+            if self.superset_app.debug or self.config["DEBUG"]
             else self.config["TALISMAN_CONFIG"]
         )
         csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]

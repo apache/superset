@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - "master"
-      - "[0-9].[0-9]"
+      - "[0-9].[0-9]*"
 
 jobs:
   config:
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-22.04"
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -23,7 +23,7 @@ jobs:
   build:
     needs: config
     if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: superset-embedded-sdk

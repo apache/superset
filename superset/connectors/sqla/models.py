@@ -1450,7 +1450,7 @@ class SqlaTable(
         if not self.is_virtual:
             return self.get_sqla_table(), None
 
-        from_sql = self.get_rendered_sql(template_processor)
+        from_sql = self.get_rendered_sql(template_processor) + "\n"
         parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
         if not (
             parsed_query.is_unknown()
@@ -1727,11 +1727,11 @@ class SqlaTable(
                 self.schema or None,
                 mutator=assign_column_label,
             )
-        except (SupersetErrorException, SupersetErrorsException) as ex:
+        except (SupersetErrorException, SupersetErrorsException):
             # SupersetError(s) exception should not be captured; instead, they should
             # bubble up to the Flask error handler so they are returned as proper SIP-40
             # errors. This is particularly important for database OAuth2, see SIP-85.
-            raise ex
+            raise
         except Exception as ex:  # pylint: disable=broad-except
             # TODO (betodealmeida): review exception handling while querying the external
             # database. Ideally we'd expect and handle external database error, but
@@ -1768,11 +1768,10 @@ class SqlaTable(
             )
         )
 
-    def fetch_metadata(self, commit: bool = True) -> MetadataResult:
+    def fetch_metadata(self) -> MetadataResult:
         """
         Fetches the metadata for the table and merges it in
 
-        :param commit: should the changes be committed or not.
         :return: Tuple with lists of added, removed and modified column names.
         """
         new_columns = self.external_metadata()
@@ -1850,8 +1849,6 @@ class SqlaTable(
         config["SQLA_TABLE_MUTATOR"](self)
 
         db.session.merge(self)
-        if commit:
-            db.session.commit()
         return results
 
     @classmethod
