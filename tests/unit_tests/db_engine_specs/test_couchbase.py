@@ -78,7 +78,6 @@ def test_convert_dttm(
         ("CHAR", types.String, None, GenericDataType.STRING, False),
         ("VARCHAR", types.String, None, GenericDataType.STRING, False),
         ("TEXT", types.String, None, GenericDataType.STRING, False),
-        # Boolean
         ("BOOLEAN", types.Boolean, None, GenericDataType.BOOLEAN, False),
     ],
 )
