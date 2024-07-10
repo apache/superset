@@ -231,7 +231,7 @@ def on_error(
             logger.exception(ex.exception)
 
         if reraise:
-            raise reraise() from ex
+            raise reraise(ex) from ex
     else:
         raise ex
 
