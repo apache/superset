@@ -54,6 +54,7 @@ are compatible with Superset.
 | [Azure MS SQL](/docs/configuration/databases#sql-server)                | `pip install pymssql`                                                              | `mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema`                                                       |
 | [ClickHouse](/docs/configuration/databases#clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                                                                    |
 | [CockroachDB](/docs/configuration/databases#cockroachdb)                | `pip install cockroachdb`                                                          | `cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable`                                                                                      |
+| [CouchbaseDB](/docs/configuration/databases#couchbaseDB)                | `pip install couchbase-sqlalchemy`                                                          | `couchbasedb://{username}:{password}@{hostname}:{port}?truststorepath={ssl certificate path}`                                                                                      |
 | [Dremio](/docs/configuration/databases#dremio)                          | `pip install sqlalchemy_dremio`                                                    | `dremio://user:pwd@host:31010/`                                                                                                                        |
 | [Elasticsearch](/docs/configuration/databases#elasticsearch)            | `pip install elasticsearch-dbapi`                                                  | `elasticsearch+http://{user}:{password}@{host}:9200/`                                                                                                  |
 | [Exasol](/docs/configuration/databases#exasol)                          | `pip install sqlalchemy-exasol`                                                    | `exa+pyodbc://{username}:{password}@{hostname}:{port}/my_schema?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC`                                            |
@@ -370,6 +371,22 @@ The expected connection string is formatted as follows:
 
 ```
 cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable
+```
+
+
+
+#### CouchbaseDB
+
+The recommended connector library for CouchbaseDB is
+[couchbase-sqlalchemy](https://github.com/couchbase/couchbase-sqlalchemy).
+```
+pip install couchbase-sqlalchemy
+```
+
+The expected connection string is formatted as follows:
+
+```
+couchbasedb://{username}:{password}@{hostname}:{port}?truststorepath={certificate path}?ssl={true/false}
 ```
 
 
