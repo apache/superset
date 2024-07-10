@@ -35,4 +35,6 @@ const Card = ({ padded, ...props }: CardProps) => (
   />
 );
 
-export default Card;
+export default Object.assign(Card, {
+  Meta: AntdCard.Meta,
+});

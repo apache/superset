@@ -18,7 +18,7 @@
  */
 import { ReactNode, ComponentType, ReactElement, FC } from 'react';
 import { styled, useTheme } from '@superset-ui/core';
-import { Skeleton, AntdCard } from 'src/components';
+import { Skeleton, Card } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
 import CertifiedBadge from '../CertifiedBadge';
@@ -29,7 +29,8 @@ const ActionsWrapper = styled.div`
   justify-content: flex-end;
 `;
 
-const StyledCard = styled(AntdCard)`
+const StyledCard = styled(Card)`
+  // TODO: move all these styles to the Card component.
   ${({ theme }) => `
     border: 1px solid ${theme.colors.grayscale.light2};
     border-radius: ${theme.gridUnit}px;
@@ -216,7 +217,7 @@ function ListViewCard({
       }
     >
       {loading && (
-        <AntdCard.Meta
+        <Card.Meta
           title={
             <>
               <TitleContainer>
@@ -250,7 +251,7 @@ function ListViewCard({
         />
       )}
       {!loading && (
-        <AntdCard.Meta
+        <Card.Meta
           title={
             <TitleContainer>
               {subtitle || null}
