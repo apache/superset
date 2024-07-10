@@ -145,11 +145,11 @@ RoleModelView.edit_columns = ["name", "permissions", "user"]
 RoleModelView.related_views = []
 
 
-def freeze_value(metric: Metric) -> str:
+def freeze_value(value: Any) -> str:
     """
     Used to compare column and metric sets.
     """
-    return json.dumps(metric, sort_keys=True)
+    return json.dumps(value, sort_keys=True)
 
 
 def query_context_modified(query_context: "QueryContext") -> bool:
