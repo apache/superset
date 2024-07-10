@@ -67,7 +67,6 @@ from superset.security.guest_token import (
     GuestUser,
 )
 from superset.sql_parse import extract_tables_from_jinja_sql, Table
-from superset.superset_typing import Metric
 from superset.utils import json
 from superset.utils.core import (
     DatasourceName,

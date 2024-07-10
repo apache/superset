@@ -232,6 +232,41 @@ def test_raise_for_access_guest_user_tampered_form_data_columns(
         sm.raise_for_access(query_context=query_context)
 
 
+def test_raise_for_access_guest_user_tampered_form_data_groupby(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_columns: list[AdhocColumn],
+) -> None:
+    """
+    Test that guest user cannot modify groupby in the form data.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "groupby": stored_columns,
+    }
+
+    tampered_columns = [
+        {
+            "label": "My column",
+            "sqlExpression": "list_secret()",
+            "expressionType": "SQL",
+        },
+    ]
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": tampered_columns,
+    }
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
 def test_raise_for_access_guest_user_tampered_queries_metrics(
     mocker: MockerFixture,
     app_context: None,
