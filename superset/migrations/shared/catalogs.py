@@ -23,6 +23,7 @@ from typing import Any, Type
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session
 
 from superset import db, security_manager
 from superset.daos.database import DatabaseDAO
@@ -116,25 +117,16 @@ def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
         )
         add_pvms(session, {perm: ("catalog_access",)})
 
-        # update schema_perms
-        ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
-        for schema in database.get_all_schema_names(
-            catalog=catalog,
-            cache=False,
-            ssh_tunnel=ssh_tunnel,
-        ):
-            perm = security_manager.get_schema_perm(
+        try:
+            upgrade_schema_perms(database, catalog, session)
+        except Exception:  # pylint: disable=broad-except
+            # Ignore exceptions, since the analytical database could be offline. It's
+            # always possible to update the schema perms manually after, by updating the
+            # database.
+            logger.info(
+                "Failed to update schema perms for database %s",
                 database.database_name,
-                None,
-                schema,
             )
-            existing_pvm = session.query(ViewMenu).filter_by(name=perm).one_or_none()
-            if existing_pvm:
-                existing_pvm.name = security_manager.get_schema_perm(
-                    database.database_name,
-                    catalog,
-                    schema,
-                )
 
         # update existing models
         models = [
@@ -166,6 +158,30 @@ def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
     session.commit()
 
 
+def upgrade_schema_perms(database: Database, catalog: str, session: Session) -> None:
+    """
+    Rename existing schema permissions to include the catalog.
+    """
+    ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
+    for schema in database.get_all_schema_names(
+        catalog=catalog,
+        cache=False,
+        ssh_tunnel=ssh_tunnel,
+    ):
+        perm = security_manager.get_schema_perm(
+            database.database_name,
+            None,
+            schema,
+        )
+        existing_pvm = session.query(ViewMenu).filter_by(name=perm).one_or_none()
+        if existing_pvm:
+            existing_pvm.name = security_manager.get_schema_perm(
+                database.database_name,
+                catalog,
+                schema,
+            )
+
+
 def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
     """
     Reverse the process of `upgrade_catalog_perms`.
@@ -183,25 +199,16 @@ def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
         if catalog is None:
             continue
 
-        # update schema_perms
-        ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
-        for schema in database.get_all_schema_names(
-            catalog=catalog,
-            cache=False,
-            ssh_tunnel=ssh_tunnel,
-        ):
-            perm = security_manager.get_schema_perm(
+        try:
+            downgrade_schema_perms(database, catalog, session)
+        except Exception:  # pylint: disable=broad-except
+            # Ignore exceptions, since the analytical database could be offline. It's
+            # always possible to update the schema perms manually after, by updating the
+            # database.
+            logger.info(
+                "Failed to update schema perms for database %s",
                 database.database_name,
-                catalog,
-                schema,
             )
-            existing_pvm = session.query(ViewMenu).filter_by(name=perm).one_or_none()
-            if existing_pvm:
-                existing_pvm.name = security_manager.get_schema_perm(
-                    database.database_name,
-                    None,
-                    schema,
-                )
 
         # update existing models
         models = [
@@ -231,3 +238,27 @@ def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
                 chart.schema_perm = schema_perm
 
     session.commit()
+
+
+def downgrade_schema_perms(database: Database, catalog: str, session: Session) -> None:
+    """
+    Rename existing schema permissions to omit the catalog.
+    """
+    ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
+    for schema in database.get_all_schema_names(
+        catalog=catalog,
+        cache=False,
+        ssh_tunnel=ssh_tunnel,
+    ):
+        perm = security_manager.get_schema_perm(
+            database.database_name,
+            catalog,
+            schema,
+        )
+        existing_pvm = session.query(ViewMenu).filter_by(name=perm).one_or_none()
+        if existing_pvm:
+            existing_pvm.name = security_manager.get_schema_perm(
+                database.database_name,
+                None,
+                schema,
+            )
