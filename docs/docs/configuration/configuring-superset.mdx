@@ -326,7 +326,7 @@ If you are using Keycloak as OpenID Connect 1.0 Provider, the above configuratio
 
 Make sure the pip package [`Flask-OIDC`](https://https://pypi.org/project/flask-oidc/) is installed on the webserver. This was succesfully tested using version 2.2.0.
 
-For this to work, you need to create a new security manager in the same directory as `superset-config.py`, e.g. `keycloak_security_manager.py`:
+The following code defines a new security manager.  Add it to a new file named `keycloak_security_manager.py`, placed in the same directory as your `superset_config.py` file.
 ```python
 from flask_appbuilder.security.manager import AUTH_OID  
 from superset.security import SupersetSecurityManager  
