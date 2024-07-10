@@ -87,6 +87,24 @@ class Slice(Base):
     schema_perm = sa.Column(sa.String(1000))
 
 
+def get_schemas(database_name: str) -> list[str]:
+    """
+    Read all known schemas from the schema permissions.
+    """
+    query = f"""
+SELECT
+    avm.name
+FROM ab_view_menu avm
+JOIN ab_permission_view apv ON avm.id = apv.view_menu_id
+JOIN ab_permission ap ON apv.permission_id = ap.id
+WHERE
+    avm.name LIKE '[{database_name}]%' AND
+    ap.name = 'schema_access';
+    """
+    # [PostgreSQL].[postgres].[public] => public
+    return sorted({row[0].split(".")[-1][1:-1] for row in op.execute(query)})
+
+
 def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
     """
     Update models when catalogs are introduced in a DB engine spec.
@@ -117,16 +135,7 @@ def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
         )
         add_pvms(session, {perm: ("catalog_access",)})
 
-        try:
-            upgrade_schema_perms(database, catalog, session)
-        except Exception:  # pylint: disable=broad-except
-            # Ignore exceptions, since the analytical database could be offline. It's
-            # always possible to update the schema perms manually after, by updating the
-            # database.
-            logger.info(
-                "Failed to update schema perms for database %s",
-                database.database_name,
-            )
+        upgrade_schema_perms(database, catalog, session)
 
         # update existing models
         models = [
@@ -163,11 +172,16 @@ def upgrade_schema_perms(database: Database, catalog: str, session: Session) -> 
     Rename existing schema permissions to include the catalog.
     """
     ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
-    for schema in database.get_all_schema_names(
-        catalog=catalog,
-        cache=False,
-        ssh_tunnel=ssh_tunnel,
-    ):
+    try:
+        schemas = database.get_all_schema_names(
+            catalog=catalog,
+            cache=False,
+            ssh_tunnel=ssh_tunnel,
+        )
+    except Exception:  # pylint: disable=broad-except
+        schemas = get_schemas(database.database_name)
+
+    for schema in schemas:
         perm = security_manager.get_schema_perm(
             database.database_name,
             None,
@@ -199,16 +213,7 @@ def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
         if catalog is None:
             continue
 
-        try:
-            downgrade_schema_perms(database, catalog, session)
-        except Exception:  # pylint: disable=broad-except
-            # Ignore exceptions, since the analytical database could be offline. It's
-            # always possible to update the schema perms manually after, by updating the
-            # database.
-            logger.info(
-                "Failed to update schema perms for database %s",
-                database.database_name,
-            )
+        downgrade_schema_perms(database, catalog, session)
 
         # update existing models
         models = [
@@ -245,11 +250,16 @@ def downgrade_schema_perms(database: Database, catalog: str, session: Session) -
     Rename existing schema permissions to omit the catalog.
     """
     ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
-    for schema in database.get_all_schema_names(
-        catalog=catalog,
-        cache=False,
-        ssh_tunnel=ssh_tunnel,
-    ):
+    try:
+        schemas = database.get_all_schema_names(
+            catalog=catalog,
+            cache=False,
+            ssh_tunnel=ssh_tunnel,
+        )
+    except Exception:  # pylint: disable=broad-except
+        schemas = get_schemas(database.database_name)
+
+    for schema in schemas:
         perm = security_manager.get_schema_perm(
             database.database_name,
             catalog,
