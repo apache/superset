@@ -31,7 +31,7 @@ from superset.security.manager import (
     SupersetSecurityManager,
 )
 from superset.sql_parse import Table
-from superset.superset_typing import AdhocMetric
+from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils.core import override_user
 
 
@@ -59,10 +59,24 @@ def stored_metrics() -> list[AdhocMetric]:
     ]
 
 
+@pytest.fixture
+def stored_columns() -> list[AdhocColumn]:
+    """
+    Return a list of columns.
+    """
+    return [
+        {
+            "label": "My column",
+            "sqlExpression": "UPPER(name)",
+        },
+    ]
+
+
 def test_raise_for_access_guest_user_ok(
     mocker: MockerFixture,
     app_context: None,
     stored_metrics: list[AdhocMetric],
+    stored_columns: list[AdhocColumn],
 ) -> None:
     """
     Test that guest user can submit an unmodified chart payload.
@@ -76,11 +90,43 @@ def test_raise_for_access_guest_user_ok(
     query_context.slice_.query_context = None
     query_context.slice_.params_dict = {
         "metrics": stored_metrics,
+        "columns": stored_columns,
     }
 
     query_context.form_data = {
         "slice_id": 42,
         "metrics": stored_metrics,
+        "columns": stored_columns,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+    sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_ok_subset(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+    stored_columns: list[AdhocColumn],
+) -> None:
+    """
+    Test that guest user can submit a request of a subset of the metrics/columns.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+        "columns": stored_columns,
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": [],
+        "columns": [],
     }
     query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
     sm.raise_for_access(query_context=query_context)
@@ -114,7 +160,7 @@ def test_raise_for_access_guest_user_tampered_id(
         sm.raise_for_access(query_context=query_context)
 
 
-def test_raise_for_access_guest_user_tampered_form_data(
+def test_raise_for_access_guest_user_tampered_form_data_metrics(
     mocker: MockerFixture,
     app_context: None,
     stored_metrics: list[AdhocMetric],
@@ -151,7 +197,77 @@ def test_raise_for_access_guest_user_tampered_form_data(
         sm.raise_for_access(query_context=query_context)
 
 
-def test_raise_for_access_guest_user_tampered_queries(
+def test_raise_for_access_guest_user_tampered_form_data_columns(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_columns: list[AdhocColumn],
+) -> None:
+    """
+    Test that guest user cannot modify columns in the form data.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": stored_columns,
+    }
+
+    tampered_columns = [
+        {
+            "label": "My column",
+            "sqlExpression": "list_secret()",
+            "expressionType": "SQL",
+        },
+    ]
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": tampered_columns,
+    }
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_tampered_form_data_groupby(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_columns: list[AdhocColumn],
+) -> None:
+    """
+    Test that guest user cannot modify groupby in the form data.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "groupby": stored_columns,
+    }
+
+    tampered_columns = [
+        {
+            "label": "My column",
+            "sqlExpression": "list_secret()",
+            "expressionType": "SQL",
+        },
+    ]
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": tampered_columns,
+    }
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_tampered_queries_metrics(
     mocker: MockerFixture,
     app_context: None,
     stored_metrics: list[AdhocMetric],
@@ -185,6 +301,42 @@ def test_raise_for_access_guest_user_tampered_queries(
         "metrics": stored_metrics,
     }
     query_context.queries = [QueryObject(metrics=tampered_metrics)]  # type: ignore
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_tampered_queries_columns(
+    mocker: MockerFixture,
+    app_context: None,
+    stored_columns: list[AdhocColumn],
+) -> None:
+    """
+    Test that guest user cannot modify columns in the queries.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": stored_columns,
+    }
+
+    tampered_columns = [
+        {
+            "label": "My column",
+            "sqlExpression": "list_secret()",
+            "expressionType": "SQL",
+        }
+    ]
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": stored_columns,
+    }
+    query_context.queries = [QueryObject(metrics=tampered_columns)]  # type: ignore
     with pytest.raises(SupersetSecurityException):
         sm.raise_for_access(query_context=query_context)
 
