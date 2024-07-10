@@ -35,7 +35,6 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { Select } from 'src/components';
-import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import {
   NotificationMethodOption,
@@ -78,35 +77,28 @@ const StyledNotificationMethod = styled.div`
     }
   }
 
-  /* New style for buttons container */
-  .buttons-container {
-    display: flex;
+  .ghost-button {
+    color: ${({ theme }) => theme.colors.primary.dark1};
+    display: inline-flex;
     align-items: center;
-    margin-top: 8px; /* Adjust as needed */
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 4px;
+
+    .icon {
+      width: 12px;
+      height: 12px;
+      font-size: 12px;
+      margin-right: 4px;
+    }
   }
 
-  .buttons-container .control-label {
-    margin-right: 16px;
-  }
-`;
-
-const InlineButton = styled(Button)`
-  font-size: 12px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0;
-  margin-right: 16px;
-  background: none;
-  font-weight: normal;
-  text-transform: none;
-
-  .anticon {
-    margin-right: 4px;
+  .ghost-button + .ghost-button {
+    margin-left: 16px;
   }
 
-  &:hover,
-  &:focus {
-    background: none;
+  .ghost-button:first-child[style*='none'] + .ghost-button {
+    margin-left: 0; /* Remove margin when the first button is hidden */
   }
 `;
 
