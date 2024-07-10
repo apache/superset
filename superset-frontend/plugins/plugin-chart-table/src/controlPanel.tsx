@@ -18,7 +18,6 @@
  * under the License.
  */
 import {
-  ChartDataResponseResult,
   ensureIsArray,
   GenericDataType,
   isAdhocColumn,

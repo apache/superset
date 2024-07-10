@@ -17,12 +17,7 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import {
-  ChartDataResponseResult,
-  useTheme,
-  t,
-  GenericDataType,
-} from '@superset-ui/core';
+import { useTheme, t, GenericDataType } from '@superset-ui/core';
 
 import {
   COLUMN_NAME_ALIASES,
