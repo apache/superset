@@ -381,7 +381,7 @@ class AuthOIDCView(AuthOIDView):
         return redirect(  
             oidc.client_secrets.get('issuer') + '/protocol/openid-connect/logout?redirect_uri=' + quote(redirect_url))
 ```
-Then, append `superset-config.py` accordingly:
+Then add to your `superset_config.py` file:
 ```python
 from keycloak_security_manager import OIDCSecurityManager  
 from flask_appbuilder.security.manager import AUTH_OID, AUTH_REMOTE_USER, AUTH_DB, AUTH_LDAP, AUTH_OAUTH  
