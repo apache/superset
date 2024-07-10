@@ -177,7 +177,7 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     )
 
     # compare columns and metrics in form_data with stored values
-    for key in ["metrics", "columns"]:
+    for key in ["metrics", "columns", "groupby"]:
         requested_values = {freeze_value(value) for value in form_data.get(key) or []}
         stored_values = {
             freeze_value(value) for value in stored_chart.params_dict.get(key) or []
@@ -189,7 +189,7 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         queries_values = {
             freeze_value(value)
             for query in query_context.queries
-            for value in getattr(query, key) or []
+            for value in getattr(query, key, []) or []
         }
         if stored_query_context:
             for query in stored_query_context.get("queries") or []:
