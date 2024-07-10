@@ -465,7 +465,7 @@ export const cleanChannel = (channel: string) => {
 
 if (startServer) {
   // init server event listeners
-  wss.on('connection', function(ws) {
+  wss.on('connection', function (ws) {
     ws.on('error', console.error);
   });
   wss.on('connection', wsConnection);
