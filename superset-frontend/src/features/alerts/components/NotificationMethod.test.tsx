@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import { NotificationMethod, mapSlackOptions } from './NotificationMethod';
+import { NotificationMethod, mapSlackValues } from './NotificationMethod';
 import { NotificationMethodOption, NotificationSetting } from '../types';
 
 const mockOnUpdate = jest.fn();
@@ -138,14 +138,12 @@ describe('NotificationMethod', () => {
   it('should correctly map recipients when method is SlackV2', () => {
     const method = 'SlackV2';
     const recipientValue = 'user1,user2';
-    const slackOptions = {
-      data: [
-        { label: 'User One', value: 'user1' },
-        { label: 'User Two', value: 'user2' },
-      ],
-    };
+    const slackOptions: { label: string; value: string }[] = [
+      { label: 'User One', value: 'user1' },
+      { label: 'User Two', value: 'user2' },
+    ];
 
-    const result = mapSlackOptions({ method, recipientValue, slackOptions });
+    const result = mapSlackValues({ method, recipientValue, slackOptions });
 
     expect(result).toEqual([
       { label: 'User One', value: 'user1' },
@@ -156,31 +154,25 @@ describe('NotificationMethod', () => {
   it('should return an empty array when recipientValue is an empty string', () => {
     const method = 'SlackV2';
     const recipientValue = '';
-    const slackOptions = {
-      data: [
-        { label: 'User One', value: 'user1' },
-        { label: 'User Two', value: 'user2' },
-        { label: 'User Three', value: 'user3' },
-      ],
-    };
+    const slackOptions: { label: string; value: string }[] = [
+      { label: 'User One', value: 'user1' },
+      { label: 'User Two', value: 'user2' },
+    ];
 
-    const result = mapSlackOptions({ method, recipientValue, slackOptions });
+    const result = mapSlackValues({ method, recipientValue, slackOptions });
 
     expect(result).toEqual([]);
   });
-  // Ensure that the mapSlackOptions function correctly maps recipients when the method is Slack with updated recipient values
+  // Ensure that the mapSlackValues function correctly maps recipients when the method is Slack with updated recipient values
   it('should correctly map recipients when method is Slack with updated recipient values', () => {
     const method = 'Slack';
     const recipientValue = 'User One,User Two';
-    const slackOptions = {
-      data: [
-        { label: 'User One', value: 'user1' },
-        { label: 'User Two', value: 'user2' },
-        { label: 'User Three', value: 'user3' },
-      ],
-    };
+    const slackOptions: { label: string; value: string }[] = [
+      { label: 'User One', value: 'user1' },
+      { label: 'User Two', value: 'user2' },
+    ];
 
-    const result = mapSlackOptions({ method, recipientValue, slackOptions });
+    const result = mapSlackValues({ method, recipientValue, slackOptions });
 
     expect(result).toEqual([
       { label: 'User One', value: 'user1' },

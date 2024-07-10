@@ -23,9 +23,11 @@ import {
   useEffect,
   useMemo,
 } from 'react';
+import rison from 'rison';
 
 import {
   FeatureFlag,
+  JsonResponse,
   SupersetClient,
   isFeatureEnabled,
   styled,
@@ -90,26 +92,67 @@ const TRANSLATIONS = {
   ),
 };
 
-export const mapSlackOptions = ({
+export const mapSlackValues = ({
   method,
   recipientValue,
   slackOptions,
 }: {
   method: string;
   recipientValue: string;
-  slackOptions: { data: { label: string; value: string }[] };
+  slackOptions: { label: string; value: string }[];
 }) => {
   const prop = method === NotificationMethodOption.SlackV2 ? 'value' : 'label';
   return recipientValue
     .split(',')
     .map(recipient =>
-      slackOptions.data.find(
+      slackOptions.find(
         option =>
           option[prop].trim().toLowerCase() === recipient.trim().toLowerCase(),
       ),
     )
     .filter(val => !!val) as { label: string; value: string }[];
 };
+
+export const mapChannelsToOptions = (result: SlackChannel[]) => {
+  const publicChannels: SlackChannel[] = [];
+  const privateChannels: SlackChannel[] = [];
+
+  result.forEach(channel => {
+    if (channel.is_private) {
+      privateChannels.push(channel);
+    } else {
+      publicChannels.push(channel);
+    }
+  });
+
+  return [
+    {
+      label: 'Public Channels',
+      options: publicChannels.map((channel: SlackChannel) => ({
+        label: `${channel.name} ${
+          channel.is_member ? '' : '(Bot not in channel)'
+        }`,
+        value: channel.id,
+        key: channel.id,
+      })),
+      key: 'public',
+    },
+    {
+      label: 'Private Channels (Bot in channel)',
+      options: privateChannels.map((channel: SlackChannel) => ({
+        label: channel.name,
+        value: channel.id,
+        key: channel.id,
+      })),
+      key: 'private',
+    },
+  ];
+};
+
+type SlackOptionsType = {
+  label: string;
+  options: { label: string; value: string }[];
+}[];
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   setting = null,
@@ -130,20 +173,14 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   >([]);
   const [error, setError] = useState(false);
   const theme = useTheme();
-  const [slackOptions, setSlackOptions] = useState<{
-    data: { label: string; value: string }[];
-    totalCount: number;
-  }>({ data: [], totalCount: 0 });
+  const [slackOptions, setSlackOptions] = useState<SlackOptionsType>([
+    {
+      label: '',
+      options: [],
+    },
+  ]);
 
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
-
-  const mapChannelsToOptions = (result: SlackChannel[]) =>
-    result.map((channel: SlackChannel) => ({
-      label: `${channel.name} ${
-        channel.is_member ? '' : '<i>(Bot not in channel)</i>'
-      }`,
-      value: channel.id,
-    }));
 
   const onMethodChange = (selected: {
     label: string;
@@ -162,37 +199,50 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   };
 
+  const fetchSlackChannels = async ({
+    searchString = '',
+    types = [],
+    exactMatch = false,
+  }: {
+    searchString?: string | undefined;
+    types?: string[];
+    exactMatch?: boolean | undefined;
+  } = {}): Promise<JsonResponse> => {
+    const queryString = rison.encode({ searchString, types, exactMatch });
+    const endpoint = `/api/v1/report/slack_channels/?q=${queryString}`;
+    return SupersetClient.get({ endpoint });
+  };
+
   useEffect(() => {
-    const endpoint = '/api/v1/report/slack_channels/';
     if (
       method &&
       [
         NotificationMethodOption.Slack,
         NotificationMethodOption.SlackV2,
       ].includes(method) &&
-      !slackOptions.data.length
+      !slackOptions[0].options.length
     ) {
-      SupersetClient.get({ endpoint })
+      fetchSlackChannels({ types: ['public_channel', 'private_channel'] })
         .then(({ json }) => {
-          const { result, count } = json;
+          const { result } = json;
 
-          const options: { label: any; value: any }[] =
-            mapChannelsToOptions(result);
+          const options: SlackOptionsType = mapChannelsToOptions(result);
 
-          setSlackOptions({
-            data: options,
-            totalCount: (count ?? options.length) as number,
-          });
+          setSlackOptions(options);
 
-          // on first load, if the Slack channels api succeeds,
-          // then convert this to SlackV2
           if (isFeatureEnabled(FeatureFlag.AlertReportSlackV2)) {
-            // convert v1 names to v2 ids
+            // map existing ids to names for display
+            // or names to ids if slack v1
+            const [publicOptions, privateOptions] = options;
+
             setSlackRecipients(
-              mapSlackOptions({
+              mapSlackValues({
                 method,
                 recipientValue,
-                slackOptions: { data: options },
+                slackOptions: [
+                  ...publicOptions.options,
+                  ...privateOptions.options,
+                ],
               }),
             );
             if (method === NotificationMethodOption.Slack) {
@@ -210,7 +260,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   }, [method]);
 
-  const formattedOptions = useMemo(
+  const methodOptions = useMemo(
     () =>
       (options || [])
         .filter(
@@ -300,9 +350,9 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               labelInValue
               onChange={onMethodChange}
               placeholder={t('Select Delivery Method')}
-              options={formattedOptions}
+              options={methodOptions}
               showSearch
-              value={formattedOptions.find(option => option.value === method)}
+              value={methodOptions.find(option => option.value === method)}
             />
             {index !== 0 && !!onRemove ? (
               <span
@@ -385,7 +435,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     mode="multiple"
                     name="recipients"
                     value={slackRecipients}
-                    options={slackOptions.data}
+                    options={slackOptions}
                     onChange={onSlackRecipientsChange}
                     allowClear
                     data-test="recipients"

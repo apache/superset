@@ -17,6 +17,7 @@
 
 
 import logging
+from typing import Optional
 
 from flask import current_app
 from slack_sdk import WebClient
@@ -24,8 +25,14 @@ from slack_sdk.errors import SlackApiError
 
 from superset import feature_flag_manager
 from superset.exceptions import SupersetException
+from superset.utils.backports import StrEnum
 
 logger = logging.getLogger(__name__)
+
+
+class SlackChannelTypes(StrEnum):
+    PUBLIC = "public_channel"
+    PRIVATE = "private_channel"
 
 
 class SlackClientError(Exception):
@@ -39,7 +46,12 @@ def get_slack_client() -> WebClient:
     return WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
 
 
-def get_channels_with_search(search_string: str = "", limit: int = 999) -> list[str]:
+def get_channels_with_search(
+    search_string: str = "",
+    limit: int = 999,
+    types: Optional[list[SlackChannelTypes]] = None,
+    exact_match: bool = False,
+) -> list[str]:
     """
     The slack api is paginated but does not include search, so we need to fetch
     all channels and filter them ourselves
@@ -50,10 +62,12 @@ def get_channels_with_search(search_string: str = "", limit: int = 999) -> list[
         client = get_slack_client()
         channels = []
         cursor = None
+        extra_params = {}
+        extra_params["types"] = ",".join(types) if types else None
 
         while True:
             response = client.conversations_list(
-                limit=limit, cursor=cursor, exclude_archived=True
+                limit=limit, cursor=cursor, exclude_archived=True, **extra_params
             )
             channels.extend(response.data["channels"])
             cursor = response.data.get("response_metadata", {}).get("next_cursor")
@@ -66,12 +80,21 @@ def get_channels_with_search(search_string: str = "", limit: int = 999) -> list[
                 search.lower()
                 for search in (search_string.split(",") if search_string else [])
             ]
+            print(channels)
 
             channels = [
                 channel
                 for channel in channels
                 if any(
-                    search in channel["name"].lower() or search in channel["id"].lower()
+                    (
+                        search in channel["name"].lower()
+                        or search in channel["id"].lower()
+                        if exact_match
+                        else (
+                            search == channel["name"].lower()
+                            or search == channel["id"].lower()
+                        )
+                    )
                     for search in search_array
                 )
             ]

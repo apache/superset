@@ -57,6 +57,7 @@ export type SlackChannel = {
   id: string;
   name: string;
   is_member: boolean;
+  is_private: boolean;
 };
 
 export type Recipient = {

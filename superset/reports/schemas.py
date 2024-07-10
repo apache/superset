@@ -52,7 +52,12 @@ get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_slack_channels_schema = {
     "type": "object",
     "properties": {
-        "seach_string": {"type": "string"},
+        "search_string": {"type": "string"},
+        "types": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["public_channel", "private_channel"]},
+        },
+        "exact_match": {"type": "boolean"},
     },
 }
 

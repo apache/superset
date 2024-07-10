@@ -87,7 +87,6 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             body = self._get_body(content=self._content)
 
             channels = self._get_channels()
-            logger.info("channels: %s", channels)
 
             if not channels:
                 raise NotificationParamException("No recipients saved in the report")

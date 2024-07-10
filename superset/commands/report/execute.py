@@ -76,7 +76,7 @@ from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
-from superset.utils.slack import get_channels_with_search
+from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
@@ -138,8 +138,18 @@ class BaseReportState:
                 if recipient_copy.type == ReportRecipientType.SLACK:
                     recipient_copy.type = ReportRecipientType.SLACKV2
                     slack_recipients = json.loads(recipient_copy.recipient_config_json)
+                    # we need to ensure that existing reports can also fetch
+                    # ids from private channels
                     recipient_copy.recipient_config_json = json.dumps(
-                        {"target": get_channels_with_search(slack_recipients["target"])}
+                        {
+                            "target": get_channels_with_search(
+                                slack_recipients["target"],
+                                types=[
+                                    SlackChannelTypes.PRIVATE,
+                                    SlackChannelTypes.PUBLIC,
+                                ],
+                            )
+                        }
                     )
 
                 updated_recipients.append(recipient_copy)
