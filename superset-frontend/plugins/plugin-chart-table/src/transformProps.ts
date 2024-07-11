@@ -318,11 +318,15 @@ const getComparisonColFormatter = (
     columnConfig,
   );
   const hasCurrency = currentColConfig.currencyFormat?.symbol;
-  const hasNumberFormat = currentColConfig.d3NumberFormat;
+  const currentColNumberFormat =
+    // fallback to parent's number format if not set
+    currentColConfig.d3NumberFormat || parentCol.config?.d3NumberFormat;
   let { formatter } = parentCol;
-  if (hasNumberFormat || hasCurrency) {
+  if (label === '%') {
+    formatter = getNumberFormatter(currentColNumberFormat || PERCENT_3_POINT);
+  } else if (currentColNumberFormat || hasCurrency) {
     const currency = currentColConfig.currencyFormat || savedCurrency;
-    const numberFormat = currentColConfig.d3NumberFormat || savedFormat;
+    const numberFormat = currentColNumberFormat || savedFormat;
     formatter = currency
       ? new CurrencyFormatter({
           d3Format: numberFormat,
@@ -344,11 +348,8 @@ const processComparisonColumns = (
         datasource: { columnFormats, currencyFormats },
         rawFormData: { column_config: columnConfig = {} },
       } = props;
-      const parentColumnConfig = columnConfig[col.key] || {};
       const savedFormat = columnFormats?.[col.key];
       const savedCurrency = currencyFormats?.[col.key];
-      const parentNumberFormat =
-        parentColumnConfig.d3NumberFormat || savedFormat;
       if (
         (col.isMetric || col.isPercentMetric) &&
         !col.key.includes(comparisonSuffix) &&
@@ -396,12 +397,16 @@ const processComparisonColumns = (
           },
           {
             ...col,
-            formatter: getNumberFormatter(
-              parentNumberFormat || PERCENT_3_POINT,
-            ),
             label: `%`,
             key: `% ${col.key}`,
             config: getComparisonColConfig(`%`, col.key, columnConfig),
+            formatter: getComparisonColFormatter(
+              `%`,
+              col,
+              columnConfig,
+              savedFormat,
+              savedCurrency,
+            ),
           },
         ];
       }
