@@ -31,7 +31,7 @@ from sqlalchemy.sql import func
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import cache_manager, db, security_manager  # noqa: F401
+from superset.extensions import cache_manager, db, security_manager
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -39,11 +39,8 @@ from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema
-from superset.utils.database import get_example_database  # noqa: F401
-from superset.viz import viz_types  # noqa: F401
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_feature_flags  # noqa: F401
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -63,6 +60,10 @@ from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config,
     dataset_metadata_config,
+)
+from tests.integration_tests.fixtures.tags import (
+    create_custom_tags,  # noqa: F401
+    get_filter_params,
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_slice,  # noqa: F401
@@ -200,27 +201,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             db.session.delete(self.chart)
             db.session.commit()
 
-    @pytest.fixture()
-    def create_custom_tags(self):
-        with self.create_app().app_context():
-            tags: list[Tag] = []
-            for tag_name in {"one_tag", "new_tag"}:
-                tag = Tag(
-                    name=tag_name,
-                    type="custom",
-                )
-                db.session.add(tag)
-                db.session.commit()
-                tags.append(tag)
-
-            yield tags
-
-            for tags in tags:
-                db.session.delete(tags)
-            db.session.commit()
-
-    @pytest.fixture()
-    def create_chart_with_tag(self, create_custom_tags):
+    @pytest.fixture
+    def create_chart_with_tag(self, create_custom_tags):  # noqa: F811
         with self.create_app().app_context():
             alpha_user = self.get_user(ALPHA_USERNAME)
 
@@ -230,7 +212,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 1,
             )
 
-            tag = db.session.query(Tag).filter(Tag.name == "one_tag").first()
+            tag = db.session.query(Tag).filter(Tag.name == "first_tag").first()
             tag_association = TaggedObject(
                 object_id=chart.id,
                 object_type=ObjectType.chart,
@@ -245,6 +227,70 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             # rollback changes
             db.session.delete(tag_association)
             db.session.delete(chart)
+            db.session.commit()
+
+    @pytest.fixture
+    def create_charts_some_with_tags(self, create_custom_tags):  # noqa: F811
+        """
+        Fixture that creates 4 charts:
+            - ``first_chart`` is associated with ``first_tag``
+            - ``second_chart`` is associated with ``second_tag``
+            - ``third_chart`` is associated with both ``first_tag`` and ``second_tag``
+            - ``fourth_chart`` is not associated with any tag
+
+        Relies on the ``create_custom_tags`` fixture for the tag creation.
+        """
+        with self.create_app().app_context():
+            admin_user = self.get_user(ADMIN_USERNAME)
+
+            tags = {
+                "first_tag": db.session.query(Tag)
+                .filter(Tag.name == "first_tag")
+                .first(),
+                "second_tag": db.session.query(Tag)
+                .filter(Tag.name == "second_tag")
+                .first(),
+            }
+
+            chart_names = ["first_chart", "second_chart", "third_chart", "fourth_chart"]
+            charts = [
+                self.insert_chart(name, [admin_user.id], 1) for name in chart_names
+            ]
+
+            tag_associations = [
+                TaggedObject(
+                    object_id=charts[0].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["first_tag"],
+                ),
+                TaggedObject(
+                    object_id=charts[1].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["second_tag"],
+                ),
+                TaggedObject(
+                    object_id=charts[2].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["first_tag"],
+                ),
+                TaggedObject(
+                    object_id=charts[2].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["second_tag"],
+                ),
+            ]
+
+            for association in tag_associations:
+                db.session.add(association)
+            db.session.commit()
+
+            yield charts
+
+            # rollback changes
+            for association in tag_associations:
+                db.session.delete(association)
+            for chart in charts:
+                db.session.delete(chart)
             db.session.commit()
 
     def test_info_security_chart(self):
@@ -1130,6 +1176,55 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         result = data["result"]
         assert len(result) == 1
         assert result[0]["slice_name"] == self.chart.slice_name
+
+    @pytest.mark.usefixtures("create_charts_some_with_tags")
+    def test_get_charts_tag_filters(self):
+        """
+        Chart API: Test get charts with tag filters
+        """
+        # Get custom tags relationship
+        tags = {
+            "first_tag": db.session.query(Tag).filter(Tag.name == "first_tag").first(),
+            "second_tag": db.session.query(Tag)
+            .filter(Tag.name == "second_tag")
+            .first(),
+            "third_tag": db.session.query(Tag).filter(Tag.name == "third_tag").first(),
+        }
+        chart_tag_relationship = {
+            tag.name: db.session.query(Slice.id)
+            .join(Slice.tags)
+            .filter(Tag.id == tag.id)
+            .all()
+            for tag in tags.values()
+        }
+
+        # Validate API results for each tag
+        for tag_name, tag in tags.items():
+            expected_charts = chart_tag_relationship[tag_name]
+
+            # Filter by tag ID
+            filter_params = get_filter_params("chart_tag_id", tag.id)
+            response_by_id = self.get_list("chart", filter_params)
+            self.assertEqual(response_by_id.status_code, 200)
+            data_by_id = json.loads(response_by_id.data.decode("utf-8"))
+
+            # Filter by tag name
+            filter_params = get_filter_params("chart_tags", tag.name)
+            response_by_name = self.get_list("chart", filter_params)
+            self.assertEqual(response_by_name.status_code, 200)
+            data_by_name = json.loads(response_by_name.data.decode("utf-8"))
+
+            # Compare results
+            self.assertEqual(
+                data_by_id["count"],
+                data_by_name["count"],
+                len(expected_charts),
+            )
+            self.assertEqual(
+                set(chart["id"] for chart in data_by_id["result"]),
+                set(chart["id"] for chart in data_by_name["result"]),
+                set(chart.id for chart in expected_charts),
+            )
 
     def test_get_charts_changed_on(self):
         """
@@ -2059,7 +2154,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart = (
             db.session.query(Slice).filter(Slice.slice_name == "chart with tag").first()
         )
-        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+        new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
         new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
@@ -2118,7 +2213,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart = (
             db.session.query(Slice).filter(Slice.slice_name == "chart with tag").first()
         )
-        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+        new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
         new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
@@ -2183,7 +2278,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart = (
             db.session.query(Slice).filter(Slice.slice_name == "chart with tag").first()
         )
-        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+        new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
         new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]

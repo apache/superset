@@ -30,7 +30,7 @@ import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
-from superset import app, db, security_manager  # noqa: F401
+from superset import db, security_manager  # noqa: F401
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -41,7 +41,6 @@ from superset.utils import json
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_feature_flags  # noqa: F401
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -55,6 +54,10 @@ from tests.integration_tests.fixtures.importexport import (
     dashboard_metadata_config,
     dataset_config,
     dataset_metadata_config,
+)
+from tests.integration_tests.fixtures.tags import (
+    create_custom_tags,  # noqa: F401
+    get_filter_params,
 )
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -169,27 +172,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
-    @pytest.fixture()
-    def create_custom_tags(self):
-        with self.create_app().app_context():
-            tags: list[Tag] = []
-            for tag_name in {"one_tag", "new_tag"}:
-                tag = Tag(
-                    name=tag_name,
-                    type="custom",
-                )
-                db.session.add(tag)
-                db.session.commit()
-                tags.append(tag)
-
-            yield tags
-
-            for tags in tags:
-                db.session.delete(tags)
-            db.session.commit()
-
-    @pytest.fixture()
-    def create_dashboard_with_tag(self, create_custom_tags):
+    @pytest.fixture
+    def create_dashboard_with_tag(self, create_custom_tags):  # noqa: F811
         with self.create_app().app_context():
             gamma = self.get_user("gamma")
 
@@ -198,7 +182,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 None,
                 [gamma.id],
             )
-            tag = db.session.query(Tag).filter(Tag.name == "one_tag").first()
+            tag = db.session.query(Tag).filter(Tag.name == "first_tag").first()
             tag_association = TaggedObject(
                 object_id=dashboard.id,
                 object_type=ObjectType.dashboard,
@@ -213,6 +197,76 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             # rollback changes
             db.session.delete(tag_association)
             db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.fixture
+    def create_dashboards_some_with_tags(self, create_custom_tags):  # noqa: F811
+        """
+        Fixture that creates 4 dashboards:
+            - ``first_dashboard`` is associated with ``first_tag``
+            - ``second_dashboard`` is associated with ``second_tag``
+            - ``third_dashboard`` is associated with both ``first_tag`` and ``second_tag``
+            - ``fourth_dashboard`` is not associated with any tag
+
+        Relies on the ``create_custom_tags`` fixture for the tag creation.
+        """
+        with self.create_app().app_context():
+            admin_user = self.get_user(ADMIN_USERNAME)
+
+            tags = {
+                "first_tag": db.session.query(Tag)
+                .filter(Tag.name == "first_tag")
+                .first(),
+                "second_tag": db.session.query(Tag)
+                .filter(Tag.name == "second_tag")
+                .first(),
+            }
+
+            dashboard_names = [
+                "first_dashboard",
+                "second_dashboard",
+                "third_dashboard",
+                "fourth_dashboard",
+            ]
+            dashboards = [
+                self.insert_dashboard(name, None, [admin_user.id])
+                for name in dashboard_names
+            ]
+
+            tag_associations = [
+                TaggedObject(
+                    object_id=dashboards[0].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["first_tag"],
+                ),
+                TaggedObject(
+                    object_id=dashboards[1].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["second_tag"],
+                ),
+                TaggedObject(
+                    object_id=dashboards[2].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["first_tag"],
+                ),
+                TaggedObject(
+                    object_id=dashboards[2].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["second_tag"],
+                ),
+            ]
+
+            for association in tag_associations:
+                db.session.add(association)
+            db.session.commit()
+
+            yield dashboards
+
+            # rollback changes
+            for association in tag_associations:
+                db.session.delete(association)
+            for chart in dashboards:
+                db.session.delete(chart)
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -708,6 +762,55 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         for i, expected_model in enumerate(expected_models):
             assert (
                 expected_model.dashboard_title == data["result"][i]["dashboard_title"]
+            )
+
+    @pytest.mark.usefixtures("create_dashboards_some_with_tags")
+    def test_get_dashboards_tag_filters(self):
+        """
+        Dashboard API: Test get dashboards with tag filters
+        """
+        # Get custom tags relationship
+        tags = {
+            "first_tag": db.session.query(Tag).filter(Tag.name == "first_tag").first(),
+            "second_tag": db.session.query(Tag)
+            .filter(Tag.name == "second_tag")
+            .first(),
+            "third_tag": db.session.query(Tag).filter(Tag.name == "third_tag").first(),
+        }
+        dashboard_tag_relationship = {
+            tag.name: db.session.query(Dashboard.id)
+            .join(Dashboard.tags)
+            .filter(Tag.id == tag.id)
+            .all()
+            for tag in tags.values()
+        }
+
+        # Validate API results for each tag
+        for tag_name, tag in tags.items():
+            expected_dashboards = dashboard_tag_relationship[tag_name]
+
+            # Filter by tag ID
+            filter_params = get_filter_params("dashboard_tag_id", tag.id)
+            response_by_id = self.get_list("dashboard", filter_params)
+            self.assertEqual(response_by_id.status_code, 200)
+            data_by_id = json.loads(response_by_id.data.decode("utf-8"))
+
+            # Filter by tag name
+            filter_params = get_filter_params("dashboard_tags", tag.name)
+            response_by_name = self.get_list("dashboard", filter_params)
+            self.assertEqual(response_by_name.status_code, 200)
+            data_by_name = json.loads(response_by_name.data.decode("utf-8"))
+
+            # Compare results
+            self.assertEqual(
+                data_by_id["count"],
+                data_by_name["count"],
+                len(expected_dashboards),
+            )
+            self.assertEqual(
+                set(chart["id"] for chart in data_by_id["result"]),
+                set(chart["id"] for chart in data_by_name["result"]),
+                set(chart.id for chart in expected_dashboards),
             )
 
     @pytest.mark.usefixtures("create_dashboards")
@@ -2504,7 +2607,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+        new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
         new_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
@@ -2566,7 +2669,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+        new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
         new_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
@@ -2580,7 +2683,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         # Clean up system tags
         tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
-        self.assertEqual(tag_list, new_tags)
+        self.assertEqual(sorted(tag_list), sorted(new_tags))
 
         security_manager.add_permission_role(gamma_role, write_tags_perm)
 
@@ -2635,7 +2738,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        new_tag = db.session.query(Tag).filter(Tag.name == "new_tag").one()
+        new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
         new_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
