@@ -168,7 +168,7 @@ class DatasetSQLStatementErrorMixin(CommandException):
         ex: Optional[Exception] = None,
     ) -> None:
         if isinstance(ex, SupersetSecurityException):
-            self.message = ex
+            self.message = str(ex)
         super().__init__()
 
 
