@@ -434,7 +434,7 @@ To debug Flask running in POD inside a kubernetes cluster, you'll need to make s
       add: ["SYS_PTRACE"]
 ```
 
-See (set capabilities for a container)[https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container] for more details.
+See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.
 
 Once the pod is running as root and has the `SYS_PTRACE` capability it will be able to debug the Flask app.
 
@@ -590,6 +590,7 @@ Finally, for the translations to take effect we need to compile translation cata
 binary MO files for the backend using `pybabel`.
 
 ```bash
+# inside the project root
 pybabel compile -d superset/translations
 ```
 

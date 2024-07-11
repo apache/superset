@@ -56,7 +56,8 @@ In addition to periodic socket connection cleanup, the internal _channels_ regis
 ## Install
 
 Install dependencies:
-```
+
+```bash
 npm ci
 ```
 
@@ -71,12 +72,14 @@ Configuration via environment variables is also supported which can be helpful i
 Configure the Superset Flask app to enable global async queries (in `superset_config.py`):
 
 Enable the `GLOBAL_ASYNC_QUERIES` feature flag:
-```
+
+```python
 "GLOBAL_ASYNC_QUERIES": True
 ```
 
 Configure the following Superset values:
-```
+
+```python
 GLOBAL_ASYNC_QUERIES_TRANSPORT = "ws"
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://<host>:<port>/"
 ```
@@ -86,7 +89,8 @@ Note that the WebSocket server must be run on the same hostname (different port)
 Note also that `localhost` and `127.0.0.1` are not considered the same host. For example, if you're pointing your browser to `localhost:<port>` for Superset, then the WebSocket url will need to be configured as `localhost:<port>`.
 
 The following config values must contain the same values in both the Flask app config and `config.json`:
-```
+
+```text
 GLOBAL_ASYNC_QUERIES_REDIS_CONFIG
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME
@@ -114,12 +118,14 @@ The application is tracking a couple of metrics with `statsd` using the [hot-sho
 ## Running
 
 Running locally via dev server:
-```
+
+```bash
 npm run dev-server
 ```
 
 Running in production:
-```
+
+```bash
 npm run build && npm start
 ```
 
@@ -127,13 +133,13 @@ npm run build && npm start
 
 The WebSocket server supports health checks via one of:
 
-```
+```text
 GET /health
 ```
 
 OR
 
-```
+```text
 HEAD /health
 ```
 
