@@ -44,62 +44,66 @@ import {
 import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
-  margin-bottom: 10px;
+  ${({ theme }) => `
+    margin-bottom: ${theme.gridUnit * 2.5}px;
 
-  .input-container {
-    textarea {
-      height: auto;
-    }
+    .input-container {
+      textarea {
+        height: auto;
+      }
 
-    &.error {
-      input {
-        border-color: ${({ theme }) => theme.colors.error.base};
+      &.error {
+        input {
+          border-color: ${theme.colors.error.base};
+        }
+      }
+
+      .helper {
+        margin-top: ${theme.gridUnit * 2}px;
+        font-size: ${theme.typography.sizes.s}px;
+        color: ${theme.colors.grayscale.base};
       }
     }
 
-    .helper {
-      margin-top: 5px;
-      font-size: 12px;
-      color: ${({ theme }) => theme.colors.grayscale.base};
+    .inline-container {
+      margin-bottom: ${theme.gridUnit * 2.5}px;
+
+      > div {
+        margin: ${theme.gridUnit * 0}px;
+      }
+
+      .delete-button {
+        margin-left: ${theme.gridUnit * 2.5}px;
+        padding-top: ${theme.gridUnit * 0.75}px;
+      }
     }
-  }
 
-  .inline-container {
-    margin-bottom: 10px;
+    .ghost-button {
+      color: ${theme.colors.primary.dark1};
+      display: inline-flex;
+      align-items: center;
+      font-size: ${theme.typography.sizes.s}px;
+      cursor: pointer;
+      margin-top: ${theme.gridUnit}px;
 
-    > div {
-      margin: 0;
+      .icon {
+        width: ${theme.gridUnit * 3}px;
+        height: ${theme.gridUnit * 3}px;
+        font-size: ${theme.typography.sizes.s}px;
+        margin-right: ${theme.gridUnit}px;
+      }
     }
 
-    .delete-button {
-      margin-left: 10px;
-      padding-top: 3px;
+    .ghost-button + .ghost-button {
+      margin-left: ${theme.gridUnit * 4}px;
     }
-  }
 
-  .ghost-button {
-    color: ${({ theme }) => theme.colors.primary.dark1};
-    display: inline-flex;
-    align-items: center;
-    font-size: 12px;
-    cursor: pointer;
-    margin-top: 4px;
-
-    .icon {
-      width: 12px;
-      height: 12px;
-      font-size: 12px;
-      margin-right: 4px;
+    .ghost-button:first-child[style*='none'] + .ghost-button {
+      margin-left: ${
+        theme.gridUnit * 0
+      }px; /* Remove margin when the first button is hidden */
     }
-  }
-
-  .ghost-button + .ghost-button {
-    margin-left: 16px;
-  }
-
-  .ghost-button:first-child[style*='none'] + .ghost-button {
-    margin-left: 0; /* Remove margin when the first button is hidden */
-  }
+  `}
 `;
 
 const TRANSLATIONS = {
@@ -554,7 +558,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               <div
                 style={{
                   color: theme.colors.error.base,
-                  fontSize: theme.gridUnit * 3,
+                  fontSize: theme.typography.sizes.s,
                 }}
               >
                 {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
