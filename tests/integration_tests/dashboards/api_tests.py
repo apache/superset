@@ -2682,7 +2682,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         # Clean up system tags
         tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
-        self.assertEqual(tag_list, new_tags)
+        self.assertEqual(sorted(tag_list), sorted(new_tags))
 
         security_manager.add_permission_role(gamma_role, write_tags_perm)
 
