@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Optional
+
 from flask_babel import lazy_gettext as _
 from marshmallow.validate import ValidationError
 
@@ -26,6 +28,7 @@ from superset.commands.exceptions import (
     ImportFailedError,
     UpdateFailedError,
 )
+from superset.exceptions import SupersetSecurityException
 from superset.sql_parse import Table
 
 
@@ -159,11 +162,21 @@ class DatasetInvalidError(CommandInvalidError):
     message = _("Dataset parameters are invalid.")
 
 
-class DatasetCreateFailedError(CreateFailedError):
+class DatasetSQLStatementErrorMixin(CommandException):
+    def __init__(
+        self,
+        ex: Optional[Exception] = None,
+    ) -> None:
+        if isinstance(ex, SupersetSecurityException):
+            self.message = ex
+        super().__init__()
+
+
+class DatasetCreateFailedError(CreateFailedError, DatasetSQLStatementErrorMixin):
     message = _("Dataset could not be created.")
 
 
-class DatasetUpdateFailedError(UpdateFailedError):
+class DatasetUpdateFailedError(UpdateFailedError, DatasetSQLStatementErrorMixin):
     message = _("Dataset could not be updated.")
 
 
