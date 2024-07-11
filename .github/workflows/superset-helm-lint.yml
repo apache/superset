@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   lint-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
@@ -23,13 +23,14 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         with:
           version: v3.5.4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
         with:
-          python-version: "3.9"
+          install-superset: 'false'
 
       - name: Set up chart-testing
         uses: ./.github/actions/chart-testing-action

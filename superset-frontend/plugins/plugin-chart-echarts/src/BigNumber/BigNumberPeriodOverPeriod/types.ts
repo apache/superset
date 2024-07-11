@@ -21,6 +21,7 @@ import {
   supersetTheme,
   TimeseriesDataRecord,
   Metric,
+  SimpleAdhocFilter,
 } from '@superset-ui/core';
 
 export interface PopKPIStylesProps {
@@ -60,5 +61,14 @@ export type PopKPIProps = PopKPIStylesProps &
     percentDifferenceFormattedString: string;
     compType: string;
     percentDifferenceNumber: number;
-    comparatorText: string;
+    comparisonColorScheme?: string;
+    currentTimeRangeFilter?: SimpleAdhocFilter;
+    startDateOffset?: string;
+    shift: string;
+    dashboardTimeRange?: string;
   };
+
+export enum ColorSchemeEnum {
+  Green = 'Green',
+  Red = 'Red',
+}

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
@@ -371,12 +370,15 @@ test('disables condition threshold if not null condition is selected', async () 
   userEvent.click(screen.getByTestId('alert-condition-panel'));
   await screen.findByText(/smaller than/i);
   const condition = screen.getByRole('combobox', { name: /condition/i });
+  const spinButton = screen.getByRole('spinbutton');
+  expect(spinButton).toHaveValue(10);
   await comboboxSelect(
     condition,
     'not null',
     () => screen.getAllByText(/not null/i)[0],
   );
-  expect(screen.getByRole('spinbutton')).toBeDisabled();
+  expect(spinButton).toHaveValue(null);
+  expect(spinButton).toBeDisabled();
 });
 
 // Content Section
@@ -541,8 +543,8 @@ test('defaults to day when CRON is not selected', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
-  const days = screen.getAllByTitle(/day/i, { exact: true });
-  expect(days.length).toBe(2);
+  const day = screen.getByText('day');
+  expect(day).toBeInTheDocument();
 });
 
 // Notification Method Section

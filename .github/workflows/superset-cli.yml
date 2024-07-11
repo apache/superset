@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - "master"
-      - "[0-9].[0-9]"
+      - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
@@ -15,10 +15,7 @@ concurrency:
 
 jobs:
   test-load-examples:
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.9"]
+    runs-on: ubuntu-22.04
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -44,38 +41,27 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Check if python changes are present
+      - name: Check for file changes
         id: check
-        env:
-          GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        continue-on-error: true
-        run: ./scripts/ci_check_no_file_changes.sh python
-      - name: Setup Python
-        if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v5
+        uses: ./.github/actions/change-detector/
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: "pip"
-          cache-dependency-path: "requirements/testing.txt"
-      - name: Install dependencies
-        if: steps.check.outcome == 'failure'
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Python
+        if: steps.check.outputs.python
+        uses: ./.github/actions/setup-backend/
+      - name: Setup Postgres
+        if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
         with:
-          run: |
-            apt-get-install
-            pip-upgrade
-            pip install wheel
-            pip install -r requirements/testing.txt
-            setup-postgres
+          run: setup-postgres
       - name: superset init
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python
         run: |
           pip install -e .
           superset db upgrade
           superset load_test_users
       - name: superset load_examples
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python
         run: |
           # load examples without test data
           superset load_examples --load-big-data

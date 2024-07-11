@@ -37,7 +37,7 @@ UNICODE_TBL_NAME = "unicode_test"
 @pytest.fixture(scope="session")
 def load_unicode_data():
     with app.app_context():
-        with get_example_database().get_sqla_engine_with_context() as engine:
+        with get_example_database().get_sqla_engine() as engine:
             _get_dataframe().to_sql(
                 UNICODE_TBL_NAME,
                 engine,
@@ -51,7 +51,7 @@ def load_unicode_data():
 
     yield
     with app.app_context():
-        with get_example_database().get_sqla_engine_with_context() as engine:
+        with get_example_database().get_sqla_engine() as engine:
             engine.execute("DROP TABLE IF EXISTS unicode_test")
 
 
@@ -114,7 +114,8 @@ def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
 
 def _cleanup(dash: Dashboard, slice_name: str) -> None:
     db.session.delete(dash)
-    if slice_name:
-        slice = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+    if slice_name and (
+        slice := db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+    ):
         db.session.delete(slice)
     db.session.commit()

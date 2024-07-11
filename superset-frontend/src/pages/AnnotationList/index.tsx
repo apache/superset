@@ -17,9 +17,15 @@
  * under the License.
  */
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useHistory } from 'react-router-dom';
-import { css, t, styled, SupersetClient } from '@superset-ui/core';
+import {
+  css,
+  t,
+  styled,
+  SupersetClient,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import moment from 'moment';
 import rison from 'rison';
 
@@ -28,7 +34,6 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';

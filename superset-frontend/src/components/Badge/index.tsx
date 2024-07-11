@@ -16,27 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Badge as AntdBadge } from 'antd';
-import { BadgeProps as AntdBadgeProps } from 'antd/lib/badge';
+import { Badge as AntdBadge } from 'antd-v5';
+import { BadgeProps as AntdBadgeProps } from 'antd-v5/lib/badge';
 
-export interface BadgeProps extends AntdBadgeProps {
-  textColor?: string;
-}
+export type { AntdBadgeProps as BadgeProps };
 
-const Badge = styled(
-  (
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    { textColor, color, text, ...props }: BadgeProps,
-  ) => <AntdBadge text={text} color={text ? color : undefined} {...props} />,
-)`
-  & > sup {
-    padding: 0 ${({ theme }) => theme.gridUnit * 2}px;
-    background: ${({ theme, color }) => color || theme.colors.primary.base};
-    color: ${({ theme, textColor }) =>
-      textColor || theme.colors.grayscale.light5};
-  }
+const Badge = styled((props: AntdBadgeProps) => <AntdBadge {...props} />)`
+  ${({ theme, color, count }) => `
+    & > sup,
+    & > sup.antd5-badge-count {
+      ${
+        count !== undefined
+          ? `background: ${color || theme.colors.primary.base};`
+          : ''
+      }
+    }
+  `}
 `;
 
 export default Badge;

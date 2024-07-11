@@ -16,11 +16,11 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-import json
+
 import unittest
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 
 import pytest
@@ -28,8 +28,8 @@ from flask import g
 from sqlalchemy.orm.session import make_transient
 
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
+    load_energy_table_with_slice,  # noqa: F401
+    load_energy_table_data,  # noqa: F401
 )
 from tests.integration_tests.test_app import app
 from superset.commands.dashboard.importers.v0 import decode_dashboards
@@ -42,12 +42,14 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
+from superset.utils import json
 
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
-from .base_tests import SupersetTestCase
 
 
 def delete_imports():
@@ -223,7 +225,7 @@ class TestImportExport(SupersetTestCase):
     @unittest.skip("Schema needs to be updated")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_export_1_dashboard(self):
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         birth_dash = self.get_dash_by_slug("births")
         id_ = birth_dash.id
         export_dash_url = f"/dashboard/export_dashboards_form?id={id_}&action=go"
@@ -254,7 +256,7 @@ class TestImportExport(SupersetTestCase):
         "load_birth_names_dashboard_with_slices",
     )
     def test_export_2_dashboards(self):
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         birth_dash = self.get_dash_by_slug("births")
         world_health_dash = self.get_dash_by_slug("world_health")
         export_dash_url = (
@@ -368,9 +370,7 @@ class TestImportExport(SupersetTestCase):
                 }}
               }}
             }}
-        """.format(
-            slc.id
-        )
+        """.format(slc.id)
         imported_dash_id = import_dashboard(dash_with_1_slice, import_time=1990)
         imported_dash = self.get_dash(imported_dash_id)
 
@@ -576,9 +576,7 @@ class TestImportExport(SupersetTestCase):
                     }}
                 }}
                 }}
-            """.format(
-            slc.id
-        )
+            """.format(slc.id)
         return dash_with_1_slice
 
     def test_import_table_no_metadata(self):

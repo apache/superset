@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
@@ -54,19 +53,13 @@ const dropdownItems = [
       {
         label: 'Upload CSV to database',
         name: 'Upload a CSV',
-        url: '/csvtodatabaseview/form',
+        url: '#',
         perm: true,
       },
       {
         label: 'Upload columnar file to database',
         name: 'Upload a Columnar file',
-        url: '/columnartodatabaseview/form',
-        perm: true,
-      },
-      {
-        label: 'Upload Excel file to database',
-        name: 'Upload Excel',
-        url: '/exceltodatabaseview/form',
+        url: '#',
         perm: true,
       },
     ],
@@ -175,7 +168,8 @@ const resetUseSelectorMock = () => {
     permissions: {},
     roles: {
       Admin: [
-        ['can_this_form_get', 'CsvToDatabaseView'], // So we can upload CSV
+        ['can_csv_upload', 'Database'], // So we can upload CSV
+        ['can_excel_upload', 'Database'], // So we can upload CSV
         ['can_write', 'Database'], // So we can write DBs
         ['can_write', 'Dataset'], // So we can write Datasets
         ['can_write', 'Chart'], // So we can write Datasets
@@ -314,9 +308,10 @@ test('If there is a DB with allow_file_upload set as True the option should be e
   userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
   userEvent.hover(dataMenu);
+  expect(await screen.findByText('Upload CSV to database')).toBeInTheDocument();
   expect(
-    (await screen.findByText('Upload CSV to database')).closest('a'),
-  ).toHaveAttribute('href', '/csvtodatabaseview/form');
+    await screen.findByText('Upload Excel to database'),
+  ).toBeInTheDocument();
 });
 
 test('If there is NOT a DB with allow_file_upload set as True the option should be disabled', async () => {

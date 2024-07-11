@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import {
@@ -50,6 +49,8 @@ describe('SamplesPane', () => {
         ],
         colnames: ['__timestamp', 'genre'],
         coltypes: [2, 1],
+        rowcount: 2,
+        sql_rowcount: 2,
       },
     },
   );

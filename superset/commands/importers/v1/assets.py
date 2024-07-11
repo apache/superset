@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from functools import partial
 from typing import Any, Optional
 
 from marshmallow import Schema
@@ -44,6 +45,7 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import dashboard_slices
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
+from superset.utils.decorators import on_error, transaction
 
 
 class ImportAssetsCommand(BaseCommand):
@@ -112,7 +114,6 @@ class ImportAssetsCommand(BaseCommand):
             if file_name.startswith("charts/"):
                 dataset_dict = dataset_info[config["dataset_uuid"]]
                 config.update(dataset_dict)
-                # pylint: disable=line-too-long
                 dataset_uid = f"{dataset_dict['datasource_id']}__{dataset_dict['datasource_type']}"
                 config["params"].update({"datasource": dataset_uid})
                 if "query_context" in config:
@@ -154,16 +155,16 @@ class ImportAssetsCommand(BaseCommand):
             if chart.viz_type == "filter_box":
                 db.session.delete(chart)
 
+    @transaction(
+        on_error=partial(
+            on_error,
+            catches=(Exception,),
+            reraise=ImportFailedError,
+        )
+    )
     def run(self) -> None:
         self.validate()
-
-        # rollback to prevent partial imports
-        try:
-            self._import(self._configs)
-            db.session.commit()
-        except Exception as ex:
-            db.session.rollback()
-            raise ImportFailedError() from ex
+        self._import(self._configs)
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

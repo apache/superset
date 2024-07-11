@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';

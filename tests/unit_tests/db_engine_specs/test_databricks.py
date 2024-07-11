@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
-import json
 from datetime import datetime
 from typing import Optional
 
@@ -25,8 +24,9 @@ from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 def test_get_parameters_from_uri() -> None:
@@ -35,13 +35,13 @@ def test_get_parameters_from_uri() -> None:
     """
     from superset.db_engine_specs.databricks import (
         DatabricksNativeEngineSpec,
-        DatabricksParametersType,
+        DatabricksNativeParametersType,
     )
 
     parameters = DatabricksNativeEngineSpec.get_parameters_from_uri(
         "databricks+connector://token:abc12345@my_hostname:1234/test"
     )
-    assert parameters == DatabricksParametersType(
+    assert parameters == DatabricksNativeParametersType(
         {
             "access_token": "abc12345",
             "host": "my_hostname",
@@ -60,10 +60,10 @@ def test_build_sqlalchemy_uri() -> None:
     """
     from superset.db_engine_specs.databricks import (
         DatabricksNativeEngineSpec,
-        DatabricksParametersType,
+        DatabricksNativeParametersType,
     )
 
-    parameters = DatabricksParametersType(
+    parameters = DatabricksNativeParametersType(
         {
             "access_token": "abc12345",
             "host": "my_hostname",
@@ -238,8 +238,29 @@ def test_extract_errors_with_context() -> None:
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_get_prequeries() -> None:
+    """
+    Test the ``get_prequeries`` method.
+    """
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    assert DatabricksNativeEngineSpec.get_prequeries() == []
+    assert DatabricksNativeEngineSpec.get_prequeries(schema="test") == [
+        "USE SCHEMA test",
+    ]
+    assert DatabricksNativeEngineSpec.get_prequeries(catalog="test") == [
+        "USE CATALOG test",
+    ]
+    assert DatabricksNativeEngineSpec.get_prequeries(catalog="foo", schema="bar") == [
+        "USE CATALOG foo",
+        "USE SCHEMA bar",
+    ]

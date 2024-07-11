@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { fireEvent, render } from 'spec/helpers/testing-library';

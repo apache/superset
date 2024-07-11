@@ -45,12 +45,12 @@ export default class EchartsBubbleChartPlugin extends ChartPlugin<
         name: t('Bubble Chart'),
         tags: [
           t('Multi-Dimensions'),
-          t('Aesthetic'),
           t('Comparison'),
           t('Scatter'),
           t('Time'),
           t('Trend'),
           t('ECharts'),
+          t('Featured'),
         ],
         thumbnail,
       }),

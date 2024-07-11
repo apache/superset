@@ -14,12 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from unittest.mock import patch
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
 from superset.commands.dataset.exceptions import DatasetAccessDeniedError
@@ -27,10 +26,11 @@ from superset.commands.explore.form_data.state import TemporaryExploreState
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.core import DatasourceType
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.test_app import app
 
@@ -40,22 +40,22 @@ UPDATED_FORM_DATA = json.dumps({"test": "updated value"})
 
 
 @pytest.fixture
-def chart_id(load_world_bank_dashboard_with_slices) -> int:
-    with app.app_context() as ctx:
+def chart_id(load_world_bank_dashboard_with_slices) -> int:  # noqa: F811
+    with app.app_context() as ctx:  # noqa: F841
         chart = db.session.query(Slice).filter_by(slice_name="World's Population").one()
         return chart.id
 
 
 @pytest.fixture
 def admin_id() -> int:
-    with app.app_context() as ctx:
+    with app.app_context() as ctx:  # noqa: F841
         admin = db.session.query(User).filter_by(username="admin").one()
         return admin.id
 
 
 @pytest.fixture
 def datasource() -> int:
-    with app.app_context() as ctx:
+    with app.app_context() as ctx:  # noqa: F841
         dataset = (
             db.session.query(SqlaTable)
             .filter_by(table_name="wb_health_population")
@@ -351,7 +351,7 @@ def test_put_not_owner(test_client, login_as, chart_id: int, datasource: SqlaTab
 
 
 def test_get_key_not_found(test_client, login_as_admin):
-    resp = test_client.get(f"api/v1/explore/form_data/unknown-key")
+    resp = test_client.get(f"api/v1/explore/form_data/unknown-key")  # noqa: F541
     assert resp.status_code == 404
 
 

@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+
+// TODO: These tests should be made atomic in separate files
+
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import {
@@ -431,9 +433,12 @@ describe('DatabaseModal', () => {
       // ---------- Components ----------
       // <TabHeader> - AntD header
       const closeButton = screen.getByRole('button', { name: /close/i });
+
       const basicHeader = screen.getByRole('heading', {
         name: /connect a database/i,
       });
+      expect(basicHeader).toBeVisible();
+
       // <ModalHeader> - Connection header
       const basicHelper = screen.getByText(/step 2 of 2/i);
       const basicHeaderTitle = screen.getByText(/enter primary credentials/i);
@@ -493,7 +498,6 @@ describe('DatabaseModal', () => {
       // ---------- Assertions ----------
       const visibleComponents = [
         closeButton,
-        basicHeader,
         basicHelper,
         basicHeaderTitle,
         basicHeaderSubtitle,
@@ -1227,9 +1231,9 @@ describe('DatabaseModal', () => {
           const SSHTunnelServerPortInput = screen.getByTestId(
             'ssh-tunnel-server_port-input',
           );
-          expect(SSHTunnelServerPortInput).toHaveValue('');
+          expect(SSHTunnelServerPortInput).toHaveValue(null);
           userEvent.type(SSHTunnelServerPortInput, '22');
-          expect(SSHTunnelServerPortInput).toHaveValue('22');
+          expect(SSHTunnelServerPortInput).toHaveValue(22);
           const SSHTunnelUsernameInput = screen.getByTestId(
             'ssh-tunnel-username-input',
           );
@@ -1263,9 +1267,9 @@ describe('DatabaseModal', () => {
           const SSHTunnelServerPortInput = screen.getByTestId(
             'ssh-tunnel-server_port-input',
           );
-          expect(SSHTunnelServerPortInput).toHaveValue('');
+          expect(SSHTunnelServerPortInput).toHaveValue(null);
           userEvent.type(SSHTunnelServerPortInput, '22');
-          expect(SSHTunnelServerPortInput).toHaveValue('22');
+          expect(SSHTunnelServerPortInput).toHaveValue(22);
           const SSHTunnelUsernameInput = screen.getByTestId(
             'ssh-tunnel-username-input',
           );

@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
 import { AntdButton, AntdSelect } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
-import { FieldPropTypes } from '.';
+import { FieldPropTypes } from '../../types';
 import { infoTooltip, labelMarginBottom, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {

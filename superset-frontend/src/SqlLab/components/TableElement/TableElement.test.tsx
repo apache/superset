@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import fetchMock from 'fetch-mock';
 import * as uiCore from '@superset-ui/core';
 import { FeatureFlag } from '@superset-ui/core';
@@ -47,9 +47,10 @@ jest.mock(
       <div data-test="mock-column-element">{column.name}</div>
     ),
 );
-const getTableMetadataEndpoint = 'glob:**/api/v1/database/*/table/*/*/';
+const getTableMetadataEndpoint =
+  /\/api\/v1\/database\/\d+\/table_metadata\/(?:\?.*)?$/;
 const getExtraTableMetadataEndpoint =
-  'glob:**/api/v1/database/*/table_extra/*/*/';
+  /\/api\/v1\/database\/\d+\/table_metadata\/extra\/(?:\?.*)?$/;
 const updateTableSchemaEndpoint = 'glob:*/tableschemaview/*/expanded';
 
 beforeEach(() => {
@@ -70,11 +71,11 @@ const mockedProps = {
 };
 
 test('renders', () => {
-  expect(React.isValidElement(<TableElement table={table} />)).toBe(true);
+  expect(isValidElement(<TableElement table={table} />)).toBe(true);
 });
 
 test('renders with props', () => {
-  expect(React.isValidElement(<TableElement {...mockedProps} />)).toBe(true);
+  expect(isValidElement(<TableElement {...mockedProps} />)).toBe(true);
 });
 
 test('has 4 IconTooltip elements', async () => {

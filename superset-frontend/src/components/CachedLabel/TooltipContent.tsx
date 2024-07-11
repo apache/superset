@@ -17,14 +17,14 @@
  * under the License.
  */
 
-import React from 'react';
+import { FC } from 'react';
 import moment from 'moment';
 import { t } from '@superset-ui/core';
 
 interface Props {
   cachedTimestamp?: string;
 }
-export const TooltipContent: React.FC<Props> = ({ cachedTimestamp }) => {
+export const TooltipContent: FC<Props> = ({ cachedTimestamp }) => {
   const cachedText = cachedTimestamp ? (
     <span>
       {t('Loaded data cached')}

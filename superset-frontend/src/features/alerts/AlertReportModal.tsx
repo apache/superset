@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  ChangeEvent,
   FunctionComponent,
   useState,
   useEffect,
@@ -24,6 +25,7 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
+
 import {
   css,
   isFeatureEnabled,
@@ -36,7 +38,7 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import { Input } from 'src/components/Input';
+import { InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import Collapse from 'src/components/Collapse';
@@ -50,6 +52,7 @@ import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   NotificationMethodOption,
+  NotificationSetting,
   AlertObject,
   ChartObject,
   DashboardObject,
@@ -159,6 +162,10 @@ const CONTENT_TYPE_OPTIONS = [
   },
 ];
 const FORMAT_OPTIONS = {
+  pdf: {
+    label: t('Send as PDF'),
+    value: 'PDF',
+  },
   png: {
     label: t('Send as PNG'),
     value: 'PNG',
@@ -362,6 +369,7 @@ export const TRANSLATIONS = {
   CRONTAB_ERROR_TEXT: t('crontab'),
   WORKING_TIMEOUT_ERROR_TEXT: t('working timeout'),
   RECIPIENTS_ERROR_TEXT: t('recipients'),
+  EMAIL_SUBJECT_ERROR_TEXT: t('email subject'),
   ERROR_TOOLTIP_MESSAGE: t(
     'Not all required fields are complete. Please provide the following:',
   ),
@@ -389,12 +397,6 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
         : t('Add delivery method')}
     </StyledNotificationAddButton>
   );
-};
-
-type NotificationSetting = {
-  method?: NotificationMethodOption;
-  recipients: string;
-  options: NotificationMethodOption[];
 };
 
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
@@ -427,11 +429,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const [isScreenshot, setIsScreenshot] = useState<boolean>(false);
   useEffect(() => {
-    setIsScreenshot(
-      contentType === 'dashboard' ||
-        (contentType === 'chart' && reportFormat === 'PNG'),
-    );
-  }, [contentType, reportFormat]);
+    setIsScreenshot(reportFormat === 'PNG');
+  }, [reportFormat]);
 
   // Dropdown options
   const [conditionNotNull, setConditionNotNull] = useState<boolean>(false);
@@ -487,8 +486,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const reportOrAlert = isReport ? 'report' : 'alert';
   const isEditMode = alert !== null;
   const formatOptionEnabled =
-    contentType === 'chart' &&
-    (isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport);
+    isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -496,16 +494,30 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [notificationSettings, setNotificationSettings] = useState<
     NotificationSetting[]
   >([]);
-  const onNotificationAdd = () => {
-    const settings: NotificationSetting[] = notificationSettings.slice();
-    settings.push({
-      recipients: '',
-      options: allowedNotificationMethods,
-    });
+  const [emailSubject, setEmailSubject] = useState<string>('');
+  const [emailError, setEmailError] = useState(false);
 
-    setNotificationSettings(settings);
+  const onNotificationAdd = () => {
+    setNotificationSettings([
+      ...notificationSettings,
+      {
+        recipients: '',
+        // options shown in the newly added notification method
+        options: allowedNotificationMethods.filter(
+          // are filtered such that
+          option =>
+            // options are not included
+            !notificationSettings.reduce(
+              // when it exists in previous notificationSettings
+              (accum, setting) => accum || option === setting.method,
+              false,
+            ),
+        ),
+      },
+    ]);
+
     setNotificationAddState(
-      settings.length === allowedNotificationMethods.length
+      notificationSettings.length === allowedNotificationMethods.length
         ? 'hidden'
         : 'disabled',
     );
@@ -537,6 +549,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     owners: [],
     recipients: [],
     sql: '',
+    email_subject: '',
     validator_config_json: {},
     validator_type: '',
     force_screenshot: false,
@@ -547,13 +560,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     index: number,
     setting: NotificationSetting,
   ) => {
-    const settings = notificationSettings.slice();
-
+    const settings: NotificationSetting[] = [...notificationSettings];
     settings[index] = setting;
-    setNotificationSettings(settings);
 
-    if (setting.method !== undefined && notificationAddState !== 'hidden') {
-      setNotificationAddState('active');
+    // if you've changed notification method -> remove trailing methods
+    if (notificationSettings[index].method !== setting.method) {
+      notificationSettings[index] = setting;
+
+      setNotificationSettings(
+        notificationSettings.filter((_, idx) => idx <= index),
+      );
+
+      if (notificationSettings.length - 1 > index) {
+        setNotificationAddState('active');
+      }
+
+      if (setting.method !== undefined && notificationAddState !== 'hidden') {
+        setNotificationAddState('active');
+      }
+    } else {
+      setNotificationSettings(settings);
     }
   };
 
@@ -611,15 +637,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
       dashboard:
         contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
+      custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
         owner => (owner as MetaObject).value || owner.id,
       ),
       recipients,
-      report_format:
-        contentType === 'dashboard'
-          ? DEFAULT_NOTIFICATION_FORMAT
-          : reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+      report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -863,7 +887,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Handle input/textarea updates
   const onInputChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
     const {
       target: { type, value, name },
@@ -871,17 +895,25 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const parsedValue = type === 'number' ? parseInt(value, 10) || null : value;
 
     updateAlertState(name, parsedValue);
+
+    if (name === 'name') {
+      updateEmailSubject();
+    }
+  };
+
+  const onCustomWidthChange = (value: number | null | undefined) => {
+    updateAlertState('custom_width', value);
   };
 
   const onTimeoutVerifyChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
     const { target } = event;
     const value = +target.value;
 
     // Need to make sure grace period is not lower than TIMEOUT_MIN
     if (value === 0) {
-      updateAlertState(target.name, null);
+      updateAlertState(target.name, undefined);
     } else {
       updateAlertState(
         target.name,
@@ -930,7 +962,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('validator_config_json', config);
   };
 
-  const onThresholdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onThresholdChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { target } = event;
 
     const config = {
@@ -1037,6 +1069,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const validateNotificationSection = () => {
     const hasErrors = !checkNotificationSettings();
     const errors = hasErrors ? [TRANSLATIONS.RECIPIENTS_ERROR_TEXT] : [];
+
+    if (emailError) {
+      errors.push(TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT);
+    }
+
     updateValidationStatus(Sections.Notification, errors);
   };
 
@@ -1124,11 +1161,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : 'active',
       );
       setContentType(resource.chart ? 'chart' : 'dashboard');
-      setReportFormat(
-        resource.chart
-          ? resource.report_format || DEFAULT_NOTIFICATION_FORMAT
-          : DEFAULT_NOTIFICATION_FORMAT,
-      );
+      setReportFormat(resource.report_format || DEFAULT_NOTIFICATION_FORMAT);
       const validatorConfig =
         typeof resource.validator_config_json === 'string'
           ? JSON.parse(resource.validator_config_json)
@@ -1182,6 +1215,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentAlertSafe = currentAlert || {};
   useEffect(() => {
     validateAll();
+    updateEmailSubject();
   }, [
     currentAlertSafe.name,
     currentAlertSafe.owners,
@@ -1195,6 +1229,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     contentType,
     notificationSettings,
     conditionNotNull,
+    emailError,
   ]);
   useEffect(() => {
     enforceValidation();
@@ -1224,6 +1259,32 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     return titleText;
+  };
+
+  const updateEmailSubject = () => {
+    if (contentType === 'chart') {
+      if (currentAlert?.name || currentAlert?.chart?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.chart?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else if (contentType === 'dashboard') {
+      if (currentAlert?.name || currentAlert?.dashboard?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.dashboard?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else {
+      setEmailSubject('');
+    }
+  };
+
+  const handleErrorUpdate = (hasError: boolean) => {
+    setEmailError(hasError);
   };
 
   return (
@@ -1412,7 +1473,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledInputContainer>
               <StyledInputContainer css={noMarginBottom}>
                 <div className="control-label">
-                  {t('Value')} <span className="required">*</span>
+                  {t('Value')}{' '}
+                  {!conditionNotNull && <span className="required">*</span>}
                 </div>
                 <div className="input-container">
                   <input
@@ -1421,7 +1483,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     disabled={conditionNotNull}
                     value={
                       currentAlert?.validator_config_json?.threshold !==
-                      undefined
+                        undefined && !conditionNotNull
                         ? currentAlert.validator_config_json.threshold
                         : ''
                     }
@@ -1512,7 +1574,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             )}
           </StyledInputContainer>
           <StyledInputContainer
-            css={['TEXT', 'CSV'].includes(reportFormat) && noMarginBottom}
+            css={
+              ['PDF', 'TEXT', 'CSV'].includes(reportFormat) && noMarginBottom
+            }
           >
             {formatOptionEnabled && (
               <>
@@ -1525,11 +1589,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onChange={onFormatChange}
                   value={reportFormat}
                   options={
-                    /* If chart is of text based viz type: show text
+                    contentType === 'dashboard'
+                      ? ['pdf', 'png'].map(key => FORMAT_OPTIONS[key])
+                      : /* If chart is of text based viz type: show text
                   format option */
-                    TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType)
-                      ? Object.values(FORMAT_OPTIONS)
-                      : ['png', 'csv'].map(key => FORMAT_OPTIONS[key])
+                        TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType)
+                        ? Object.values(FORMAT_OPTIONS)
+                        : ['pdf', 'png', 'csv'].map(key => FORMAT_OPTIONS[key])
                   }
                   placeholder={t('Select format')}
                 />
@@ -1542,12 +1608,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             >
               <div className="control-label">{t('Screenshot width')}</div>
               <div className="input-container">
-                <Input
+                <InputNumber
                   type="number"
                   name="custom_width"
-                  value={currentAlert?.custom_width || ''}
+                  value={currentAlert?.custom_width || undefined}
+                  min={600}
+                  max={2400}
                   placeholder={t('Input custom width in pixels')}
-                  onChange={onInputChange}
+                  onChange={onCustomWidthChange}
                 />
               </div>
             </StyledInputContainer>
@@ -1604,11 +1672,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 ariaLabel={t('Log retention')}
                 placeholder={t('Log retention')}
                 onChange={onLogRetentionChange}
-                value={
-                  typeof currentAlert?.log_retention === 'number'
-                    ? currentAlert?.log_retention
-                    : ALERT_REPORTS_DEFAULT_RETENTION
-                }
+                value={currentAlert?.log_retention}
                 options={RETENTION_OPTIONS}
                 sortComparator={propertyComparator('value')}
               />
@@ -1670,6 +1734,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
+                onInputChange={onInputChange}
+                email_subject={currentAlert?.email_subject || ''}
+                defaultSubject={emailSubject || ''}
+                setErrorSubject={handleErrorUpdate}
               />
             </StyledNotificationMethodWrapper>
           ))}

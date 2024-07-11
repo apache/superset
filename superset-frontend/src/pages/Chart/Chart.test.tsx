@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import { Link } from 'react-router-dom';
 import {
@@ -65,6 +64,7 @@ describe('ChartPage', () => {
     const { getByTestId } = render(<ChartPage />, {
       useRouter: true,
       useRedux: true,
+      useDnd: true,
     });
     await waitFor(() =>
       expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
@@ -110,6 +110,7 @@ describe('ChartPage', () => {
       const { getByTestId } = render(<ChartPage />, {
         useRouter: true,
         useRedux: true,
+        useDnd: true,
       });
       await waitFor(() =>
         expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
@@ -156,6 +157,7 @@ describe('ChartPage', () => {
         {
           useRouter: true,
           useRedux: true,
+          useDnd: true,
         },
       );
       await waitFor(() =>

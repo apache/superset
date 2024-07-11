@@ -46,9 +46,9 @@ export default class EchartsSunburstChartPlugin extends EchartsChartPlugin {
         name: t('Sunburst Chart'),
         tags: [
           t('ECharts'),
-          t('Aesthetic'),
           t('Multi-Levels'),
           t('Proportional'),
+          t('Featured'),
         ],
         thumbnail,
       },

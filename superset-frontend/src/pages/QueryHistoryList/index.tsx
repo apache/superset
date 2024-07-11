@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useCallback, ReactElement } from 'react';
+import { useMemo, useState, useCallback, ReactElement } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import {
   QueryState,

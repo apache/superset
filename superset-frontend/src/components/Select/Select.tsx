@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   forwardRef,
+  FocusEvent,
   ReactElement,
   RefObject,
   useEffect,
@@ -26,6 +27,7 @@ import React, {
   useCallback,
   ClipboardEvent,
 } from 'react';
+
 import {
   ensureIsArray,
   formatNumber,
@@ -53,6 +55,7 @@ import {
   hasCustomLabels,
   getOption,
   isObject,
+  isEqual as utilsIsEqual,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -227,7 +230,16 @@ const Select = forwardRef(
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
+        // on select is fired in single value mode if the same value is selected
+        const valueChanged = !utilsIsEqual(
+          selectedItem,
+          selectValue as RawValue | AntdLabeledValue,
+          'value',
+        );
         setSelectValue(selectedItem);
+        if (valueChanged) {
+          fireOnChange();
+        }
       } else {
         setSelectValue(previousState => {
           const array = ensureIsArray(previousState);
@@ -259,8 +271,8 @@ const Select = forwardRef(
           }
           return previousState;
         });
+        fireOnChange();
       }
-      fireOnChange();
       onSelect?.(selectedItem, option);
     };
 
@@ -432,7 +444,7 @@ const Select = forwardRef(
       [selectAllEligible],
     );
 
-    const handleOnBlur = (event: React.FocusEvent<HTMLElement>) => {
+    const handleOnBlur = (event: FocusEvent<HTMLElement>) => {
       setInputValue('');
       onBlur?.(event);
     };
@@ -533,6 +545,9 @@ const Select = forwardRef(
     const getPastedTextValue = useCallback(
       (text: string) => {
         const option = getOption(text, fullSelectOptions, true);
+        if (!option && !allowNewOptions) {
+          return undefined;
+        }
         if (labelInValue) {
           const value: AntdLabeledValue = {
             label: text,
@@ -546,17 +561,22 @@ const Select = forwardRef(
         }
         return option ? (isObject(option) ? option.value! : option) : text;
       },
-      [fullSelectOptions, labelInValue],
+      [allowNewOptions, fullSelectOptions, labelInValue],
     );
 
     const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
       const pastedText = e.clipboardData.getData('text');
       if (isSingleMode) {
-        setSelectValue(getPastedTextValue(pastedText));
+        const value = getPastedTextValue(pastedText);
+        if (value) {
+          setSelectValue(value);
+        }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
         const array = token ? uniq(pastedText.split(token)) : [pastedText];
-        const values = array.map(item => getPastedTextValue(item));
+        const values = array
+          .map(item => getPastedTextValue(item))
+          .filter(item => item !== undefined);
         if (labelInValue) {
           setSelectValue(previous => [
             ...((previous || []) as AntdLabeledValue[]),

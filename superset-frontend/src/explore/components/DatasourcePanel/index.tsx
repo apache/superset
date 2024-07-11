@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import {
   css,
   DatasourceType,
@@ -27,10 +27,11 @@ import {
 } from '@superset-ui/core';
 
 import { ControlConfig } from '@superset-ui/chart-controls';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import { FixedSizeList as List } from 'react-window';
 
-import { debounce, isArray } from 'lodash';
+import { isArray } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
-import Collapse from 'src/components/Collapse';
 import Alert from 'src/components/Alert';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
@@ -38,22 +39,19 @@ import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
-import DatasourcePanelDragOption from './DatasourcePanelDragOption';
+import { useDebounceValue } from 'src/hooks/useDebounceValue';
+import DatasourcePanelItem, {
+  ITEM_HEIGHT,
+  DataSourcePanelColumn,
+  DEFAULT_MAX_COLUMNS_LENGTH,
+  DEFAULT_MAX_METRICS_LENGTH,
+} from './DatasourcePanelItem';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue } from './types';
+import { DropzoneContext } from '../ExploreContainer';
 
-interface DatasourceControl extends ControlConfig {
+interface DatasourceControl extends Omit<ControlConfig, 'hidden'> {
   datasource?: IDatasource;
-}
-
-export interface DataSourcePanelColumn {
-  is_dttm?: boolean | null;
-  description?: string | null;
-  expression?: string | null;
-  is_certified?: number | null;
-  column_name?: string | null;
-  name?: string | null;
-  type?: string;
 }
 export interface IDatasource {
   metrics: Metric[];
@@ -76,21 +74,9 @@ export interface Props {
   };
   actions: Partial<ExploreActions> & Pick<ExploreActions, 'setControlValue'>;
   // we use this props control force update when this panel resize
-  shouldForceUpdate?: number;
+  width: number;
   formData?: QueryFormData;
 }
-
-const Button = styled.button`
-  background: none;
-  border: none;
-  text-decoration: underline;
-  color: ${({ theme }) => theme.colors.primary.dark1};
-`;
-
-const ButtonContainer = styled.div`
-  text-align: center;
-  padding-top: 2px;
-`;
 
 const DatasourceContainer = styled.div`
   ${({ theme }) => css`
@@ -104,8 +90,9 @@ const DatasourceContainer = styled.div`
       height: auto;
     }
     .field-selections {
-      padding: 0 0 ${4 * theme.gridUnit}px;
+      padding: 0 0 ${theme.gridUnit}px;
       overflow: auto;
+      height: 100%;
     }
     .field-length {
       margin-bottom: ${theme.gridUnit * 2}px;
@@ -127,56 +114,6 @@ const DatasourceContainer = styled.div`
   `};
 `;
 
-const LabelWrapper = styled.div`
-  ${({ theme }) => css`
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: ${theme.typography.sizes.s}px;
-    background-color: ${theme.colors.grayscale.light4};
-    margin: ${theme.gridUnit * 2}px 0;
-    border-radius: 4px;
-    padding: 0 ${theme.gridUnit}px;
-
-    &:first-of-type {
-      margin-top: 0;
-    }
-    &:last-of-type {
-      margin-bottom: 0;
-    }
-
-    padding: 0;
-    cursor: pointer;
-    &:hover {
-      background-color: ${theme.colors.grayscale.light3};
-    }
-
-    & > span {
-      white-space: nowrap;
-    }
-
-    .option-label {
-      display: inline;
-    }
-
-    .metric-option {
-      & > svg {
-        min-width: ${theme.gridUnit * 4}px;
-      }
-      & > .option-label {
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-    }
-  `}
-`;
-
-const SectionHeader = styled.span`
-  ${({ theme }) => `
-    font-size: ${theme.typography.sizes.m}px;
-    line-height: 1.3;
-  `}
-`;
-
 const StyledInfoboxWrapper = styled.div`
   ${({ theme }) => css`
     margin: 0 ${theme.gridUnit * 2.5}px;
@@ -187,33 +124,38 @@ const StyledInfoboxWrapper = styled.div`
   `}
 `;
 
-const LabelContainer = (props: {
-  children: React.ReactElement;
-  className: string;
-}) => {
-  const labelRef = useRef<HTMLDivElement>(null);
-  const extendedProps = {
-    labelRef,
-  };
-  return (
-    <LabelWrapper className={props.className}>
-      {React.cloneElement(props.children, extendedProps)}
-    </LabelWrapper>
-  );
-};
+const BORDER_WIDTH = 2;
+
+const sortCertifiedFirst = (slice: DataSourcePanelColumn[]) =>
+  slice.sort((a, b) => (b?.is_certified ?? 0) - (a?.is_certified ?? 0));
 
 export default function DataSourcePanel({
   datasource,
   formData,
   controls: { datasource: datasourceControl },
   actions,
-  shouldForceUpdate,
+  width,
 }: Props) {
+  const [dropzones] = useContext(DropzoneContext);
   const { columns: _columns, metrics } = datasource;
+
+  const allowedColumns = useMemo(() => {
+    const validators = Object.values(dropzones);
+    if (!isArray(_columns)) return [];
+    return _columns.filter(column =>
+      validators.some(validator =>
+        validator({
+          value: column as DndItemValue,
+          type: DndItemType.Column,
+        }),
+      ),
+    );
+  }, [dropzones, _columns]);
+
   // display temporal column first
   const columns = useMemo(
     () =>
-      [...(isArray(_columns) ? _columns : [])].sort((col1, col2) => {
+      [...allowedColumns].sort((col1, col2) => {
         if (col1?.is_dttm && !col2?.is_dttm) {
           return -1;
         }
@@ -222,107 +164,102 @@ export default function DataSourcePanel({
         }
         return 0;
       }),
-    [_columns],
+    [allowedColumns],
   );
 
+  const allowedMetrics = useMemo(() => {
+    const validators = Object.values(dropzones);
+    return metrics.filter(metric =>
+      validators.some(validator =>
+        validator({ value: metric, type: DndItemType.Metric }),
+      ),
+    );
+  }, [dropzones, metrics]);
+
+  const hiddenColumnCount = _columns.length - allowedColumns.length;
+  const hiddenMetricCount = metrics.length - allowedMetrics.length;
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [lists, setList] = useState({
-    columns,
-    metrics,
-  });
   const [showAllMetrics, setShowAllMetrics] = useState(false);
   const [showAllColumns, setShowAllColumns] = useState(false);
+  const [collapseMetrics, setCollapseMetrics] = useState(false);
+  const [collapseColumns, setCollapseColumns] = useState(false);
+  const searchKeyword = useDebounceValue(inputValue, FAST_DEBOUNCE);
 
-  const DEFAULT_MAX_COLUMNS_LENGTH = 50;
-  const DEFAULT_MAX_METRICS_LENGTH = 50;
-
-  const search = useMemo(
-    () =>
-      debounce((value: string) => {
-        if (value === '') {
-          setList({ columns, metrics });
-          return;
-        }
-        setList({
-          columns: matchSorter(columns, value, {
-            keys: [
-              {
-                key: 'verbose_name',
-                threshold: rankings.CONTAINS,
-              },
-              {
-                key: 'column_name',
-                threshold: rankings.CONTAINS,
-              },
-              {
-                key: item =>
-                  [item?.description ?? '', item?.expression ?? ''].map(
-                    x => x?.replace(/[_\n\s]+/g, ' ') || '',
-                  ),
-                threshold: rankings.CONTAINS,
-                maxRanking: rankings.CONTAINS,
-              },
-            ],
-            keepDiacritics: true,
-          }),
-          metrics: matchSorter(metrics, value, {
-            keys: [
-              {
-                key: 'verbose_name',
-                threshold: rankings.CONTAINS,
-              },
-              {
-                key: 'metric_name',
-                threshold: rankings.CONTAINS,
-              },
-              {
-                key: item =>
-                  [item?.description ?? '', item?.expression ?? ''].map(
-                    x => x?.replace(/[_\n\s]+/g, ' ') || '',
-                  ),
-                threshold: rankings.CONTAINS,
-                maxRanking: rankings.CONTAINS,
-              },
-            ],
-            keepDiacritics: true,
-            baseSort: (a, b) =>
-              Number(b?.item?.is_certified ?? 0) -
-                Number(a?.item?.is_certified ?? 0) ||
-              String(a?.rankedValue ?? '').localeCompare(b?.rankedValue ?? ''),
-          }),
-        });
-      }, FAST_DEBOUNCE),
-    [columns, metrics],
-  );
-
-  useEffect(() => {
-    setList({
-      columns,
-      metrics,
+  const filteredColumns = useMemo(() => {
+    if (!searchKeyword) {
+      return columns ?? [];
+    }
+    return matchSorter(columns, searchKeyword, {
+      keys: [
+        {
+          key: 'verbose_name',
+          threshold: rankings.CONTAINS,
+        },
+        {
+          key: 'column_name',
+          threshold: rankings.CONTAINS,
+        },
+        {
+          key: item =>
+            [item?.description ?? '', item?.expression ?? ''].map(
+              x => x?.replace(/[_\n\s]+/g, ' ') || '',
+            ),
+          threshold: rankings.CONTAINS,
+          maxRanking: rankings.CONTAINS,
+        },
+      ],
+      keepDiacritics: true,
     });
-    setInputValue('');
-  }, [columns, datasource, metrics]);
+  }, [columns, searchKeyword]);
 
-  const sortCertifiedFirst = (slice: DataSourcePanelColumn[]) =>
-    slice.sort((a, b) => (b?.is_certified ?? 0) - (a?.is_certified ?? 0));
+  const filteredMetrics = useMemo(() => {
+    if (!searchKeyword) {
+      return allowedMetrics ?? [];
+    }
+    return matchSorter(allowedMetrics, searchKeyword, {
+      keys: [
+        {
+          key: 'verbose_name',
+          threshold: rankings.CONTAINS,
+        },
+        {
+          key: 'metric_name',
+          threshold: rankings.CONTAINS,
+        },
+        {
+          key: item =>
+            [item?.description ?? '', item?.expression ?? ''].map(
+              x => x?.replace(/[_\n\s]+/g, ' ') || '',
+            ),
+          threshold: rankings.CONTAINS,
+          maxRanking: rankings.CONTAINS,
+        },
+      ],
+      keepDiacritics: true,
+      baseSort: (a, b) =>
+        Number(b?.item?.is_certified ?? 0) -
+          Number(a?.item?.is_certified ?? 0) ||
+        String(a?.rankedValue ?? '').localeCompare(b?.rankedValue ?? ''),
+    });
+  }, [allowedMetrics, searchKeyword]);
 
   const metricSlice = useMemo(
     () =>
       showAllMetrics
-        ? lists?.metrics
-        : lists?.metrics?.slice?.(0, DEFAULT_MAX_METRICS_LENGTH),
-    [lists?.metrics, showAllMetrics],
+        ? filteredMetrics
+        : filteredMetrics?.slice?.(0, DEFAULT_MAX_METRICS_LENGTH),
+    [filteredMetrics, showAllMetrics],
   );
 
   const columnSlice = useMemo(
     () =>
       showAllColumns
-        ? sortCertifiedFirst(lists?.columns)
+        ? sortCertifiedFirst(filteredColumns)
         : sortCertifiedFirst(
-            lists?.columns?.slice?.(0, DEFAULT_MAX_COLUMNS_LENGTH),
+            filteredColumns?.slice?.(0, DEFAULT_MAX_COLUMNS_LENGTH),
           ),
-    [lists.columns, showAllColumns],
+    [filteredColumns, showAllColumns],
   );
 
   const showInfoboxCheck = () => {
@@ -349,13 +286,12 @@ export default function DataSourcePanel({
           allowClear
           onChange={evt => {
             setInputValue(evt.target.value);
-            search(evt.target.value);
           }}
           value={inputValue}
           className="form-control input-md"
           placeholder={t('Search Metrics & Columns')}
         />
-        <div className="field-selections">
+        <div className="field-selections" data-test="fieldSelections">
           {datasourceIsSaveable && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
               <Alert
@@ -385,78 +321,42 @@ export default function DataSourcePanel({
               />
             </StyledInfoboxWrapper>
           )}
-          <Collapse
-            defaultActiveKey={['metrics', 'column']}
-            expandIconPosition="right"
-            ghost
-          >
-            {metrics?.length && (
-              <Collapse.Panel
-                header={<SectionHeader>{t('Metrics')}</SectionHeader>}
-                key="metrics"
+          <AutoSizer>
+            {({ height }: { height: number }) => (
+              <List
+                width={width - BORDER_WIDTH}
+                height={height}
+                itemSize={ITEM_HEIGHT}
+                itemCount={
+                  (collapseMetrics ? 0 : metricSlice?.length) +
+                  (collapseColumns ? 0 : columnSlice.length) +
+                  2 + // Each section header row
+                  (collapseMetrics ? 0 : 2) +
+                  (collapseColumns ? 0 : 2)
+                }
+                itemData={{
+                  metricSlice,
+                  columnSlice,
+                  width,
+                  totalMetrics: filteredMetrics.length,
+                  totalColumns: filteredColumns.length,
+                  showAllMetrics,
+                  onShowAllMetricsChange: setShowAllMetrics,
+                  showAllColumns,
+                  onShowAllColumnsChange: setShowAllColumns,
+                  collapseMetrics,
+                  onCollapseMetricsChange: setCollapseMetrics,
+                  collapseColumns,
+                  onCollapseColumnsChange: setCollapseColumns,
+                  hiddenMetricCount,
+                  hiddenColumnCount,
+                }}
+                overscanCount={5}
               >
-                <div className="field-length">
-                  {t(
-                    `Showing %s of %s`,
-                    metricSlice?.length,
-                    lists?.metrics.length,
-                  )}
-                </div>
-                {metricSlice?.map?.((m: Metric) => (
-                  <LabelContainer
-                    key={m.metric_name + String(shouldForceUpdate)}
-                    className="column"
-                  >
-                    <DatasourcePanelDragOption
-                      value={m}
-                      type={DndItemType.Metric}
-                    />
-                  </LabelContainer>
-                ))}
-                {lists?.metrics?.length > DEFAULT_MAX_METRICS_LENGTH ? (
-                  <ButtonContainer>
-                    <Button onClick={() => setShowAllMetrics(!showAllMetrics)}>
-                      {showAllMetrics ? t('Show less...') : t('Show all...')}
-                    </Button>
-                  </ButtonContainer>
-                ) : (
-                  <></>
-                )}
-              </Collapse.Panel>
+                {DatasourcePanelItem}
+              </List>
             )}
-            <Collapse.Panel
-              header={<SectionHeader>{t('Columns')}</SectionHeader>}
-              key="column"
-            >
-              <div className="field-length">
-                {t(
-                  `Showing %s of %s`,
-                  columnSlice.length,
-                  lists.columns.length,
-                )}
-              </div>
-              {columnSlice.map(col => (
-                <LabelContainer
-                  key={col.column_name + String(shouldForceUpdate)}
-                  className="column"
-                >
-                  <DatasourcePanelDragOption
-                    value={col as DndItemValue}
-                    type={DndItemType.Column}
-                  />
-                </LabelContainer>
-              ))}
-              {lists.columns.length > DEFAULT_MAX_COLUMNS_LENGTH ? (
-                <ButtonContainer>
-                  <Button onClick={() => setShowAllColumns(!showAllColumns)}>
-                    {showAllColumns ? t('Show Less...') : t('Show all...')}
-                  </Button>
-                </ButtonContainer>
-              ) : (
-                <></>
-              )}
-            </Collapse.Panel>
-          </Collapse>
+          </AutoSizer>
         </div>
       </>
     ),
@@ -464,14 +364,15 @@ export default function DataSourcePanel({
     [
       columnSlice,
       inputValue,
-      lists.columns.length,
-      lists?.metrics?.length,
+      filteredColumns.length,
+      filteredMetrics.length,
       metricSlice,
-      search,
       showAllColumns,
       showAllMetrics,
+      collapseMetrics,
+      collapseColumns,
       datasourceIsSaveable,
-      shouldForceUpdate,
+      width,
     ],
   );
 
@@ -488,6 +389,7 @@ export default function DataSourcePanel({
           formData={formData}
         />
       )}
+      {/* @ts-ignore */}
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
     </DatasourceContainer>

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import sinon from 'sinon';
 import userEvent from '@testing-library/user-event';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
@@ -50,7 +49,7 @@ describe('VizTypeControl', () => {
       new ChartMetadata({
         name: 'vis1',
         thumbnail: '',
-        tags: ['Popular'],
+        tags: ['Featured'],
       }),
     )
     .registerValue(

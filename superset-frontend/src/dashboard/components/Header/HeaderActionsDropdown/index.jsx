@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
-import { SupersetClient, t } from '@superset-ui/core';
+import { connect } from 'react-redux';
+import { t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -34,6 +35,7 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { MenuKeys } from 'src/dashboard/types';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -45,6 +47,7 @@ const propTypes = {
   customCss: PropTypes.string,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
+  directPathToChild: PropTypes.array,
   onChange: PropTypes.func.isRequired,
   updateCss: PropTypes.func.isRequired,
   forceRefreshAllCharts: PropTypes.func.isRequired,
@@ -76,21 +79,11 @@ const defaultProps = {
   refreshWarning: null,
 };
 
-const MENU_KEYS = {
-  SAVE_MODAL: 'save-modal',
-  SHARE_DASHBOARD: 'share-dashboard',
-  REFRESH_DASHBOARD: 'refresh-dashboard',
-  AUTOREFRESH_MODAL: 'autorefresh-modal',
-  SET_FILTER_MAPPING: 'set-filter-mapping',
-  EDIT_PROPERTIES: 'edit-properties',
-  EDIT_CSS: 'edit-css',
-  DOWNLOAD_DASHBOARD: 'download-dashboard',
-  TOGGLE_FULLSCREEN: 'toggle-fullscreen',
-  MANAGE_EMBEDDED: 'manage-embedded',
-  MANAGE_EMAIL_REPORT: 'manage-email-report',
-};
+const mapStateToProps = state => ({
+  directPathToChild: state.dashboardState.directPathToChild,
+});
 
-class HeaderActionsDropdown extends React.PureComponent {
+export class HeaderActionsDropdown extends PureComponent {
   static discardChanges() {
     window.location.reload();
   }
@@ -99,7 +92,6 @@ class HeaderActionsDropdown extends React.PureComponent {
     super(props);
     this.state = {
       css: props.customCss,
-      cssTemplates: [],
       showReportSubMenu: null,
     };
 
@@ -107,23 +99,6 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.changeRefreshInterval = this.changeRefreshInterval.bind(this);
     this.handleMenuClick = this.handleMenuClick.bind(this);
     this.setShowReportSubMenu = this.setShowReportSubMenu.bind(this);
-  }
-
-  UNSAFE_componentWillMount() {
-    SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
-      .then(({ json }) => {
-        const cssTemplates = json.result.map(row => ({
-          value: row.template_name,
-          css: row.css,
-          label: row.template_name,
-        }));
-        this.setState({ cssTemplates });
-      })
-      .catch(() => {
-        this.props.addDangerToast(
-          t('An error occurred while fetching available CSS templates'),
-        );
-      });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -152,14 +127,14 @@ class HeaderActionsDropdown extends React.PureComponent {
 
   handleMenuClick({ key }) {
     switch (key) {
-      case MENU_KEYS.REFRESH_DASHBOARD:
+      case MenuKeys.RefreshDashboard:
         this.props.forceRefreshAllCharts();
         this.props.addSuccessToast(t('Refreshing charts'));
         break;
-      case MENU_KEYS.EDIT_PROPERTIES:
+      case MenuKeys.EditProperties:
         this.props.showPropertiesModal();
         break;
-      case MENU_KEYS.TOGGLE_FULLSCREEN: {
+      case MenuKeys.ToggleFullscreen: {
         const url = getDashboardUrl({
           pathname: window.location.pathname,
           filters: getActiveFilters(),
@@ -169,7 +144,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         window.location.replace(url);
         break;
       }
-      case MENU_KEYS.MANAGE_EMBEDDED: {
+      case MenuKeys.ManageEmbedded: {
         this.props.manageEmbedded();
         break;
       }
@@ -204,6 +179,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       addDangerToast,
       setIsDropdownVisible,
       isDropdownVisible,
+      directPathToChild,
       ...rest
     } = this.props;
 
@@ -222,11 +198,13 @@ class HeaderActionsDropdown extends React.PureComponent {
     const refreshIntervalOptions =
       dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
 
+    const dashboardComponentId = [...(directPathToChild || [])].pop();
+
     return (
       <Menu selectable={false} data-test="header-actions-menu" {...rest}>
         {!editMode && (
           <Menu.Item
-            key={MENU_KEYS.REFRESH_DASHBOARD}
+            key={MenuKeys.RefreshDashboard}
             data-test="refresh-dashboard-menu-item"
             disabled={isLoading}
             onClick={this.handleMenuClick}
@@ -236,7 +214,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         )}
         {!editMode && !isEmbedded && (
           <Menu.Item
-            key={MENU_KEYS.TOGGLE_FULLSCREEN}
+            key={MenuKeys.ToggleFullscreen}
             onClick={this.handleMenuClick}
           >
             {getUrlParam(URL_PARAMS.standalone)
@@ -246,25 +224,25 @@ class HeaderActionsDropdown extends React.PureComponent {
         )}
         {editMode && (
           <Menu.Item
-            key={MENU_KEYS.EDIT_PROPERTIES}
+            key={MenuKeys.EditProperties}
             onClick={this.handleMenuClick}
           >
             {t('Edit properties')}
           </Menu.Item>
         )}
         {editMode && (
-          <Menu.Item key={MENU_KEYS.EDIT_CSS}>
+          <Menu.Item key={MenuKeys.EditCss}>
             <CssEditor
               triggerNode={<span>{t('Edit CSS')}</span>}
               initialCss={this.state.css}
-              templates={this.state.cssTemplates}
               onChange={this.changeCss}
+              addDangerToast={addDangerToast}
             />
           </Menu.Item>
         )}
         <Menu.Divider />
         {userCanSave && (
-          <Menu.Item key={MENU_KEYS.SAVE_MODAL}>
+          <Menu.Item key={MenuKeys.SaveModal}>
             <SaveModal
               addSuccessToast={this.props.addSuccessToast}
               addDangerToast={this.props.addDangerToast}
@@ -289,7 +267,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           </Menu.Item>
         )}
         <Menu.SubMenu
-          key={MENU_KEYS.DOWNLOAD_DASHBOARD}
+          key={MenuKeys.Download}
           disabled={isLoading}
           title={t('Download')}
           logEvent={this.props.logEvent}
@@ -303,7 +281,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         </Menu.SubMenu>
         {userCanShare && (
           <Menu.SubMenu
-            key={MENU_KEYS.SHARE_DASHBOARD}
+            key={MenuKeys.Share}
             data-test="share-dashboard-menu-item"
             disabled={isLoading}
             title={t('Share')}
@@ -317,12 +295,13 @@ class HeaderActionsDropdown extends React.PureComponent {
               addSuccessToast={addSuccessToast}
               addDangerToast={addDangerToast}
               dashboardId={dashboardId}
+              dashboardComponentId={dashboardComponentId}
             />
           </Menu.SubMenu>
         )}
         {!editMode && userCanCurate && (
           <Menu.Item
-            key={MENU_KEYS.MANAGE_EMBEDDED}
+            key={MenuKeys.ManageEmbedded}
             onClick={this.handleMenuClick}
           >
             {t('Embed dashboard')}
@@ -357,7 +336,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           )
         ) : null}
         {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (
-          <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
+          <Menu.Item key={MenuKeys.SetFilterMapping}>
             <FilterScopeModal
               className="m-r-5"
               triggerNode={t('Set filter mapping')}
@@ -365,7 +344,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           </Menu.Item>
         )}
 
-        <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
+        <Menu.Item key={MenuKeys.AutorefreshModal}>
           <RefreshIntervalModal
             addSuccessToast={this.props.addSuccessToast}
             refreshFrequency={refreshFrequency}
@@ -385,4 +364,4 @@ class HeaderActionsDropdown extends React.PureComponent {
 HeaderActionsDropdown.propTypes = propTypes;
 HeaderActionsDropdown.defaultProps = defaultProps;
 
-export default HeaderActionsDropdown;
+export default connect(mapStateToProps)(HeaderActionsDropdown);

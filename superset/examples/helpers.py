@@ -14,14 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Loads datasets, dashboards and slices in a new superset instance"""
-import json
 import os
 from typing import Any
 
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
+from superset.utils import json
 
 BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"
 
@@ -61,7 +60,6 @@ def merge_slice(slc: Slice) -> None:
     if o:
         db.session.delete(o)
     db.session.add(slc)
-    db.session.commit()
 
 
 def get_slice_json(defaults: dict[Any, Any], **kwargs: Any) -> str:

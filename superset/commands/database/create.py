@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask import current_app
@@ -33,15 +34,17 @@ from superset.commands.database.exceptions import (
 from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelCreateFailedError,
+    SSHTunnelDatabasePortError,
     SSHTunnelingNotEnabledError,
     SSHTunnelInvalidError,
 )
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.daos.database import DatabaseDAO
-from superset.daos.exceptions import DAOCreateFailedError
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.exceptions import SupersetErrorsException
-from superset.extensions import db, event_logger, security_manager
+from superset.extensions import event_logger, security_manager
 from superset.models.core import Database
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 stats_logger = current_app.config["STATS_LOGGER"]
@@ -51,19 +54,24 @@ class CreateDatabaseCommand(BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
+    @transaction(on_error=partial(on_error, reraise=DatabaseCreateFailedError))
     def run(self) -> Model:
         self.validate()
 
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
-        except (SupersetErrorsException, SSHTunnelingNotEnabledError) as ex:
+        except (
+            SupersetErrorsException,
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+        ) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
             )
             # So we can show the original message
-            raise ex
+            raise
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
@@ -77,7 +85,7 @@ class CreateDatabaseCommand(BaseCommand):
             "{}",
         )
 
-        ssh_tunnel = None
+        ssh_tunnel: Optional[SSHTunnel] = None
 
         try:
             database = self._create_database()
@@ -90,33 +98,45 @@ class CreateDatabaseCommand(BaseCommand):
                     database, ssh_tunnel_properties
                 ).run()
 
-            db.session.commit()
-
-            # adding a new database we always want to force refresh schema list
-            schemas = database.get_all_schema_names(cache=False, ssh_tunnel=ssh_tunnel)
-            for schema in schemas:
-                security_manager.add_permission_view_menu(
-                    "schema_access", security_manager.get_schema_perm(database, schema)
+            # add catalog/schema permissions
+            if database.db_engine_spec.supports_catalog:
+                catalogs = database.get_all_catalog_names(
+                    cache=False,
+                    ssh_tunnel=ssh_tunnel,
                 )
+                for catalog in catalogs:
+                    security_manager.add_permission_view_menu(
+                        "catalog_access",
+                        security_manager.get_catalog_perm(
+                            database.database_name, catalog
+                        ),
+                    )
+            else:
+                # add a dummy catalog for DBs that don't support them
+                catalogs = [None]
 
+            for catalog in catalogs:
+                try:
+                    self.add_schema_permissions(database, catalog, ssh_tunnel)
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning("Error processing catalog '%s'", catalog)
+                    continue
         except (
             SSHTunnelInvalidError,
             SSHTunnelCreateFailedError,
             SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
         ) as ex:
-            db.session.rollback()
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
             )
             # So we can show the original message
-            raise ex
+            raise
         except (
-            DAOCreateFailedError,
             DatabaseInvalidError,
             Exception,
         ) as ex:
-            db.session.rollback()
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
@@ -127,6 +147,26 @@ class CreateDatabaseCommand(BaseCommand):
             stats_logger.incr("db_creation_success.ssh_tunnel")
 
         return database
+
+    def add_schema_permissions(
+        self,
+        database: Database,
+        catalog: str,
+        ssh_tunnel: Optional[SSHTunnel],
+    ) -> None:
+        for schema in database.get_all_schema_names(
+            catalog=catalog,
+            cache=False,
+            ssh_tunnel=ssh_tunnel,
+        ):
+            security_manager.add_permission_view_menu(
+                "schema_access",
+                security_manager.get_schema_perm(
+                    database.database_name,
+                    catalog,
+                    schema,
+                ),
+            )
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
@@ -140,6 +180,7 @@ class CreateDatabaseCommand(BaseCommand):
             # Check database_name uniqueness
             if not DatabaseDAO.validate_uniqueness(database_name):
                 exceptions.append(DatabaseExistsValidationError())
+
         if exceptions:
             exception = DatabaseInvalidError()
             exception.extend(exceptions)
@@ -153,6 +194,6 @@ class CreateDatabaseCommand(BaseCommand):
             raise exception
 
     def _create_database(self) -> Database:
-        database = DatabaseDAO.create(attributes=self._properties, commit=False)
+        database = DatabaseDAO.create(attributes=self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         return database

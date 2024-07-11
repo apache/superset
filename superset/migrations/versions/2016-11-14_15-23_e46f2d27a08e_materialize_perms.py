@@ -21,12 +21,13 @@ Revises: c611f2b591b8
 Create Date: 2016-11-14 15:23:32.594898
 
 """
+
 # revision identifiers, used by Alembic.
 revision = "e46f2d27a08e"
 down_revision = "c611f2b591b8"
 
-import sqlalchemy as sa
-from alembic import op
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
 
 
 def upgrade():

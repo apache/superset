@@ -60,6 +60,8 @@ export type EmbedDashboardParams = {
   dashboardUiConfig?: UiConfigType
   /** Are we in debug mode? */
   debug?: boolean
+  /** The iframe title attribute */
+  iframeTitle?: string
 }
 
 export type Size = {
@@ -82,7 +84,8 @@ export async function embedDashboard({
   mountPoint,
   fetchGuestToken,
   dashboardUiConfig,
-  debug = false
+  debug = false,
+  iframeTitle = "Embedded Dashboard",
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     if (debug) {
@@ -156,8 +159,8 @@ export async function embedDashboard({
         // return our port from the promise
         resolve(new Switchboard({ port: ourPort, name: 'superset-embedded-sdk', debug }));
       });
-
       iframe.src = `${supersetDomain}/embedded/${id}${urlParamsString}`;
+      iframe.title = iframeTitle;
       //@ts-ignore
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { Resizable } from 're-resizable';
 import cx from 'classnames';
@@ -168,7 +168,7 @@ const StyledResizable = styled(Resizable)`
   }
 `;
 
-class ResizableContainer extends React.PureComponent {
+class ResizableContainer extends PureComponent {
   constructor(props) {
     super(props);
 

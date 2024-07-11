@@ -37,6 +37,9 @@ class EstimateQueryCostSchema(Schema):
     template_params = fields.Dict(
         keys=fields.String(), metadata={"description": "The SQL query template params"}
     )
+    catalog = fields.String(
+        allow_none=True, metadata={"description": "The database catalog"}
+    )
     schema = fields.String(
         allow_none=True, metadata={"description": "The database schema"}
     )
@@ -44,6 +47,7 @@ class EstimateQueryCostSchema(Schema):
 
 class FormatQueryPayloadSchema(Schema):
     sql = fields.String(required=True)
+    engine = fields.String(required=False, allow_none=True)
 
 
 class ExecutePayloadSchema(Schema):
@@ -52,6 +56,7 @@ class ExecutePayloadSchema(Schema):
     client_id = fields.String(allow_none=True)
     queryLimit = fields.Integer(allow_none=True)
     sql_editor_id = fields.String(allow_none=True)
+    catalog = fields.String(allow_none=True)
     schema = fields.String(allow_none=True)
     tab = fields.String(allow_none=True)
     ctas_method = fields.String(allow_none=True)

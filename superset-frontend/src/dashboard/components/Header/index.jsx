@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import moment from 'moment';
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import {
   styled,
@@ -26,7 +26,6 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   t,
-  getSharedLabelColor,
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
@@ -41,11 +40,12 @@ import { AntdButton } from 'src/components/';
 import { findPermission } from 'src/utils/findPermission';
 import { Tooltip } from 'src/components/Tooltip';
 import { safeStringify } from 'src/utils/safeStringify';
-import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
+import ConnectedHeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
+import getOwnerName from 'src/utils/getOwnerName';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -55,6 +55,7 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 
@@ -169,7 +170,7 @@ const discardBtnStyle = theme => css`
   height: ${theme.gridUnit * 8}px;
 `;
 
-class Header extends React.PureComponent {
+class Header extends PureComponent {
   static discardChanges() {
     const url = new URL(window.location.href);
 
@@ -372,13 +373,10 @@ class Header extends React.PureComponent {
       ? currentRefreshFrequency
       : dashboardInfo.metadata?.refresh_frequency;
 
-    const currentColorScheme =
-      dashboardInfo?.metadata?.color_scheme || colorScheme;
     const currentColorNamespace =
       dashboardInfo?.metadata?.color_namespace || colorNamespace;
-    const currentSharedLabelColors = Object.fromEntries(
-      getSharedLabelColor().getColorMap(),
-    );
+    const currentColorScheme =
+      dashboardInfo?.metadata?.color_scheme || colorScheme;
 
     const data = {
       certified_by: dashboardInfo.certified_by,
@@ -395,7 +393,6 @@ class Header extends React.PureComponent {
         color_scheme: currentColorScheme,
         positions,
         refresh_frequency: refreshFrequency,
-        shared_label_colors: currentSharedLabelColors,
       },
     };
 
@@ -433,6 +430,27 @@ class Header extends React.PureComponent {
 
   hideEmbedModal = () => {
     this.setState({ showingEmbedModal: false });
+  };
+
+  getMetadataItems = () => {
+    const { dashboardInfo } = this.props;
+    return [
+      {
+        type: MetadataType.LastModified,
+        value: dashboardInfo.changed_on_delta_humanized,
+        modifiedBy:
+          getOwnerName(dashboardInfo.changed_by) || t('Not available'),
+      },
+      {
+        type: MetadataType.Owner,
+        createdBy: getOwnerName(dashboardInfo.created_by) || t('Not available'),
+        owners:
+          dashboardInfo.owners.length > 0
+            ? dashboardInfo.owners.map(getOwnerName)
+            : t('None'),
+        createdOn: dashboardInfo.created_on_delta_humanized,
+      },
+    ];
   };
 
   render() {
@@ -535,6 +553,12 @@ class Header extends React.PureComponent {
                 visible={!editMode}
               />
             ),
+            !editMode && (
+              <MetadataBar
+                items={this.getMetadataItems()}
+                tooltipPlacement="bottom"
+              />
+            ),
           ]}
           rightPanelAdditionalItems={
             <div className="button-container">
@@ -553,6 +577,7 @@ class Header extends React.PureComponent {
                           <StyledUndoRedoButton
                             type="text"
                             disabled={undoLength < 1}
+                            onClick={undoLength && onUndo}
                           >
                             <Icons.Undo
                               css={[
@@ -560,7 +585,6 @@ class Header extends React.PureComponent {
                                 this.state.emphasizeUndo && undoRedoEmphasized,
                                 undoLength < 1 && undoRedoDisabled,
                               ]}
-                              onClick={undoLength && onUndo}
                               data-test="undo-action"
                               iconSize="xl"
                             />
@@ -573,6 +597,7 @@ class Header extends React.PureComponent {
                           <StyledUndoRedoButton
                             type="text"
                             disabled={redoLength < 1}
+                            onClick={redoLength && onRedo}
                           >
                             <Icons.Redo
                               css={[
@@ -580,7 +605,6 @@ class Header extends React.PureComponent {
                                 this.state.emphasizeRedo && undoRedoEmphasized,
                                 redoLength < 1 && undoRedoDisabled,
                               ]}
-                              onClick={redoLength && onRedo}
                               data-test="redo-action"
                               iconSize="xl"
                             />
@@ -643,7 +667,7 @@ class Header extends React.PureComponent {
             onVisibleChange: this.setIsDropdownVisible,
           }}
           additionalActionsMenu={
-            <HeaderActionsDropdown
+            <ConnectedHeaderActionsDropdown
               addSuccessToast={this.props.addSuccessToast}
               addDangerToast={this.props.addDangerToast}
               dashboardId={dashboardInfo.id}

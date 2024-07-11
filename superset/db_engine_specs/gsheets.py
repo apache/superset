@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import logging
 import re
 from re import Pattern
@@ -32,6 +31,8 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from requests import Session
+from shillelagh.adapters.api.gsheets.lib import SCOPES
+from shillelagh.exceptions import UnauthenticatedError
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL
 
@@ -41,6 +42,7 @@ from superset.databases.schemas import encrypted_field_properties, EncryptedStri
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
+from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -104,30 +106,48 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
     supports_file_upload = True
 
+    # OAuth 2.0
+    supports_oauth2 = True
+    oauth2_scope = " ".join(SCOPES)
+    oauth2_authorization_request_uri = (  # pylint: disable=invalid-name
+        "https://accounts.google.com/o/oauth2/v2/auth"
+    )
+    oauth2_token_request_uri = "https://oauth2.googleapis.com/token"
+    oauth2_exception = UnauthenticatedError
+
     @classmethod
     def get_url_for_impersonation(
         cls,
         url: URL,
         impersonate_user: bool,
         username: str | None,
+        access_token: str | None,
     ) -> URL:
-        if impersonate_user and username is not None:
+        if not impersonate_user:
+            return url
+
+        if username is not None:
             user = security_manager.find_user(username=username)
             if user and user.email:
                 url = url.update_query_dict({"subject": user.email})
 
+        if access_token:
+            url = url.update_query_dict({"access_token": access_token})
+
         return url
 
     @classmethod
-    def extra_table_metadata(
+    def get_extra_table_metadata(
         cls,
         database: Database,
-        table_name: str,
-        schema_name: str | None,
+        table: Table,
     ) -> dict[str, Any]:
-        with database.get_raw_connection(schema=schema_name) as conn:
+        with database.get_raw_connection(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as conn:
             cursor = conn.cursor()
-            cursor.execute(f'SELECT GET_METADATA("{table_name}")')
+            cursor.execute(f'SELECT GET_METADATA("{table.table}")')
             results = cursor.fetchone()[0]
         try:
             metadata = json.loads(results)
@@ -378,7 +398,11 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 pass
 
         # get the Google session from the Shillelagh adapter
-        with cls.get_engine(database) as engine:
+        with cls.get_engine(
+            database,
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as engine:
             with engine.connect() as conn:
                 # any GSheets URL will work to get a working session
                 adapter = get_adapter_for_table_name(
@@ -431,4 +455,4 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         catalog[table.table] = spreadsheet_url
         database.extra = json.dumps(extra)
         db.session.add(database)
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction

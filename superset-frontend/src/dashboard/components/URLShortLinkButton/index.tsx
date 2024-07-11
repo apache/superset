@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { t } from '@superset-ui/core';
+import { useState } from 'react';
+import { getClientErrorObject, t } from '@superset-ui/core';
 import Popover, { PopoverProps } from 'src/components/Popover';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 export type URLShortLinkButtonProps = {
   dashboardId: number;
@@ -98,7 +97,7 @@ export default function URLShortLinkButton({
     >
       <span
         className="short-link-trigger btn btn-default btn-sm"
-        tabIndex={0}
+        tabIndex={-1}
         role="button"
         onClick={e => {
           e.stopPropagation();

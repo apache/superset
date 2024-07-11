@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import {
   createEvent,
   fireEvent,
@@ -1039,6 +1038,7 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
       options={options}
       mode="multiple"
       allowSelectAll={false}
+      allowNewOptions
     />,
   );
   await open();
@@ -1051,6 +1051,31 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
   fireEvent(input, paste);
   // Only Peter should be added
   expect(await findAllSelectOptions()).toHaveLength(4);
+});
+
+test('pasting an non-existent option should not add it if allowNewOptions is false', async () => {
+  render(<Select {...defaultProps} options={[]} allowNewOptions={false} />);
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'John',
+    },
+  });
+  fireEvent(input, paste);
+  expect(await findAllSelectOptions()).toHaveLength(0);
+});
+
+test('does not fire onChange if the same value is selected in single mode', async () => {
+  const onChange = jest.fn();
+  render(<Select {...defaultProps} onChange={onChange} />);
+  const optionText = 'Emma';
+  await open();
+  expect(onChange).toHaveBeenCalledTimes(0);
+  userEvent.click(await findSelectOption(optionText));
+  expect(onChange).toHaveBeenCalledTimes(1);
+  userEvent.click(await findSelectOption(optionText));
+  expect(onChange).toHaveBeenCalledTimes(1);
 });
 
 /*

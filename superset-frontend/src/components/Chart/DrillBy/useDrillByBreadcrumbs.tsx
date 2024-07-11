@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   BinaryQueryObjectFilterClause,
   Column,
@@ -34,8 +34,11 @@ export interface DrillByBreadcrumb {
   filters?: BinaryQueryObjectFilterClause[];
 }
 
-const BreadcrumbItem = styled(AntdBreadcrumb.Item)<{ isClickable: boolean }>`
-  ${({ theme, isClickable }) => css`
+const BreadcrumbItem = styled(AntdBreadcrumb.Item)<{
+  isClickable: boolean;
+  isHidden: boolean;
+}>`
+  ${({ theme, isClickable, isHidden }) => css`
     cursor: ${isClickable ? 'pointer' : 'auto'};
     color: ${theme.colors.grayscale.light1};
     transition: color ease-in ${theme.transitionTiming}s;
@@ -45,6 +48,7 @@ const BreadcrumbItem = styled(AntdBreadcrumb.Item)<{ isClickable: boolean }>`
     &:hover {
       color: ${isClickable ? theme.colors.grayscale.dark1 : 'inherit'};
     }
+    visibility: ${isHidden ? 'hidden' : 'visible'};
   `}
 `;
 
@@ -58,6 +62,9 @@ export const useDrillByBreadcrumbs = (
   useMemo(() => {
     // the last breadcrumb is not clickable
     const isClickable = (index: number) => index < breadcrumbsData.length - 1;
+    const isHidden = (breadcumb: DrillByBreadcrumb) =>
+      ensureIsArray(breadcumb.groupby).length === 0 &&
+      ensureIsArray(breadcumb.filters).length === 0;
     const getBreadcrumbText = (breadcrumb: DrillByBreadcrumb) =>
       `${ensureIsArray(breadcrumb.groupby)
         .map(column => column.verbose_name || column.column_name)
@@ -74,20 +81,23 @@ export const useDrillByBreadcrumbs = (
           margin: ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
         `}
       >
-        {breadcrumbsData.map((breadcrumb, index) => (
-          <BreadcrumbItem
-            key={index}
-            isClickable={isClickable(index)}
-            onClick={
-              isClickable(index)
-                ? () => onBreadcrumbClick(breadcrumb, index)
-                : noOp
-            }
-            data-test="drill-by-breadcrumb-item"
-          >
-            {getBreadcrumbText(breadcrumb)}
-          </BreadcrumbItem>
-        ))}
+        {breadcrumbsData
+          .map((breadcrumb, index) => (
+            <BreadcrumbItem
+              key={index}
+              isClickable={isClickable(index)}
+              isHidden={isHidden(breadcrumb)}
+              onClick={
+                isClickable(index)
+                  ? () => onBreadcrumbClick(breadcrumb, index)
+                  : noOp
+              }
+              data-test="drill-by-breadcrumb-item"
+            >
+              {getBreadcrumbText(breadcrumb)}
+            </BreadcrumbItem>
+          ))
+          .filter(item => item.props.isHidden === false)}
       </AntdBreadcrumb>
     );
   }, [breadcrumbsData, onBreadcrumbClick]);

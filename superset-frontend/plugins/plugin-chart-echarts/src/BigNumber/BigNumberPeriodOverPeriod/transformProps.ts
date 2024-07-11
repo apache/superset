@@ -21,10 +21,13 @@ import {
   ChartProps,
   getMetricLabel,
   getValueFormatter,
-  NumberFormats,
   getNumberFormatter,
-  formatTimeRange,
+  SimpleAdhocFilter,
+  ensureIsArray,
+  getTimeOffset,
+  parseDttmToDate,
 } from '@superset-ui/core';
+import { isEmpty } from 'lodash';
 import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
 export const parseMetricValue = (metricValue: number | string | null) => {
@@ -83,20 +86,76 @@ export default function transformProps(chartProps: ChartProps) {
     yAxisFormat,
     currencyFormat,
     subheaderFontSize,
+    comparisonColorScheme,
     comparisonColorEnabled,
+    percentDifferenceFormat,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
-  const {
-    data: dataB = [],
-    from_dttm: comparisonFromDatetime,
-    to_dttm: comparisonToDatetime,
-  } = queriesData[1];
   const data = dataA;
-  const metricName = getMetricLabel(metric);
+  const metricName = metric ? getMetricLabel(metric) : '';
+  const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
+  const startDateOffset = chartProps.rawFormData?.start_date_offset;
+  const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
+    (adhoc_filter: SimpleAdhocFilter) =>
+      adhoc_filter.operator === 'TEMPORAL_RANGE',
+  )?.[0];
+  // In case the viz is using all version of controls, we try to load them
+  const previousCustomTimeRangeFilters: any =
+    chartProps.rawFormData?.adhoc_custom?.filter(
+      (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
+    ) || [];
+
+  let previousCustomStartDate = '';
+  if (
+    !isEmpty(previousCustomTimeRangeFilters) &&
+    previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
+  ) {
+    previousCustomStartDate =
+      previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
+  }
+  const isCustomOrInherit =
+    timeComparison === 'custom' || timeComparison === 'inherit';
+  let dataOffset: string[] = [];
+  if (isCustomOrInherit) {
+    dataOffset = getTimeOffset({
+      timeRangeFilter: {
+        ...currentTimeRangeFilter,
+        comparator:
+          formData?.extraFormData?.time_range ??
+          (currentTimeRangeFilter as any)?.comparator,
+      },
+      shifts: ensureIsArray(timeComparison),
+      startDate:
+        previousCustomStartDate && !startDateOffset
+          ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
+          : startDateOffset,
+    });
+  }
+
+  const { value1, value2 } = data.reduce(
+    (acc: { value1: number; value2: number }, curr: { [x: string]: any }) => {
+      Object.keys(curr).forEach(key => {
+        if (
+          key.includes(
+            `${metricName}__${
+              !isCustomOrInherit ? timeComparison : dataOffset[0]
+            }`,
+          )
+        ) {
+          acc.value2 += curr[key];
+        } else if (key.includes(metricName)) {
+          acc.value1 += curr[key];
+        }
+      });
+      return acc;
+    },
+    { value1: 0, value2: 0 },
+  );
+
   let bigNumber: number | string =
-    data.length === 0 ? 0 : parseMetricValue(data[0][metricName]);
+    data.length === 0 ? 0 : parseMetricValue(value1);
   let prevNumber: number | string =
-    data.length === 0 ? 0 : parseMetricValue(dataB[0][metricName]);
+    data.length === 0 ? 0 : parseMetricValue(value2);
 
   const numberFormatter = getValueFormatter(
     metric,
@@ -113,9 +172,7 @@ export default function transformProps(chartProps: ChartProps) {
     w: 'Week' as string,
   };
 
-  const formatPercentChange = getNumberFormatter(
-    NumberFormats.PERCENT_SIGNED_1_POINT,
-  );
+  const formatPercentChange = getNumberFormatter(percentDifferenceFormat);
 
   let valueDifference: number | string = bigNumber - prevNumber;
 
@@ -134,10 +191,6 @@ export default function transformProps(chartProps: ChartProps) {
   prevNumber = numberFormatter(prevNumber);
   valueDifference = numberFormatter(valueDifference);
   const percentDifference: string = formatPercentChange(percentDifferenceNum);
-  const comparatorText = formatTimeRange('%Y-%m-%d', [
-    comparisonFromDatetime,
-    comparisonToDatetime,
-  ]);
 
   return {
     width,
@@ -154,7 +207,11 @@ export default function transformProps(chartProps: ChartProps) {
     headerText,
     compType,
     comparisonColorEnabled,
+    comparisonColorScheme,
     percentDifferenceNumber: percentDifferenceNum,
-    comparatorText,
+    currentTimeRangeFilter,
+    startDateOffset,
+    shift: timeComparison,
+    dashboardTimeRange: formData?.extraFormData?.time_range,
   };
 }

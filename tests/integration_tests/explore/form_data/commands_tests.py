@@ -15,12 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 from unittest.mock import patch
 
 import pytest
 
-from superset import app, db, security, security_manager
+from superset import app, db, security_manager
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.explore.form_data.create import CreateFormDataCommand
 from superset.commands.explore.form_data.delete import DeleteFormDataCommand
@@ -30,6 +29,7 @@ from superset.commands.explore.form_data.update import UpdateFormDataCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
+from superset.utils import json
 from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -326,7 +326,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         delete_command = DeleteFormDataCommand(delete_args)
         response = delete_command.run()
 
-        assert response == True
+        assert response is True  # noqa: E712
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("create_dataset", "create_slice", "create_query")
@@ -343,4 +343,4 @@ class TestCreateFormDataCommand(SupersetTestCase):
         delete_command = DeleteFormDataCommand(delete_args)
         response = delete_command.run()
 
-        assert response == False
+        assert response is False  # noqa: E712

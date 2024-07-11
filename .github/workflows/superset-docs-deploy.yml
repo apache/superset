@@ -4,13 +4,15 @@ on:
   push:
     paths:
       - "docs/**"
+      - "README.md"
     branches:
       - "master"
-      - "[0-9].[0-9]"
+
+  workflow_dispatch: {}
 
 jobs:
   config:
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-22.04"
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -26,28 +28,41 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: Build & Deploy
-    runs-on: "ubuntu-latest"
-    defaults:
-      run:
-        working-directory: docs
+    runs-on: "ubuntu-22.04"
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Set up Node.js 16
+      - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: "16"
+          node-version: '20'
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+      - name: Install Graphviz
+        run: sudo apt-get install -y graphviz
+      - name: Compute Entity Relationship diagram (ERD)
+        env:
+          SUPERSET_SECRET_KEY: not-a-secret
+        run: |
+          python scripts/erd/erd.py
+          curl -L http://sourceforge.net/projects/plantuml/files/1.2023.7/plantuml.1.2023.7.jar/download > ~/plantuml.jar
+          java -jar ~/plantuml.jar -v -tsvg -r -o "${{ github.workspace }}/docs/static/img/" "${{ github.workspace }}/scripts/erd/erd.puml"
       - name: yarn install
+        working-directory: docs
         run: |
           yarn install --check-cache
       - name: yarn build
+        working-directory: docs
         run: |
           yarn build
       - name: deploy docs
-        if: github.ref == 'refs/heads/master'
         uses: ./.github/actions/github-action-push-to-another-repository
         env:
           API_TOKEN_GITHUB: ${{ secrets.SUPERSET_SITE_BUILD }}

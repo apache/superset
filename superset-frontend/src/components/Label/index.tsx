@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties } from 'react';
+import {
+  CSSProperties,
+  HTMLAttributes,
+  MouseEventHandler,
+  ReactNode,
+} from 'react';
+
 import { Tag } from 'src/components';
 import { useTheme } from '@superset-ui/core';
 
-export type OnClickHandler = React.MouseEventHandler<HTMLElement>;
+export type OnClickHandler = MouseEventHandler<HTMLElement>;
 
 export type Type =
   | 'alert'
@@ -32,13 +38,13 @@ export type Type =
   | 'primary'
   | 'secondary';
 
-export interface LabelProps extends React.HTMLAttributes<HTMLSpanElement> {
+export interface LabelProps extends HTMLAttributes<HTMLSpanElement> {
   key?: string;
   className?: string;
   onClick?: OnClickHandler;
   type?: Type;
   style?: CSSProperties;
-  children?: React.ReactNode;
+  children?: ReactNode;
   role?: string;
 }
 
@@ -93,6 +99,7 @@ export default function Label(props: LabelProps) {
   return (
     <Tag
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
       {...rest}
       css={{
         transition: `background-color ${transitionTiming}s`,

@@ -16,26 +16,25 @@
 # under the License.
 # isort:skip_file
 from operator import and_
-from unittest.mock import patch
+from unittest.mock import patch  # noqa: F401
 import pytest
-from superset.daos.exceptions import DAOCreateFailedError, DAOException
 from superset.models.slice import Slice
-from superset.models.sql_lab import SavedQuery
+from superset.models.sql_lab import SavedQuery  # noqa: F401
 from superset.daos.tag import TagDAO
-from superset.tags.exceptions import InvalidTagNameError
+from superset.tags.exceptions import InvalidTagNameError  # noqa: F401
 from superset.tags.models import ObjectType, Tag, TaggedObject
 from tests.integration_tests.tags.api_tests import TAGS_FIXTURE_COUNT
 
-import tests.integration_tests.test_app  # pylint: disable=unused-import
-from superset import db, security_manager
-from superset.daos.dashboard import DashboardDAO
+import tests.integration_tests.test_app  # pylint: disable=unused-import  # noqa: F401
+from superset import db, security_manager  # noqa: F401
+from superset.daos.dashboard import DashboardDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
-from tests.integration_tests.fixtures.tags import with_tagging_system_feature
+from tests.integration_tests.fixtures.tags import with_tagging_system_feature  # noqa: F401
 
 
 class TestTagsDAO(SupersetTestCase):
@@ -188,6 +187,7 @@ class TestTagsDAO(SupersetTestCase):
                     TaggedObject.object_type == ObjectType.chart,
                 ),
             )
+            .join(Tag, TaggedObject.tag_id == Tag.id)
             .distinct(Slice.id)
             .count()
         )
@@ -200,6 +200,7 @@ class TestTagsDAO(SupersetTestCase):
                     TaggedObject.object_type == ObjectType.dashboard,
                 ),
             )
+            .join(Tag, TaggedObject.tag_id == Tag.id)
             .distinct(Dashboard.id)
             .count()
             + num_charts

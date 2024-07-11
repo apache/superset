@@ -17,7 +17,7 @@
  * under the License.
  */
 import { getEmptyImage } from 'react-dnd-html5-backend';
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { DragSource, DropTarget } from 'react-dnd';
 import cx from 'classnames';
@@ -79,7 +79,9 @@ const DragDroppableStyles = styled.div`
       preview expands outside of the bounds of the drag source card, see:
       https://github.com/react-dnd/react-dnd/issues/832#issuecomment-442071628
     */
-    transform: translate3d(0, 0, 0);
+    &.dragdroppable--edit-mode {
+      transform: translate3d(0, 0, 0);
+    }
 
     &.dragdroppable--dragging {
       opacity: 0.2;
@@ -110,7 +112,7 @@ const DragDroppableStyles = styled.div`
   `};
 `;
 // export unwrapped component for testing
-export class UnwrappedDragDroppable extends React.PureComponent {
+export class UnwrappedDragDroppable extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -180,6 +182,7 @@ export class UnwrappedDragDroppable extends React.PureComponent {
         data-test="dragdroppable-object"
         className={cx(
           'dragdroppable',
+          editMode && 'dragdroppable--edit-mode',
           orientation === 'row' && 'dragdroppable-row',
           orientation === 'column' && 'dragdroppable-column',
           isDragging && 'dragdroppable--dragging',

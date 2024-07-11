@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import styled from '@emotion/styled';
 import DocItem from '@theme-original/DocItem';
 
 const EditPageLink = styled('a')`
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 40px;
+  right: 10px;
   padding: 1rem;
   padding-left: 4rem;
   background-color: #444;
@@ -37,6 +36,7 @@ const EditPageLink = styled('a')`
   bpx-shadow: 0 0 0 0 rgba(0,0,0,0); /* Smooth transition for hover effect */
   scale: .9;
   transition: all 0.3s;
+  transform-origin: bottom right;
 
   &:hover {
     background-color: #333;

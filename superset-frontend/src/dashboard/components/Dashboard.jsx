@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
 
@@ -68,7 +68,7 @@ const defaultProps = {
   userId: '',
 };
 
-class Dashboard extends React.PureComponent {
+class Dashboard extends PureComponent {
   static contextType = PluginContext;
 
   static onBeforeUnload(hasChanged) {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import { shallow } from 'enzyme';
 
 import mockDatasource from 'spec/fixtures/mockDatasource';
@@ -37,7 +37,7 @@ describe('CollectionTable', () => {
   });
 
   it('is valid', () => {
-    expect(React.isValidElement(el)).toBe(true);
+    expect(isValidElement(el)).toBe(true);
   });
 
   it('renders a table', () => {

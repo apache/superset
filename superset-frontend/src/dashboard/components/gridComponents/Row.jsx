@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { createRef, PureComponent, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { debounce } from 'lodash';
@@ -107,9 +107,6 @@ const GridRow = styled.div`
         &:first-child {
           inset-inline-start: 0;
         }
-        &:last-child {
-          inset-inline-end: 0;
-        }
       }
     }
 
@@ -129,12 +126,13 @@ const emptyRowContentStyles = theme => css`
   color: ${theme.colors.text.label};
 `;
 
-class Row extends React.PureComponent {
+class Row extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       isFocused: false,
       isInView: false,
+      hoverMenuHovered: false,
     };
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateMeta = this.handleUpdateMeta.bind(this);
@@ -143,12 +141,13 @@ class Row extends React.PureComponent {
       'background',
     );
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
+    this.handleMenuHover = this.handleMenuHover.bind(this);
     this.setVerticalEmptyContainerHeight = debounce(
       this.setVerticalEmptyContainerHeight.bind(this),
       FAST_DEBOUNCE,
     );
 
-    this.containerRef = React.createRef();
+    this.containerRef = createRef();
     this.observerEnabler = null;
     this.observerDisabler = null;
   }
@@ -235,6 +234,11 @@ class Row extends React.PureComponent {
     deleteComponent(component.id, parentId);
   }
 
+  handleMenuHover = hovered => {
+    const { isHovered } = hovered;
+    this.setState(() => ({ hoverMenuHovered: isHovered }));
+  };
+
   render() {
     const {
       component: rowComponent,
@@ -252,7 +256,7 @@ class Row extends React.PureComponent {
       onChangeTab,
       isComponentVisible,
     } = this.props;
-    const { containerHeight } = this.state;
+    const { containerHeight, hoverMenuHovered } = this.state;
 
     const rowItems = rowComponent.children || [];
 
@@ -287,7 +291,11 @@ class Row extends React.PureComponent {
             editMode={editMode}
           >
             {editMode && (
-              <HoverMenu innerRef={dragSourceRef} position="left">
+              <HoverMenu
+                onHover={this.handleMenuHover}
+                innerRef={dragSourceRef}
+                position="left"
+              >
                 <DragHandle position="left" />
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />
                 <IconButton
@@ -300,6 +308,7 @@ class Row extends React.PureComponent {
               className={cx(
                 'grid-row',
                 rowItems.length === 0 && 'grid-row--empty',
+                hoverMenuHovered && 'grid-row--hovered',
                 backgroundStyle.className,
               )}
               data-test={`grid-row-${backgroundStyle.className}`}
@@ -311,14 +320,14 @@ class Row extends React.PureComponent {
                   {...(rowItems.length === 0
                     ? {
                         component: rowComponent,
-                        parentComponent,
+                        parentComponent: rowComponent,
                         dropToChild: true,
                       }
                     : {
-                        component: rowItems,
+                        component: rowItems[0],
                         parentComponent: rowComponent,
                       })}
-                  depth={depth + 1}
+                  depth={depth}
                   index={0}
                   orientation="row"
                   onDrop={handleComponentDrop}
@@ -343,7 +352,7 @@ class Row extends React.PureComponent {
               )}
               {rowItems.length > 0 &&
                 rowItems.map((componentId, itemIndex) => (
-                  <React.Fragment key={componentId}>
+                  <Fragment key={componentId}>
                     <DashboardComponent
                       key={componentId}
                       id={componentId}
@@ -363,7 +372,7 @@ class Row extends React.PureComponent {
                       <Droppable
                         component={rowItems}
                         parentComponent={rowComponent}
-                        depth={depth + 1}
+                        depth={depth}
                         index={itemIndex + 1}
                         orientation="row"
                         onDrop={handleComponentDrop}
@@ -386,7 +395,7 @@ class Row extends React.PureComponent {
                         }
                       </Droppable>
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 ))}
             </GridRow>
           </WithPopoverMenu>

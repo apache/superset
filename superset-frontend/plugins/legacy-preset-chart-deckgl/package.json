@@ -27,23 +27,23 @@
     "@mapbox/geojson-extent": "^1.0.1",
     "@math.gl/web-mercator": "^3.2.2",
     "@types/d3-array": "^2.0.0",
-    "bootstrap-slider": "^10.0.0",
+    "bootstrap-slider": "^11.0.2",
     "d3-array": "^1.2.4",
     "d3-color": "^1.4.1",
     "d3-scale": "^3.0.0",
-    "deck.gl": "8.8.27",
-    "lodash": "^4.17.15",
+    "deck.gl": "9.0.21",
+    "lodash": "^4.17.21",
     "moment": "^2.30.1",
     "mousetrap": "^1.6.5",
-    "prop-types": "^15.6.0",
+    "prop-types": "^15.8.1",
     "react-bootstrap-slider": "2.1.5",
-    "underscore": "^1.12.1",
-    "urijs": "^1.19.8",
-    "xss": "^1.0.10"
+    "underscore": "^1.13.6",
+    "urijs": "^1.19.11",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
-    "@types/mapbox__geojson-extent": "^1.0.0",
-    "@types/underscore": "^1.11.6",
+    "@types/mapbox__geojson-extent": "^1.0.3",
+    "@types/underscore": "^1.11.15",
     "@types/urijs": "^1.19.25"
   },
   "peerDependencies": {

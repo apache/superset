@@ -16,7 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  KeyboardEvent,
+  memo,
+} from 'react';
+
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
@@ -25,6 +34,7 @@ import {
   Filters,
   JsonObject,
   styled,
+  t,
   usePrevious,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
@@ -66,14 +76,16 @@ const StyledFilterCount = styled.div`
     .incompatible-count {
       font-size: ${theme.typography.sizes.s}px;
     }
+    &:focus-visible {
+      outline: 2px solid ${theme.colors.primary.dark2};
+    }
   `}
 `;
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    vertical-align: middle;
     margin-left: ${theme.gridUnit * 2}px;
-    &>sup {
+    &>sup.antd5-badge-count {
       padding: 0 ${theme.gridUnit}px;
       min-width: ${theme.gridUnit * 4}px;
       height: ${theme.gridUnit * 4}px;
@@ -81,6 +93,7 @@ const StyledBadge = styled(Badge)`
       font-weight: ${theme.typography.weights.medium};
       font-size: ${theme.typography.sizes.s - 1}px;
       box-shadow: none;
+      padding: 0 ${theme.gridUnit}px;
     }
   `}
 `;
@@ -126,6 +139,9 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const [dashboardIndicators, setDashboardIndicators] = useState<Indicator[]>(
     indicatorsInitialState,
   );
+  const [popoverVisible, setPopoverVisible] = useState(false);
+  const popoverContentRef = useRef<HTMLDivElement>(null);
+  const popoverTriggerRef = useRef<HTMLDivElement>(null);
 
   const onHighlightFilterSource = useCallback(
     (path: string[]) => {
@@ -134,12 +150,26 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter') {
+      setPopoverVisible(true);
+    }
+  };
+
   const prevChart = usePrevious(chart);
   const prevChartStatus = prevChart?.chartStatus;
   const prevDashboardFilters = usePrevious(dashboardFilters);
   const prevDatasources = usePrevious(datasources);
   const showIndicators =
     chart?.chartStatus && ['rendered', 'success'].includes(chart.chartStatus);
+
+  useEffect(() => {
+    if (popoverVisible) {
+      setTimeout(() => {
+        popoverContentRef?.current?.focus({ preventScroll: true });
+      });
+    }
+  }, [popoverVisible]);
 
   useEffect(() => {
     if (!showIndicators && dashboardIndicators.length > 0) {
@@ -180,6 +210,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevDashboardLayout = usePrevious(present);
   const prevDataMask = usePrevious(dataMask);
   const prevChartConfig = usePrevious(chartConfiguration);
+
   useEffect(() => {
     if (!showIndicators && nativeIndicators.length > 0) {
       setNativeIndicators(indicatorsInitialState);
@@ -250,6 +281,8 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       ),
     [indicators],
   );
+  const filterCount =
+    appliedIndicators.length + appliedCrossFilterIndicators.length;
 
   if (!appliedCrossFilterIndicators.length && !appliedIndicators.length) {
     return null;
@@ -260,18 +293,28 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       appliedCrossFilterIndicators={appliedCrossFilterIndicators}
       appliedIndicators={appliedIndicators}
       onHighlightFilterSource={onHighlightFilterSource}
+      setPopoverVisible={setPopoverVisible}
+      popoverVisible={popoverVisible}
+      popoverContentRef={popoverContentRef}
+      popoverTriggerRef={popoverTriggerRef}
     >
       <StyledFilterCount
+        aria-label={t('Applied filters (%s)', filterCount)}
+        aria-haspopup="true"
+        role="button"
+        ref={popoverTriggerRef}
         className={cx(
           'filter-counts',
           !!appliedCrossFilterIndicators.length && 'has-cross-filters',
         )}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
       >
         <Icons.Filter iconSize="m" />
         <StyledBadge
           data-test="applied-filter-count"
           className="applied-count"
-          count={appliedIndicators.length + appliedCrossFilterIndicators.length}
+          count={filterCount}
           showZero
         />
       </StyledFilterCount>
@@ -279,4 +322,4 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
 };
 
-export default React.memo(FiltersBadge);
+export default memo(FiltersBadge);

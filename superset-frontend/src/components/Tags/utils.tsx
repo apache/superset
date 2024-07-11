@@ -17,15 +17,16 @@
  * under the License.
  */
 
-import { SupersetClient, t } from '@superset-ui/core';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import Tag from 'src/types/TagType';
 
 import rison from 'rison';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
-import {
-  ClientErrorObject,
-  getClientErrorObject,
-} from 'src/utils/getClientErrorObject';
 
 const localCache = new Map<string, any>();
 
@@ -36,17 +37,17 @@ const cachedSupersetGet = cacheWrapper(
 );
 
 type SelectTagsValue = {
-  value: string | number | undefined;
-  label: string;
-  key: string | number | undefined;
+  value: number | undefined;
+  label: string | undefined;
+  key: number | undefined;
 };
 
 export const tagToSelectOption = (
-  item: Tag & { table_name: string },
+  tag: Tag & { table_name: string },
 ): SelectTagsValue => ({
-  value: item.name,
-  label: item.name,
-  key: item.id,
+  value: tag.id,
+  label: tag.name,
+  key: tag.id,
 });
 
 export const loadTags = async (
