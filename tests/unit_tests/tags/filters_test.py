@@ -23,7 +23,7 @@ from sqlalchemy.orm.session import Session
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.views.base_api import BaseTagFilter
+from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 
 FILTER_MODELS = [Slice, Dashboard, SavedQuery]
 OBJECT_TYPES = {
@@ -39,7 +39,7 @@ def test_base_tag_filter_by_name(session: Session, model: Model, name: str) -> N
     table = model.__tablename__
     engine = session.get_bind()
     query = session.query(model)
-    filter = BaseTagFilter("id", SQLAInterface(model))
+    filter = BaseTagNameFilter("tags", SQLAInterface(model))
     final_query = filter.apply(query, name)
     compiled_query = final_query.statement.compile(
         engine,
@@ -66,7 +66,7 @@ def test_base_tag_filter_by_id(session: Session, model: Model, id: int) -> None:
     engine = session.get_bind()
     query = session.query(model)
 
-    filter = BaseTagFilter("id", SQLAInterface(model))
+    filter = BaseTagIdFilter("tags", SQLAInterface(model))
     filter.id_based_filter = True
     final_query = filter.apply(query, id)
     compiled_query = final_query.statement.compile(

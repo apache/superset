@@ -23,8 +23,9 @@ from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
 from superset.models.sql_lab import SavedQuery
+from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.views.base import BaseFilter
-from superset.views.base_api import BaseFavoriteFilter, BaseTagFilter
+from superset.views.base_api import BaseFavoriteFilter
 
 
 class SavedQueryAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -56,7 +57,7 @@ class SavedQueryFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-p
     model = SavedQuery
 
 
-class SavedQueryTagNameFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+class SavedQueryTagNameFilter(BaseTagNameFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all saved queries associated with
     a certain tag (by its name).
@@ -67,7 +68,7 @@ class SavedQueryTagNameFilter(BaseTagFilter):  # pylint: disable=too-few-public-
     model = SavedQuery
 
 
-class SavedQueryTagIdFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+class SavedQueryTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all saved queries associated with
     a certain tag (by its ID).
@@ -75,7 +76,6 @@ class SavedQueryTagIdFilter(BaseTagFilter):  # pylint: disable=too-few-public-me
 
     arg_name = "saved_query_tag_id"
     class_name = "query"
-    id_based_filter = True
     model = SavedQuery
 
 
