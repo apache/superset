@@ -121,3 +121,4 @@ docker/*local*
 
 # Jest test report
 test-report.html
+.github/workflows/github_top_repositories.csv
