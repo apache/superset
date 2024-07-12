@@ -35,7 +35,6 @@ import {
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
 import Icons from 'src/components/Icons';
-import Button from 'src/components/Button';
 import { Button } from 'src/components/';
 import { findPermission } from 'src/utils/findPermission';
 import { Tooltip } from 'src/components/Tooltip';
