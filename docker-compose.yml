@@ -43,6 +43,8 @@ services:
   nginx:
     logging:
       driver: gcplogs  
+      options:
+        labels: "superset_nginx"      
     image: nginx:latest
     container_name: superset_nginx
     restart: unless-stopped
@@ -55,6 +57,8 @@ services:
   redis:
     logging:
       driver: gcplogs    
+      options:
+        labels: "superset_cache"        
     image: redis:7
     container_name: superset_cache
     restart: unless-stopped
@@ -66,6 +70,8 @@ services:
   db:
     logging:
       driver: gcplogs    
+      options:
+        labels: "superset_db"         
     env_file:
       - path: docker/.env # default
         required: true
@@ -83,6 +89,8 @@ services:
   superset:
     logging:
       driver: gcplogs    
+      options:
+        labels: "superset_app"        
     env_file:
       - path: docker/.env # default
         required: true
@@ -106,6 +114,8 @@ services:
   superset-websocket:
     logging:
       driver: gcplogs    
+      options:
+        labels: "superset_websocket"        
     container_name: superset_websocket
     build: ./superset-websocket
     ports:
@@ -141,6 +151,8 @@ services:
   superset-init:
     logging:
       driver: gcplogs    
+      options:
+        labels: "superset_init"        
     build:
       <<: *common-build
     container_name: superset_init
@@ -161,6 +173,8 @@ services:
   superset-node:
     logging:
       driver: gcplogs    
+      options:
+        labels: "superset_node"          
     image: node:18
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
@@ -179,6 +193,8 @@ services:
   superset-worker:
     logging:
       driver: gcplogs    
+      options:
+        labels: "superset_worker"        
     build:
       <<: *common-build
     container_name: superset_worker
@@ -204,7 +220,9 @@ services:
 
   superset-worker-beat:
     logging:
-      driver: gcplogs    
+      driver: gcplogs   
+      options:
+        labels: "superset_worker_beat"         
     build:
       <<: *common-build
     container_name: superset_worker_beat
@@ -224,6 +242,8 @@ services:
   superset-tests-worker:
     logging:
       driver: gcplogs    
+      options:
+        labels: "superset_tests_worker"        
     build:
       <<: *common-build
     container_name: superset_tests_worker
