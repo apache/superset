@@ -102,7 +102,8 @@ WHERE
     ap.name = 'schema_access';
     """
     # [PostgreSQL].[postgres].[public] => public
-    return sorted({row[0].split(".")[-1][1:-1] for row in op.execute(query)})
+    conn = op.get_bind()
+    return sorted({row[0].split(".")[-1][1:-1] for row in conn.execute(query)})
 
 
 def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
@@ -267,8 +268,12 @@ def downgrade_schema_perms(database: Database, catalog: str, session: Session) -
         )
         existing_pvm = session.query(ViewMenu).filter_by(name=perm).one_or_none()
         if existing_pvm:
-            existing_pvm.name = security_manager.get_schema_perm(
+            new_perm = security_manager.get_schema_perm(
                 database.database_name,
                 None,
                 schema,
             )
+            if pvm := session.query(ViewMenu).filter_by(name=new_perm).one_or_none():
+                session.delete(pvm)
+                session.flush()
+            existing_pvm.name = new_perm

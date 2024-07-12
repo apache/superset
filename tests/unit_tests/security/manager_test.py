@@ -726,7 +726,7 @@ def test_raise_for_access_catalog(
     mocker.patch.object(
         sm,
         "get_catalog_perm",
-        return_value="[PostgreSQL].[db1].[public]",
+        return_value="[PostgreSQL].[db1]",
     )
     mocker.patch.object(sm, "is_guest_user", return_value=False)
     SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
@@ -741,7 +741,7 @@ def test_raise_for_access_catalog(
 
     can_access = mocker.patch.object(sm, "can_access", return_value=True)
     sm.raise_for_access(query=query)
-    can_access.assert_called_with("catalog_access", "[PostgreSQL].[db1].[public]")
+    can_access.assert_called_with("catalog_access", "[PostgreSQL].[db1]")
 
     mocker.patch.object(sm, "can_access", return_value=False)
     with pytest.raises(SupersetSecurityException) as excinfo:
