@@ -860,7 +860,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if len(parts) == 2 and default_catalog:
                 accessible_catalogs.add(default_catalog)
             elif len(parts) == 3:
-                accessible_catalogs.add(parts[2])
+                accessible_catalogs.add(parts[1])
 
         # datasource_access
         if perms := self.user_view_menu_names("datasource_access"):
@@ -911,7 +911,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return datasource_names
 
         if schema:
-            schema_perm = self.get_schema_perm(database, catalog, schema)
+            default_catalog = database.get_default_catalog()
+            schema_perm = self.get_schema_perm(
+                database.database_name,
+                catalog or default_catalog,
+                schema,
+            )
             if schema_perm and self.can_access("schema_access", schema_perm):
                 return datasource_names
 
