@@ -1618,7 +1618,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
-    def select_star(  # pylint: disable=too-many-arguments,too-many-locals
+    def select_star(  # pylint: disable=too-many-arguments
         cls,
         database: Database,
         table: Table,
@@ -1653,14 +1653,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if show_cols:
             fields = cls._get_fields(cols)
 
-        quote = engine.dialect.identifier_preparer.quote
-        quote_schema = engine.dialect.identifier_preparer.quote_schema
-        full_table_name = (
-            quote_schema(table.schema) + "." + quote(table.table)
-            if table.schema
-            else quote(table.table)
-        )
-
+        full_table_name = cls.quote_table(table, engine.dialect)
         qry = select(fields).select_from(text(full_table_name))
 
         if limit and cls.allow_limit_clause:
@@ -2223,6 +2216,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return dialect.denormalize_name(name)
 
         return name
+
+    @classmethod
+    def quote_table(cls, table: Table, dialect: Dialect) -> str:
+        """
+        Fully quote a table name, including the schema and catalog.
+        """
+        quoters = {
+            "catalog": dialect.identifier_preparer.quote_schema,
+            "schema": dialect.identifier_preparer.quote_schema,
+            "table": dialect.identifier_preparer.quote,
+        }
+
+        return ".".join(
+            function(getattr(table, key))
+            for key, function in quoters.items()
+            if getattr(table, key)
+        )
 
 
 # schema for adding a database by providing parameters instead of the
