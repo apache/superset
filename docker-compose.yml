@@ -41,6 +41,8 @@ x-common-build: &common-build
 
 services:
   nginx:
+    logging:
+      driver: gcplogs  
     image: nginx:latest
     container_name: superset_nginx
     restart: unless-stopped
@@ -51,6 +53,8 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
   redis:
+    logging:
+      driver: gcplogs    
     image: redis:7
     container_name: superset_cache
     restart: unless-stopped
@@ -60,6 +64,8 @@ services:
       - redis:/data
 
   db:
+    logging:
+      driver: gcplogs    
     env_file:
       - path: docker/.env # default
         required: true
@@ -75,6 +81,8 @@ services:
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 
   superset:
+    logging:
+      driver: gcplogs    
     env_file:
       - path: docker/.env # default
         required: true
@@ -96,6 +104,8 @@ services:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
 
   superset-websocket:
+    logging:
+      driver: gcplogs    
     container_name: superset_websocket
     build: ./superset-websocket
     ports:
@@ -129,6 +139,8 @@ services:
       - REDIS_SSL=false
 
   superset-init:
+    logging:
+      driver: gcplogs    
     build:
       <<: *common-build
     container_name: superset_init
@@ -147,6 +159,8 @@ services:
       disable: true
 
   superset-node:
+    logging:
+      driver: gcplogs    
     image: node:18
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
@@ -163,6 +177,8 @@ services:
     volumes: *superset-volumes
 
   superset-worker:
+    logging:
+      driver: gcplogs    
     build:
       <<: *common-build
     container_name: superset_worker
@@ -187,6 +203,8 @@ services:
     # mem_reservation: 128M
 
   superset-worker-beat:
+    logging:
+      driver: gcplogs    
     build:
       <<: *common-build
     container_name: superset_worker_beat
@@ -204,6 +222,8 @@ services:
       disable: true
 
   superset-tests-worker:
+    logging:
+      driver: gcplogs    
     build:
       <<: *common-build
     container_name: superset_tests_worker
