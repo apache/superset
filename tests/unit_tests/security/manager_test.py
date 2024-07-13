@@ -32,7 +32,7 @@ from superset.security.manager import (
 )
 from superset.sql_parse import Table
 from superset.superset_typing import AdhocColumn, AdhocMetric
-from superset.utils.core import override_user
+from superset.utils.core import DatasourceName, override_user
 
 
 def test_security_manager(app_context: None) -> None:
@@ -760,3 +760,67 @@ def test_raise_for_access_catalog(
         == """You need access to the following tables: `db2.public.ab_user`,
             `all_database_access` or `all_datasource_access` permission"""
     )
+
+
+def test_get_datasources_accessible_by_user_schema_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that `get_datasources_accessible_by_user` works with schema permissions.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog2"
+
+    can_access = mocker.patch.object(sm, "can_access", return_value=True)
+
+    datasource_names = [
+        DatasourceName("table1", "schema1", "catalog2"),
+        DatasourceName("table2", "schema1", "catalog2"),
+    ]
+
+    assert sm.get_datasources_accessible_by_user(
+        database,
+        datasource_names,
+        catalog=None,
+        schema="schema1",
+    ) == [
+        DatasourceName("table1", "schema1", "catalog2"),
+        DatasourceName("table2", "schema1", "catalog2"),
+    ]
+
+    # Even though we passed `catalog=None,` the schema check uses the default catalog
+    # when building the schema permission, since the DB supports catalog.
+    can_access.assert_called_with("schema_access", "[db1].[catalog2].[schema1]")
+
+
+def test_get_catalogs_accessible_by_user_schema_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that `get_catalogs_accessible_by_user` works with schema permissions.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "user_view_menu_names",
+        side_effect=[
+            set(),  # catalog_access
+            {"[db1].[catalog2].[schema1]"},  # schema_access
+            set(),  # datasource_access
+        ],
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog2"
+
+    catalogs = {"catalog1", "catalog2"}
+
+    assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
