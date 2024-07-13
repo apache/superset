@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   test-postgres-presto:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -84,7 +84,7 @@ jobs:
           verbose: true
 
   test-postgres-hive:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config

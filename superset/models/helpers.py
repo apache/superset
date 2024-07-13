@@ -1683,7 +1683,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 select_exprs.append(
                     self.convert_tbl_column_to_sqla_col(
-                        columns_by_name[selected], template_processor=template_processor
+                        columns_by_name[selected],
+                        template_processor=template_processor,
+                        label=_column_label,
                     )
                     if isinstance(selected, str) and selected in columns_by_name
                     else self.make_sqla_column_compatible(
@@ -1907,6 +1909,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             where_clause_and.append(sqla_col.like(eq))
                         else:
                             where_clause_and.append(sqla_col.ilike(eq))
+                    elif op in {utils.FilterOperator.NOT_LIKE.value}:
+                        if target_generic_type != GenericDataType.STRING:
+                            sqla_col = sa.cast(sqla_col, sa.String)
+
+                        where_clause_and.append(sqla_col.not_like(eq))
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE.value
                         and isinstance(eq, str)

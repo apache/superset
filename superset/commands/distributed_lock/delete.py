@@ -14,49 +14,36 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 import logging
-from datetime import datetime
 from functools import partial
 
-from sqlalchemy import and_
+from flask import current_app
+from sqlalchemy.exc import SQLAlchemyError
 
-from superset import db
-from superset.commands.base import BaseCommand
+from superset.commands.distributed_lock.base import BaseDistributedLockCommand
+from superset.daos.key_value import KeyValueDAO
+from superset.exceptions import DeleteKeyValueDistributedLockFailedException
 from superset.key_value.exceptions import KeyValueDeleteFailedError
-from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import KeyValueResource
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
+stats_logger = current_app.config["STATS_LOGGER"]
 
 
-class DeleteExpiredKeyValueCommand(BaseCommand):
-    resource: KeyValueResource
-
-    def __init__(self, resource: KeyValueResource):
-        """
-        Delete all expired key-value pairs
-
-        :param resource: the resource (dashboard, chart etc)
-        :return: was the entry deleted or not
-        """
-        self.resource = resource
-
-    @transaction(on_error=partial(on_error, reraise=KeyValueDeleteFailedError))
-    def run(self) -> None:
-        self.delete_expired()
-
+class DeleteDistributedLock(BaseDistributedLockCommand):
     def validate(self) -> None:
         pass
 
-    def delete_expired(self) -> None:
-        (
-            db.session.query(KeyValueEntry)
-            .filter(
-                and_(
-                    KeyValueEntry.resource == self.resource.value,
-                    KeyValueEntry.expires_on <= datetime.now(),
-                )
-            )
-            .delete()
-        )
+    @transaction(
+        on_error=partial(
+            on_error,
+            catches=(
+                KeyValueDeleteFailedError,
+                SQLAlchemyError,
+            ),
+            reraise=DeleteKeyValueDistributedLockFailedException,
+        ),
+    )
+    def run(self) -> None:
+        KeyValueDAO.delete_entry(self.resource, self.key)
