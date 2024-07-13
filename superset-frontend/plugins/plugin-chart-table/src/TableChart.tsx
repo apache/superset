@@ -52,16 +52,16 @@ import {
   tn,
   useTheme,
 } from '@superset-ui/core';
-import { Dropdown, Menu } from '@superset-ui/chart-controls';
+import { Dropdown, Menu, Tooltip } from '@superset-ui/chart-controls';
 import {
   CheckOutlined,
+  InfoCircleOutlined,
   DownOutlined,
   MinusCircleOutlined,
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-
-import { isEmpty } from 'lodash';
+import { isEmpty, isNumber } from 'lodash';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -181,10 +181,10 @@ function SearchInput({ count, value, onChange }: SearchInputProps) {
     <span className="dt-global-filter">
       {t('Search')}{' '}
       <input
+        aria-label={t('Search %s records', count)}
         className="form-control input-sm"
         placeholder={tn('search.num_records', count)}
         value={value}
-        aria-label={t('Search %s records', count)}
         onChange={onChange}
       />
     </span>
@@ -211,8 +211,13 @@ function SelectPageSize({
           const [size, text] = Array.isArray(option)
             ? option
             : [option, option];
+          const sizeLabel = size === 0 ? t('all') : size;
           return (
-            <option key={size} value={size}>
+            <option
+              aria-label={t('Show %s entries', sizeLabel)}
+              key={size}
+              value={size}
+            >
               {text}
             </option>
           );
@@ -891,7 +896,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
-                    value && value < 0 ? 'negative' : 'positive',
+                    isNumber(value) && value < 0 ? 'negative' : 'positive',
                   )}
                   css={cellBarStyles}
                   role="presentation"
@@ -965,7 +970,27 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ),
         Footer: totals ? (
           i === 0 ? (
-            <th>{t('Totals')}</th>
+            <th>
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  & svg {
+                    margin-left: ${theme.gridUnit}px;
+                    color: ${theme.colors.grayscale.dark1} !important;
+                  }
+                `}
+              >
+                {t('Summary')}
+                <Tooltip
+                  overlay={t(
+                    'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
+                  )}
+                >
+                  <InfoCircleOutlined />
+                </Tooltip>
+              </div>
+            </th>
           ) : (
             <td style={sharedStyle}>
               <strong>{formatColumnValue(column, totals[key])[1]}</strong>

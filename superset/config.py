@@ -539,6 +539,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "CHART_PLUGINS_EXPERIMENTAL": False,
     # Regardless of database configuration settings, force SQLLAB to run async using Celery
     "SQLLAB_FORCE_RUN_ASYNC": False,
+    # Set to True to to enable factory resent CLI command
+    "ENABLE_FACTORY_RESET_COMMAND": False,
 }
 
 # ------------------------------
@@ -895,7 +897,7 @@ LOGGING_CONFIGURATOR = DefaultLoggingConfigurator()
 # Console Log Settings
 
 LOG_FORMAT = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.DEBUG if DEBUG else logging.INFO
 
 # ---------------------------------------------------
 # Enable Time Rotate Log Handler
@@ -903,7 +905,7 @@ LOG_LEVEL = logging.INFO
 # LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 ENABLE_TIME_ROTATE = False
-TIME_ROTATE_LOG_LEVEL = logging.INFO
+TIME_ROTATE_LOG_LEVEL = logging.DEBUG if DEBUG else logging.INFO
 FILENAME = os.path.join(DATA_DIR, "superset.log")
 ROLLOVER = "midnight"
 INTERVAL = 1
@@ -1274,7 +1276,16 @@ DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
 # unsafe SQL functions in SQL Lab and Charts. The keys of the dictionary are the engine
 # names, and the values are sets of disallowed functions.
 DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
-    "postgresql": {"version", "query_to_xml", "inet_server_addr", "inet_client_addr"},
+    "postgresql": {
+        "database_to_xml",
+        "inet_client_addr",
+        "inet_server_addr",
+        "query_to_xml",
+        "query_to_xml_and_xmlschema",
+        "table_to_xml",
+        "table_to_xml_and_xmlschema",
+        "version",
+    },
     "clickhouse": {"url"},
     "mysql": {"version"},
 }

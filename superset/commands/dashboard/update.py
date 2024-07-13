@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -31,12 +32,11 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.commands.utils import populate_roles, update_tags, validate_tags
 from superset.daos.dashboard import DashboardDAO
-from superset.daos.exceptions import DAODeleteFailedError, DAOUpdateFailedError
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.tags.models import ObjectType
 from superset.utils import json
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -47,29 +47,22 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         self._properties = data.copy()
         self._model: Optional[Dashboard] = None
 
+    @transaction(on_error=partial(on_error, reraise=DashboardUpdateFailedError))
     def run(self) -> Model:
         self.validate()
         assert self._model
 
-        try:
-            # Update tags
-            tags = self._properties.pop("tags", None)
-            if tags is not None:
-                update_tags(
-                    ObjectType.dashboard, self._model.id, self._model.tags, tags
-                )
+        # Update tags
+        if (tags := self._properties.pop("tags", None)) is not None:
+            update_tags(ObjectType.dashboard, self._model.id, self._model.tags, tags)
 
-            dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
-            if self._properties.get("json_metadata"):
-                dashboard = DashboardDAO.set_dash_metadata(
-                    dashboard,
-                    data=json.loads(self._properties.get("json_metadata", "{}")),
-                    commit=False,
-                )
-            db.session.commit()
-        except (DAOUpdateFailedError, DAODeleteFailedError) as ex:
-            logger.exception(ex.exception)
-            raise DashboardUpdateFailedError() from ex
+        dashboard = DashboardDAO.update(self._model, self._properties)
+        if self._properties.get("json_metadata"):
+            DashboardDAO.set_dash_metadata(
+                dashboard,
+                data=json.loads(self._properties.get("json_metadata", "{}")),
+            )
+
         return dashboard
 
     def validate(self) -> None:

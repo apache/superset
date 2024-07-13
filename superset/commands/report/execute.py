@@ -69,7 +69,7 @@ from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
-from superset.utils.decorators import logs_context
+from superset.utils.decorators import logs_context, transaction
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -120,7 +120,6 @@ class BaseReportState:
 
         self._report_schedule.last_state = state
         self._report_schedule.last_eval_dttm = datetime.utcnow()
-        db.session.commit()
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -138,7 +137,7 @@ class BaseReportState:
             uuid=self._execution_id,
         )
         db.session.add(log)
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
     def _get_url(
         self,
@@ -690,6 +689,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
 
+    @transaction()
     def run(self) -> None:
         for state_cls in self.states_cls:
             if (self._report_schedule.last_state is None and state_cls.initial) or (
@@ -718,6 +718,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self._scheduled_dttm = scheduled_dttm
         self._execution_id = UUID(task_id)
 
+    @transaction()
     def run(self) -> None:
         try:
             self.validate()

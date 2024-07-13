@@ -39,7 +39,8 @@ from superset.charts.filters import (
     ChartFilter,
     ChartHasCreatedByFilter,
     ChartOwnedCreatedFavoredByMeFilter,
-    ChartTagFilter,
+    ChartTagIdFilter,
+    ChartTagNameFilter,
 )
 from superset.charts.schemas import (
     CHART_SCHEMAS,
@@ -238,7 +239,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ],
         "slice_name": [ChartAllTextFilter],
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
-        "tags": [ChartTagFilter],
+        "tags": [ChartTagNameFilter, ChartTagIdFilter],
     }
     # Will just affect _info endpoint
     edit_columns = ["slice_name"]

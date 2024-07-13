@@ -42,6 +42,7 @@ cd $ROOT_DIR
 pybabel extract \
   -F superset/translations/babel.cfg \
   -o superset/translations/messages.pot \
+  --no-location \
   --sort-output \
   --copyright-holder=Superset \
   --project=Superset \

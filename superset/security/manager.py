@@ -67,7 +67,6 @@ from superset.security.guest_token import (
     GuestUser,
 )
 from superset.sql_parse import extract_tables_from_jinja_sql, Table
-from superset.superset_typing import Metric
 from superset.utils import json
 from superset.utils.core import (
     DatasourceName,
@@ -145,11 +144,11 @@ RoleModelView.edit_columns = ["name", "permissions", "user"]
 RoleModelView.related_views = []
 
 
-def freeze_metric(metric: Metric) -> str:
+def freeze_value(value: Any) -> str:
     """
-    Used to compare metric sets.
+    Used to compare column and metric sets.
     """
-    return json.dumps(metric, sort_keys=True)
+    return json.dumps(value, sort_keys=True)
 
 
 def query_context_modified(query_context: "QueryContext") -> bool:
@@ -170,32 +169,37 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     if form_data.get("slice_id") != stored_chart.id:
         return True
 
-    # compare form_data
-    requested_metrics = {
-        freeze_metric(metric) for metric in form_data.get("metrics") or []
-    }
-    stored_metrics = {
-        freeze_metric(metric)
-        for metric in stored_chart.params_dict.get("metrics") or []
-    }
-    if not requested_metrics.issubset(stored_metrics):
-        return True
+    stored_query_context = (
+        json.loads(cast(str, stored_chart.query_context))
+        if stored_chart.query_context
+        else None
+    )
 
-    # compare queries in query_context
-    queries_metrics = {
-        freeze_metric(metric)
-        for query in query_context.queries
-        for metric in query.metrics or []
-    }
+    # compare columns and metrics in form_data with stored values
+    for key in ["metrics", "columns", "groupby"]:
+        requested_values = {freeze_value(value) for value in form_data.get(key) or []}
+        stored_values = {
+            freeze_value(value) for value in stored_chart.params_dict.get(key) or []
+        }
+        if not requested_values.issubset(stored_values):
+            return True
 
-    if stored_chart.query_context:
-        stored_query_context = json.loads(cast(str, stored_chart.query_context))
-        for query in stored_query_context.get("queries") or []:
-            stored_metrics.update(
-                {freeze_metric(metric) for metric in query.get("metrics") or []}
-            )
+        # compare queries in query_context
+        queries_values = {
+            freeze_value(value)
+            for query in query_context.queries
+            for value in getattr(query, key, []) or []
+        }
+        if stored_query_context:
+            for query in stored_query_context.get("queries") or []:
+                stored_values.update(
+                    {freeze_value(value) for value in query.get(key) or []}
+                )
 
-    return not queries_metrics.issubset(stored_metrics)
+        if not queries_values.issubset(stored_values):
+            return True
+
+    return False
 
 
 class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
@@ -580,7 +584,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         return (
-            f"This endpoint requires the datasource {datasource.name}, "
+            f"This endpoint requires the datasource {datasource.id}, "
             "database or `all_datasource_access` permission"
         )
 
@@ -612,7 +616,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_datasource_access_link(datasource),
-                "datasource": datasource.name,
+                "datasource": datasource.id,
             },
         )
 
@@ -856,7 +860,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if len(parts) == 2 and default_catalog:
                 accessible_catalogs.add(default_catalog)
             elif len(parts) == 3:
-                accessible_catalogs.add(parts[2])
+                accessible_catalogs.add(parts[1])
 
         # datasource_access
         if perms := self.user_view_menu_names("datasource_access"):
@@ -907,7 +911,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return datasource_names
 
         if schema:
-            schema_perm = self.get_schema_perm(database, catalog, schema)
+            default_catalog = database.get_default_catalog()
+            schema_perm = self.get_schema_perm(
+                database.database_name,
+                catalog or default_catalog,
+                schema,
+            )
             if schema_perm and self.can_access("schema_access", schema_perm):
                 return datasource_names
 
@@ -1017,7 +1026,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 == None,  # noqa: E711
             )
         )
-        self.get_session.commit()
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
 
@@ -1045,11 +1053,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.auth_role_public,
                 merge=True,
             )
-
         self.create_missing_perms()
-
-        # commit role and view menu updates
-        self.get_session.commit()
         self.clean_perms()
 
     def _get_all_pvms(self) -> list[PermissionView]:
@@ -1122,7 +1126,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 ):
                     role_from_permissions.append(permission_view)
         role_to.permissions = role_from_permissions
-        self.get_session.commit()
 
     def set_role(
         self,
@@ -1143,7 +1146,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             permission_view for permission_view in pvms if pvm_check(permission_view)
         ]
         role.permissions = role_pvms
-        self.get_session.commit()
 
     def _is_admin_only(self, pvm: PermissionView) -> bool:
         """
@@ -2446,8 +2448,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_roles = [role.id for role in self.get_user_roles(g.user)]
         regular_filter_roles = (
-            self.get_session()
-            .query(RLSFilterRoles.c.rls_filter_id)
+            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
@@ -2455,22 +2456,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
         base_filter_roles = (
-            self.get_session()
-            .query(RLSFilterRoles.c.rls_filter_id)
+            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
-        filter_tables = (
-            self.get_session()
-            .query(RLSFilterTables.c.rls_filter_id)
-            .filter(RLSFilterTables.c.table_id == table.id)
+        filter_tables = self.get_session.query(RLSFilterTables.c.rls_filter_id).filter(
+            RLSFilterTables.c.table_id == table.id
         )
         query = (
-            self.get_session()
-            .query(
+            self.get_session.query(
                 RowLevelSecurityFilter.id,
                 RowLevelSecurityFilter.group_key,
                 RowLevelSecurityFilter.clause,
@@ -2673,12 +2670,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the current user is not an owner
         """
 
-        # pylint: disable=import-outside-toplevel
-        from superset import db
-
         if self.is_admin():
             return
-        orig_resource = db.session.query(resource.__class__).get(resource.id)
+        orig_resource = self.get_session.query(resource.__class__).get(resource.id)
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:

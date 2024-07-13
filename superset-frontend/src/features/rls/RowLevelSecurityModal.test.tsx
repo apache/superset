@@ -193,6 +193,7 @@ describe('Rule modal', () => {
 
     const name = await screen.findByTestId('rule-name-test');
     expect(name).toHaveDisplayValue('rls 1');
+    userEvent.clear(name);
     userEvent.type(name, 'rls 2');
     expect(name).toHaveDisplayValue('rls 2');
 

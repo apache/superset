@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=consider-using-transaction
 import logging
 
 from flask import request, Response
@@ -272,6 +273,5 @@ class TableSchemaView(BaseSupersetView):
             .filter_by(id=table_schema_id)
             .update({"expanded": payload})
         )
-        db.session.commit()
         response = json.dumps({"id": table_schema_id, "expanded": payload})
         return json_success(response)

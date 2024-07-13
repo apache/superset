@@ -123,7 +123,6 @@ from superset.utils import json
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
-from superset.views.base import json_errors_response
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -131,6 +130,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
+from superset.views.error_handling import json_error_response
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -467,7 +467,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseConnectionFailedError as ex:
             return self.response_422(message=str(ex))
         except SupersetErrorsException as ex:
-            return json_errors_response(errors=ex.errors, status=ex.status)
+            return json_error_response(ex.errors, status=ex.status)
         except DatabaseCreateFailedError as ex:
             logger.error(
                 "Error creating model %s: %s",
@@ -1419,7 +1419,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             database_id=state["database_id"],
         )
         if existing:
-            DatabaseUserOAuth2TokensDAO.delete([existing], commit=True)
+            DatabaseUserOAuth2TokensDAO.delete([existing])
 
         # store tokens
         expiration = datetime.now() + timedelta(seconds=token_response["expires_in"])
@@ -1431,7 +1431,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "access_token_expiration": expiration,
                 "refresh_token": token_response.get("refresh_token"),
             },
-            commit=True,
         )
 
         # return blank page that closes itself

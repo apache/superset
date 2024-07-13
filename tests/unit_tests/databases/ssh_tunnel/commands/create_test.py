@@ -36,7 +36,7 @@ def test_create_ssh_tunnel_command() -> None:
     )
 
     properties = {
-        "database_id": database.id,
+        "database": database,
         "server_address": "123.132.123.1",
         "server_port": "3005",
         "username": "foo",

@@ -111,8 +111,6 @@ def load_birth_names(
     _set_table_metadata(obj, database)
     _add_table_metrics(obj)
 
-    db.session.commit()
-
     slices, _ = create_slices(obj)
     create_dashboard(slices)
 
@@ -844,5 +842,4 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
     dash.dashboard_title = "USA Births Names"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"
-    db.session.commit()
     return dash

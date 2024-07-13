@@ -592,8 +592,9 @@ class QueryContextProcessor:
 
             if time_grain:
                 # move the temporal column to the first column in df
-                col = df.pop(join_keys[0])
-                df.insert(0, col.name, col)
+                if join_keys:
+                    col = df.pop(join_keys[0])
+                    df.insert(0, col.name, col)
 
                 # removes columns created only for join purposes
                 df.drop(
