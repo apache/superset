@@ -23,9 +23,12 @@ import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { GlobalStyles } from '../src/GlobalStyles';
+import { configure as configureTranslation } from '@superset-ui/core';
 
 import 'src/theme.ts';
 import './storybook.css';
+
+configureTranslation();
 
 const store = createStore(
   combineReducers(reducerIndex),
