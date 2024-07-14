@@ -25,7 +25,6 @@ from superset.initialization import SupersetAppInitializer
 
 logger = logging.getLogger(__name__)
 
-
 def create_app(superset_config_module: Optional[str] = None) -> Flask:
     app = SupersetApp(__name__)
 
@@ -38,6 +37,10 @@ def create_app(superset_config_module: Optional[str] = None) -> Flask:
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
+
+        # Register custom routes
+        from superset_config import init_app
+        init_app(app)
 
         return app
 
