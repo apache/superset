@@ -31,7 +31,7 @@ const themes = {
 
 const baseConfig: ThemeConfig = {
   token: {
-    borderRadius: supersetTheme.borderRadius,
+    borderRadius: supersetTheme.borderRadius * 10,
     colorBgBase: supersetTheme.colors.primary.light4,
     colorError: supersetTheme.colors.error.base,
     colorInfo: supersetTheme.colors.info.base,
@@ -56,6 +56,7 @@ const baseConfig: ThemeConfig = {
       paddingXS: supersetTheme.gridUnit * 2,
     },
     Card: {
+      borderRadius: supersetTheme.borderRadius * 10,
       colorBgContainer: supersetTheme.colors.grayscale.light4,
       paddingLG: supersetTheme.gridUnit * 6,
       fontWeightStrong: supersetTheme.typography.weights.medium,
