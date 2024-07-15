@@ -30,19 +30,9 @@ const ActionsWrapper = styled.div`
 `;
 
 const StyledCard = styled(Card)`
-  // TODO: move all these styles to the Card component.
   ${({ theme }) => `
-    border: 1px solid ${theme.colors.grayscale.light2};
-    border-radius: ${theme.gridUnit}px;
     overflow: hidden;
 
-    .ant-card-body {
-      padding: ${theme.gridUnit * 4}px
-        ${theme.gridUnit * 2}px;
-    }
-    .ant-card-meta-detail > div:not(:last-child) {
-      margin-bottom: 0;
-    }
     .gradient-container {
       position: relative;
       height: 100%;
@@ -191,6 +181,7 @@ function ListViewCard({
   return (
     <StyledCard
       data-test="styled-card"
+      padded
       cover={
         cover || (
           <Cover>
