@@ -16,41 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import TagType from 'src/types/TagType';
 import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
-import { TagsList } from '.';
-import { TagsListProps } from './TagsList';
+import TagType from 'src/types/TagType';
+import { Tag } from '.';
 
 export default {
   title: 'Tags',
-  component: TagsList,
+  component: Tag,
 };
-
-export const InteractiveTagsList = ({
-  tags,
-  editable,
-  maxTags,
-}: TagsListProps) => (
+export const InteractiveTag = (args: TagType) => (
   <AntdThemeProvider>
-    <TagsList tags={tags} editable={editable} maxTags={maxTags} />
+    <Tag {...args} />
   </AntdThemeProvider>
 );
 
-const tags: TagType[] = [
-  { name: 'tag1' },
-  { name: 'tag2' },
-  { name: 'tag3' },
-  { name: 'tag4' },
-  { name: 'tag5' },
-  { name: 'tag6' },
-];
-
-const editable = true;
-
-const maxTags = 3;
-
-InteractiveTagsList.args = {
-  tags,
-  editable,
-  maxTags,
+InteractiveTag.args = {
+  editable: false,
+  name: 'Tag',
 };
