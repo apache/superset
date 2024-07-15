@@ -55,7 +55,6 @@ export const parameters = {
 };
 
 // Superset setup
-
 configure();
 
 // Register color schemes
