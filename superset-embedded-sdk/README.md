@@ -110,7 +110,7 @@ Example `POST /security/guest_token` payload:
 ```
 ### Sandbox iframe
 
-The Embedded SDK creates an iframe with [sandbox](https://developer.mozilla.org/es/docs/Web/HTML/Element/iframe#sandbox) mode by default 
+The Embedded SDK creates an iframe with [sandbox](https://developer.mozilla.org/es/docs/Web/HTML/Element/iframe#sandbox) mode by default
 which applies certain restrictions to the iframe's content.
 To pass additional sandbox attributes you can use `iframeSandboxExtras`:
 ```js
