@@ -65,6 +65,47 @@ describe('plugin-chart-table', () => {
       expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
+    it('should process comparison columns when time_compare and comparison_type are set', () => {
+      const transformedProps = transformProps(testData.comparison);
+
+      // Check if comparison columns are processed
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.label === 'Main' ||
+          col.label === '#' ||
+          col.label === '△' ||
+          col.label === '%',
+      );
+
+      expect(comparisonColumns.length).toBeGreaterThan(0);
+      expect(comparisonColumns.some(col => col.label === 'Main')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '#')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '△')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '%')).toBe(true);
+    });
+
+    it('should not process comparison columns when time_compare is empty', () => {
+      const propsWithoutTimeCompare = {
+        ...testData.comparison,
+        rawFormData: {
+          ...testData.comparison.rawFormData,
+          time_compare: [],
+        },
+      };
+
+      const transformedProps = transformProps(propsWithoutTimeCompare);
+
+      // Check if comparison columns are not processed
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.label === 'Main' ||
+          col.label === '#' ||
+          col.label === '△' ||
+          col.label === '%',
+      );
+
+      expect(comparisonColumns.length).toBe(0);
+    });
   });
 
   describe('TableChart', () => {
