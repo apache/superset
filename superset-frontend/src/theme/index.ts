@@ -84,6 +84,12 @@ const baseConfig: ThemeConfig = {
   },
 };
 
+export const supersetComponentStyles = {
+  ListViewCard: {
+    colorBgContainer: supersetTheme.colors.grayscale.light5,
+  },
+};
+
 export const getTheme = (themeType?: ThemeType) => ({
   ...baseConfig,
   algorithm: themes[themeType || ThemeType.LIGHT],

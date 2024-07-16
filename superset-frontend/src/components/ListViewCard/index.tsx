@@ -20,10 +20,10 @@ import { ReactNode, ComponentType, ReactElement, FC } from 'react';
 import { styled, useTheme } from '@superset-ui/core';
 import { Skeleton, Card } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
-import { theme as supersetTheme } from 'src/preamble';
 import { ConfigProvider } from 'antd-v5';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
 import CertifiedBadge from '../CertifiedBadge';
+import { supersetComponentStyles } from 'src/theme/index';
 
 const ActionsWrapper = styled.div`
   width: 64px;
@@ -35,7 +35,7 @@ const ActionsWrapper = styled.div`
 const listViewCardTheme = {
   components: {
     Card: {
-      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      ...supersetComponentStyles.ListViewCard,
     },
   },
 };
