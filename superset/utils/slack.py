@@ -80,7 +80,6 @@ def get_channels_with_search(
                 search.lower()
                 for search in (search_string.split(",") if search_string else [])
             ]
-            print(channels)
 
             channels = [
                 channel
