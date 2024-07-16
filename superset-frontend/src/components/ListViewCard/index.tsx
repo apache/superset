@@ -20,8 +20,10 @@ import { ReactNode, ComponentType, ReactElement, FC } from 'react';
 import { styled, useTheme } from '@superset-ui/core';
 import { Skeleton, Card } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
+import { theme as supersetTheme } from 'src/preamble';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
 import CertifiedBadge from '../CertifiedBadge';
+import { ConfigProvider } from 'antd-v5';
 
 const ActionsWrapper = styled.div`
   width: 64px;
@@ -29,6 +31,16 @@ const ActionsWrapper = styled.div`
   justify-content: flex-end;
 `;
 
+// Styling part 1: Override Card tokens when possible
+const listViewCardTheme = {
+  components: {
+    Card: {
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+    },
+  },
+};
+
+// Styling part 2: Use CSS when necessary
 const StyledCard = styled(Card)`
   ${({ theme }) => `
     overflow: hidden;
@@ -179,99 +191,105 @@ function ListViewCard({
   const Link = url && linkComponent ? linkComponent : AnchorLink;
   const theme = useTheme();
   return (
-    <StyledCard
-      data-test="styled-card"
-      padded
-      cover={
-        cover || (
-          <Cover>
-            <Link to={url!}>
-              <div className="gradient-container">
-                <ImageLoader
-                  src={imgURL || ''}
-                  fallback={imgFallbackURL || ''}
-                  isLoading={loading}
-                  position={imgPosition}
-                />
-              </div>
-            </Link>
-            <CoverFooter className="cover-footer">
-              {!loading && coverLeft && (
-                <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
-              )}
-              {!loading && coverRight && (
-                <CoverFooterRight>{coverRight}</CoverFooterRight>
-              )}
-            </CoverFooter>
-          </Cover>
-        )
-      }
-    >
-      {loading && (
-        <Card.Meta
-          title={
-            <>
-              <TitleContainer>
-                <Skeleton.Input
-                  active
-                  size="small"
-                  css={{
-                    width: Math.trunc(theme.gridUnit * 62.5),
-                  }}
-                />
-                <div className="card-actions">
-                  <Skeleton.Button active shape="circle" />{' '}
-                  <Skeleton.Button
-                    active
-                    css={{
-                      width: theme.gridUnit * 10,
-                    }}
+    // <AntdThemeProvider theme={Object.assign(AtndTheme, {
+    //   Card:
+    //   colorBgContainerbackground: theme.grayscale.light4
+    // }}>
+    <ConfigProvider theme={listViewCardTheme}>
+      <StyledCard
+        data-test="styled-card"
+        padded
+        cover={
+          cover || (
+            <Cover>
+              <Link to={url!}>
+                <div className="gradient-container">
+                  <ImageLoader
+                    src={imgURL || ''}
+                    fallback={imgFallbackURL || ''}
+                    isLoading={loading}
+                    position={imgPosition}
                   />
                 </div>
-              </TitleContainer>
-            </>
-          }
-          description={
-            <ThinSkeleton
-              round
-              active
-              title={false}
-              paragraph={paragraphConfig}
-            />
-          }
-        />
-      )}
-      {!loading && (
-        <Card.Meta
-          title={
-            <TitleContainer>
-              {subtitle || null}
-              <div className="titleRow">
-                <Tooltip title={title}>
-                  <TitleLink>
-                    {certifiedBy && (
-                      <>
-                        <CertifiedBadge
-                          certifiedBy={certifiedBy}
-                          details={certificationDetails}
-                        />{' '}
-                      </>
-                    )}
-                    {title}
-                  </TitleLink>
-                </Tooltip>
-                {titleRight && <TitleRight>{titleRight}</TitleRight>}
-                <div className="card-actions" data-test="card-actions">
-                  {actions}
+              </Link>
+              <CoverFooter className="cover-footer">
+                {!loading && coverLeft && (
+                  <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
+                )}
+                {!loading && coverRight && (
+                  <CoverFooterRight>{coverRight}</CoverFooterRight>
+                )}
+              </CoverFooter>
+            </Cover>
+          )
+        }
+      >
+        {loading && (
+          <Card.Meta
+            title={
+              <>
+                <TitleContainer>
+                  <Skeleton.Input
+                    active
+                    size="small"
+                    css={{
+                      width: Math.trunc(theme.gridUnit * 62.5),
+                    }}
+                  />
+                  <div className="card-actions">
+                    <Skeleton.Button active shape="circle" />{' '}
+                    <Skeleton.Button
+                      active
+                      css={{
+                        width: theme.gridUnit * 10,
+                      }}
+                    />
+                  </div>
+                </TitleContainer>
+              </>
+            }
+            description={
+              <ThinSkeleton
+                round
+                active
+                title={false}
+                paragraph={paragraphConfig}
+              />
+            }
+          />
+        )}
+        {!loading && (
+          <Card.Meta
+            title={
+              <TitleContainer>
+                {subtitle || null}
+                <div className="titleRow">
+                  <Tooltip title={title}>
+                    <TitleLink>
+                      {certifiedBy && (
+                        <>
+                          <CertifiedBadge
+                            certifiedBy={certifiedBy}
+                            details={certificationDetails}
+                          />{' '}
+                        </>
+                      )}
+                      {title}
+                    </TitleLink>
+                  </Tooltip>
+                  {titleRight && <TitleRight>{titleRight}</TitleRight>}
+                  <div className="card-actions" data-test="card-actions">
+                    {actions}
+                  </div>
                 </div>
-              </div>
-            </TitleContainer>
-          }
-          description={description}
-          avatar={avatar || null}
-        />
-      )}
-    </StyledCard>
+              </TitleContainer>
+            }
+            description={description}
+            avatar={avatar || null}
+          />
+        )}
+      </StyledCard>
+    </ConfigProvider>
   );
 }
 
