@@ -76,7 +76,7 @@ jobs:
       - name: generator-superset unit tests
         if: steps.check.outputs.frontend
         working-directory: ./superset-frontend/packages/generator-superset
-        run: npx jest
+        run: npm run test
       - name: Upload code coverage
         uses: codecov/codecov-action@v4
         with:

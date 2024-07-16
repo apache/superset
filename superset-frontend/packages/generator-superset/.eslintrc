@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,19 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import helpers, { result } from 'yeoman-test';
-import appModule from '../generators/app';
-
-test('generator-superset:app:creates files', async () => {
-  await helpers.run(appModule).withPrompts({
-    subgenerator: 'package',
-    name: 'my-package',
-  });
-  result.assertFile([
-    'package.json',
-    'README.md',
-    'src/index.ts',
-    'test/index.test.ts',
-  ]);
-});
+{
+  "settings": {
+    "import/resolver": {
+      "typescript": {}
+    }
+  }
+}
