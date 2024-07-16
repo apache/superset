@@ -167,12 +167,12 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders db deprecated message', async () => {
+  it('renders db unavailable message', async () => {
     const queryEditor = initialState.sqlLab.queryEditors[1];
     const { findByText } = setup({ ...mockedProps, queryEditor }, store);
     expect(
       await findByText(
-        'The selected database is currently deprecated and cannot be used',
+        'The database that was used to generate this query could not be reached',
       ),
     ).toBeInTheDocument();
   });

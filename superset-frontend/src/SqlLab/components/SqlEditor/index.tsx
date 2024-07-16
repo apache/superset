@@ -779,10 +779,10 @@ const SqlEditor: FC<Props> = ({
           <Alert
             type="warning"
             message={t(
-              'The selected database is currently deprecated and cannot be used',
+              'The database that was used to generate this query could not be reached',
             )}
             description={t(
-              'Choose one of the available databases from the panel on the left.',
+              'Choose one of the available databases on the left panel.',
             )}
             closable={false}
           />
