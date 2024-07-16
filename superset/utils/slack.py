@@ -86,12 +86,12 @@ def get_channels_with_search(
                 for channel in channels
                 if any(
                     (
-                        search in channel["name"].lower()
-                        or search in channel["id"].lower()
+                        search == channel["name"].lower()
+                        or search == channel["id"].lower()
                         if exact_match
                         else (
-                            search == channel["name"].lower()
-                            or search == channel["id"].lower()
+                            search in channel["name"].lower()
+                            or search in channel["id"].lower()
                         )
                     )
                     for search in search_array
