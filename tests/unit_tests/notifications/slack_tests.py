@@ -22,7 +22,9 @@ import pandas as pd
 
 @patch("superset.reports.notifications.slack.g")
 @patch("superset.reports.notifications.slack.logger")
+@patch("superset.reports.notifications.slack.get_slack_client")
 def test_send_slack(
+    slack_client_mock: MagicMock,
     logger_mock: MagicMock,
     flask_global_mock: MagicMock,
 ) -> None:
@@ -31,10 +33,12 @@ def test_send_slack(
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
     from superset.reports.notifications.slack import SlackNotification
-    from superset.utils.slack import WebClient
 
     execution_id = uuid.uuid4()
     flask_global_mock.logs_context = {"execution_id": execution_id}
+    slack_client_mock.return_value.conversations_list.return_value = {
+        "channels": [{"name": "some_channel", "id": "123"}]
+    }
     content = NotificationContent(
         name="test alert",
         header_data={
@@ -54,22 +58,20 @@ def test_send_slack(
         ),
         description='<p>This is <a href="#">a test</a> alert</p><br />',
     )
-    with patch.object(
-        WebClient, "chat_postMessage", return_value=True
-    ) as chat_post_message_mock:
-        SlackNotification(
-            recipient=ReportRecipients(
-                type=ReportRecipientType.SLACK,
-                recipient_config_json='{"target": "some_channel"}',
-            ),
-            content=content,
-        ).send()
-        logger_mock.info.assert_called_with(
-            "Report sent to slack", extra={"execution_id": execution_id}
-        )
-        chat_post_message_mock.assert_called_with(
-            channel="some_channel",
-            text="""*test alert*
+
+    SlackNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json='{"target": "some_channel"}',
+        ),
+        content=content,
+    ).send()
+    logger_mock.info.assert_called_with(
+        "Report sent to slack", extra={"execution_id": execution_id}
+    )
+    slack_client_mock.return_value.chat_postMessage.assert_called_with(
+        channel="123",
+        text="""*test alert*
 
 <p>This is <a href="#">a test</a> alert</p><br />
 
@@ -83,4 +85,4 @@ def test_send_slack(
 |  2 |   3 |   6 | <a href="http://www.example.com">333</a> |
 ```
 """,
-        )
+    )

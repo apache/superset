@@ -16,7 +16,6 @@
 # under the License.
 """Unit tests for Superset"""
 
-import json
 from unittest import mock
 from unittest.mock import patch  # noqa: F401
 
@@ -24,6 +23,7 @@ import pytest
 
 from superset.commands.dashboard.exceptions import DashboardForbiddenError
 from superset.daos.dashboard import DashboardDAO
+from superset.utils import json
 from superset.utils.core import backend, override_user
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
@@ -45,7 +45,9 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
-from tests.integration_tests.fixtures.public_role import public_role_like_gamma  # noqa: F401
+from tests.integration_tests.fixtures.public_role import (
+    public_role_like_gamma,  # noqa: F401
+)
 from tests.integration_tests.fixtures.query_context import get_query_context
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401

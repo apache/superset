@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { ErrorLevel, supersetTheme } from '@superset-ui/core';
 import BasicErrorAlert from './BasicErrorAlert';

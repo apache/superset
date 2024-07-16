@@ -82,7 +82,7 @@ export default function getDropPosition(monitor, Component) {
   const siblingDropOrientation =
     orientation === 'row' ? 'horizontal' : 'vertical';
 
-  if (isDraggingOverShallow && validChild && !validSibling) {
+  if (validChild && !validSibling) {
     // easiest case, insert as child
     if (childDropOrientation === 'vertical') {
       return hasChildren ? DROP_RIGHT : DROP_LEFT;

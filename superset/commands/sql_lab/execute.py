@@ -22,10 +22,11 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 from flask_babel import gettext as __
+from sqlalchemy.exc import SQLAlchemyError
 
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
-from superset.daos.exceptions import DAOCreateFailedError
 from superset.errors import SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -41,6 +42,7 @@ from superset.sqllab.exceptions import (
 )
 from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.utils.decorators import transaction
 
 if TYPE_CHECKING:
     from superset.daos.database import DatabaseDAO
@@ -90,6 +92,7 @@ class ExecuteSqlCommand(BaseCommand):
     def validate(self) -> None:
         pass
 
+    @transaction()
     def run(  # pylint: disable=too-many-statements,useless-suppression
         self,
     ) -> CommandResult:
@@ -115,10 +118,10 @@ class ExecuteSqlCommand(BaseCommand):
                 "status": status,
                 "payload": self._execution_context_convertor.serialize_payload(),
             }
-        except (SupersetErrorException, SupersetErrorsException) as ex:
+        except (SupersetErrorException, SupersetErrorsException):
             # to make sure we raising the original
             # SupersetErrorsException || SupersetErrorsException
-            raise ex
+            raise
         except Exception as ex:
             raise SqlLabException(self._execution_context, exception=ex) from ex
 
@@ -158,9 +161,9 @@ class ExecuteSqlCommand(BaseCommand):
             return self._sql_json_executor.execute(
                 self._execution_context, rendered_query, self._log_params
             )
-        except Exception as ex:
+        except Exception:
             self._query_dao.update(query, {"status": QueryStatus.FAILED})
-            raise ex
+            raise
 
     def _get_the_query_db(self) -> Database:
         mydb: Any = self._database_dao.find_by_id(self._execution_context.database_id)
@@ -178,9 +181,22 @@ class ExecuteSqlCommand(BaseCommand):
             )
 
     def _save_new_query(self, query: Query) -> None:
+        """
+        Saves the new SQL Lab query.
+
+        Committing within a transaction violates the "unit of work" construct, but is
+        necessary for async querying. The Celery task is defined within the confines
+        of another command and needs to read a previously committed state given the
+        `READ COMMITTED` isolation level.
+
+        To mitigate said issue, ideally there would be a command to prepare said query
+        and another to execute it, either in a sync or async manner.
+
+        :param query: The SQL Lab query
+        """
         try:
             self._query_dao.create(query)
-        except DAOCreateFailedError as ex:
+        except SQLAlchemyError as ex:
             raise SqlLabException(
                 self._execution_context,
                 SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
@@ -188,6 +204,8 @@ class ExecuteSqlCommand(BaseCommand):
                 ex,
                 "Please contact an administrator for further assistance or try again.",
             ) from ex
+
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
     def _validate_access(self, query: Query) -> None:
         try:

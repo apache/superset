@@ -45,7 +45,7 @@ dependencies = [
     "cryptography>=42.0.4, <43.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <3.0.0",
-    "flask-appbuilder>=4.4.1, <5.0.0",
+    "flask-appbuilder>=4.5.0, <5.0.0",
     "flask-caching>=2.1.0, <3",
     "flask-compress>=1.13, <2.0",
     "flask-talisman>=1.0.0, <2.0",
@@ -55,7 +55,7 @@ dependencies = [
     "flask-wtf>=1.1.0, <2.0",
     "func_timeout",
     "geopy",
-    "gunicorn>=21.2.0, <22.0; sys_platform != 'win32'",
+    "gunicorn>=22.0.0; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     "holidays>=0.25, <0.26",
     "humanize",
@@ -89,7 +89,7 @@ dependencies = [
     "sqlalchemy>=1.4, <2",
     "sqlalchemy-utils>=0.38.3, <0.39",
     "sqlglot>=23.0.2,<24",
-    "sqlparse>=0.4.4, <0.5",
+    "sqlparse>=0.5.0",
     "tabulate>=0.8.9, <0.9",
     "typing-extensions>=4, <5",
     "waitress; sys_platform == 'win32'",
@@ -132,6 +132,7 @@ gevent = ["gevent>=23.9.1"]
 gsheets = ["shillelagh[gsheetsapi]>=1.2.18, <2"]
 hana = ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"]
 hive = [
+    "boto3",
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
@@ -150,11 +151,11 @@ ocient = [
     "geojson",
 ]
 oracle = ["cx-Oracle>8.0.0, <8.1"]
-pinot = ["pinotdb>=0.3.3, <0.4"]
+pinot = ["pinotdb>=5.0.0, <6.0.0"]
 playwright = ["playwright>=1.37.0, <2"]
 postgres = ["psycopg2-binary==2.9.6"]
 presto = ["pyhive[presto]>=0.6.5"]
-trino = ["trino>=0.328.0"]
+trino = ["boto3", "trino>=0.328.0"]
 prophet = ["prophet>=1.1.5, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 rockset = ["rockset-sqlalchemy>=0.0.1, <1"]
@@ -172,13 +173,13 @@ vertica = ["sqlalchemy-vertica-python>=0.5.9, < 0.6"]
 netezza = ["nzalchemy>=11.0.2"]
 starrocks = ["starrocks>=1.0.0"]
 doris = ["pydoris>=1.0.0, <2.0.0"]
+oceanbase = ["oceanbase_py>=0.0.1"]
 development = [
     "docker",
     "flask-testing",
     "freezegun",
     "greenlet>=2.0.2",
     "grpcio>=1.55.3",
-    "ipython",
     "openapi-spec-validator",
     "parameterized",
     "pip-compile-multi",
@@ -240,6 +241,7 @@ ignore_basepython_conflict = true
 commands =
     superset db upgrade
     superset init
+    superset load-test-users
     # use -s to be able to use break pointers.
     # no args or tests/* can be passed as an argument to run all tests
     pytest -s {posargs}
@@ -252,9 +254,8 @@ setenv =
     SUPERSET_HOME = {envtmpdir}
     mysql: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
     postgres: SUPERSET__SQLALCHEMY_DATABASE_URI = postgresql+psycopg2://superset:superset@localhost/test
-    sqlite:
-        SUPERSET__SQLALCHEMY_DATABASE_URI = sqlite:////{envtmpdir}/superset.db
-        SUPERSET__SQLALCHEMY_EXAMPLES_URI = sqlite:////{envtmpdir}/examples.db
+    sqlite: SUPERSET__SQLALCHEMY_DATABASE_URI = sqlite:////{envtmpdir}/superset.db
+    sqlite: SUPERSET__SQLALCHEMY_EXAMPLES_URI = sqlite:////{envtmpdir}/examples.db
     mysql-presto: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
     # docker run -p 8080:8080 --name presto starburstdata/presto
     mysql-presto: SUPERSET__SQLALCHEMY_EXAMPLES_URI = presto://localhost:8080/memory/default
@@ -424,6 +425,7 @@ exclude = [
     "venv",
 ]
 
+
 # Same as Black.
 line-length = 88
 indent-width = 4
@@ -435,8 +437,17 @@ target-version = "py310"
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
-select = ["E4", "E7", "E9", "F"]
+select = [
+    "B904",
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "TRY201",
+]
 ignore = []
+
+extend-select = ["I"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
@@ -444,6 +455,22 @@ unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.isort]
+case-sensitive = false
+combine-as-imports = true
+force-sort-within-sections = false
+known-first-party = []
+known-third-party = []
+lines-after-imports = -1
+order-by-type = false
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder"
+]
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.

@@ -80,7 +80,7 @@ const config = {
             from: '/gallery.html',
           },
           {
-            to: '/docs/databases/druid',
+            to: '/docs/configuration/databases',
             from: '/druid.html',
           },
           {
@@ -92,11 +92,11 @@ const config = {
             from: '/visualization.html',
           },
           {
-            to: '/docs/frequently-asked-questions',
+            to: '/docs/faq',
             from: '/videos.html',
           },
           {
-            to: '/docs/frequently-asked-questions',
+            to: '/docs/faq',
             from: '/faq.html',
           },
           {
@@ -113,19 +113,79 @@ const config = {
           },
           {
             to: '/docs/configuration/alerts-reports',
-            from: '/docs/installation/email-reports',
+            from: '/docs/installation/alerts-reports',
+          },
+          {
+            to: '/docs/contributing/development',
+            from: '/docs/contributing/hooks-and-linting',
           },
           {
             to: '/docs/intro',
             from: '/docs/roadmap',
           },
           {
-            to: '/docs/contributing/contributing-page',
+            to: '/docs/contributing/',
             from: '/docs/contributing/contribution-guidelines',
           },
           {
-            to: '/docs/databases/yugabytedb',
+            to: '/docs/contributing/',
+            from: '/docs/contributing/contribution-page',
+          },
+          {
+            to: '/docs/configuration/databases',
             from: '/docs/databases/yugabyte/',
+          },
+          {
+            to: '/docs/faq',
+            from: '/docs/frequently-asked-questions',
+          },
+          {
+            to: '/docs/installation/kubernetes',
+            from: '/docs/installation/running-on-kubernetes/',
+          },
+          {
+            to: '/docs/contributing/howtos',
+            from: '/docs/contributing/testing-locally/',
+          },
+          {
+            to: '/docs/using-superset/creating-your-first-dashboard',
+            from: '/docs/creating-charts-dashboards/creating-your-first-dashboard/',
+          },
+          {
+            to: '/docs/using-superset/creating-your-first-dashboard',
+            from: '/docs/creating-charts-dashboards/exploring-data/',
+          },
+          {
+            to: '/docs/installation/docker-compose',
+            from: '/docs/installation/installing-superset-using-docker-compose/',
+          },
+          {
+            to: '/docs/contributing/howtos',
+            from: '/docs/contributing/creating-viz-plugins/',
+          },
+          {
+            to: '/docs/installation/kubernetes',
+            from: '/docs/installation/',
+          },
+          {
+            to: '/docs/installation/pypi',
+            from: '/docs/installation/installing-superset-from-pypi/',
+          },
+          {
+            to: '/docs/configuration/configuring-superset',
+            from: '/docs/installation/configuring-superset/',
+          },
+          {
+            to: '/docs/configuration/cache',
+            from: '/docs/installation/cache/',
+          },
+          {
+            to: '/docs/configuration/async-queries-celery',
+            from: '/docs/installation/async-queries-celery/',
+          },
+          {
+            to: '/docs/configuration/event-logging',
+            from: '/docs/installation/event-logging/',
           },
         ],
       },
@@ -175,6 +235,7 @@ const config = {
         items: [
           {
             label: 'Documentation',
+            to: '/docs/intro',
             items: [
               {
                 label: 'Getting Started',
@@ -182,12 +243,13 @@ const config = {
               },
               {
                 label: 'FAQ',
-                to: '/docs/frequently-asked-questions',
+                to: '/docs/faq',
               },
             ],
           },
           {
             label: 'Community',
+            to: '/community',
             items: [
               {
                 label: 'Resources',

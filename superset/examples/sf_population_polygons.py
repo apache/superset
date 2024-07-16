@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 
 import pandas as pd
 from sqlalchemy import BigInteger, Float, inspect, Text
@@ -22,6 +21,7 @@ from sqlalchemy import BigInteger, Float, inspect, Text
 import superset.utils.database as database_utils
 from superset import db
 from superset.sql_parse import Table
+from superset.utils import json
 
 from .helpers import get_example_url, get_table_connector_registry
 
@@ -64,5 +64,4 @@ def load_sf_population_polygons(
     tbl.description = "Population density of San Francisco"
     tbl.database = database
     tbl.filter_select_enabled = True
-    db.session.commit()
     tbl.fetch_metadata()

@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 
 import pandas as pd
 import polyline
@@ -22,6 +21,7 @@ from sqlalchemy import inspect, String, Text
 
 from superset import db
 from superset.sql_parse import Table
+from superset.utils import json
 
 from ..utils.database import get_example_database
 from .helpers import get_example_url, get_table_connector_registry
@@ -65,5 +65,4 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
     tbl.description = "BART lines"
     tbl.database = database
     tbl.filter_select_enabled = True
-    db.session.commit()
     tbl.fetch_metadata()

@@ -16,7 +16,6 @@
 # under the License.
 
 import copy
-import json
 from inspect import isclass
 from typing import Any
 
@@ -25,6 +24,7 @@ from superset.commands.exceptions import ImportFailedError
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.core import AnnotationType, get_user
 
 
@@ -77,7 +77,7 @@ def import_chart(
     if chart.id is None:
         db.session.flush()
 
-    if user := get_user():
+    if (user := get_user()) and user not in chart.owners:
         chart.owners.append(user)
 
     return chart
@@ -117,7 +117,7 @@ def migrate_chart(config: dict[str, Any]) -> dict[str, Any]:
     # also update `query_context`
     try:
         query_context = json.loads(output.get("query_context") or "{}")
-    except (json.decoder.JSONDecodeError, TypeError):
+    except (json.JSONDecodeError, TypeError):
         query_context = {}
     if "form_data" in query_context:
         query_context["form_data"] = output["params"]

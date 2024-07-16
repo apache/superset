@@ -32,6 +32,7 @@ from superset.exceptions import (
 )
 from superset.sql_parse import (
     add_table_name,
+    check_sql_functions_exist,
     extract_table_references,
     extract_tables_from_jinja_sql,
     get_rls_for_table,
@@ -1215,6 +1216,31 @@ def test_strip_comments_from_sql() -> None:
     )
 
 
+def test_check_sql_functions_exist() -> None:
+    """
+    Test that comments are stripped out correctly.
+    """
+    assert not (
+        check_sql_functions_exist("select a, b from version", {"version"}, "postgresql")
+    )
+
+    assert check_sql_functions_exist("select version()", {"version"}, "postgresql")
+
+    assert check_sql_functions_exist(
+        "select version from version()", {"version"}, "postgresql"
+    )
+
+    assert check_sql_functions_exist(
+        "select 1, a.version from (select version from version()) as a",
+        {"version"},
+        "postgresql",
+    )
+
+    assert check_sql_functions_exist(
+        "select 1, a.version from (select version()) as a", {"version"}, "postgresql"
+    )
+
+
 def test_sanitize_clause_valid():
     # regular clauses
     assert sanitize_clause("col = 1") == "col = 1"
@@ -1803,6 +1829,9 @@ WITH t AS (
 )
 SELECT * FROM t"""
     ).is_select()
+    assert not ParsedQuery("").is_select()
+    assert not ParsedQuery("USE foo").is_select()
+    assert ParsedQuery("USE foo; SELECT * FROM bar").is_select()
 
 
 def test_sqlquery() -> None:
@@ -1857,36 +1886,40 @@ def test_sqlstatement() -> None:
     ],
 )
 @pytest.mark.parametrize(
-    "macro",
-    [
-        "latest_partition('foo.bar')",
-        "latest_partition(' foo.bar ')",  # Non-atypical user error which works
-        "latest_partition('foo.%s'|format('bar'))",
-        "latest_sub_partition('foo.bar', baz='qux')",
-    ],
-)
-@pytest.mark.parametrize(
-    "sql,expected",
+    "macro,expected",
     [
         (
-            "SELECT '{{{{ {engine}.{macro} }}}}'",
+            "latest_partition('foo.bar')",
             {Table(table="bar", schema="foo")},
         ),
         (
-            "SELECT * FROM foo.baz WHERE quux = '{{{{ {engine}.{macro} }}}}'",
-            {Table(table="bar", schema="foo"), Table(table="baz", schema="foo")},
+            "latest_partition(' foo.bar ')",  # Non-atypical user error which works
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format('bar'))",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_sub_partition('foo.bar', baz='qux')",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format(str('bar')))",
+            set(),
+        ),
+        (
+            "latest_partition('foo.{}'.format('bar'))",
+            set(),
         ),
     ],
 )
 def test_extract_tables_from_jinja_sql(
-    engine: str,
-    macro: str,
-    sql: str,
-    expected: set[Table],
+    engine: str, macro: str, expected: set[Table]
 ) -> None:
     assert (
         extract_tables_from_jinja_sql(
-            sql=sql.format(engine=engine, macro=macro),
+            sql=f"'{{{{ {engine}.{macro} }}}}'",
             database=Mock(),
         )
         == expected

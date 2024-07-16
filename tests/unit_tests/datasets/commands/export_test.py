@@ -16,11 +16,10 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import
 
-import json
-
 from sqlalchemy.orm.session import Session
 
 from superset import db
+from superset.utils import json
 
 
 def test_export(session: Session) -> None:
@@ -68,6 +67,7 @@ def test_export(session: Session) -> None:
         description="This is the description",
         is_featured=1,
         cache_timeout=3600,
+        catalog="public",
         schema="my_schema",
         sql=None,
         params=json.dumps(
@@ -111,6 +111,7 @@ description: This is the description
 default_endpoint: null
 offset: -8
 cache_timeout: 3600
+catalog: public
 schema: my_schema
 sql: null
 params:

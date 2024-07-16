@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - "master"
-      - "[0-9].[0-9]"
+      - "[0-9].[0-9]*"
   pull_request:
     branches:
       - "master"
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   setup_matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
     steps:
@@ -28,7 +28,7 @@ jobs:
   docker-build:
     name: docker-build
     needs: setup_matrix
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}

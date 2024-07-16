@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import gzip
-import json
 import logging
 import re
 from typing import Any
@@ -33,6 +32,7 @@ from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.sql_parse import Table
+from superset.utils import json
 from superset.utils.core import get_user
 
 logger = logging.getLogger(__name__)
@@ -178,7 +178,7 @@ def import_dataset(
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, dataset.database)
 
-    if user := get_user():
+    if (user := get_user()) and user not in dataset.owners:
         dataset.owners.append(user)
 
     return dataset

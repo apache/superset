@@ -24,6 +24,10 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [29274](https://github.com/apache/superset/pull/29274): We made it easier to trigger CI on your
+  forks, whether they are public or private. Simply push to a branch that fits `[0-9].[0-9]*` and
+  should run on your fork, giving you flexibility on naming your release branches and triggering
+  CI
 - [27505](https://github.com/apache/superset/pull/27505): We simplified the files under
   `requirements/` folder. If you use these files for your builds you may want to double
   check that your builds are not affected. `base.txt` should be the same as before, though
@@ -43,6 +47,20 @@ assists people when migrating to a new version.
   set `SLACK_API_TOKEN` to fetch and serve Slack avatar links
 - [28134](https://github.com/apache/superset/pull/28134/) The default logging level was changed
   from DEBUG to INFO - which is the normal/sane default logging level for most software.
+- [27777](https://github.com/apache/superset/pull/27777) Moves debug logging logic to config.py.
+  See `LOG_LEVEL` in `superset/config.py` for the recommended default.
+- [28205](https://github.com/apache/superset/pull/28205) The permission `all_database_access` now
+  more clearly provides access to all databases, as specified in its name. Before it only allowed
+  listing all databases in CRUD-view and dropdown and didn't provide access to data as it
+  seemed the name would imply.
+- [28483](https://github.com/apache/superset/pull/28483) Starting with this version we bundle
+  translations inside the python package. This includes the .mo files needed by pybabel on the
+  backend, as well as the .json files used by the frontend. If you were doing anything before
+  as part of your bundling to expose translation packages, it's probably not needed anymore.
+
+### Potential Downtime
+
+- [27392](https://github.com/apache/superset/pull/27392): Adds an index to `query.sql_editor_id` to improve performance. This may cause downtime on large deployments.
 
 ## 4.0.0
 
@@ -76,6 +94,7 @@ assists people when migrating to a new version.
 ### Potential Downtime
 
 - [26416](https://github.com/apache/superset/pull/26416): Adds two database indexes to the `report_execution_log` table and one database index to the `report_recipient` to improve performance. Scheduled downtime may be required for large deployments.
+- [28482](https://github.com/apache/superset/pull/28482): Potentially augments the `query.executed_sql` and `query.select_sql` columns for MySQL from `MEDIUMTEXT` to `LONGTEXT`. Potential downtime may be required for large deployments which previously ran [27119](https://github.com/apache/superset/pull/27119).
 
 ## 3.1.0
 

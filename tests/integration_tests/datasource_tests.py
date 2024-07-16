@@ -16,7 +16,6 @@
 # under the License.
 """Unit tests for Superset"""
 
-import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from unittest import mock
@@ -27,13 +26,21 @@ import pytest
 from superset import app, db
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn  # noqa: F401
+from superset.connectors.sqla.models import (  # noqa: F401
+    SqlaTable,
+    SqlMetric,
+    TableColumn,
+)
 from superset.constants import CacheRegion
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
+from superset.utils import json
 from superset.utils.core import backend, get_example_default_schema  # noqa: F401
-from superset.utils.database import get_example_database, get_main_database  # noqa: F401
+from superset.utils.database import (  # noqa: F401
+    get_example_database,
+    get_main_database,
+)
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -81,7 +88,6 @@ class TestDatasource(SupersetTestCase):
         )
 
     def test_always_filter_main_dttm(self):
-        self.login(ADMIN_USERNAME)
         database = get_example_database()
 
         sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"  # noqa: F541
@@ -356,7 +362,6 @@ class TestDatasource(SupersetTestCase):
             elif k == "owners":
                 self.assertEqual([o["id"] for o in resp[k]], datasource_post["owners"])
             else:
-                print(k)
                 self.assertEqual(resp[k], datasource_post[k])
 
     def test_save_default_endpoint_validation_success(self):
@@ -531,10 +536,12 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     assert "coltypes" in rv2.json["result"]
     assert "data" in rv2.json["result"]
 
-    eager_samples = virtual_dataset.database.get_df(
-        f"select * from ({virtual_dataset.sql}) as tbl"
-        f' limit {app.config["SAMPLES_ROW_LIMIT"]}'
+    sql = (
+        f"select * from ({virtual_dataset.sql}) as tbl "
+        f'limit {app.config["SAMPLES_ROW_LIMIT"]}'
     )
+    eager_samples = virtual_dataset.database.get_df(sql)
+
     # the col3 is Decimal
     eager_samples["col3"] = eager_samples["col3"].apply(float)
     eager_samples = eager_samples.to_dict(orient="records")

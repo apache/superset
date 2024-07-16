@@ -18,50 +18,75 @@
  */
 import {
   buildQueryContext,
-  getComparisonInfo,
-  ComparisonTimeRangeType,
   QueryFormData,
+  PostProcessingRule,
+  ensureIsArray,
+  SimpleAdhocFilter,
+  getTimeOffset,
+  parseDttmToDate,
 } from '@superset-ui/core';
+import {
+  isTimeComparison,
+  timeCompareOperator,
+} from '@superset-ui/chart-controls';
+import { isEmpty } from 'lodash';
 
 export default function buildQuery(formData: QueryFormData) {
-  const {
-    cols: groupby,
-    time_comparison: timeComparison,
-    extra_form_data: extraFormData,
-  } = formData;
+  const { cols: groupby } = formData;
 
-  const queryContextA = buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      groupby,
-    },
-  ]);
+  const queryContextA = buildQueryContext(formData, baseQueryObject => {
+    const postProcessing: PostProcessingRule[] = [];
+    postProcessing.push(timeCompareOperator(formData, baseQueryObject));
+    const TimeRangeFilters =
+      formData.adhoc_filters?.filter(
+        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
+      ) || [];
 
-  const comparisonFormData = getComparisonInfo(
-    formData,
-    timeComparison,
-    extraFormData,
-  );
+    // In case the viz is using all version of controls, we try to load them
+    const previousCustomTimeRangeFilters: any =
+      formData.adhoc_custom?.filter(
+        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
+      ) || [];
 
-  const queryContextB = buildQueryContext(
-    comparisonFormData,
-    baseQueryObject => [
+    let previousCustomStartDate = '';
+    if (
+      !isEmpty(previousCustomTimeRangeFilters) &&
+      previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
+    ) {
+      previousCustomStartDate =
+        previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
+    }
+
+    const timeOffsets = ensureIsArray(
+      isTimeComparison(formData, baseQueryObject)
+        ? getTimeOffset({
+            timeRangeFilter: {
+              ...TimeRangeFilters[0],
+              comparator:
+                baseQueryObject?.time_range ??
+                (TimeRangeFilters[0] as any)?.comparator,
+            },
+            shifts: formData.time_compare,
+            startDate:
+              previousCustomStartDate && !formData.start_date_offset
+                ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
+                : formData.start_date_offset,
+          })
+        : [],
+    );
+    return [
       {
         ...baseQueryObject,
         groupby,
-        extras: {
-          ...baseQueryObject.extras,
-          instant_time_comparison_range:
-            timeComparison !== ComparisonTimeRangeType.Custom
-              ? timeComparison
-              : undefined,
-        },
+        post_processing: postProcessing,
+        time_offsets: isTimeComparison(formData, baseQueryObject)
+          ? ensureIsArray(timeOffsets)
+          : [],
       },
-    ],
-  );
+    ];
+  });
 
   return {
     ...queryContextA,
-    queries: [...queryContextA.queries, ...queryContextB.queries],
   };
 }

@@ -19,6 +19,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import os
+from textwrap import dedent
 from typing import Any, Callable, TYPE_CHECKING
 from unittest.mock import patch
 
@@ -29,8 +30,8 @@ from sqlalchemy.engine import Engine
 
 from superset import db, security_manager
 from superset.extensions import feature_flag_manager
-from superset.utils.core import json_dumps_w_dates
 from superset.utils.database import get_example_database, remove_database
+from superset.utils.json import json_dumps_w_dates
 from tests.integration_tests.test_app import app, login
 
 if TYPE_CHECKING:
@@ -122,10 +123,6 @@ def setup_sample_data() -> Any:
     # which is purposely scoped to the function level to ensure tests remain idempotent.
     with app.app_context():
         setup_presto_if_needed()
-
-        from superset.cli.test import load_test_users_run
-
-        load_test_users_run()
 
         from superset.examples.css_templates import load_css_templates
 
@@ -295,25 +292,67 @@ def virtual_dataset():
     dataset = SqlaTable(
         table_name="virtual_dataset",
         sql=(
-            "SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5, 1 as col6 "
-            "UNION ALL "
-            "SELECT 1, 'b', 1.1, NULL, '2000-01-02 00:00:00', NULL "
-            "UNION ALL "
-            "SELECT 2 as col1, 'c' as col2, 1.2, NULL, '2000-01-03 00:00:00', 3 "
-            "UNION ALL "
-            "SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00', 4 "
-            "UNION ALL "
-            "SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00', 5 "
-            "UNION ALL "
-            "SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6 "
-            "UNION ALL "
-            "SELECT 6 as col1, 'g' as col2, 1.6, NULL, '2000-01-07 00:00:00', 7 "
-            "UNION ALL "
-            "SELECT 7 as col1, 'h' as col2, 1.7, NULL, '2000-01-08 00:00:00', 8 "
-            "UNION ALL "
-            "SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00', 9 "
-            "UNION ALL "
-            "SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00', 10"
+            dedent("""\
+            SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5, 1 as col6
+            UNION ALL
+            SELECT 1, 'b', 1.1, NULL, '2000-01-02 00:00:00', NULL
+            UNION ALL
+            SELECT 2 as col1, 'c' as col2, 1.2, NULL, '2000-01-03 00:00:00', 3
+            UNION ALL
+            SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00', 4
+            UNION ALL
+            SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00', 5
+            UNION ALL
+            SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6
+            UNION ALL
+            SELECT 6 as col1, 'g' as col2, 1.6, NULL, '2000-01-07 00:00:00', 7
+            UNION ALL
+            SELECT 7 as col1, 'h' as col2, 1.7, NULL, '2000-01-08 00:00:00', 8
+            UNION ALL
+            SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00', 9
+            UNION ALL
+            SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00', 10
+        """)
+        ),
+        database=get_example_database(),
+    )
+    TableColumn(column_name="col1", type="INTEGER", table=dataset)
+    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
+    TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
+    # Different database dialect datetime type is not consistent, so temporarily use varchar
+    TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col6", type="INTEGER", table=dataset)
+
+    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.add(dataset)
+    db.session.commit()
+
+    yield dataset
+
+    db.session.delete(dataset)
+    db.session.commit()
+
+
+@pytest.fixture
+def virtual_dataset_with_comments():
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    dataset = SqlaTable(
+        table_name="virtual_dataset_with_comments",
+        sql=(
+            dedent("""\
+            --COMMENT
+            /*COMMENT*/
+            WITH cte as (--COMMENT
+                SELECT 2 as col1, /*COMMENT*/'j' as col2, 1.9, NULL, '2000-01-10 00:00:00', 10
+            )
+            SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5, 1 as col6
+            \n /*  COMMENT */ \n
+            UNION ALL/*COMMENT*/
+            SELECT 1 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6 --COMMENT
+            UNION ALL--COMMENT
+            SELECT * FROM cte --COMMENT""")
         ),
         database=get_example_database(),
     )

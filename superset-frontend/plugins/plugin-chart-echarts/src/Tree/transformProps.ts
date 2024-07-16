@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getMetricLabel, DataRecordValue } from '@superset-ui/core';
+import {
+  getMetricLabel,
+  DataRecordValue,
+  tooltipHtml,
+} from '@superset-ui/core';
 import { EChartsCoreOption, TreeSeriesOption } from 'echarts';
 import {
   TreeSeriesCallbackDataParams,
@@ -44,11 +48,8 @@ export function formatTooltip({
   const treePath = (treeAncestors ?? [])
     .map(pathInfo => pathInfo?.name || '')
     .filter(path => path !== '');
-
-  return [
-    `<div>${treePath.join(' ▸ ')}</div>`,
-    value ? `${metricLabel}: ${value}` : '',
-  ].join('');
+  const row = value ? [metricLabel, String(value)] : [];
+  return tooltipHtml([row], treePath.join(' ▸ '));
 }
 
 export default function transformProps(

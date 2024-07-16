@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import React from 'react';
+// eslint-disable-next-line no-restricted-syntax -- whole React import is required for `reactify.test.tsx` Jest test passing.
+import React, { Component, ComponentClass, WeakValidationMap } from 'react';
 
 // TODO: Note that id and className can collide between Props and ReactifyProps
 // leading to (likely) unexpected behaviors. We should either require Props to not
@@ -45,14 +46,14 @@ export interface RenderFuncType<Props> {
   (container: HTMLDivElement, props: Readonly<Props & ReactifyProps>): void;
   displayName?: string;
   defaultProps?: Partial<Props & ReactifyProps>;
-  propTypes?: React.WeakValidationMap<Props & ReactifyProps>;
+  propTypes?: WeakValidationMap<Props & ReactifyProps>;
 }
 
 export default function reactify<Props extends object>(
   renderFn: RenderFuncType<Props>,
   callbacks?: LifeCycleCallbacks,
-): React.ComponentClass<Props & ReactifyProps> {
-  class ReactifiedComponent extends React.Component<Props & ReactifyProps> {
+): ComponentClass<Props & ReactifyProps> {
+  class ReactifiedComponent extends Component<Props & ReactifyProps> {
     container?: HTMLDivElement;
 
     constructor(props: Props & ReactifyProps) {
@@ -92,7 +93,7 @@ export default function reactify<Props extends object>(
     }
   }
 
-  const ReactifiedClass: React.ComponentClass<Props & ReactifyProps> =
+  const ReactifiedClass: ComponentClass<Props & ReactifyProps> =
     ReactifiedComponent;
 
   if (renderFn.displayName) {

@@ -68,6 +68,7 @@ describe('WordCloud transformProps', () => {
         },
       },
       rotation: 'square',
+      colorScheme: 'bnbColors',
       data: [{ name: 'Hulk', sum__num: 1 }],
     });
   });

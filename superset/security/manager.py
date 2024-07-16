@@ -17,12 +17,11 @@
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 
-import json
 import logging
 import re
 import time
 from collections import defaultdict
-from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
@@ -67,8 +66,8 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.sql_parse import extract_tables_from_jinja_sql
-from superset.superset_typing import Metric
+from superset.sql_parse import extract_tables_from_jinja_sql, Table
+from superset.utils import json
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
@@ -89,7 +88,6 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
-    from superset.sql_parse import Table
     from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
@@ -97,8 +95,9 @@ logger = logging.getLogger(__name__)
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
 
 
-class DatabaseAndSchema(NamedTuple):
+class DatabaseCatalogSchema(NamedTuple):
     database: str
+    catalog: Optional[str]
     schema: str
 
 
@@ -145,11 +144,11 @@ RoleModelView.edit_columns = ["name", "permissions", "user"]
 RoleModelView.related_views = []
 
 
-def freeze_metric(metric: Metric) -> str:
+def freeze_value(value: Any) -> str:
     """
-    Used to compare metric sets.
+    Used to compare column and metric sets.
     """
-    return json.dumps(metric, sort_keys=True)
+    return json.dumps(value, sort_keys=True)
 
 
 def query_context_modified(query_context: "QueryContext") -> bool:
@@ -170,32 +169,37 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     if form_data.get("slice_id") != stored_chart.id:
         return True
 
-    # compare form_data
-    requested_metrics = {
-        freeze_metric(metric) for metric in form_data.get("metrics") or []
-    }
-    stored_metrics = {
-        freeze_metric(metric)
-        for metric in stored_chart.params_dict.get("metrics") or []
-    }
-    if not requested_metrics.issubset(stored_metrics):
-        return True
+    stored_query_context = (
+        json.loads(cast(str, stored_chart.query_context))
+        if stored_chart.query_context
+        else None
+    )
 
-    # compare queries in query_context
-    queries_metrics = {
-        freeze_metric(metric)
-        for query in query_context.queries
-        for metric in query.metrics or []
-    }
+    # compare columns and metrics in form_data with stored values
+    for key in ["metrics", "columns", "groupby"]:
+        requested_values = {freeze_value(value) for value in form_data.get(key) or []}
+        stored_values = {
+            freeze_value(value) for value in stored_chart.params_dict.get(key) or []
+        }
+        if not requested_values.issubset(stored_values):
+            return True
 
-    if stored_chart.query_context:
-        stored_query_context = json.loads(cast(str, stored_chart.query_context))
-        for query in stored_query_context.get("queries") or []:
-            stored_metrics.update(
-                {freeze_metric(metric) for metric in query.get("metrics") or []}
-            )
+        # compare queries in query_context
+        queries_values = {
+            freeze_value(value)
+            for query in query_context.queries
+            for value in getattr(query, key, []) or []
+        }
+        if stored_query_context:
+            for query in stored_query_context.get("queries") or []:
+                stored_values.update(
+                    {freeze_value(value) for value in query.get(key) or []}
+                )
 
-    return not queries_metrics.issubset(stored_metrics)
+        if not queries_values.issubset(stored_values):
+            return True
+
+    return False
 
 
 class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
@@ -346,17 +350,51 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return self.get_guest_user_from_request(request)
         return None
 
+    def get_catalog_perm(
+        self,
+        database: str,
+        catalog: Optional[str] = None,
+    ) -> Optional[str]:
+        """
+        Return the database specific catalog permission.
+
+        :param database: The Superset database or database name
+        :param catalog: The database catalog name
+        :return: The database specific schema permission
+        """
+        if catalog is None:
+            return None
+
+        return f"[{database}].[{catalog}]"
+
     def get_schema_perm(
-        self, database: Union["Database", str], schema: Optional[str] = None
+        self,
+        database: str,
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
     ) -> Optional[str]:
         """
         Return the database specific schema permission.
 
-        :param database: The Superset database or database name
-        :param schema: The Superset schema name
+        Catalogs were added in SIP-95, and not all databases support them. Because of
+        this, the format used for permissions is different depending on whether a
+        catalog is passed or not:
+
+            [database].[schema]
+            [database].[catalog].[schema]
+
+        :param database: The database name
+        :param catalog: The database catalog name
+        :param schema: The database schema name
         :return: The database specific schema permission
         """
-        return f"[{database}].[{schema}]" if schema else None
+        if schema is None:
+            return None
+
+        if catalog:
+            return f"[{database}].[{catalog}].[{schema}]"
+
+        return f"[{database}].[{schema}]"
 
     @staticmethod
     def get_database_perm(database_id: int, database_name: str) -> Optional[str]:
@@ -369,13 +407,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         database_name: str,
     ) -> Optional[str]:
         return f"[{database_name}].[{dataset_name}](id:{dataset_id})"
-
-    def unpack_database_and_schema(self, schema_permission: str) -> DatabaseAndSchema:
-        # [database_name].[schema|table]
-
-        schema_name = schema_permission.split(".")[1][1:-1]
-        database_name = schema_permission.split(".")[0][1:-1]
-        return DatabaseAndSchema(database_name, schema_name)
 
     def can_access(self, permission_name: str, view_name: str) -> bool:
         """
@@ -410,7 +441,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: Whether the user can access all the datasources
         """
 
-        return self.can_access("all_datasource_access", "all_datasource_access")
+        return self.can_access_all_databases() or self.can_access(
+            "all_datasource_access", "all_datasource_access"
+        )
 
     def can_access_all_databases(self) -> bool:
         """
@@ -418,7 +451,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :returns: Whether the user can access all the databases
         """
-
         return self.can_access("all_database_access", "all_database_access")
 
     def can_access_database(self, database: "Database") -> bool:
@@ -435,6 +467,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or self.can_access("database_access", database.perm)  # type: ignore
         )
 
+    def can_access_catalog(self, database: "Database", catalog: str) -> bool:
+        """
+        Return if the user can access the specified catalog.
+        """
+        catalog_perm = self.get_catalog_perm(database.database_name, catalog)
+        return bool(
+            self.can_access_all_datasources()
+            or self.can_access_database(database)
+            or (catalog_perm and self.can_access("catalog_access", catalog_perm))
+        )
+
     def can_access_schema(self, datasource: "BaseDatasource") -> bool:
         """
         Return True if the user can access the schema associated with specified
@@ -447,6 +490,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return (
             self.can_access_all_datasources()
             or self.can_access_database(datasource.database)
+            or (
+                datasource.catalog
+                and self.can_access_catalog(datasource.database, datasource.catalog)
+            )
             or self.can_access("schema_access", datasource.schema_perm or "")
         )
 
@@ -507,7 +554,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
             message="You don't have access to this dashboard.",
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
         )
 
     def get_chart_access_error_object(
@@ -524,7 +571,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.CHART_SECURITY_ACCESS_ERROR,
             message="You don't have access to this chart.",
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
         )
 
     @staticmethod
@@ -537,7 +584,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         return (
-            f"This endpoint requires the datasource {datasource.name}, "
+            f"This endpoint requires the datasource {datasource.id}, "
             "database or `all_datasource_access` permission"
         )
 
@@ -566,10 +613,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
             message=self.get_datasource_access_error_msg(datasource),
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_datasource_access_link(datasource),
-                "datasource": datasource.name,
+                "datasource": datasource.id,
             },
         )
 
@@ -595,7 +642,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
             message=self.get_table_access_error_msg(tables),
-            level=ErrorLevel.ERROR,
+            level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_table_access_link(tables),
                 "tables": [str(table) for table in tables],
@@ -705,55 +752,150 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ]
 
     def get_schemas_accessible_by_user(
-        self, database: "Database", schemas: list[str], hierarchical: bool = True
-    ) -> list[str]:
+        self,
+        database: "Database",
+        catalog: Optional[str],
+        schemas: set[str],
+        hierarchical: bool = True,
+    ) -> set[str]:
         """
-        Return the list of SQL schemas accessible by the user.
+        Returned a filtered list of the schemas accessible by the user.
+
+        If not catalog is specified, the default catalog is used.
 
         :param database: The SQL database
-        :param schemas: The list of eligible SQL schemas
+        :param catalog: An optional database catalog
+        :param schemas: A set of candidate schemas
         :param hierarchical: Whether to check using the hierarchical permission logic
-        :returns: The list of accessible SQL schemas
+        :returns: The set of accessible database schemas
         """
 
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
 
-        if hierarchical and self.can_access_database(database):
+        if hierarchical and (
+            self.can_access_database(database)
+            or (catalog and self.can_access_catalog(database, catalog))
+        ):
             return schemas
 
         # schema_access
-        accessible_schemas = {
-            self.unpack_database_and_schema(s).schema
-            for s in self.user_view_menu_names("schema_access")
-            if s.startswith(f"[{database}].")
-        }
+        accessible_schemas: set[str] = set()
+        schema_access = self.user_view_menu_names("schema_access")
+        default_catalog = database.get_default_catalog()
+        default_schema = database.get_default_schema(default_catalog)
+
+        for perm in schema_access:
+            parts = [part[1:-1] for part in perm.split(".")]
+
+            if parts[0] != database.database_name:
+                continue
+
+            # [database].[schema] matches when no catalog is specified, or when the user
+            # specifies the default catalog
+            if len(parts) == 2 and (catalog is None or catalog == default_catalog):
+                accessible_schemas.add(parts[1])
+
+            # [database].[catalog].[schema] matches when the catalog is equal to the
+            # requested catalog or, when no catalog specified, it's equal to the default
+            # catalog.
+            elif len(parts) == 3 and parts[1] == (catalog or default_catalog):
+                accessible_schemas.add(parts[2])
 
         # datasource_access
         if perms := self.user_view_menu_names("datasource_access"):
             tables = (
                 self.get_session.query(SqlaTable.schema)
                 .filter(SqlaTable.database_id == database.id)
-                .filter(SqlaTable.schema.isnot(None))
-                .filter(SqlaTable.schema != "")
                 .filter(or_(SqlaTable.perm.in_(perms)))
                 .distinct()
             )
-            accessible_schemas.update([table.schema for table in tables])
+            accessible_schemas.update(
+                {
+                    table.schema or default_schema  # type: ignore
+                    for table in tables
+                    if (table.schema or default_schema)
+                }
+            )
 
-        return [s for s in schemas if s in accessible_schemas]
+        return schemas & accessible_schemas
+
+    def get_catalogs_accessible_by_user(
+        self,
+        database: "Database",
+        catalogs: set[str],
+        hierarchical: bool = True,
+    ) -> set[str]:
+        """
+        Returned a filtered list of the catalogs accessible by the user.
+
+        :param database: The SQL database
+        :param catalogs: A set of candidate catalogs
+        :param hierarchical: Whether to check using the hierarchical permission logic
+        :returns: The set of accessible database catalogs
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
+
+        if hierarchical and self.can_access_database(database):
+            return catalogs
+
+        # catalog access
+        accessible_catalogs: set[str] = set()
+        catalog_access = self.user_view_menu_names("catalog_access")
+        default_catalog = database.get_default_catalog()
+
+        for perm in catalog_access:
+            parts = [part[1:-1] for part in perm.split(".")]
+            if parts[0] == database.database_name:
+                accessible_catalogs.add(parts[1])
+
+        # schema access
+        schema_access = self.user_view_menu_names("schema_access")
+        for perm in schema_access:
+            parts = [part[1:-1] for part in perm.split(".")]
+
+            if parts[0] != database.database_name:
+                continue
+            if len(parts) == 2 and default_catalog:
+                accessible_catalogs.add(default_catalog)
+            elif len(parts) == 3:
+                accessible_catalogs.add(parts[1])
+
+        # datasource_access
+        if perms := self.user_view_menu_names("datasource_access"):
+            tables = (
+                self.get_session.query(SqlaTable.schema)
+                .filter(SqlaTable.database_id == database.id)
+                .filter(or_(SqlaTable.perm.in_(perms)))
+                .distinct()
+            )
+            accessible_catalogs.update(
+                {
+                    table.catalog or default_catalog  # type: ignore
+                    for table in tables
+                    if (table.catalog or default_catalog)
+                }
+            )
+
+        return catalogs & accessible_catalogs
 
     def get_datasources_accessible_by_user(  # pylint: disable=invalid-name
         self,
         database: "Database",
         datasource_names: list[DatasourceName],
+        catalog: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> list[DatasourceName]:
         """
-        Return the list of SQL tables accessible by the user.
+        Filter list of SQL tables to the ones accessible by the user.
+
+        When catalog and/or schema are specified, it's assumed that all datasources in
+        `datasource_names` are in the given catalog/schema.
 
         :param database: The SQL database
         :param datasource_names: The list of eligible SQL tables w/ schema
+        :param catalog: The fallback SQL catalog if not present in the table name
         :param schema: The fallback SQL schema if not present in the table name
         :returns: The list of accessible SQL tables w/ schema
         """
@@ -763,22 +905,39 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if self.can_access_database(database):
             return datasource_names
 
+        if catalog:
+            catalog_perm = self.get_catalog_perm(database.database_name, catalog)
+            if catalog_perm and self.can_access("catalog_access", catalog_perm):
+                return datasource_names
+
         if schema:
-            schema_perm = self.get_schema_perm(database, schema)
+            default_catalog = database.get_default_catalog()
+            schema_perm = self.get_schema_perm(
+                database.database_name,
+                catalog or default_catalog,
+                schema,
+            )
             if schema_perm and self.can_access("schema_access", schema_perm):
                 return datasource_names
 
         user_perms = self.user_view_menu_names("datasource_access")
+        catalog_perms = self.user_view_menu_names("catalog_access")
         schema_perms = self.user_view_menu_names("schema_access")
-        user_datasources = SqlaTable.query_datasources_by_permissions(
-            database, user_perms, schema_perms
-        )
-        if schema:
-            names = {d.table_name for d in user_datasources if d.schema == schema}
-            return [d for d in datasource_names if d.table in names]
+        user_datasources = {
+            DatasourceName(table.table_name, table.schema, table.catalog)
+            for table in SqlaTable.query_datasources_by_permissions(
+                database,
+                user_perms,
+                catalog_perms,
+                schema_perms,
+            )
+        }
 
-        full_names = {d.full_name for d in user_datasources}
-        return [d for d in datasource_names if f"[{database}].[{d}]" in full_names]
+        return [
+            datasource
+            for datasource in datasource_names
+            if datasource in user_datasources
+        ]
 
     def merge_perm(self, permission_name: str, view_menu_name: str) -> None:
         """
@@ -817,6 +976,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_sqllab", "Superset")
         self.add_permission_view_menu("can_view_query", "Dashboard")
         self.add_permission_view_menu("can_view_chart_as_table", "Dashboard")
+        self.add_permission_view_menu("can_drill", "Dashboard")
+        self.add_permission_view_menu("can_tag", "Chart")
+        self.add_permission_view_menu("can_tag", "Dashboard")
 
     def create_missing_perms(self) -> None:
         """
@@ -843,6 +1005,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         for datasource in datasources:
             merge_pv("datasource_access", datasource.get_perm())
             merge_pv("schema_access", datasource.get_schema_perm())
+            merge_pv("catalog_access", datasource.get_catalog_perm())
 
         logger.info("Creating missing database permissions.")
         databases = self.get_session.query(models.Database).all()
@@ -863,7 +1026,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 == None,  # noqa: E711
             )
         )
-        self.get_session.commit()
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
 
@@ -891,11 +1053,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.auth_role_public,
                 merge=True,
             )
-
         self.create_missing_perms()
-
-        # commit role and view menu updates
-        self.get_session.commit()
         self.clean_perms()
 
     def _get_all_pvms(self) -> list[PermissionView]:
@@ -968,7 +1126,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 ):
                     role_from_permissions.append(permission_view)
         role_to.permissions = role_from_permissions
-        self.get_session.commit()
 
     def set_role(
         self,
@@ -989,7 +1146,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             permission_view for permission_view in pvms if pvm_check(permission_view)
         ]
         role.permissions = role_pvms
-        self.get_session.commit()
 
     def _is_admin_only(self, pvm: PermissionView) -> bool:
         """
@@ -1211,7 +1367,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             self.get_session.query(self.permissionview_model)
             .join(self.permission_model)
             .join(self.viewmenu_model)
-            .filter(self.permission_model.name == "schema_access")
+            .filter(
+                or_(
+                    self.permission_model.name == "schema_access",
+                    self.permission_model.name == "catalog_access",
+                )
+            )
             .filter(self.viewmenu_model.name.like(f"[{database_name}].[%]"))
             .all()
         )
@@ -1398,18 +1559,43 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .values(perm=dataset_perm)
             )
 
+        # update catalog and schema perms
+        values: dict[str, Optional[str]] = {}
+
         if target.schema:
             dataset_schema_perm = self.get_schema_perm(
-                database.database_name, target.schema
+                database.database_name,
+                target.catalog,
+                target.schema,
             )
             self._insert_pvm_on_sqla_event(
-                mapper, connection, "schema_access", dataset_schema_perm
+                mapper,
+                connection,
+                "schema_access",
+                dataset_schema_perm,
             )
             target.schema_perm = dataset_schema_perm
+            values["schema_perm"] = dataset_schema_perm
+
+        if target.catalog:
+            dataset_catalog_perm = self.get_catalog_perm(
+                database.database_name,
+                target.catalog,
+            )
+            self._insert_pvm_on_sqla_event(
+                mapper,
+                connection,
+                "catalog_access",
+                dataset_catalog_perm,
+            )
+            target.catalog_perm = dataset_catalog_perm
+            values["catalog_perm"] = dataset_catalog_perm
+
+        if values:
             connection.execute(
                 dataset_table.update()
                 .where(dataset_table.c.id == target.id)
-                .values(schema_perm=dataset_schema_perm)
+                .values(**values)
             )
 
     def dataset_after_delete(
@@ -1466,6 +1652,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             table.select().where(table.c.id == target.id)
         ).one()
         current_db_id = current_dataset.database_id
+        current_catalog = current_dataset.catalog
         current_schema = current_dataset.schema
         current_table_name = current_dataset.table_name
 
@@ -1478,14 +1665,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 mapper, connection, target.perm, new_dataset_vm_name, target
             )
 
-            # Updates schema permissions
-            new_dataset_schema_name = self.get_schema_perm(
-                target.database.database_name, target.schema
+            # Updates catalog/schema permissions
+            dataset_catalog_name = self.get_catalog_perm(
+                target.database.database_name,
+                target.catalog,
             )
-            self._update_dataset_schema_perm(
+            dataset_schema_name = self.get_schema_perm(
+                target.database.database_name,
+                target.catalog,
+                target.schema,
+            )
+            self._update_dataset_catalog_schema_perm(
                 mapper,
                 connection,
-                new_dataset_schema_name,
+                dataset_catalog_name,
+                dataset_schema_name,
                 target,
             )
 
@@ -1501,23 +1695,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 mapper, connection, old_dataset_vm_name, new_dataset_vm_name, target
             )
 
-        # When schema changes
-        if current_schema != target.schema:
-            new_dataset_schema_name = self.get_schema_perm(
-                target.database.database_name, target.schema
+        # When catalog/schema change
+        if current_catalog != target.catalog or current_schema != target.schema:
+            dataset_catalog_name = self.get_catalog_perm(
+                target.database.database_name,
+                target.catalog,
             )
-            self._update_dataset_schema_perm(
+            dataset_schema_name = self.get_schema_perm(
+                target.database.database_name,
+                target.catalog,
+                target.schema,
+            )
+            self._update_dataset_catalog_schema_perm(
                 mapper,
                 connection,
-                new_dataset_schema_name,
+                dataset_catalog_name,
+                dataset_schema_name,
                 target,
             )
 
-    def _update_dataset_schema_perm(
+    # pylint: disable=invalid-name, too-many-arguments
+    def _update_dataset_catalog_schema_perm(
         self,
         mapper: Mapper,
         connection: Connection,
-        new_schema_permission_name: Optional[str],
+        catalog_permission_name: Optional[str],
+        schema_permission_name: Optional[str],
         target: "SqlaTable",
     ) -> None:
         """
@@ -1529,11 +1732,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :param mapper: The SQLA event mapper
         :param connection: The SQLA connection
-        :param new_schema_permission_name: The new schema permission name that changed
+        :param catalog_permission_name: The new catalog permission name that changed
+        :param schema_permission_name: The new schema permission name that changed
         :param target: Dataset that was updated
         :return:
         """
-        logger.info("Updating schema perm, new: %s", new_schema_permission_name)
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
@@ -1544,18 +1747,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
         chart_table = Slice.__table__  # pylint: disable=no-member
 
-        # insert new schema PVM if it does not exist
+        # insert new PVMs if they don't not exist
         self._insert_pvm_on_sqla_event(
-            mapper, connection, "schema_access", new_schema_permission_name
+            mapper,
+            connection,
+            "catalog_access",
+            catalog_permission_name,
+        )
+        self._insert_pvm_on_sqla_event(
+            mapper,
+            connection,
+            "schema_access",
+            schema_permission_name,
         )
 
-        # Update dataset (SqlaTable schema_perm field)
+        # Update dataset
         connection.execute(
             sqlatable_table.update()
             .where(
                 sqlatable_table.c.id == target.id,
             )
-            .values(schema_perm=new_schema_permission_name)
+            .values(
+                catalog_perm=catalog_permission_name,
+                schema_perm=schema_permission_name,
+            )
         )
 
         # Update charts (Slice schema_perm field)
@@ -1565,7 +1780,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 chart_table.c.datasource_id == target.id,
                 chart_table.c.datasource_type == DatasourceType.TABLE,
             )
-            .values(schema_perm=new_schema_permission_name)
+            .values(
+                catalog_perm=catalog_permission_name,
+                schema_perm=schema_permission_name,
+            )
         )
 
     def _update_dataset_perm(  # pylint: disable=too-many-arguments
@@ -1922,7 +2140,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         table: Optional["Table"] = None,
         viz: Optional["BaseViz"] = None,
         sql: Optional[str] = None,
-        catalog: Optional[str] = None,  # pylint: disable=unused-argument
+        catalog: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> None:
         """
@@ -1946,7 +2164,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
         from superset.models.sql_lab import Query
-        from superset.sql_parse import Table
         from superset.utils.core import shortid
 
         if sql and database:
@@ -1954,6 +2171,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 database=database,
                 sql=sql,
                 schema=schema,
+                catalog=catalog,
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
@@ -1969,9 +2187,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return
 
             if query:
+                # Getting the default schema for a query is hard. Users can select the
+                # schema in SQL Lab, but there's no guarantee that the query actually
+                # will run in that schema. Each DB engine spec needs to implement the
+                # necessary logic to enforce that the query runs in the selected schema.
+                # If the DB engine spec doesn't implement the logic the schema is read
+                # from the SQLAlchemy URI if possible; if not, we use the SQLAlchemy
+                # inspector to read it.
                 default_schema = database.get_default_schema_for_query(query)
+                # Determining the default catalog is much easier, because DB engine
+                # specs need explicit support for catalogs.
+                default_catalog = database.get_default_catalog()
                 tables = {
-                    Table(table_.table, table_.schema or default_schema)
+                    Table(
+                        table_.table,
+                        table_.schema or default_schema,
+                        table_.catalog or default_catalog,
+                    )
                     for table_ in extract_tables_from_jinja_sql(query.sql, database)
                 }
             elif table:
@@ -1980,21 +2212,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             denied = set()
 
             for table_ in tables:
-                schema_perm = self.get_schema_perm(database, schema=table_.schema)
+                catalog_perm = self.get_catalog_perm(
+                    database.database_name,
+                    table_.catalog,
+                )
+                if catalog_perm and self.can_access("catalog_access", catalog_perm):
+                    continue
 
-                if not (schema_perm and self.can_access("schema_access", schema_perm)):
-                    datasources = SqlaTable.query_datasources_by_name(
-                        database, table_.table, schema=table_.schema
-                    )
+                schema_perm = self.get_schema_perm(
+                    database,
+                    table_.catalog,
+                    table_.schema,
+                )
+                if schema_perm and self.can_access("schema_access", schema_perm):
+                    continue
 
-                    # Access to any datasource is suffice.
-                    for datasource_ in datasources:
-                        if self.can_access(
-                            "datasource_access", datasource_.perm
-                        ) or self.is_owner(datasource_):
-                            break
-                    else:
-                        denied.add(table_)
+                datasources = SqlaTable.query_datasources_by_name(
+                    database,
+                    table_.table,
+                    schema=table_.schema,
+                    catalog=table_.catalog,
+                )
+                for datasource_ in datasources:
+                    if self.can_access(
+                        "datasource_access",
+                        datasource_.perm,
+                    ) or self.is_owner(datasource_):
+                        # access to any datasource is sufficient
+                        break
+                else:
+                    denied.add(table_)
 
             if denied:
                 raise SupersetSecurityException(
@@ -2012,7 +2259,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 SupersetError(
                     error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
                     message=_("Guest user cannot modify chart payload"),
-                    level=ErrorLevel.ERROR,
+                    level=ErrorLevel.WARNING,
                 )
             )
 
@@ -2201,8 +2448,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_roles = [role.id for role in self.get_user_roles(g.user)]
         regular_filter_roles = (
-            self.get_session()
-            .query(RLSFilterRoles.c.rls_filter_id)
+            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
@@ -2210,22 +2456,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
         base_filter_roles = (
-            self.get_session()
-            .query(RLSFilterRoles.c.rls_filter_id)
+            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
-        filter_tables = (
-            self.get_session()
-            .query(RLSFilterTables.c.rls_filter_id)
-            .filter(RLSFilterTables.c.table_id == table.id)
+        filter_tables = self.get_session.query(RLSFilterTables.c.rls_filter_id).filter(
+            RLSFilterTables.c.table_id == table.id
         )
         query = (
-            self.get_session()
-            .query(
+            self.get_session.query(
                 RowLevelSecurityFilter.id,
                 RowLevelSecurityFilter.group_key,
                 RowLevelSecurityFilter.clause,
@@ -2428,13 +2670,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the current user is not an owner
         """
 
-        # pylint: disable=import-outside-toplevel
-        from superset import db
-
         if self.is_admin():
             return
-
-        orig_resource = db.session.query(resource.__class__).get(resource.id)
+        orig_resource = self.get_session.query(resource.__class__).get(resource.id)
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:

@@ -23,7 +23,8 @@ import { WordCloudFormData } from '../types';
 
 export default function transformProps(chartProps: ChartProps): WordCloudProps {
   const { width, height, formData, queriesData } = chartProps;
-  const { encoding, rotation, sliceId } = formData as WordCloudFormData;
+  const { encoding, rotation, sliceId, colorScheme } =
+    formData as WordCloudFormData;
 
   return {
     data: queriesData[0].data,
@@ -32,5 +33,6 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
     rotation,
     width,
     sliceId,
+    colorScheme,
   };
 }

@@ -132,6 +132,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "related_objects": "read",
     "tables": "read",
     "schemas": "read",
+    "catalogs": "read",
     "select_star": "read",
     "table_metadata": "read",
     "table_metadata_deprecated": "read",
@@ -151,6 +152,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "data_from_cache": "read",
     "get_charts": "read",
     "get_datasets": "read",
+    "get_tabs": "read",
     "function_names": "read",
     "available": "read",
     "validate_sql": "read",
@@ -167,6 +169,9 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "delete_object": "write",
     "copy_dash": "write",
     "get_connection": "write",
+    "excel_metadata": "excel_upload",
+    "columnar_metadata": "columnar_upload",
+    "csv_metadata": "csv_upload",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

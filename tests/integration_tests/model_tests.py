@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import json
 from superset.utils.core import DatasourceType
+from superset.utils import json
 import unittest
 from unittest import mock
 
@@ -167,7 +167,7 @@ class TestDatabaseModel(SupersetTestCase):
             model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
-            assert str(call_args[0][0]) == "presto://gamma@localhost"
+            assert str(call_args[0][0]) == "presto://gamma@localhost/"
 
             assert call_args[1]["connect_args"] == {
                 "protocol": "https",
@@ -180,7 +180,7 @@ class TestDatabaseModel(SupersetTestCase):
             model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
-            assert str(call_args[0][0]) == "presto://localhost"
+            assert str(call_args[0][0]) == "presto://localhost/"
 
             assert call_args[1]["connect_args"] == {
                 "protocol": "https",
@@ -225,7 +225,7 @@ class TestDatabaseModel(SupersetTestCase):
             model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
-            assert str(call_args[0][0]) == "trino://localhost"
+            assert str(call_args[0][0]) == "trino://localhost/"
             assert call_args[1]["connect_args"]["user"] == "gamma"
 
             model = Database(
@@ -239,7 +239,7 @@ class TestDatabaseModel(SupersetTestCase):
 
             assert (
                 str(call_args[0][0])
-                == "trino://original_user:original_user_password@localhost"
+                == "trino://original_user:original_user_password@localhost/"
             )
             assert call_args[1]["connect_args"]["user"] == "gamma"
 
@@ -343,20 +343,20 @@ class TestDatabaseModel(SupersetTestCase):
         main_db = get_example_database()
 
         if main_db.backend == "mysql":
-            df = main_db.get_df("SELECT 1", None)
+            df = main_db.get_df("SELECT 1", None, None)
             self.assertEqual(df.iat[0, 0], 1)
 
-            df = main_db.get_df("SELECT 1;", None)
+            df = main_db.get_df("SELECT 1;", None, None)
             self.assertEqual(df.iat[0, 0], 1)
 
     def test_multi_statement(self):
         main_db = get_example_database()
 
         if main_db.backend == "mysql":
-            df = main_db.get_df("USE superset; SELECT 1", None)
+            df = main_db.get_df("USE superset; SELECT 1", None, None)
             self.assertEqual(df.iat[0, 0], 1)
 
-            df = main_db.get_df("USE superset; SELECT ';';", None)
+            df = main_db.get_df("USE superset; SELECT ';';", None, None)
             self.assertEqual(df.iat[0, 0], ";")
 
     @mock.patch("superset.models.core.create_engine")
@@ -555,6 +555,29 @@ class TestSqlaTableModel(SupersetTestCase):
             tbl.get_query_str(query_obj)
 
         self.assertTrue("Metric 'invalid' does not exist", context.exception)
+
+    def test_query_label_without_group_by(self):
+        tbl = self.get_table(name="birth_names")
+        query_obj = dict(
+            groupby=[],
+            columns=[
+                "gender",
+                {
+                    "label": "Given Name",
+                    "sqlExpression": "name",
+                    "expressionType": "SQL",
+                },
+            ],
+            filter=[],
+            is_timeseries=False,
+            granularity=None,
+            from_dttm=None,
+            to_dttm=None,
+            extras={},
+        )
+
+        sql = tbl.get_query_str(query_obj)
+        self.assertRegex(sql, r'name AS ["`]?Given Name["`]?')
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_data_for_slices_with_no_query_context(self):

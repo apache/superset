@@ -22,13 +22,13 @@ from typing import Any, TYPE_CHECKING
 
 import backoff
 import jwt
-from flask import current_app
+from flask import current_app, url_for
 from marshmallow import EXCLUDE, fields, post_load, Schema
 
 from superset import db
+from superset.distributed_lock import KeyValueDistributedLock
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
-from superset.utils.lock import KeyValueDistributedLock
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
@@ -180,3 +180,15 @@ def decode_oauth2_state(encoded_state: str) -> OAuth2State:
     state = oauth2_state_schema.load(payload)
 
     return state
+
+
+class OAuth2ClientConfigSchema(Schema):
+    id = fields.String(required=True)
+    secret = fields.String(required=True)
+    scope = fields.String(required=True)
+    redirect_uri = fields.String(
+        required=False,
+        load_default=lambda: url_for("DatabaseRestApi.oauth2", _external=True),
+    )
+    authorization_request_uri = fields.String(required=True)
+    token_request_uri = fields.String(required=True)

@@ -16,7 +16,6 @@
 # under the License.
 """Defines the templating context for SQL Lab"""
 
-import json
 import re
 from datetime import datetime
 from functools import lru_cache, partial
@@ -35,6 +34,7 @@ from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
+from superset.utils import json
 from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
     get_user_email,
@@ -641,6 +641,19 @@ class HiveTemplateProcessor(PrestoTemplateProcessor):
     engine = "hive"
 
 
+class SparkTemplateProcessor(HiveTemplateProcessor):
+    engine = "spark"
+
+    def process_template(self, sql: str, **kwargs: Any) -> str:
+        template = self.env.from_string(sql)
+        kwargs.update(self._context)
+
+        # Backwards compatibility if migrating from Hive.
+        context = validate_template_context(self.engine, kwargs)
+        context["hive"] = context["spark"]
+        return template.render(context)
+
+
 class TrinoTemplateProcessor(PrestoTemplateProcessor):
     engine = "trino"
 
@@ -657,6 +670,7 @@ class TrinoTemplateProcessor(PrestoTemplateProcessor):
 DEFAULT_PROCESSORS = {
     "presto": PrestoTemplateProcessor,
     "hive": HiveTemplateProcessor,
+    "spark": SparkTemplateProcessor,
     "trino": TrinoTemplateProcessor,
 }
 

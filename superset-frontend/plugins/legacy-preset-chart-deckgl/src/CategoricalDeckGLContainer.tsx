@@ -24,7 +24,7 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   CategoricalColorNamespace,
   Datasource,
@@ -58,7 +58,10 @@ function getCategories(fd: QueryFormData, data: JsonObject[]) {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
       let color;
       if (fd.dimension) {
-        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+        color = hexToRGB(
+          colorFn(d.cat_color, fd.sliceId, fd.color_scheme),
+          c.a * 255,
+        );
       } else {
         color = fixedColor;
       }
@@ -134,7 +137,10 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     return data.map(d => {
       let color;
       if (fd.dimension) {
-        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+        color = hexToRGB(
+          colorFn(d.cat_color, fd.sliceId, fd.color_scheme),
+          c.a * 255,
+        );
 
         return { ...d, color };
       }

@@ -18,7 +18,6 @@
  */
 
 /* eslint-disable no-magic-numbers */
-import React from 'react';
 import { SuperChart } from '@superset-ui/core';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import ResizableChartDemo from '../../../shared/components/ResizableChartDemo';

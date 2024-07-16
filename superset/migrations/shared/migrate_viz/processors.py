@@ -109,12 +109,19 @@ class TimeseriesChart(MigrateViz):
         "show_controls": "show_extra_controls",
         "x_axis_label": "x_axis_title",
         "x_axis_format": "x_axis_time_format",
+        "x_axis_showminmax": "truncateXAxis",
         "x_ticks_layout": "xAxisLabelRotation",
         "y_axis_label": "y_axis_title",
         "y_axis_showminmax": "truncateYAxis",
         "y_log_scale": "logAxis",
     }
-    remove_keys = {"contribution", "show_brush", "show_markers"}
+    remove_keys = {
+        "contribution",
+        "line_interpolation",
+        "reduce_x_ticks",
+        "show_brush",
+        "show_markers",
+    }
 
     def _pre_action(self) -> None:
         self.data["contributionMode"] = "row" if self.data.get("contribution") else None
@@ -127,6 +134,10 @@ class TimeseriesChart(MigrateViz):
             not bottom_margin or bottom_margin == "auto"
         ):
             self.data["bottom_margin"] = 30
+
+        left_margin = self.data.get("left_margin")
+        if self.data.get("y_axis_label") and (not left_margin or left_margin == "auto"):
+            self.data["left_margin"] = 30
 
         if (rolling_type := self.data.get("rolling_type")) and rolling_type != "None":
             self.data["rolling_type"] = rolling_type
@@ -151,8 +162,6 @@ class MigrateLineChart(TimeseriesChart):
 
     def _pre_action(self) -> None:
         super()._pre_action()
-
-        self.remove_keys.add("line_interpolation")
 
         line_interpolation = self.data.get("line_interpolation")
         if line_interpolation == "cardinal":
@@ -184,6 +193,49 @@ class MigrateAreaChart(TimeseriesChart):
         )
 
         self.data["opacity"] = 0.7
+
+
+class MigrateBarChart(TimeseriesChart):
+    source_viz_type = "bar"
+    target_viz_type = "echarts_timeseries_bar"
+
+    def _pre_action(self) -> None:
+        super()._pre_action()
+
+        self.rename_keys["show_bar_value"] = "show_value"
+
+        self.remove_keys.add("bar_stacked")
+
+        self.data["stack"] = "Stack" if self.data.get("bar_stacked") else None
+
+
+class MigrateDistBarChart(TimeseriesChart):
+    source_viz_type = "dist_bar"
+    target_viz_type = "echarts_timeseries_bar"
+    has_x_axis_control = False
+
+    def _pre_action(self) -> None:
+        super()._pre_action()
+
+        groupby = self.data.get("groupby") or []
+        columns = self.data.get("columns") or []
+        if len(groupby) > 0:
+            # x-axis supports only one value
+            self.data["x_axis"] = groupby[0]
+
+        self.data["groupby"] = []
+        if len(groupby) > 1:
+            # rest of groupby will go into dimensions
+            self.data["groupby"] += groupby[1:]
+        if len(columns) > 0:
+            self.data["groupby"] += columns
+
+        self.rename_keys["show_bar_value"] = "show_value"
+
+        self.remove_keys.add("columns")
+        self.remove_keys.add("bar_stacked")
+
+        self.data["stack"] = "Stack" if self.data.get("bar_stacked") else None
 
 
 class MigrateBubbleChart(MigrateViz):
@@ -228,3 +280,38 @@ class MigrateHeatmapChart(MigrateViz):
 
     def _pre_action(self) -> None:
         self.data["legend_type"] = "continuous"
+
+
+class MigrateHistogramChart(MigrateViz):
+    source_viz_type = "histogram"
+    target_viz_type = "histogram_v2"
+    rename_keys = {
+        "x_axis_label": "x_axis_title",
+        "y_axis_label": "y_axis_title",
+        "normalized": "normalize",
+    }
+    remove_keys = {"all_columns_x", "link_length", "queryFields"}
+
+    def _pre_action(self) -> None:
+        all_columns_x = self.data.get("all_columns_x")
+        if all_columns_x and len(all_columns_x) > 0:
+            self.data["column"] = all_columns_x[0]
+
+        link_length = self.data.get("link_length")
+        self.data["bins"] = int(link_length) if link_length else 5
+
+        groupby = self.data.get("groupby")
+        if not groupby:
+            self.data["groupby"] = []
+
+
+class MigrateSankey(MigrateViz):
+    source_viz_type = "sankey"
+    target_viz_type = "sankey_v2"
+    remove_keys = {"groupby"}
+
+    def _pre_action(self) -> None:
+        groupby = self.data.get("groupby")
+        if groupby and len(groupby) > 1:
+            self.data["source"] = groupby[0]
+            self.data["target"] = groupby[1]

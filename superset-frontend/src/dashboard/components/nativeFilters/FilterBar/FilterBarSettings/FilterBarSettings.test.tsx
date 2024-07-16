@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import { waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

@@ -17,15 +17,15 @@
  * under the License.
  */
 
-import React, { forwardRef, RefObject } from 'react';
+import { forwardRef, RefObject, MouseEvent } from 'react';
 import { css, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 
 interface ControlPanelAlertProps {
   title: string;
   bodyText: string;
-  primaryButtonAction?: (e: React.MouseEvent) => void;
-  secondaryButtonAction?: (e: React.MouseEvent) => void;
+  primaryButtonAction?: (e: MouseEvent) => void;
+  secondaryButtonAction?: (e: MouseEvent) => void;
   primaryButtonText?: string;
   secondaryButtonText?: string;
   type: 'info' | 'warning' | 'error';

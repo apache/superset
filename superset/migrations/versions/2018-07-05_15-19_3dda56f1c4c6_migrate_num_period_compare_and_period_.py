@@ -25,7 +25,6 @@ Create Date: 2018-07-05 15:19:14.609299
 # revision identifiers, used by Alembic.
 
 import datetime
-import json
 
 import isodate
 from alembic import op
@@ -33,6 +32,7 @@ from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 from superset.utils.date_parser import parse_human_timedelta
 
 revision = "3dda56f1c4c6"
@@ -118,13 +118,13 @@ def compute_time_compare(granularity, periods):
 
     try:
         obj = isodate.parse_duration(granularity) * periods
-    except isodate.isoerror.ISO8601Error:
+    except isodate.isoerror.ISO8601Error as ex:
         # if parse_human_timedelta can parse it, return it directly
         delta = f"{periods} {granularity}{'s' if periods > 1 else ''}"
         obj = parse_human_timedelta(delta)
         if obj:
             return delta
-        raise Exception(f"Unable to parse: {granularity}")
+        raise Exception(f"Unable to parse: {granularity}") from ex
 
     if isinstance(obj, isodate.duration.Duration):
         return isodate_duration_to_string(obj)

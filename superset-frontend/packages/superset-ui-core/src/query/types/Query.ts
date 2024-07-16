@@ -316,6 +316,7 @@ export type Query = {
   link?: string;
   progress: number;
   resultsKey: string | null;
+  catalog?: string | null;
   schema?: string;
   sql: string;
   sqlEditorId: string;

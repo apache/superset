@@ -32,6 +32,7 @@ from superset.commands.importers.v1.utils import (
 )
 from superset.daos.base import BaseDAO
 from superset.models.core import Database  # noqa: F401
+from superset.utils.decorators import transaction
 
 
 class ImportModelsCommand(BaseCommand):
@@ -67,18 +68,15 @@ class ImportModelsCommand(BaseCommand):
     def _get_uuids(cls) -> set[str]:
         return {str(model.uuid) for model in db.session.query(cls.dao.model_cls).all()}
 
+    @transaction()
     def run(self) -> None:
         self.validate()
 
-        # rollback to prevent partial imports
         try:
             self._import(self._configs, self.overwrite)
-            db.session.commit()
-        except CommandException as ex:
-            db.session.rollback()
-            raise ex
+        except CommandException:
+            raise
         except Exception as ex:
-            db.session.rollback()
             raise self.import_error() from ex
 
     def validate(self) -> None:  # noqa: F811

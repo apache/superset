@@ -28,7 +28,6 @@ down_revision = "65a167d4c62e"
 
 from importlib import import_module  # noqa: E402
 
-
 module = import_module(
     "superset.migrations.versions.2021-03-29_11-15_3ebe0993c770_filterset_table"
 )

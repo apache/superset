@@ -15,22 +15,29 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any
+from typing import Optional
 
 import pandas as pd
 from flask_babel import lazy_gettext as _
+from werkzeug.datastructures import FileStorage
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
-from superset.commands.database.uploaders.base import BaseDataReader, ReaderOptions
+from superset.commands.database.uploaders.base import (
+    BaseDataReader,
+    FileMetadata,
+    ReaderOptions,
+)
 
 logger = logging.getLogger(__name__)
+
+ROWS_TO_READ_METADATA = 2
 
 
 class ExcelReaderOptions(ReaderOptions, total=False):
     sheet_name: str
     column_dates: list[str]
     columns_read: list[str]
-    dataframe_index: str
+    index_column: str
     decimal_character: str
     header_row: int
     null_values: list[str]
@@ -41,18 +48,19 @@ class ExcelReaderOptions(ReaderOptions, total=False):
 class ExcelReader(BaseDataReader):
     def __init__(
         self,
-        options: ExcelReaderOptions,
+        options: Optional[ExcelReaderOptions] = None,
     ) -> None:
+        options = options or {}
         super().__init__(
             options=dict(options),
         )
 
-    def file_to_dataframe(self, file: Any) -> pd.DataFrame:
+    def file_to_dataframe(self, file: FileStorage) -> pd.DataFrame:
         """
         Read Excel file into a DataFrame
 
         :return: pandas DataFrame
-        :throws DatabaseUploadFailed: if there is an error reading the CSV file
+        :throws DatabaseUploadFailed: if there is an error reading the file
         """
 
         kwargs = {
@@ -84,3 +92,25 @@ class ExcelReader(BaseDataReader):
             ) from ex
         except Exception as ex:
             raise DatabaseUploadFailed(_("Error reading Excel file")) from ex
+
+    def file_metadata(self, file: FileStorage) -> FileMetadata:
+        try:
+            excel_file = pd.ExcelFile(file)
+        except (ValueError, AssertionError) as ex:
+            raise DatabaseUploadFailed(
+                message=_("Excel file format cannot be determined")
+            ) from ex
+
+        sheet_names = excel_file.sheet_names
+
+        result: FileMetadata = {"items": []}
+        for sheet in sheet_names:
+            df = excel_file.parse(sheet, nrows=ROWS_TO_READ_METADATA)
+            column_names = df.columns.tolist()
+            result["items"].append(
+                {
+                    "sheet_name": sheet,
+                    "column_names": column_names,
+                }
+            )
+        return result

@@ -2055,7 +2055,7 @@ countries: list[dict[str, Any]] = [
         "area": 603500,
         "cioc": "UKR",
         "cca2": "UA",
-        "capital": "Kiev",
+        "capital": "Kyiv",
         "lat": 49,
         "lng": 32,
         "cca3": "UKR",

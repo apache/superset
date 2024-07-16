@@ -18,7 +18,7 @@
  */
 /* eslint-disable react/jsx-sort-default-props, react/sort-prop-types */
 /* eslint-disable react/forbid-prop-types, react/require-default-props */
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import MapGL from 'react-map-gl';
 import ViewportMercator from 'viewport-mercator-project';
@@ -55,7 +55,7 @@ const defaultProps = {
   pointRadiusUnit: 'Pixels',
 };
 
-class MapBox extends React.Component {
+class MapBox extends Component {
   constructor(props) {
     super(props);
 

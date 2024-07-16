@@ -22,7 +22,6 @@ Create Date: 2023-07-19 17:54:06.752360
 
 """
 
-import json
 import logging
 
 from alembic import op
@@ -30,6 +29,7 @@ from sqlalchemy import Column, Integer, or_, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "ee179a490af9"

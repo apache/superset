@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { fireEvent, render } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
 
@@ -125,7 +124,7 @@ test('should call exportChart when exportCSV is clicked', async () => {
     .mockImplementation(() => {});
   const { findByText, getByRole } = setup({ supersetCanCSV: true });
   fireEvent.click(getByRole('button', { name: 'More Options' }));
-  fireEvent.mouseOver(getByRole('button', { name: 'Download' }));
+  fireEvent.mouseOver(getByRole('button', { name: 'Download right' }));
   const exportAction = await findByText('Export to .CSV');
   fireEvent.click(exportAction);
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
@@ -148,7 +147,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
     .mockImplementation(() => {});
   const { findByText, getByRole } = setup({ supersetCanCSV: true });
   fireEvent.click(getByRole('button', { name: 'More Options' }));
-  fireEvent.mouseOver(getByRole('button', { name: 'Download' }));
+  fireEvent.mouseOver(getByRole('button', { name: 'Download right' }));
   const exportAction = await findByText('Export to full .CSV');
   fireEvent.click(exportAction);
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
@@ -170,7 +169,7 @@ test('should call exportChart when exportXLSX is clicked', async () => {
     .mockImplementation(() => {});
   const { findByText, getByRole } = setup({ supersetCanCSV: true });
   fireEvent.click(getByRole('button', { name: 'More Options' }));
-  fireEvent.mouseOver(getByRole('button', { name: 'Download' }));
+  fireEvent.mouseOver(getByRole('button', { name: 'Download right' }));
   const exportAction = await findByText('Export to Excel');
   fireEvent.click(exportAction);
   expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
@@ -192,7 +191,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
     .mockImplementation(() => {});
   const { findByText, getByRole } = setup({ supersetCanCSV: true });
   fireEvent.click(getByRole('button', { name: 'More Options' }));
-  fireEvent.mouseOver(getByRole('button', { name: 'Download' }));
+  fireEvent.mouseOver(getByRole('button', { name: 'Download right' }));
   const exportAction = await findByText('Export to full Excel');
   fireEvent.click(exportAction);
   expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
