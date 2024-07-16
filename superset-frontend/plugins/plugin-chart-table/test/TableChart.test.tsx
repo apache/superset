@@ -106,6 +106,75 @@ describe('plugin-chart-table', () => {
 
       expect(comparisonColumns.length).toBe(0);
     });
+
+    it('should correctly apply column configuration for comparison columns', () => {
+      const transformedProps = transformProps(testData.comparisonWithConfig);
+
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.key.startsWith('Main') ||
+          col.key.startsWith('#') ||
+          col.key.startsWith('△') ||
+          col.key.startsWith('%'),
+      );
+
+      expect(comparisonColumns).toHaveLength(4);
+
+      const mainMetricConfig = comparisonColumns.find(
+        col => col.key === 'Main metric_1',
+      );
+      expect(mainMetricConfig).toBeDefined();
+      expect(mainMetricConfig?.config).toEqual({ d3NumberFormat: '.2f' });
+
+      const hashMetricConfig = comparisonColumns.find(
+        col => col.key === '# metric_1',
+      );
+      expect(hashMetricConfig).toBeDefined();
+      expect(hashMetricConfig?.config).toEqual({ d3NumberFormat: '.1f' });
+
+      const deltaMetricConfig = comparisonColumns.find(
+        col => col.key === '△ metric_1',
+      );
+      expect(deltaMetricConfig).toBeDefined();
+      expect(deltaMetricConfig?.config).toEqual({ d3NumberFormat: '.0f' });
+
+      const percentMetricConfig = comparisonColumns.find(
+        col => col.key === '% metric_1',
+      );
+      expect(percentMetricConfig).toBeDefined();
+      expect(percentMetricConfig?.config).toEqual({ d3NumberFormat: '.3f' });
+    });
+
+    it('should correctly format comparison columns using getComparisonColFormatter', () => {
+      const transformedProps = transformProps(testData.comparisonWithConfig);
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.key.startsWith('Main') ||
+          col.key.startsWith('#') ||
+          col.key.startsWith('△') ||
+          col.key.startsWith('%'),
+      );
+
+      const formattedMainMetric = comparisonColumns
+        .find(col => col.key === 'Main metric_1')
+        ?.formatter?.(12345.678);
+      expect(formattedMainMetric).toBe('12345.68');
+
+      const formattedHashMetric = comparisonColumns
+        .find(col => col.key === '# metric_1')
+        ?.formatter?.(12345.678);
+      expect(formattedHashMetric).toBe('12345.7');
+
+      const formattedDeltaMetric = comparisonColumns
+        .find(col => col.key === '△ metric_1')
+        ?.formatter?.(12345.678);
+      expect(formattedDeltaMetric).toBe('12346');
+
+      const formattedPercentMetric = comparisonColumns
+        .find(col => col.key === '% metric_1')
+        ?.formatter?.(0.123456);
+      expect(formattedPercentMetric).toBe('0.123');
+    });
   });
 
   describe('TableChart', () => {
