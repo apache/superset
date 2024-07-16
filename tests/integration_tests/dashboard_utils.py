@@ -54,6 +54,7 @@ def create_table_metadata(
     table = get_table(table_name, database, schema)
     if not table:
         table = SqlaTable(
+            catalog=database.get_default_catalog(),
             schema=schema,
             table_name=table_name,
             normalize_columns=False,

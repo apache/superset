@@ -1149,8 +1149,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """
         self.incr_stats("init", self.select_star.__name__)
         try:
+            # TODO (betodealmeida): allow passing a catalog
             result = database.select_star(
-                Table(table_name, schema_name),
+                Table(table_name, schema_name, database.get_default_catalog()),
                 latest_partition=True,
             )
         except NoSuchTableError:

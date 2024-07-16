@@ -1567,8 +1567,15 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get select star with datasource access
         """
+        database = get_main_database()
+        catalog = database.get_default_catalog()
+        schema = database.get_default_schema(catalog)
+
         table = SqlaTable(
-            schema="main", table_name="ab_permission", database=get_main_database()
+            database=database,
+            catalog=catalog,
+            schema=schema,
+            table_name="ab_permission",
         )
         db.session.add(table)
         db.session.commit()
@@ -1580,15 +1587,14 @@ class TestDatabaseApi(SupersetTestCase):
         security_manager.add_permission_role(gamma_role, tmp_table_perm)
 
         self.login(GAMMA_USERNAME)
-        main_db = get_main_database()
-        uri = f"api/v1/database/{main_db.id}/select_star/ab_permission/"
+        uri = f"api/v1/database/{database.id}/select_star/ab_permission/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
 
         # rollback changes
         security_manager.del_permission_role(gamma_role, tmp_table_perm)
         db.session.delete(table)
-        db.session.delete(main_db)
+        db.session.delete(database)
         db.session.commit()
 
     def test_get_select_star_not_found_database(self):

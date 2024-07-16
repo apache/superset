@@ -681,12 +681,13 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test create dataset validate table uniqueness
         """
-
+        example_db = get_example_database()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(ADMIN_USERNAME)
         table_data = {
             "database": energy_usage_ds.database_id,
             "table_name": energy_usage_ds.table_name,
+            "catalog": example_db.get_default_catalog(),
         }
         if schema := get_example_default_schema():
             table_data["schema"] = schema
@@ -706,13 +707,14 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test create dataset with sql
         """
-
+        example_db = get_example_database()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(ADMIN_USERNAME)
         table_data = {
             "database": energy_usage_ds.database_id,
             "table_name": energy_usage_ds.table_name,
             "sql": "select * from energy_usage",
+            "catalog": example_db.get_default_catalog(),
         }
         if schema := get_example_default_schema():
             table_data["schema"] = schema
