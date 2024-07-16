@@ -108,7 +108,7 @@ Example `POST /security/guest_token` payload:
   ]
 }
 ```
-### Sandbox Iframe
+### Sandbox iframe
 
 The Embedded SDK creates an iframe with [sandbox](https://developer.mozilla.org/es/docs/Web/HTML/Element/iframe#sandbox) mode by default 
 which applies certain restrictions to the iframe's content.
