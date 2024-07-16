@@ -61,7 +61,7 @@ export type EmbedDashboardParams = {
   /** Are we in debug mode? */
   debug?: boolean
   /** The iframe title attribute */
-  iframeTitle?: string,
+  iframeTitle?: string
   /** additional iframe sandbox attributes ex (allow-top-navigation, allow-popups-to-escape-sandbox) **/
   iframeSandboxExtras?: string[]
 }
@@ -138,7 +138,7 @@ export async function embedDashboard({
       iframe.sandbox.add("allow-downloads"); // for downloading charts as image
       iframe.sandbox.add("allow-forms"); // for forms to submit
       iframe.sandbox.add("allow-popups"); // for exporting charts as csv
-      //additional sandbox props
+      // additional sandbox props
       iframeSandboxExtras.forEach((key: string) => {
         iframe.sandbox.add(key);
       });
