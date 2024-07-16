@@ -59,17 +59,24 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         sql = self._properties.get("sql")
         owner_ids: Optional[list[int]] = self._properties.get("owners")
 
-        table = Table(self._properties["table_name"], schema, catalog)
-
-        # Validate uniqueness
-        if not DatasetDAO.validate_uniqueness(database_id, table):
-            exceptions.append(DatasetExistsValidationError(table))
-
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
         if not database:
             exceptions.append(DatabaseNotFoundValidationError())
         self._properties["database"] = database
+
+        # Validate uniqueness
+        if database and not catalog:
+            catalog = self._properties["catalog"] = database.get_default_catalog()
+
+        table = Table(
+            self._properties["table_name"],
+            schema,
+            catalog,
+        )
+
+        if not DatasetDAO.validate_uniqueness(database_id, table):
+            exceptions.append(DatasetExistsValidationError(table))
 
         # Validate table exists on dataset if sql is not provided
         # This should be validated when the dataset is physical

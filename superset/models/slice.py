@@ -370,6 +370,7 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
         if ds:
             target.perm = ds.perm
             target.schema_perm = ds.schema_perm
+            target.catalog_perm = ds.catalog_perm
 
 
 def event_after_chart_changed(

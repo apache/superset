@@ -773,6 +773,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
 
+        default_catalog = database.get_default_catalog()
+        catalog = catalog or default_catalog
+
         if hierarchical and (
             self.can_access_database(database)
             or (catalog and self.can_access_catalog(database, catalog))
@@ -782,7 +785,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # schema_access
         accessible_schemas: set[str] = set()
         schema_access = self.user_view_menu_names("schema_access")
-        default_catalog = database.get_default_catalog()
         default_schema = database.get_default_schema(default_catalog)
 
         for perm in schema_access:
@@ -791,15 +793,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if parts[0] != database.database_name:
                 continue
 
-            # [database].[schema] matches when no catalog is specified, or when the user
-            # specifies the default catalog
+            # [database].[schema] matches when the DB has no catalog support, or when
+            # the default catalog is specified (for backwards compatibility).
             if len(parts) == 2 and (catalog is None or catalog == default_catalog):
                 accessible_schemas.add(parts[1])
 
             # [database].[catalog].[schema] matches when the catalog is equal to the
-            # requested catalog or, when no catalog specified, it's equal to the default
-            # catalog.
-            elif len(parts) == 3 and parts[1] == (catalog or default_catalog):
+            # requested catalog (or the default one when not specified).
+            elif len(parts) == 3 and parts[1] == catalog:
                 accessible_schemas.add(parts[2])
 
         # datasource_access
@@ -905,6 +906,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if self.can_access_database(database):
             return datasource_names
 
+        # If catalog is not set we need to use the default one.
+        catalog = catalog or database.get_default_catalog()
         if catalog:
             catalog_perm = self.get_catalog_perm(database.database_name, catalog)
             if catalog_perm and self.can_access("catalog_access", catalog_perm):
@@ -2182,6 +2185,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 database = query.database
 
             database = cast("Database", database)
+            default_catalog = database.get_default_catalog()
 
             if self.can_access_database(database):
                 return
@@ -2195,19 +2199,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # from the SQLAlchemy URI if possible; if not, we use the SQLAlchemy
                 # inspector to read it.
                 default_schema = database.get_default_schema_for_query(query)
-                # Determining the default catalog is much easier, because DB engine
-                # specs need explicit support for catalogs.
-                default_catalog = database.get_default_catalog()
                 tables = {
                     Table(
                         table_.table,
                         table_.schema or default_schema,
-                        table_.catalog or default_catalog,
+                        table_.catalog or query.catalog or default_catalog,
                     )
                     for table_ in extract_tables_from_jinja_sql(query.sql, database)
                 }
             elif table:
-                tables = {table}
+                # When multi-catalog is disabled the catalog that is passed is `None`,
+                # but we need to use the default catalog for all permission checks.
+                tables = {
+                    Table(
+                        table.table,
+                        table.schema,
+                        table.catalog or default_catalog,
+                    )
+                }
 
             denied = set()
 

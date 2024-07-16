@@ -367,6 +367,7 @@ def test_raise_for_access_query_default_schema(
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
     query.database = database
+    query.catalog = None
     query.sql = "SELECT * FROM ab_user"
 
     # user has access to `public` schema
@@ -422,6 +423,7 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
     query.database = database
+    query.catalog = None
     query.sql = "SELECT * FROM {% if True %}ab_user{% endif %} WHERE 1=1"
 
     with pytest.raises(SupersetSecurityException):
@@ -737,6 +739,7 @@ def test_raise_for_access_catalog(
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
     query.database = database
+    query.catalog = "db1"
     query.sql = "SELECT * FROM ab_user"
 
     can_access = mocker.patch.object(sm, "can_access", return_value=True)
@@ -776,7 +779,14 @@ def test_get_datasources_accessible_by_user_schema_access(
     database.database_name = "db1"
     database.get_default_catalog.return_value = "catalog2"
 
-    can_access = mocker.patch.object(sm, "can_access", return_value=True)
+    can_access = mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=[
+            False,  # catalog_access
+            True,  # schema_access
+        ],
+    )
 
     datasource_names = [
         DatasourceName("table1", "schema1", "catalog2"),
@@ -824,3 +834,80 @@ def test_get_catalogs_accessible_by_user_schema_access(
     catalogs = {"catalog1", "catalog2"}
 
     assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
+
+
+def test_get_schemas_accessible_by_user_schema_access(mocker: MockerFixture) -> None:
+    """
+    Test that `get_schemas_accessible_by_user` works with schema permissions.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "can_access_catalog", return_value=False)
+    mocker.patch.object(
+        sm,
+        "user_view_menu_names",
+        side_effect=[
+            {"[db1].[catalog1].[schema2]"},  # schema_access
+            set(),  # datasource_access
+        ],
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog1"
+    database.get_default_schema.return_value = "schema1"
+
+    assert sm.get_schemas_accessible_by_user(
+        database,
+        catalog=None,
+        schemas={"schema1", "schema2"},
+    ) == {"schema2"}
+
+
+def test_get_schemas_accessible_by_user_schema_access_no_catalog(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test `get_schemas_accessible_by_user` with schema permissions on a DB w/o catalogs.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "can_access_catalog", return_value=False)
+    mocker.patch.object(
+        sm,
+        "user_view_menu_names",
+        side_effect=[
+            {"[db1].[schema2]"},  # schema_access
+            set(),  # datasource_access
+        ],
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema.return_value = "schema1"
+
+    assert sm.get_schemas_accessible_by_user(
+        database,
+        catalog=None,
+        schemas={"schema1", "schema2"},
+    ) == {"schema2"}
+
+
+def test_get_schemas_accessible_by_user_catalog_access(mocker: MockerFixture) -> None:
+    """
+    Test that `get_schemas_accessible_by_user` works with catalog permissions.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "can_access_catalog", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog1"
+
+    assert sm.get_schemas_accessible_by_user(
+        database,
+        catalog=None,
+        schemas={"schema1", "schema2"},
+    ) == {"schema1", "schema2"}
