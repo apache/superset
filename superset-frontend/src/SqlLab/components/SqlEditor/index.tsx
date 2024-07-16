@@ -779,7 +779,7 @@ const SqlEditor: FC<Props> = ({
           <Alert
             type="warning"
             message={t(
-              'The database that was used to generate this query could not be reached',
+              'The database that was used to generate this query could not be found',
             )}
             description={t(
               'Choose one of the available databases on the left panel.',

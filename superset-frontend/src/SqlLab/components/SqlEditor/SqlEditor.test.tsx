@@ -172,7 +172,7 @@ describe('SqlEditor', () => {
     const { findByText } = setup({ ...mockedProps, queryEditor }, store);
     expect(
       await findByText(
-        'The database that was used to generate this query could not be reached',
+        'The database that was used to generate this query could not be found',
       ),
     ).toBeInTheDocument();
   });
