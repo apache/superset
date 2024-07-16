@@ -2621,7 +2621,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         # Clean up system tags
         tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
-        self.assertEqual(tag_list, new_tags)
+        self.assertEqual(sorted(tag_list), sorted(new_tags))
 
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_update_dashboard_remove_tags_can_write_on_tag(self):
