@@ -361,7 +361,7 @@ class ChartDataRestApi(ChartRestApi):
 
         if result_format in ChartDataResultFormat.table_like():
             # Get chart name from slice_id
-            if form_data is not None:
+            if form_data is not None and "slice_id" in form_data:
                 slice_obj = (
                     db.session.query(Slice).filter_by(id=form_data["slice_id"]).first()
                 )
@@ -397,14 +397,20 @@ class ChartDataRestApi(ChartRestApi):
                     return query_data.encode(encoding)
                 return query_data
 
-            files = {}
-            for idx, query in enumerate(result["queries"]):
-                if idx == 0:
-                    file_name = f"{chart_name}.{result_format}"
-                else:
-                    file_name = f"{chart_name}_row_count.{result_format}"
-                data = _process_data(query["data"])
-                files[file_name] = data
+            if chart_name == "query":
+                files = {
+                    f"query_{idx + 1}.{result_format}": _process_data(query["data"])
+                    for idx, query in enumerate(result["queries"])
+                }
+            else:
+                files = {}
+                for idx, query in enumerate(result["queries"]):
+                    if idx == 0:
+                        file_name = f"{chart_name}.{result_format}"
+                    else:
+                        file_name = f"{chart_name}_row_count.{result_format}"
+                    data = _process_data(query["data"])
+                    files[file_name] = data
             return Response(
                 create_zip(files),
                 headers=generate_download_headers("zip", filename=chart_name),
