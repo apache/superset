@@ -50,6 +50,7 @@ const StyledFilterableTable = styled.div`
       min-width: 0px;
       align-self: center;
       font-size: ${theme.typography.sizes.s}px;
+      user-select: none;
     }
 
     .even-row {
@@ -63,6 +64,7 @@ const StyledFilterableTable = styled.div`
     .cell-text-for-measuring {
       font-family: ${theme.typography.families.sansSerif};
       font-size: ${theme.typography.sizes.s}px;
+      user-select: none;
     }
   `}
 `;
