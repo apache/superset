@@ -60,10 +60,10 @@ from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
 from superset.utils import core as utils
 from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
+from superset.utils.database_connect_modifier import BaseDBConnectModifier
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
-from superset.utils.database_connect_modifier import BaseDBConnectModifier
 
 logger = logging.getLogger(__name__)
 
@@ -1278,8 +1278,14 @@ DB_CONNECTION_MODIFIER_ENABLED = False
 #         # replace the default connection username and password
 #
 #         @classmethod
-#         def run(cls, sqlalchemy_url: URL, params: dict[str, Any], username: str, *args: Any,
-#                 **kwargs: Any) -> (URL, dict[str, Any]):
+#         def run(
+#             cls,
+#             sqlalchemy_url: URL,
+#             params: dict[str, Any],
+#             username: str,
+#             *args: Any,
+#             **kwargs: Any,
+#         ) -> Tuple[URL, dict[str, Any]]:
 #             new_password = cls._get_new_password(username)
 #             sqlalchemy_url.username = username
 #             sqlalchemy_url.password = new_password
