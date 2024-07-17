@@ -191,10 +191,6 @@ function ListViewCard({
   const Link = url && linkComponent ? linkComponent : AnchorLink;
   const theme = useTheme();
   return (
-    // <AntdThemeProvider theme={Object.assign(AtndTheme, {
-    //   Card:
-    //   colorBgContainerbackground: theme.grayscale.light4
-    // }}>
     <ConfigProvider theme={listViewCardTheme}>
       <StyledCard
         data-test="styled-card"
