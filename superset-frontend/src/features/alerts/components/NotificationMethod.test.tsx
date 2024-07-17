@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+
 import { NotificationMethod, mapSlackValues } from './NotificationMethod';
 import { NotificationMethodOption, NotificationSetting } from '../types';
 
@@ -79,11 +81,10 @@ describe('NotificationMethod', () => {
     );
 
     const deleteButton = screen.getByRole('button');
-    fireEvent.click(deleteButton);
+    userEvent.click(deleteButton);
 
     expect(mockOnRemove).toHaveBeenCalledWith(1);
   });
-  // Should update recipient value when input changes.
 
   it('should update recipient value when input changes', () => {
     render(
@@ -134,7 +135,7 @@ describe('NotificationMethod', () => {
       recipients: 'test1@example.com',
     });
   });
-  // correctly maps recipients when method is SlackV2
+
   it('should correctly map recipients when method is SlackV2', () => {
     const method = 'SlackV2';
     const recipientValue = 'user1,user2';
@@ -150,7 +151,7 @@ describe('NotificationMethod', () => {
       { label: 'User Two', value: 'user2' },
     ]);
   });
-  // handles empty recipientValue string
+
   it('should return an empty array when recipientValue is an empty string', () => {
     const method = 'SlackV2';
     const recipientValue = '';
@@ -163,7 +164,7 @@ describe('NotificationMethod', () => {
 
     expect(result).toEqual([]);
   });
-  // Ensure that the mapSlackValues function correctly maps recipients when the method is Slack with updated recipient values
+
   it('should correctly map recipients when method is Slack with updated recipient values', () => {
     const method = 'Slack';
     const recipientValue = 'User One,User Two';

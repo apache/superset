@@ -138,7 +138,7 @@ class TestGetChannelsWithSearch:
 
         mock_client = mocker.Mock()
         mock_client.conversations_list.side_effect = SlackApiError(
-            "", "missing scope: channels:read"
+            "foo", "missing scope: channels:read"
         )
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
@@ -146,7 +146,7 @@ class TestGetChannelsWithSearch:
             get_channels_with_search()
 
         assert str(ex.value) == (
-            """Failed to list channels:
+            """Failed to list channels: foo
 The server responded with: missing scope: channels:read"""
         )
 

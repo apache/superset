@@ -130,7 +130,7 @@ export const mapChannelsToOptions = (result: SlackChannel[]) => {
       label: 'Public Channels',
       options: publicChannels.map((channel: SlackChannel) => ({
         label: `${channel.name} ${
-          channel.is_member ? '' : '(Bot not in channel)'
+          channel.is_member ? '' : t('(Bot not in channel)')
         }`,
         value: channel.id,
         key: channel.id,
@@ -138,7 +138,7 @@ export const mapChannelsToOptions = (result: SlackChannel[]) => {
       key: 'public',
     },
     {
-      label: 'Private Channels (Bot in channel)',
+      label: t('Private Channels (Bot in channel)'),
       options: privateChannels.map((channel: SlackChannel) => ({
         label: channel.name,
         value: channel.id,
@@ -220,7 +220,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         NotificationMethodOption.Slack,
         NotificationMethodOption.SlackV2,
       ].includes(method) &&
-      !slackOptions[0].options.length
+      !slackOptions[0]?.options.length
     ) {
       fetchSlackChannels({ types: ['public_channel', 'private_channel'] })
         .then(({ json }) => {
