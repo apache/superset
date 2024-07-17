@@ -64,7 +64,6 @@ const StyledFilterableTable = styled.div`
     .cell-text-for-measuring {
       font-family: ${theme.typography.families.sansSerif};
       font-size: ${theme.typography.sizes.s}px;
-      user-select: none;
     }
   `}
 `;
