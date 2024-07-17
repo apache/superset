@@ -1,5 +1,6 @@
 import csv
 import json
+import os
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -8,7 +9,10 @@ from requests.exceptions import RequestException
 
 # Configuration
 GITHUB_API_URL = "https://api.github.com/graphql"
-GITHUB_TOKEN = ""  # Replace with your actual token
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Replace with your actual token
+if GITHUB_TOKEN is None:
+    raise ValueError("GITHUB_TOKEN environment variable not set")
+
 QUERY = """
 {
   search(query: "stars:>1", type: REPOSITORY, first: 100, after: AFTER_CURSOR) {
