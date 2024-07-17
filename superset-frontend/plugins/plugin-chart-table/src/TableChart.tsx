@@ -736,6 +736,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         }
       }
 
+      className += ' no-select';
+
       return {
         id: String(i), // to allow duplicate column keys
         // must use custom accessor to allow `.` in column names
