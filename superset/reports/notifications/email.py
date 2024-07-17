@@ -135,7 +135,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         for msgid in images.keys():
             img_tags.append(
                 f"""<div class="image">
-                    <img width="1000px" src="cid:{msgid}">
+                    <img width="1000" src="cid:{msgid}">
                 </div>
                 """
             )
@@ -153,6 +153,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                   }}
                   .image{{
                       margin-bottom: 18px;
+                      min-width: 1000px;
                   }}
                 </style>
               </head>

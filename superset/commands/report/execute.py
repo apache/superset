@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 from uuid import UUID
@@ -25,7 +26,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from superset import app, db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
-from superset.commands.exceptions import CommandException
+from superset.commands.exceptions import CommandException, UpdateFailedError
 from superset.commands.report.alert import AlertCommand
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
@@ -64,7 +65,10 @@ from superset.reports.models import (
 )
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
-from superset.reports.notifications.exceptions import NotificationError
+from superset.reports.notifications.exceptions import (
+    NotificationError,
+    SlackV1NotificationError,
+)
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user
@@ -72,6 +76,7 @@ from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
@@ -120,6 +125,40 @@ class BaseReportState:
 
         self._report_schedule.last_state = state
         self._report_schedule.last_eval_dttm = datetime.utcnow()
+
+    def update_report_schedule_slack_v2(self) -> None:
+        """
+        Update the report schedule type and channels for all slack recipients to v2.
+        V2 uses ids instead of names for channels.
+        """
+        try:
+            updated_recipients = []
+            for recipient in self._report_schedule.recipients:
+                recipient_copy = deepcopy(recipient)
+                if recipient_copy.type == ReportRecipientType.SLACK:
+                    recipient_copy.type = ReportRecipientType.SLACKV2
+                    slack_recipients = json.loads(recipient_copy.recipient_config_json)
+                    # we need to ensure that existing reports can also fetch
+                    # ids from private channels
+                    recipient_copy.recipient_config_json = json.dumps(
+                        {
+                            "target": get_channels_with_search(
+                                slack_recipients["target"],
+                                types=[
+                                    SlackChannelTypes.PRIVATE,
+                                    SlackChannelTypes.PUBLIC,
+                                ],
+                            )
+                        }
+                    )
+
+                updated_recipients.append(recipient_copy)
+            db.session.commit()  # pylint: disable=consider-using-transaction
+        except Exception as ex:
+            logger.warning(
+                "Failed to update slack recipients to v2: %s", str(ex), exc_info=True
+            )
+            raise UpdateFailedError from ex
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -439,6 +478,19 @@ class BaseReportState:
                     )
                 else:
                     notification.send()
+            except SlackV1NotificationError as ex:
+                # The slack notification should be sent with the v2 api
+                logger.info("Attempting to upgrade the report to Slackv2: %s", str(ex))
+                try:
+                    self.update_report_schedule_slack_v2()
+                    recipient.type = ReportRecipientType.SLACKV2
+                    notification = create_notification(recipient, notification_content)
+                    notification.send()
+                except UpdateFailedError as err:
+                    # log the error but keep processing the report with SlackV1
+                    logger.warning(
+                        "Failed to update slack recipients to v2: %s", str(err)
+                    )
             except (NotificationError, SupersetException) as ex:
                 # collect errors but keep processing them
                 notification_errors.append(

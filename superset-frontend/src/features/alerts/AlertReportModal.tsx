@@ -99,7 +99,9 @@ const DEFAULT_WORKING_TIMEOUT = 3600;
 const DEFAULT_CRON_VALUE = '0 0 * * *'; // every day
 const DEFAULT_RETENTION = 90;
 
-const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];
+const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = [
+  NotificationMethodOption.Email,
+];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
 const CONDITIONS = [
   {
@@ -517,7 +519,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ]);
 
     setNotificationAddState(
-      notificationSettings.length === allowedNotificationMethods.length
+      notificationSettings.length === allowedNotificationMethodsCount
         ? 'hidden'
         : 'disabled',
     );
@@ -1131,7 +1133,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         {
           recipients: '',
           options: allowedNotificationMethods,
-          method: 'Email',
+          method: NotificationMethodOption.Email,
         },
       ]);
       setNotificationAddState('active');
@@ -1234,6 +1236,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     enforceValidation();
   }, [validationStatus]);
+
+  const allowedNotificationMethodsCount = useMemo(
+    () =>
+      allowedNotificationMethods.reduce((accum: string[], setting: string) => {
+        if (
+          accum.some(nm => nm.includes('slack')) &&
+          setting.toLowerCase().includes('slack')
+        ) {
+          return accum;
+        }
+        return [...accum, setting.toLowerCase()];
+      }, []).length,
+    [allowedNotificationMethods],
+  );
 
   // Show/hide
   if (isHidden && show) {
@@ -1743,7 +1759,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           ))}
           {
             // Prohibit 'add notification method' button if only one present
-            allowedNotificationMethods.length > notificationSettings.length && (
+            allowedNotificationMethodsCount > notificationSettings.length && (
               <NotificationMethodAdd
                 data-test="notification-add"
                 status={notificationAddState}
