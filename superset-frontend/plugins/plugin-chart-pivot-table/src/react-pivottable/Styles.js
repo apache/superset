@@ -30,6 +30,7 @@ export const Styles = styled.div`
       border-collapse: separate;
       font-family: ${theme.typography.families.sansSerif};
       line-height: 1.4;
+      user-select: none;
     }
 
     table thead {
