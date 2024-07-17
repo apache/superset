@@ -169,16 +169,16 @@ class Row extends PureComponent {
           rootMargin: '100% 0px',
         },
       );
-      this.observerDisabler = new IntersectionObserver(
-        ([entry]) => {
-          if (!entry.isIntersecting && this.state.isInView) {
-            this.setState({ isInView: false });
-          }
-        },
-        {
-          rootMargin: '400% 0px',
-        },
-      );
+      // this.observerDisabler = new IntersectionObserver(
+      //   ([entry]) => {
+      //     if (!entry.isIntersecting && this.state.isInView) {
+      //       this.setState({ isInView: false });
+      //     }
+      //   },
+      //   {
+      //     rootMargin: '400% 0px',
+      //   },
+      // );
       const element = this.containerRef.current;
       if (element) {
         this.observerEnabler.observe(element);
