@@ -23,8 +23,10 @@ import {
   TabIdChannelMessage,
 } from './strictBroadcastChannel';
 
+const TAB_ID_CHANNEL_NAME = 'tab_id_channel';
+
 const channel: StrictBroadcastChannel<TabIdChannelMessage> =
-  new BroadcastChannel('tab_id_channel');
+  new BroadcastChannel(TAB_ID_CHANNEL_NAME);
 
 export function useTabId() {
   const [tabId, setTabId] = useState<string>();
