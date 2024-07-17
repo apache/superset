@@ -66,15 +66,15 @@ const StyledNotificationMethod = styled.div`
     }
 
     .inline-container {
-      margin-bottom: ${theme.gridUnit * 2.5}px;
+      margin-bottom: ${theme.gridUnit * 2}px;
 
       > div {
         margin: ${theme.gridUnit * 0}px;
       }
 
       .delete-button {
-        margin-left: ${theme.gridUnit * 2.5}px;
-        padding-top: ${theme.gridUnit * 0.75}px;
+        margin-left: ${theme.gridUnit * 2}px;
+        padding-top: ${theme.gridUnit}px;
       }
     }
 
