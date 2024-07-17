@@ -145,7 +145,7 @@ AUTH_TYPE = AUTH_OAUTH
 ENABLE_PROXY_FIX = True
 AUTH_USER_REGISTRATION = True
 AUTH_USER_REGISTRATION_ROLE = "Gamma"
-AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(['lautaro@datakimia.com', 'user2@domain.com'], email) && 'Admin' || 'Alpha'"
+AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(['lautaro@datakimia.com', 'rory@datakimia.com'], email) && 'Admin' || 'Alpha'"
 AUTH_ROLES_MAPPING = {
 "superset_users": ["Gamma","Alpha"],
 "superset_admins": ["Admin"],
