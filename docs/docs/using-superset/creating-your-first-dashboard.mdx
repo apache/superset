@@ -44,6 +44,8 @@ or for the purposes of this walkthrough, you can click the link below all these 
 
 <img src={useBaseUrl("/img/tutorial/tutorial_03a_database_connection_string_link.png" )} width="600" />{" "} <br/><br/>
 
+Please note, if you are trying to connect to another locally running database (whether on host or another container), and you get the message `The port is closed.`, then you need to adjust the HOST to `host.docker.internal`
+
 Once you've clicked that link you only need to specify two things (the database name and SQLAlchemy URI):
 
 
