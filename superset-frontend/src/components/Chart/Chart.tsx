@@ -294,7 +294,7 @@ class Chart extends PureComponent {
     });
   }
 
-  renderErrorMessage(QueryResponse: QueryResponse) {
+  renderErrorMessage(queryResponse: QueryResponse) {
     const {
       chartId,
       chartAlert,
