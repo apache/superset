@@ -65,7 +65,7 @@ from flask_babel import gettext as __
 from markupsafe import Markup
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
-from sqlalchemy import event, exc, inspect, select, Text
+from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import LONGTEXT, MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -1039,8 +1039,16 @@ def get_example_default_schema() -> str | None:
     Return the default schema of the examples database, if any.
     """
     database = get_example_database()
-    with database.get_sqla_engine() as engine:
-        return inspect(engine).default_schema_name
+    catalog = database.get_default_catalog()
+    return database.get_default_schema(catalog)
+
+
+def get_example_default_catalog() -> str | None:
+    """
+    Return the default catalog of the examples database, if any.
+    """
+    database = get_example_database()
+    return database.get_default_catalog()
 
 
 def backend() -> str:

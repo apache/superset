@@ -26,18 +26,29 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
-from superset.utils.core import DatasourceType, get_example_default_schema
+from superset.utils.core import (
+    DatasourceType,
+    get_example_default_catalog,
+    get_example_default_schema,
+)
 
 
 def get_table(
     table_name: str,
     database: Database,
+    catalog: Optional[str] = None,
     schema: Optional[str] = None,
 ):
+    catalog = catalog or get_example_default_catalog()
     schema = schema or get_example_default_schema()
     return (
         db.session.query(SqlaTable)
-        .filter_by(database_id=database.id, schema=schema, table_name=table_name)
+        .filter_by(
+            database_id=database.id,
+            catalog=catalog,
+            schema=schema,
+            table_name=table_name,
+        )
         .one_or_none()
     )
 
@@ -47,14 +58,16 @@ def create_table_metadata(
     database: Database,
     table_description: str = "",
     fetch_values_predicate: Optional[str] = None,
+    catalog: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> SqlaTable:
+    catalog = catalog or get_example_default_catalog()
     schema = schema or get_example_default_schema()
 
-    table = get_table(table_name, database, schema)
+    table = get_table(table_name, database, catalog, schema)
     if not table:
         table = SqlaTable(
-            catalog=database.get_default_catalog(),
+            catalog=catalog,
             schema=schema,
             table_name=table_name,
             normalize_columns=False,

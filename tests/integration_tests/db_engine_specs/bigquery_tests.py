@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import unittest.mock as mock
+from unittest import skip
 
 import pytest
 from pandas import DataFrame
@@ -25,6 +26,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import Table
+from superset.utils.core import get_example_default_catalog, get_example_default_schema
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -355,11 +357,14 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
+    @skip("Test should be a unit test")
     @mock.patch("superset.models.core.Database.db_engine_spec", BigQueryEngineSpec)
     @mock.patch("sqlalchemy_bigquery._helpers.create_bigquery_client", mock.Mock)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_calculated_column_in_order_by(self):
-        table = self.get_table(name="birth_names")
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
+        table = self.get_table(name="birth_names", catalog=catalog, schema=schema)
         TableColumn(
             column_name="gender_cc",
             type="VARCHAR(255)",

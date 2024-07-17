@@ -36,7 +36,12 @@ from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSuppor
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
 from superset.utils import json
-from superset.utils.core import backend, get_example_default_schema  # noqa: F401
+from superset.utils.core import (
+    get_example_default_catalog,
+    get_example_default_schema,
+)
+
+# noqa: F401
 from superset.utils.database import (  # noqa: F401
     get_example_database,
     get_main_database,
@@ -79,7 +84,9 @@ class TestDatasource(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_for_physical_table(self):
         self.login(ADMIN_USERNAME)
-        tbl = self.get_table(name="birth_names")
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
+        tbl = self.get_table(name="birth_names", catalog=catalog, schema=schema)
         url = f"/datasource/external_metadata/table/{tbl.id}/"
         resp = self.get_json_resp(url)
         col_names = {o.get("column_name") for o in resp}
@@ -158,7 +165,9 @@ class TestDatasource(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_by_name_for_physical_table(self):
         self.login(ADMIN_USERNAME)
-        tbl = self.get_table(name="birth_names")
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
+        tbl = self.get_table(name="birth_names", catalog=catalog, schema=schema)
         params = prison.dumps(
             {
                 "datasource_type": "table",

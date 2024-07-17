@@ -43,7 +43,11 @@ from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.utils.core import get_example_default_schema, shortid
+from superset.utils.core import (
+    get_example_default_catalog,
+    get_example_default_schema,
+    shortid,
+)
 from superset.utils import json
 from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
@@ -280,8 +284,12 @@ class SupersetTestCase(TestCase):
 
     @staticmethod
     def get_table(
-        name: str, database_id: Optional[int] = None, schema: Optional[str] = None
+        name: str,
+        database_id: Optional[int] = None,
+        schema: Optional[str] = None,
+        catalog: Optional[str] = None,
     ) -> SqlaTable:
+        catalog = catalog or get_example_default_catalog()
         schema = schema or get_example_default_schema()
 
         return (
@@ -289,6 +297,7 @@ class SupersetTestCase(TestCase):
             .filter_by(
                 database_id=database_id
                 or SupersetTestCase.get_database_by_name("examples").id,
+                catalog=catalog,
                 schema=schema,
                 table_name=name,
             )
@@ -387,15 +396,16 @@ class SupersetTestCase(TestCase):
         select_as_cta=False,
         tmp_table_name=None,
         schema=None,
+        catalog=None,
         ctas_method=CtasMethod.TABLE,
         template_params="{}",
     ):
         if username:
             self.logout()
             self.login(username)
-        dbid = SupersetTestCase.get_database_by_name(database_name).id
+        db = SupersetTestCase.get_database_by_name(database_name)
         json_payload = {
-            "database_id": dbid,
+            "database_id": db.id,
             "sql": sql,
             "client_id": client_id,
             "queryLimit": query_limit,
@@ -407,8 +417,10 @@ class SupersetTestCase(TestCase):
             json_payload["tmp_table_name"] = tmp_table_name
         if select_as_cta:
             json_payload["select_as_cta"] = select_as_cta
-        if schema:
-            json_payload["schema"] = schema
+
+        catalog = catalog or db.get_default_catalog()
+        json_payload["schema"] = schema if schema else db.get_default_schema(catalog)
+        json_payload["catalog"] = catalog
 
         resp = self.get_json_resp(
             "/api/v1/sqllab/execute/", raise_on_error=False, json_=json_payload

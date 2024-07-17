@@ -23,7 +23,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import get_example_default_catalog, get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.example_data.data_loading.base_data_loader import DataLoader
 from tests.example_data.data_loading.data_definitions.types import Table
@@ -72,6 +72,8 @@ def _create_dashboards():
         table_name=BIRTH_NAMES_TBL_NAME,
         database=get_example_database(),
         fetch_values_predicate="123 = 123",
+        catalog=get_example_default_catalog(),
+        schema=get_example_default_schema(),
     )
 
     from superset.examples.birth_names import create_dashboard, create_slices
@@ -87,11 +89,15 @@ def _create_table(
     table_name: str,
     database: "Database",
     fetch_values_predicate: Optional[str] = None,
+    catalog: Optional[str] = None,
+    schema: Optional[str] = None,
 ):
     table = create_table_metadata(
         table_name=table_name,
         database=database,
         fetch_values_predicate=fetch_values_predicate,
+        schema=schema,
+        catalog=catalog,
     )
     from superset.examples.birth_names import _add_table_metrics, _set_table_metadata
 
@@ -102,9 +108,12 @@ def _create_table(
 
 
 def _cleanup(dash_id: int, slice_ids: list[int]) -> None:
+    catalog = get_example_default_catalog()
     schema = get_example_default_schema()
     for datasource in db.session.query(SqlaTable).filter_by(
-        table_name="birth_names", schema=schema
+        table_name="birth_names",
+        catalog=catalog,
+        schema=schema,
     ):
         for col in datasource.columns + datasource.metrics:
             db.session.delete(col)

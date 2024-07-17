@@ -287,6 +287,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     OBJECT_SPEC_PERMISSIONS = {
         "database_access",
         "schema_access",
+        "catalog_access",
         "datasource_access",
     }
 
