@@ -1163,7 +1163,9 @@ class TestCore(SupersetTestCase):
     )
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @mock.patch("superset.models.core.DB_CONNECTION_MODIFIER")
-    def test_explore_with_modifier_injected_exceptions(self, mock_db_connection_modifier):
+    def test_explore_with_modifier_injected_exceptions(
+        self, mock_db_connection_modifier
+    ):
         """
         Handle injected exceptions from the db modifier
         """
@@ -1222,7 +1224,9 @@ class TestCore(SupersetTestCase):
     )
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @mock.patch("superset.models.core.DB_CONNECTION_MODIFIER")
-    def test_dashboard_with_modifier_injected_exceptions(self, mock_db_connection_modifier):
+    def test_dashboard_with_modifier_injected_exceptions(
+        self, mock_db_connection_modifier
+    ):
         """
         Handle injected exceptions from the db modifier
         """
