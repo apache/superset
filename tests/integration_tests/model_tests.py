@@ -536,6 +536,7 @@ class TestSqlaTableModel(SupersetTestCase):
 
         app.config["SQL_QUERY_MUTATOR"] = None
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_with_non_existent_metrics(self):
         tbl = self.get_table(name="birth_names")
 
@@ -556,6 +557,7 @@ class TestSqlaTableModel(SupersetTestCase):
 
         self.assertTrue("Metric 'invalid' does not exist", context.exception)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_label_without_group_by(self):
         tbl = self.get_table(name="birth_names")
         query_obj = dict(

@@ -30,7 +30,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.reports.models import ReportSchedule
 from superset.utils import json
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import get_example_default_catalog, get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.dashboard_utils import (
     create_dashboard,
@@ -95,7 +95,14 @@ def load_world_bank_dashboard_with_slices_class_scope(load_world_bank_data):
 
 
 def create_dashboard_for_loaded_data():
-    table = create_table_metadata(WB_HEALTH_POPULATION, get_example_database())
+    catalog = get_example_default_catalog()
+    schema = get_example_default_schema()
+    table = create_table_metadata(
+        WB_HEALTH_POPULATION,
+        get_example_database(),
+        schema=schema,
+        catalog=catalog,
+    )
     slices = _create_world_bank_slices(table)
     dash = _create_world_bank_dashboard(table)
     slices_ids_to_delete = [slice.id for slice in slices]

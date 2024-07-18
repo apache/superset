@@ -465,7 +465,7 @@ def test_raise_for_access_chart_for_datasource_permission(
         table_name="test_table",
         metrics=[],
         main_dttm_col=None,
-        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        database=Database(database_name="some_database", sqlalchemy_uri="sqlite://"),
     )
     session.add(dataset)
     session.flush()

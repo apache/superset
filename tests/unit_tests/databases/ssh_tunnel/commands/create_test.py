@@ -30,7 +30,6 @@ def test_create_ssh_tunnel_command() -> None:
     from superset.models.core import Database
 
     database = Database(
-        id=1,
         database_name="my_database",
         sqlalchemy_uri="postgresql://u:p@localhost:5432/db",
     )

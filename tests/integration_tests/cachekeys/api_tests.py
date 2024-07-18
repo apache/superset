@@ -23,7 +23,7 @@ import pytest
 
 from superset.extensions import cache_manager, db
 from superset.models.cache import CacheKey
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import get_example_default_catalog, get_example_default_schema
 from tests.integration_tests.base_tests import (
     SupersetTestCase,
     post_assert_metric,
@@ -102,6 +102,7 @@ def test_invalidate_cache_bad_request(invalidate):
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_invalidate_existing_caches(invalidate):
+    catalog = get_example_default_catalog()
     schema = get_example_default_schema() or ""
     bn = SupersetTestCase.get_birth_names_dataset()
 
@@ -124,29 +125,34 @@ def test_invalidate_existing_caches(invalidate):
                     "datasource_name": "birth_names",
                     "database_name": "examples",
                     "schema": schema,
+                    "catalog": catalog,
                     "datasource_type": "table",
                 },
                 {  # table exists, no cache to invalidate
                     "datasource_name": "energy_usage",
                     "database_name": "examples",
+                    "catalog": catalog,
                     "schema": schema,
                     "datasource_type": "table",
                 },
                 {  # table doesn't exist
                     "datasource_name": "does_not_exist",
                     "database_name": "examples",
+                    "catalog": catalog,
                     "schema": schema,
                     "datasource_type": "table",
                 },
                 {  # database doesn't exist
                     "datasource_name": "birth_names",
                     "database_name": "does_not_exist",
+                    "catalog": catalog,
                     "schema": schema,
                     "datasource_type": "table",
                 },
                 {  # database doesn't exist
                     "datasource_name": "birth_names",
                     "database_name": "examples",
+                    "catalog": catalog,
                     "schema": "does_not_exist",
                     "datasource_type": "table",
                 },

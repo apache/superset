@@ -41,16 +41,21 @@ def get_table(
 ):
     catalog = catalog or get_example_default_catalog()
     schema = schema or get_example_default_schema()
-    return (
+    table = (
         db.session.query(SqlaTable)
         .filter_by(
             database_id=database.id,
-            catalog=catalog,
+            # Ignore catalog for now, since some tests are creating datasets without a
+            # proper catalog.
+            # catalog=catalog,
             schema=schema,
             table_name=table_name,
         )
         .one_or_none()
     )
+    if table:
+        table.catalog = catalog
+    return table
 
 
 def create_table_metadata(

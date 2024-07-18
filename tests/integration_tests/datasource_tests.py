@@ -96,6 +96,8 @@ class TestDatasource(SupersetTestCase):
 
     def test_always_filter_main_dttm(self):
         database = get_example_database()
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
 
         sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"  # noqa: F541
         if database.backend == "sqlite":
@@ -119,7 +121,8 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=database,
-            schema=get_example_default_schema(),
+            catalog=catalog,
+            schema=schema,
             main_dttm_col="default_dttm",
             columns=[
                 TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
@@ -130,9 +133,6 @@ class TestDatasource(SupersetTestCase):
             sql=sql,
         )
 
-        db.session.add(table)
-        db.session.commit()
-
         table.always_filter_main_dttm = False
         result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
         assert "default_dttm" not in result and "additional_dttm" in result
@@ -141,21 +141,21 @@ class TestDatasource(SupersetTestCase):
         result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
         assert "default_dttm" in result and "additional_dttm" in result
 
-        db.session.delete(table)
-        db.session.commit()
-
     def test_external_metadata_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=get_example_database(),
-            schema=get_example_default_schema(),
+            catalog=catalog,
+            schema=schema,
             sql="select 123 as intcol, 'abc' as strcol",
         )
         db.session.add(table)
         db.session.commit()
 
-        table = self.get_table(name="dummy_sql_table")
+        table = self.get_table(name="dummy_sql_table", catalog=catalog, schema=schema)
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
         assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
@@ -187,21 +187,29 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_by_name_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
         table = SqlaTable(
-            table_name="dummy_sql_table",
+            table_name="dummy_sql_virtual_table",
             database=get_example_database(),
-            schema=get_example_default_schema(),
+            catalog=catalog,
+            schema=schema,
             sql="select 123 as intcol, 'abc' as strcol",
         )
         db.session.add(table)
         db.session.commit()
 
-        tbl = self.get_table(name="dummy_sql_table")
+        tbl = self.get_table(
+            name="dummy_sql_virtual_table",
+            catalog=catalog,
+            schema=schema,
+        )
         params = prison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": tbl.database.database_name,
                 "schema_name": tbl.schema,
+                "catalog_name": tbl.catalog,
                 "table_name": tbl.table_name,
                 "normalize_columns": tbl.normalize_columns,
                 "always_filter_main_dttm": tbl.always_filter_main_dttm,
@@ -280,17 +288,22 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_for_virtual_table_template_params(self):
         self.login(ADMIN_USERNAME)
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
         table = SqlaTable(
             table_name="dummy_sql_table_with_template_params",
             database=get_example_database(),
-            schema=get_example_default_schema(),
+            catalog=catalog,
+            schema=schema,
             sql="select {{ foo }} as intcol",
             template_params=json.dumps({"foo": "123"}),
         )
         db.session.add(table)
         db.session.commit()
 
-        table = self.get_table(name="dummy_sql_table_with_template_params")
+        table = self.get_table(
+            name="dummy_sql_table_with_template_params", catalog=catalog, schema=schema
+        )
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
         assert {o.get("column_name") for o in resp} == {"intcol"}
@@ -299,10 +312,13 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_for_malicious_virtual_table(self):
         self.login(ADMIN_USERNAME)
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
         table = SqlaTable(
             table_name="malicious_sql_table",
             database=get_example_database(),
-            schema=get_example_default_schema(),
+            catalog=catalog,
+            schema=schema,
             sql="delete table birth_names",
         )
         with db_insert_temp_object(table):
@@ -312,10 +328,13 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_for_multistatement_virtual_table(self):
         self.login(ADMIN_USERNAME)
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
         table = SqlaTable(
             table_name="multistatement_sql_table",
             database=get_example_database(),
-            schema=get_example_default_schema(),
+            catalog=catalog,
+            schema=schema,
             sql="select 123 as intcol, 'abc' as strcol;"
             "select 123 as intcol, 'abc' as strcol",
         )
@@ -328,7 +347,9 @@ class TestDatasource(SupersetTestCase):
     @mock.patch("superset.connectors.sqla.models.SqlaTable.external_metadata")
     def test_external_metadata_error_return_400(self, mock_get_datasource):
         self.login(ADMIN_USERNAME)
-        tbl = self.get_table(name="birth_names")
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
+        tbl = self.get_table(name="birth_names", catalog=catalog, schema=schema)
         url = f"/datasource/external_metadata/table/{tbl.id}/"
 
         mock_get_datasource.side_effect = SupersetGenericDBErrorException("oops")
@@ -352,9 +373,12 @@ class TestDatasource(SupersetTestCase):
                 if k not in "id" and obj1.get(k):
                     self.assertEqual(obj1.get(k), obj2.get(k))
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_save(self):
         self.login(ADMIN_USERNAME)
-        tbl_id = self.get_table(name="birth_names").id
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
+        tbl_id = self.get_table(name="birth_names", catalog=catalog, schema=schema).id
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
@@ -373,9 +397,13 @@ class TestDatasource(SupersetTestCase):
             else:
                 self.assertEqual(resp[k], datasource_post[k])
 
+    @pytest.mark.usefixtures("load_birth_names_data")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_save_default_endpoint_validation_success(self):
         self.login(ADMIN_USERNAME)
-        tbl_id = self.get_table(name="birth_names").id
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
+        tbl_id = self.get_table(name="birth_names", catalog=catalog, schema=schema).id
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
@@ -394,7 +422,9 @@ class TestDatasource(SupersetTestCase):
     def test_change_database(self):
         admin_user = self.get_user("admin")
         self.login(admin_user.username)
-        tbl = self.get_table(name="birth_names")
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
+        tbl = self.get_table(name="birth_names", catalog=catalog, schema=schema)
         tbl_id = tbl.id
         db_id = tbl.database_id
         datasource_post = get_datasource_post()
@@ -412,10 +442,13 @@ class TestDatasource(SupersetTestCase):
 
         self.delete_fake_db()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_save_duplicate_key(self):
         admin_user = self.get_user("admin")
         self.login(admin_user.username)
-        tbl_id = self.get_table(name="birth_names").id
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
+        tbl_id = self.get_table(name="birth_names", catalog=catalog, schema=schema).id
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
@@ -442,10 +475,13 @@ class TestDatasource(SupersetTestCase):
         resp = self.get_json_resp("/datasource/save/", data, raise_on_error=False)
         self.assertIn("Duplicate column name(s): <new column>", resp["error"])
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_datasource(self):
         admin_user = self.get_user("admin")
         self.login(admin_user.username)
-        tbl = self.get_table(name="birth_names")
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
+        tbl = self.get_table(name="birth_names", catalog=catalog, schema=schema)
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl.id
@@ -470,13 +506,16 @@ class TestDatasource(SupersetTestCase):
             },
         )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_datasource_with_health_check(self):
         def my_check(datasource):
             return "Warning message!"
 
         app.config["DATASET_HEALTH_CHECK"] = my_check
         self.login(ADMIN_USERNAME)
-        tbl = self.get_table(name="birth_names")
+        catalog = get_example_default_catalog()
+        schema = get_example_default_schema()
+        tbl = self.get_table(name="birth_names", catalog=catalog, schema=schema)
         datasource = db.session.query(SqlaTable).filter_by(id=tbl.id).one_or_none()
         assert datasource.health_check_message == "Warning message!"
         app.config["DATASET_HEALTH_CHECK"] = None

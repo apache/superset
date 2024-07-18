@@ -449,7 +449,7 @@ def test_import_column_allowed_data_url(
     engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
-    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite:///test.db")
     db.session.add(database)
     db.session.flush()
 
@@ -499,9 +499,10 @@ def test_import_column_allowed_data_url(
     dataset_config = schema.load(yaml_config)
     dataset_config["database_id"] = database.id
     _ = import_dataset(dataset_config, force_data=True)
-    assert [("value1",), ("value2",)] == db.session.execute(
-        "SELECT * FROM my_table"
-    ).fetchall()
+
+    assert database.get_df("SELECT * FROM my_table").to_dict() == {
+        "col1": {0: "value1", 1: "value2"}
+    }
 
 
 def test_import_dataset_managed_externally(
