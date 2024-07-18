@@ -192,7 +192,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
   if (error) throw error; // caught in error boundary
-  if (!readyToRender || !hasDashboardInfoInitiated) return <Loading />;
+
+  const isLoading = !dashboard || !hasDashboardInfoInitiated;
 
   return (
     <>
@@ -208,7 +209,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       <SyncDashboardState dashboardPageId={dashboardPageId} />
       <DashboardPageIdContext.Provider value={dashboardPageId}>
         <DashboardContainer>
-          <DashboardBuilder />
+          {isLoading ? <Loading /> : <DashboardBuilder />}
         </DashboardContainer>
       </DashboardPageIdContext.Provider>
     </>
