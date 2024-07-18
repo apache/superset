@@ -205,6 +205,9 @@ msgid ""
 "schedule with a minimum interval of %(minimum_interval)d minutes per "
 "execution."
 msgstr ""
+"%(report_type) のスケジュール頻度が制限を超えています。"
+"処理ごとに %(minimum_interval) 分の間隔を持ったスケジュールを設定してください。"
+
 
 #, python-format
 msgid "%(rows)d rows returned"
@@ -991,11 +994,13 @@ msgid ""
 "Adjust column settings such as specifying the columns to read, how "
 "duplicates are handled, column data types, and more."
 msgstr ""
+"列の設定を調整する。(例：読み込む列の指定、重複の処理方法、列のデータ型）"
 
 msgid ""
 "Adjust how spaces, blank lines, null values are handled and other file "
 "wide settings."
 msgstr ""
+"スペース、空白行、NULL値の扱い方や、その他のファイル全体の設定を調整する。"
 
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "このデータベースが SQL Lab とどのように対話するかを調整"
@@ -1177,7 +1182,7 @@ msgid "Allow DML"
 msgstr "DML を許可"
 
 msgid "Allow changing catalogs"
-msgstr ""
+msgstr "カタログ変更の許可"
 
 msgid ""
 "Allow column names to be changed to case insensitive format, if supported"
@@ -2789,7 +2794,7 @@ msgid ""
 msgstr "複数の時系列グラフ (スパークラインとして) と関連するメトリクスをすばやく比較します。"
 
 msgid "Compare results with other time periods."
-msgstr ""
+msgstr "結果を別の期間と比較する。"
 
 msgid "Compare the same summarized metric across multiple groups."
 msgstr "複数のグループ間で同じ要約メトリックを比較します。"
@@ -3480,7 +3485,7 @@ msgid "Database upload file failed"
 msgstr "ファイルをアップロードするデータベースを選択してください。"
 
 msgid "Database upload file failed, while saving metadata"
-msgstr ""
+msgstr "メタデータの保存中にデータベースへのファイルのアップロードが失敗しました。"
 
 msgid "Databases"
 msgstr "データベース"
@@ -4405,7 +4410,7 @@ msgid "Email reports active"
 msgstr "電子メールレポートがアクティブです"
 
 msgid "Email subject name (optional)"
-msgstr ""
+msgstr "メールの件名（任意）"
 
 msgid "Embed"
 msgstr "埋め込む"
@@ -4675,7 +4680,7 @@ msgid "Excel Upload"
 msgstr "CSVアップロード"
 
 msgid "Excel file format cannot be determined"
-msgstr ""
+msgstr "エクセルファイルの形式が特定できません。"
 
 msgid "Exclude selected values"
 msgstr "選択した値を除外する"
@@ -4905,7 +4910,7 @@ msgid "Featured"
 msgstr "作成した項目"
 
 msgid "Featured color palettes"
-msgstr ""
+msgstr "おすすめのカラーパレット"
 
 msgid "February"
 msgstr "2月"
@@ -4946,7 +4951,7 @@ msgid "File extension is not allowed."
 msgstr "データ URI は許可されません。"
 
 msgid "File size exceeds the maximum allowed size."
-msgstr ""
+msgstr "ファイルサイズが最大許容サイズを超えています。"
 
 #, fuzzy
 msgid "File upload"
@@ -5254,7 +5259,7 @@ msgid "Get the specify date for the holiday"
 msgstr "休日の指定日を取得する"
 
 msgid "Give access to multiple catalogs in a single database connection."
-msgstr ""
+msgstr "一つのデータベースに接続することで複数のカタログにアクセスできます。"
 
 msgid "Go to the edit mode to configure the dashboard and add charts"
 msgstr "編集モードに移動してダッシュボードを構成し、グラフを追加します"
@@ -5596,7 +5601,7 @@ msgid "Info"
 msgstr "情報"
 
 msgid "Inherit range from time filter"
-msgstr ""
+msgstr "時間フィルターの範囲を流用する。"
 
 msgid "Inner Radius"
 msgstr "内半径"
@@ -5893,7 +5898,7 @@ msgid "Label already exists"
 msgstr "ラベルはすでに存在します。"
 
 msgid "Label for the index column. Don't use an existing column name."
-msgstr ""
+msgstr "インデックスカラムのラベルです。既存のカラム名は使用しないでください。"
 
 msgid "Label for your query"
 msgstr "クエリのラベル"
@@ -6600,7 +6605,7 @@ msgid "More filters"
 msgstr "その他のフィルター"
 
 msgid "MotherDuck token"
-msgstr ""
+msgstr "MotherDuck トークン"
 
 msgid "Move only"
 msgstr "移動のみ"
@@ -7624,7 +7629,7 @@ msgid "Please enter a SQLAlchemy URI to test"
 msgstr "テストするには SQLAlchemy URI を入力してください"
 
 msgid "Please enter valid text. Spaces alone are not permitted."
-msgstr ""
+msgstr "有効なテキストを入力してください。スペースのみの入力はできません。"
 
 msgid "Please re-enter the password."
 msgstr "パスワードを再入力してください。"
@@ -7847,7 +7852,7 @@ msgid "Put labels outside"
 msgstr "ラベルを外側に貼ります"
 
 msgid "Put positive values and valid minute and second value less than 60"
-msgstr ""
+msgstr "正の値を入れ、分と秒は60を超えない範囲で指定してください。"
 
 #, fuzzy
 msgid "Put some positive value greater than 0"
@@ -9168,7 +9173,7 @@ msgid "Set filter mapping"
 msgstr "フィルタマッピングを設定"
 
 msgid "Set header rows and the number of rows to read or skip."
-msgstr ""
+msgstr "ヘッダー行と、データとして扱う行数を設定してください。"
 
 msgid "Set up an email report"
 msgstr "電子メールレポートを設定する"
@@ -10079,7 +10084,7 @@ msgid "Text"
 msgstr "テキスト"
 
 msgid "Text / Markdown"
-msgstr ""
+msgstr "テキスト / マークダウン"
 
 msgid "Text align"
 msgstr "テキストの配置"
@@ -10300,10 +10305,10 @@ msgid "The datasource is too large to query."
 msgstr "データソースが大きすぎてクエリできません。"
 
 msgid "The default catalog that should be used for the connection."
-msgstr ""
+msgstr "接続に使用するデフォルトのカタログ"
 
 msgid "The default schema that should be used for the connection."
-msgstr ""
+msgstr "接続に使用するデフォルトのスキーマ"
 
 msgid ""
 "The description can be displayed as widget headers in the dashboard view."
@@ -11811,7 +11816,7 @@ msgstr "ファイルをデータベースにアップロードする"
 
 #, python-format
 msgid "Upload a file with a valid extension. Valid: [%s]"
-msgstr ""
+msgstr "有効な拡張子のファイルをアップロードしてください。有効なもの： [%s]"
 
 msgid "Upload file to database"
 msgstr "ファイルをデータベースにアップロードする"
@@ -12931,7 +12936,7 @@ msgid "Your report could not be deleted"
 msgstr "レポートを削除できませんでした"
 
 msgid "ZIP file contains multiple file types"
-msgstr ""
+msgstr "ZIPファイルには複数のファイルタイプが含まれています。"
 
 msgid "Zero imputation"
 msgstr "ゼロインピュテーション"
@@ -13286,7 +13291,7 @@ msgid "e.g. default"
 msgstr "デフォルト"
 
 msgid "e.g. hive_metastore"
-msgstr ""
+msgstr "例：hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "例param1=値1&param2=値2"
