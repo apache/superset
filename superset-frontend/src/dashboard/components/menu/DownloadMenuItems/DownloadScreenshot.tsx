@@ -71,9 +71,6 @@ export default function DownloadScreenshot({
           a.click();
           document.body.removeChild(a);
           window.URL.revokeObjectURL(url);
-        })
-        .catch(() => {
-          throw new Error('Image not ready');
         });
 
     // this is the functions that handles the retries
