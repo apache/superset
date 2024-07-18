@@ -28,7 +28,6 @@ import {
 
 // eslint-disable-next-line import/prefer-default-export
 export const useNativeFilters = () => {
-  const [isInitialized, setIsInitialized] = useState(false);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -51,10 +50,7 @@ export const useNativeFilters = () => {
   const missingInitialFilters = requiredFirstFilter
     .filter(({ id }) => dataMask[id]?.filterState?.value === undefined)
     .map(({ name }) => name);
-  const showDashboard =
-    isInitialized ||
-    !nativeFiltersEnabled ||
-    missingInitialFilters.length === 0;
+
   const toggleDashboardFiltersOpen = useCallback(
     (visible?: boolean) => {
       setDashboardFiltersOpen(visible ?? !dashboardFiltersOpen);
@@ -73,14 +69,7 @@ export const useNativeFilters = () => {
     }
   }, [filterValues.length]);
 
-  useEffect(() => {
-    if (showDashboard) {
-      setIsInitialized(true);
-    }
-  }, [showDashboard]);
-
   return {
-    showDashboard,
     missingInitialFilters,
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,

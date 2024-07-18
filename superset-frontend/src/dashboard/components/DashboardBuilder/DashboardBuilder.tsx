@@ -462,7 +462,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   }, []);
 
   const {
-    showDashboard,
     missingInitialFilters,
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,
@@ -698,10 +697,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                   )}
                 />
               </div>
-            ) : showDashboard ? (
-              <DashboardContainer topLevelTabs={topLevelTabs} />
             ) : (
-              <Loading />
+              <DashboardContainer topLevelTabs={topLevelTabs} />
             )}
             {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
           </StyledDashboardContent>
