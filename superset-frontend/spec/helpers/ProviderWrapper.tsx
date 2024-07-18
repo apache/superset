@@ -27,14 +27,16 @@ export function ProviderWrapper(props: any) {
 
   return (
     <ThemeProvider theme={theme}>
-      <Router>
-        <QueryParamProvider
-          ReactRouterRoute={Route}
-          stringifyOptions={{ encode: false }}
-        >
-          <AntdThemeProvider>{children}</AntdThemeProvider>
-        </QueryParamProvider>
-      </Router>
+      <AntdThemeProvider>
+        <Router>
+          <QueryParamProvider
+            ReactRouterRoute={Route}
+            stringifyOptions={{ encode: false }}
+          >
+            {children}
+          </QueryParamProvider>
+        </Router>
+      </AntdThemeProvider>
     </ThemeProvider>
   );
 }
