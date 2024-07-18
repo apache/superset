@@ -17,6 +17,7 @@
  * under the License.
  */
 import TagType from 'src/types/TagType';
+import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import { TagsList } from '.';
 import { TagsListProps } from './TagsList';
 
@@ -25,8 +26,14 @@ export default {
   component: TagsList,
 };
 
-export const InteractiveTags = ({ tags, editable, maxTags }: TagsListProps) => (
-  <TagsList tags={tags} editable={editable} maxTags={maxTags} />
+export const InteractiveTagsList = ({
+  tags,
+  editable,
+  maxTags,
+}: TagsListProps) => (
+  <AntdThemeProvider>
+    <TagsList tags={tags} editable={editable} maxTags={maxTags} />
+  </AntdThemeProvider>
 );
 
 const tags: TagType[] = [
@@ -42,7 +49,7 @@ const editable = true;
 
 const maxTags = 3;
 
-InteractiveTags.args = {
+InteractiveTagsList.args = {
   tags,
   editable,
   maxTags,

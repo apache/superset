@@ -78,7 +78,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
     def verify_presto_column(self, column, expected_results):
         inspector = mock.Mock()
-        inspector.engine.dialect.identifier_preparer.quote_identifier = mock.Mock()
+        preparer = inspector.engine.dialect.identifier_preparer
+        preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
+            lambda x: f'"{x}"'
+        )
         row = mock.Mock()
         row.Column, row.Type, row.Null = column
         inspector.bind.execute.return_value.fetchall = mock.Mock(return_value=[row])
@@ -798,7 +801,8 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
     def test_show_columns(self):
         inspector = mock.MagicMock()
-        inspector.engine.dialect.identifier_preparer.quote_identifier = (
+        preparer = inspector.engine.dialect.identifier_preparer
+        preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
             lambda x: f'"{x}"'
         )
         inspector.bind.execute.return_value.fetchall = mock.MagicMock(
@@ -813,7 +817,8 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
     def test_show_columns_with_schema(self):
         inspector = mock.MagicMock()
-        inspector.engine.dialect.identifier_preparer.quote_identifier = (
+        preparer = inspector.engine.dialect.identifier_preparer
+        preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
             lambda x: f'"{x}"'
         )
         inspector.bind.execute.return_value.fetchall = mock.MagicMock(

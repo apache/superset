@@ -23,7 +23,7 @@ import { Radio } from 'src/components/Radio';
 import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import {
   css,
   isFeatureEnabled,
@@ -94,7 +94,7 @@ const StyledTableTabs = styled(Tabs)`
 `;
 
 const StyledBadge = styled(Badge)`
-  .ant-badge-count {
+  .antd5-badge-count {
     line-height: ${({ theme }) => theme.gridUnit * 4}px;
     height: ${({ theme }) => theme.gridUnit * 4}px;
     margin-left: ${({ theme }) => theme.gridUnit}px;
@@ -718,7 +718,7 @@ class DatasourceEditor extends PureComponent {
       if (!currentCol) {
         // new column
         finalColumns.push({
-          id: shortid.generate(),
+          id: nanoid(),
           column_name: col.column_name,
           type: col.type,
           groupby: true,

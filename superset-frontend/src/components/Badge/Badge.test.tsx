@@ -22,7 +22,6 @@ import Badge from '.';
 const mockedProps = {
   count: 9,
   text: 'Text',
-  textColor: 'orange',
 };
 
 test('should render', () => {
@@ -38,12 +37,4 @@ test('should render the count', () => {
 test('should render the text', () => {
   render(<Badge {...mockedProps} />);
   expect(screen.getByText('Text')).toBeInTheDocument();
-});
-
-test('should render with the chosen textColor', () => {
-  render(<Badge {...mockedProps} />);
-  const badge = screen.getAllByText('9')[0];
-  expect(badge).toHaveStyle(`
-    color: 'orange';
-  `);
 });

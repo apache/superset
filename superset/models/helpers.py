@@ -1909,6 +1909,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             where_clause_and.append(sqla_col.like(eq))
                         else:
                             where_clause_and.append(sqla_col.ilike(eq))
+                    elif op in {utils.FilterOperator.NOT_LIKE.value}:
+                        if target_generic_type != GenericDataType.STRING:
+                            sqla_col = sa.cast(sqla_col, sa.String)
+
+                        where_clause_and.append(sqla_col.not_like(eq))
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE.value
                         and isinstance(eq, str)

@@ -60,6 +60,10 @@ const baseConfig: ThemeConfig = {
       paddingLG: supersetTheme.gridUnit * 6,
       fontWeightStrong: supersetTheme.typography.weights.medium,
     },
+    Tag: {
+      borderRadiusSM: supersetTheme.gridUnit / 2,
+      defaultBg: supersetTheme.colors.grayscale.light4,
+    },
   },
 };
 
