@@ -40,73 +40,25 @@ tables_to_drop = [
     "sl_datasets"
 ]
 
-def get_foreign_keys(table_name, insp):
-    return insp.get_foreign_keys(table_name)
-
-def drop_tables(tables):
-    for table in tables:
-        op.drop_table(table)
-
-def get_drop_order(tables, insp):
-    # Create a mapping of table names to their foreign key constraints
-    fk_map = {table: get_foreign_keys(table, insp) for table in tables}
-    
-    # List to store the sorted tables
-    sorted_tables = []
-
-    # Set of tables that have already been added to the sorted list
-    added_tables = set()
-
-    def add_table(table):
-        # Add the table's foreign key dependencies first
-        for fk in fk_map[table]:
-            referenced_table = fk['referred_table']
-            if referenced_table in tables and referenced_table not in added_tables:
-                add_table(referenced_table)
-        # Add the table itself
-        if table not in added_tables:
-            sorted_tables.append(table)
-            added_tables.add(table)
-
-    # Add all tables, ensuring dependencies are handled
-    for table in tables:
-        if table not in added_tables:
-            add_table(table)
-
-    return sorted_tables
+def drop_constraints(table, insp):
+    conn = op.get_bind()
+    fks = insp.get_foreign_keys(table)
+    for fk in fks:
+        constraint = fk["name"]
+        if constraint:
+            op.drop_constraint(constraint, table, type_="foreignkey")
 
 def upgrade():
     bind = op.get_bind()
     insp = Inspector.from_engine(bind)
-    db_dialect = bind.engine.url.drivername
 
-    sorted_tables_to_drop = get_drop_order(tables_to_drop, insp)
+    # Drop foreign key constraints first
+    for table in tables_to_drop:
+        drop_constraints(table, insp)
 
-    if db_dialect == "postgresql":
-        for table in sorted_tables_to_drop:
-            fks = get_foreign_keys(table, insp)
-            for fk in fks:
-                constraint = fk["name"]
-                if constraint:
-                    op.execute(
-                        f"ALTER TABLE {table} RENAME CONSTRAINT {constraint} TO {constraint}_old"
-                    )
-        
-        # Drop tables after renaming constraints
-        drop_tables(sorted_tables_to_drop)
-
-        for table in sorted_tables_to_drop:
-            fks = get_foreign_keys(table, insp)
-            for fk in fks:
-                constraint = fk["name"]
-                if constraint:
-                    op.drop_constraint(
-                        f"{constraint}_old",
-                        table,
-                        type_="foreignkey",
-                    )
-    else:
-        drop_tables(sorted_tables_to_drop)
+    # Drop tables
+    for table in tables_to_drop:
+        op.drop_table(table)
 
 def downgrade():
     op.create_table(
