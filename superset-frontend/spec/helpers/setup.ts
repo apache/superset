@@ -22,6 +22,14 @@ import './shim';
 import React from 'react';
 import { configure as configureTestingLibrary } from '@testing-library/react';
 import { matchers } from '@emotion/jest';
+import { configure } from '@superset-ui/core';
+
+configure();
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  t: (str: string) => str,
+}));
 
 configureTestingLibrary({
   testIdAttribute: 'data-test',
