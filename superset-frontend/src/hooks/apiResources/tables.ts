@@ -152,7 +152,7 @@ export const {
 export function useTables(options: Params) {
   const { dbId, catalog, schema, onSuccess, onError } = options || {};
   const isMountedRef = useRef(false);
-  const { data: schemaOptions, isFetching } = useSchemas({
+  const { currentData: schemaOptions, isFetching } = useSchemas({
     dbId,
     catalog: catalog || undefined,
   });

@@ -260,7 +260,7 @@ export default function DatabaseSelector({
   }
 
   const {
-    data: schemaData,
+    currentData: schemaData,
     isFetching: loadingSchemas,
     refetch: refetchSchemas,
   } = useSchemas({
