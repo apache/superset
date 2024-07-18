@@ -26,6 +26,7 @@ import {
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { last } from 'lodash';
 import { DownloadScreenshotFormat } from './types';
 
 const RETRY_INTERVAL = 3000;
@@ -43,12 +44,10 @@ export default function DownloadScreenshot({
   logEvent?: Function;
   format: string;
 }) {
-  const activeTabs = useSelector(
-    (state: RootState) => state.dashboardState.activeTabs || [],
+  const anchor = useSelector(
+    (state: RootState) => last(state.dashboardState.activeTabs) || undefined,
   );
-  const currentTabs = [...activeTabs];
   const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
-  const anchor = currentTabs.pop();
 
   const onDownloadScreenshot = () => {
     let retries = 0;
