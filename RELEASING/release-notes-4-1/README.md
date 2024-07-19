@@ -50,6 +50,12 @@ We also added a new ECharts [Histogram](https://github.com/apache/superset/pull/
     <image src="media/histogram.png" alt="Image" width="100%">
 </div>
 
+A new Echarts [Sankey](https://github.com/apache/superset/pull/29329) chart now exists. The chart visually tracks the movement and transformation of values across system stages.
+
+<div>
+    <image src="media/sankey.png" alt="Image" width="100%">
+</div>
+
 You can use the CLI command to migrate Area, Bubble, Line, Sankey, [Heatmap](https://github.com/apache/superset/pull/27771), and [Histogram](https://github.com/apache/superset/pull/28780) chart types but we'll add more as the ECharts migrations continue. Note that migrations for deprecated charts may be forced in upcoming major versions when the code is removed. Running migrations earlier will allow you to de-risk future upgrades while improving user experience.
 
 ```bash
@@ -104,3 +110,10 @@ You now have the ability to enable [OAuth2](https://github.com/apache/superset/p
 ### Catalog Support For Databases
 
 Added support for the [catalog heirachy](https://github.com/apache/superset/pull/28317) for databases that support it, such as [BigQuery (projects), Databricks, Presto, Snowflake, and Trino](https://github.com/apache/superset/pull/28416). Once enabled, users will see catalogs when selecting tables in [SQL Lab, datasets](https://github.com/apache/superset/pull/28376), and when setting up Data Access Roles
+
+### Slack Upload Files V2 API Updates
+As part of [[SIP-138] Proposal for Slack file upload V2 integration for Alerts and Reports](https://github.com/apache/superset/issues/29263) we now have support for Slack file upload files v2 API call. This feature is behind the feature flag `ALERT_REPORT_SLACK_V2` and also changes the Slack channel to a selector.
+
+<div>
+    <image src="media/slack_modal.png" alt="Image" width="100%">
+</div>
