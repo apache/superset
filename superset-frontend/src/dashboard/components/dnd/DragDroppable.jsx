@@ -90,6 +90,10 @@ const DragDroppableStyles = styled.div`
       opacity: 0.2;
     }
 
+    &.dragdroppable--dragging .dragdroppable-tab {
+      display: none;
+    }
+
     &.dragdroppable-row {
       width: 100%;
     }

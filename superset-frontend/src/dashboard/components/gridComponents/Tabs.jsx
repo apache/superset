@@ -105,12 +105,6 @@ const StyledTabsContainer = styled.div`
     }
   }
 
-  .ant-tabs-tab {
-    &:has(.dragdroppable--dragging) {
-      display: none;
-    }
-  }
-
   div .ant-tabs-tab-btn {
     text-transform: none;
   }
@@ -127,7 +121,7 @@ const RightDropIndicator = styled.div`
   position: absolute;
   top: 0;
   right: -4px;
-  border-radius: 4px;
+  border-radius: 2px;
 `;
 const LeftDropIndicator = styled.div`
   border: 2px solid ${({ theme }) => theme.colors.primary.base};
@@ -136,7 +130,7 @@ const LeftDropIndicator = styled.div`
   position: absolute;
   top: 0;
   left: -4px;
-  border-radius: 4px;
+  border-radius: 2px;
 `;
 
 const CloseIconWithDropIndicator = props => (
@@ -329,17 +323,8 @@ export class Tabs extends PureComponent {
 
   handleGetDropPosition(dragObject) {
     const { dropIndicator, isDraggingOver, index } = dragObject;
-    const { dragOverTabIndex } = this.state;
 
     if (isDraggingOver) {
-      console.log(
-        'dropIndicator',
-        dropIndicator,
-        'dragOverTabIndex',
-        dragOverTabIndex,
-        'index',
-        index,
-      );
       this.setState(() => ({
         dropPosition: dropIndicator,
         dragOverTabIndex: index,
@@ -445,7 +430,6 @@ export class Tabs extends PureComponent {
               type={editMode ? 'editable-card' : 'card'}
             >
               {tabIds.map((tabId, tabIndex) => (
-                // Add droppable component to each tab
                 <LineEditableTabs.TabPane
                   key={tabId}
                   tab={

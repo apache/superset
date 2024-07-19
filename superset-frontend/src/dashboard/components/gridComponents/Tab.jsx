@@ -78,7 +78,6 @@ const defaultProps = {
 };
 
 const TabTitleContainer = styled.div`
-  // TODO remove tab title container from visible if dragging it in edit mode
   ${({ isHighlighted, theme: { gridUnit, colors } }) => `
     padding: ${gridUnit}px ${gridUnit * 2}px;
     margin: ${-gridUnit}px ${gridUnit * -2}px;
@@ -108,7 +107,6 @@ class Tab extends PureComponent {
     this.handleOnHover = this.handleOnHover.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
     this.handleChangeTab = this.handleChangeTab.bind(this);
-    // this.handleGetDropPosition = this.handleGetDropPosition.bind(this);
   }
 
   handleChangeTab({ pathToTabIndex }) {
@@ -319,7 +317,10 @@ class Tab extends PureComponent {
               />
             )}
             {dropIndicatorProps && (
-              <TitleDropIndicator className={dropIndicatorProps.className} />
+              <TitleDropIndicator
+                className={dropIndicatorProps.className}
+                data-test="title-drop-indicator"
+              />
             )}
           </TabTitleContainer>
         )}
