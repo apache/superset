@@ -203,13 +203,13 @@ export function useTables(options: Params) {
         isSuccess,
         isError,
         isFetching,
-        data,
+        currentData,
         error,
         originalArgs,
       } = result;
       if (!originalArgs?.forceRefresh && requestId && !isFetching) {
-        if (isSuccess && data) {
-          handleOnSuccess(data, false);
+        if (isSuccess && currentData) {
+          handleOnSuccess(currentData, false);
         }
         if (isError) {
           handleOnError(error as Response);
