@@ -56,6 +56,7 @@ export function ColumnSelect({
   mode,
 }: ColumnSelectProps) {
   const [columns, setColumns] = useState<Column[]>();
+  const [loading, setLoading] = useState(false);
   const { addDangerToast } = useToasts();
   const resetColumnField = useCallback(() => {
     form.setFields([
@@ -87,9 +88,11 @@ export function ColumnSelect({
 
   useChangeEffect(datasetId, previous => {
     if (previous != null) {
+      setColumns([]);
       resetColumnField();
     }
     if (datasetId != null) {
+      setLoading(true);
       cachedSupersetGet({
         endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
           columns: [
@@ -98,26 +101,30 @@ export function ColumnSelect({
             'columns.type_generic',
           ],
         })}`,
-      }).then(
-        ({ json: { result } }) => {
-          const lookupValue = Array.isArray(value) ? value : [value];
-          const valueExists = result.columns.some(
-            (column: Column) => lookupValue?.includes(column.column_name),
-          );
-          if (!valueExists) {
-            resetColumnField();
-          }
-          setColumns(result.columns);
-        },
-        async badResponse => {
-          const { error, message } = await getClientErrorObject(badResponse);
-          let errorText = message || error || t('An error has occurred');
-          if (message === 'Forbidden') {
-            errorText = t('You do not have permission to edit this dashboard');
-          }
-          addDangerToast(errorText);
-        },
-      );
+      })
+        .then(
+          ({ json: { result } }) => {
+            const lookupValue = Array.isArray(value) ? value : [value];
+            const valueExists = result.columns.some(
+              (column: Column) => lookupValue?.includes(column.column_name),
+            );
+            if (!valueExists) {
+              resetColumnField();
+            }
+            setColumns(result.columns);
+          },
+          async badResponse => {
+            const { error, message } = await getClientErrorObject(badResponse);
+            let errorText = message || error || t('An error has occurred');
+            if (message === 'Forbidden') {
+              errorText = t(
+                'You do not have permission to edit this dashboard',
+              );
+            }
+            addDangerToast(errorText);
+          },
+        )
+        .finally(() => setLoading(false));
     }
   });
 
@@ -126,6 +133,7 @@ export function ColumnSelect({
       mode={mode}
       value={mode === 'multiple' ? value || [] : value}
       ariaLabel={t('Column select')}
+      loading={loading}
       onChange={onChange}
       options={options}
       placeholder={t('Select a column')}
