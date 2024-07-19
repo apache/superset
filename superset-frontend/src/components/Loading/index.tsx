@@ -93,8 +93,8 @@ export default function Loading({
             y2="87.02"
             gradientUnits="userSpaceOnUse"
           >
-            <stop offset=".17" stop-color="#aa83ff" />
-            <stop offset=".75" stop-color="#7822ff" />
+            <stop offset=".17" stopColor="#aa83ff" />
+            <stop offset=".75" stopColor="#7822ff" />
           </linearGradient>
         </defs>
         <path
