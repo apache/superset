@@ -95,7 +95,7 @@ export function useKeywords(
     { skip: skipFetch || !dbId || !schema },
   );
 
-  const { data: functionNames, isError } = useDatabaseFunctionsQuery(
+  const { currentData: functionNames, isError } = useDatabaseFunctionsQuery(
     { dbId },
     { skip: skipFetch || !dbId },
   );
