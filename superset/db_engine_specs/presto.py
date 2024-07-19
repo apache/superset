@@ -765,6 +765,12 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         Parse a row or array column
         :param result: list tracking the results
         """
+        # We remove the (key_type, result_type) annotations for maps and arrays,
+        # as these types trip up the parser, and they are not reflected in SQLAlchemy
+        # column types
+        parent_data_type = re.sub(r"array\(\w+\)", "array", parent_data_type)
+        parent_data_type = re.sub(r"map\(\w+,\s*\w+\)", "map", parent_data_type)
+
         formatted_parent_column_name = parent_column_name
         # Quote the column name if there is a space
         if " " in parent_column_name:
@@ -821,7 +827,10 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
                     # the stack. We have run across a structural data type within the
                     # overall structural data type. Otherwise, we have completely parsed
                     # through the entire structural data type and can move on.
-                    if not (inner_type.endswith("array") or inner_type.endswith("row")):
+                    if (
+                        not (inner_type.endswith("array") or inner_type.endswith("row"))
+                        and stack
+                    ):
                         stack.pop()
                 # We have an array of row objects (i.e. array(row(...)))
                 elif inner_type in ("array", "row"):

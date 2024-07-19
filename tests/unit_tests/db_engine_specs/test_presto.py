@@ -240,3 +240,130 @@ def test_get_default_catalog() -> None:
         sqlalchemy_uri="presto://localhost:8080/hive/default",
     )
     assert PrestoEngineSpec.get_default_catalog(database) == "hive"
+
+
+@pytest.mark.parametrize(
+    "parent_data_type, expected",
+    [
+        (
+            "map(varchar, varchar)",
+            [
+                {
+                    "column_name": ".test_column",
+                    "is_dttm": None,
+                    "name": ".test_column",
+                    "type": "MAP",
+                    "type_generic": None,
+                }
+            ],
+        ),
+        (
+            "array(string)",
+            [
+                {
+                    "column_name": "test_column",
+                    "is_dttm": None,
+                    "name": "test_column",
+                    "type": "ARRAY",
+                    "type_generic": None,
+                }
+            ],
+        ),
+        (
+            "map(string, array(string))",
+            [
+                {
+                    "column_name": ".test_column",
+                    "is_dttm": None,
+                    "name": ".test_column",
+                    "type": "MAP",
+                    "type_generic": None,
+                }
+            ],
+        ),
+        (
+            'row("protocol" varchar, "status" integer)',
+            [
+                {
+                    "column_name": "test_column",
+                    "is_dttm": None,
+                    "name": "test_column",
+                    "type": "ROW",
+                    "type_generic": None,
+                },
+                {
+                    "column_name": 'test_column."protocol"',
+                    "is_dttm": None,
+                    "name": 'test_column."protocol"',
+                    "type": "VARCHAR",
+                    "type_generic": None,
+                },
+                {
+                    "column_name": 'test_column."status"',
+                    "is_dttm": None,
+                    "name": 'test_column."status"',
+                    "type": "INTEGER",
+                    "type_generic": None,
+                },
+            ],
+        ),
+        (
+            'row("protocol" varchar, "request_headers" map(varchar, varchar))',
+            [
+                {
+                    "column_name": "test_column",
+                    "is_dttm": None,
+                    "name": "test_column",
+                    "type": "ROW",
+                    "type_generic": None,
+                },
+                {
+                    "column_name": 'test_column."protocol"',
+                    "is_dttm": None,
+                    "name": 'test_column."protocol"',
+                    "type": "VARCHAR",
+                    "type_generic": None,
+                },
+                {
+                    "column_name": 'test_column."request_headers"',
+                    "is_dttm": None,
+                    "name": 'test_column."request_headers"',
+                    "type": "MAP",
+                    "type_generic": None,
+                },
+            ],
+        ),
+        (
+            'row("protocol" varchar, "request_headers" map(varchar, array(string)))',
+            [
+                {
+                    "column_name": "test_column",
+                    "is_dttm": None,
+                    "name": "test_column",
+                    "type": "ROW",
+                    "type_generic": None,
+                },
+                {
+                    "column_name": 'test_column."protocol"',
+                    "is_dttm": None,
+                    "name": 'test_column."protocol"',
+                    "type": "VARCHAR",
+                    "type_generic": None,
+                },
+                {
+                    "column_name": 'test_column."request_headers"',
+                    "is_dttm": None,
+                    "name": 'test_column."request_headers"',
+                    "type": "MAP",
+                    "type_generic": None,
+                },
+            ],
+        ),
+    ],
+)
+def test_parse_structural_column(parent_data_type, expected):
+    from superset.db_engine_specs.presto import PrestoEngineSpec as spec
+
+    accumulator = []
+    spec._parse_structural_column("test_column", parent_data_type, accumulator)
+    assert accumulator == expected
