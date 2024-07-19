@@ -437,7 +437,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             />
             {index !== 0 && !!onRemove ? (
               <span
-                role="delbutton"
+                role="button"
                 tabIndex={0}
                 className="delete-button"
                 onClick={() => onRemove(index)}
@@ -577,7 +577,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               <div className="ghost-button">
                 <span
                   className="ghost-button"
-                  role="ccbutton"
+                  role="button"
                   tabIndex={0}
                   onClick={() => setCcVisible(true)}
                   style={{ display: ccVisible ? 'none' : 'inline-flex' }}
@@ -587,7 +587,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 </span>
                 <span
                   className="ghost-button"
-                  role="bccbutton"
+                  role="button"
                   tabIndex={0}
                   onClick={() => setBccVisible(true)}
                   style={{ display: bccVisible ? 'none' : 'inline-flex' }}
