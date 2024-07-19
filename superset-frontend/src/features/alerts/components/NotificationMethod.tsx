@@ -45,7 +45,7 @@ import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
   ${({ theme }) => `
-    margin-bottom: ${theme.gridUnit * 2.5}px;
+    margin-bottom: ${theme.gridUnit * 3}px;
 
     .input-container {
       textarea {
@@ -69,7 +69,7 @@ const StyledNotificationMethod = styled.div`
       margin-bottom: ${theme.gridUnit * 2}px;
 
       > div {
-        margin: ${theme.gridUnit * 0}px;
+        margin: 0px;
       }
 
       .delete-button {
@@ -99,17 +99,15 @@ const StyledNotificationMethod = styled.div`
     }
 
     .ghost-button:first-child[style*='none'] + .ghost-button {
-      margin-left: ${
-        theme.gridUnit * 0
-      }px; /* Remove margin when the first button is hidden */
+      margin-left: 0px; /* Remove margin when the first button is hidden */
     }
   `}
 `;
 
 const TRANSLATIONS = {
-  EMAIL_CC_NAME: t('CC'),
-  EMAIL_BCC_NAME: t('BCC'),
-  EMAIL_SUBJECT_NAME: t('Subject'),
+  EMAIL_CC_NAME: t('CC recipients'),
+  EMAIL_BCC_NAME: t('BCC recipients'),
+  EMAIL_SUBJECT_NAME: t('Email subject name (optional)'),
   EMAIL_SUBJECT_ERROR_TEXT: t(
     'Please enter valid text. Spaces alone are not permitted.',
   ),
@@ -127,15 +125,6 @@ interface NotificationMethodProps {
   defaultSubject: string;
   setErrorSubject: (hasError: boolean) => void;
 }
-
-const TRANSLATIONS = {
-  EMAIL_CC_NAME: t('CC (optional)'),
-  EMAIL_BCC_NAME: t('BCC (optional)'),
-  EMAIL_SUBJECT_NAME: t('Subject (optional)'),
-  EMAIL_SUBJECT_ERROR_TEXT: t(
-    'Please enter valid text. Spaces alone are not permitted.',
-  ),
-};
 
 export const mapSlackValues = ({
   method,
@@ -237,6 +226,9 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   }) => {
     // Since we're swapping the method, reset the recipients
     setRecipientValue('');
+    setCcValue('');
+    setBccValue('');
+
     if (onUpdate && setting) {
       const updatedSetting = {
         ...setting,
@@ -488,106 +480,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               ) : null}
             </StyledInputContainer>
           </div>
-          <div className="input-container">
-          <textarea
-              name="To"
-              data-test="recipients"
-              value={recipientValue}
-              onChange={onRecipientsChange}
-          />
-          </div>
-          <div className="control-label">
-            {TRANSLATIONS.EMAIL_CC_NAME}
-          </div>
-          <div className="input-container">
-          <textarea
-              name="CC"
-              data-test="cc"
-              value={ccValue}
-              onChange={onCcChange}
-          />
-          </div>
-          <div className="control-label">
-            {TRANSLATIONS.EMAIL_BCC_NAME}
-          </div>
-          <div className="input-container">
-          <textarea
-
-      {method !== undefined ? (
-        method === 'Email' ? (
-          <StyledInputContainer>
-            <div className="control-label">
-              {t('To')}
-              <span className="required">*</span>
-            </div>
-            <div className="input-container">
-              <textarea
-                name="To"
-                data-test="recipients"
-                value={recipientValue}
-                onChange={onRecipientsChange}
-              />
-            </div>
-            <div className="input-container">
-              <div className="helper">
-                {t('Recipients are separated by "," or ";"')}
-              </div>
-            </div>
-            <div className="control-label">{TRANSLATIONS.EMAIL_BCC_NAME}</div>
-            <div className="input-container">
-            <textarea
-                name="BCC"
-                data-test="bcc"
-                value={bccValue}
-                onChange={onBccChange}
-              />
-            </div>
-            <div className="control-label">
-              {TRANSLATIONS.EMAIL_SUBJECT_NAME}
-            </div>
-            <div className={`input-container ${error ? 'error' : ''}`}>
-              <input
-                type="text"
-                name="email_subject"
-                value={email_subject}
-                placeholder={defaultSubject}
-                onChange={onSubjectChange}
-              />
-            </div>
-            {error && (
-              <div
-                style={{
-                  color: theme.colors.error.base,
-                  fontSize: theme.typography.sizes.s,
-                }}
-              >
-                {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
-              </div>
-            )}
-          </StyledInputContainer>
-        ) : (
-          <StyledInputContainer>
-            <div className="control-label">
-              {t('%s recipients', method)}
-              <span className="required">*</span>
-            </div>
-            <div className="input-container">
-              <textarea
-                name="recipients"
-                data-test="recipients"
-                value={recipientValue}
-                onChange={onRecipientsChange}
-              />
-            </div>
-            <div className="input-container">
-              <div className="helper">
-                {t('Recipients are separated by "," or ";"')}
-              </div>
-            </div>
-          </StyledInputContainer>
-        )
-          :
-        (
+          <div className="inline-container">
             <StyledInputContainer>
               <div className="control-label">
                 {t(
@@ -606,14 +499,16 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   <>
                     <div className="input-container">
                       <textarea
-                        name="recipients"
+                        name="To"
                         data-test="recipients"
                         value={recipientValue}
                         onChange={onRecipientsChange}
                       />
                     </div>
-                    <div className="helper">
-                      {t('Recipients are separated by "," or ";"')}
+                    <div className="input-container">
+                      <div className="helper">
+                        {t('Recipients are separated by "," or ";"')}
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -633,9 +528,78 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 )}
               </div>
             </StyledInputContainer>
-        )
-      )
-      :null}
+          </div>
+          {method === NotificationMethodOption.Email && (
+            <StyledInputContainer>
+              {/* Render "CC" input field if ccVisible is true */}
+              {ccVisible && (
+                <>
+                  <div className="control-label">
+                    {TRANSLATIONS.EMAIL_CC_NAME}
+                  </div>
+                  <div className="input-container">
+                    <textarea
+                      name="CC"
+                      data-test="cc"
+                      value={ccValue}
+                      onChange={onCcChange}
+                    />
+                  </div>
+                  <div className="input-container">
+                    <div className="helper">
+                      {t('Recipients are separated by "," or ";"')}
+                    </div>
+                  </div>
+                </>
+              )}
+              {/* Render "BCC" input field if bccVisible is true */}
+              {bccVisible && (
+                <>
+                  <div className="control-label">
+                    {TRANSLATIONS.EMAIL_BCC_NAME}
+                  </div>
+                  <div className="input-container">
+                    <textarea
+                      name="BCC"
+                      data-test="bcc"
+                      value={bccValue}
+                      onChange={onBccChange}
+                    />
+                  </div>
+                  <div className="input-container">
+                    <div className="helper">
+                      {t('Recipients are separated by "," or ";"')}
+                    </div>
+                  </div>
+                </>
+              )}
+              {/* New buttons container */}
+              <div className="ghost-button">
+                <span
+                  className="ghost-button"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setCcVisible(true)}
+                  style={{ display: ccVisible ? 'none' : 'inline-flex' }}
+                >
+                  <Icons.Email className="icon" />
+                  {t('Add CC Recipients')}
+                </span>
+                <span
+                  className="ghost-button"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setBccVisible(true)}
+                  style={{ display: bccVisible ? 'none' : 'inline-flex' }}
+                >
+                  <Icons.Email className="icon" />
+                  {t('Add BCC Recipients')}
+                </span>
+              </div>
+            </StyledInputContainer>
+          )}
+        </>
+      ) : null}
     </StyledNotificationMethod>
   );
 };
