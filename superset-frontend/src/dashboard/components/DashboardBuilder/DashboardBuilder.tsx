@@ -675,31 +675,33 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             editMode={editMode}
             marginLeft={dashboardContentMarginLeft}
           >
-            {missingInitialFilters.length > 0 ? (
-              <div
-                css={css`
-                  display: flex;
-                  flex-direction: row;
-                  align-items: center;
-                  justify-content: center;
-                  flex: 1;
-                  & div {
-                    width: 500px;
-                  }
-                `}
-              >
-                <BasicErrorAlert
-                  title={t('Unable to load dashboard')}
-                  body={t(
-                    `The following filters have the 'Select first filter value by default'
+            {showDashboard ? (
+              missingInitialFilters.length > 0 ? (
+                <div
+                  css={css`
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: center;
+                    flex: 1;
+                    & div {
+                      width: 500px;
+                    }
+                  `}
+                >
+                  <BasicErrorAlert
+                    title={t('Unable to load dashboard')}
+                    body={t(
+                      `The following filters have the 'Select first filter value by default'
                     option checked and could not be loaded, which is preventing the dashboard
                     from rendering: %s`,
-                    missingInitialFilters.join(', '),
-                  )}
-                />
-              </div>
-            ) : showDashboard ? (
-              <DashboardContainer topLevelTabs={topLevelTabs} />
+                      missingInitialFilters.join(', '),
+                    )}
+                  />
+                </div>
+              ) : (
+                <DashboardContainer topLevelTabs={topLevelTabs} />
+              )
             ) : (
               <Loading />
             )}
