@@ -18,7 +18,9 @@
  */
 import { FunctionComponent, useState, useRef, ChangeEvent } from 'react';
 
-import SchemaForm, { FormProps, FormValidation } from 'react-jsonschema-form';
+import SchemaForm, { FormProps } from '@rjsf/core';
+import { FormValidation } from '@rjsf/utils';
+import validator from '@rjsf/validator-ajv8';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
@@ -71,7 +73,7 @@ const getValidator = () => {
       const args = rule.arguments.map((name: string) => formData[name]);
       const container = rule.container || rule.arguments.slice(-1)[0];
       if (!test(...args)) {
-        errors[container].addError(rule.message);
+        errors[container]?.addError(rule.message);
       }
     });
     return errors;
@@ -151,7 +153,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   const onScheduleSubmit = ({
     formData,
   }: {
-    formData: Omit<FormProps<Record<string, any>>, 'schema'>;
+    formData?: Omit<FormProps<Record<string, any>>, 'schema'>;
   }) => {
     const query = {
       label,
@@ -202,7 +204,8 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
               schema={getJSONSchema()}
               uiSchema={getUISchema()}
               onSubmit={onScheduleSubmit}
-              validate={getValidator()}
+              customValidate={getValidator()}
+              validator={validator}
             >
               <Button
                 buttonStyle="primary"
