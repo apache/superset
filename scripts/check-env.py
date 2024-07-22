@@ -1,24 +1,78 @@
 #!/usr/bin/env python3
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-"""
-check-env.py
 
-This script checks the local environment for the following software versions and provides feedback on whether they are ideal, supported, or unsupported. The software checked includes:
+import subprocess
+import sys
+from typing import Callable, Optional, Set, Tuple
+
+import click
+import psutil
+from packaging.version import InvalidVersion, Version
+
+
+class Requirement:
+    def __init__(
+        self,
+        name: str,
+        ideal_range: Tuple[Version, Version],
+        supported_range: Tuple[Version, Version],
+        req_type: str,
+        command: str,
+        version_post_process: Optional[Callable[[str], str]] = None,
+    ):
+        self.name = name
+        self.ideal_range = ideal_range
+        self.supported_range = supported_range
+        self.req_type = req_type
+        self.command = command
+        self.version_post_process = version_post_process
+        self.version = self.get_version()
+        self.status = self.check_version()
+
+    def get_version(self) -> Optional[str]:
+        try:
+            version = subprocess.check_output(self.command, shell=True).decode().strip()
+            if self.version_post_process:
+                version = self.version_post_process(version)
+            return version.split()[-1]
+        except subprocess.CalledProcessError:
+            return None
+
+    def check_version(self) -> str:
+        if self.version is None:
+            return "❌ Not Installed"
+
+        try:
+            version_number = Version(self.version)
+        except InvalidVersion:
+            return "❌ Invalid Version Format"
+
+        ideal_min, ideal_max = self.ideal_range
+        supported_min, supported_max = self.supported_range
+
+        if ideal_min <= version_number <= ideal_max:
+            return "✅ Ideal"
+        elif supported_min <= version_number:
+            return "🟡 Supported"
+        else:
+            return "❌ Unsupported"
+
+    def format_result(self) -> str:
+        ideal_range_str = f"{self.ideal_range[0]} - {self.ideal_range[1]}"
+        supported_range_str = f"{self.supported_range[0]} - {self.supported_range[1]}"
+        return f"{self.status.split()[0]} {self.name:<25} {self.version or 'N/A':<25} {ideal_range_str:<25} {supported_range_str:<25}"
+
+
+def check_memory(min_gb: int) -> str:
+    total_memory = psutil.virtual_memory().total / (1024**3)
+    if total_memory >= min_gb:
+        return f"✅ Memory: {total_memory:.2f} GB"
+    else:
+        return f"❌ Memory: {total_memory:.2f} GB (Minimum required: {min_gb} GB)"
+
+
+@click.command(
+    help="""
+This script checks the local environment for various software versions and other requirements, providing feedback on whether they are ideal, supported, or unsupported. The checks include:
 
 - Core Python version
 - npm
@@ -26,127 +80,102 @@ This script checks the local environment for the following software versions and
 - Docker
 - Docker Compose
 - Git
+- Memory requirements (12-14GB for frontend builds)
+- Whether the script is running inside Docker
 
 Each check will display a green check mark (✅) for ideal versions, a yellow warning (🟡) for supported versions, and a red cross (❌) for unsupported versions.
 """
-
-import subprocess
-import sys
-from typing import List, Optional, Tuple
-
-from packaging.version import InvalidVersion, Version
-
-
-def get_version(command: str) -> Optional[str]:
-    try:
-        version = subprocess.check_output(command, shell=True).decode().strip()
-        return version
-    except subprocess.CalledProcessError:
-        return None
-
-
-def check_version(
-    software: str,
-    version: Optional[str],
-    ideal_range: Tuple[Version, Version],
-    supported_range: Tuple[Version, Version],
-) -> Tuple[str, Tuple[Version, Version], Tuple[Version, Version]]:
-    if version is None:
-        return f"❌ {software}", ideal_range, supported_range
-
-    try:
-        version_number = Version(version)
-    except InvalidVersion:
-        return f"❌ {software} {version}", ideal_range, supported_range
-
-    ideal_min, ideal_max = ideal_range
-    supported_min, supported_max = supported_range
-
-    if ideal_min <= version_number <= ideal_max:
-        return f"✅ {software} {version}", ideal_range, supported_range
-    elif supported_min <= version_number:
-        return f"🟡 {software} {version}", ideal_range, supported_range
-    else:
-        return f"❌ {software} {version}", ideal_range, supported_range
-
-
-def check_core_python() -> Tuple[str, Tuple[Version, Version], Tuple[Version, Version]]:
-    version = sys.version.split()[0]
-    ideal_range = (Version("3.10.0"), Version("3.10.999"))
-    supported_range = (Version("3.9.0"), Version("3.11.999"))
-    return check_version("Python", version, ideal_range, supported_range)
-
-
-def check_npm() -> Tuple[str, Tuple[Version, Version], Tuple[Version, Version]]:
-    version = get_version("npm -v")
-    ideal_range = (Version("10.0.0"), Version("10.999.999"))
-    supported_range = ideal_range  # Only ideal range is considered supported
-    return check_version("npm", version, ideal_range, supported_range)
-
-
-def check_node() -> Tuple[str, Tuple[Version, Version], Tuple[Version, Version]]:
-    version = get_version("node -v")
-    if version:
-        version = version.lstrip("v")
-    ideal_range = (Version("18.0.0"), Version("18.999.999"))
-    supported_range = ideal_range  # Only ideal range is considered supported
-    return check_version("Node", version, ideal_range, supported_range)
-
-
-def check_docker() -> Tuple[str, Tuple[Version, Version], Tuple[Version, Version]]:
-    version = get_version("docker --version")
-    if version:
-        version = version.split()[2].rstrip(",")
-    ideal_range = (Version("20.10.0"), Version("999.999.999"))
-    supported_range = (Version("19.0.0"), Version("999.999.999"))
-    return check_version("Docker", version, ideal_range, supported_range)
-
-
-def check_docker_compose() -> (
-    Tuple[str, Tuple[Version, Version], Tuple[Version, Version]]
-):
-    version = get_version("docker-compose --version")
-    if version:
-        version = version.split()[-1]
-    ideal_range = (Version("2.28.0"), Version("999.999.999"))
-    supported_range = (Version("1.29.0"), Version("999.999.999"))
-    return check_version("Docker Compose", version, ideal_range, supported_range)
-
-
-def check_git() -> Tuple[str, Tuple[Version, Version], Tuple[Version, Version]]:
-    version = get_version("git --version")
-    if version:
-        version = version.split()[2]
-    ideal_range = (Version("2.30.0"), Version("999.999.999"))
-    supported_range = (Version("2.20.0"), Version("999.999.999"))
-    return check_version("Git", version, ideal_range, supported_range)
-
-
-def main() -> None:
-    checks: List[Tuple[str, Tuple[Version, Version], Tuple[Version, Version]]] = [
-        check_core_python(),
-        check_npm(),
-        check_node(),
-        check_docker(),
-        check_docker_compose(),
-        check_git(),
+)
+@click.option(
+    "--docker", is_flag=True, help="Check Docker and Docker Compose requirements"
+)
+@click.option(
+    "--frontend",
+    is_flag=True,
+    help="Check frontend requirements (npm, Node.js, memory)",
+)
+@click.option("--backend", is_flag=True, help="Check backend requirements (Python)")
+def main(docker: bool, frontend: bool, backend: bool) -> None:
+    requirements = [
+        Requirement(
+            "python",
+            (Version("3.10.0"), Version("3.10.999")),
+            (Version("3.9.0"), Version("3.11.999")),
+            "backend",
+            "python --version",
+        ),
+        Requirement(
+            "npm",
+            (Version("10.0.0"), Version("999.999.999")),
+            (Version("10.0.0"), Version("999.999.999")),
+            "frontend",
+            "npm -v",
+        ),
+        Requirement(
+            "node",
+            (Version("18.0.0"), Version("18.999.999")),
+            (Version("18.0.0"), Version("18.999.999")),
+            "frontend",
+            "node -v",
+        ),
+        Requirement(
+            "docker",
+            (Version("20.10.0"), Version("999.999.999")),
+            (Version("19.0.0"), Version("999.999.999")),
+            "docker",
+            "docker --version",
+            lambda v: v.split(",")[0],
+        ),
+        Requirement(
+            "docker-compose",
+            (Version("2.28.0"), Version("999.999.999")),
+            (Version("1.29.0"), Version("999.999.999")),
+            "docker",
+            "docker-compose --version",
+        ),
+        Requirement(
+            "git",
+            (Version("2.30.0"), Version("999.999.999")),
+            (Version("2.20.0"), Version("999.999.999")),
+            "backend",
+            "git --version",
+        ),
     ]
 
-    headers = ["Status", "Software", "Ideal Range", "Supported Range"]
-    row_format = "{:<2} {:<25} {:<25} {:<25}"
+    check_req_types: Set[str] = set()
+    if docker:
+        check_req_types.add("docker")
+    if frontend:
+        check_req_types.add("frontend")
+    if backend:
+        check_req_types.add("backend")
+
+    if not check_req_types:
+        check_req_types.update(["docker", "frontend", "backend"])
+
+    headers = ["Status", "Software", "Version Found", "Ideal Range", "Supported Range"]
+    row_format = "{:<2} {:<25} {:<25} {:<25} {:<25}"
 
     print(row_format.format(*headers))
-    print("=" * 90)
+    print("=" * 110)
 
-    for check, ideal_range, supported_range in checks:
-        status, software_info = check.split(" ", 1)
-        ideal_range_str = f"{ideal_range[0]} - {ideal_range[1]}"
-        supported_range_str = f"{supported_range[0]} - {supported_range[1]}"
-        print(
-            row_format.format(
-                status, software_info, ideal_range_str, supported_range_str
-            )
-        )
+    all_ok = True
+
+    for requirement in requirements:
+        if requirement.req_type in check_req_types:
+            result = requirement.format_result()
+            if "❌" in requirement.status:
+                all_ok = False
+            print(result)
+
+    if "frontend" in check_req_types:
+        memory_check = check_memory(12)
+        if "❌" in memory_check:
+            all_ok = False
+        print(memory_check)
+
+    if not all_ok:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
