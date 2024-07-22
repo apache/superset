@@ -581,6 +581,7 @@ function FiltersConfigModal({
               />
             ) : (
               <FiltersConfigForm
+                expanded={expanded}
                 ref={configFormRef}
                 form={form}
                 filterId={id}
@@ -613,6 +614,7 @@ function FiltersConfigModal({
       validateDependencies,
       getDependencySuggestion,
       handleActiveFilterPanelChange,
+      expanded,
     ],
   );
 
