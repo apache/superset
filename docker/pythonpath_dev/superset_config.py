@@ -198,6 +198,7 @@ WTF_CSRF_EXEMPT_LIST = ["/login/google"]
 # A CSRF token that expires in 1 year 
 WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 
+DASHBOARD_RBAC = True
 ##############################################3end auth
 
 SUPERSET_LOAD_EXAMPLES="yes"
