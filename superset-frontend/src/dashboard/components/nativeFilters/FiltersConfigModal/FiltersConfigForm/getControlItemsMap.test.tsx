@@ -64,6 +64,7 @@ const filterMock: Filter = {
 };
 
 const createProps: () => ControlItemsProps = () => ({
+  expanded: false,
   datasetId: 1,
   disabled: false,
   forceUpdate: jest.fn(),
