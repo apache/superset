@@ -50,6 +50,8 @@ export enum NotificationMethodOption {
 export type NotificationSetting = {
   method?: NotificationMethodOption;
   recipients: string;
+  cc?: string;
+  bcc?: string;
   options: NotificationMethodOption[];
 };
 
@@ -63,6 +65,8 @@ export type SlackChannel = {
 export type Recipient = {
   recipient_config_json: {
     target: string;
+    ccTarget?: string;
+    bccTarget?: string;
   };
   type: NotificationMethodOption;
 };
