@@ -98,6 +98,7 @@ export interface AlertReportModalProps {
 const DEFAULT_WORKING_TIMEOUT = 3600;
 const DEFAULT_CRON_VALUE = '0 0 * * *'; // every day
 const DEFAULT_RETENTION = 90;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = [
   NotificationMethodOption.Email,
@@ -372,6 +373,7 @@ export const TRANSLATIONS = {
   WORKING_TIMEOUT_ERROR_TEXT: t('working timeout'),
   RECIPIENTS_ERROR_TEXT: t('recipients'),
   EMAIL_SUBJECT_ERROR_TEXT: t('email subject'),
+  EMAIL_VALIDATION_ERROR_TEXT: t('invalid email'),
   ERROR_TOOLTIP_MESSAGE: t(
     'Not all required fields are complete. Please provide the following:',
   ),
@@ -621,6 +623,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         recipients.push({
           recipient_config_json: {
             target: setting.recipients,
+            ccTarget: setting.cc,
+            bccTarget: setting.bcc,
           },
           type: setting.method,
         });
@@ -1014,6 +1018,31 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     return hasInfo;
   };
 
+  const checkEmailFormat = () => {
+    if (!notificationSettings.length) {
+      return true;
+    }
+
+    const validateEmails = (emails: string): boolean => {
+      if (!emails) return true; // No emails to validate
+      return emails
+        .split(/[,;]/)
+        .every(email => EMAIL_REGEX.test(email.trim()));
+    };
+
+    // Use array method to check conditions
+    return notificationSettings.every(setting => {
+      if (!!setting.method && setting.method === 'Email') {
+        return (
+          (!setting.recipients?.length || validateEmails(setting.recipients)) &&
+          (!setting.cc || validateEmails(setting.cc)) &&
+          (!setting.bcc || validateEmails(setting.bcc))
+        );
+      }
+      return true; // Non-Email methods are considered valid
+    });
+  };
+
   const validateGeneralSection = () => {
     const errors = [];
     if (!currentAlert?.name?.length) {
@@ -1069,13 +1098,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const validateNotificationSection = () => {
+    const errors = [];
     const hasErrors = !checkNotificationSettings();
-    const errors = hasErrors ? [TRANSLATIONS.RECIPIENTS_ERROR_TEXT] : [];
+
+    if (hasErrors) {
+      errors.push(TRANSLATIONS.RECIPIENTS_ERROR_TEXT);
+    } else {
+      // Check for email format errors
+      const hasValidationErrors = !checkEmailFormat();
+      if (hasValidationErrors) {
+        errors.push(TRANSLATIONS.EMAIL_VALIDATION_ERROR_TEXT);
+      }
+    }
 
     if (emailError) {
       errors.push(TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT);
     }
 
+    // Update validation status with combined errors
     updateValidationStatus(Sections.Notification, errors);
   };
 
@@ -1132,6 +1172,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setNotificationSettings([
         {
           recipients: '',
+          cc: '',
+          bcc: '',
           options: allowedNotificationMethods,
           method: NotificationMethodOption.Email,
         },
@@ -1153,6 +1195,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           // @ts-ignore: Type not assignable
           recipients: config.target || setting.recipient_config_json,
           options: allowedNotificationMethods,
+          cc: config.ccTarget || '',
+          bcc: config.bccTarget || '',
         };
       });
 
