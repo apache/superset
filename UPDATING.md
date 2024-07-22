@@ -22,7 +22,7 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
-## Next
+## 4.1.0
 
 - [29274](https://github.com/apache/superset/pull/29274): We made it easier to trigger CI on your
   forks, whether they are public or private. Simply push to a branch that fits `[0-9].[0-9]*` and
