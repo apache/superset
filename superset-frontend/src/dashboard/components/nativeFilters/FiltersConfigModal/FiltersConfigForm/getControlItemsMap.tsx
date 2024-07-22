@@ -44,6 +44,7 @@ import {
 import { ColumnSelect } from './ColumnSelect';
 
 export interface ControlItemsProps {
+  expanded: boolean;
   datasetId: number;
   disabled: boolean;
   forceUpdate: Function;
@@ -60,6 +61,7 @@ const CleanFormItem = styled(FormItem)`
 `;
 
 export default function getControlItemsMap({
+  expanded,
   datasetId,
   disabled,
   forceUpdate,
@@ -104,6 +106,7 @@ export default function getControlItemsMap({
             }
           />
           <StyledFormItem
+            expanded={expanded}
             // don't show the column select unless we have a dataset
             name={['filters', filterId, 'column']}
             initialValue={initColumn}
@@ -174,6 +177,7 @@ export default function getControlItemsMap({
             }
           >
             <StyledRowFormItem
+              expanded={expanded}
               key={controlItem.name}
               name={['filters', filterId, 'controlValues', controlItem.name]}
               initialValue={initialValue}
