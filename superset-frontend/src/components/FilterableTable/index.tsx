@@ -39,11 +39,11 @@ const SCROLL_BAR_HEIGHT = 15;
 const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
 
 interface StyledFilterableTableProps {
-  canDownload?: boolean;
+  canExportData?: boolean;
 }
 
 const StyledFilterableTable = styled.div<StyledFilterableTableProps>`
-  ${({ theme, canDownload }) => `
+  ${({ theme, canExportData }) => `
     height: 100%;
     overflow: hidden;
 
@@ -57,7 +57,7 @@ const StyledFilterableTable = styled.div<StyledFilterableTableProps>`
       min-width: 0px;
       align-self: center;
       font-size: ${theme.typography.sizes.s}px;
-      user-select: ${canDownload ? 'auto' : 'none'};
+      user-select: ${canExportData ? 'auto' : 'none'};
     }
 
     .even-row {
@@ -257,8 +257,8 @@ const FilterableTable = ({
       }),
   }));
 
-  const canDownload = useSelector((state: RootState) =>
-    findPermission('can_csv', 'Superset', state.user?.roles),
+  const canExportData = useSelector((state: RootState) =>
+    findPermission('can_export_csv', 'SQLLab', state.user?.roles),
   );
 
   return (
@@ -266,7 +266,7 @@ const FilterableTable = ({
       className="filterable-table-container"
       data-test="table-container"
       ref={container}
-      canDownload={canDownload}
+      canExportData={canExportData}
     >
       {fitted && (
         <Table
