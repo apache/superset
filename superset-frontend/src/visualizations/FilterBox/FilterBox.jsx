@@ -473,7 +473,7 @@ class FilterBox extends React.PureComponent {
           `}
         />
         <div style={{ width, height, overflow: 'auto' }}>
-          {/* {this.renderDateFilter()} */}
+          {this.renderDateFilter()}
           {/* {this.renderDatasourceFilters()} */}
           {this.renderFilters()}
           {/* {!instantFiltering && (
