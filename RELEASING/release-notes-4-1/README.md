@@ -112,8 +112,20 @@ You now have the ability to enable [OAuth2](https://github.com/apache/superset/p
 Added support for the [catalog heirachy](https://github.com/apache/superset/pull/28317) for databases that support it, such as [BigQuery (projects), Databricks, Presto, Snowflake, and Trino](https://github.com/apache/superset/pull/28416). Once enabled, users will see catalogs when selecting tables in [SQL Lab, datasets](https://github.com/apache/superset/pull/28376), and when setting up Data Access Roles
 
 ### Slack Upload Files V2 API Updates
-As part of [[SIP-138] Proposal for Slack file upload V2 integration for Alerts and Reports](https://github.com/apache/superset/issues/29263) we now have support for Slack file upload files v2 API call. This feature is behind the feature flag `ALERT_REPORT_SLACK_V2` and also changes the Slack channel to a selector.
+As part of [[SIP-138] Proposal for Slack file upload V2 integration for Alerts and Reports](https://github.com/apache/superset/issues/29263) we now have support for Slack file upload files v2 API call. This feature is behind the feature flag `ALERT_REPORT_SLACK_V2` and also changes the Slack channel to a selector. You may also need to add the following scopes (`channels:read`, `group:read`) to your Slack bot to work.
 
 <div>
     <image src="media/slack_modal.png" alt="Image" width="100%">
 </div>
+
+### Total and Percentages In Tooltips For ECharts
+
+Users can now see both the [total and percentage in tooltips](https://github.com/apache/superset/pull/27950) for ECharts.
+
+<div>
+    <image src="media/tooltips.png" alt="Image" width="100%">
+</div>
+
+### Additional Metadata Bar To Dashboards
+
+There is now a [metadata bar](https://github.com/apache/superset/pull/27857) added to the header of dashboards. This will now show viewers of the dashboard both the owners and last modified time of the dashboard.
