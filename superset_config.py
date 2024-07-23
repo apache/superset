@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 
 # Superset specific config
 ROW_LIMIT = 5000
-
+SUPERSET_WEBSERVER_PORT = 8088
 # Flask App Builder configuration
 # Your App secret key will be used for securely signing the session cookie
 # and encrypting sensitive information on the database
