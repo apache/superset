@@ -64,6 +64,11 @@ const baseConfig: ThemeConfig = {
       borderRadiusSM: supersetTheme.gridUnit / 2,
       defaultBg: supersetTheme.colors.grayscale.light4,
     },
+    Progress: {
+      fontSize: supersetTheme.typography.sizes.s,
+      colorText: supersetTheme.colors.text.label,
+      remainingColor: supersetTheme.colors.grayscale.light4,
+    },
   },
 };
 
