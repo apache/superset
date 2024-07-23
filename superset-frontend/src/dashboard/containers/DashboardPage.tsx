@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
+import { createContext, lazy, FC, useEffect, useMemo } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import { t, useTheme } from '@superset-ui/core';
@@ -35,7 +35,7 @@ import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
+import { onFiltersRefresh, setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import {
   getFilterValue,
   getPermalinkValue,
@@ -43,6 +43,7 @@ import {
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 
 import { nanoid } from 'nanoid';
+import { get, toInteger } from 'lodash';
 import { RootState } from '../types';
 import {
   chartContextMenuStyles,
@@ -69,7 +70,7 @@ const DashboardBuilder = lazy(
 const originalDocumentTitle = document.title;
 
 type PageProps = {
-  idOrSlug: string;
+  idOrSlug: string | number;
 };
 
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
@@ -79,7 +80,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dashboardPageId = useMemo(() => nanoid(), []);
   const hasDashboardInfoInitiated = useSelector<RootState, Boolean>(
     ({ dashboardInfo }) =>
-      dashboardInfo && Object.keys(dashboardInfo).length > 0,
+      dashboardInfo &&
+      Object.keys(dashboardInfo).length > 0 &&
+      (dashboardInfo.id === toInteger(idOrSlug) ||
+        dashboardInfo.slug === idOrSlug),
   );
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
@@ -91,7 +95,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     error: datasetsApiError,
     status,
   } = useDashboardDatasets(idOrSlug);
-  const isDashboardHydrated = useRef(false);
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
@@ -120,6 +123,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     dispatch(setDatasetsStatus(status));
   }, [dispatch, status]);
 
+  // TODO: @geido native filters are not dependent on charts or dataset but only datamask
+
   useEffect(() => {
     // eslint-disable-next-line consistent-return
     async function getDataMaskApplied() {
@@ -144,9 +149,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       }
 
       if (readyToRender) {
-        if (!isDashboardHydrated.current) {
-          isDashboardHydrated.current = true;
-        }
         dispatch(
           hydrateDashboard({
             history,
@@ -193,7 +195,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   if (error) throw error; // caught in error boundary
 
-  const isLoading = !readyToRender || !hasDashboardInfoInitiated;
+  const isLoading = !hasDashboardInfoInitiated;
 
   return (
     <>
@@ -206,7 +208,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           chartHeaderStyles(theme),
         ]}
       />
-      <SyncDashboardState dashboardPageId={dashboardPageId} />
+      {!isLoading && <SyncDashboardState dashboardPageId={dashboardPageId} />}
       <DashboardPageIdContext.Provider value={dashboardPageId}>
         {isLoading ? (
           <Loading />
