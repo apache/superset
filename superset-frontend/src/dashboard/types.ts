@@ -136,6 +136,7 @@ export type DashboardInfo = {
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
+  slug?: string;
 };
 
 export type ChartsState = { [key: string]: Chart };
