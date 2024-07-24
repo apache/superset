@@ -77,7 +77,6 @@ const history = createMemoryHistory();
 
 history.push = jest.fn();
 
-// We don't need the actual implementation for the tests
 const routeProps = {
   history,
   location: {} as any,
