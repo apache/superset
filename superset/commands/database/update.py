@@ -168,6 +168,7 @@ class UpdateDatabaseCommand(BaseCommand):
         for catalog in catalogs:
             try:
                 schemas = self._get_schema_names(database, catalog, ssh_tunnel)
+
                 if catalog:
                     perm = security_manager.get_catalog_perm(
                         original_database_name,
@@ -197,8 +198,9 @@ class UpdateDatabaseCommand(BaseCommand):
                             )
                         continue
             except DatabaseConnectionFailedError:
+                logger.warning("Error processing catalog %s", catalog)
                 continue
-            
+
             # add possible new schemas in catalog
             self._refresh_schemas(
                 database,
