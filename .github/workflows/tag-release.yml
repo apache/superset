@@ -97,13 +97,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
 
-      - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
 
       - name: Label the PRs with the right release-related labels
         env:
