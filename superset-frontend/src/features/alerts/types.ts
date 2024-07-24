@@ -182,3 +182,8 @@ export enum Sections {
   Schedule = 'scheduleSection',
   Notification = 'notificationSection',
 }
+
+export enum ContentType {
+  Dashboard = 'dashboard',
+  Chart = 'chart',
+}

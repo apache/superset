@@ -66,6 +66,7 @@ import {
   Sections,
   TabNode,
   SelectValue,
+  ContentType,
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -655,7 +656,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
-    const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
+    const shouldEnableForceScreenshot =
+      contentType === ContentType.Chart && !isReport;
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
@@ -664,9 +666,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       validator_config_json: conditionNotNull
         ? {}
         : currentAlert?.validator_config_json,
-      chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
+      chart:
+        contentType === ContentType.Chart ? currentAlert?.chart?.value : null,
       dashboard:
-        contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
+        contentType === ContentType.Dashboard
+          ? currentAlert?.dashboard?.value
+          : null,
       custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
@@ -674,7 +679,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
-      extra: contentType === 'dashboard' ? currentAlert?.extra : null,
+      extra: contentType === ContentType.Dashboard ? currentAlert?.extra : null,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -811,17 +816,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (dashboard?.value) {
       SupersetClient.get({
         endpoint: `/api/v1/dashboard/${dashboard.value}/tabs`,
-      }).then(response => {
-        const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
-        setTabOptions(tabTree);
-        if (currentAlert?.extra?.dashboard?.anchor) {
-          if (!(currentAlert?.extra?.dashboard?.anchor in allTabs)) {
+      })
+        .then(response => {
+          const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
+          setTabOptions(tabTree);
+          const anchor = currentAlert?.extra?.dashboard?.anchor;
+          if (anchor && !(anchor in allTabs)) {
             updateAnchorState(undefined);
           }
-        }
-      });
+        })
+        .catch(() => {
+          addDangerToast(t('There was an error retrieving dashboard tabs.'));
+        });
     }
-  }, [dashboard, tabsEnabled, currentAlert?.extra]);
+  }, [dashboard, tabsEnabled, currentAlert?.extra, addDangerToast]);
 
   const databaseLabel = currentAlert?.database && !currentAlert.database.label;
   useEffect(() => {
@@ -935,24 +943,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }).then(response => setChartVizType(response.json.result.viz_type));
 
   const updateEmailSubject = () => {
-    if (contentType === 'chart') {
-      if (currentAlert?.name || currentAlert?.chart?.label) {
-        setEmailSubject(
-          `${currentAlert?.name}: ${currentAlert?.chart?.label || ''}`,
-        );
-      } else {
-        setEmailSubject('');
-      }
-    } else if (contentType === 'dashboard') {
-      if (currentAlert?.name || currentAlert?.dashboard?.label) {
-        setEmailSubject(
-          `${currentAlert?.name}: ${currentAlert?.dashboard?.label || ''}`,
-        );
-      } else {
-        setEmailSubject('');
-      }
-    } else {
+    const chartLabel = currentAlert?.chart?.label;
+    const dashboardLabel = currentAlert?.dashboard?.label;
+    if (!currentAlert?.name) {
       setEmailSubject('');
+      return;
+    }
+    switch (contentType) {
+      case ContentType.Chart:
+        setEmailSubject(`${currentAlert?.name}: ${chartLabel || ''}`);
+        break;
+
+      case ContentType.Dashboard:
+        setEmailSubject(`${currentAlert?.name}: ${dashboardLabel || ''}`);
+        break;
+
+      default:
+        setEmailSubject('');
     }
   };
 
@@ -1101,8 +1108,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const errors = [];
     if (
       !(
-        (contentType === 'dashboard' && !!currentAlert?.dashboard) ||
-        (contentType === 'chart' && !!currentAlert?.chart)
+        (contentType === ContentType.Dashboard && !!currentAlert?.dashboard) ||
+        (contentType === ContentType.Chart && !!currentAlert?.chart)
       )
     ) {
       errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
@@ -1235,7 +1242,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           ? 'hidden'
           : 'active',
       );
-      setContentType(resource.chart ? 'chart' : 'dashboard');
+      setContentType(
+        resource.chart ? ContentType.Chart : ContentType.Dashboard,
+      );
       setReportFormat(resource.report_format || DEFAULT_NOTIFICATION_FORMAT);
       const validatorConfig =
         typeof resource.validator_config_json === 'string'
@@ -1593,7 +1602,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             />
           </StyledInputContainer>
           <StyledInputContainer>
-            {contentType === 'chart' ? (
+            {contentType === ContentType.Chart ? (
               <>
                 <div className="control-label">
                   {t('Select chart')}
@@ -1656,7 +1665,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onChange={onFormatChange}
                   value={reportFormat}
                   options={
-                    contentType === 'dashboard'
+                    contentType === ContentType.Dashboard
                       ? ['pdf', 'png'].map(key => FORMAT_OPTIONS[key])
                       : /* If chart is of text based viz type: show text
                   format option */
@@ -1669,7 +1678,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </>
             )}
           </StyledInputContainer>
-          {tabsEnabled && contentType === 'dashboard' && (
+          {tabsEnabled && contentType === ContentType.Dashboard && (
             <StyledInputContainer>
               <>
                 <div className="control-label">{t('Select tab')}</div>
@@ -1685,7 +1694,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           )}
           {isScreenshot && (
             <StyledInputContainer
-              css={!isReport && contentType === 'chart' && noMarginBottom}
+              css={
+                !isReport && contentType === ContentType.Chart && noMarginBottom
+              }
             >
               <div className="control-label">{t('Screenshot width')}</div>
               <div className="input-container">
@@ -1701,7 +1712,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </div>
             </StyledInputContainer>
           )}
-          {(isReport || contentType === 'dashboard') && (
+          {(isReport || contentType === ContentType.Dashboard) && (
             <div className="inline-container">
               <StyledCheckbox
                 data-test="bypass-cache"
