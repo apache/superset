@@ -17,71 +17,18 @@
  * under the License.
  */
 
-// import { ReactWrapper } from 'enzyme';
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor, render } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-// import { styledMount as mount } from 'spec/helpers/theming';
-// import Button from 'src/components/Button';
-// import { AsyncSelect } from 'src/components';
-import {
-  ChartCreation,
-  ChartCreationProps,
-  ChartCreationState,
-} from 'src/pages/ChartCreation';
-import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+import { createMemoryHistory } from 'history';
+import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
-// jest.mock(
-//   'src/explore/components/controls/VizTypeControl/VizTypeGallery',
-//   () => ({
-//     __esModule: true,
-//     default: ({
-//       onChange,
-//       onDoubleClick,
-//     }: {
-//       onChange: (value: string) => void;
-//       onDoubleClick: () => void;
-//     }) => (
-//       <div data-testid="viz-type-gallery">
-//         <button type="button" onClick={() => onChange('bar')}>
-//           Select Bar Chart
-//         </button>
-//         <button type="button" onDoubleClick={() => onDoubleClick()}>
-//           Double Click to Proceed
-//         </button>
-//       </div>
-//     ),
-//   }),
-// );
-
-// jest.mock('src/explore/components/controls/VizTypeControl/VizTypeGallery', () =>
-//   jest.fn(props => {
-//     console.log('VizTypeGallery props:', props);
-//     return (
-//       <div data-test="viz-type-gallery">
-//         <button
-//           type="button"
-//           data-test="viz-type-select"
-//           onClick={() => {
-//             console.log('VizTypeGallery onChange called');
-//             props.onChange('table');
-//           }}
-//         >
-//           Chart type select
-//         </button>
-//         <button
-//           type="button"
-//           data-test="double-click-viz"
-//           onDoubleClick={props.onDoubleClick}
-//         >
-//           Mock double click chart type
-//         </button>
-//         VizTypeGallery
-//       </div>
-//     );
-//   }),
-// );
+jest.mock('src/components/DynamicPlugins', () => ({
+  usePluginContext: () => ({
+    mountedPluginMetadata: { table: { name: 'Table', tags: [] } },
+  }),
+}));
 
 const mockDatasourceResponse = {
   result: [
@@ -100,11 +47,6 @@ fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
   body: mockDatasourceResponse,
   status: 200,
 });
-
-const datasource = {
-  value: '1',
-  label: 'table',
-};
 
 const mockUser: UserWithPermissionsAndRoles = {
   createdOn: '2021-04-27T18:12:38.952304',
@@ -131,16 +73,18 @@ const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
   username: 'admin',
   isAnonymous: false,
 };
+const history = createMemoryHistory();
+
+history.push = jest.fn();
 
 // We don't need the actual implementation for the tests
 const routeProps = {
-  history: {} as any,
+  history,
   location: {} as any,
   match: {} as any,
 };
 
 const renderOptions = {
-  // useRedux: true,
   useRouter: true,
 };
 
@@ -170,7 +114,7 @@ test('renders dataset help text when user has dataset write permissions', async 
   expect(screen.queryByText('view instructions')).toBeInTheDocument();
 });
 
-test('renders a button', async () => {
+test('renders create chart button', async () => {
   await renderComponent();
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
@@ -184,96 +128,58 @@ test('renders a disabled button if no datasource is selected', async () => {
   ).toBeDisabled();
 });
 
-test.only('renders an enabled button if datasource and viz type are selected', async () => {
+test('renders an enabled button if datasource and viz type are selected', async () => {
   await renderComponent();
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
   userEvent.click(datasourceSelect);
-  await screen.findByText(/test_db/i);
-  userEvent.click(screen.getByText(/test_db/i));
-  // userEvent.click(screen.getByRole('option', { name: /test_db/i }));
+  userEvent.click(await screen.findByText(/test_db/i));
 
   userEvent.click(
     screen.getByRole('button', {
       name: /ballot all charts/i,
     }),
   );
+  userEvent.click(await screen.findByText('Table'));
+
+  expect(
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeEnabled();
+});
+
+test('double-click viz type does nothing if no datasource is selected', async () => {
+  await renderComponent();
+
   userEvent.click(
     screen.getByRole('button', {
-      name: /right category/i,
+      name: /ballot all charts/i,
     }),
   );
-  screen.logTestingPlaygroundURL();
+  userEvent.dblClick(await screen.findByText('Table'));
 
-  await waitFor(() =>
-    expect(
-      screen.getByRole('button', { name: 'Create new chart' }),
-    ).toBeEnabled(),
-  );
+  expect(
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeDisabled();
+  expect(history.push).not.toHaveBeenCalled();
 });
 
-test.skip('double-click viz type does nothing if no datasource is selected', async () => {
-  const { container } = render(
-    <ChartCreation
-      user={mockUser}
-      addSuccessToast={() => null}
-      {...routeProps}
-    />,
-    renderOptions,
+test('double-click viz type submits with formatted URL if datasource is selected', async () => {
+  await renderComponent();
+
+  const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
+  userEvent.click(datasourceSelect);
+  userEvent.click(await screen.findByText(/test_db/i));
+
+  userEvent.click(
+    screen.getByRole('button', {
+      name: /ballot all charts/i,
+    }),
   );
-  await waitFor(() => new Promise(resolve => setTimeout(resolve, 0)));
+  userEvent.dblClick(await screen.findByText('Table'));
 
-  const instance = container.firstChild as ChartCreation;
-  if (instance instanceof ChartCreation) {
-    instance.gotoSlice = jest.fn();
-    instance.onVizTypeDoubleClick();
-  }
-
-  expect(instance.gotoSlice).not.toBeCalled();
-});
-
-test.skip('double-click viz type submits if datasource is selected', async () => {
-  const { container } = render(
-    <ChartCreation
-      user={mockUser}
-      addSuccessToast={() => null}
-      {...routeProps}
-    />,
-    renderOptions,
-  );
-  await waitFor(() => new Promise(resolve => setTimeout(resolve, 0)));
-
-  const instance = container.firstChild as ChartCreation;
-  if (instance instanceof ChartCreation) {
-    instance.gotoSlice = jest.fn();
-    instance.setState({
-      datasource,
-      vizType: 'table',
-    });
-    instance.onVizTypeDoubleClick();
-  }
-
-  expect(instance.gotoSlice).toBeCalled();
-});
-
-test('formats Explore url', async () => {
-  const { container } = render(
-    <ChartCreation
-      user={mockUser}
-      addSuccessToast={() => null}
-      {...routeProps}
-    />,
-    renderOptions,
-  );
-  await waitFor(() => new Promise(resolve => setTimeout(resolve, 0)));
-
-  const instance = container.firstChild as ChartCreation | null;
-  if (instance instanceof ChartCreation) {
-    instance.setState({
-      datasource,
-      vizType: 'table',
-    });
-    const formattedUrl = '/explore/?viz_type=table&datasource=1';
-    expect(instance.exploreUrl()).toBe(formattedUrl);
-  }
+  expect(
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeEnabled();
+  const formattedUrl = '/explore/?viz_type=table&datasource=1__table';
+  expect(history.push).toHaveBeenCalledWith(formattedUrl);
 });
