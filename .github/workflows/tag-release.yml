@@ -56,7 +56,6 @@ jobs:
         with:
           persist-credentials: false
           tags: true
-          fetch-depth: 0
 
       - name: Use Node.js 20
         uses: actions/setup-node@v4
@@ -99,6 +98,9 @@ jobs:
             --platform "linux/arm64" \
             --platform "linux/amd64"
 
+          # Returning to master to support closing setup-supersetbot
+          git checkout master
+
   update-prs-with-release-info:
     needs: config
     if: needs.config.outputs.has-secrets
@@ -115,6 +117,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          fetch-depth: 0
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
