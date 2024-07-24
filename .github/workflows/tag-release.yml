@@ -58,9 +58,6 @@ jobs:
           tags: true
           fetch-depth: 0
 
-      - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
-
       - name: Try to login to DockerHub
         continue-on-error: true
         uses: docker/login-action@v3
@@ -94,7 +91,15 @@ jobs:
             --platform "linux/arm64" \
             --platform "linux/amd64"
 
-      # Going back on original branch to allow "post" GHA operations
+  update-prs-with-release-info:
+    needs: config
+    if: needs.config.outputs.has-secrets
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
+
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
