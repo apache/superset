@@ -135,3 +135,15 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         )
 
         self.assert400(response)
+
+
+class TestSecurityRolesApi(SupersetTestCase):
+    uri = "api/v1/security/roles/"  # noqa: F541
+
+    def test_get_security_roles_gamma(self):
+        """
+        Security API: Gamma shoudlnt be able to create roles
+        """
+        self.login(GAMMA_USERNAME)
+        response = self.client.post(self.uri)
+        self.assert403(response)
