@@ -338,6 +338,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     guest_user_cls = GuestUser
     pyjwt_for_guest_token = _jwt_global_obj
 
+    def register_views(self):
+        # Overriding the original security manager that
+        # adds additional Security REST APIs for AB_ADD_SECURITY_API = True
+        # https://github.com/dpgaspar/Flask-AppBuilder/blob/2d527aae09eed50fd52c6bf886a2970adb225428/flask_appbuilder/security/sqla/manager.py#L97C45-L97C64
+        super(SecurityManager, self).register_views()
+
     def create_login_manager(self, app: Flask) -> LoginManager:
         lm = super().create_login_manager(app)
         lm.request_loader(self.request_loader)

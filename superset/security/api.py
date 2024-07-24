@@ -27,7 +27,7 @@ from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.security.guest_token import GuestTokenResourceType
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
@@ -160,3 +160,56 @@ class SecurityRestApi(BaseSupersetApi):
             return self.response_400(message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+
+from flask_appbuilder.security.sqla.apis import RoleApi
+
+
+class SupersetRoleApi(RoleApi):
+    resource_name = "security/roles"
+
+    @expose("/", methods=("POST",))
+    def post(self) -> Response:
+        if not security_manager.is_admin():
+            return self.response_403()
+
+        return super().post()
+
+    @expose("/<pk>", methods=("PUT",))
+    def put(self, pk, **kwargs) -> Response:
+        if not security_manager.is_admin():
+            return self.response_403()
+
+        return super().put(pk, **kwargs)
+
+    @expose("/<pk>", methods=("DELETE",))
+    def delete(self, pk, **kwargs) -> Response:
+        if not security_manager.is_admin():
+            return self.response_403()
+
+        return super().delete(pk, **kwargs)
+
+
+# class SupersetPermissionApi(PermissionApi):
+#     resource_name = "security/roles"
+
+#     @expose("/", methods=("POST",))
+#     def post(self) -> Response:
+#         if not security_manager.is_admin():
+#             return self.response_403()
+
+#         return super().post()
+
+#     @expose("/<pk>", methods=("PUT",))
+#     def put(self, pk, **kwargs) -> Response:
+#         if not security_manager.is_admin():
+#             return self.response_403()
+
+#         return super().put(pk, **kwargs)
+
+#     @expose("/<pk>", methods=("DELETE",))
+#     def delete(self, pk, **kwargs) -> Response:
+#         if not security_manager.is_admin():
+#             return self.response_403()
+
+#         return super().delete(pk, **kwargs)
