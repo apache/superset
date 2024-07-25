@@ -276,6 +276,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     base_related_field_filters = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
     }
 
@@ -283,6 +284,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "roles": RelatedFieldFilter("name", FilterRelatedRoles),
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
     allowed_rel_fields = {"owners", "roles", "created_by", "changed_by"}
 

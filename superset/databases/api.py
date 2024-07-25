@@ -125,11 +125,13 @@ from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    RelatedFieldFilter,
     requires_form_data,
     requires_json,
     statsd_metrics,
 )
 from superset.views.error_handling import json_error_response
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -303,6 +305,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_methods = openapi_spec_methods_override
     """ Overrides GET methods OpenApi descriptions """
+
+    related_field_filters = {
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+    }
+    base_related_field_filters = {
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+    }
 
     @expose("/<int:pk>/connection", methods=("GET",))
     @protect()
