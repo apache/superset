@@ -340,7 +340,7 @@
     "storybook": "^8.1.11",
     "@mihkeleidast/storybook-addon-source": "^1.0.1",
     "style-loader": "^3.3.4",
-    "thread-loader": "^3.0.4",
+    "thread-loader": "^4.0.2",
     "transform-loader": "^0.2.4",
     "ts-loader": "^9.4.4",
     "typescript": "^4.8.4",
