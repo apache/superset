@@ -104,6 +104,9 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
