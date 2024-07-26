@@ -16,7 +16,6 @@
     specific language governing permissions and limitations
     under the License.
 -->
-
 # CODE OF CONDUCT
 
 *The following is copied for your convenience from <https://www.apache.org/foundation/policies/conduct.html>. If there's a discrepancy between the two, let us know or submit a PR to fix it.*

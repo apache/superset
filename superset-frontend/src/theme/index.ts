@@ -60,6 +60,15 @@ const baseConfig: ThemeConfig = {
       paddingLG: supersetTheme.gridUnit * 6,
       fontWeightStrong: supersetTheme.typography.weights.medium,
     },
+    Tag: {
+      borderRadiusSM: supersetTheme.gridUnit / 2,
+      defaultBg: supersetTheme.colors.grayscale.light4,
+    },
+    Progress: {
+      fontSize: supersetTheme.typography.sizes.s,
+      colorText: supersetTheme.colors.text.label,
+      remainingColor: supersetTheme.colors.grayscale.light4,
+    },
   },
 };
 

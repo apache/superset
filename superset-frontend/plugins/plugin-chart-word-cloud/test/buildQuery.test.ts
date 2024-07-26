@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,21 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-declare module 'dom-to-pdf' {
-  interface Image {
-    type: string;
-    quality: number;
-  }
 
-  interface Options {
-    margin: number;
-    filename: string;
-    image: Image;
-    html2canvas: object;
-    excludeClassNames?: string[];
-  }
+import { WordCloudFormData } from '../src';
+import buildQuery from '../src/plugin/buildQuery';
 
-  function domToPdf(elementToPrint: Element, options?: Options): Promise<any>;
+describe('WordCloud buildQuery', () => {
+  const formData: WordCloudFormData = {
+    datasource: '5__table',
+    granularity_sqla: 'ds',
+    series: 'foo',
+    viz_type: 'word_cloud',
+  };
 
-  export default domToPdf;
-}
+  it('should build columns from series in form data', () => {
+    const queryContext = buildQuery(formData);
+    const [query] = queryContext.queries;
+    expect(query.columns).toEqual(['foo']);
+  });
+});
