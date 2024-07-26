@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-REQUIRED_VERSION=2
+REQUIRED_VERSION=3
 LOCKFILE_VERSION=$(sed -n 's/[ \t]*"lockfileVersion"\: \([0-9]*\),/\1/p' "$1")
 
 if [[ $LOCKFILE_VERSION != "$REQUIRED_VERSION" ]]; then
