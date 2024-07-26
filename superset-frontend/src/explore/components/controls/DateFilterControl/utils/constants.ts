@@ -139,20 +139,21 @@ export const SEVEN_DAYS_AGO = moment()
 export const MIDNIGHT = moment().utc().startOf('day').format(MOMENT_FORMAT);
 
 export const LOCALE_MAPPING = {
-  en: 'en_US',
-  fr: 'fr_FR',
-  es: 'es_ES',
-  it: 'it_IT',
-  zh: 'zh_CN',
-  ja: 'ja_JP',
-  de: 'de_DE',
-  pt: 'pt_PT',
-  pt_BR: 'pt_BR',
-  ru: 'ru_RU',
-  ko: 'ko_KR',
-  sk: 'sk_SK',
-  sl: 'sl_SI',
-  nl: 'nl_NL',
+  en: () => import('antd/es/date-picker/locale/en_US'),
+  fr: () => import('antd/es/date-picker/locale/fr_FR'),
+  es: () => import('antd/es/date-picker/locale/es_ES'),
+  it: () => import('antd/es/date-picker/locale/it_IT'),
+  zh: () => import('antd/es/date-picker/locale/zh_CN'),
+  ja: () => import('antd/es/date-picker/locale/ja_JP'),
+  de: () => import('antd/es/date-picker/locale/de_DE'),
+  pt: () => import('antd/es/date-picker/locale/pt_PT'),
+  pt_BR: () => import('antd/es/date-picker/locale/pt_BR'),
+  ru: () => import('antd/es/date-picker/locale/ru_RU'),
+  ko: () => import('antd/es/date-picker/locale/ko_KR'),
+  sk: () => import('antd/es/date-picker/locale/sk_SK'),
+  sl: () => import('antd/es/date-picker/locale/sl_SI'),
+  nl: () => import('antd/es/date-picker/locale/nl_NL'),
+  pl: () => import('antd/es/date-picker/locale/pl_PL'),
 };
 
 export enum DateFilterTestKey {
