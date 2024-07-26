@@ -124,9 +124,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git fetch --all --tags
-          git show ${{ github.sha }}
-          git show 68c5a48c1ffcc65029c479212e9063074b54eb47
-          git branch -a
+          git checkout master
           RELEASE="${{ github.event.release.tag_name }}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
