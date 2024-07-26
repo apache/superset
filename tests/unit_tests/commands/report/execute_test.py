@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from pytest_mock import MockerFixture
+
 from superset.commands.report.execute import BaseReportState
 from superset.reports.models import (
     ReportRecipientType,
@@ -24,9 +26,8 @@ from superset.reports.models import (
 from superset.utils.core import HeaderDataType
 
 
-def test_log_data_with_chart(mocker):
-    # Mocking the report schedule
-    mock_report_schedule = mocker.Mock(spec=ReportSchedule)
+def test_log_data_with_chart(mocker: MockerFixture) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = True
     mock_report_schedule.chart_id = 123
     mock_report_schedule.dashboard_id = None
@@ -35,16 +36,13 @@ def test_log_data_with_chart(mocker):
     mock_report_schedule.owners = [1, 2]
     mock_report_schedule.recipients = []
 
-    # Initializing the class and setting the report schedule
-    class_instance = BaseReportState(
+    class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
     )
     class_instance._report_schedule = mock_report_schedule
 
-    # Calling the method
-    result = class_instance._get_log_data()
+    result: HeaderDataType = class_instance._get_log_data()
 
-    # Expected result
     expected_result: HeaderDataType = {
         "notification_type": "report_type",
         "notification_source": ReportSourceFormat.CHART,
@@ -55,13 +53,11 @@ def test_log_data_with_chart(mocker):
         "slack_channels": None,
     }
 
-    # Assertions
     assert result == expected_result
 
 
-def test_log_data_with_dashboard(mocker):
-    # Mocking the report schedule
-    mock_report_schedule = mocker.Mock(spec=ReportSchedule)
+def test_log_data_with_dashboard(mocker: MockerFixture) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
@@ -70,16 +66,13 @@ def test_log_data_with_dashboard(mocker):
     mock_report_schedule.owners = [1, 2]
     mock_report_schedule.recipients = []
 
-    # Initializing the class and setting the report schedule
-    class_instance = BaseReportState(
+    class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
     )
     class_instance._report_schedule = mock_report_schedule
 
-    # Calling the method
-    result = class_instance._get_log_data()
+    result: HeaderDataType = class_instance._get_log_data()
 
-    # Expected result
     expected_result: HeaderDataType = {
         "notification_type": "report_type",
         "notification_source": ReportSourceFormat.DASHBOARD,
@@ -90,13 +83,11 @@ def test_log_data_with_dashboard(mocker):
         "slack_channels": None,
     }
 
-    # Assertions
     assert result == expected_result
 
 
-def test_log_data_with_email_recipients(mocker):
-    # Mocking the report schedule
-    mock_report_schedule = mocker.Mock(spec=ReportSchedule)
+def test_log_data_with_email_recipients(mocker: MockerFixture) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
@@ -109,16 +100,13 @@ def test_log_data_with_email_recipients(mocker):
         mocker.Mock(type=ReportRecipientType.EMAIL, recipient_config_json="email_2"),
     ]
 
-    # Initializing the class and setting the report schedule
-    class_instance = BaseReportState(
+    class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
     )
     class_instance._report_schedule = mock_report_schedule
 
-    # Calling the method
-    result = class_instance._get_log_data()
+    result: HeaderDataType = class_instance._get_log_data()
 
-    # Expected result
     expected_result: HeaderDataType = {
         "notification_type": "report_type",
         "notification_source": ReportSourceFormat.DASHBOARD,
@@ -129,13 +117,11 @@ def test_log_data_with_email_recipients(mocker):
         "slack_channels": [],
     }
 
-    # Assertions
     assert result == expected_result
 
 
-def test_log_data_with_slack_recipients(mocker):
-    # Mocking the report schedule
-    mock_report_schedule = mocker.Mock(spec=ReportSchedule)
+def test_log_data_with_slack_recipients(mocker: MockerFixture) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
@@ -148,16 +134,13 @@ def test_log_data_with_slack_recipients(mocker):
         mocker.Mock(type=ReportRecipientType.SLACK, recipient_config_json="channel_2"),
     ]
 
-    # Initializing the class and setting the report schedule
-    class_instance = BaseReportState(
+    class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
     )
     class_instance._report_schedule = mock_report_schedule
 
-    # Calling the method
-    result = class_instance._get_log_data()
+    result: HeaderDataType = class_instance._get_log_data()
 
-    # Expected result
     expected_result: HeaderDataType = {
         "notification_type": "report_type",
         "notification_source": ReportSourceFormat.DASHBOARD,
@@ -168,13 +151,11 @@ def test_log_data_with_slack_recipients(mocker):
         "slack_channels": ["channel_1", "channel_2"],
     }
 
-    # Assertions
     assert result == expected_result
 
 
-def test_log_data_no_owners(mocker):
-    # Mocking the report schedule
-    mock_report_schedule = mocker.Mock(spec=ReportSchedule)
+def test_log_data_no_owners(mocker: MockerFixture) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
@@ -186,16 +167,13 @@ def test_log_data_no_owners(mocker):
         mocker.Mock(type=ReportRecipientType.SLACK, recipient_config_json="channel_2"),
     ]
 
-    # Initializing the class and setting the report schedule
-    class_instance = BaseReportState(
+    class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
     )
     class_instance._report_schedule = mock_report_schedule
 
-    # Calling the method
-    result = class_instance._get_log_data()
+    result: HeaderDataType = class_instance._get_log_data()
 
-    # Expected result
     expected_result: HeaderDataType = {
         "notification_type": "report_type",
         "notification_source": ReportSourceFormat.DASHBOARD,
@@ -206,13 +184,11 @@ def test_log_data_no_owners(mocker):
         "slack_channels": ["channel_1", "channel_2"],
     }
 
-    # Assertions
     assert result == expected_result
 
 
-def test_log_data_with_missing_values(mocker):
-    # Mocking the report schedule
-    mock_report_schedule = mocker.Mock(spec=ReportSchedule)
+def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = None
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = None
@@ -226,16 +202,13 @@ def test_log_data_with_missing_values(mocker):
         ),
     ]
 
-    # Initializing the class and setting the report schedule
-    class_instance = BaseReportState(
+    class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
     )
     class_instance._report_schedule = mock_report_schedule
 
-    # Calling the method
-    result = class_instance._get_log_data()
+    result: HeaderDataType = class_instance._get_log_data()
 
-    # Expected result
     expected_result: HeaderDataType = {
         "notification_type": "report_type",
         "notification_source": ReportSourceFormat.DASHBOARD,
@@ -246,5 +219,4 @@ def test_log_data_with_missing_values(mocker):
         "slack_channels": ["channel_1", "channel_2"],
     }
 
-    # Assertions
     assert result == expected_result
