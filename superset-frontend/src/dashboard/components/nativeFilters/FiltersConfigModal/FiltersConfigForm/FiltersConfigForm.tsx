@@ -196,7 +196,6 @@ export const StyledRowSubFormItem = styled(FormItem)<{ expanded: boolean }>`
 export const StyledLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  text-transform: uppercase;
 `;
 
 const CleanFormItem = styled(FormItem)`
