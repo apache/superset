@@ -367,12 +367,21 @@ class BaseReportState:
         chart_id = None
         dashboard_id = None
         report_source = None
+        slack_channels = None
         if self._report_schedule.chart:
             report_source = ReportSourceFormat.CHART
             chart_id = self._report_schedule.chart_id
         else:
             report_source = ReportSourceFormat.DASHBOARD
             dashboard_id = self._report_schedule.dashboard_id
+
+        if self._report_schedule.recipients:
+            slack_channels = [
+                recipient.recipient_config_json
+                for recipient in self._report_schedule.recipients
+                if recipient.type
+                in [ReportRecipientType.SLACK, ReportRecipientType.SLACKV2]
+            ]
 
         log_data: HeaderDataType = {
             "notification_type": self._report_schedule.type,
@@ -381,6 +390,7 @@ class BaseReportState:
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
+            "slack_channels": slack_channels,
         }
         return log_data
 
