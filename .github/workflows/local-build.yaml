@@ -51,7 +51,12 @@ jobs:
            tags=($(git tag))
            echo ${tags[42]}
            echo "PRODUCT_VERSION=${tags[42]}">>$GITHUB_ENV
-      
+      - name: "Checkout a single tag"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.PRODUCT_VERSION }}
+          # fetch-depth: 0  
       
 
       - name: Generate signed SBOM for repo content clone
