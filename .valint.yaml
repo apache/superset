@@ -1,0 +1,86 @@
+cache:
+  enable: true
+  output_directory: ${XDG_CACHE_HOME}/valint
+scribe:
+  auth:
+    enable: true
+    login-url: https://login.scribesecurity.com
+  url: https://api.scribesecurity.com
+  enable: true
+  retry:
+    backoff: 15s
+    timeout: 120s
+
+bom:
+  normalizers:
+    packagejson:
+      enable: true
+  formats:
+  - cyclonedx-json
+  force: false
+  components:
+  - metadata
+  - layers
+  - packages
+  - syft
+  - dep
+
+  package:
+    group: ""
+    type: []
+    exclude-type: []
+  attach-regex: []
+  final-artifact: false
+slsa:
+  formats:
+  - attest
+  components:
+  - metadata
+  - layers
+evidence:
+  formats:
+  - attest
+  compress: false
+attest:
+  config: ""
+  bundle: https://github.com/scribe-public/sample-policies
+  skip-bundle: true
+  policy_configs: []
+  rule_configs: []
+  label_filters: []
+  initiative_filters: []
+  default: sigstore
+  report:
+    add-passed: true
+  cocosign: {}
+  x509: {}
+verify:
+  formats: statement-sarif
+  input-format: ""
+  attestation: ""
+  force: false
+  final-artifact: false
+filter:
+  filter-regex:
+  - '**/*.pyc'
+  - '**/.git/**'
+  filter-purl: []
+  filter-scope: []
+list:
+  columns:
+  - timestamp
+  - store
+  - ref
+  - context_type
+  - sbomname
+  - product-key
+  - git_url
+  all: false
+  filters: {}
+  current: false
+  output-file: ""
+  format: ""
+discard:
+  silent: false
+  interactive: false
+  current: false
