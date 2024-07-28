@@ -57,7 +57,11 @@ jobs:
           persist-credentials: false
           ref: ${{ env.PRODUCT_VERSION }}
           # fetch-depth: 0  
-      
+      - name: Checkout external repository
+        uses: actions/checkout@v4
+        with:
+           repository: scribe-security/scribe-training-vue-project
+           path: scribe-training-vue-project
 
       - name: Generate signed SBOM for repo content clone
         uses: scribe-security/action-bom@master
@@ -71,7 +75,7 @@ jobs:
             scribe-client-secret: ${{ secrets.SCRIBE_TOKEN }}
             # components: commits,packages,files,dep
             format: attest
-            config: .valint.yaml
+            config: scribe-training-vue-project/.valint.yaml
             verbose: 2
 
       - name: Check for file changes
