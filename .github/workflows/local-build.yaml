@@ -137,6 +137,7 @@ jobs:
           SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
           echo -------------
           TAG=$(echo $SHORT_SHA-${{ matrix.build_preset }}-arm)
+          echo $TAG
           echo -------------
           echo "MY_TAG=$TAG">>$GITHUB_ENV
           docker images
