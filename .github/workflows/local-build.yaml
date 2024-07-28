@@ -8,8 +8,8 @@ concurrency:
   cancel-in-progress: true
 env:
   APP_NAME: Superset
-  PRODUCT_VERSION: 1.0.0
-  TAG: empty
+  
+  
 
 jobs:
   setup_matrix:
@@ -50,7 +50,7 @@ jobs:
            git fetch --tags
            tags=($(git tag))
            echo ${tags[42]}
-
+           echo "PRODUCT_VERSION=${tags[42]}">>$GITHUB_ENV
       
       
 
