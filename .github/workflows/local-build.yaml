@@ -49,9 +49,7 @@ jobs:
         run: |
            git fetch --tags
            tags=($(git tag))
-           tags_str="${tags[@]}"
-           export GIT_TAGS="$tags_str"
-           echo "GIT_TAGS=$GIT_TAGS"
+           echo tags[12]
 
       
       
