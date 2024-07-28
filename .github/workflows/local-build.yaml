@@ -58,6 +58,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup supersetbot
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        uses: ./.github/actions/setup-supersetbot/
+
           
       - name: "Checkout a single tag"
         uses: actions/checkout@v4
@@ -106,9 +110,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Setup supersetbot
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
-        uses: ./.github/actions/setup-supersetbot/
+      
 
       - name: Build Docker Image
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
