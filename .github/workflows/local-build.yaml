@@ -51,6 +51,7 @@ jobs:
            tags=($(git tag))
            echo ${tags[230]}
            echo "PRODUCT_VERSION=${tags[230]}">>$GITHUB_ENV
+           echo "GITHUB_SHA=${{ github.sha }}">>$GITHUB_ENV
 
       - name: Check for file changes
         id: check
@@ -59,6 +60,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup supersetbot
+        
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: ./.github/actions/setup-supersetbot/
 
@@ -117,7 +119,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_SHA: ${{ github.sha }}
+          
 
         run: |
           # Single platform builds in pull_request context to speed things up
