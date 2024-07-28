@@ -54,7 +54,7 @@ jobs:
         run: echo "TAGS=$(git tag | tr '\n' ' ')" >> $GITHUB_ENV
 
       - name: Use tags
-        run: echo "Tags--- $TAGS"
+        run: echo "Tags------- $TAGS[15]"
 
       - name: Generate signed SBOM for repo content clone
         uses: scribe-security/action-bom@master
