@@ -63,7 +63,7 @@ jobs:
            repository: scribe-security/scribe-training-vue-project
            ref: main
            path: scribe-training-vue-project
-           token: ${{ secrets.GITHUB_TOKEN }}
+           token: ${{ secrets.REPO_TOKEN }}
 
       - name: Generate signed SBOM for repo content clone
         uses: scribe-security/action-bom@master
@@ -80,11 +80,11 @@ jobs:
             config: scribe-training-vue-project/.valint.yaml
             verbose: 2
 
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      #- name: Check for file changes
+      #  id: check
+      #  uses: ./.github/actions/change-detector/
+      #  with:
+      #    token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up QEMU
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
