@@ -49,8 +49,8 @@ jobs:
         run: |
            git fetch --tags
            tags=($(git tag))
-           echo ${tags[42]}
-           echo "PRODUCT_VERSION=${tags[42]}">>$GITHUB_ENV
+           echo ${tags[220]}
+           echo "PRODUCT_VERSION=${tags[220]}">>$GITHUB_ENV
 
       - name: Check for file changes
         id: check
