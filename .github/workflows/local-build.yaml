@@ -43,6 +43,16 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: List all tags and set as environment variable
+        id: list_tags
+        run: echo "TAGS=$(git tag | tr '\n' ' ')" >> $GITHUB_ENV
+
+      - name: Use tags
+        run: echo "Tags--- $TAGS"
+
       - name: Generate signed SBOM for repo content clone
         uses: scribe-security/action-bom@master
         
