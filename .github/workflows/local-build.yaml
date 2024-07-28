@@ -1,0 +1,126 @@
+name: Build & publish docker for Scribe
+
+on:
+  workflow_dispatch:
+    
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+env:
+  APP_NAME: Superset
+  PRODUCT_VERSION: 1.0.0
+  TAG: empty
+
+jobs:
+  setup_matrix:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
+    steps:
+      - id: set_matrix
+        run: |
+          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["dev"]'; else echo '[ "dockerize"]'; fi) #"dev", "lean", "py310", "websocket",
+          echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
+          echo $GITHUB_OUTPUT
+
+  docker-build:
+    name: docker-build
+    needs: setup_matrix
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
+      fail-fast: false
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    steps:
+
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Generate signed SBOM for repo content clone
+        uses: scribe-security/action-bom@master
+        
+        with:
+            target: 'git:.'
+            scribe-enable: true
+            product-key: ${{ env.APP_NAME }}
+            product-version: ${{env.PRODUCT_VERSION}} #${{env.GITHUB_RUN_NUM}}
+            
+            scribe-client-secret: ${{ secrets.SCRIBE_TOKEN }}
+            # components: commits,packages,files,dep
+            format: attest
+            config: .valint.yaml
+            verbose: 2
+
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Try to login to DockerHub
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        continue-on-error: true
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Setup supersetbot
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        uses: ./.github/actions/setup-supersetbot/
+
+      - name: Build Docker Image
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+
+        run: |
+          # Single platform builds in pull_request context to speed things up
+          if [ "${{ github.event_name }}" = "push" ]; then
+            PLATFORM_ARG="--platform linux/arm64 --platform linux/amd64"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            PLATFORM_ARG="--platform linux/amd64"
+          fi
+
+          supersetbot docker \
+            --preset ${{ matrix.build_preset }} \
+            --context "$EVENT" \
+            --context-ref "$RELEASE" $FORCE_LATEST \
+            --platform linux/arm64
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          echo -------------
+          TAG=$(echo $SHORT_SHA-${{ matrix.build_preset }}-arm)
+          echo -------------
+          echo "MY_TAG=$TAG">>$GITHUB_ENV
+          docker images
+
+      - name: Generate signed SBOM for docker image
+                
+          
+        uses: scribe-security/action-bom@master            
+        with:
+           target: apache/superset:${{env.MY_TAG}}
+           scribe-enable: true
+           product-key:  ${{ env.APP_NAME }}
+           product-version: ${{env.PRODUCT_VERSION}} #${{env.GITHUB_RUN_NUM}}
+           scribe-client-secret: ${{ secrets.SCRIBE_TOKEN }}
+           format: attest
+           config: .valint.yaml
+            
