@@ -72,7 +72,7 @@ jobs:
           # fetch-depth: 0  
       - name: "Get Git Commit ID"
         run: |
-          echo "GITHUB_SHA=${{ github.head_ref }}">>$GITHUB_ENV
+          echo "GITHUB_SHA=${{ github.ref }}">>$GITHUB_ENV
           
       - name: Checkout external repository
         uses: actions/checkout@v4
