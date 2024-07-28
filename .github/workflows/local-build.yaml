@@ -70,6 +70,10 @@ jobs:
           persist-credentials: false
           ref: ${{ env.PRODUCT_VERSION }}
           # fetch-depth: 0  
+      - name: "Get Git Commit ID"
+        run: |
+          echo "GITHUB_SHA=${{ github.sha }}">>$GITHUB_ENV
+          
       - name: Checkout external repository
         uses: actions/checkout@v4
         with:
@@ -133,7 +137,7 @@ jobs:
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
             --platform linux/arm64
-          echo "GITHUB_SHA=${{ github.sha }}">>$GITHUB_ENV
+          
           SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
           echo -------------
           TAG=$(echo $SHORT_SHA-${{ matrix.build_preset }}-arm)
