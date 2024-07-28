@@ -49,7 +49,7 @@ jobs:
         run: |
            git fetch --tags
            tags=($(git tag))
-           echo tags[12]
+           echo ${tags[12]}
 
       
       
