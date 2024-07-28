@@ -108,6 +108,20 @@ def get_target_from_report_schedule(report_schedule: ReportSchedule) -> list[str
     ]
 
 
+def get_cctarget_from_report_schedule(report_schedule: ReportSchedule) -> list[str]:
+    return [
+        json.loads(recipient.recipient_config_json).get("ccTarget", "")
+        for recipient in report_schedule.recipients
+    ]
+
+
+def get_bcctarget_from_report_schedule(report_schedule: ReportSchedule) -> list[str]:
+    return [
+        json.loads(recipient.recipient_config_json).get("bccTarget", "")
+        for recipient in report_schedule.recipients
+    ]
+
+
 def get_error_logs_query(report_schedule: ReportSchedule) -> BaseQuery:
     return (
         db.session.query(ReportExecutionLog)
@@ -166,6 +180,20 @@ def create_report_email_chart():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
         email_target="target@email.com", chart=chart
+    )
+    yield report_schedule
+
+    cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture()
+def create_report_email_chart_with_cc_and_bcc():
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        ccTarget="cc@email.com",
+        bccTarget="bcc@email.com",
+        chart=chart,
     )
     yield report_schedule
 
@@ -615,6 +643,73 @@ def create_invalid_sql_alert_email_chart(request, app_context: AppContext):
         yield report_schedule
 
         cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices",
+    "create_report_email_chart_with_cc_and_bcc",
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_email_chart_report_schedule_with_cc_bcc(
+    screenshot_mock,
+    email_mock,
+    create_report_email_chart_with_cc_and_bcc,
+):
+    """
+    ExecuteReport Command: Test chart email report schedule with screenshot and email cc, bcc options
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_email_chart_with_cc_and_bcc.id, datetime.utcnow()
+        ).run()
+
+        notification_targets = get_target_from_report_schedule(
+            create_report_email_chart_with_cc_and_bcc
+        )
+
+        notification_cctargets = get_cctarget_from_report_schedule(
+            create_report_email_chart_with_cc_and_bcc
+        )
+
+        notification_bcctargets = get_bcctarget_from_report_schedule(
+            create_report_email_chart_with_cc_and_bcc
+        )
+
+        # assert that the link sent is correct
+        assert (
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
+            f"{create_report_email_chart_with_cc_and_bcc.chart.id}"
+            '%7D&force=false">Explore in Superset</a>' in email_mock.call_args[0][2]
+        )
+        # Assert the email smtp address
+        if notification_targets:
+            assert email_mock.call_args[0][0] == notification_targets[0]
+
+        # Assert the cc recipients if provided
+        if notification_cctargets:
+            expected_cc_targets = [target.strip() for target in notification_cctargets]
+            assert (
+                email_mock.call_args[1].get("cc", "").split(",") == expected_cc_targets
+            )
+
+        if notification_bcctargets:
+            expected_bcc_targets = [
+                target.strip() for target in notification_bcctargets
+            ]
+            assert (
+                email_mock.call_args[1].get("bcc", "").split(",")
+                == expected_bcc_targets
+            )
+
+        # Assert the email inline screenshot
+        smtp_images = email_mock.call_args[1]["images"]
+        assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
+        # Assert logs are correct
+        assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures(

@@ -80,8 +80,8 @@ describe('NotificationMethod', () => {
       />,
     );
 
-    const deleteButton = screen.getByRole('button');
-    userEvent.click(deleteButton);
+    const deleteButton = document.querySelector('.delete-button');
+    if (deleteButton) userEvent.click(deleteButton);
 
     expect(mockOnRemove).toHaveBeenCalledWith(1);
   });

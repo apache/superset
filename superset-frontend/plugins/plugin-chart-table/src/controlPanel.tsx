@@ -18,7 +18,6 @@
  * under the License.
  */
 import {
-  ChartDataResponseResult,
   ensureIsArray,
   GenericDataType,
   isAdhocColumn,
@@ -144,6 +143,21 @@ const percentMetricsControl: typeof sharedControls.metrics = {
   default: [],
   validators: [],
 };
+
+/**
+ * Generate comparison column names for a given column.
+ */
+const generateComparisonColumns = (colname: string) => [
+  `${t('Main')} ${colname}`,
+  `# ${colname}`,
+  `△ ${colname}`,
+  `% ${colname}`,
+];
+/**
+ * Generate column types for the comparison columns.
+ */
+const generateComparisonColumnTypes = (count: number) =>
+  Array(count).fill(GenericDataType.Numeric);
 
 const processComparisonColumns = (columns: any[], suffix: string) =>
   columns
@@ -470,10 +484,37 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
+                const timeComparisonStatus =
+                  !!explore?.controls?.time_compare?.value;
+
+                const { colnames: _colnames, coltypes: _coltypes } =
+                  chart?.queriesResponse?.[0] ?? {};
+                let colnames: string[] = _colnames || [];
+                let coltypes: GenericDataType[] = _coltypes || [];
+
+                if (timeComparisonStatus) {
+                  /**
+                   * Replace numeric columns with sets of comparison columns.
+                   */
+                  const updatedColnames: string[] = [];
+                  const updatedColtypes: GenericDataType[] = [];
+                  colnames.forEach((colname, index) => {
+                    if (coltypes[index] === GenericDataType.Numeric) {
+                      updatedColnames.push(
+                        ...generateComparisonColumns(colname),
+                      );
+                      updatedColtypes.push(...generateComparisonColumnTypes(4));
+                    } else {
+                      updatedColnames.push(colname);
+                      updatedColtypes.push(coltypes[index]);
+                    }
+                  });
+
+                  colnames = updatedColnames;
+                  coltypes = updatedColtypes;
+                }
                 return {
-                  queryResponse: chart?.queriesResponse?.[0] as
-                    | ChartDataResponseResult
-                    | undefined,
+                  columnsPropsObject: { colnames, coltypes },
                 };
               },
             },

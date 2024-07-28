@@ -116,6 +116,8 @@ def create_report_notification(
     extra: Optional[dict[str, Any]] = None,
     force_screenshot: bool = False,
     owners: Optional[list[User]] = None,
+    ccTarget: Optional[str] = None,
+    bccTarget: Optional[str] = None,
 ) -> ReportSchedule:
     if not owners:
         owners = [
@@ -138,7 +140,9 @@ def create_report_notification(
     else:
         recipient = ReportRecipients(
             type=ReportRecipientType.EMAIL,
-            recipient_config_json=json.dumps({"target": email_target}),
+            recipient_config_json=json.dumps(
+                {"target": email_target, "ccTarget": ccTarget, "bccTarget": bccTarget}
+            ),
         )
 
     if name is None:
