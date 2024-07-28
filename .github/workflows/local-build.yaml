@@ -51,7 +51,8 @@ jobs:
            tags=($(git tag))
            echo ${tags[230]}
            echo "PRODUCT_VERSION=${tags[230]}">>$GITHUB_ENV
-           
+           MY_COMMIT_HASH=$(git rev-parse origin/${{env.PRODUCT_VERSION}})
+           echo ******** $MY_COMMIT_HASH
       - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/
