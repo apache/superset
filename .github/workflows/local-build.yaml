@@ -51,8 +51,7 @@ jobs:
            tags=($(git tag))
            echo ${tags[230]}
            echo "PRODUCT_VERSION=${tags[230]}">>$GITHUB_ENV
-           echo "GITHUB_SHA=${{ github.sha }}">>$GITHUB_ENV
-
+           
       - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/
@@ -134,6 +133,7 @@ jobs:
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
             --platform linux/arm64
+          echo "GITHUB_SHA=${{ github.sha }}">>$GITHUB_ENV
           SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
           echo -------------
           TAG=$(echo $SHORT_SHA-${{ matrix.build_preset }}-arm)
