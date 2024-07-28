@@ -39,13 +39,7 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
     steps:
-
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          # fetch-depth: 0
-
+      
       - name: Fetch all tags
         run: |
            git fetch --tags
@@ -54,7 +48,11 @@ jobs:
            export GIT_TAGS="$tags_str"
            echo "GIT_TAGS=$GIT_TAGS"
 
-      
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # fetch-depth: 0      
 
       
 
