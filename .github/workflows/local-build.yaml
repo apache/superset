@@ -27,6 +27,9 @@ jobs:
     name: docker-build
     needs: setup_matrix
     runs-on: ubuntu-22.04
+    permissions:
+        contents: read
+        id-token: write
     strategy:
       matrix:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
