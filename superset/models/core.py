@@ -982,7 +982,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
     def get_schema_access_for_file_upload(  # pylint: disable=invalid-name
         self,
-    ) -> list[str]:
+    ) -> set[str]:
         allowed_databases = self.get_extra().get("schemas_allowed_for_file_upload", [])
 
         if isinstance(allowed_databases, str):
@@ -993,7 +993,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 self, g.user
             )
             allowed_databases += extra_allowed_databases
-        return sorted(set(allowed_databases))
+        return set(allowed_databases)
 
     @property
     def sqlalchemy_uri_decrypted(self) -> str:

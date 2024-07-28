@@ -129,7 +129,7 @@ class TestDatasourceApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response["message"],
-            "This endpoint requires the datasource virtual_dataset, "
+            f"This endpoint requires the datasource {table.id}, "
             "database or `all_datasource_access` permission",
         )
 

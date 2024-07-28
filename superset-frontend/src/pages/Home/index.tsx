@@ -218,7 +218,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   }, []);
 
   useEffect(() => {
-    if (!otherTabFilters) {
+    if (!otherTabFilters || WelcomeMainExtension) {
       return;
     }
     const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);

@@ -60,7 +60,12 @@ export default function buildQuery(formData: QueryFormData) {
     const timeOffsets = ensureIsArray(
       isTimeComparison(formData, baseQueryObject)
         ? getTimeOffset({
-            timeRangeFilter: TimeRangeFilters[0],
+            timeRangeFilter: {
+              ...TimeRangeFilters[0],
+              comparator:
+                baseQueryObject?.time_range ??
+                (TimeRangeFilters[0] as any)?.comparator,
+            },
             shifts: formData.time_compare,
             startDate:
               previousCustomStartDate && !formData.start_date_offset

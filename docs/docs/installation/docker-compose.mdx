@@ -1,14 +1,13 @@
 ---
 title: Docker Compose
 hide_title: true
-sidebar_position: 3
+sidebar_position: 4
 version: 1
 ---
 
 import useBaseUrl from "@docusaurus/useBaseUrl";
 
 # Using Docker Compose
-
 
 <img src={useBaseUrl("/img/docker-compose.webp" )} width="150" />
 <br /><br />
@@ -22,13 +21,13 @@ our [installing on k8s](https://superset.apache.org/docs/installation/running-on
 documentation.
 :::
 
-
 As mentioned in our [quickstart guide](/docs/quickstart), the fastest way to try
 Superset locally is using Docker Compose on a Linux or Mac OSX
 computer. Superset does not have official support for Windows. It's also the easiest
 way to launch a fully functioning **development environment** quickly.
 
 Note that there are 3 major ways we support to run docker-compose:
+
 1. **docker-compose.yml:** for interactive development, where we mount your local folder with the
   frontend/backend files that you can edit and experience the changes you
   make in the app in real time
@@ -48,7 +47,6 @@ More on these two approaches after setting up the requirements for either.
 Note that this documentation assumes that you have [Docker](https://www.docker.com),
 [docker-compose](https://docs.docker.com/compose/), and
 [git](https://git-scm.com/) installed.
-
 
 ## 1. Clone Superset's GitHub repository
 
@@ -151,7 +149,6 @@ located in your `PYTHONPATH`, note that it can be done by providing a
 The mechanics of this are in `docker/pythonpath_dev/superset_config.py` where you can see
 that the logic runs a `from superset_config_docker import *`
 
-
 :::note
 Users often want to connect to other databases from Superset. Currently, the easiest way to
 do this is to modify the `docker-compose-non-dev.yml` file and add your database as a service that
@@ -214,13 +211,14 @@ connections from the Docker involves making one-line changes to the files `postg
 `pg_hba.conf`; you can find helpful links tailored to your OS / PG version on the web easily for
 this task. For Docker it suffices to only whitelist IPs `172.0.0.0/8` instead of `*`, but in any
 case you are _warned_ that doing this in a production database _may_ have disastrous consequences as
-you are opening your database to the public internet.  2. Instead of `localhost`, try using
-`host.docker.internal` (Mac users, Ubuntu) or `172.18.0.1` (Linux users) as the hostname when
-attempting to connect to the database. This is a Docker internal detail -- what is happening is
-that, in Mac systems, Docker Desktop creates a dns entry for the hostname `host.docker.internal`
-which resolves to the correct address for the host machine, whereas in Linux this is not the case
-(at least by default). If neither of these 2 hostnames work then you may want to find the exact
-hostname you want to use, for that you can do `ifconfig` or `ip addr show` and look at the IP
-address of `docker0` interface that must have been created by Docker for you. Alternately if you
-don't even see the `docker0` interface try (if needed with sudo) `docker network inspect bridge` and
-see if there is an entry for `"Gateway"` and note the IP address.
+you are opening your database to the public internet.
+1. Instead of `localhost`, try using `host.docker.internal` (Mac users, Ubuntu) or `172.18.0.1`
+(Linux users) as the hostname when attempting to connect to the database. This is a Docker internal
+detail -- what is happening is that, in Mac systems, Docker Desktop creates a dns entry for the
+hostname `host.docker.internal` which resolves to the correct address for the host machine, whereas
+in Linux this is not the case (at least by default). If neither of these 2 hostnames work then you
+may want to find the exact hostname you want to use, for that you can do `ifconfig` or
+`ip addr show` and look at the IP address of `docker0` interface that must have been created by
+Docker for you. Alternately if you don't even see the `docker0` interface try (if needed with sudo)
+`docker network inspect bridge` and see if there is an entry for `"Gateway"` and note the IP
+address.

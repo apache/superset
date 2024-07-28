@@ -41,8 +41,10 @@ import Button from 'src/components/Button';
 import { Select } from 'src/components';
 
 import { Form, FormItem } from 'src/components/Form';
+import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import { EmptyStateSmall } from 'src/components/EmptyState';
+import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import {
   POPOVER_INITIAL_HEIGHT,
@@ -287,6 +289,10 @@ const ColumnSelectPopover = ({
 
   const savedExpressionsLabel = t('Saved expressions');
   const simpleColumnsLabel = t('Column');
+  const keywords = useMemo(
+    () => sqlKeywords.concat(getColumnKeywords(columns)),
+    [columns],
+  );
 
   return (
     <Form layout="vertical" id="metrics-edit-popover">
@@ -451,6 +457,7 @@ const ColumnSelectPopover = ({
             className="filter-sql-editor"
             wrapEnabled
             ref={sqlEditorRef}
+            keywords={keywords}
           />
         </Tabs.TabPane>
       </Tabs>

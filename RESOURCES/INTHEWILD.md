@@ -44,6 +44,7 @@ Join our growing community!
 - [Taveo](https://www.taveo.com) [@codek]
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
+- [bumper](https://www.bumper.co/) [@vasu-ram, @JamiePercival]
 
 ### Gaming
 - [Digit Game Studios](https://www.digitgaming.com/)
@@ -178,6 +179,7 @@ Join our growing community!
 - [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
 
 ### Others
+- [10Web](https://10web.io/)
 - [AI inside](https://inside.ai/en/)
 - [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]

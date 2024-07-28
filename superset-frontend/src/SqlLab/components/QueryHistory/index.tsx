@@ -70,7 +70,11 @@ const QueryHistory = ({
     ({ sqlLab: { queries } }: SqlLabRootState) => queries,
     shallowEqual,
   );
-  const { data, isLoading, isFetching } = useEditorQueriesQuery(
+  const {
+    currentData: data,
+    isLoading,
+    isFetching,
+  } = useEditorQueriesQuery(
     { editorId: `${queryEditorId}`, pageIndex },
     {
       skip: !isFeatureEnabled(FeatureFlag.SqllabBackendPersistence),

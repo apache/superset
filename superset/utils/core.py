@@ -217,6 +217,7 @@ class FilterOperator(StrEnum):
     GREATER_THAN_OR_EQUALS = ">="
     LESS_THAN_OR_EQUALS = "<="
     LIKE = "LIKE"
+    NOT_LIKE = "NOT LIKE"
     ILIKE = "ILIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
@@ -432,7 +433,7 @@ def error_msg_from_exception(ex: Exception) -> str:
             msg = ex.message.get("message")  # type: ignore
         elif ex.message:
             msg = ex.message
-    return msg or str(ex)
+    return str(msg) or str(ex)
 
 
 def markdown(raw: str, markup_wrap: bool | None = False) -> str:
@@ -710,7 +711,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     recipients = smtp_mail_to
     if cc:
         smtp_mail_cc = get_email_address_list(cc)
-        msg["CC"] = ", ".join(smtp_mail_cc)
+        msg["Cc"] = ", ".join(smtp_mail_cc)
         recipients = recipients + smtp_mail_cc
 
     smtp_mail_bcc = []

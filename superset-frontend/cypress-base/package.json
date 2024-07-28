@@ -25,7 +25,7 @@
     "querystringify": "^2.2.0",
     "react-dom": "^16.13.0",
     "rison": "^0.1.1",
-    "shortid": "^2.2.15"
+    "nanoid": "^5.0.7"
   },
   "devDependencies": {
     "@types/querystringify": "^2.0.0",

@@ -34,7 +34,9 @@ Setting things up to squeeze an "hello world" into any part of Superset should b
 ```bash
 docker-compose up
 ```
+
 Note that:
+
 - this will pull/build docker images and run a cluster of services, including:
   - A Superset **Flask web server**, mounting the local python repo/code
   - A Superset **Celery worker**, also mounting the local python repo/code
@@ -287,22 +289,28 @@ If while using the above commands you encounter an error related to the limit of
 ```bash
 Error: ENOSPC: System limit for number of file watchers reached
 ```
+
 The error is thrown because the number of files monitored by the system has reached the limit.
 You can address this this error by increasing the number of inotify watchers.
 
 The current value of max watches can be checked with:
+
 ```bash
 cat /proc/sys/fs/inotify/max_user_watches
 ```
-Edit the file /etc/sysctl.conf to increase this value.
+
+Edit the file `/etc/sysctl.conf` to increase this value.
 The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
 
 Open the file in editor and add a line at the bottom specifying the max watches values.
+
 ```bash
 fs.inotify.max_user_watches=524288
 ```
+
 Save the file and exit editor.
-To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from sysctl.conf:
+To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from `sysctl.conf`:
+
 ```bash
 sudo sysctl -p
 ```
@@ -314,14 +322,18 @@ The dev server by default starts at `http://localhost:9000` and proxies the back
 So a typical development workflow is the following:
 
 1. [run Superset locally](#flask-server) using Flask, on port `8088` — but don't access it directly,<br/>
+
    ```bash
    # Install Superset and dependencies, plus load your virtual environment first, as detailed above.
    superset run -p 8088 --with-threads --reload --debugger --debug
    ```
+
 2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
+
    ```bash
    npm run dev-server
    ```
+
 3. access `http://localhost:9000` (the Webpack server, _not_ Flask) in your web browser. This will use the hot-reloading front-end assets from the Webpack development server while redirecting back-end queries to Flask/Superset: your changes on Superset codebase — either front or back-end — will then be reflected live in the browser.
 
 It's possible to change the Webpack server settings:
@@ -704,9 +716,9 @@ VSCode will not stop on breakpoints right away. We've attached to PID 6 however 
 
 ### Debugging Server App in Kubernetes Environment
 
-To debug Flask running in POD inside kubernetes cluster. You'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
+To debug Flask running in POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
 
-```
+```yaml
   securityContext:
     capabilities:
       add: ["SYS_PTRACE"]
@@ -720,7 +732,7 @@ You can follow the same instructions as in the docker-compose. Enter the pod and
 
 Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
-```
+```bash
 kubectl port-forward  pod/superset-<some random id> 5678:5678
 ```
 
@@ -801,7 +813,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
    The output should look like this:
 
-   ```
+   ```log
    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
    INFO  [alembic.runtime.migration] Will assume transactional DDL.
    INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
@@ -821,7 +833,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
    The output should look like this:
 
-   ```
+   ```log
    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
    INFO  [alembic.runtime.migration] Will assume transactional DDL.
    INFO  [alembic.runtime.migration] Running downgrade 40a0a483dd12 -> 1a1d627ebd8e, add_metadata_column_to_annotation_model.py
