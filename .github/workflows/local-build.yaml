@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-          fetch-depth: 0
+          # fetch-depth: 0
 
       - name: Fetch all tags
         run: git fetch --tags
