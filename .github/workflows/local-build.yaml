@@ -60,7 +60,7 @@ jobs:
       - name: Checkout external repository
         uses: actions/checkout@v4
         with:
-           repository: scribe-training-vue-project
+           repository: https://github.com/scribe-security/scribe-training-vue-project.git
            path: scribe-training-vue-project
 
       - name: Generate signed SBOM for repo content clone
