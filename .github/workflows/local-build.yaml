@@ -63,7 +63,7 @@ jobs:
            repository: scribe-security/scribe-training-vue-project
            ref: main
            path: scribe-training-vue-project
-           token: ${{ secrets.REPO_TOKEN }}
+           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate signed SBOM for repo content clone
         uses: scribe-security/action-bom@master
