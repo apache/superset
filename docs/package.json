@@ -19,7 +19,7 @@
   "dependencies": {
     "@algolia/client-search": "^4.24.0",
     "@ant-design/icons": "^5.4.0",
-    "@docsearch/react": "^3.6.0",
+    "@docsearch/react": "^3.6.1",
     "@docusaurus/core": "^3.4.0",
     "@docusaurus/plugin-client-redirects": "^3.4.0",
     "@docusaurus/preset-classic": "^3.4.0",
@@ -49,7 +49,7 @@
     "@docusaurus/module-type-aliases": "^3.4.0",
     "@docusaurus/tsconfig": "^3.4.0",
     "@types/react": "^18.3.3",
-    "typescript": "^5.5.2",
+    "typescript": "^5.5.4",
     "webpack": "^5.92.1"
   },
   "browserslist": {
