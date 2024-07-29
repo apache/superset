@@ -264,6 +264,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isUsingTimeComparison,
     basicColorFormatters,
     basicColorColumnFormatters,
+    dataSelectionMode,
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -736,7 +737,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         }
       }
 
-      className += ' no-select';
+      if (dataSelectionMode === 'None') {
+        className += ' no-select';
+      }
 
       return {
         id: String(i), // to allow duplicate column keys

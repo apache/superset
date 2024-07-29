@@ -97,6 +97,8 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
      * Determines is the context menu related to the chart is open
      */
     inContextMenu?: boolean;
+    /** Prop that controls user selection of chart data */
+    dataSelectionMode?: string;
   };
 
 type PropsWithDefault = Props & Readonly<typeof defaultProps>;
