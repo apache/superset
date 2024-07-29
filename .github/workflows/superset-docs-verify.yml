@@ -20,7 +20,8 @@ jobs:
       - uses: JustinBeckwith/linkinator-action@v1.10.4
         with:
           paths: "**/*.md, **/*.mdx"
-          linksToSkip: '^https://github.com/apache/(superset|incubator-superset)/(pull|issue)/\d+, http://localhost:8088/, docker/.env-non-dev'
+          linksToSkip: '^https://github.com/apache/(superset|incubator-superset)/(pull|issue)/\d+, http://localhost:8088/, docker/.env-non-dev, http://127.0.0.1:3000/'
+          verbosity: 'ERROR'
   build-deploy:
     name: Build & Deploy
     runs-on: ubuntu-22.04
