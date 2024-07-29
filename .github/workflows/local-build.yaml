@@ -78,16 +78,16 @@ jobs:
                       
       - name: Check for file changes
         id: check
-       # uses: ./.github/actions/change-detector/
-       # with:
-       #   token: ${{ secrets.GITHUB_TOKEN }}
-        run: >-
-          echo "::set-output name=python::$(true)"
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+       # run: >-
+       #   echo "::set-output name=python::$(true)"
 
 
       - name: Setup supersetbot
         
-        # if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: ./.github/actions/setup-supersetbot/
 
           
