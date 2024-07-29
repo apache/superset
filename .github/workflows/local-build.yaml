@@ -70,8 +70,8 @@ jobs:
            daily_version=$((days_passed+230))
            echo "Daily Version: $daily_version"
            #-------------------------           
-           echo ${tags[251]}
-           echo "PRODUCT_VERSION=${tags[251]}">>$GITHUB_ENV
+           echo ${tags[$daily_version]}
+           echo "PRODUCT_VERSION=${tags[$daily_version]}">>$GITHUB_ENV
                       
       - name: Check for file changes
         id: check
