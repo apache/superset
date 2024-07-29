@@ -145,7 +145,7 @@ jobs:
           echo $TAG
           echo -------------
           echo "MY_TAG=$TAG">>$GITHUB_ENV
-          docker images|grep -m 1 ${{ env.TARGET }}>line.txt
+          docker images|grep -m 1 ${{ env.TARGET }}||true>line.txt
           cat line.txt
           
           # Split the string into an array by spaces
