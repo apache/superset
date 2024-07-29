@@ -145,8 +145,8 @@ jobs:
           echo $TAG
           echo -------------
           echo "MY_TAG=$TAG">>$GITHUB_ENV
-          input_string=$(docker images|grep -m 1 ${{ env.TARGET }})
-          echo $input_string
+          LINE_INPUT=$(docker images|grep -m 1 ${{ env.TARGET }})
+          echo $LINE_INPUT
           
           # Split the string into an array by spaces
           IFS=' ' read -r -a array <<< "$input_string"
