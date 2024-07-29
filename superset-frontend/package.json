@@ -235,7 +235,7 @@
     "@storybook/components": "8.1.11",
     "@storybook/react": "8.1.11",
     "@storybook/react-webpack5": "8.1.11",
-    "@svgr/webpack": "^8.0.1",
+    "@svgr/webpack": "^8.1.0",
     "@testing-library/dom": "^7.29.4",
     "@testing-library/jest-dom": "^5.11.6",
     "@testing-library/react": "^11.2.0",
