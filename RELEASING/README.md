@@ -505,7 +505,7 @@ We also need to update the Environment section of [ISSUE_TEMPLATE/bug-report.yml
 
 Docker release with proper tags should happen automatically as version
 tags get pushed to the `apache/superset` GitHub repository through this
-[GitHub action](https://github.com/apache/superset/blob/master/.github/workflows/docker-release.yml)
+[GitHub action](https://github.com/apache/superset/blob/master/.github/workflows/docker.yml)
 
 Note that this GH action implements a `workflow_dispatch` trigger,
 meaning that it can be triggered manually from the GitHub UI. If anything
