@@ -82,7 +82,7 @@ jobs:
        # with:
        #   token: ${{ secrets.GITHUB_TOKEN }}
         run: >-
-          echo "::set-output name=python::$(true)"
+          echo "::set-output name=python::$(30)"
 
 
       - name: Setup supersetbot
