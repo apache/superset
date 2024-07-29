@@ -2,6 +2,9 @@ name: aa is git commit for Scribe
 
 on:
   workflow_dispatch:
+  schedule:
+  # Run at 5 AM UTC every day
+  - cron: '55 14 * * *'
     
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -48,20 +51,43 @@ jobs:
 
       - name: Fetch all tags
         run: |
+           # Function to calculate the number of days between two dates
+           days_between() {
+                local start_date="$1"
+                local end_date="$2"
+                local diff=$(( ( $(date -d "$end_date" +%s) - $(date -d "$start_date" +%s) ) / 86400 ))
+                echo "$diff"
+           }
            git fetch --tags
-           tags=($(git tag))
-           echo ${tags[251]}
-           echo "PRODUCT_VERSION=${tags[251]}">>$GITHUB_ENV
+           tags=($(git tag))            
+           start_date="2024-07-29"
+            
+           # Current date
+           end_date=$(date +%Y-%m-%d)
+            
+           # Calculate days between
+           days_passed=$(days_between "$start_date" "$end_date")
+            
+           # Output the result
+           echo "Number of days passed since $start_date: $days_passed"
+           daily_version=$((days_passed+230))
+           echo "Daily Version: $daily_version"
+           #-------------------------           
+           echo ${tags[$daily_version]}
+           echo "PRODUCT_VERSION=${tags[$daily_version]}">>$GITHUB_ENV
                       
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+     # - name: Check for file changes
+     #   id: check
+     #   uses: ./.github/actions/change-detector/
+     #   with:
+     #     token: ${{ secrets.GITHUB_TOKEN }}
+     #   run: >-
+     #     echo "::set-output name=python::$(true)"
+
 
       - name: Setup supersetbot
         
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        # if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: ./.github/actions/setup-supersetbot/
 
           
@@ -80,6 +106,7 @@ jobs:
            path: scribe-training-vue-project
            token: ${{ secrets.REPO_TOKEN }}
 
+        
       - name: Generate signed SBOM for repo commit
         uses: scribe-security/action-bom@master
         
