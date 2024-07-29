@@ -1,0 +1,97 @@
+name: aa is git commit for Scribe
+
+on:
+  workflow_dispatch:
+    
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+env:
+  APP_NAME: Superset
+  TARGET: apache/superset
+  
+  
+
+jobs:
+  setup_matrix:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
+    steps:
+      - id: set_matrix
+        run: |
+          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["dev"]'; else echo '[ "dockerize"]'; fi) #"dev", "lean", "py310", "websocket",
+          echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
+          echo $GITHUB_OUTPUT
+
+  docker-build:
+    name: docker-build
+    needs: setup_matrix
+    runs-on: ubuntu-22.04
+    permissions:
+        contents: read
+        id-token: write
+    strategy:
+      matrix:
+        build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
+      fail-fast: false
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # fetch-depth: 0      
+
+      - name: Fetch all tags
+        run: |
+           git fetch --tags
+           tags=($(git tag))
+           echo ${tags[231]}
+           echo "PRODUCT_VERSION=${tags[231]}">>$GITHUB_ENV
+                      
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup supersetbot
+        
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        uses: ./.github/actions/setup-supersetbot/
+
+          
+      - name: "Checkout a single tag"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.PRODUCT_VERSION }}
+          # fetch-depth: 0  
+                
+      - name: Checkout external repository
+        uses: actions/checkout@v4
+        with:
+           repository: scribe-security/scribe-training-vue-project
+           ref: main
+           path: scribe-training-vue-project
+           token: ${{ secrets.REPO_TOKEN }}
+
+      - name: Generate signed SBOM for repo commit
+        uses: scribe-security/action-bom@master
+        
+        with:
+            target: 'git:.'
+            scribe-enable: true
+            product-key: ${{ env.APP_NAME }}
+            product-version: ${{env.PRODUCT_VERSION}} #${{env.GITHUB_RUN_NUM}}
+            
+            scribe-client-secret: ${{ secrets.SCRIBE_TOKEN }}
+            # components: commits,packages,files,dep
+            format: attest
+            config: scribe-training-vue-project/.valint.yaml
+            verbose: 2
+            label: is_git_commit
