@@ -48,8 +48,26 @@ jobs:
 
       - name: Fetch all tags
         run: |
+           # Function to calculate the number of days between two dates
+           days_between() {
+                local start_date="$1"
+                local end_date="$2"
+                local diff=$(( ( $(date -d "$end_date" +%s) - $(date -d "$start_date" +%s) ) / 86400 ))
+                echo "$diff"
+           }
            git fetch --tags
-           tags=($(git tag))
+           tags=($(git tag))            
+           start_date="2024-07-29"
+            
+           # Current date
+           end_date=$(date +%Y-%m-%d)
+            
+           # Calculate days between
+           days_passed=$(days_between "$start_date" "$end_date")
+            
+           # Output the result
+           echo "Number of days passed since $start_date: $days_passed"
+           #-------------------------           
            echo ${tags[251]}
            echo "PRODUCT_VERSION=${tags[251]}">>$GITHUB_ENV
                       
