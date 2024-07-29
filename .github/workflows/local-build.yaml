@@ -57,7 +57,7 @@ jobs:
            }
            git fetch --tags
            tags=($(git tag))            
-           start_date="2024-05-29"
+           start_date="2024-07-29"
             
            # Current date
            end_date=$(date +%Y-%m-%d)
@@ -67,6 +67,8 @@ jobs:
             
            # Output the result
            echo "Number of days passed since $start_date: $days_passed"
+           daily_version=$days_passed+230
+           echo "Daily Version: $daily_version"
            #-------------------------           
            echo ${tags[251]}
            echo "PRODUCT_VERSION=${tags[251]}">>$GITHUB_ENV
