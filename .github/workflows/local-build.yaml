@@ -145,7 +145,29 @@ jobs:
           echo $TAG
           echo -------------
           echo "MY_TAG=$TAG">>$GITHUB_ENV
-          docker images|grep ${{ env.TARGET }}
+          input_string=$(docker images|grep -m 1 ${{ env.TARGET }})
+          echo $input_string
+          
+          # Split the string into an array by spaces
+          IFS=' ' read -r -a array <<< "$input_string"
+          
+          # Filter out empty elements
+          filtered_array=()
+          for element in "${array[@]}"; do
+            if [[ -n "$element" ]]; then
+              filtered_array+=("$element")
+            fi
+          done
+          
+          # Calculate the middle index
+          length=${#filtered_array[@]}
+          middle_index=$((length / 2))
+          
+          # Extract the middle element
+          middle_element=${filtered_array[middle_index]}
+          
+          # Print the middle element
+          echo "Middle column: $middle_element"
 
       - name: Generate signed SBOM for docker image
                 
