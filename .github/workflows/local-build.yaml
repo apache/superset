@@ -80,21 +80,7 @@ jobs:
            path: scribe-training-vue-project
            token: ${{ secrets.REPO_TOKEN }}
 
-      - name: Generate signed SBOM for repo commit
-        uses: scribe-security/action-bom@master
-        
-        with:
-            target: 'git:.'
-            scribe-enable: true
-            product-key: ${{ env.APP_NAME }}
-            product-version: ${{env.PRODUCT_VERSION}} #${{env.GITHUB_RUN_NUM}}
-            
-            scribe-client-secret: ${{ secrets.SCRIBE_TOKEN }}
-            components: commits,packages,files,dep
-            format: attest
-            config: scribe-training-vue-project/.valint.yaml
-            verbose: 2
-            label: is_git_commit      
+       
       
       - name: Generate signed SBOM for repo content clone
         uses: scribe-security/action-bom@master
