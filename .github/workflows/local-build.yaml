@@ -77,10 +77,13 @@ jobs:
            echo "PRODUCT_VERSION=${tags[$daily_version]}">>$GITHUB_ENV
                       
       - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+       # id: check
+       # uses: ./.github/actions/change-detector/
+       # with:
+       #   token: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          echo "::set-output name=python::$(true)"
+
 
       - name: Setup supersetbot
         
