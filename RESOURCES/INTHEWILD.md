@@ -30,7 +30,7 @@ Join our growing community!
 - [Airbnb](https://github.com/airbnb)
 - [Faasos](http://faasos.com/) [@shashanksingh]
 - [Hostnfly](https://www.hostnfly.com/) [@alexisrosuel]
-- [Lime](https://www.limebike.com/) [@cxmcc]
+- [Lime](https://www.li.me/) [@cxmcc]
 - [Lyft](https://www.lyft.com/)
 - [Ontruck](https://www.ontruck.com/)
 
@@ -63,7 +63,7 @@ Join our growing community!
 - [Rakuten Viki](https://www.viki.com)
 - [Shopee](https://shopee.sg) [@xiaohanyu]
 - [Shopkick](https://www.shopkick.com) [@LAlbertalli]
-- [Tails.com](https://tails.com) [@alanmcruickshank]
+- [Tails.com](https://tails.com/gb/) [@alanmcruickshank]
 - [THE ICONIC](http://theiconic.com.au/) [@ksaagariconic]
 - [Utair](https://www.utair.ru) [@utair-digital]
 - [VkusVill](https://www.vkusvill.ru) [@ETselikov]
@@ -88,8 +88,7 @@ Join our growing community!
 - [Endress+Hauser](http://www.endress.com/) [@rumbin]
 - [FBK - ICT center](http://ict.fbk.eu)
 - [Gavagai](https://gavagai.io) [@gavagai-corp]
-- [GfK Data Lab](http://datalab.gfk.com) [@mherr]
-- [GrowthSimple](https://growthsimple.ai/)
+- [GfK Data Lab](https://www.gfk.com/home) [@mherr]
 - [Hydrolix](https://www.hydrolix.io/)
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)
@@ -104,12 +103,11 @@ Join our growing community!
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
 - [Preset, Inc.](https://preset.io)
-- [Pronto Tools](http://www.prontotools.io) [@zkan]
 - [PubNub](https://pubnub.com) [@jzucker2]
 - [ReadyTech](https://www.readytech.io)
 - [Reward Gateway](https://www.rewardgateway.com)
 - [ScopeAI](https://www.getscopeai.com) [@iloveluce]
-- [Showmax](https://tech.showmax.com) [@bobek]
+- [Showmax](https://showmax.com) [@bobek]
 - [source{d}](https://www.sourced.tech) [@marnovo]
 - [Steamroot](https://streamroot.io/)
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
