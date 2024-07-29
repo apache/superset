@@ -8,6 +8,7 @@ concurrency:
   cancel-in-progress: true
 env:
   APP_NAME: Superset
+  TARGET: apache/superset
   
   
 
@@ -144,14 +145,14 @@ jobs:
           echo $TAG
           echo -------------
           echo "MY_TAG=$TAG">>$GITHUB_ENV
-          docker images
+          docker images|grep ${{ env.TARGET }}
 
       - name: Generate signed SBOM for docker image
                 
           
         uses: scribe-security/action-bom@master            
         with:
-           target: apache/superset:${{env.MY_TAG}}
+           target: ${{ env.TARGET }}:${{env.MY_TAG}}
            scribe-enable: true
            product-key:  ${{ env.APP_NAME }}
            product-version: ${{env.PRODUCT_VERSION}} #${{env.GITHUB_RUN_NUM}}
