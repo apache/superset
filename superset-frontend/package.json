@@ -120,7 +120,7 @@
     "@visx/scale": "^3.5.0",
     "@visx/tooltip": "^3.0.0",
     "@visx/xychart": "^3.5.1",
-    "abortcontroller-polyfill": "^1.1.9",
+    "abortcontroller-polyfill": "^1.7.5",
     "ace-builds": "^1.35.4",
     "antd": "4.10.3",
     "antd-v5": "npm:antd@^5.18.0",
