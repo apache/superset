@@ -67,7 +67,7 @@ jobs:
             
            # Output the result
            echo "Number of days passed since $start_date: $days_passed"
-           daily_version=$days_passed+230
+           daily_version=$((days_passed+230))
            echo "Daily Version: $daily_version"
            #-------------------------           
            echo ${tags[251]}
