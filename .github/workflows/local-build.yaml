@@ -87,7 +87,7 @@ jobs:
 
       - name: Setup supersetbot
         
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        # if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: ./.github/actions/setup-supersetbot/
 
           
