@@ -47,7 +47,6 @@ Join our growing community!
 - [bumper](https://www.bumper.co/) [@vasu-ram, @JamiePercival]
 
 ### Gaming
-- [Digit Game Studios](https://www.digitgaming.com/)
 - [Popoko VM Games Studio](https://popoko.live)
 
 ### E-Commerce
@@ -55,7 +54,7 @@ Join our growing community!
 - [Bazaar Technologies](https://www.bazaartech.com) [@umair-abro]
 - [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
 - [Dropit Shopping](https://www.dropit.shop/) [@dropit-dev]
-- [Fanatics](https://www.fanatics.com) [@coderfender]
+- [Fanatics](https://www.fanatics.com/) [@coderfender]
 - [Fordeal](http://www.fordeal.com) [@Renkai]
 - [GFG - Global Fashion Group](https://global-fashion-group.com) [@ksaagariconic]
 - [HuiShouBao](http://www.huishoubao.com/) [@Yukinoshita-Yukino]

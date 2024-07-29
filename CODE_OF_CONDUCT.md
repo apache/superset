@@ -96,7 +96,7 @@ This statement thanks the following, on which it draws for content and inspirati
 * [Fedora Project Code of Conduct](http://fedoraproject.org/code-of-conduct)
 * [Speak Up! Code of Conduct](http://speakup.io/coc.html)
 * [Django Code of Conduct](https://www.djangoproject.com/conduct/)
-* [Debian Code of Conduct](http://www.debian.org/vote/2014/vote_002)
+* [Debian Code of Conduct](https://www.debian.org/vote/2014/vote_002)
 * [Twitter Open Source Code of Conduct](https://github.com/twitter/code-of-conduct/blob/master/code-of-conduct.md)
 * [Mozilla Code of Conduct/Draft](https://wiki.mozilla.org/Code_of_Conduct/Draft#Conflicts_of_Interest)
 * [Python Diversity Appendix](https://www.python.org/community/diversity/)
