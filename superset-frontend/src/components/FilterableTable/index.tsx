@@ -21,11 +21,11 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { getMultipleTextDimensions, styled } from '@superset-ui/core';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
+import { RootState } from 'src/dashboard/types';
+import { findPermission } from 'src/utils/findPermission';
 import { useCellContentParser } from './useCellContentParser';
 import { renderResultCell } from './utils';
 import { Table, TableSize } from '../Table';
-import { RootState } from 'src/dashboard/types';
-import { findPermission } from 'src/utils/findPermission';
 
 const JSONbig = _JSONbig({
   storeAsString: true,

@@ -455,6 +455,7 @@ const transformProps = (
       onContextMenu,
     },
     emitCrossFilters,
+    dataSelectionMode,
   } = chartProps;
 
   const {
@@ -706,6 +707,7 @@ const transformProps = (
     basicColorFormatters,
     startDateOffset,
     basicColorColumnFormatters,
+    dataSelectionMode,
   };
 };
 

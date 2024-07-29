@@ -48,6 +48,7 @@ const propTypes = {
   setControlValue: PropTypes.func,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
+  // dataSelectionMode: PropTypes.string,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -315,6 +316,8 @@ class ChartRenderer extends Component {
       );
     }
 
+    const dataSelectionMode = 'None';
+
     // Check for Behavior.DRILL_TO_DETAIL to tell if chart can receive Drill to
     // Detail props or if it'll cause side-effects (e.g. excessive re-renders).
     const drillToDetailProps = getChartMetadataRegistry()
@@ -362,6 +365,7 @@ class ChartRenderer extends Component {
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
             legendState={this.state.legendState}
+            dataSelectionMode={dataSelectionMode}
             {...drillToDetailProps}
           />
         </div>
