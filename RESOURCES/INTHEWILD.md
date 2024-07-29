@@ -66,7 +66,7 @@ Join our growing community!
 - [Tails.com](https://tails.com/gb/) [@alanmcruickshank]
 - [THE ICONIC](http://theiconic.com.au/) [@ksaagariconic]
 - [Utair](https://www.utair.ru) [@utair-digital]
-- [VkusVill](https://www.vkusvill.ru) [@ETselikov]
+- [VkusVill](https://vkusvill.ru/) [@ETselikov]
 - [Zalando](https://www.zalando.com) [@dmigo]
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
 
@@ -108,11 +108,9 @@ Join our growing community!
 - [Reward Gateway](https://www.rewardgateway.com)
 - [ScopeAI](https://www.getscopeai.com) [@iloveluce]
 - [Showmax](https://showmax.com) [@bobek]
-- [source{d}](https://www.sourced.tech) [@marnovo]
-- [Steamroot](https://streamroot.io/)
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
-- [Tentacle](https://public.tentaclecmi.com) [@jdclarke5]
+- [Tentacle](https://tentaclecmi.com) [@jdclarke5]
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
 - [Tobii](http://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
@@ -152,14 +150,13 @@ Join our growing community!
 
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
-- [Beans](https://www.beans.fi) [@kakoni]
 - [Bluesquare](https://www.bluesquarehub.com/) [@madewulf]
 - [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
 - [QPID Health](http://www.qpidhealth.com/)
 - [REDCap Cloud](https://www.redcapcloud.com/)
-- [TrustMedis](https://trustmedis.com) [@famasya]
+- [TrustMedis](https://trustmedis.com/) [@famasya]
 - [WeSure](https://www.wesure.cn/)
 
 ### HR / Staffing
