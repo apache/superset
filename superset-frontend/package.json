@@ -121,7 +121,7 @@
     "@visx/tooltip": "^3.0.0",
     "@visx/xychart": "^3.5.1",
     "abortcontroller-polyfill": "^1.1.9",
-    "ace-builds": "^1.4.14",
+    "ace-builds": "^1.35.4",
     "antd": "4.10.3",
     "antd-v5": "npm:antd@^5.18.0",
     "babel-plugin-typescript-to-proptypes": "^2.0.0",
