@@ -78,9 +78,9 @@ jobs:
                       
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        #uses: ./.github/actions/change-detector/
+        #with:
+        #  token: ${{ secrets.GITHUB_TOKEN }}
        # run: >-
        #   echo "::set-output name=python::$(true)"
 
@@ -126,11 +126,11 @@ jobs:
            
 
       - name: Set up QEMU
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        #if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        #if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: docker/setup-buildx-action@v3
 
       - name: Try to login to DockerHub
@@ -144,7 +144,7 @@ jobs:
       
 
       - name: Build Docker Image
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        # if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
