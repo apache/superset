@@ -54,7 +54,6 @@ export default class EchartsGaugeChartPlugin extends EchartsChartPlugin<
           t('Comparison'),
           t('ECharts'),
           t('Report'),
-          t('Featured'),
         ],
         thumbnail,
       },
