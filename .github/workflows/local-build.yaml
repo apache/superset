@@ -163,9 +163,7 @@ jobs:
           # Print the middle element
           echo "Middle column: $tag_element"
           echo "MY_TAG=$tag_element">>$GITHUB_ENV
-      - name: Generate signed SBOM for docker image
-                
-          
+      - name: Generate signed SBOM for docker image  
         uses: scribe-security/action-bom@master            
         with:
            target: ${{ env.TARGET }}:${{env.MY_TAG}}
@@ -175,4 +173,13 @@ jobs:
            scribe-client-secret: ${{ secrets.SCRIBE_TOKEN }}
            format: attest
            config: scribe-training-vue-project/.valint.yaml
-            
+      - name: Generate signed SLSA Provenance record for docker image
+        uses: scribe-security/action-slsa@master
+        with:
+           target: ${{ env.TARGET }}:${{env.MY_TAG}}
+           scribe-enable: true
+           product-key:  ${{ env.APP_NAME }}
+           product-version: ${{env.PRODUCT_VERSION}} #${{env.GITHUB_RUN_NUM}}
+           scribe-client-secret: ${{ secrets.SCRIBE_TOKEN }}
+           format: attest
+           config: scribe-training-vue-project/.valint.yaml
