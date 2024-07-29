@@ -71,10 +71,7 @@ jobs:
           persist-credentials: false
           ref: ${{ env.PRODUCT_VERSION }}
           # fetch-depth: 0  
-      - name: "Get Git Commit ID"
-        run: |
-          echo "GITHUB_SHA=${{ github.ref }}">>$GITHUB_ENV
-          
+                
       - name: Checkout external repository
         uses: actions/checkout@v4
         with:
@@ -144,7 +141,7 @@ jobs:
           TAG=$(echo $SHORT_SHA-${{ matrix.build_preset }}-arm)
           echo $TAG
           echo -------------
-          echo "MY_TAG=$TAG">>$GITHUB_ENV
+          
           input_string=$(docker images|grep -m 1 ${{ env.TARGET }}||true)
           echo $input_string
           
@@ -160,11 +157,11 @@ jobs:
           done
                               
           # Extract the middle element
-          tag_element=${filtered_array[2]}
+          tag_element=${filtered_array[1]}
           
           # Print the middle element
           echo "Middle column: $tag_element"
-
+          echo "MY_TAG=$tag_element">>$GITHUB_ENV
       - name: Generate signed SBOM for docker image
                 
           
