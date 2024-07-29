@@ -98,7 +98,6 @@ RUN mkdir -p ${PYTHONPATH} superset/static requirements superset-frontend apache
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && apt-get update -qq && apt-get install -yqq --no-install-recommends \
         curl \
-        default-libmysqlclient-dev \
         libsasl2-dev \
         libsasl2-modules-gssapi-mit \
         libpq-dev \
@@ -188,7 +187,11 @@ RUN if [ "$INCLUDE_FIREFOX" = "true" ]; then \
         && apt-get autoremove -yqq --purge wget bzip2 && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/*; \
     fi
 
-# Cache everything for dev purposes...
+# Installing mysql client os-level dependencies in dev image only because GPL
+RUN apt-get install -yqq --no-install-recommends \
+        default-libmysqlclient-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --chown=superset:superset requirements/development.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/pip \
     apt-get update -qq && apt-get install -yqq --no-install-recommends \
