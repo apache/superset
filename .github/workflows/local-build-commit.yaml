@@ -90,7 +90,7 @@ jobs:
             product-version: ${{env.PRODUCT_VERSION}} #${{env.GITHUB_RUN_NUM}}
             
             scribe-client-secret: ${{ secrets.SCRIBE_TOKEN }}
-            # components: commits,packages,files,dep
+            components: commits,packages,files,dep
             format: attest
             config: scribe-training-vue-project/.valint.yaml
             verbose: 2
