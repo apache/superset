@@ -2,6 +2,9 @@ name: Build & publish docker for Scribe
 
 on:
   workflow_dispatch:
+  schedule:
+  # Run at 5 AM UTC every day
+  - cron: '9 13 * * *'
     
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
