@@ -186,6 +186,7 @@ mako==1.2.4
     # via
     #   alembic
     #   apache-superset
+mailchimp_marketing==3.0.80
 markdown==3.3.4
     # via apache-superset
 markdown-it-py==2.2.0

@@ -1,0 +1,64 @@
+name: Sync with Upstream
+
+on:
+  schedule: 
+  - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+env:
+  # Upstream repo name
+  UPSTREAM_REPO: https://github.com/apache/superset
+  # Downstream repo's branch name which should be synced by upstream
+  SYNC_DEST_BRANCH: upstream
+
+jobs:
+  sync:
+    name: sync the latest tag
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GH_PAT }}
+
+    - name: Sync
+      run: |
+        echo "Resetting origin to: https://$GITHUB_ACTOR:$GH_PAT@github.com/$GITHUB_REPOSITORY"
+        git remote set-url origin "https://$GITHUB_ACTOR:$GH_PAT@github.com/$GITHUB_REPOSITORY"
+        git fetch origin --quiet
+
+        echo "Fetching upstream"
+        git remote add tmp_upstream ${{ env.UPSTREAM_REPO }}
+        git fetch tmp_upstream --tags
+        latest_tag_commit=$(git ls-remote --tags --sort=committerdate tmp_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $1}')
+        latest_tag=$(git ls-remote --tags --sort=committerdate tmp_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $2}')
+        echo "Latest stable tag: $latest_tag"
+        echo "Latest stable tag commit: $latest_tag_commit"
+        echo LATEST_TAG=${latest_tag} >> $GITHUB_ENV
+
+        echo "Pushing the latest tag commit as the origin SYNC_DEST_BRANCH"
+        git branch -D upstream || echo "${{ env.SYNC_DEST_BRANCH }} branch deleted!"
+        git checkout -b ${{ env.SYNC_DEST_BRANCH }} ${latest_tag_commit}
+        git push origin ${{ env.SYNC_DEST_BRANCH }} --force
+
+        echo "Removing tmp_upstream"
+        git remote rm tmp_upstream
+        git remote --verbose
+
+    - name: Create pull request
+      uses: repo-sync/pull-request@v2
+      with:
+        source_branch: ${{ env.SYNC_DEST_BRANCH }}
+        destination_branch: ortege
+        github_token: ${{ secrets.GH_PAT }}
+        pr_title: "Pulling Upstream ${{ env.LATEST_TAG }} into ortege"
+        pr_body: |
+          :crown: *An automated PR to sync with upstream*
+          
+          Co-authored-by: josedev-union josedev-union@users.noreply.github.com
+        pr_reviewer: "HariSeldon23"

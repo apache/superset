@@ -1001,6 +1001,18 @@ test('does not fire onChange if the same value is selected in single mode', asyn
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 
+test('does not fire onChange if the same value is selected in single mode', async () => {
+  const onChange = jest.fn();
+  render(<AsyncSelect {...defaultProps} onChange={onChange} />);
+  const optionText = 'Emma';
+  await open();
+  expect(onChange).toHaveBeenCalledTimes(0);
+  userEvent.click(await findSelectOption(optionText));
+  expect(onChange).toHaveBeenCalledTimes(1);
+  userEvent.click(await findSelectOption(optionText));
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available
