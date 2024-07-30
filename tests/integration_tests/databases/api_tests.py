@@ -1233,6 +1233,7 @@ class TestDatabaseApi(SupersetTestCase):
         example_db.password = "wrong_password"
         database_data = {
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "password": example_db.password,
         }
 
         uri = f"api/v1/database/{test_database.id}"
