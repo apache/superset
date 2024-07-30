@@ -25,8 +25,7 @@ fi
 
 if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
     cd /app/superset-frontend
-    npm install -f --no-optional --global webpack webpack-cli
-    npm install -f
+    npm install
 
     echo "Running frontend"
     npm run dev
