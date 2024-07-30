@@ -137,7 +137,7 @@ function AlertList({
     toggleBulkSelect,
   } = useListViewResource<AlertObject>(
     'report',
-    t('reports'),
+    t('report'),
     addDangerToast,
     true,
     undefined,
