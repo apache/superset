@@ -60,6 +60,7 @@ from superset.commands.report.execute import (
 )
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.exceptions import SupersetException
+from superset.key_value.models import KeyValueEntry
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -83,6 +84,9 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.tabbed_dashboard import (
+    tabbed_dashboard,  # noqa: F401
+)
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices_module_scope,  # noqa: F401
     load_world_bank_data,  # noqa: F401
@@ -92,6 +96,7 @@ from tests.integration_tests.reports.utils import (
     create_report_notification,
     CSV_FILE,
     DEFAULT_OWNER_EMAIL,
+    reset_key_values,
     SCREENSHOT_FILE,
     TEST_ID,
 )
@@ -1171,6 +1176,93 @@ def test_email_dashboard_report_schedule(
             # Assert logs are correct
             assert_log(ReportState.SUCCESS)
             statsd_mock.assert_called_once_with("reports.email.send.ok", 1)
+
+
+@pytest.mark.usefixtures("tabbed_dashboard")
+@patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags", ALERT_REPORT_TABS=True
+)
+def test_email_dashboard_report_schedule_with_tab_anchor(
+    _email_mock,
+    _screenshot_mock,
+):
+    """
+    ExecuteReport Command: Test dashboard email report schedule with tab metadata
+    """
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+            # get tabbed dashboard fixture
+            dashboard = db.session.query(Dashboard).all()[1]
+            # build report_schedule
+            report_schedule = create_report_notification(
+                email_target="target@email.com",
+                dashboard=dashboard,
+                extra={"dashboard": {"anchor": "TAB-L2AB"}},
+            )
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, datetime.utcnow()
+            ).run()
+
+            # Assert logs are correct
+            assert_log(ReportState.SUCCESS)
+            statsd_mock.assert_called_once_with("reports.email.send.ok", 1)
+
+            pl = (
+                db.session.query(KeyValueEntry)
+                .order_by(KeyValueEntry.id.desc())
+                .first()
+            )
+
+            value = json.loads(pl.value)
+            # test that report schedule extra json matches permalink state
+            assert report_schedule.extra["dashboard"] == value["state"]
+
+            # remove report_schedule
+            cleanup_report_schedule(report_schedule)
+            # remove permalink kvalues
+            reset_key_values()
+
+
+@pytest.mark.usefixtures("tabbed_dashboard")
+@patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags", ALERT_REPORT_TABS=False
+)
+def test_email_dashboard_report_schedule_disabled_tabs(
+    _email_mock,
+    _screenshot_mock,
+):
+    """
+    ExecuteReport Command: Test dashboard email report schedule with tab metadata
+    """
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+            # get tabbed dashboard fixture
+            dashboard = db.session.query(Dashboard).all()[1]
+            # build report_schedule
+            report_schedule = create_report_notification(
+                email_target="target@email.com",
+                dashboard=dashboard,
+                extra={"dashboard": {"anchor": "TAB-L2AB"}},
+            )
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, datetime.utcnow()
+            ).run()
+
+            # Assert logs are correct
+            assert_log(ReportState.SUCCESS)
+            statsd_mock.assert_called_once_with("reports.email.send.ok", 1)
+
+            permalinks = db.session.query(KeyValueEntry).all()
+
+            # test that report schedule extra json matches permalink state
+            assert len(permalinks) == 0
+
+            # remove report_schedule
+            cleanup_report_schedule(report_schedule)
 
 
 @pytest.mark.usefixtures(

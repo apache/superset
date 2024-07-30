@@ -202,15 +202,15 @@ class BaseReportState:
                 force=force,
                 **kwargs,
             )
-
         # If we need to render dashboard in a specific state, use stateful permalink
-        if dashboard_state := self._report_schedule.extra.get("dashboard"):
+        if (
+            dashboard_state := self._report_schedule.extra.get("dashboard")
+        ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
             permalink_key = CreateDashboardPermalinkCommand(
                 dashboard_id=str(self._report_schedule.dashboard.uuid),
                 state=dashboard_state,
             ).run()
             return get_url_path("Superset.dashboard_permalink", key=permalink_key)
-
         dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
             dashboard.uuid if dashboard and dashboard.uuid else dashboard.id

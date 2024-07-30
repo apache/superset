@@ -22,6 +22,7 @@ from uuid import uuid4
 from flask_appbuilder.security.sqla.models import User
 
 from superset import db, security_manager
+from superset.key_value.models import KeyValueEntry
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -203,3 +204,8 @@ def create_dashboard_report(dashboard, extra, **kwargs):
 
     if error:
         raise error
+
+
+def reset_key_values() -> None:
+    db.session.query(KeyValueEntry).delete()
+    db.session.commit()
