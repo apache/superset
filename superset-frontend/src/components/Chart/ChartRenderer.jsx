@@ -48,8 +48,6 @@ const propTypes = {
   setControlValue: PropTypes.func,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
-  // dataSelectionMode: PropTypes.string,
-  // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
   queriesResponse: PropTypes.arrayOf(PropTypes.object),
@@ -64,6 +62,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
   emitCrossFilters: PropTypes.bool,
+  dataSelectionMode: PropTypes.string,
 };
 
 const BLANK = {};
@@ -265,6 +264,7 @@ class ChartRenderer extends Component {
       formData,
       latestQueryFormData,
       postTransformProps,
+      dataSelectionMode,
     } = this.props;
 
     const currentFormData =
@@ -315,8 +315,6 @@ class ChartRenderer extends Component {
         <EmptyStateSmall title={noResultTitle} image={noResultImage} />
       );
     }
-
-    const dataSelectionMode = 'None';
 
     // Check for Behavior.DRILL_TO_DETAIL to tell if chart can receive Drill to
     // Detail props or if it'll cause side-effects (e.g. excessive re-renders).

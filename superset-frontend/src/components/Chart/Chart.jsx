@@ -39,6 +39,7 @@ import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
+import { findPermission } from 'src/utils/findPermission';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -82,6 +83,7 @@ const propTypes = {
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
   emitCrossFilters: PropTypes.bool,
+  user: PropTypes.object,
 };
 
 const BLANK = {};
@@ -156,6 +158,11 @@ class Chart extends PureComponent {
     super(props);
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
+      this.canExportData = findPermission(
+          'can_export_csv',
+          'SQLLab',
+          this.props.user?.roles,
+        );
   }
 
   componentDidMount() {
@@ -271,6 +278,7 @@ class Chart extends PureComponent {
             {...this.props}
             source={this.props.dashboardId ? 'dashboard' : 'explore'}
             data-test={this.props.vizType}
+            dataSelectionMode={this.canExportData ? 'auto' : 'none'}
           />
         ) : (
           <Loading />
