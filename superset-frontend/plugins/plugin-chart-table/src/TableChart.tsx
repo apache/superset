@@ -737,7 +737,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         }
       }
 
-      if (dataSelectionMode === 'None') {
+      if (dataSelectionMode === 'none') {
         className += ' no-select';
       }
 
