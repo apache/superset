@@ -237,7 +237,7 @@ export function clearInactiveQueries(interval) {
   return { type: CLEAR_INACTIVE_QUERIES, interval };
 }
 
-export function startQuery(query) {
+export function startQuery(query, runPreviewOnly) {
   Object.assign(query, {
     id: query.id ? query.id : nanoid(11),
     progress: 0,
@@ -245,7 +245,7 @@ export function startQuery(query) {
     state: query.runAsync ? 'pending' : 'running',
     cached: false,
   });
-  return { type: START_QUERY, query };
+  return { type: START_QUERY, query, runPreviewOnly };
 }
 
 export function querySuccess(query, results) {
@@ -323,9 +323,9 @@ export function fetchQueryResults(query, displayLimit) {
   };
 }
 
-export function runQuery(query) {
+export function runQuery(query, runPreviewOnly) {
   return function (dispatch) {
-    dispatch(startQuery(query));
+    dispatch(startQuery(query, runPreviewOnly));
     const postPayload = {
       client_id: query.id,
       database_id: query.dbId,
@@ -952,7 +952,7 @@ export function addTable(queryEditor, tableName, catalogName, schemaName) {
   };
 }
 
-export function runTablePreviewQuery(newTable) {
+export function runTablePreviewQuery(newTable, runPreviewOnly) {
   return function (dispatch, getState) {
     const {
       sqlLab: { databases },
@@ -962,7 +962,7 @@ export function runTablePreviewQuery(newTable) {
 
     if (database && !database.disable_data_preview) {
       const dataPreviewQuery = {
-        id: nanoid(11),
+        id: newTable.previewQueryId ?? nanoid(11),
         dbId,
         catalog,
         schema,
@@ -974,6 +974,9 @@ export function runTablePreviewQuery(newTable) {
         ctas: false,
         isDataPreview: true,
       };
+      if (runPreviewOnly) {
+        return dispatch(runQuery(dataPreviewQuery, runPreviewOnly));
+      }
       return Promise.all([
         dispatch(
           mergeTable(

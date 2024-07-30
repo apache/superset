@@ -38,6 +38,9 @@ jest.mock('src/SqlLab/components/TabbedSqlEditors', () => () => (
 jest.mock('src/SqlLab/components/QueryAutoRefresh', () => () => (
   <div data-test="mock-query-auto-refresh" />
 ));
+jest.mock('src/SqlLab/components/AceEditorMetadataPopup', () => () => (
+  <div data-test="mock-ace-editor-metadata-popup" />
+));
 jest.mock('mousetrap', () => ({
   reset: jest.fn(),
 }));
@@ -68,6 +71,7 @@ describe('SqlLab App', () => {
     const { getByTestId } = render(<App />, { useRedux: true, store });
     expect(getByTestId('SqlLabApp')).toBeInTheDocument();
     expect(getByTestId('mock-tabbed-sql-editors')).toBeInTheDocument();
+    expect(getByTestId('mock-ace-editor-metadata-popup')).toBeInTheDocument();
   });
 
   it('reset hotkey events on unmount', () => {

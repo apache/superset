@@ -32,6 +32,7 @@ import {
   syncTable,
 } from 'src/SqlLab/actions/sqlLab';
 import {
+  TableMetaData,
   useTableExtendedMetadataQuery,
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
@@ -99,6 +100,65 @@ const StyledCollapsePanel = styled(Collapse.Panel)`
     }
   `}
 `;
+
+export const renderWell = (tableData: TableMetaData) => {
+  let partitions;
+  let metadata;
+  if (tableData.partitions) {
+    let partitionQuery;
+    let partitionClipBoard;
+    if (tableData.partitions.partitionQuery) {
+      ({ partitionQuery } = tableData.partitions);
+      const tt = t('Copy partition query to clipboard');
+      partitionClipBoard = (
+        <CopyToClipboard
+          text={partitionQuery}
+          shouldShowText={false}
+          tooltipText={tt}
+          copyNode={<i className="fa fa-clipboard" />}
+        />
+      );
+    }
+    const latest = Object.entries(tableData.partitions?.latest || [])
+      .map(([key, value]) => `${key}=${value}`)
+      .join('/');
+
+    partitions = (
+      <div>
+        <small>
+          {t('latest partition:')} {latest}
+        </small>{' '}
+        {partitionClipBoard}
+      </div>
+    );
+  }
+
+  if (tableData.metadata) {
+    metadata = Object.entries(tableData.metadata).map(([key, value]) => (
+      <div>
+        <small>
+          <strong>{key}:</strong> {value}
+        </small>
+      </div>
+    ));
+    if (!metadata?.length) {
+      // hide metadata card view
+      return null;
+    }
+  }
+
+  if (!partitions) {
+    // hide partition card view
+    return null;
+  }
+
+  return (
+    <Card size="small">
+      {partitions}
+      {metadata}
+    </Card>
+  );
+};
 
 const TableElement = ({ table, ...props }: TableElementProps) => {
   const { dbId, catalog, schema, name, expanded } = table;
@@ -175,65 +235,6 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
 
   const toggleSortColumns = () => {
     setSortColumns(prevState => !prevState);
-  };
-
-  const renderWell = () => {
-    let partitions;
-    let metadata;
-    if (tableData.partitions) {
-      let partitionQuery;
-      let partitionClipBoard;
-      if (tableData.partitions.partitionQuery) {
-        ({ partitionQuery } = tableData.partitions);
-        const tt = t('Copy partition query to clipboard');
-        partitionClipBoard = (
-          <CopyToClipboard
-            text={partitionQuery}
-            shouldShowText={false}
-            tooltipText={tt}
-            copyNode={<i className="fa fa-clipboard" />}
-          />
-        );
-      }
-      const latest = Object.entries(tableData.partitions?.latest || [])
-        .map(([key, value]) => `${key}=${value}`)
-        .join('/');
-
-      partitions = (
-        <div>
-          <small>
-            {t('latest partition:')} {latest}
-          </small>{' '}
-          {partitionClipBoard}
-        </div>
-      );
-    }
-
-    if (tableData.metadata) {
-      metadata = Object.entries(tableData.metadata).map(([key, value]) => (
-        <div>
-          <small>
-            <strong>{key}:</strong> {value}
-          </small>
-        </div>
-      ));
-      if (!metadata?.length) {
-        // hide metadata card view
-        return null;
-      }
-    }
-
-    if (!partitions) {
-      // hide partition card view
-      return null;
-    }
-
-    return (
-      <Card size="small">
-        {partitions}
-        {metadata}
-      </Card>
-    );
   };
 
   const renderControls = () => {
@@ -377,7 +378,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
         onMouseLeave={() => setHover(false)}
         css={{ paddingTop: 6 }}
       >
-        {renderWell()}
+        {renderWell(tableData as TableMetaData)}
         <div>
           {cols?.map(col => <ColumnElement column={col} key={col.name} />)}
         </div>
