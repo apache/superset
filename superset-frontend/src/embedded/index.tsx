@@ -141,7 +141,9 @@ function start() {
       // something is most likely wrong with the guest token
       logging.error(err);
       showFailureMessage(
-        'Something went wrong with embedded authentication. Check the dev console for details.',
+        t(
+          'Something went wrong with embedded authentication. Check the dev console for details.',
+        ),
       );
     },
   );
