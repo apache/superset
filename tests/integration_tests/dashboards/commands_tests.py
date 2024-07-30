@@ -714,7 +714,7 @@ class TestCopyDashboardCommand(SupersetTestCase):
             example_dashboard = (
                 db.session.query(Dashboard).filter_by(slug="world_health").one()
             )
-        invalid_copy_data = {"dashboard_title": ""}
+        invalid_copy_data = {"dashboard_title": "", "json_metadata": "{}"}
 
         with override_user(security_manager.find_user("admin")):
             command = CopyDashboardCommand(example_dashboard, invalid_copy_data)

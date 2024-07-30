@@ -42,6 +42,11 @@ class CopyDashboardCommand(BaseCommand):
         return DashboardDAO.copy_dashboard(self._original_dash, self._properties)
 
     def validate(self) -> None:
+        if (
+            not self._properties["dashboard_title"]
+            or not self._properties["json_metadata"]
+        ):
+            raise DashboardInvalidError()
         if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
             self._original_dash
         ):
