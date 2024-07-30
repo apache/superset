@@ -70,7 +70,6 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: ./.github/actions/setup-supersetbot/
 
-      # Needed as pip install base.txt overflows out of mem
       - name: Set Swap Space
         uses: pierotofy/set-swap-space@master
         with:
