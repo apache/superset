@@ -16,10 +16,7 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Optional
-
-from flask import g
-from marshmallow import ValidationError
+from typing import Any
 
 from superset import is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
@@ -45,5 +42,7 @@ class CopyDashboardCommand(BaseCommand):
         return DashboardDAO.copy_dashboard(self._original_dash, self._properties)
 
     def validate(self) -> None:
-        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(self._original_dash):
+        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
+            self._original_dash
+        ):
             raise DashboardForbiddenError()

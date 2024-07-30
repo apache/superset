@@ -23,7 +23,11 @@ from werkzeug.utils import secure_filename
 
 from superset import db, security_manager
 from superset.commands.dashboard.copy import CopyDashboardCommand
-from superset.commands.dashboard.exceptions import DashboardForbiddenError, DashboardInvalidError, DashboardNotFoundError
+from superset.commands.dashboard.exceptions import (
+    DashboardForbiddenError,
+    DashboardInvalidError,
+    DashboardNotFoundError,
+)
 from superset.commands.dashboard.export import (
     append_charts,
     ExportDashboardsCommand,
@@ -663,6 +667,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
             }
         }
 
+
 class TestCopyDashboardCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_copy_dashboard_command(self):
@@ -686,7 +691,7 @@ class TestCopyDashboardCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_copy_dashboard_command_no_access(self):
-        """Test that a non-owner user cannot copy a dashboard if DASHBOARD_RBAC is enabled"""        
+        """Test that a non-owner user cannot copy a dashboard if DASHBOARD_RBAC is enabled"""
         with self.client.application.test_request_context():
             example_dashboard = (
                 db.session.query(Dashboard).filter_by(slug="world_health").one()
@@ -694,7 +699,10 @@ class TestCopyDashboardCommand(SupersetTestCase):
             copy_data = {"dashboard_title": "Copied Dashboard", "json_metadata": "{}"}
 
             with override_user(security_manager.find_user("gamma")):
-                with patch("superset.commands.dashboard.copy.is_feature_enabled", return_value=True):
+                with patch(
+                    "superset.commands.dashboard.copy.is_feature_enabled",
+                    return_value=True,
+                ):
                     command = CopyDashboardCommand(example_dashboard, copy_data)
                     with self.assertRaises(DashboardForbiddenError):
                         command.run()
