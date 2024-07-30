@@ -35,4 +35,5 @@ if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
 
 else
     echo "Skipping frontend build steps - YOU NEED TO RUN IT MANUALLY ON THE HOST!"
+    echo "https://superset.apache.org/docs/contributing/development/#webpack-dev-server"
 fi
