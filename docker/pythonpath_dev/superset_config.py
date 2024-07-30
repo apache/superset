@@ -84,8 +84,13 @@ DATA_CACHE_CONFIG = CACHE_CONFIG
 
 class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    imports = ("superset.sql_lab",)
     result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
+    imports = ("superset.sql_lab", "superset.tasks.scheduler", "superset.tasks.thumbnails", "superset.tasks.cache" )
+    task_annotations = {
+        "sql_lab.get_sql_results": {"rate_limit": "100/s"},
+        "email_reports.send": {"rate_limit": "1/s", "time_limit": 120, "soft_time_limit": 150},
+        "reports.scheduler": {"rate_limit": "1/s"},
+    }    
     worker_prefetch_multiplier = 1
     task_acks_late = False
     beat_schedule = {
@@ -104,6 +109,8 @@ CELERY_CONFIG = CeleryConfig
 
 FEATURE_FLAGS = {
     "ALERT_REPORTS": True, 
+    "KV_STORE": True,
+    "SCHEDULED_QUERIES": True,    
     "EMBEDDED_SUPERSET": True, 
     "TAGGING_SYSTEM": True, 
     "THUMBNAILS": True,
@@ -131,7 +138,10 @@ WEBDRIVER_BASEURL = "http://superset_app:8088/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
+# Async query configuration
+SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 SQLLAB_CTAS_NO_LIMIT = True
+SQLLAB_TIMEOUT = 300
 
 
 TALISMAN_ENABLED = False
