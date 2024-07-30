@@ -166,36 +166,43 @@ class UpdateDatabaseCommand(BaseCommand):
         )
 
         for catalog in catalogs:
-            schemas = self._get_schema_names(database, catalog, ssh_tunnel)
+            try:
+                schemas = self._get_schema_names(database, catalog, ssh_tunnel)
 
-            if catalog:
-                perm = security_manager.get_catalog_perm(
-                    original_database_name,
-                    catalog,
-                )
-                existing_pvm = security_manager.find_permission_view_menu(
-                    "catalog_access",
-                    perm,
-                )
-                if not existing_pvm:
-                    # new catalog
-                    security_manager.add_permission_view_menu(
-                        "catalog_access",
-                        security_manager.get_catalog_perm(
-                            database.database_name,
-                            catalog,
-                        ),
+                if catalog:
+                    perm = security_manager.get_catalog_perm(
+                        original_database_name,
+                        catalog,
                     )
-                    for schema in schemas:
+                    existing_pvm = security_manager.find_permission_view_menu(
+                        "catalog_access",
+                        perm,
+                    )
+                    if not existing_pvm:
+                        # new catalog
                         security_manager.add_permission_view_menu(
-                            "schema_access",
-                            security_manager.get_schema_perm(
+                            "catalog_access",
+                            security_manager.get_catalog_perm(
                                 database.database_name,
                                 catalog,
-                                schema,
                             ),
                         )
+                        for schema in schemas:
+                            security_manager.add_permission_view_menu(
+                                "schema_access",
+                                security_manager.get_schema_perm(
+                                    database.database_name,
+                                    catalog,
+                                    schema,
+                                ),
+                            )
+                        continue
+            except DatabaseConnectionFailedError:
+                # more than one catalog, move to next
+                if catalog:
+                    logger.warning("Error processing catalog %s", catalog)
                     continue
+                raise
 
             # add possible new schemas in catalog
             self._refresh_schemas(
