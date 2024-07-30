@@ -51,6 +51,11 @@ EXAMPLES_HOST = os.getenv("EXAMPLES_HOST")
 EXAMPLES_PORT = os.getenv("EXAMPLES_PORT")
 EXAMPLES_DB = os.getenv("EXAMPLES_DB")
 
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+CORS_FRONTEND_ORIGIN = os.getenv("CORS_FRONTEND_ORIGIN")
+
+
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = (
     f"{DATABASE_DIALECT}://"
@@ -176,8 +181,8 @@ OAUTH_PROVIDERS = [
         'request_token_url': None,
         'access_token_url': 'https://accounts.google.com/o/oauth2/token',
         'authorize_url': 'https://accounts.google.com/o/oauth2/auth',
-        'client_id': '1038479848720-3o66nss7jj0jauvditoc4h89vo7qqq6u.apps.googleusercontent.com',
-        'client_secret': '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'
+        'client_id': GOOGLE_CLIENT_ID,
+        'client_secret': GOOGLE_CLIENT_SECRET
     }
 }]
 
@@ -185,11 +190,7 @@ OAUTH_PROVIDERS = [
 ENABLE_CORS = True
 CORS_OPTIONS = {   # Replace with your frontend domain(s)
     'origins': [
-        'http://localhost:3000',
-        'http://localhost:4000',
-        'https://product-portal-fe.vercel.app',
-        'https://product-portal-fe-git-dev-datakimia-portal.vercel.app',
-        'https://product-portal-fe-git-staging-datakimia-portal.vercel.app'
+        CORS_FRONTEND_ORIGIN
     ],
     'supports_credentials': True,
     "allow_headers": ["*"],
@@ -210,10 +211,10 @@ WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 
 ##############################################3end auth
 
-SUPERSET_LOAD_EXAMPLES="yes"
+### to do -  se puede borrar eso ?
 PREVIOUS_SECRET_KEY="4MCsZm1ciqjZ4347/jIrefw34vKOPZ37Rr9k2iguLd3OeeCiZ45aw5ha"
 SUPERSET_SECRET_KEY="+DLoS9mlyLGxgUIP5QcM1/8IxVB0AG4GCdhDD2uSaQZAgfxwaVL7uO7f"
-
+######
 
 
 ######
