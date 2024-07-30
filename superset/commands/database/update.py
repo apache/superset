@@ -197,9 +197,13 @@ class UpdateDatabaseCommand(BaseCommand):
                                 ),
                             )
                         continue
-            except DatabaseConnectionFailedError:
-                logger.warning("Error processing catalog %s", catalog)
-                continue
+            except DatabaseConnectionFailedError as ex:
+                # more than one catalog, move to next
+                if catalog:
+                    logger.warning("Error processing catalog %s", catalog)
+                    continue
+                else:
+                    raise
 
             # add possible new schemas in catalog
             self._refresh_schemas(
