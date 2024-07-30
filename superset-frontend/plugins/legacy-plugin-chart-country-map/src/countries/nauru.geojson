@@ -1,5 +1,6 @@
 {
 "type": "FeatureCollection",
+"name": "nauru",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
 "features": [
 { "type": "Feature", "properties": { "ISO": "NR-03", "NAME_1": "Anetan" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 166.931196944478643, -0.493340201200449 ], [ 166.938812696000014, -0.490411065999922 ], [ 166.938986657708028, -0.504182967869667 ], [ 166.931196944478643, -0.493340201200449 ] ] ] } },
