@@ -114,8 +114,8 @@ COPY --chown=superset:superset requirements/base.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/pip \
     apt-get update -qq && apt-get install -yqq --no-install-recommends \
       build-essential \
-    && pip install --upgrade setuptools pip \
-    && pip install -r requirements/base.txt \
+    && pip install --no-cache-dir --upgrade setuptools pip \
+    && pip install --no-cache-dir -r requirements/base.txt \
     && apt-get autoremove -yqq --purge build-essential \
     && rm -rf /var/lib/apt/lists/*
 
@@ -125,7 +125,7 @@ COPY --chown=superset:superset --from=superset-node /app/superset/static/assets 
 ## Lastly, let's install superset itself
 COPY --chown=superset:superset superset superset
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -e .
+    pip install --no-cache-dir -e .
 
 # Copy the .json translations from the frontend layer
 COPY --chown=superset:superset --from=superset-node /app/superset/translations superset/translations
@@ -165,7 +165,7 @@ RUN apt-get update -qq \
         && rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install playwright
+    pip install --no-cache-dir playwright
 RUN playwright install-deps
 
 RUN if [ "$INCLUDE_CHROMIUM" = "true" ]; then \
@@ -196,7 +196,7 @@ COPY --chown=superset:superset requirements/development.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/pip \
     apt-get update -qq && apt-get install -yqq --no-install-recommends \
       build-essential \
-    && pip install -r requirements/development.txt \
+    && pip install --no-cache-dir -r requirements/development.txt \
     && apt-get autoremove -yqq --purge build-essential \
     && rm -rf /var/lib/apt/lists/*
 
