@@ -40,7 +40,7 @@ const baseConfig: ThemeConfig = {
     colorSuccess: supersetTheme.colors.success.base,
     colorTextBase: supersetTheme.colors.grayscale.dark2,
     colorWarning: supersetTheme.colors.warning.base,
-    controlHeight: supersetTheme.gridUnit * 32,
+    controlHeight: supersetTheme.gridUnit * 8,
     fontFamily: supersetTheme.typography.families.sansSerif,
     fontFamilyCode: supersetTheme.typography.families.monospace,
     fontSize: supersetTheme.typography.sizes.m,
@@ -68,6 +68,12 @@ const baseConfig: ThemeConfig = {
       fontSize: supersetTheme.typography.sizes.s,
       colorText: supersetTheme.colors.text.label,
       remainingColor: supersetTheme.colors.grayscale.light4,
+    },
+    Slider: {
+      trackBgDisabled: supersetTheme.colors.grayscale.light1,
+      colorBgElevated: supersetTheme.colors.grayscale.light5,
+      handleSizeHover: supersetTheme.gridUnit * 2.5,
+      handleLineWidthHover: supersetTheme.gridUnit / 2,
     },
   },
 };
