@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import ProgressBar, { ProgressBarProps } from '.';
 
 export default {
@@ -25,21 +24,15 @@ export default {
 };
 
 export const InteractiveProgressBar = (args: ProgressBarProps) => (
-  <AntdThemeProvider>
-    <ProgressBar {...args} type="line" />
-  </AntdThemeProvider>
+  <ProgressBar {...args} type="line" />
 );
 
 export const InteractiveProgressCircle = (args: ProgressBarProps) => (
-  <AntdThemeProvider>
-    <ProgressBar {...args} type="circle" />
-  </AntdThemeProvider>
+  <ProgressBar {...args} type="circle" />
 );
 
 export const InteractiveProgressDashboard = (args: ProgressBarProps) => (
-  <AntdThemeProvider>
-    <ProgressBar {...args} type="dashboard" />
-  </AntdThemeProvider>
+  <ProgressBar {...args} type="dashboard" />
 );
 
 const commonArgs = {
