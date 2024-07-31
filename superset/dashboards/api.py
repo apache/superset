@@ -39,6 +39,7 @@ from superset.commands.dashboard.create import CreateDashboardCommand
 from superset.commands.dashboard.delete import DeleteDashboardCommand
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
+    DashboardCopyError,
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
     DashboardForbiddenError,
@@ -1610,7 +1611,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             dash = CopyDashboardCommand(original_dash, data).run()
         except DashboardForbiddenError:
             return self.response_403()
-        except DashboardInvalidError:
+        except DashboardCopyError:
             return self.response_400()
 
         return self.response(

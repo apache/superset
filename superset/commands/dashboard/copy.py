@@ -21,6 +21,7 @@ from typing import Any
 from superset import is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.exceptions import (
+    DashboardCopyError,
     DashboardForbiddenError,
     DashboardInvalidError,
 )
@@ -36,15 +37,14 @@ class CopyDashboardCommand(BaseCommand):
         self._original_dash = original_dash
         self._properties = data.copy()
 
-    @transaction(on_error=partial(on_error, reraise=DashboardInvalidError))
+    @transaction(on_error=partial(on_error, reraise=DashboardCopyError))
     def run(self) -> Dashboard:
         self.validate()
         return DashboardDAO.copy_dashboard(self._original_dash, self._properties)
 
     def validate(self) -> None:
-        if (
-            not self._properties["dashboard_title"]
-            or not self._properties["json_metadata"]
+        if not self._properties.get("dashboard_title") or not self._properties.get(
+            "json_metadata"
         ):
             raise DashboardInvalidError()
         if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
