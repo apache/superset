@@ -97,7 +97,6 @@ FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_acce
 
 PUBLIC_ROLE_LIKE = "Gamma"
 AUTH_ROLE_PUBLIC = "Public"
-EMAIL_NOTIFICATIONS = False
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")  # noqa: F405
 REDIS_PORT = os.environ.get("REDIS_PORT", "6379")  # noqa: F405
 REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)  # noqa: F405
