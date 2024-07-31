@@ -20,7 +20,7 @@
 import { css, styled } from '@superset-ui/core';
 
 export const Styles = styled.div`
-  ${({ theme, isDashboardEditMode }) => css`
+  ${({ theme, isDashboardEditMode, dataSelectionMode }) => css`
     table.pvtTable {
       position: ${isDashboardEditMode ? 'inherit' : 'relative'};
       width: calc(100% - ${theme.gridUnit}px);
@@ -30,7 +30,7 @@ export const Styles = styled.div`
       border-collapse: separate;
       font-family: ${theme.typography.families.sansSerif};
       line-height: 1.4;
-      user-select: none;
+      user-select: ${dataSelectionMode};
     }
 
     table thead {
