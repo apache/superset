@@ -170,7 +170,6 @@ export default function Button(props: ButtonProps) {
         fontSize: typography.sizes.s,
         fontWeight: typography.weights.bold,
         height,
-        textTransform: 'uppercase',
         padding: `0px ${padding}px`,
         transition: `all ${transitionTiming}s`,
         minWidth: cta ? theme.gridUnit * 36 : undefined,
