@@ -159,8 +159,8 @@ class Chart extends PureComponent {
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
     this.canExportData = findPermission(
-      'can_export_csv',
-      'SQLLab',
+      'can_csv',
+      'Superset',
       this.props.user?.roles,
     );
   }
