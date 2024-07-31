@@ -434,8 +434,8 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         cls,
         database: Database,
     ) -> str | None:
-        with database.get_inspector() as inspector:
-            return inspector.bind.execute("SELECT current_catalog()").scalar()
+        with database.get_sqla_engine() as engine:
+            return engine.execute("SELECT current_catalog()").scalar()
 
     @classmethod
     def get_prequeries(
