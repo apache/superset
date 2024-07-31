@@ -18,9 +18,17 @@
  */
 import { SliderSingleProps, SliderRangeProps } from 'antd-v5/lib/slider';
 import { Slider as AntdSlider } from 'antd-v5';
+import { SupersetTheme, css } from '@superset-ui/core';
 
 export type { SliderSingleProps, SliderRangeProps };
 
 export default function Slider(props: SliderSingleProps | SliderRangeProps) {
-  return <AntdSlider {...props} css={{ margin: '10px 0px 10px' }} />;
+  return (
+    <AntdSlider
+      {...props}
+      css={(theme: SupersetTheme) => css`
+        margin: ${theme.gridUnit * 2 + 2}px 0 0 ${theme.gridUnit * 2 + 2}px;
+      `}
+    />
+  );
 }
