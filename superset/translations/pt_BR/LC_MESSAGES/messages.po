@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-03 14:07-0700\n"
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -371,6 +371,21 @@ msgstr "), e eles tornaram-se disponíveis no seu SQL (exemplo:"
 msgid ""
 "*%(name)s*\n"
 "\n"
+"    %(description)s\n"
+"\n"
+"    Error: %(text)s\n"
+"    "
+msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"Erro: %(text)s"
+
+#, fuzzy, python-format
+msgid ""
+"*%(name)s*\n"
+"\n"
 "%(description)s\n"
 "\n"
 "<%(url)s|Explore in Superset>\n"
@@ -384,20 +399,6 @@ msgstr ""
 "<%(url) s|Explore no Superset >\n"
 "\n"
 "%(table)s"
-
-#, fuzzy, python-format
-msgid ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Error: %(text)s\n"
-msgstr ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Erro: %(text)s"
 
 #, python-format
 msgid "+ %s more"
@@ -841,6 +842,14 @@ msgstr "Adicionar"
 
 msgid "Add Alert"
 msgstr "Adicionar alerta"
+
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "recentes"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "recentes"
 
 msgid "Add CSS template"
 msgstr "Adicionar modelo CSS"
@@ -1884,6 +1893,10 @@ msgstr "Eixo ascendente"
 msgid "Axis descending"
 msgstr "Eixo descendente"
 
+#, fuzzy
+msgid "BCC recipients"
+msgstr "recentes"
+
 msgid "BOOLEAN"
 msgstr "BOLEANO"
 
@@ -2133,6 +2146,10 @@ msgstr "Por valor: utilizar valores métricos como chave de ordenação"
 
 msgid "CANCEL"
 msgstr "CANCELAR"
+
+#, fuzzy
+msgid "CC recipients"
+msgstr "recentes"
 
 msgid "CREATE DATASET"
 msgstr "CREATE DATASET"
@@ -2628,6 +2645,10 @@ msgid "Choose notification method and recipients."
 msgstr "Adicionar método de notificação"
 
 msgid "Choose one of the available databases from the panel on the left."
+msgstr "Escolha um dos bancos de dados disponíveis no painel na esquerda."
+
+#, fuzzy
+msgid "Choose one of the available databases on the left panel."
 msgstr "Escolha um dos bancos de dados disponíveis no painel na esquerda."
 
 #, fuzzy
@@ -7880,10 +7901,6 @@ msgstr ""
 "Os proprietários são uma lista de usuários que podem alterar o painel. "
 "Pesquisável por nome ou nome de usuário."
 
-#, fuzzy
-msgid "PDF download failed, please refresh and try again."
-msgstr "Falha no download da imagem, por favor atualizar e tentar novamente."
-
 msgid "Page length"
 msgstr "Comprimento da página"
 
@@ -8347,6 +8364,9 @@ msgstr "Formato do eixo y primário"
 
 msgid "Primary y-axis format"
 msgstr "Formato do eixo y primário"
+
+msgid "Private Channels (Bot in channel)"
+msgstr ""
 
 msgid "Private Key"
 msgstr "Chave privada"
@@ -9529,6 +9549,10 @@ msgid "Select catalog or type to search catalogs"
 msgstr "Selecione a tabela ou digite para pesquisar tabelas"
 
 #, fuzzy
+msgid "Select channels"
+msgstr "Selecionar gráficos"
+
+#, fuzzy
 msgid "Select chart"
 msgstr "Selecionar gráficos"
 
@@ -9809,6 +9833,10 @@ msgstr "Nome da planilha"
 
 msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift + clique para organizar por colunas múltiplas"
+
+#, fuzzy
+msgid "Shift start date"
+msgstr "Data de início"
 
 msgid "Short description must be unique for this layer"
 msgstr "Uma breve descrição deve ser única para essa camada"
@@ -10142,6 +10170,11 @@ msgstr "Sólido"
 
 msgid "Some roles do not exist"
 msgstr "Algumas funções não existem"
+
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
+msgstr ""
 
 msgid "Something went wrong."
 msgstr "Algo não correu bem."
@@ -10937,6 +10970,10 @@ msgstr ""
 msgid "The database returned an unexpected error."
 msgstr "O banco de dados retornou um erro inesperado."
 
+#, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "Não foi possível encontrar o banco de dados"
+
 msgid "The database was deleted."
 msgstr "O banco de dados foi excluído."
 
@@ -11430,6 +11467,15 @@ msgstr ""
 msgid "The schema was deleted or renamed in the database."
 msgstr "O esquema foi excluído ou renomeado no banco de dados."
 
+msgid "The screenshot could not be downloaded. Please, try again later."
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+
 #, fuzzy
 msgid "The size of each cell in meters"
 msgstr "O tamanho da célula quadrada, em pixels"
@@ -11623,8 +11669,9 @@ msgstr "Ocorreu um erro ao buscar os objetos relacionados ao conjunto de dados"
 msgid "There was an error fetching the favorite status: %s"
 msgstr "Houve um erro ao buscar o status de favorito: %s"
 
-msgid "There was an error fetching your recent activity:"
-msgstr "Ocorreu um erro ao buscar sua atividade recente:"
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "Houve um erro ao buscar o status de favorito: %s"
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -11993,6 +12040,11 @@ msgid "This metric might be incompatible with current dataset"
 msgstr "Essa métrica pode ser incompatível com o conjunto de dados atual"
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
 msgstr ""
 
 msgid ""
@@ -12567,6 +12619,10 @@ msgstr "Host do servidor MySQL desconhecido \"%(hostname)s\"."
 
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
+msgstr "Host do servidor MySQL desconhecido \"%(hostname)s\"."
+
+#, fuzzy, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
 msgstr "Host do servidor MySQL desconhecido \"%(hostname)s\"."
 
 msgid "Unknown Presto Error"
@@ -14426,6 +14482,10 @@ msgstr "em"
 
 msgid "in modal"
 msgstr "no modal"
+
+#, fuzzy
+msgid "invalid email"
+msgstr "Chave de permalink inválida"
 
 #, fuzzy
 msgid "is expected to be a Mapbox URL"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-03 14:07-0700\n"
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
 "PO-Revision-Date: 2018-11-03 00:11+0100\n"
 "Last-Translator: Ruben Sastre <ruben.sastre@decathlon.com>\n"
 "Language: es\n"
@@ -339,11 +339,10 @@ msgstr ""
 msgid ""
 "*%(name)s*\n"
 "\n"
-"%(description)s\n"
+"    %(description)s\n"
 "\n"
-"<%(url)s|Explore in Superset>\n"
-"\n"
-"%(table)s\n"
+"    Error: %(text)s\n"
+"    "
 msgstr ""
 
 #, python-format
@@ -352,7 +351,9 @@ msgid ""
 "\n"
 "%(description)s\n"
 "\n"
-"Error: %(text)s\n"
+"<%(url)s|Explore in Superset>\n"
+"\n"
+"%(table)s\n"
 msgstr ""
 
 #, python-format
@@ -814,6 +815,14 @@ msgstr "Agregar"
 #, fuzzy
 msgid "Add Alert"
 msgstr "alerta"
+
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "Recientes"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "Recientes"
 
 msgid "Add CSS template"
 msgstr "Cargar una plantilla CSS"
@@ -1873,6 +1882,10 @@ msgstr "Orden Descendente"
 msgid "Axis descending"
 msgstr "Orden descendente"
 
+#, fuzzy
+msgid "BCC recipients"
+msgstr "Recientes"
+
 msgid "BOOLEAN"
 msgstr ""
 
@@ -2109,6 +2122,10 @@ msgstr ""
 
 msgid "CANCEL"
 msgstr "CANCELAR"
+
+#, fuzzy
+msgid "CC recipients"
+msgstr "Recientes"
 
 #, fuzzy
 msgid "CREATE DATASET"
@@ -2623,6 +2640,9 @@ msgid "Choose notification method and recipients."
 msgstr "Agregar método de notificación"
 
 msgid "Choose one of the available databases from the panel on the left."
+msgstr ""
+
+msgid "Choose one of the available databases on the left panel."
 msgstr ""
 
 #, fuzzy
@@ -7992,9 +8012,6 @@ msgid ""
 " or username."
 msgstr ""
 
-msgid "PDF download failed, please refresh and try again."
-msgstr ""
-
 msgid "Page length"
 msgstr ""
 
@@ -8456,6 +8473,9 @@ msgid "Primary y-axis Bounds"
 msgstr ""
 
 msgid "Primary y-axis format"
+msgstr ""
+
+msgid "Private Channels (Bot in channel)"
 msgstr ""
 
 msgid "Private Key"
@@ -9703,6 +9723,10 @@ msgid "Select catalog or type to search catalogs"
 msgstr "Selecciona tabla o introduce su nombre"
 
 #, fuzzy
+msgid "Select channels"
+msgstr "Todos los gráficos"
+
+#, fuzzy
 msgid "Select chart"
 msgstr "Todos los gráficos"
 
@@ -10000,6 +10024,10 @@ msgstr "Nombre de Hoja"
 
 msgid "Shift + Click to sort by multiple columns"
 msgstr ""
+
+#, fuzzy
+msgid "Shift start date"
+msgstr "El Gráfico ha cambiado"
 
 msgid "Short description must be unique for this layer"
 msgstr "La descripción corta debe ser única para esta capa"
@@ -10321,6 +10349,11 @@ msgstr ""
 #, fuzzy
 msgid "Some roles do not exist"
 msgstr "El dashboard no existe"
+
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
+msgstr ""
 
 msgid "Something went wrong."
 msgstr ""
@@ -11143,6 +11176,10 @@ msgid "The database returned an unexpected error."
 msgstr "Issue 1002 - La base de datos devolvió un error inesperado."
 
 #, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "La base de datos no existe"
+
+#, fuzzy
 msgid "The database was deleted."
 msgstr "La base de datos no han podido ser eliminada."
 
@@ -11568,6 +11605,15 @@ msgstr ""
 msgid "The schema was deleted or renamed in the database."
 msgstr "Issue 1004 - La columna fue eliminada o renombrada en la base de datos."
 
+msgid "The screenshot could not be downloaded. Please, try again later."
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+
 msgid "The size of each cell in meters"
 msgstr ""
 
@@ -11744,8 +11790,9 @@ msgstr ""
 msgid "There was an error fetching the favorite status: %s"
 msgstr "Hubo un problema al eliminar las plantillas seleccionadas: %s"
 
-msgid "There was an error fetching your recent activity:"
-msgstr "Hubo un error al obtener tu actividad reciente:"
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "Hubo un problema al eliminar las plantillas seleccionadas: %s"
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -12081,6 +12128,11 @@ msgid "This metric might be incompatible with current dataset"
 msgstr ""
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
 msgstr ""
 
 msgid ""
@@ -12665,6 +12717,10 @@ msgstr "Host desconocido de MySQL: \"%(hostname)s\""
 
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
+msgstr "Host desconocido de MySQL: \"%(hostname)s\""
+
+#, fuzzy, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
 msgstr "Host desconocido de MySQL: \"%(hostname)s\""
 
 msgid "Unknown Presto Error"
@@ -14463,6 +14519,10 @@ msgstr "en"
 
 msgid "in modal"
 msgstr "en modal"
+
+#, fuzzy
+msgid "invalid email"
+msgstr "Certificado Inválido"
 
 msgid "is expected to be a Mapbox URL"
 msgstr ""
