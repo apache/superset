@@ -36,10 +36,10 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { isCurrentUserBot } from 'src/utils/isBot';
 import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import { findPermission } from 'src/utils/findPermission';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
-import { findPermission } from 'src/utils/findPermission';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -158,11 +158,11 @@ class Chart extends PureComponent {
     super(props);
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
-      this.canExportData = findPermission(
-          'can_export_csv',
-          'SQLLab',
-          this.props.user?.roles,
-        );
+    this.canExportData = findPermission(
+      'can_export_csv',
+      'SQLLab',
+      this.props.user?.roles,
+    );
   }
 
   componentDidMount() {

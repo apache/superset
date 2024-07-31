@@ -707,7 +707,7 @@ const transformProps = (
     basicColorFormatters,
     startDateOffset,
     basicColorColumnFormatters,
-    dataSelectionMode,
+    dataSelectionMode: dataSelectionMode ?? 'auto',
   };
 };
 
