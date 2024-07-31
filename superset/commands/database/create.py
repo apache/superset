@@ -119,7 +119,7 @@ class CreateDatabaseCommand(BaseCommand):
             for catalog in catalogs:
                 try:
                     self.add_schema_permissions(database, catalog, ssh_tunnel)
-                except GenericDBException:
+                except GenericDBException:  # pylint: disable=broad-except
                     logger.warning("Error processing catalog '%s'", catalog)
                     continue
         except (
