@@ -69,6 +69,7 @@ are compatible with Superset.
 | [Oracle](/docs/configuration/databases#oracle)                          | `pip install cx_Oracle`                                                            | `oracle://`                                                                                                                                            |
 | [PostgreSQL](/docs/configuration/databases#postgres)                    | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                 |
 | [Presto](/docs/configuration/databases#presto)                          | `pip install pyhive`                                                               | `presto://`                                                                                                                                            |
+| [QuestDB](/docs/configuration/databases#questdb)                        | `pip install questdb-connect`                                                      | `questdb://<UserName>:<DBPassword>@<Database Host>:<Port>/qdb`                                                                                                                                            |
 | [Rockset](/docs/configuration/databases#rockset)                        | `pip install rockset-sqlalchemy`                                                   | `rockset://<api_key>:@<api_server>`                                                                                                                    |
 | [SAP Hana](/docs/configuration/databases#hana)                          | `pip install hdbcli sqlalchemy-hana` or `pip install apache-superset[hana]`          | `hana://{username}:{password}@{host}:{port}`                                                                                                           |
 | [StarRocks](/docs/configuration/databases#starrocks)                    | `pip install starrocks`                                                            | `starrocks://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>`                                                                                     |
@@ -1151,6 +1152,40 @@ SSL Secure extra add json config to extra connection information.
 }
 ```
 
+#### QuestDB
+
+[QuestDB](https://questdb.io/) is a high-performance 
+[time-series database](https://questdb.io/glossary/time-series-database/) that 
+specializes in hardware effiency and high-cardinality data. It's ideal for 
+demanding IoT or financial use-cases.
+
+QuestDB provides the
+[QuestDB Connect](https://pypi.org/project/questdb-connect/) Python package that
+implements the SQLAlchemy dialect and Superset engine specification to
+integrate Apache Superset with QuestDB. Alternatively, there are instructions for 
+[Docker](https://questdb.io/docs/third-party-tools/superset/#installing-apache-superset-via-docker-recommended).
+
+To install Superset + QuestDB Connect using `pip`:
+
+```bash
+pip install 'questdb-connect'
+```
+
+Once both Apache Superset and QuestDB are running, proceed with the following:
+
+1. Sign in with the following details:
+   - Username: admin
+   - Password: admin
+2. From Superset UI, select Setting > Database Connections
+3. Select `+Database` to add the following parameters:
+   - SUPPORTED DATABASES: Other
+   - DISPLAY NAME: QuestDB
+   - SQLALCHEMY URI: `questdb://admin:quest@localhost:9000/qdb`
+4. Once connected, tables in QuestDB will be visible for creating Datasets in
+   Apache Superset.
+
+For more information, see the 
+[QuestDB documentation](https://questdb.io/docs/third-party-tools/superset/).
 
 
 #### RisingWave
