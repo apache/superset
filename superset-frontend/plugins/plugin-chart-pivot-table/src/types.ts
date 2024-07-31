@@ -79,6 +79,7 @@ interface PivotTableCustomizeProps {
   dateFormatters: Record<string, DateFormatter | undefined>;
   legacy_order_by: QueryFormMetric[] | QueryFormMetric | null;
   order_desc: boolean;
+  dataSelectionMode: string;
   onContextMenu?: (
     clientX: number,
     clientY: number,
