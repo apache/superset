@@ -106,7 +106,8 @@ describe('Dashboard tabs', () => {
       // send new query from same tab
       cy.wait(treemapAlias).then(({ request }) => {
         const requestBody = parsePostForm(request.body);
-        const requestParams = JSON.parse(requestBody.form_data as string);
+        const requestParams = JSON.parse(requestBody as unknown as string)
+          .form_data as Record<string, string | string[]>;
         expect(requestParams.extra_filters[0]).deep.eq({
           col: 'region',
           op: 'IN',
@@ -121,7 +122,8 @@ describe('Dashboard tabs', () => {
 
     cy.wait('@legacyChartData').then(({ request }) => {
       const requestBody = parsePostForm(request.body);
-      const requestParams = JSON.parse(requestBody.form_data as string);
+      const requestParams = JSON.parse(requestBody as unknown as string)
+        .form_data as Record<string, string | string[]>;
       expect(requestParams.extra_filters[0]).deep.eq({
         col: 'region',
         op: 'IN',
@@ -173,6 +175,7 @@ describe('Dashboard tabs', () => {
 
     expandFilterOnLeftPanel();
 
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
     cy.wait(1000);
 
     cy.get('@top-level-tabs')
@@ -180,6 +183,7 @@ describe('Dashboard tabs', () => {
       .click()
       .should('have.class', 'ant-tabs-tab-active');
 
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
     cy.wait(1000);
 
     cy.get("[data-test-viz-type='treemap_v2'] .chart-container").then(

@@ -240,7 +240,7 @@ test('should not render a save dataset modal when datasource is not query or dat
   render(<DatasourcePanel {...newProps} />, { useRedux: true, useDnd: true });
   expect(await screen.findByText(/metrics/i)).toBeInTheDocument();
 
-  expect(screen.queryByText(/create a dataset/i)).toBe(null);
+  expect(screen.queryByText(/create a dataset/i)).not.toBeInTheDocument();
 });
 
 test('should render only droppable metrics and columns', async () => {

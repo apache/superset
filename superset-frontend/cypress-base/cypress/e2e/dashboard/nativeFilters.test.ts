@@ -202,6 +202,7 @@ function openVerticalFilterBar() {
 
 function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
   cy.getBySel('filterbar-orientation-icon').click();
+  // eslint-disable-next-line cypress/no-unnecessary-waiting
   cy.wait(250);
   cy.getBySel('dropdown-selectable-icon-submenu')
     .contains('Orientation of filter bar')
@@ -498,6 +499,7 @@ describe('Native filters', () => {
         .last()
         .click();
       //
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
       cy.wait(1000);
       cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
         () => {

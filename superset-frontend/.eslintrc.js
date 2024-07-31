@@ -128,7 +128,6 @@ module.exports = {
         'import/no-named-as-default-member': 0,
         'import/prefer-default-export': 0,
         indent: 0,
-        'cypress/unsafe-to-chain-command': 0,
         'jsx-a11y/anchor-is-valid': 2,
         'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
         'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
@@ -166,7 +165,6 @@ module.exports = {
         'file-progress/activate': 1,
         // delete me later: temporary rules to help with migration
         'jsx-no-useless-fragment': 0,
-        'jest-dom/prefer-in-document': 0,
         'react/function-component-definition': [
           0,
           {

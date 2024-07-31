@@ -42,6 +42,7 @@ function openProperties() {
     cy.getBySel('header-actions-menu')
       .contains('Edit properties')
       .click({ force: true });
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
     cy.wait(500);
   });
 }
@@ -62,6 +63,7 @@ function dragComponent(
     cy.getBySel('dashboard-charts-filter-search-input').type(component);
     cy.wait('@filtering');
   }
+  // eslint-disable-next-line cypress/no-unnecessary-waiting
   cy.wait(500);
   drag(`[data-test="${target}"]`, component).to(
     '[data-test="grid-content"] [data-test="dragdroppable-object"]',
@@ -84,6 +86,7 @@ function visitEdit(sampleDashboard = SAMPLE_DASHBOARD_1) {
   cy.wait('@get');
   editDashboard();
   cy.wait('@filtering');
+  // eslint-disable-next-line cypress/no-unnecessary-waiting
   cy.wait(500);
 }
 

@@ -253,7 +253,9 @@ describe('Drill to detail modal', () => {
         // focus on table first to trigger browser scroll
         cy.get("[data-test-viz-type='table']").contains('boy').rightclick();
 
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
         cy.wait(500);
+
         cy.get("[data-test-viz-type='table']")
           .contains('boy')
           .scrollIntoView()
@@ -267,6 +269,7 @@ describe('Drill to detail modal', () => {
 
         // focus on table first to trigger browser scroll
         cy.get("[data-test-viz-type='table']").contains('girl').rightclick();
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
         cy.wait(500);
         cy.get("[data-test-viz-type='table']")
           .scrollIntoView()
