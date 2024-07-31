@@ -30,6 +30,8 @@ import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
 from sqlalchemy_utils import EncryptedType  # noqa: E402
 
+from superset.migrations.shared.constraints import drop_fks_for_table  # noqa: E402
+
 
 def upgrade():
     op.create_table(
@@ -80,16 +82,6 @@ def upgrade():
 
 
 def downgrade():
-    # get all foreign keys for table database_user_oauth2_tokens
-    connection = op.get_bind()
-    inspector = sa.engine.reflection.Inspector.from_engine(connection)
-    foreign_keys = inspector.get_foreign_keys("database_user_oauth2_tokens")
-
-    # drop all foreign keys
-    for fk in foreign_keys:
-        op.drop_constraint(
-            fk["name"], "database_user_oauth2_tokens", type_="foreignkey"
-        )
-
+    drop_fks_for_table("database_user_oauth2_tokens")
     op.drop_index("idx_user_id_database_id", table_name="database_user_oauth2_tokens")
     op.drop_table("database_user_oauth2_tokens")
