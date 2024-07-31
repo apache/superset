@@ -105,7 +105,7 @@ export interface ChartPropsConfig {
   inputRef?: RefObject<any>;
   /** Theme object */
   theme: SupersetTheme;
-  /** Set chart data selectable by user **/
+  /** Set chart data selectable by user */
   dataSelectionMode?: string;
 }
 
@@ -272,7 +272,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         inContextMenu,
         emitCrossFilters,
         theme,
-	dataSelectionMode,
+        dataSelectionMode,
       }),
   );
 };

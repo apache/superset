@@ -899,7 +899,10 @@ export class TableRenderer extends Component {
     };
 
     return (
-      <Styles isDashboardEditMode={this.isDashboardEditMode()} dataSelectionMode={this.props.dataSelectionMode}>
+      <Styles
+        isDashboardEditMode={this.isDashboardEditMode()}
+        dataSelectionMode={this.props.dataSelectionMode}
+      >
         <table className="pvtTable" role="grid">
           <thead>
             {colAttrs.map((c, j) =>
