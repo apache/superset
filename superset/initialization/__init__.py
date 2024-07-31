@@ -369,12 +369,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
         appbuilder.add_api(SecurityRestApi)
-
-        # Adding additional REST Security APIs
-        # if appbuilder.app.config.get("FAB_ADD_SECURITY_API", False):
-        #     appbuilder.add_api(SupersetRoleApi)
-        #     appbuilder.add_api(SupersetPermissionApi)
-
         #
         # Conditionally setup email views
         #

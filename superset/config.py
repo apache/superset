@@ -193,8 +193,6 @@ SQLALCHEMY_DATABASE_URI = (
     f"""sqlite:///{os.path.join(DATA_DIR, "superset.db")}?check_same_thread=false"""
 )
 
-FAB_ADD_SECURITY_API = True
-
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
