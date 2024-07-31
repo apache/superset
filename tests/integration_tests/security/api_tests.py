@@ -157,7 +157,7 @@ class TestSecurityRolesApi(SupersetTestCase):
         """
         self.login(GAMMA_USERNAME)
         response = self.client.get(self.uri)
-        self.assert200(response)
+        self.assert403(response)
 
     @with_config({"FAB_ADD_SECURITY_API": True})
     def test_post_security_roles_gamma(self):
@@ -197,3 +197,64 @@ class TestSecurityRolesApi(SupersetTestCase):
             content_type="application/json",
         )
         self.assert403(response)
+
+
+class TestSecurityPermissionsApi(SupersetTestCase):
+    uri = "api/v1/security/permission/"  # noqa: F541
+
+    @with_config({"FAB_ADD_SECURITY_API": True})
+    def test_get_security_roles_admin(self):
+        """
+        Security API: Admin should be able to create roles
+        """
+        self.login(ADMIN_USERNAME)
+        response = self.client.get(self.uri)
+        self.assert200(response)
+
+    @with_config({"FAB_ADD_SECURITY_API": True})
+    def test_get_security_roles_gamma(self):
+        """
+        Security API: Admin should be able to create roles
+        """
+        self.login(GAMMA_USERNAME)
+        response = self.client.get(self.uri)
+        self.assert200(response)
+
+    @with_config({"FAB_ADD_SECURITY_API": True})
+    def test_post_security_roles_gamma(self):
+        """
+        Security API: Gamma shouldnt be able to create roles
+        """
+        self.login(GAMMA_USERNAME)
+        response = self.client.post(
+            self.uri,
+            data=json.dumps({"name": "new_role"}),
+            content_type="application/json",
+        )
+        self.assert403(response)
+
+    # @with_config({"FAB_ADD_SECURITY_API": True})
+    # def test_put_security_roles_gamma(self):
+    #     """
+    #     Security API: <TODO>
+    #     """
+    #     self.login(GAMMA_USERNAME)
+    #     response = self.client.put(
+    #         f"{self.uri}1",
+    #         data=json.dumps({"name": "new_role"}),
+    #         content_type="application/json",
+    #     )
+    #     self.assert403(response)
+
+    # @with_config({"FAB_ADD_SECURITY_API": True})
+    # def test_delete_security_roles_gamma(self):
+    #     """
+    #     Security API: <TODO>
+    #     """
+    #     self.login(GAMMA_USERNAME)
+    #     response = self.client.delete(
+    #         f"{self.uri}1",
+    #         data=json.dumps({"name": "new_role"}),
+    #         content_type="application/json",
+    #     )
+    #     self.assert403(response)

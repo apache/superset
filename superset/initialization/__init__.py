@@ -153,7 +153,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
-        from superset.security.api import SecurityRestApi, SupersetRoleApi
+        from superset.security.api import SecurityRestApi
         from superset.sqllab.api import SqlLabRestApi
         from superset.tags.api import TagRestApi
         from superset.views.alerts import AlertView, ReportView
@@ -371,8 +371,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SecurityRestApi)
 
         # Adding additional REST Security APIs
-        if appbuilder.app.config.get("FAB_ADD_SECURITY_API", False):
-            appbuilder.add_api(SupersetRoleApi)
+        # if appbuilder.app.config.get("FAB_ADD_SECURITY_API", False):
+        #     appbuilder.add_api(SupersetRoleApi)
+        #     appbuilder.add_api(SupersetPermissionApi)
 
         #
         # Conditionally setup email views
