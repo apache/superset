@@ -16,5 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-declare module 'ace-builds/src-min-noconflict/worker-css';
-declare module 'ace-builds/src-min-noconflict/ace';
+
+declare module 'ace-builds/src-min-noconflict/mode-sql';
