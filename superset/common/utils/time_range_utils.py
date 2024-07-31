@@ -21,7 +21,7 @@ from typing import Any, cast
 
 from superset import app
 from superset.common.query_object import QueryObject
-from superset.utils.core import FilterOperator, get_xaxis_label
+from superset.utils.core import FilterOperator, get_x_axis_label
 from superset.utils.date_parser import get_since_until
 
 
@@ -49,7 +49,7 @@ def get_since_until_from_query_object(
     """
     this function will return since and until by tuple if
     1) the time_range is in the query object.
-    2) the xaxis column is in the columns field
+    2) the x-axis column is in the columns field
        and its corresponding `temporal_range` filter is in the adhoc filters.
     :param query_object: a valid query object
     :return: since and until by tuple
@@ -65,7 +65,7 @@ def get_since_until_from_query_object(
     for flt in query_object.filter:
         if (
             flt.get("op") == FilterOperator.TEMPORAL_RANGE.value
-            and flt.get("col") == get_xaxis_label(query_object.columns)
+            and flt.get("col") == get_x_axis_label(query_object.columns)
             and isinstance(flt.get("val"), str)
         ):
             time_range = cast(str, flt.get("val"))

@@ -115,7 +115,7 @@ def get_children(column: ResultSetColumnType) -> list[ResultSetColumnType]:
     pattern = re.compile(r"(?P<type>\w+)\((?P<children>.*)\)")
     if not column["type"]:
         raise ValueError
-    match = pattern.match(column["type"])
+    match = pattern.match(cast(str, column["type"]))
     if not match:
         raise Exception(  # pylint: disable=broad-exception-raised
             f"Unable to parse column type {column['type']}"
@@ -508,6 +508,10 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
         for col_name, value in zip(col_names, values):
             col_type = column_type_by_name.get(col_name)
+
+            if isinstance(col_type, str):
+                col_type_class = getattr(types, col_type, None)
+                col_type = col_type_class() if col_type_class else None
 
             if isinstance(col_type, types.DATE):
                 col_type = Date()

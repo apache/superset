@@ -48,8 +48,11 @@ import {
   css,
   t,
   tn,
+  useTheme,
 } from '@superset-ui/core';
-
+import { isNumber } from 'lodash';
+import { InfoCircleOutlined } from '@ant-design/icons';
+import { Tooltip } from '@superset-ui/chart-controls';
 import { DataColumnMeta, TableChartTransformedProps } from './types';
 import DataTable, {
   DataTableProps,
@@ -250,6 +253,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   });
   // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
+  const theme = useTheme();
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
@@ -572,7 +576,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
-                    value && value < 0 ? 'negative' : 'positive',
+                    isNumber(value) && value < 0 ? 'negative' : 'positive',
                   )}
                   css={cellBarStyles}
                 />
@@ -639,7 +643,27 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ),
         Footer: totals ? (
           i === 0 ? (
-            <th>{t('Totals')}</th>
+            <th>
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  & svg {
+                    margin-left: ${theme.gridUnit}px;
+                    color: ${theme.colors.grayscale.dark1} !important;
+                  }
+                `}
+              >
+                {t('Summary')}
+                <Tooltip
+                  overlay={t(
+                    'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
+                  )}
+                >
+                  <InfoCircleOutlined />
+                </Tooltip>
+              </div>
+            </th>
           ) : (
             <td style={sharedStyle}>
               <strong>{formatColumnValue(column, totals[key])[1]}</strong>

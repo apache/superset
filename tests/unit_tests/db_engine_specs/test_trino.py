@@ -19,15 +19,16 @@ import copy
 import json
 from datetime import datetime
 from typing import Any, Optional
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 from requests.exceptions import ConnectionError as RequestsConnectionError
-from sqlalchemy import types
+from sqlalchemy import sql, text, types
 from trino.exceptions import TrinoExternalError, TrinoInternalError, TrinoUserError
 from trino.sqlalchemy import datatype
+from trino.sqlalchemy.dialect import TrinoDialect
 
 import superset.config
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
@@ -37,7 +38,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.superset_typing import ResultSetColumnType, SQLAColumnType
+from superset.superset_typing import ResultSetColumnType, SQLAColumnType, SQLType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -395,7 +396,7 @@ def test_handle_cursor_early_cancel(
         assert cancel_query_mock.call_args is None
 
 
-def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
+def test_execute_with_cursor_in_parallel(app, mocker: MockerFixture):
     """Test that `execute_with_cursor` fetches query ID from the cursor"""
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
@@ -410,16 +411,20 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
         mock_cursor.query_id = query_id
 
     mock_cursor.execute.side_effect = _mock_execute
+    with patch.dict(
+        "superset.config.DISALLOWED_SQL_FUNCTIONS",
+        {},
+        clear=True,
+    ):
+        TrinoEngineSpec.execute_with_cursor(
+            cursor=mock_cursor,
+            sql="SELECT 1 FROM foo",
+            query=mock_query,
+        )
 
-    TrinoEngineSpec.execute_with_cursor(
-        cursor=mock_cursor,
-        sql="SELECT 1 FROM foo",
-        query=mock_query,
-    )
-
-    mock_query.set_extra_json_key.assert_called_once_with(
-        key=QUERY_CANCEL_KEY, value=query_id
-    )
+        mock_query.set_extra_json_key.assert_called_once_with(
+            key=QUERY_CANCEL_KEY, value=query_id
+        )
 
 
 def test_get_columns(mocker: MockerFixture):
@@ -548,3 +553,47 @@ def test_get_dbapi_exception_mapping():
     assert mapping.get(TrinoExternalError) == SupersetDBAPIOperationalError
     assert mapping.get(RequestsConnectionError) == SupersetDBAPIConnectionError
     assert mapping.get(Exception) is None
+
+
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.latest_partition")
+@pytest.mark.parametrize(
+    ["column_type", "column_value", "expected_value"],
+    [
+        (types.DATE(), "2023-05-01", "DATE '2023-05-01'"),
+        (types.TIMESTAMP(), "2023-05-01", "TIMESTAMP '2023-05-01'"),
+        (types.VARCHAR(), "2023-05-01", "'2023-05-01'"),
+        (types.INT(), 1234, "1234"),
+    ],
+)
+def test_where_latest_partition(
+    mock_latest_partition,
+    column_type: SQLType,
+    column_value: Any,
+    expected_value: str,
+) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mock_latest_partition.return_value = (["partition_key"], [column_value])
+
+    assert (
+        str(
+            TrinoEngineSpec.where_latest_partition(  # type: ignore
+                database=MagicMock(),
+                table_name="table",
+                schema="schema",
+                query=sql.select(text("* FROM table")),
+                columns=[
+                    {
+                        "column_name": "partition_key",
+                        "name": "partition_key",
+                        "type": column_type,
+                        "is_dttm": False,
+                    }
+                ],
+            ).compile(
+                dialect=TrinoDialect(),
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+        == f"""SELECT * FROM table \nWHERE partition_key = {expected_value}"""
+    )

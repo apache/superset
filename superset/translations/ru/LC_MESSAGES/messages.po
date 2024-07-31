@@ -2401,7 +2401,7 @@ msgid "Area Chart"
 msgstr "Диаграмма с областями"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:42
-msgid "Area Chart (legacy)"
+msgid "Time-series Area Chart (legacy)"
 msgstr "Диаграмма с областями (устарело)"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:177

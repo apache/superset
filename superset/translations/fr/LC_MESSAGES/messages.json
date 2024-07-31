@@ -2189,7 +2189,7 @@
       "Limits the number of the rows that are computed in the query that is the source of the data used for this chart.": [
         "Définissez une fonction javascript qui reçoit le tableau de données utilisé dans la visualisation et qui doit renvoyer une version modifiée de ce tableau. Cette fonction peut être utilisée pour modifier les propriétés des données, filtrer ou enrichir le tableau."
       ],
-      "Line Chart (legacy)": ["Tableau linéaire (héritage)"],
+      "Time-series Line Chart (legacy)": ["Tableau linéaire (héritage)"],
       "Line Style": ["Style de ligne"],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         "Le graphique linéaire est utilisé pour visualiser les mesures prises sur une catégorie donnée. Le graphique linéaire est un type de graphique qui affiche les informations sous forme de série de points de données reliés par des segments linéaires. Il s’agit d’un type de tableau de base commun dans de nombreux champs."

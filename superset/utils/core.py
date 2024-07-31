@@ -68,7 +68,7 @@ from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
 from sqlalchemy import event, exc, inspect, select, Text
-from sqlalchemy.dialects.mysql import MEDIUMTEXT
+from sqlalchemy.dialects.mysql import LONGTEXT, MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
@@ -505,8 +505,8 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> Any:
         return base_json_conv(obj)
     except TypeError as ex:
         if pessimistic:
+            logger.error("Failed to serialize %s", obj)
             return f"Unserializable [{type(obj)}]"
-
         raise ex
 
 
@@ -1177,16 +1177,23 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     )
 
 
+def is_base_axis(column: Column) -> bool:
+    return is_adhoc_column(column) and column.get("columnType") == "BASE_AXIS"
+
+
+def get_base_axis_columns(columns: list[Column] | None) -> list[Column]:
+    return [column for column in columns or [] if is_base_axis(column)]
+
+
+def get_non_base_axis_columns(columns: list[Column] | None) -> list[Column]:
+    return [column for column in columns or [] if not is_base_axis(column)]
+
+
 def get_base_axis_labels(columns: list[Column] | None) -> tuple[str, ...]:
-    axis_cols = [
-        col
-        for col in columns or []
-        if is_adhoc_column(col) and col.get("columnType") == "BASE_AXIS"
-    ]
-    return tuple(get_column_name(col) for col in axis_cols)
+    return tuple(get_column_name(column) for column in get_base_axis_columns(columns))
 
 
-def get_xaxis_label(columns: list[Column] | None) -> str | None:
+def get_x_axis_label(columns: list[Column] | None) -> str | None:
     labels = get_base_axis_labels(columns)
     return labels[0] if labels else None
 
@@ -1467,6 +1474,10 @@ def time_function(
 
 def MediumText() -> Variant:  # pylint:disable=invalid-name
     return Text().with_variant(MEDIUMTEXT(), "mysql")
+
+
+def LongText() -> Variant:  # pylint:disable=invalid-name
+    return Text().with_variant(LONGTEXT(), "mysql")
 
 
 def shortid() -> str:

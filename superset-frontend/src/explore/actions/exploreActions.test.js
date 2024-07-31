@@ -217,4 +217,23 @@ describe('reducers', () => {
       expectedColumnConfig,
     );
   });
+
+  test('setStashFormData works as expected with fieldNames', () => {
+    const newState = exploreReducer(
+      defaultState,
+      actions.setStashFormData(true, ['y_axis_format']),
+    );
+    expect(newState.hiddenFormData).toEqual({
+      y_axis_format: defaultState.form_data.y_axis_format,
+    });
+    expect(newState.form_data.y_axis_format).toBeFalsy();
+    const updatedState = exploreReducer(
+      newState,
+      actions.setStashFormData(false, ['y_axis_format']),
+    );
+    expect(updatedState.hiddenFormData.y_axis_format).toBeFalsy();
+    expect(updatedState.form_data.y_axis_format).toEqual(
+      defaultState.form_data.y_axis_format,
+    );
+  });
 });

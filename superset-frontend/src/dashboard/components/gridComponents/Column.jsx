@@ -98,9 +98,6 @@ const ColumnStyles = styled.div`
         &:first-child {
           inset-block-start: 0;
         }
-        &:last-child {
-          inset-block-end: 0;
-        }
       }
       &:first-child:not(.droptarget-edge) {
         position: absolute;
