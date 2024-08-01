@@ -31,7 +31,7 @@
     "classnames": "^2.5.1",
     "d3-array": "^2.4.0",
     "lodash": "^4.17.21",
-    "memoize-one": "^5.1.1",
+    "memoize-one": "^5.2.1",
     "react-table": "^7.8.0",
     "regenerator-runtime": "^0.14.1",
     "xss": "^1.0.15"

@@ -150,7 +150,7 @@
     "mapbox-gl": "^2.10.0",
     "markdown-to-jsx": "^7.4.7",
     "match-sorter": "^6.3.4",
-    "memoize-one": "^5.1.1",
+    "memoize-one": "^5.2.1",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.44",
     "mousetrap": "^1.6.5",
