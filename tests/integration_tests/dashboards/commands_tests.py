@@ -22,7 +22,12 @@ import yaml
 from werkzeug.utils import secure_filename
 
 from superset import db, security_manager
-from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.commands.dashboard.copy import CopyDashboardCommand
+from superset.commands.dashboard.exceptions import (
+    DashboardForbiddenError,
+    DashboardInvalidError,
+    DashboardNotFoundError,
+)
 from superset.commands.dashboard.export import (
     append_charts,
     ExportDashboardsCommand,
@@ -36,6 +41,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
+from superset.utils.core import override_user
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
@@ -660,3 +666,57 @@ class TestImportDashboardsCommand(SupersetTestCase):
                 "table_name": ["Missing data for required field."],
             }
         }
+
+
+class TestCopyDashboardCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_copy_dashboard_command(self):
+        """Test that an admin user can copy a dashboard"""
+        with self.client.application.test_request_context():
+            example_dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").one()
+            )
+            copy_data = {"dashboard_title": "Copied Dashboard", "json_metadata": "{}"}
+
+            with override_user(security_manager.find_user("admin")):
+                command = CopyDashboardCommand(example_dashboard, copy_data)
+                copied_dashboard = command.run()
+
+            assert copied_dashboard.dashboard_title == "Copied Dashboard"
+            assert copied_dashboard.slug != example_dashboard.slug
+            assert copied_dashboard.slices == example_dashboard.slices
+
+            db.session.delete(copied_dashboard)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_copy_dashboard_command_no_access(self):
+        """Test that a non-owner user cannot copy a dashboard if DASHBOARD_RBAC is enabled"""
+        with self.client.application.test_request_context():
+            example_dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").one()
+            )
+            copy_data = {"dashboard_title": "Copied Dashboard", "json_metadata": "{}"}
+
+            with override_user(security_manager.find_user("gamma")):
+                with patch(
+                    "superset.commands.dashboard.copy.is_feature_enabled",
+                    return_value=True,
+                ):
+                    command = CopyDashboardCommand(example_dashboard, copy_data)
+                    with self.assertRaises(DashboardForbiddenError):
+                        command.run()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_copy_dashboard_command_invalid_data(self):
+        """Test that invalid data raises a DashboardInvalidError"""
+        with self.client.application.test_request_context():
+            example_dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").one()
+            )
+        invalid_copy_data = {"dashboard_title": "", "json_metadata": "{}"}
+
+        with override_user(security_manager.find_user("admin")):
+            command = CopyDashboardCommand(example_dashboard, invalid_copy_data)
+            with self.assertRaises(DashboardInvalidError):
+                command.run()

@@ -783,14 +783,12 @@ function ChartList(props: ChartListProps) {
   return (
     <>
       <SubMenu name={t('Charts')} buttons={subMenuButtons} />
-      {sliceCurrentlyEditing && (
-        <PropertiesModal
-          onHide={closeChartEditModal}
-          onSave={handleChartUpdated}
-          show
-          slice={sliceCurrentlyEditing}
-        />
-      )}
+      <PropertiesModal
+        onHide={closeChartEditModal}
+        onSave={handleChartUpdated}
+        show={!!sliceCurrentlyEditing}
+        slice={sliceCurrentlyEditing}
+      />
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t('Are you sure you want to delete the selected charts?')}

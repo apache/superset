@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-03 14:07-0700\n"
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -205,9 +205,8 @@ msgid ""
 "schedule with a minimum interval of %(minimum_interval)d minutes per "
 "execution."
 msgstr ""
-"%(report_type) のスケジュール頻度が制限を超えています。"
-"処理ごとに %(minimum_interval) 分の間隔を持ったスケジュールを設定してください。"
-
+"%(report_type) のスケジュール頻度が制限を超えています。処理ごとに %(minimum_interval) "
+"分の間隔を持ったスケジュールを設定してください。"
 
 #, python-format
 msgid "%(rows)d rows returned"
@@ -348,6 +347,21 @@ msgstr "(説明なし、クリックするとスタック トレースが表示�
 msgid "), and they become available in your SQL (example:"
 msgstr ")、SQL で使用できるようになります (例:"
 
+#, fuzzy, python-format
+msgid ""
+"*%(name)s*\n"
+"\n"
+"    %(description)s\n"
+"\n"
+"    Error: %(text)s\n"
+"    "
+msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"エラー: %(text)s\n"
+
 #, python-format
 msgid ""
 "*%(name)s*\n"
@@ -365,20 +379,6 @@ msgstr ""
 "<%(url)s|スーパーセット内の探索>\n"
 "\n"
 "%(table)s\n"
-
-#, python-format
-msgid ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Error: %(text)s\n"
-msgstr ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"エラー: %(text)s\n"
 
 #, python-format
 msgid "+ %s more"
@@ -797,6 +797,14 @@ msgstr "追加"
 msgid "Add Alert"
 msgstr "アラートを追加"
 
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "最近の"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "最近の"
+
 msgid "Add CSS template"
 msgstr "CSSテンプレートを追加"
 
@@ -993,14 +1001,12 @@ msgstr "比較値からの正または負の変化に基づいてチャート �
 msgid ""
 "Adjust column settings such as specifying the columns to read, how "
 "duplicates are handled, column data types, and more."
-msgstr ""
-"列の設定を調整する。(例：読み込む列の指定、重複の処理方法、列のデータ型）"
+msgstr "列の設定を調整する。(例：読み込む列の指定、重複の処理方法、列のデータ型）"
 
 msgid ""
 "Adjust how spaces, blank lines, null values are handled and other file "
 "wide settings."
-msgstr ""
-"スペース、空白行、NULL値の扱い方や、その他のファイル全体の設定を調整する。"
+msgstr "スペース、空白行、NULL値の扱い方や、その他のファイル全体の設定を調整する。"
 
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "このデータベースが SQL Lab とどのように対話するかを調整"
@@ -1760,6 +1766,10 @@ msgstr "軸上昇"
 msgid "Axis descending"
 msgstr "軸下降"
 
+#, fuzzy
+msgid "BCC recipients"
+msgstr "最近の"
+
 msgid "BOOLEAN"
 msgstr "ブール値"
 
@@ -1986,6 +1996,10 @@ msgstr "値による: メトリック値を並べ替えキーとして使用し�
 
 msgid "CANCEL"
 msgstr "キャンセル"
+
+#, fuzzy
+msgid "CC recipients"
+msgstr "最近の"
 
 msgid "CREATE DATASET"
 msgstr "データセットを作成"
@@ -2458,6 +2472,10 @@ msgid "Choose notification method and recipients."
 msgstr "通知方法を追加"
 
 msgid "Choose one of the available databases from the panel on the left."
+msgstr "左側のパネルから利用可能なデータベースの 1 つを選択します。"
+
+#, fuzzy
+msgid "Choose one of the available databases on the left panel."
 msgstr "左側のパネルから利用可能なデータベースの 1 つを選択します。"
 
 #, fuzzy
@@ -7377,9 +7395,6 @@ msgid ""
 " or username."
 msgstr "所有者は、ダッシュボードを変更できるユーザーのリストです。名前またはユーザー名で検索できます。"
 
-msgid "PDF download failed, please refresh and try again."
-msgstr "PDF のダウンロードに失敗しました。更新してもう一度お試しください。"
-
 msgid "Page length"
 msgstr "ページの長さ"
 
@@ -7811,6 +7826,9 @@ msgstr "主 y 軸境界"
 
 msgid "Primary y-axis format"
 msgstr "プライマリ y 軸フォーマット"
+
+msgid "Private Channels (Bot in channel)"
+msgstr ""
 
 msgid "Private Key"
 msgstr "個人のキー"
@@ -8936,6 +8954,10 @@ msgstr "メタデータ検査用の列を選択します"
 msgid "Select catalog or type to search catalogs"
 msgstr "テーブルを選択するか、テーブルを検索するタイプを選択してください"
 
+#, fuzzy
+msgid "Select channels"
+msgstr "チャートを選択"
+
 msgid "Select chart"
 msgstr "チャートを選択"
 
@@ -9216,6 +9238,10 @@ msgstr "シート名"
 
 msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift クリックして複数の列で並べ替えます"
+
+#, fuzzy
+msgid "Shift start date"
+msgstr "開始日"
 
 msgid "Short description must be unique for this layer"
 msgstr "短い説明はこのレイヤーに対して一意である必要があります。"
@@ -9516,6 +9542,11 @@ msgstr "ソリッド"
 
 msgid "Some roles do not exist"
 msgstr "一部のロールが存在しません"
+
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
+msgstr ""
 
 msgid "Something went wrong."
 msgstr "何か問題が発生しました。"
@@ -10256,6 +10287,10 @@ msgstr "このクエリで参照されているデータベースが見つかり
 msgid "The database returned an unexpected error."
 msgstr "データベースが予期しないエラーを返しました。"
 
+#, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "データベースが見つかりませんでした。"
+
 msgid "The database was deleted."
 msgstr "データベースが削除されました。"
 
@@ -10681,6 +10716,15 @@ msgstr "送信されたペイロードのスキーマが無効です。"
 msgid "The schema was deleted or renamed in the database."
 msgstr "データベース内のスキーマが削除されたか、名前が変更されました。"
 
+msgid "The screenshot could not be downloaded. Please, try again later."
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+
 msgid "The size of each cell in meters"
 msgstr "各セルのサイズ (メートル単位)"
 
@@ -10844,8 +10888,9 @@ msgstr "データセットの関連オブジェクトの取得中にエラーが
 msgid "There was an error fetching the favorite status: %s"
 msgstr "お気に入りステータスの取得中にエラーが発生しました: %s"
 
-msgid "There was an error fetching your recent activity:"
-msgstr "最近のアクティビティの取得中にエラーが発生しました:"
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "お気に入りステータスの取得中にエラーが発生しました: %s"
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -11176,6 +11221,11 @@ msgid "This metric might be incompatible with current dataset"
 msgstr "このメトリクスは現在のデータセットと互換性がない可能性があります"
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
 msgstr ""
 
 msgid ""
@@ -11707,6 +11757,10 @@ msgstr "不明な Doris サーバー ホスト \"%(hostname)s\"。"
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
 msgstr "不明な MySQL サーバー ホスト \"%(hostname)s\"。"
+
+#, fuzzy, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
+msgstr "不明な Doris サーバー ホスト \"%(hostname)s\"。"
 
 msgid "Unknown Presto Error"
 msgstr "不明なプレスト エラー"
@@ -13394,6 +13448,10 @@ msgstr "In"
 
 msgid "in modal"
 msgstr "モーダルで"
+
+#, fuzzy
+msgid "invalid email"
+msgstr "パーマリンクキーが無効です。"
 
 msgid "is expected to be a Mapbox URL"
 msgstr "Mapbox URL であることが期待されます"

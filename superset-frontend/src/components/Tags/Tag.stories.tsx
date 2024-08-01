@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import TagType from 'src/types/TagType';
 import { Tag } from '.';
 
@@ -24,11 +23,7 @@ export default {
   title: 'Tags',
   component: Tag,
 };
-export const InteractiveTag = (args: TagType) => (
-  <AntdThemeProvider>
-    <Tag {...args} />
-  </AntdThemeProvider>
-);
+export const InteractiveTag = (args: TagType) => <Tag {...args} />;
 
 InteractiveTag.args = {
   editable: false,

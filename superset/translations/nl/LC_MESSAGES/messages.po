@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-03 14:07-0700\n"
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -360,6 +360,21 @@ msgstr "(geen beschrijving, klik om de tracering te zien)"
 msgid "), and they become available in your SQL (example:"
 msgstr "), en ze zijn beschikbaar in uw SQL (voorbeeld:"
 
+#, fuzzy, python-format
+msgid ""
+"*%(name)s*\n"
+"\n"
+"    %(description)s\n"
+"\n"
+"    Error: %(text)s\n"
+"    "
+msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"Fout: %(text)s\n"
+
 #, python-format
 msgid ""
 "*%(name)s*\n"
@@ -377,20 +392,6 @@ msgstr ""
 "<%(url)s| Verken in Superset>\n"
 "\n"
 "%(table)s\n"
-
-#, python-format
-msgid ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Error: %(text)s\n"
-msgstr ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Fout: %(text)s\n"
 
 #, python-format
 msgid "+ %s more"
@@ -834,6 +835,14 @@ msgstr "Voeg toe"
 
 msgid "Add Alert"
 msgstr "Alarm toevoegen"
+
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "recente"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "recente"
 
 msgid "Add CSS template"
 msgstr "Voeg CSS template toe"
@@ -1871,6 +1880,10 @@ msgstr "As oplopend"
 msgid "Axis descending"
 msgstr "As aflopend"
 
+#, fuzzy
+msgid "BCC recipients"
+msgstr "recente"
+
 msgid "BOOLEAN"
 msgstr "BOOLEAN"
 
@@ -2120,6 +2133,10 @@ msgstr "Op waarde: gebruik metriek waarden als sorteersleutel"
 
 msgid "CANCEL"
 msgstr "ANNULEER"
+
+#, fuzzy
+msgid "CC recipients"
+msgstr "recente"
 
 msgid "CREATE DATASET"
 msgstr "DATASET AANMAKEN"
@@ -2603,6 +2620,10 @@ msgid "Choose notification method and recipients."
 msgstr "Meldingsmethode toevoegen"
 
 msgid "Choose one of the available databases from the panel on the left."
+msgstr "Kies een van de beschikbare databases uit het paneel aan de linkerkant."
+
+#, fuzzy
+msgid "Choose one of the available databases on the left panel."
 msgstr "Kies een van de beschikbare databases uit het paneel aan de linkerkant."
 
 #, fuzzy
@@ -7794,9 +7815,6 @@ msgstr ""
 "Eigenaren zijn een lijst met gebruikers die het dashboard kunnen "
 "veranderen. Doorzoekbaar op naam of gebruikersnaam."
 
-msgid "PDF download failed, please refresh and try again."
-msgstr "PDF download is mislukt, vernieuw en probeer het opnieuw."
-
 msgid "Page length"
 msgstr "Pagina lengte"
 
@@ -8247,6 +8265,9 @@ msgstr "Primaire y-as Grenzen"
 
 msgid "Primary y-axis format"
 msgstr "Primair y-as formaat"
+
+msgid "Private Channels (Bot in channel)"
+msgstr ""
 
 msgid "Private Key"
 msgstr "Privésleutel"
@@ -9413,6 +9434,10 @@ msgstr "Selecteer alle kolommen voor metadata inspectie"
 msgid "Select catalog or type to search catalogs"
 msgstr "Selecteer tabel of type om tabellen te zoeken"
 
+#, fuzzy
+msgid "Select channels"
+msgstr "Selecteer grafieken"
+
 msgid "Select chart"
 msgstr "Selecteer grafiek"
 
@@ -9705,6 +9730,10 @@ msgstr "Naam tabblad"
 
 msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift + Klik om te sorteren op meerdere kolommen"
+
+#, fuzzy
+msgid "Shift start date"
+msgstr "Start datum"
 
 msgid "Short description must be unique for this layer"
 msgstr "Korte beschrijving moet uniek zijn voor deze laag"
@@ -10029,6 +10058,11 @@ msgstr "Stevig"
 
 msgid "Some roles do not exist"
 msgstr "Sommige rollen bestaan niet"
+
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
+msgstr ""
 
 msgid "Something went wrong."
 msgstr "Er ging iets mis."
@@ -10808,6 +10842,10 @@ msgstr ""
 msgid "The database returned an unexpected error."
 msgstr "De database gaf een onverwachte foutmelding."
 
+#, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "De database kon niet worden gevonden"
+
 msgid "The database was deleted."
 msgstr "De database is verwijderd."
 
@@ -11318,6 +11356,15 @@ msgstr "Het schema van de ingediende payload is ongeldig."
 msgid "The schema was deleted or renamed in the database."
 msgstr "Het schema werd verwijderd of hernoemd in de database."
 
+msgid "The screenshot could not be downloaded. Please, try again later."
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+
 msgid "The size of each cell in meters"
 msgstr "Grootte van elke cel in meters"
 
@@ -11514,8 +11561,9 @@ msgstr ""
 msgid "There was an error fetching the favorite status: %s"
 msgstr "Er is een fout opgetreden bij het ophalen van de favoriete status: %s"
 
-msgid "There was an error fetching your recent activity:"
-msgstr "Er is een fout opgetreden bij het ophalen van uw recente activiteit:"
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "Er is een fout opgetreden bij het ophalen van de favoriete status: %s"
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -11896,6 +11944,11 @@ msgid "This metric might be incompatible with current dataset"
 msgstr "Deze metriek is mogelijk niet compatibel met huidig dataset"
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
 msgstr ""
 
 msgid ""
@@ -12461,6 +12514,10 @@ msgstr "Onbekende Doris server host \"%(hostname)s\"."
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
 msgstr "Onbekende MySQL server host “%(hostname)s”."
+
+#, fuzzy, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
+msgstr "Onbekende Doris server host \"%(hostname)s\"."
 
 msgid "Unknown Presto Error"
 msgstr "Onbekende Presto Fout"
@@ -14312,6 +14369,10 @@ msgstr "in"
 
 msgid "in modal"
 msgstr "in modal"
+
+#, fuzzy
+msgid "invalid email"
+msgstr "Ongeldige permalink sleutel"
 
 msgid "is expected to be a Mapbox URL"
 msgstr "wordt verwacht een Mapbox URL te zijn"

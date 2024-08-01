@@ -160,7 +160,6 @@ const FormatPickerLabel = styled.span`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.base};
   margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  text-transform: uppercase;
 `;
 
 const DataTableTemporalHeaderCell = ({

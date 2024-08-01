@@ -67,7 +67,6 @@ const AllEntitiesContainer = styled.div`
     margin-bottom: ${theme.gridUnit * 2}px;
   }
   .select-control-label {
-    text-transform: uppercase;
     font-size: ${theme.gridUnit * 3}px;
     color: ${theme.colors.grayscale.base};
     margin-bottom: ${theme.gridUnit * 1}px;
