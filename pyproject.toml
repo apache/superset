@@ -228,6 +228,7 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = "tests.*"
 check_untyped_defs = false
+disable_error_code = annotation-unchecked
 disallow_untyped_calls = false
 disallow_untyped_defs = false
 
