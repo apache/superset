@@ -16,21 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-declare module 'dom-to-pdf' {
-  interface Image {
-    type: string;
-    quality: number;
-  }
 
-  interface Options {
-    margin: number;
-    filename: string;
-    image: Image;
-    html2canvas: object;
-    excludeClassNames?: string[];
-  }
+import { getColumnKeywords } from './getColumnKeywords';
 
-  function domToPdf(elementToPrint: Element, options?: Options): Promise<any>;
-
-  export default domToPdf;
-}
+test('returns HTML for a column tooltip', () => {
+  const expected = {
+    column_name: 'test column1',
+    verbose_name: null,
+    is_certified: false,
+    certified_by: null,
+    description: 'test description',
+    type: 'VARCHAR',
+  };
+  expect(getColumnKeywords([expected])).toContainEqual({
+    name: expected.column_name,
+    value: expected.column_name,
+    docHTML: expect.stringContaining(expected.description),
+    score: 50,
+    meta: 'column',
+  });
+});

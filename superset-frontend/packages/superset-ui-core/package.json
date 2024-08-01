@@ -34,7 +34,7 @@
     "@types/enzyme": "^3.10.18",
     "@types/fetch-mock": "^7.3.8",
     "@types/json-bigint": "^1.0.4",
-    "@types/lodash": "^4.17.0",
+    "@types/lodash": "^4.17.7",
     "@types/math-expression-evaluator": "^1.3.3",
     "@types/node": "^20.12.7",
     "@types/prop-types": "^15.7.2",

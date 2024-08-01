@@ -65,6 +65,116 @@ describe('plugin-chart-table', () => {
       expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
+    it('should process comparison columns when time_compare and comparison_type are set', () => {
+      const transformedProps = transformProps(testData.comparison);
+
+      // Check if comparison columns are processed
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.label === 'Main' ||
+          col.label === '#' ||
+          col.label === '△' ||
+          col.label === '%',
+      );
+
+      expect(comparisonColumns.length).toBeGreaterThan(0);
+      expect(comparisonColumns.some(col => col.label === 'Main')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '#')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '△')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '%')).toBe(true);
+    });
+
+    it('should not process comparison columns when time_compare is empty', () => {
+      const propsWithoutTimeCompare = {
+        ...testData.comparison,
+        rawFormData: {
+          ...testData.comparison.rawFormData,
+          time_compare: [],
+        },
+      };
+
+      const transformedProps = transformProps(propsWithoutTimeCompare);
+
+      // Check if comparison columns are not processed
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.label === 'Main' ||
+          col.label === '#' ||
+          col.label === '△' ||
+          col.label === '%',
+      );
+
+      expect(comparisonColumns.length).toBe(0);
+    });
+
+    it('should correctly apply column configuration for comparison columns', () => {
+      const transformedProps = transformProps(testData.comparisonWithConfig);
+
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.key.startsWith('Main') ||
+          col.key.startsWith('#') ||
+          col.key.startsWith('△') ||
+          col.key.startsWith('%'),
+      );
+
+      expect(comparisonColumns).toHaveLength(4);
+
+      const mainMetricConfig = comparisonColumns.find(
+        col => col.key === 'Main metric_1',
+      );
+      expect(mainMetricConfig).toBeDefined();
+      expect(mainMetricConfig?.config).toEqual({ d3NumberFormat: '.2f' });
+
+      const hashMetricConfig = comparisonColumns.find(
+        col => col.key === '# metric_1',
+      );
+      expect(hashMetricConfig).toBeDefined();
+      expect(hashMetricConfig?.config).toEqual({ d3NumberFormat: '.1f' });
+
+      const deltaMetricConfig = comparisonColumns.find(
+        col => col.key === '△ metric_1',
+      );
+      expect(deltaMetricConfig).toBeDefined();
+      expect(deltaMetricConfig?.config).toEqual({ d3NumberFormat: '.0f' });
+
+      const percentMetricConfig = comparisonColumns.find(
+        col => col.key === '% metric_1',
+      );
+      expect(percentMetricConfig).toBeDefined();
+      expect(percentMetricConfig?.config).toEqual({ d3NumberFormat: '.3f' });
+    });
+
+    it('should correctly format comparison columns using getComparisonColFormatter', () => {
+      const transformedProps = transformProps(testData.comparisonWithConfig);
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.key.startsWith('Main') ||
+          col.key.startsWith('#') ||
+          col.key.startsWith('△') ||
+          col.key.startsWith('%'),
+      );
+
+      const formattedMainMetric = comparisonColumns
+        .find(col => col.key === 'Main metric_1')
+        ?.formatter?.(12345.678);
+      expect(formattedMainMetric).toBe('12345.68');
+
+      const formattedHashMetric = comparisonColumns
+        .find(col => col.key === '# metric_1')
+        ?.formatter?.(12345.678);
+      expect(formattedHashMetric).toBe('12345.7');
+
+      const formattedDeltaMetric = comparisonColumns
+        .find(col => col.key === '△ metric_1')
+        ?.formatter?.(12345.678);
+      expect(formattedDeltaMetric).toBe('12346');
+
+      const formattedPercentMetric = comparisonColumns
+        .find(col => col.key === '% metric_1')
+        ?.formatter?.(0.123456);
+      expect(formattedPercentMetric).toBe('0.123');
+    });
   });
 
   describe('TableChart', () => {

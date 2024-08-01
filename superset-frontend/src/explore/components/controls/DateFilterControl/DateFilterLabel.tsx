@@ -84,7 +84,6 @@ const ContentStyleWrapper = styled.div`
       font-weight: ${theme.typography.weights.medium};
       color: ${theme.colors.grayscale.light2};
       line-height: 16px;
-      text-transform: uppercase;
       margin: 8px 0;
     }
 

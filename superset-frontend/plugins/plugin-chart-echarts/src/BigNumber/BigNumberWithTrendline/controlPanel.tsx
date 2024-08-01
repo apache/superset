@@ -279,7 +279,7 @@ const config: ControlPanelConfig = {
       label: t('Number format'),
     },
     x_axis: {
-      label: t('TEMPORAL X-AXIS'),
+      label: t('Temporal X-Axis'),
       ...temporalColumnMixin,
     },
   },

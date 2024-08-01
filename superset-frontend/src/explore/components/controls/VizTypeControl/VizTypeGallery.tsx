@@ -302,7 +302,6 @@ const HighlightLabel = styled.div`
     font-weight: ${theme.typography.weights.bold};
     text-align: center;
     padding: ${theme.gridUnit * 0.5}px ${theme.gridUnit}px;
-    text-transform: uppercase;
     cursor: pointer;
 
     div {

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2024-07-03 14:07-0700\n"
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
 "PO-Revision-Date: 2024-01-01 23:56+0100\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -368,6 +368,21 @@ msgstr "(ni opisa, kliknite za ogled zapisov)"
 msgid "), and they become available in your SQL (example:"
 msgstr "), s čimer bodo na razpolago v sklopu SQL-poizvedbe (primer:"
 
+#, fuzzy, python-format
+msgid ""
+"*%(name)s*\n"
+"\n"
+"    %(description)s\n"
+"\n"
+"    Error: %(text)s\n"
+"    "
+msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"napaka: %(text)s\n"
+
 #, python-format
 msgid ""
 "*%(name)s*\n"
@@ -385,20 +400,6 @@ msgstr ""
 "<%(url)s|Razišči v Supersetu>\n"
 "\n"
 "%(table)s\n"
-
-#, python-format
-msgid ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Error: %(text)s\n"
-msgstr ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"napaka: %(text)s\n"
 
 #, python-format
 msgid "+ %s more"
@@ -833,6 +834,14 @@ msgstr "Dodaj"
 
 msgid "Add Alert"
 msgstr "Dodaj opozorilo"
+
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "nedavne"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "nedavne"
 
 msgid "Add CSS template"
 msgstr "Dodaj CSS predlogo"
@@ -1844,6 +1853,10 @@ msgstr "Naraščajoča os"
 msgid "Axis descending"
 msgstr "Padajoča os"
 
+#, fuzzy
+msgid "BCC recipients"
+msgstr "nedavne"
+
 msgid "BOOLEAN"
 msgstr "BOOLEAN"
 
@@ -2082,6 +2095,10 @@ msgstr "Po vrednosti: za razvrščanje uporabite vrednosti mere"
 
 msgid "CANCEL"
 msgstr "PREKINI"
+
+#, fuzzy
+msgid "CC recipients"
+msgstr "nedavne"
 
 msgid "CREATE DATASET"
 msgstr "USTVARI PODATKOVNI SET"
@@ -2564,6 +2581,10 @@ msgid "Choose notification method and recipients."
 msgstr "Dodajte način obveščanja"
 
 msgid "Choose one of the available databases from the panel on the left."
+msgstr "Izberite eno od razpoložljivih podatkovnih baz v panelu na levi."
+
+#, fuzzy
+msgid "Choose one of the available databases on the left panel."
 msgstr "Izberite eno od razpoložljivih podatkovnih baz v panelu na levi."
 
 #, fuzzy
@@ -7718,9 +7739,6 @@ msgstr ""
 "\"Lastniki\" je seznam uporabnikov, ki lahko spreminjajo nadzorno ploščo."
 " Iskanje je možno po imenu ali uporabniškem imenu."
 
-msgid "PDF download failed, please refresh and try again."
-msgstr "Prenos PDF ni uspel. Osvežite in poskusite ponovno."
-
 msgid "Page length"
 msgstr "Dolžina strani"
 
@@ -8171,6 +8189,9 @@ msgstr "Meje primarne y-osi"
 
 msgid "Primary y-axis format"
 msgstr "Oblika primarne y-osi"
+
+msgid "Private Channels (Bot in channel)"
+msgstr ""
 
 msgid "Private Key"
 msgstr "Privatni ključ"
@@ -9330,6 +9351,10 @@ msgstr "Izberite poljubne stolpce za pregled metapodatkov"
 msgid "Select catalog or type to search catalogs"
 msgstr "Izberite ali vnesite ime tabele"
 
+#, fuzzy
+msgid "Select channels"
+msgstr "Izberi grafikone"
+
 msgid "Select chart"
 msgstr "Izberi grafikon"
 
@@ -9618,6 +9643,10 @@ msgstr "Ime zvezka"
 
 msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift + klik za razvrščanje po več stolpcih"
+
+#, fuzzy
+msgid "Shift start date"
+msgstr "Začetni datum"
 
 msgid "Short description must be unique for this layer"
 msgstr "Kratek opis mora biti za ta sloj unikaten"
@@ -9938,6 +9967,11 @@ msgstr "Zapolnjen"
 
 msgid "Some roles do not exist"
 msgstr "Nekatere vloge ne obstajajo"
+
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
+msgstr ""
 
 msgid "Something went wrong."
 msgstr "Nekaj je šlo narobe."
@@ -10707,6 +10741,10 @@ msgstr ""
 msgid "The database returned an unexpected error."
 msgstr "Podatkovna baza je vrnila nepričakovano napako."
 
+#, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "Podatkovna baza ni bila najdena"
+
 msgid "The database was deleted."
 msgstr "Podatkovna baza je bila izbrisana."
 
@@ -11187,6 +11225,15 @@ msgstr "Shema podanih podatkov je neveljavna."
 msgid "The schema was deleted or renamed in the database."
 msgstr "Shema je bila izbrisana ali preimenovana v podatkovni bazi."
 
+msgid "The screenshot could not be downloaded. Please, try again later."
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+
 msgid "The size of each cell in meters"
 msgstr "Velikost vsake celice v metrih"
 
@@ -11370,8 +11417,9 @@ msgstr "Pri pridobivanju elementov podatkovnega seta je prišlo do napake"
 msgid "There was an error fetching the favorite status: %s"
 msgstr "Napaka pri pridobivanju statusa \"Priljubljeno\": %s"
 
-msgid "There was an error fetching your recent activity:"
-msgstr "Pri pridobivanju nedavnih aktivnosti je prišlo do napake:"
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "Napaka pri pridobivanju statusa \"Priljubljeno\": %s"
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -11734,6 +11782,11 @@ msgid "This metric might be incompatible with current dataset"
 msgstr "Ta mera je lahko nekompatibilna s trenutnim podatkovnim setom"
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
 msgstr ""
 
 msgid ""
@@ -12292,6 +12345,10 @@ msgstr "Neznan Doris strežnik \"%(hostname)s\"."
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
 msgstr "Neznan MySQL strežnik \"%(hostname)s\"."
+
+#, fuzzy, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
+msgstr "Neznan Doris strežnik \"%(hostname)s\"."
 
 msgid "Unknown Presto Error"
 msgstr "Neznana Presto napaka"
@@ -14096,6 +14153,10 @@ msgstr "v"
 
 msgid "in modal"
 msgstr "v modalnem oknu"
+
+#, fuzzy
+msgid "invalid email"
+msgstr "Neveljaven ključ povezave"
 
 msgid "is expected to be a Mapbox URL"
 msgstr "mora biti URL za Mapbox"

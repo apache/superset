@@ -242,10 +242,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     base_related_field_filters = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
     }
     search_filters = {

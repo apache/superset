@@ -227,7 +227,8 @@ assists people when migrating to a new version.
 - [19273](https://github.com/apache/superset/pull/19273): The `SUPERSET_CELERY_WORKERS` and `SUPERSET_WORKERS` config keys has been removed. Configure Celery directly using `CELERY_CONFIG` on Superset.
 - [19231](https://github.com/apache/superset/pull/19231): The `ENABLE_REACT_CRUD_VIEWS` feature flag has been removed (permanently enabled). Any deployments which had set this flag to false will need to verify that the React views support their use case.
 - [19230](https://github.com/apache/superset/pull/19230): The `ROW_LEVEL_SECURITY` feature flag has been removed (permanently enabled). Any deployments which had set this flag to false will need to verify that the presence of the Row Level Security feature does not interfere with their use case.
-- [19168](https://github.com/apache/superset/pull/19168): Celery upgrade to 5.X resulted in breaking changes to its command line invocation. Please follow [these](https://docs.celeryq.dev/en/stable/whatsnew-5.2.html#step-1-adjust-your-command-line-invocation) instructions for adjustments. Also consider migrating you Celery config per [here](https://docs.celeryq.dev/en/stable/userguide/configuration.html#conf-old-settings-map).
+- [19168](https://github.com/apache/superset/pull/19168): Celery upgrade to 5.X resulted in breaking changes to its command line invocation.
+html#step-1-adjust-your-command-line-invocation) instructions for adjustments. Also consider migrating you Celery config per [here](https://docs.celeryq.dev/en/stable/userguide/configuration.html#conf-old-settings-map).
 - [19142](https://github.com/apache/superset/pull/19142): The `VERSIONED_EXPORT` config key is now `True` by default.
 - [19113](https://github.com/apache/superset/pull/19113): The `ENABLE_JAVASCRIPT_CONTROLS` config key has moved from an app config to a feature flag. Any deployments who overrode this setting will now need to override the feature flag from here onward.
 - [19107](https://github.com/apache/superset/pull/19107): The `SQLLAB_BACKEND_PERSISTENCE` feature flag is now `True` by default, which enables persisting SQL Lab tabs in the backend instead of the browser's `localStorage`.
@@ -538,7 +539,7 @@ assists people when migrating to a new version.
 - [8117](https://github.com/apache/superset/pull/8117): If you are
   using `ENABLE_PROXY_FIX = True`, review the newly-introduced variable,
   `PROXY_FIX_CONFIG`, which changes the proxy behavior in accordance with
-  [Werkzeug](https://werkzeug.palletsprojects.com/en/0.15.x/middleware/proxy_fix/)
+  Werkzeug.
 
 - [8069](https://github.com/apache/superset/pull/8069): introduces
   [MessagePack](https://github.com/msgpack/msgpack-python) and

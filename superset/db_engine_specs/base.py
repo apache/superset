@@ -92,6 +92,12 @@ ColumnTypeMapping = tuple[
 
 logger = logging.getLogger()
 
+# When connecting to a database it's hard to catch specific exceptions, since we support
+# more than 50 different database drivers. Usually the try/except block will catch the
+# generic `Exception` class, which requires a pylint disablee comment. To make it clear
+# that we know this is a necessary evil we create an alias, and catch it instead.
+GenericDBException = Exception
+
 
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
     result_set_columns: list[ResultSetColumnType] = []
@@ -406,7 +412,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     #
     # When this is changed to true in a DB engine spec it MUST support the
     # `get_default_catalog` and `get_catalog_names` methods. In addition, you MUST write
-    # a database migration updating any existing schema permissions.
+    # a database migration updating any existing schema permissions using the helper
+    # `upgrade_catalog_perms`.
     supports_catalog = False
 
     # Can the catalog be changed on a per-query basis?

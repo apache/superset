@@ -47,10 +47,16 @@ import {
   SAVE_DASHBOARD_STARTED,
   SAVE_DASHBOARD_FINISHED,
 } from '../actions/dashboardState';
-import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+import {
+  HYDRATE_DASHBOARD,
+  HYDRATE_DASHBOARD_ACTIVETABS,
+} from '../actions/hydrate';
 
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
+    [HYDRATE_DASHBOARD_ACTIVETABS]() {
+      return { ...state, activeTabs: action.data };
+    },
     [HYDRATE_DASHBOARD]() {
       return { ...state, ...action.data.dashboardState };
     },
