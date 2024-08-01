@@ -127,7 +127,7 @@
     "babel-plugin-typescript-to-proptypes": "^2.0.0",
     "bootstrap": "^3.4.1",
     "brace": "^0.11.1",
-    "chrono-node": "^2.7.5",
+    "chrono-node": "^2.7.6",
     "classnames": "^2.2.5",
     "core-js": "^3.37.1",
     "d3-scale": "^2.1.2",
