@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FC } from 'react';
 import moment from 'moment-timezone';
 import userEvent from '@testing-library/user-event';
 import {
