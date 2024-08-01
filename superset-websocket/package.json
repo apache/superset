@@ -31,7 +31,7 @@
     "@types/cookie": "^0.6.0",
     "@types/ioredis": "^4.27.8",
     "@types/lodash": "^4.17.7",
-    "@types/jest": "^27.0.2",
+    "@types/jest": "^29.5.12",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^22.0.0",
     "@types/uuid": "^9.0.8",
