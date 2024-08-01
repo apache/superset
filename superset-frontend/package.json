@@ -339,7 +339,7 @@
     "source-map-support": "^0.5.21",
     "speed-measure-webpack-plugin": "^1.5.0",
     "storybook": "^8.1.11",
-    "style-loader": "^3.3.4",
+    "style-loader": "^4.0.0",
     "thread-loader": "^4.0.2",
     "transform-loader": "^0.2.4",
     "ts-loader": "^9.5.1",
