@@ -155,6 +155,7 @@
     "moment-timezone": "^0.5.44",
     "mousetrap": "^1.6.5",
     "mustache": "^2.2.1",
+    "nanoid": "^5.0.7",
     "polished": "^4.3.1",
     "prop-types": "^15.7.2",
     "query-string": "^6.13.7",
@@ -197,7 +198,6 @@
     "rimraf": "^3.0.2",
     "rison": "^0.1.1",
     "scroll-into-view-if-needed": "^3.1.0",
-    "nanoid": "^5.0.7",
     "tinycolor2": "^1.4.2",
     "urijs": "^1.19.8",
     "use-event-callback": "^0.1.0",
@@ -206,7 +206,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@applitools/eyes-storybook": "^3.49.0",
+    "@applitools/eyes-storybook": "^3.50.7",
     "@babel/cli": "^7.22.6",
     "@babel/compat-data": "^7.22.6",
     "@babel/core": "^7.23.9",
@@ -226,6 +226,7 @@
     "@emotion/jest": "^11.11.0",
     "@hot-loader/react-dom": "^16.14.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
+    "@mihkeleidast/storybook-addon-source": "^1.0.1",
     "@storybook/addon-actions": "^8.1.11",
     "@storybook/addon-controls": "^8.1.11",
     "@storybook/addon-essentials": "^8.1.11",
@@ -338,7 +339,6 @@
     "source-map-support": "^0.5.21",
     "speed-measure-webpack-plugin": "^1.5.0",
     "storybook": "^8.1.11",
-    "@mihkeleidast/storybook-addon-source": "^1.0.1",
     "style-loader": "^3.3.4",
     "thread-loader": "^3.0.4",
     "transform-loader": "^0.2.4",
@@ -361,7 +361,9 @@
     "d3-color": "^3.1.0",
     "yosay": {
       "ansi-regex": "^4.1.1"
-    }
+    },
+    "puppeteer": "^22.4.1",
+    "@types/react": "^16.9.53"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
