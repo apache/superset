@@ -17,6 +17,7 @@
  * under the License.
  */
 
+// NOTE: Targeted import (as opposed to `import *`) is important here for proper tree-shaking
 import {
   AlignCenterOutlined,
   AlignLeftOutlined,
