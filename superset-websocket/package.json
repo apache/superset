@@ -33,7 +33,7 @@
     "@types/lodash": "^4.17.7",
     "@types/jest": "^27.0.2",
     "@types/jsonwebtoken": "^9.0.6",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.0.2",
     "@types/uuid": "^9.0.8",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
