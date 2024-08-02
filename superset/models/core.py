@@ -116,7 +116,9 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class Database(
+    Model, AuditMixinNullable, ImportExportMixin
+):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -390,9 +392,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return (
             username
             if (username := get_username())
-            else object_url.username
-            if self.impersonate_user
-            else None
+            else object_url.username if self.impersonate_user else None
         )
 
     @contextmanager
@@ -490,7 +490,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 g.user.id,
                 self.db_engine_spec,
             )
-            if hasattr(g, "user") and hasattr(g.user, "id") and oauth2_config
+            if oauth2_config and hasattr(g, "user") and hasattr(g.user, "id")
             else None
         )
         # If using MySQL or Presto for example, will set url.username
