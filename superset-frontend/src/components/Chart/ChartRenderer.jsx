@@ -48,7 +48,6 @@ const propTypes = {
   setControlValue: PropTypes.func,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
-  // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
   queriesResponse: PropTypes.arrayOf(PropTypes.object),
@@ -63,6 +62,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
   emitCrossFilters: PropTypes.bool,
+  dataSelectionMode: PropTypes.string,
 };
 
 const BLANK = {};
@@ -264,6 +264,7 @@ class ChartRenderer extends Component {
       formData,
       latestQueryFormData,
       postTransformProps,
+      dataSelectionMode,
     } = this.props;
 
     const currentFormData =
@@ -362,6 +363,7 @@ class ChartRenderer extends Component {
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
             legendState={this.state.legendState}
+            dataSelectionMode={dataSelectionMode}
             {...drillToDetailProps}
           />
         </div>

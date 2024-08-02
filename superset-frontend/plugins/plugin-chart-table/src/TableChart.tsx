@@ -264,6 +264,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isUsingTimeComparison,
     basicColorFormatters,
     basicColorColumnFormatters,
+    dataSelectionMode,
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -734,6 +735,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         if (i === columnsUnderHeader[columnsUnderHeader.length - 1]) {
           className += ' right-border-only';
         }
+      }
+
+      if (dataSelectionMode === 'none') {
+        className += ' no-select';
       }
 
       return {

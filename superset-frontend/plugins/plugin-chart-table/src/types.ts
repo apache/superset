@@ -146,6 +146,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   startDateOffset?: string;
+  dataSelectionMode: string;
 }
 
 export enum ColorSchemeEnum {
