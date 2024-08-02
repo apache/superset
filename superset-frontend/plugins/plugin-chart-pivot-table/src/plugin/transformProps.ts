@@ -176,10 +176,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     dateFormatters,
     onContextMenu,
     timeGrainSqla,
-<<<<<<< HEAD
     allowRenderHtml,
-=======
     dataSelectionMode,
->>>>>>> c9fcad01b (add user permissions to pivot table)
   };
 }
