@@ -42,6 +42,7 @@ const propTypes = {
   onDrop: PropTypes.func,
   onHover: PropTypes.func,
   onDropIndicatorChange: PropTypes.func,
+  onDragTab: PropTypes.func,
   editMode: PropTypes.bool,
   useEmptyDragPreview: PropTypes.bool,
 
@@ -49,6 +50,8 @@ const propTypes = {
   isDragging: PropTypes.bool,
   isDraggingOver: PropTypes.bool,
   isDraggingOverShallow: PropTypes.bool,
+  dragComponentType: PropTypes.string,
+  dragComponentId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   droppableRef: PropTypes.func,
   dragSourceRef: PropTypes.func,
   dragPreviewRef: PropTypes.func,
@@ -64,6 +67,7 @@ const defaultProps = {
   onDrop() {},
   onHover() {},
   onDropIndicatorChange() {},
+  onDragTab() {},
   orientation: 'row',
   useEmptyDragPreview: false,
   isDragging: false,
@@ -88,10 +92,6 @@ const DragDroppableStyles = styled.div`
 
     &.dragdroppable--dragging {
       opacity: 0.2;
-    }
-
-    &.dragdroppable--dragging .dragdroppable-tab {
-      display: none;
     }
 
     &.dragdroppable-row {
@@ -137,8 +137,14 @@ export class UnwrappedDragDroppable extends PureComponent {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { onDropIndicatorChange, isDraggingOver, component, index } =
-      this.props;
+    const {
+      onDropIndicatorChange,
+      isDraggingOver,
+      component,
+      index,
+      dragComponentId,
+      onDragTab,
+    } = this.props;
     const { dropIndicator } = this.state;
     const isTabsType = component.type === TAB_TYPE;
     const validStateChange =
@@ -148,6 +154,17 @@ export class UnwrappedDragDroppable extends PureComponent {
 
     if (onDropIndicatorChange && isTabsType && validStateChange) {
       onDropIndicatorChange({ dropIndicator, isDraggingOver, index });
+    }
+
+    if (dragComponentId !== prevProps.dragComponentId) {
+      setTimeout(() => {
+        /**
+         * This timeout ensures the dargSourceRef and dragPreviewRef are set
+         * before the component is removed in Tabs.jsx. Otherwise react-dnd
+         * will not render the drag preview.
+         */
+        onDragTab(dragComponentId);
+      });
     }
   }
 
@@ -177,6 +194,8 @@ export class UnwrappedDragDroppable extends PureComponent {
       isDraggingOver,
       style,
       editMode,
+      component,
+      dragComponentType,
     } = this.props;
 
     const { dropIndicator } = this.state;
@@ -190,10 +209,14 @@ export class UnwrappedDragDroppable extends PureComponent {
           }
         : null;
 
+    const draggingTabOnTab =
+      component.type === TAB_TYPE && dragComponentType === TAB_TYPE;
+
     const childProps = editMode
       ? {
           dragSourceRef,
           dropIndicatorProps,
+          draggingTabOnTab,
         }
       : {};
 

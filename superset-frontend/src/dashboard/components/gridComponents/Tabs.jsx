@@ -157,6 +157,7 @@ export class Tabs extends PureComponent {
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
     this.handleDrop = this.handleDrop.bind(this);
     this.handleGetDropPosition = this.handleGetDropPosition.bind(this);
+    this.handleDragggingTab = this.handleDragggingTab.bind(this);
   }
 
   componentDidMount() {
@@ -359,6 +360,14 @@ export class Tabs extends PureComponent {
     }
   }
 
+  handleDragggingTab(tabId) {
+    if (tabId) {
+      this.setState(() => ({ draggingTabId: tabId }));
+    } else {
+      this.setState(() => ({ draggingTabId: null }));
+    }
+  }
+
   render() {
     const {
       depth,
@@ -390,6 +399,8 @@ export class Tabs extends PureComponent {
         left: editMode && dropPosition === DROP_LEFT,
         right: editMode && dropPosition === DROP_RIGHT,
       };
+
+    const removeDraggedTab = tabID => this.state.draggingTabId === tabID;
 
     let tabsToHighlight;
     const highlightedFilterId =
@@ -433,35 +444,44 @@ export class Tabs extends PureComponent {
                 <LineEditableTabs.TabPane
                   key={tabId}
                   tab={
-                    <>
-                      {showDropIndicators(tabIndex).left && (
-                        <LeftDropIndicator className="drop-indicator-left" />
-                      )}
-                      <DashboardComponent
-                        id={tabId}
-                        parentId={tabsComponent.id}
-                        depth={depth}
-                        index={tabIndex}
-                        renderType={RENDER_TAB}
-                        availableColumnCount={availableColumnCount}
-                        columnWidth={columnWidth}
-                        onDropOnTab={this.handleDropOnTab}
-                        onDropPositionChange={this.handleGetDropPosition}
-                        onHoverTab={() => this.handleClickTab(tabIndex)}
-                        isFocused={activeKey === tabId}
-                        isHighlighted={
-                          activeKey !== tabId &&
-                          tabsToHighlight?.includes(tabId)
-                        }
-                      />
-                    </>
+                    removeDraggedTab(tabId) ? (
+                      <></>
+                    ) : (
+                      <>
+                        {showDropIndicators(tabIndex).left && (
+                          <LeftDropIndicator className="drop-indicator-left" />
+                        )}
+                        <DashboardComponent
+                          id={tabId}
+                          parentId={tabsComponent.id}
+                          depth={depth}
+                          index={tabIndex}
+                          renderType={RENDER_TAB}
+                          availableColumnCount={availableColumnCount}
+                          columnWidth={columnWidth}
+                          onDropOnTab={this.handleDropOnTab}
+                          onDropPositionChange={this.handleGetDropPosition}
+                          onDragTab={this.handleDragggingTab}
+                          onHoverTab={() => this.handleClickTab(tabIndex)}
+                          isFocused={activeKey === tabId}
+                          isHighlighted={
+                            activeKey !== tabId &&
+                            tabsToHighlight?.includes(tabId)
+                          }
+                        />
+                      </>
+                    )
                   }
                   closeIcon={
-                    <CloseIconWithDropIndicator
-                      role="button"
-                      tabIndex={tabIndex}
-                      showDropIndicators={showDropIndicators(tabIndex)}
-                    />
+                    removeDraggedTab(tabId) ? (
+                      <></>
+                    ) : (
+                      <CloseIconWithDropIndicator
+                        role="button"
+                        tabIndex={tabIndex}
+                        showDropIndicators={showDropIndicators(tabIndex)}
+                      />
+                    )
                   }
                 >
                   {renderTabContent && (

@@ -48,6 +48,7 @@ const propTypes = {
   renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
   onDropOnTab: PropTypes.func,
   onDropPositionChange: PropTypes.func,
+  onDragTab: PropTypes.func,
   onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   canEdit: PropTypes.bool.isRequired,
@@ -71,6 +72,7 @@ const defaultProps = {
   columnWidth: 0,
   onDropOnTab() {},
   onDropPositionChange() {},
+  onDragTab() {},
   onHoverTab() {},
   onResizeStart() {},
   onResize() {},
@@ -279,6 +281,7 @@ class Tab extends PureComponent {
       isFocused,
       isHighlighted,
       onDropPositionChange,
+      onDragTab,
     } = this.props;
 
     return (
@@ -291,10 +294,11 @@ class Tab extends PureComponent {
         onDrop={this.handleDrop}
         onHover={this.handleOnHover}
         onDropIndicatorChange={onDropPositionChange}
+        onDragTab={onDragTab}
         editMode={editMode}
         dropToChild={this.shouldDropToChild}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
+        {({ dropIndicatorProps, dragSourceRef, draggingTabOnTab }) => (
           <TabTitleContainer
             isHighlighted={isHighlighted}
             className="dragdroppable-tab"
@@ -316,7 +320,7 @@ class Tab extends PureComponent {
                 placement={index >= 5 ? 'left' : 'right'}
               />
             )}
-            {dropIndicatorProps && (
+            {dropIndicatorProps && !draggingTabOnTab && (
               <TitleDropIndicator
                 className={dropIndicatorProps.className}
                 data-test="title-drop-indicator"
