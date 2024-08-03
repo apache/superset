@@ -230,6 +230,7 @@ module = "tests.*"
 check_untyped_defs = false
 disallow_untyped_calls = false
 disallow_untyped_defs = false
+disable_error_code = "annotation-unchecked"
 
 [tool.tox]
 legacy_tox_ini = """
