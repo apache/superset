@@ -321,7 +321,7 @@
     "jest-enzyme": "^7.1.2",
     "jest-html-reporter": "^3.10.2",
     "jest-websocket-mock": "^2.5.0",
-    "jsdom": "^24.0.0",
+    "jsdom": "^24.1.1",
     "lerna": "^8.1.7",
     "less": "^4.2.0",
     "less-loader": "^12.2.0",
