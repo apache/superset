@@ -211,6 +211,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [ccValue, setCcValue] = useState<string>(cc || '');
   const [bccValue, setBccValue] = useState<string>(bcc || '');
   const theme = useTheme();
+  const [methodOptionsLoading, setMethodOptionsLoading] =
+    useState<boolean>(true);
   const [slackOptions, setSlackOptions] = useState<SlackOptionsType>([
     {
       label: '',
@@ -257,51 +259,47 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   };
 
   useEffect(() => {
-    if (
-      method &&
-      [
-        NotificationMethodOption.Slack,
-        NotificationMethodOption.SlackV2,
-      ].includes(method) &&
-      !slackOptions[0]?.options.length
-    ) {
+    if (!slackOptions[0]?.options.length) {
       fetchSlackChannels({ types: ['public_channel', 'private_channel'] })
         .then(({ json }) => {
           const { result } = json;
-
           const options: SlackOptionsType = mapChannelsToOptions(result);
 
           setSlackOptions(options);
 
           if (isFeatureEnabled(FeatureFlag.AlertReportSlackV2)) {
-            // map existing ids to names for display
+            // for edit mode, map existing ids to names for display if slack v2
             // or names to ids if slack v1
             const [publicOptions, privateOptions] = options;
-
-            setSlackRecipients(
-              mapSlackValues({
-                method,
-                recipientValue,
-                slackOptions: [
-                  ...publicOptions.options,
-                  ...privateOptions.options,
-                ],
-              }),
-            );
-            if (method === NotificationMethodOption.Slack) {
-              onMethodChange({
-                label: NotificationMethodOption.Slack,
-                value: NotificationMethodOption.SlackV2,
-              });
+            if (
+              method &&
+              [
+                NotificationMethodOption.SlackV2,
+                NotificationMethodOption.Slack,
+              ].includes(method)
+            ) {
+              setSlackRecipients(
+                mapSlackValues({
+                  method,
+                  recipientValue,
+                  slackOptions: [
+                    ...publicOptions.options,
+                    ...privateOptions.options,
+                  ],
+                }),
+              );
             }
           }
         })
-        .catch(() => {
+        .catch(e => {
           // Fallback to slack v1 if slack v2 is not compatible
           setUseSlackV1(true);
+        })
+        .finally(() => {
+          setMethodOptionsLoading(false);
         });
     }
-  }, [method]);
+  }, []);
 
   const methodOptions = useMemo(
     () =>
@@ -323,7 +321,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               : method,
           value: method,
         })),
-    [options],
+    [options, useSlackV1],
   );
 
   if (!setting) {
@@ -434,8 +432,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               options={methodOptions}
               showSearch
               value={methodOptions.find(option => option.value === method)}
+              loading={methodOptionsLoading}
             />
             {index !== 0 && !!onRemove ? (
+              // eslint-disable-next-line jsx-a11y/control-has-associated-label
               <span
                 role="button"
                 tabIndex={0}
