@@ -898,7 +898,9 @@ class TestRolePermission(SupersetTestCase):
             db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
         )
         self.assertEqual(changed_table1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
-        self.assertEqual(changed_table1.schema_perm, "[tmp_db2].[tmp_schema]")  # noqa: F541
+        self.assertEqual(
+            changed_table1.schema_perm, "[tmp_db2].[tmp_schema]"
+        )  # noqa: F541
 
         # Test Chart permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
@@ -956,12 +958,16 @@ class TestRolePermission(SupersetTestCase):
             db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
         )
         self.assertEqual(changed_table1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
-        self.assertEqual(changed_table1.schema_perm, "[tmp_db1].[tmp_schema_changed]")  # noqa: F541
+        self.assertEqual(
+            changed_table1.schema_perm, "[tmp_db1].[tmp_schema_changed]"
+        )  # noqa: F541
 
         # Test Chart schema permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
         self.assertEqual(slice1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
-        self.assertEqual(slice1.schema_perm, "[tmp_db1].[tmp_schema_changed]")  # noqa: F541
+        self.assertEqual(
+            slice1.schema_perm, "[tmp_db1].[tmp_schema_changed]"
+        )  # noqa: F541
 
         # cleanup
         db.session.delete(slice1)
@@ -1069,7 +1075,9 @@ class TestRolePermission(SupersetTestCase):
         self.assertEqual(
             changed_table1.perm, f"[tmp_db2].[tmp_table1_changed](id:{table1.id})"
         )
-        self.assertEqual(changed_table1.schema_perm, "[tmp_db2].[tmp_schema]")  # noqa: F541
+        self.assertEqual(
+            changed_table1.schema_perm, "[tmp_db2].[tmp_schema]"
+        )  # noqa: F541
 
         # Test Chart permission changed
         slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
@@ -1633,7 +1641,10 @@ class TestSecurityManager(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_query(self, mock_can_access, mock_is_owner):
         query = Mock(
-            database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM foo",
+            catalog=None,
         )
 
         mock_can_access.return_value = True
