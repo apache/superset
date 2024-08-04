@@ -326,6 +326,7 @@
     "less-loader": "^10.2.0",
     "mini-css-extract-plugin": "^2.9.0",
     "mock-socket": "^9.3.1",
+    "moment-locales-webpack-plugin": "^1.2.0",
     "node-fetch": "^2.6.7",
     "po2json": "^0.4.5",
     "prettier": "3.1.0",
