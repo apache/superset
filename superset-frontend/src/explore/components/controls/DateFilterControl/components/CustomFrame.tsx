@@ -18,7 +18,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import type { PickerLocale } from 'antd/es/date-picker/generatePicker';
+import type { PickerLocale } from 'antd/lib/date-picker/generatePicker';
 import { Moment } from 'moment';
 import { isInteger } from 'lodash';
 import { t, customTimeRangeDecode } from '@superset-ui/core';
@@ -44,6 +44,7 @@ import {
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
 import { ExplorePageState } from 'src/explore/types';
+import Loading from 'src/components/Loading';
 
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
@@ -134,7 +135,7 @@ export function CustomFrame(props: FrameComponentProps) {
   }, [datePickerLocale, localFromFlaskBabel]);
 
   if (datePickerLocale === null) {
-    return null;
+    return <Loading position="inline-centered" />;
   }
 
   return (
