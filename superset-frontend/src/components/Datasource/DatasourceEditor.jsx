@@ -1086,7 +1086,7 @@ class DatasourceEditor extends PureComponent {
                   <Col xs={24} md={12}>
                     <Field
                       fieldKey="databaseSelector"
-                      label={t('virtual')}
+                      label={t('Virtual')}
                       control={
                         <div css={{ marginTop: 8 }}>
                           <DatabaseSelector

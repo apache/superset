@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-03 14:07-0700\n"
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
 "PO-Revision-Date: 2023-09-17 12:57+0300\n"
 "Last-Translator: \n"
 "Language: uk\n"
@@ -365,6 +365,21 @@ msgstr "(Немає опису, натисніть, щоб побачити Trac
 msgid "), and they become available in your SQL (example:"
 msgstr "), і вони стають доступними у вашому SQL (приклад:"
 
+#, fuzzy, python-format
+msgid ""
+"*%(name)s*\n"
+"\n"
+"    %(description)s\n"
+"\n"
+"    Error: %(text)s\n"
+"    "
+msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"Помилка: %(text)s\n"
+
 #, python-format
 msgid ""
 "*%(name)s*\n"
@@ -382,20 +397,6 @@ msgstr ""
 "<%(URL)s | Ознайомтеся з Superset>\n"
 "\n"
 "%(table)s\n"
-
-#, python-format
-msgid ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Error: %(text)s\n"
-msgstr ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Помилка: %(text)s\n"
 
 #, python-format
 msgid "+ %s more"
@@ -834,6 +835,14 @@ msgstr "Додавання"
 
 msgid "Add Alert"
 msgstr "Додати сповіщення"
+
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "недавні"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "недавні"
 
 msgid "Add CSS template"
 msgstr "Додайте шаблон CSS"
@@ -1854,6 +1863,10 @@ msgstr "Осі висхідна"
 msgid "Axis descending"
 msgstr "Осі, що спускається"
 
+#, fuzzy
+msgid "BCC recipients"
+msgstr "недавні"
+
 msgid "BOOLEAN"
 msgstr "Булевий"
 
@@ -2098,6 +2111,10 @@ msgstr "За значенням: Використовуйте метричні �
 
 msgid "CANCEL"
 msgstr "Скасувати"
+
+#, fuzzy
+msgid "CC recipients"
+msgstr "недавні"
 
 msgid "CREATE DATASET"
 msgstr "Створити набір даних"
@@ -2586,6 +2603,10 @@ msgid "Choose notification method and recipients."
 msgstr "Додайте метод сповіщення"
 
 msgid "Choose one of the available databases from the panel on the left."
+msgstr "Виберіть одну з доступних баз даних з панелі зліва."
+
+#, fuzzy
+msgid "Choose one of the available databases on the left panel."
 msgstr "Виберіть одну з доступних баз даних з панелі зліва."
 
 #, fuzzy
@@ -7792,10 +7813,6 @@ msgstr ""
 "Власники - це список користувачів, які можуть змінити інформаційну "
 "панель. Шукати за іменем або іменем користувача."
 
-#, fuzzy
-msgid "PDF download failed, please refresh and try again."
-msgstr "Завантажити зображення не вдалося, оновити та повторіть спробу."
-
 msgid "Page length"
 msgstr "Довжина сторінки"
 
@@ -8251,6 +8268,9 @@ msgstr "Первинні межі вісь Y"
 
 msgid "Primary y-axis format"
 msgstr "Первинний формат осі Y"
+
+msgid "Private Channels (Bot in channel)"
+msgstr ""
 
 msgid "Private Key"
 msgstr "Приватний ключ"
@@ -9415,6 +9435,10 @@ msgstr "Виберіть будь -які стовпці для перевірк
 msgid "Select catalog or type to search catalogs"
 msgstr "Виберіть таблицю або введіть для пошукових таблиць"
 
+#, fuzzy
+msgid "Select channels"
+msgstr "Виберіть діаграми"
+
 msgid "Select chart"
 msgstr "Виберіть діаграму"
 
@@ -9704,6 +9728,10 @@ msgstr "Назва аркуша"
 
 msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift + Клацніть, щоб сортувати на кілька стовпців"
+
+#, fuzzy
+msgid "Shift start date"
+msgstr "Дата початку"
 
 msgid "Short description must be unique for this layer"
 msgstr "Короткий опис повинен бути унікальним для цього шару"
@@ -10032,6 +10060,11 @@ msgstr "Суцільний"
 
 msgid "Some roles do not exist"
 msgstr "Деяких ролей не існує"
+
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
+msgstr ""
 
 msgid "Something went wrong."
 msgstr "Щось пішло не так."
@@ -10824,6 +10857,10 @@ msgstr ""
 msgid "The database returned an unexpected error."
 msgstr "База даних повернула несподівану помилку."
 
+#, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "Бази даних не вдалося знайти"
+
 msgid "The database was deleted."
 msgstr "База даних була видалена."
 
@@ -11312,6 +11349,15 @@ msgstr ""
 msgid "The schema was deleted or renamed in the database."
 msgstr "Схема була видалена або перейменована в базу даних."
 
+msgid "The screenshot could not be downloaded. Please, try again later."
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+
 #, fuzzy
 msgid "The size of each cell in meters"
 msgstr "Розмір квадратної клітини, пікселів"
@@ -11506,8 +11552,9 @@ msgstr "Були помилкові об'єкти, пов’язані з наб
 msgid "There was an error fetching the favorite status: %s"
 msgstr "Була помилка, яка отримала улюблений статус: %s"
 
-msgid "There was an error fetching your recent activity:"
-msgstr "Була помилка, яка отримала вашу недавню діяльність:"
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "Була помилка, яка отримала улюблений статус: %s"
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -11867,6 +11914,11 @@ msgid "This metric might be incompatible with current dataset"
 msgstr "Цей показник може бути несумісним із поточним набором даних"
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
 msgstr ""
 
 msgid ""
@@ -12433,6 +12485,10 @@ msgstr "Невідомий хост MySQL Server “%(hostname)s”."
 
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
+msgstr "Невідомий хост MySQL Server “%(hostname)s”."
+
+#, fuzzy, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
 msgstr "Невідомий хост MySQL Server “%(hostname)s”."
 
 msgid "Unknown Presto Error"
@@ -14265,6 +14321,10 @@ msgstr "у"
 
 msgid "in modal"
 msgstr "у модальному"
+
+#, fuzzy
+msgid "invalid email"
+msgstr "Недійсний ключ постійного посилання"
 
 #, fuzzy
 msgid "is expected to be a Mapbox URL"

@@ -54,9 +54,12 @@ jobs:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
-          persist-credentials: false
-          tags: true
           fetch-depth: 0
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
@@ -94,16 +97,38 @@ jobs:
             --platform "linux/arm64" \
             --platform "linux/amd64"
 
-      # Going back on original branch to allow "post" GHA operations
+          # Returning to master to support closing setup-supersetbot
+          git checkout master
+
+  update-prs-with-release-info:
+    needs: config
+    if: needs.config.outputs.has-secrets
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
 
       - name: Label the PRs with the right release-related labels
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          export GITHUB_ACTOR=""
+          git fetch --all --tags
+          git checkout master
           RELEASE="${{ github.event.release.tag_name }}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input

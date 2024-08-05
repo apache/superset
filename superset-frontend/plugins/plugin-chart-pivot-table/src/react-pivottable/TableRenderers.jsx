@@ -18,7 +18,7 @@
  */
 
 import { Component } from 'react';
-import { t } from '@superset-ui/core';
+import { t, safeHtmlSpan } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
@@ -40,8 +40,13 @@ function displayHeaderCell(
   onArrowClick,
   value,
   namesMapping,
+  allowRenderHtml,
 ) {
   const name = namesMapping[value] || value;
+  const parsedLabel = parseLabel(name);
+  const labelContent = allowRenderHtml
+    ? safeHtmlSpan(parsedLabel)
+    : parsedLabel;
   return needToggle ? (
     <span className="toggle-wrapper">
       <span
@@ -52,10 +57,10 @@ function displayHeaderCell(
       >
         {ArrowIcon}
       </span>
-      <span className="toggle-val">{parseLabel(name)}</span>
+      <span className="toggle-val">{labelContent}</span>
     </span>
   ) : (
-    parseLabel(name)
+    labelContent
   );
 }
 
@@ -179,6 +184,7 @@ export class TableRenderer extends Component {
       colTotalCallbacks,
       grandTotalCallback,
       namesMapping,
+      allowRenderHtml: props.allowRenderHtml,
     };
   }
 
@@ -351,6 +357,7 @@ export class TableRenderer extends Component {
       maxColVisible,
       pivotData,
       namesMapping,
+      allowRenderHtml,
     } = pivotSettings;
     const {
       highlightHeaderCellsOnHover,
@@ -388,6 +395,7 @@ export class TableRenderer extends Component {
           arrowClickHandle,
           attrName,
           namesMapping,
+          allowRenderHtml,
         )}
       </th>
     );
@@ -453,6 +461,7 @@ export class TableRenderer extends Component {
               onArrowClick,
               headerCellFormattedValue,
               namesMapping,
+              allowRenderHtml,
             )}
           </th>,
         );
@@ -523,6 +532,7 @@ export class TableRenderer extends Component {
       maxRowVisible,
       pivotData,
       namesMapping,
+      allowRenderHtml,
     } = pivotSettings;
     return (
       <tr key="rowHdr">
@@ -546,6 +556,7 @@ export class TableRenderer extends Component {
                 arrowClickHandle,
                 r,
                 namesMapping,
+                allowRenderHtml,
               )}
             </th>
           );
@@ -590,6 +601,7 @@ export class TableRenderer extends Component {
       cellCallbacks,
       rowTotalCallbacks,
       namesMapping,
+      allowRenderHtml,
     } = pivotSettings;
 
     const {
@@ -659,6 +671,7 @@ export class TableRenderer extends Component {
               onArrowClick,
               headerCellFormattedValue,
               namesMapping,
+              allowRenderHtml,
             )}
           </th>
         );
@@ -871,6 +884,7 @@ export class TableRenderer extends Component {
       colTotals,
       rowSubtotalDisplay,
       colSubtotalDisplay,
+      allowRenderHtml,
     } = this.cachedBasePivotSettings;
 
     // Need to account for exclusions to compute the effective row
@@ -895,6 +909,7 @@ export class TableRenderer extends Component {
       maxColVisible: Math.max(...visibleColKeys.map(k => k.length)),
       rowAttrSpans: this.calcAttrSpans(visibleRowKeys, rowAttrs.length),
       colAttrSpans: this.calcAttrSpans(visibleColKeys, colAttrs.length),
+      allowRenderHtml,
       ...this.cachedBasePivotSettings,
     };
 

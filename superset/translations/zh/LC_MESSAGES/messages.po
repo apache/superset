@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2024-07-03 14:07-0700\n"
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen \n"
 "Language: zh\n"
@@ -348,11 +348,10 @@ msgstr "), 他们在你的SQL中会变成有效数据 (比如:"
 msgid ""
 "*%(name)s*\n"
 "\n"
-"%(description)s\n"
+"    %(description)s\n"
 "\n"
-"<%(url)s|Explore in Superset>\n"
-"\n"
-"%(table)s\n"
+"    Error: %(text)s\n"
+"    "
 msgstr ""
 
 #, python-format
@@ -361,7 +360,9 @@ msgid ""
 "\n"
 "%(description)s\n"
 "\n"
-"Error: %(text)s\n"
+"<%(url)s|Explore in Superset>\n"
+"\n"
+"%(table)s\n"
 msgstr ""
 
 #, python-format
@@ -806,6 +807,14 @@ msgstr "新增"
 
 msgid "Add Alert"
 msgstr "新增告警"
+
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "最近"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "最近"
 
 msgid "Add CSS template"
 msgstr "新增CSS模板"
@@ -1808,6 +1817,10 @@ msgstr "轴线升序"
 msgid "Axis descending"
 msgstr "轴线降序"
 
+#, fuzzy
+msgid "BCC recipients"
+msgstr "最近"
+
 msgid "BOOLEAN"
 msgstr "布尔值"
 
@@ -2039,6 +2052,10 @@ msgstr "使用度量值作为排序关键字"
 
 msgid "CANCEL"
 msgstr "取消"
+
+#, fuzzy
+msgid "CC recipients"
+msgstr "最近"
 
 #, fuzzy
 msgid "CREATE DATASET"
@@ -2540,6 +2557,10 @@ msgid "Choose notification method and recipients."
 msgstr "新增通知方法"
 
 msgid "Choose one of the available databases from the panel on the left."
+msgstr "从左侧的面板中选择一个可用的数据库"
+
+#, fuzzy
+msgid "Choose one of the available databases on the left panel."
 msgstr "从左侧的面板中选择一个可用的数据库"
 
 #, fuzzy
@@ -7698,10 +7719,6 @@ msgid ""
 " or username."
 msgstr "所有者是一个用户列表，这些用户有权限修改仪表板。可按名称或用户名搜索。"
 
-#, fuzzy
-msgid "PDF download failed, please refresh and try again."
-msgstr "PDF下载失败，请刷新重试。"
-
 msgid "Page length"
 msgstr "页长"
 
@@ -8148,6 +8165,9 @@ msgstr "主Y轴界限"
 
 msgid "Primary y-axis format"
 msgstr "主Y轴格式"
+
+msgid "Private Channels (Bot in channel)"
+msgstr ""
 
 msgid "Private Key"
 msgstr "私钥"
@@ -9334,6 +9354,10 @@ msgid "Select catalog or type to search catalogs"
 msgstr "选择表或输入表名来搜索"
 
 #, fuzzy
+msgid "Select channels"
+msgstr "选择图表"
+
+#, fuzzy
 msgid "Select chart"
 msgstr "选择图表"
 
@@ -9619,6 +9643,10 @@ msgstr "Sheet名称"
 
 msgid "Shift + Click to sort by multiple columns"
 msgstr ""
+
+#, fuzzy
+msgid "Shift start date"
+msgstr "开始时间"
 
 msgid "Short description must be unique for this layer"
 msgstr "此层的简述必须是唯一的"
@@ -9927,6 +9955,11 @@ msgstr ""
 
 msgid "Some roles do not exist"
 msgstr "看板"
+
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
+msgstr ""
 
 #, fuzzy
 msgid "Something went wrong."
@@ -10703,6 +10736,10 @@ msgstr "找不到此查询中引用的数据库。请与管理员联系以获得
 msgid "The database returned an unexpected error."
 msgstr "数据库返回意外错误。"
 
+#, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "数据库没有找到"
+
 msgid "The database was deleted."
 msgstr "数据库已删除。"
 
@@ -11116,6 +11153,15 @@ msgstr ""
 msgid "The schema was deleted or renamed in the database."
 msgstr "该模式已在数据库中删除或重命名。"
 
+msgid "The screenshot could not be downloaded. Please, try again later."
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+
 #, fuzzy
 msgid "The size of each cell in meters"
 msgstr "每个单元的大小，以米为单位"
@@ -11280,8 +11326,9 @@ msgstr "抱歉，获取数据库信息时出错：%s"
 msgid "There was an error fetching the favorite status: %s"
 msgstr "获取此看板的收藏夹状态时出现问题：%s。"
 
-msgid "There was an error fetching your recent activity:"
-msgstr "获取您最近的活动时出错："
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "获取此看板的收藏夹状态时出现问题：%s。"
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -11601,6 +11648,11 @@ msgid "This metric might be incompatible with current dataset"
 msgstr "此图表可能与过滤器不兼容(数据集不匹配)"
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
 msgstr ""
 
 #, fuzzy
@@ -12147,6 +12199,10 @@ msgstr "未知Doris服务器主机 \"%(hostname)s\"."
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
 msgstr "未知MySQL服务器主机 \"%(hostname)s\"."
+
+#, fuzzy, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
+msgstr "未知Doris服务器主机 \"%(hostname)s\"."
 
 msgid "Unknown Presto Error"
 msgstr "未知 Presto 错误"
@@ -13902,6 +13958,10 @@ msgstr "处于"
 
 msgid "in modal"
 msgstr "（在模型中）"
+
+#, fuzzy
+msgid "invalid email"
+msgstr "无效状态。"
 
 #, fuzzy
 msgid "is expected to be a Mapbox URL"

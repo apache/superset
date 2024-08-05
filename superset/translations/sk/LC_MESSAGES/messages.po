@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-03 14:07-0700\n"
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
 "PO-Revision-Date: 2021-05-24 15:59+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -334,11 +334,10 @@ msgstr ""
 msgid ""
 "*%(name)s*\n"
 "\n"
-"%(description)s\n"
+"    %(description)s\n"
 "\n"
-"<%(url)s|Explore in Superset>\n"
-"\n"
-"%(table)s\n"
+"    Error: %(text)s\n"
+"    "
 msgstr ""
 
 #, python-format
@@ -347,7 +346,9 @@ msgid ""
 "\n"
 "%(description)s\n"
 "\n"
-"Error: %(text)s\n"
+"<%(url)s|Explore in Superset>\n"
+"\n"
+"%(table)s\n"
 msgstr ""
 
 #, python-format
@@ -756,6 +757,12 @@ msgid "Add"
 msgstr ""
 
 msgid "Add Alert"
+msgstr ""
+
+msgid "Add BCC Recipients"
+msgstr ""
+
+msgid "Add CC Recipients"
 msgstr ""
 
 msgid "Add CSS template"
@@ -1722,6 +1729,9 @@ msgstr ""
 msgid "Axis descending"
 msgstr ""
 
+msgid "BCC recipients"
+msgstr ""
+
 msgid "BOOLEAN"
 msgstr ""
 
@@ -1936,6 +1946,9 @@ msgid "By value: use metric values as sorting key"
 msgstr ""
 
 msgid "CANCEL"
+msgstr ""
+
+msgid "CC recipients"
 msgstr ""
 
 msgid "CREATE DATASET"
@@ -2403,6 +2416,9 @@ msgid "Choose notification method and recipients."
 msgstr ""
 
 msgid "Choose one of the available databases from the panel on the left."
+msgstr ""
+
+msgid "Choose one of the available databases on the left panel."
 msgstr ""
 
 msgid "Choose sheet name"
@@ -7234,9 +7250,6 @@ msgid ""
 " or username."
 msgstr ""
 
-msgid "PDF download failed, please refresh and try again."
-msgstr ""
-
 msgid "Page length"
 msgstr ""
 
@@ -7661,6 +7674,9 @@ msgid "Primary y-axis Bounds"
 msgstr ""
 
 msgid "Primary y-axis format"
+msgstr ""
+
+msgid "Private Channels (Bot in channel)"
 msgstr ""
 
 msgid "Private Key"
@@ -8771,6 +8787,10 @@ msgid "Select catalog or type to search catalogs"
 msgstr ""
 
 #, fuzzy
+msgid "Select channels"
+msgstr "Grafy"
+
+#, fuzzy
 msgid "Select chart"
 msgstr "Grafy"
 
@@ -9038,6 +9058,9 @@ msgid "Sheet name"
 msgstr "Datasety"
 
 msgid "Shift + Click to sort by multiple columns"
+msgstr ""
+
+msgid "Shift start date"
 msgstr ""
 
 msgid "Short description must be unique for this layer"
@@ -9332,6 +9355,11 @@ msgid "Solid"
 msgstr ""
 
 msgid "Some roles do not exist"
+msgstr ""
+
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
 msgstr ""
 
 msgid "Something went wrong."
@@ -10057,6 +10085,9 @@ msgstr ""
 msgid "The database returned an unexpected error."
 msgstr ""
 
+msgid "The database that was used to generate this query could not be found"
+msgstr ""
+
 msgid "The database was deleted."
 msgstr ""
 
@@ -10447,6 +10478,15 @@ msgstr ""
 msgid "The schema was deleted or renamed in the database."
 msgstr ""
 
+msgid "The screenshot could not be downloaded. Please, try again later."
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+
 msgid "The size of each cell in meters"
 msgstr ""
 
@@ -10601,7 +10641,7 @@ msgstr ""
 msgid "There was an error fetching the favorite status: %s"
 msgstr ""
 
-msgid "There was an error fetching your recent activity:"
+msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr ""
 
 msgid "There was an error loading the catalogs"
@@ -10908,6 +10948,11 @@ msgid "This metric might be incompatible with current dataset"
 msgstr ""
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
 msgstr ""
 
 msgid ""
@@ -11431,6 +11476,10 @@ msgstr ""
 
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
+msgstr ""
+
+#, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
 msgstr ""
 
 msgid "Unknown Presto Error"
@@ -13083,6 +13132,9 @@ msgid "in"
 msgstr ""
 
 msgid "in modal"
+msgstr ""
+
+msgid "invalid email"
 msgstr ""
 
 msgid "is expected to be a Mapbox URL"
