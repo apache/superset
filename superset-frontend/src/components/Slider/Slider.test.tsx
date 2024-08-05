@@ -16,11 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SliderSingleProps, SliderRangeProps } from 'antd-v5/lib/slider';
-import { Slider as AntdSlider } from 'antd-v5';
+import { render, screen } from 'spec/helpers/testing-library';
+import Slider from '.';
 
-export type { SliderSingleProps, SliderRangeProps };
+const mockedProps = {
+  defaultValue: 90,
+  tooltip: {
+    open: true,
+  },
+};
 
-export default function Slider(props: SliderSingleProps | SliderRangeProps) {
-  return <AntdSlider {...props} />;
-}
+test('should render', () => {
+  const { container } = render(<Slider {...mockedProps} />);
+  expect(container).toBeInTheDocument();
+});
+
+test('should render with default value on tooltip', () => {
+  render(<Slider {...mockedProps} />);
+  expect(
+    screen.getAllByText(`${mockedProps.defaultValue}`)[0],
+  ).toBeInTheDocument();
+});
