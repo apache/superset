@@ -364,7 +364,8 @@
       "ansi-regex": "^4.1.1"
     },
     "puppeteer": "^22.4.1",
-    "@types/react": "^16.9.53"
+    "@types/react": "^16.9.53",
+    "underscore": "^1.13.7"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
