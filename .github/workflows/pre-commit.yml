@@ -44,3 +44,4 @@ jobs:
             git status
             git diff
             exit 1
+          fi
