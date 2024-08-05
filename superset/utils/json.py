@@ -18,7 +18,7 @@ import decimal
 import logging
 import uuid
 from datetime import date, datetime, time, timedelta
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -183,6 +183,7 @@ def dumps(  # pylint: disable=too-many-arguments
     indent: Union[str, int, None] = None,
     separators: Union[tuple[str, str], None] = None,
     cls: Union[type[simplejson.JSONEncoder], None] = None,
+    encoding: Optional[str] = "utf-8",
 ) -> str:
     """
     Dumps object to compatible JSON format
@@ -199,29 +200,21 @@ def dumps(  # pylint: disable=too-many-arguments
     """
 
     results_string = ""
+    dumps_kwargs: Dict[str, Any] = {
+        "default": default,
+        "allow_nan": allow_nan,
+        "ignore_nan": ignore_nan,
+        "sort_keys": sort_keys,
+        "indent": indent,
+        "separators": separators,
+        "cls": cls,
+        "encoding": encoding,
+    }
     try:
-        results_string = simplejson.dumps(
-            obj,
-            default=default,
-            allow_nan=allow_nan,
-            ignore_nan=ignore_nan,
-            sort_keys=sort_keys,
-            indent=indent,
-            separators=separators,
-            cls=cls,
-        )
+        results_string = simplejson.dumps(obj, **dumps_kwargs)
     except UnicodeDecodeError:
-        results_string = simplejson.dumps(
-            obj,
-            default=default,
-            allow_nan=allow_nan,
-            ignore_nan=ignore_nan,
-            sort_keys=sort_keys,
-            indent=indent,
-            separators=separators,
-            cls=cls,
-            encoding=None,
-        )
+        dumps_kwargs["encoding"] = None
+        results_string = simplejson.dumps(obj, **dumps_kwargs)
     return results_string
 
 
