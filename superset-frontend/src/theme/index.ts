@@ -61,7 +61,7 @@ const baseConfig: ThemeConfig = {
       fontWeightStrong: supersetTheme.typography.weights.medium,
     },
     Tag: {
-      borderRadiusSM: supersetTheme.gridUnit / 2,
+      borderRadiusSM: 2,
       defaultBg: supersetTheme.colors.grayscale.light4,
     },
     Progress: {
@@ -72,8 +72,8 @@ const baseConfig: ThemeConfig = {
     Slider: {
       trackBgDisabled: supersetTheme.colors.grayscale.light1,
       colorBgElevated: supersetTheme.colors.grayscale.light5,
-      handleSizeHover: supersetTheme.gridUnit * 2.5,
-      handleLineWidthHover: supersetTheme.gridUnit / 2,
+      handleSizeHover: 20,
+      handleLineWidthHover: 2,
     },
   },
 };
