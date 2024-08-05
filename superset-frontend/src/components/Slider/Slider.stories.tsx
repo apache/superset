@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import Slider, { SliderSingleProps, SliderRangeProps } from '.';
 
 export default {
@@ -47,17 +46,15 @@ export const InteractiveSlider = ({
   tooltipOpen: boolean;
   tooltipPosition: (typeof tooltipPlacement)[number];
 }) => (
-  <AntdThemeProvider>
-    <Slider
-      {...args}
-      tooltip={{
-        ...args.tooltip,
-        open: tooltipOpen,
-        placement: tooltipPosition,
-      }}
-      style={{ width: 400, height: 400 }}
-    />
-  </AntdThemeProvider>
+  <Slider
+    {...args}
+    tooltip={{
+      ...args.tooltip,
+      open: tooltipOpen,
+      placement: tooltipPosition,
+    }}
+    style={{ width: 400, height: 400 }}
+  />
 );
 
 export const InteractiveRangeSlider = ({
@@ -65,14 +62,12 @@ export const InteractiveRangeSlider = ({
   draggableTrack,
   ...args
 }: SliderRangeProps & { tooltipOpen: boolean; draggableTrack: boolean }) => (
-  <AntdThemeProvider>
-    <Slider
-      {...args}
-      tooltip={{ open: tooltipOpen }}
-      range={{ draggableTrack }}
-      style={{ width: 400, height: 400 }}
-    />
-  </AntdThemeProvider>
+  <Slider
+    {...args}
+    tooltip={{ open: tooltipOpen }}
+    range={{ draggableTrack }}
+    style={{ width: 400, height: 400 }}
+  />
 );
 
 InteractiveSlider.args = {

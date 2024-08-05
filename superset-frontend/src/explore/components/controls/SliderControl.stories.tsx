@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
 import SliderControl from './SliderControl';
 
 export default {
@@ -34,12 +33,12 @@ const options = {
 };
 
 export const SliderControlGallery = () => (
-  <AntdThemeProvider>
+  <>
     {Object.keys(options).map(name => (
       <>
         <h4>{name}</h4>
         <SliderControl {...options[name]} />
       </>
     ))}
-  </AntdThemeProvider>
+  </>
 );
