@@ -18,7 +18,13 @@
  */
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  within,
+  waitForElementToBeRemoved,
+} from 'spec/helpers/testing-library';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject, NotificationMethodOption } from './types';
@@ -519,6 +525,7 @@ test('renders default Schedule fields', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
+  await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   const scheduleType = screen.getByRole('combobox', {
     name: /schedule type/i,
   });
