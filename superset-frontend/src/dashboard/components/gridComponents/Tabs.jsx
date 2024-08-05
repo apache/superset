@@ -114,22 +114,13 @@ const StyledCancelXIcon = styled(Icons.CancelX)`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const RightDropIndicator = styled.div`
+const DropIndicator = styled.div`
   border: 2px solid ${({ theme }) => theme.colors.primary.base};
   width: 5px;
   height: 100%;
   position: absolute;
   top: 0;
-  right: -4px;
-  border-radius: 2px;
-`;
-const LeftDropIndicator = styled.div`
-  border: 2px solid ${({ theme }) => theme.colors.primary.base};
-  width: 5px;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: -4px;
+  ${({ pos }) => (pos === 'left' ? 'left: -4px' : 'right: -4px')};
   border-radius: 2px;
 `;
 
@@ -137,7 +128,7 @@ const CloseIconWithDropIndicator = props => (
   <>
     <StyledCancelXIcon />
     {props.showDropIndicators.right && (
-      <RightDropIndicator className="drop-indicator-right" />
+      <DropIndicator className="drop-indicator-right" pos="right" />
     )}
   </>
 );
@@ -449,7 +440,10 @@ export class Tabs extends PureComponent {
                     ) : (
                       <>
                         {showDropIndicators(tabIndex).left && (
-                          <LeftDropIndicator className="drop-indicator-left" />
+                          <DropIndicator
+                            className="drop-indicator-left"
+                            pos="left"
+                          />
                         )}
                         <DashboardComponent
                           id={tabId}
