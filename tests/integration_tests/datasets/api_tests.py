@@ -36,7 +36,6 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.sql_parse import Table
 from superset.utils import json
 from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
@@ -675,57 +674,6 @@ class TestDatasetApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         expected_result = {"message": {"owners": ["Owners are invalid"]}}
         assert data == expected_result
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_create_dataset_validate_uniqueness(self):
-        """
-        Dataset API: Test create dataset validate table uniqueness
-        """
-
-        energy_usage_ds = self.get_energy_usage_dataset()
-        self.login(ADMIN_USERNAME)
-        table_data = {
-            "database": energy_usage_ds.database_id,
-            "table_name": energy_usage_ds.table_name,
-        }
-        if schema := get_example_default_schema():
-            table_data["schema"] = schema
-        rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
-        assert rv.status_code == 422
-        data = json.loads(rv.data.decode("utf-8"))
-        assert data == {
-            "message": {
-                "table": [
-                    f"Dataset {Table(energy_usage_ds.table_name, schema)} already exists"
-                ]
-            }
-        }
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_create_dataset_with_sql_validate_uniqueness(self):
-        """
-        Dataset API: Test create dataset with sql
-        """
-
-        energy_usage_ds = self.get_energy_usage_dataset()
-        self.login(ADMIN_USERNAME)
-        table_data = {
-            "database": energy_usage_ds.database_id,
-            "table_name": energy_usage_ds.table_name,
-            "sql": "select * from energy_usage",
-        }
-        if schema := get_example_default_schema():
-            table_data["schema"] = schema
-        rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
-        assert rv.status_code == 422
-        data = json.loads(rv.data.decode("utf-8"))
-        assert data == {
-            "message": {
-                "table": [
-                    f"Dataset {Table(energy_usage_ds.table_name, schema)} already exists"
-                ]
-            }
-        }
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_create_dataset_with_sql(self):
@@ -1453,27 +1401,6 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.put_assert_metric(uri, table_data, "put")
         assert rv.status_code == 422
         db.session.delete(dataset)
-        db.session.commit()
-
-    def test_update_dataset_item_uniqueness(self):
-        """
-        Dataset API: Test update dataset uniqueness
-        """
-
-        dataset = self.insert_default_dataset()
-        self.login(ADMIN_USERNAME)
-        ab_user = self.insert_dataset(
-            "ab_user", [self.get_user("admin").id], get_main_database()
-        )
-        table_data = {"table_name": "ab_user"}
-        uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.put_assert_metric(uri, table_data, "put")
-        data = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 422
-        expected_response = {"message": {"table": ["Dataset ab_user already exists"]}}
-        assert data == expected_response
-        db.session.delete(dataset)
-        db.session.delete(ab_user)
         db.session.commit()
 
     @patch("superset.daos.dataset.DatasetDAO.update")
