@@ -16,9 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 
+import {
+  FeatureFlag,
+  JsonResponse,
+  SupersetClient,
+  TextResponse,
+} from '@superset-ui/core';
 import { NotificationMethod, mapSlackValues } from './NotificationMethod';
 import { NotificationMethodOption, NotificationSetting } from '../types';
 
@@ -43,6 +55,7 @@ const mockDefaultSubject = 'Default Subject';
 describe('NotificationMethod', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    cleanup();
   });
 
   it('should render the component', () => {
@@ -179,5 +192,292 @@ describe('NotificationMethod', () => {
       { label: 'User One', value: 'user1' },
       { label: 'User Two', value: 'user2' },
     ]);
+  });
+  it('should render CC and BCC fields when method is Email and visibility flags are true', () => {
+    const defaultProps = {
+      setting: {
+        method: NotificationMethodOption.Email,
+        recipients: 'recipient1@example.com, recipient2@example.com',
+        cc: 'cc1@example.com',
+        bcc: 'bcc1@example.com',
+        options: [
+          NotificationMethodOption.Email,
+          NotificationMethodOption.Slack,
+        ],
+      },
+      index: 0,
+      onUpdate: jest.fn(),
+      onRemove: jest.fn(),
+      onInputChange: jest.fn(),
+      email_subject: 'Test Subject',
+      defaultSubject: 'Default Subject',
+      setErrorSubject: jest.fn(),
+    };
+
+    const { getByTestId } = render(<NotificationMethod {...defaultProps} />);
+
+    // Check if CC and BCC fields are rendered
+    expect(getByTestId('cc')).toBeInTheDocument();
+    expect(getByTestId('bcc')).toBeInTheDocument();
+  });
+  it('should render CC and BCC fields with correct values when method is Email', () => {
+    const defaultProps = {
+      setting: {
+        method: NotificationMethodOption.Email,
+        recipients: 'recipient1@example.com, recipient2@example.com',
+        cc: 'cc1@example.com',
+        bcc: 'bcc1@example.com',
+        options: [
+          NotificationMethodOption.Email,
+          NotificationMethodOption.Slack,
+        ],
+      },
+      index: 0,
+      onUpdate: jest.fn(),
+      onRemove: jest.fn(),
+      onInputChange: jest.fn(),
+      email_subject: 'Test Subject',
+      defaultSubject: 'Default Subject',
+      setErrorSubject: jest.fn(),
+    };
+
+    const { getByTestId } = render(<NotificationMethod {...defaultProps} />);
+
+    // Check if CC and BCC fields are rendered with correct values
+    expect(getByTestId('cc')).toHaveValue('cc1@example.com');
+    expect(getByTestId('bcc')).toHaveValue('bcc1@example.com');
+  });
+  it('should not render CC and BCC fields when method is not Email', () => {
+    const defaultProps = {
+      setting: {
+        method: NotificationMethodOption.Slack,
+        recipients: 'recipient1@example.com, recipient2@example.com',
+        cc: 'cc1@example.com',
+        bcc: 'bcc1@example.com',
+        options: [
+          NotificationMethodOption.Email,
+          NotificationMethodOption.Slack,
+        ],
+      },
+      index: 0,
+      onUpdate: jest.fn(),
+      onRemove: jest.fn(),
+      onInputChange: jest.fn(),
+      email_subject: 'Test Subject',
+      defaultSubject: 'Default Subject',
+      setErrorSubject: jest.fn(),
+    };
+
+    const { queryByTestId } = render(<NotificationMethod {...defaultProps} />);
+
+    // Check if CC and BCC fields are not rendered
+    expect(queryByTestId('cc')).not.toBeInTheDocument();
+    expect(queryByTestId('bcc')).not.toBeInTheDocument();
+  });
+  // Handle empty recipients list gracefully
+  it('should handle empty recipients list gracefully', () => {
+    const defaultProps = {
+      setting: {
+        method: NotificationMethodOption.Email,
+        recipients: '',
+        cc: '',
+        bcc: '',
+        options: [
+          NotificationMethodOption.Email,
+          NotificationMethodOption.Slack,
+        ],
+      },
+      index: 0,
+      onUpdate: jest.fn(),
+      onRemove: jest.fn(),
+      onInputChange: jest.fn(),
+      email_subject: 'Test Subject',
+      defaultSubject: 'Default Subject',
+      setErrorSubject: jest.fn(),
+    };
+
+    const { queryByTestId } = render(<NotificationMethod {...defaultProps} />);
+
+    // Check if CC and BCC fields are not rendered
+    expect(queryByTestId('cc')).not.toBeInTheDocument();
+    expect(queryByTestId('bcc')).not.toBeInTheDocument();
+  });
+  it('shows the right combo when ff is false', async () => {
+    /* should show the div with "Recipients are separated by"
+    when FeatureFlag.AlertReportSlackV2 is false and fetchSlackChannels errors
+    */
+    // Mock the feature flag to be false
+    window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: false };
+
+    // Mock the SupersetClient.get to simulate an error
+    jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+      throw new Error('Error fetching Slack channels');
+    });
+
+    render(
+      <NotificationMethod
+        setting={{
+          ...mockSetting,
+          method: NotificationMethodOption.Slack,
+        }}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    // Wait for the component to handle the error and render the expected div
+    await waitFor(() => {
+      expect(
+        screen.getByText('Recipients are separated by "," or ";"'),
+      ).toBeInTheDocument();
+    });
+  });
+  it('shows the textbox when the fetch fails', async () => {
+    /* should show the div with "Recipients are separated by"
+    when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels errors
+    */
+
+    // Mock the feature flag to be false
+    window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: false };
+
+    // Mock the SupersetClient.get to simulate an error
+    jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+      throw new Error('Error fetching Slack channels');
+    });
+
+    render(
+      <NotificationMethod
+        setting={{
+          ...mockSetting,
+          method: NotificationMethodOption.Slack,
+        }}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    // Wait for the component to handle the error and render the expected div
+    await waitFor(() => {
+      expect(
+        screen.getByText('Recipients are separated by "," or ";"'),
+      ).toBeInTheDocument();
+    });
+  });
+  it('shows the dropdown when ff is true and slackChannels succeed', async () => {
+    /* should show the Select channels dropdown
+    when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels succeeds
+    */
+    // Mock the feature flag to be false
+    window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+
+    // Mock the SupersetClient.get to simulate an error
+    jest
+      .spyOn(SupersetClient, 'get')
+      .mockImplementation(
+        () =>
+          Promise.resolve({ json: { result: [] } }) as unknown as Promise<
+            Response | JsonResponse | TextResponse
+          >,
+      );
+
+    render(
+      <NotificationMethod
+        setting={{
+          ...mockSetting,
+          method: NotificationMethodOption.SlackV2,
+          recipients: 'slack-channel',
+        }}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    // Wait for the component to handle the error and render the expected div
+    await waitFor(() => {
+      expect(screen.getByTitle('Slack')).toBeInTheDocument();
+    });
+  });
+  it('shows the textarea when ff is true and slackChannels fail', async () => {
+    /* should show the Select channels dropdown
+    when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels succeeds
+    */
+    // Mock the feature flag to be false
+    window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+
+    // Mock the SupersetClient.get to simulate an error
+    jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+      throw new Error('Error fetching Slack channels');
+    });
+
+    render(
+      <NotificationMethod
+        setting={{
+          ...mockSetting,
+          method: NotificationMethodOption.Slack,
+          recipients: 'slack-channel',
+        }}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    // Wait for the component to handle the error and render the expected div
+    expect(
+      screen.getByText('Recipients are separated by "," or ";"'),
+    ).toBeInTheDocument();
+  });
+  it('shows the textarea when ff is true and slackChannels fail and slack is selected', async () => {
+    /* should show the Select channels dropdown
+    when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels succeeds
+    */
+    // Mock the feature flag to be false
+    window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+
+    // Mock the SupersetClient.get to simulate an error
+    jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+      throw new Error('Error fetching Slack channels');
+    });
+
+    render(
+      <NotificationMethod
+        setting={{
+          ...mockSetting,
+          method: NotificationMethodOption.Slack,
+          recipients: 'slack-channel',
+        }}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    // Wait for the component to handle the error and render the expected div
+    expect(
+      screen.getByText('Recipients are separated by "," or ";"'),
+    ).toBeInTheDocument();
   });
 });
