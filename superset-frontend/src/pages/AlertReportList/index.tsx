@@ -109,7 +109,7 @@ function AlertList({
   user,
   addSuccessToast,
 }: AlertListProps) {
-  const title = isReportEnabled ? t('report') : t('alert');
+  const title = isReportEnabled ? t('Report') : t('Alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
   const initialFilters = useMemo(
