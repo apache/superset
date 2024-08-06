@@ -16,6 +16,9 @@ concurrency:
 jobs:
   pre-commit:
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ["current", "next", "previous"]
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
@@ -24,6 +27,8 @@ jobs:
           submodules: recursive
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Enable brew and helm-docs
         # Add brew to the path - see https://github.com/actions/runner-images/issues/6283
         run: |
