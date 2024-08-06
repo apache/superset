@@ -23,6 +23,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
+from superset.commands.database.importers.v1.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
 from superset.utils import json
 
@@ -37,6 +38,7 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     from tests.integration_tests.fixtures.importexport import database_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
 
     engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
@@ -44,7 +46,7 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     config = copy.deepcopy(database_config)
     database = import_database(config)
     assert database.database_name == "imported_database"
-    assert database.sqlalchemy_uri == "someengine://user:pass@host1"
+    assert database.sqlalchemy_uri == "postgresql://user:pass@host1"
     assert database.cache_timeout is None
     assert database.expose_in_sqllab is True
     assert database.allow_run_async is False
@@ -108,6 +110,7 @@ def test_import_database_managed_externally(
     from tests.integration_tests.fixtures.importexport import database_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
 
     engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
@@ -158,6 +161,7 @@ def test_import_database_with_version(mocker: MockerFixture, session: Session) -
     from tests.integration_tests.fixtures.importexport import database_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
 
     engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
@@ -166,3 +170,30 @@ def test_import_database_with_version(mocker: MockerFixture, session: Session) -
     config["extra"]["version"] = "1.1.1"
     database = import_database(config)
     assert json.loads(database.extra)["version"] == "1.1.1"
+
+
+def test_add_permissions(mocker: MockerFixture) -> None:
+    """
+    Test adding permissions to a database when it's imported.
+    """
+    database = mocker.MagicMock()
+    database.database_name = "my_db"
+    database.db_engine_spec.supports_catalog = True
+    database.get_all_catalog_names.return_value = ["catalog1", "catalog2"]
+    database.get_all_schema_names.side_effect = [["schema1"], ["schema2"]]
+    ssh_tunnel = mocker.MagicMock()
+    add_permission_view_menu = mocker.patch(
+        "superset.commands.database.importers.v1.utils.security_manager."
+        "add_permission_view_menu"
+    )
+
+    add_permissions(database, ssh_tunnel)
+
+    add_permission_view_menu.assert_has_calls(
+        [
+            mocker.call("catalog_access", "[my_db].[catalog1]"),
+            mocker.call("catalog_access", "[my_db].[catalog2]"),
+            mocker.call("schema_access", "[my_db].[catalog1].[schema1]"),
+            mocker.call("schema_access", "[my_db].[catalog2].[schema2]"),
+        ]
+    )

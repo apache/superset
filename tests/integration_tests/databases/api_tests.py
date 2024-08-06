@@ -2331,7 +2331,8 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
 
-    def test_import_database(self):
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_database(self, mock_add_permissions):
         """
         Database API: Test import database
         """
@@ -2363,7 +2364,8 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_database_overwrite(self):
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_database_overwrite(self, mock_add_permissions):
         """
         Database API: Test import existing database
         """
@@ -2433,7 +2435,8 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_database_invalid(self):
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_database_invalid(self, mock_add_permissions):
         """
         Database API: Test import invalid database
         """
@@ -2483,7 +2486,8 @@ class TestDatabaseApi(SupersetTestCase):
             ]
         }
 
-    def test_import_database_masked_password(self):
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_database_masked_password(self, mock_add_permissions):
         """
         Database API: Test import database with masked password
         """
@@ -2540,7 +2544,8 @@ class TestDatabaseApi(SupersetTestCase):
             ]
         }
 
-    def test_import_database_masked_password_provided(self):
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_database_masked_password_provided(self, mock_add_permissions):
         """
         Database API: Test import database with masked password provided
         """
@@ -2586,8 +2591,11 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_database_masked_ssh_tunnel_password(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
         """
         Database API: Test import database with masked password
@@ -2644,8 +2652,11 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
     @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_database_masked_ssh_tunnel_password_provided(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
         """
         Database API: Test import database with masked password provided
@@ -2692,8 +2703,11 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_database_masked_ssh_tunnel_private_key_and_password(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
         """
         Database API: Test import database with masked private_key
@@ -2753,8 +2767,11 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
     @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_database_masked_ssh_tunnel_private_key_and_password_provided(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
         """
         Database API: Test import database with masked password provided
@@ -2804,7 +2821,11 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_database_masked_ssh_tunnel_feature_flag_disabled(self):
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_database_masked_ssh_tunnel_feature_flag_disabled(
+        self,
+        mock_add_permissions,
+    ):
         """
         Database API: Test import database with ssh_tunnel and feature flag disabled
         """
@@ -2856,8 +2877,11 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
     @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_database_masked_ssh_tunnel_feature_no_credentials(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
         """
         Database API: Test import database with ssh_tunnel that has no credentials
@@ -2911,8 +2935,11 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
     @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_database_masked_ssh_tunnel_feature_mix_credentials(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
         """
         Database API: Test import database with ssh_tunnel that has no credentials
@@ -2966,8 +2993,11 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
     @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_database_masked_ssh_tunnel_feature_only_pk_passwd(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
         """
         Database API: Test import database with ssh_tunnel that has no credentials
@@ -3802,7 +3832,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert "dashboards" in rv.json
         assert "sqllab_tab_states" in rv.json
 
-    @patch.dict(
+    @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
         clear=True,
@@ -3828,7 +3858,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(response["result"], [])
 
-    @patch.dict(
+    @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
         clear=True,
@@ -3864,7 +3894,7 @@ class TestDatabaseApi(SupersetTestCase):
             ],
         )
 
-    @patch.dict(
+    @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
         clear=True,
@@ -3885,7 +3915,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.post(uri, json=request_payload)
         self.assertEqual(rv.status_code, 404)
 
-    @patch.dict(
+    @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
         clear=True,
@@ -3908,7 +3938,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 400)
         self.assertEqual(response, {"message": {"sql": ["Field may not be null."]}})
 
-    @patch.dict(
+    @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         {},
         clear=True,
@@ -3953,8 +3983,8 @@ class TestDatabaseApi(SupersetTestCase):
             },
         )
 
-    @patch("superset.commands.database.validate_sql.get_validator_by_name")
-    @patch.dict(
+    @mock.patch("superset.commands.database.validate_sql.get_validator_by_name")
+    @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         PRESTO_SQL_VALIDATORS_BY_ENGINE,
         clear=True,

@@ -2111,7 +2111,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(dashboard)
         db.session.commit()
 
-    def test_import_dashboard(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dashboard(self, mock_add_permissions):
         """
         Dashboard API: Test import dashboard
         """
@@ -2215,7 +2216,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_import_dashboard_overwrite(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dashboard_overwrite(self, mock_add_permissions):
         """
         Dashboard API: Test import existing dashboard
         """
