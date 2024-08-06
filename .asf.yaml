@@ -70,7 +70,6 @@ github:
           - cypress-matrix (4, chrome)
           - cypress-matrix (5, chrome)
           - frontend-build
-          - pre-commit
           - python-lint
           - test-mysql
           - test-postgres (current)

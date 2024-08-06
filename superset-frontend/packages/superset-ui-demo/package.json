@@ -43,7 +43,6 @@
     "@storybook/types": "8.1.11",
     "@types/react-loadable": "^5.5.3",
     "antd": "4.10.3",
-    "bootstrap": "^3.4.1",
     "core-js": "3.37.1",
     "gh-pages": "^5.0.0",
     "jquery": "^3.7.1",
