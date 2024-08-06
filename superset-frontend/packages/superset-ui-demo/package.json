@@ -33,7 +33,7 @@
   "dependencies": {
     "@data-ui/event-flow": "^0.0.84",
     "@emotion/cache": "^11.4.0",
-    "@emotion/react": "^11.4.1",
+    "@emotion/react": "^11.13.0",
     "@emotion/styled": "^11.3.0",
     "@react-icons/all-files": "^4.1.0",
     "@storybook/addon-actions": "8.1.11",
