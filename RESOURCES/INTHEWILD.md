@@ -35,17 +35,17 @@ Join our growing community!
 - [Ontruck](https://www.ontruck.com/)
 
 ### Financial Services
-- [Aktia Bank plc](https://www.aktia.com) [@villebro]
+- [Aktia Bank plc](https://www.aktia.com)
 - [American Express](https://www.americanexpress.com) [@TheLastSultan]
+- [bumper](https://www.bumper.co/) [@vasu-ram, @JamiePercival]
 - [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
 - [KarrotPay](https://www.daangnpay.com/)
 - [Taveo](https://www.taveo.com) [@codek]
+- [Unit](https://www.unit.co/about-us) [@amitmiran137]
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
-- [bumper](https://www.bumper.co/) [@vasu-ram, @JamiePercival]
-- [Unit](https://www.unit.co/about-us) [@amitmiran137]
 
 ### Gaming
 - [Popoko VM Games Studio](https://popoko.live)
