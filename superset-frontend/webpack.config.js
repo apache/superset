@@ -35,6 +35,7 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package');
+const Visualizer = require('webpack-visualizer-plugin2');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -169,6 +170,15 @@ const plugins = [
 
 if (!process.env.CI) {
   plugins.push(new webpack.ProgressPlugin());
+  plugins.push(
+    // this creates an HTML page with a sunburst diagram of dependencies.
+    // you'll find it at superset/static/stats/statistics.html
+    // note that the file is >100MB so it's in .gitignore
+    new Visualizer({
+      filename: path.join('..', 'stats', 'statistics.html'),
+      throwOnError: true,
+    }),
+  );
 }
 
 if (!isDevMode) {
