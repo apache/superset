@@ -67,7 +67,6 @@ const {
   mode = 'development',
   devserverPort = 9000,
   measure = false,
-  analyzeBundle = false,
   analyzerPort = 8888,
   nameChunks = false,
 } = parsedArgs;
@@ -170,15 +169,6 @@ const plugins = [
 
 if (!process.env.CI) {
   plugins.push(new webpack.ProgressPlugin());
-  plugins.push(
-    // this creates an HTML page with a sunburst diagram of dependencies.
-    // you'll find it at superset/static/stats/statistics.html
-    // note that the file is >100MB so it's in .gitignore
-    new Visualizer({
-      filename: path.join('..', 'stats', 'statistics.html'),
-      throwOnError: true,
-    }),
-  );
 }
 
 if (!isDevMode) {
@@ -596,11 +586,19 @@ if (isDevMode) {
   };
 }
 
-// Bundle analyzer is disabled by default
-// Pass flag --analyzeBundle=true to enable
-// e.g. npm run build -- --analyzeBundle=true
-if (analyzeBundle) {
+// To
+// e.g. npm run package-stats
+if (process.env.BUNDLE_ANALYZER) {
   config.plugins.push(new BundleAnalyzerPlugin({ analyzerPort }));
+  config.plugins.push(
+    // this creates an HTML page with a sunburst diagram of dependencies.
+    // you'll find it at superset/static/stats/statistics.html
+    // note that the file is >100MB so it's in .gitignore
+    new Visualizer({
+      filename: path.join('..', 'stats', 'statistics.html'),
+      throwOnError: true,
+    }),
+  );
 }
 
 // Speed measurement is disabled by default
