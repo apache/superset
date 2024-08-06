@@ -42,6 +42,7 @@ import type {
   SeriesLineLabelOption,
   ZRLineType,
 } from 'echarts/types/src/util/types';
+import type { SeriesOption } from 'echarts';
 import type {
   MarkArea1DDataItemOption,
   MarkArea2DDataItemOption,
@@ -68,7 +69,6 @@ import {
   TIMESERIES_CONSTANTS,
 } from '../constants';
 
-type SeriesOption = any;
 // based on weighted wiggle algorithm
 // source: https://ieeexplore.ieee.org/document/4658136
 export const getBaselineSeriesForStream = (
