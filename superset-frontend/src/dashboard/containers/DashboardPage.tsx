@@ -90,7 +90,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       dashboardInfo &&
       Object.keys(dashboardInfo).length > 0 &&
       (dashboardInfo.id === toInteger(idOrSlug) ||
-        dashboardInfo.slug === idOrSlug)
+        dashboardInfo.slug === idOrSlug ||
+        dashboardInfo.uuid === idOrSlug)
         ? dashboardInfo
         : null,
   );
