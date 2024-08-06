@@ -34,7 +34,8 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { SortSeriesType } from '@superset-ui/chart-controls';
-import { format, LegendComponentOption, SeriesOption } from 'echarts';
+import { format } from 'echarts/core';
+import type { LegendComponentOption } from 'echarts/components';
 import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
 import {
   NULL_STRING,
@@ -49,6 +50,7 @@ import {
 } from '../types';
 import { defaultLegendPadding } from '../defaults';
 
+type SeriesOption = any;
 function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
 }

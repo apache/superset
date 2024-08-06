@@ -32,8 +32,7 @@ import {
   TimeseriesDataRecord,
   ValueFormatter,
 } from '@superset-ui/core';
-import { SeriesOption } from 'echarts';
-import {
+import type {
   CallbackDataParams,
   DefaultStatesMixin,
   ItemStyleOption,
@@ -43,11 +42,11 @@ import {
   SeriesLineLabelOption,
   ZRLineType,
 } from 'echarts/types/src/util/types';
-import {
+import type {
   MarkArea1DDataItemOption,
   MarkArea2DDataItemOption,
 } from 'echarts/types/src/component/marker/MarkAreaModel';
-import { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
+import type { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
 import { extractForecastSeriesContext } from '../utils/forecast';
 import {
   EchartsTimeseriesSeriesType,
@@ -69,6 +68,7 @@ import {
   TIMESERIES_CONSTANTS,
 } from '../constants';
 
+type SeriesOption = any;
 // based on weighted wiggle algorithm
 // source: https://ieeexplore.ieee.org/document/4658136
 export const getBaselineSeriesForStream = (

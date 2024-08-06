@@ -44,7 +44,7 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { getOriginalSeries } from '@superset-ui/chart-controls';
-import { EChartsCoreOption, SeriesOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
 import {
   DEFAULT_FORM_DATA,
   EchartsMixedTimeseriesChartTransformedProps,
@@ -97,6 +97,7 @@ import {
   getYAxisFormatter,
 } from '../utils/formatters';
 
+type SeriesOption = any;
 const getFormatter = (
   customFormatters: Record<string, ValueFormatter>,
   defaultFormatter: ValueFormatter,

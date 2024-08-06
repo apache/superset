@@ -28,8 +28,9 @@ import {
   getValueFormatter,
   tooltipHtml,
 } from '@superset-ui/core';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { EChartsCoreOption, PieSeriesOption } from 'echarts';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { PieSeriesOption } from 'echarts/charts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_PIE_FORM_DATA,
   EchartsPieChartProps,

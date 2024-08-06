@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { BarSeriesOption, EChartsOption } from 'echarts';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { ComposeOption } from 'echarts/core';
+import type { BarSeriesOption } from 'echarts/charts';
+import type { GridComponentOption } from 'echarts/components';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { isEmpty } from 'lodash';
 import {
   CategoricalColorNamespace,
@@ -132,6 +134,8 @@ export default function transformProps(
   const onFocusedSeries = (index?: number | undefined) => {
     focusedSeries = index;
   };
+
+  type EChartsOption = ComposeOption<GridComponentOption | BarSeriesOption>;
 
   const echartOptions: EChartsOption = {
     grid: {
