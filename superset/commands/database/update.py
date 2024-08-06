@@ -41,6 +41,7 @@ from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
 from superset.daos.database import DatabaseDAO
 from superset.daos.dataset import DatasetDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.db_engine_specs.base import GenericDBException
 from superset.models.core import Database
 from superset.utils.decorators import on_error, transaction
 
@@ -80,6 +81,7 @@ class UpdateDatabaseCommand(BaseCommand):
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         ssh_tunnel = self._handle_ssh_tunnel(database)
         self._refresh_catalogs(database, original_database_name, ssh_tunnel)
+
         return database
 
     def _handle_ssh_tunnel(self, database: Database) -> SSHTunnel | None:
@@ -115,17 +117,13 @@ class UpdateDatabaseCommand(BaseCommand):
     ) -> set[str]:
         """
         Helper method to load catalogs.
-
-        This method captures a generic exception, since errors could potentially come
-        from any of the 50+ database drivers we support.
         """
-
         try:
             return database.get_all_catalog_names(
                 force=True,
                 ssh_tunnel=ssh_tunnel,
             )
-        except Exception as ex:
+        except GenericDBException as ex:
             raise DatabaseConnectionFailedError() from ex
 
     def _get_schema_names(
@@ -136,18 +134,14 @@ class UpdateDatabaseCommand(BaseCommand):
     ) -> set[str]:
         """
         Helper method to load schemas.
-
-        This method captures a generic exception, since errors could potentially come
-        from any of the 50+ database drivers we support.
         """
-
         try:
             return database.get_all_schema_names(
                 force=True,
                 catalog=catalog,
                 ssh_tunnel=ssh_tunnel,
             )
-        except Exception as ex:
+        except GenericDBException as ex:
             raise DatabaseConnectionFailedError() from ex
 
     def _refresh_catalogs(
@@ -255,7 +249,7 @@ class UpdateDatabaseCommand(BaseCommand):
         catalog: str | None,
         schemas: set[str],
     ) -> None:
-        new_name = security_manager.get_catalog_perm(
+        new_catalog_perm_name = security_manager.get_catalog_perm(
             database.database_name,
             catalog,
         )
@@ -271,10 +265,10 @@ class UpdateDatabaseCommand(BaseCommand):
                 perm,
             )
             if existing_pvm:
-                existing_pvm.view_menu.name = new_name
+                existing_pvm.view_menu.name = new_catalog_perm_name
 
         for schema in schemas:
-            new_name = security_manager.get_schema_perm(
+            new_schema_perm_name = security_manager.get_schema_perm(
                 database.database_name,
                 catalog,
                 schema,
@@ -291,7 +285,7 @@ class UpdateDatabaseCommand(BaseCommand):
                 perm,
             )
             if existing_pvm:
-                existing_pvm.view_menu.name = new_name
+                existing_pvm.view_menu.name = new_schema_perm_name
 
             # rename permissions on datasets and charts
             for dataset in DatabaseDAO.get_datasets(
@@ -299,9 +293,11 @@ class UpdateDatabaseCommand(BaseCommand):
                 catalog=catalog,
                 schema=schema,
             ):
-                dataset.schema_perm = new_name
+                dataset.catalog_perm = new_catalog_perm_name
+                dataset.schema_perm = new_schema_perm_name
                 for chart in DatasetDAO.get_related_objects(dataset.id)["charts"]:
-                    chart.schema_perm = new_name
+                    chart.catalog_perm = new_catalog_perm_name
+                    chart.schema_perm = new_schema_perm_name
 
     def validate(self) -> None:
         if database_name := self._properties.get("database_name"):

@@ -20,6 +20,7 @@
 from datetime import datetime
 from io import BytesIO
 from typing import Optional
+from unittest.mock import patch
 from zipfile import is_zipfile, ZipFile
 
 import yaml
@@ -898,7 +899,8 @@ class TestSavedQueryApi(SupersetTestCase):
         buf.seek(0)
         return buf
 
-    def test_import_saved_queries(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_saved_queries(self, mock_add_permissions):
         """
         Saved Query API: Test import
         """

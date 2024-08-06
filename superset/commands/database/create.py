@@ -41,6 +41,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.daos.database import DatabaseDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.db_engine_specs.base import GenericDBException
 from superset.exceptions import SupersetErrorsException
 from superset.extensions import event_logger, security_manager
 from superset.models.core import Database
@@ -118,7 +119,7 @@ class CreateDatabaseCommand(BaseCommand):
             for catalog in catalogs:
                 try:
                     self.add_schema_permissions(database, catalog, ssh_tunnel)
-                except Exception:  # pylint: disable=broad-except
+                except GenericDBException:  # pylint: disable=broad-except
                     logger.warning("Error processing catalog '%s'", catalog)
                     continue
         except (

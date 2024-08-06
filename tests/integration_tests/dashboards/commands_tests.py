@@ -494,7 +494,8 @@ class TestImportDashboardsCommand(SupersetTestCase):
 
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
-    def test_import_v1_dashboard(self, sm_g, utils_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_dashboard(self, mock_add_permissions, sm_g, utils_g):
         """Test that we can import a dashboard"""
         admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
@@ -583,7 +584,8 @@ class TestImportDashboardsCommand(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.security.manager.g")
-    def test_import_v1_dashboard_multiple(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_dashboard_multiple(self, mock_add_permissions, mock_g):
         """Test that a dashboard can be imported multiple times"""
         mock_g.user = security_manager.find_user("admin")
 
