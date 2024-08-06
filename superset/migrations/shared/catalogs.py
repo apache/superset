@@ -208,6 +208,59 @@ def update_catalog_column(
             print_processed_batch(start_time, i, total_rows, model)
 
 
+def update_schema_catalog_perms(
+    session: Session,
+    database: Database,
+    catalog_perm: str | None,
+    catalog: str,
+    downgrade: bool = False,
+) -> None:
+    """
+    Update schema and catalog permissions for tables and charts in a given database.
+
+    This function updates the `catalog`, `catalog_perm`, and `schema_perm` fields for
+    tables and charts associated with the specified database. If `downgrade` is True,
+    the `catalog` and `catalog_perm` fields are set to None, otherwise they are set
+    to the provided `catalog` and `catalog_perm` values.
+
+    Args:
+        session (Session): The SQLAlchemy session to use for database operations.
+        database (Database): The database object whose tables and charts will be updated.
+        catalog_perm (str): The new catalog permission to set.
+        catalog (str): The new catalog to set.
+        downgrade (bool, optional): If True, reset the `catalog` and `catalog_perm` fields to None.
+                                    Defaults to False.
+    """
+    # Mapping of table id to schema permission
+    mapping = {}
+
+    for table in (
+        session.query(SqlaTable)
+        .filter_by(database_id=database.id)
+        .filter_by(catalog=catalog if downgrade else None)
+    ):
+        schema_perm = security_manager.get_schema_perm(
+            database.database_name,
+            None if downgrade else catalog,
+            table.schema,
+        )
+        table.catalog = None if downgrade else catalog
+        table.catalog_perm = catalog_perm
+        table.schema_perm = schema_perm
+        mapping[table.id] = schema_perm
+
+    # Select all slices of type table that belong to the database
+    for chart in (
+        session.query(Slice)
+        .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
+        .join(Database, SqlaTable.database_id == Database.id)
+        .filter(Database.id == database.id)
+        .filter(Slice.datasource_type == "table")
+    ):
+        chart.catalog_perm = catalog_perm
+        chart.schema_perm = mapping[chart.datasource_id]
+
+
 def delete_models_non_default_catalog(
     session: Session, database: Database, catalog: str
 ) -> None:
@@ -321,26 +374,7 @@ def upgrade_database_catalogs(
     update_catalog_column(session, database, default_catalog, False)
 
     # update `schema_perm` and `catalog_perm` for tables and charts
-    for table in session.query(SqlaTable).filter_by(
-        database_id=database.id,
-        catalog=None,
-    ):
-        schema_perm = security_manager.get_schema_perm(
-            database.database_name,
-            default_catalog,
-            table.schema,
-        )
-
-        table.catalog = default_catalog
-        table.catalog_perm = catalog_perm
-        table.schema_perm = schema_perm
-
-        for chart in session.query(Slice).filter_by(
-            datasource_id=table.id,
-            datasource_type="table",
-        ):
-            chart.catalog_perm = catalog_perm
-            chart.schema_perm = schema_perm
+    update_schema_catalog_perms(session, database, catalog_perm, default_catalog, False)
 
     # add any new catalogs discovered and their schemas
     new_catalog_pvms = add_non_default_catalogs(database, default_catalog, session)
@@ -514,27 +548,8 @@ def downgrade_database_catalogs(
 
     update_catalog_column(session, database, default_catalog, True)
 
-    # update `schema_perm` for tables and charts
-    for table in session.query(SqlaTable).filter_by(
-        database_id=database.id,
-        catalog=default_catalog,
-    ):
-        schema_perm = security_manager.get_schema_perm(
-            database.database_name,
-            None,
-            table.schema,
-        )
-
-        table.catalog = None
-        table.catalog_perm = None
-        table.schema_perm = schema_perm
-
-        for chart in session.query(Slice).filter_by(
-            datasource_id=table.id,
-            datasource_type="table",
-        ):
-            chart.catalog_perm = None
-            chart.schema_perm = schema_perm
+    # update `schema_perm` and `catalog_perm` for tables and charts
+    update_schema_catalog_perms(session, database, None, default_catalog, True)
 
     # delete models referencing non-default catalogs
     delete_models_non_default_catalog(session, database, default_catalog)
