@@ -67,7 +67,6 @@ const {
   mode = 'development',
   devserverPort = 9000,
   measure = false,
-  analyzerPort = 8888,
   nameChunks = false,
 } = parsedArgs;
 const isDevMode = mode !== 'production';
@@ -589,7 +588,7 @@ if (isDevMode) {
 // To
 // e.g. npm run package-stats
 if (process.env.BUNDLE_ANALYZER) {
-  config.plugins.push(new BundleAnalyzerPlugin({ analyzerPort }));
+  config.plugins.push(new BundleAnalyzerPlugin({ analyzerMode: 'static' }));
   config.plugins.push(
     // this creates an HTML page with a sunburst diagram of dependencies.
     // you'll find it at superset/static/stats/statistics.html
