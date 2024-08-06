@@ -2041,9 +2041,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         rv = self.get_assert_metric(uri, "export")
 
-        headers = (
-            "attachment; filename=dashboard_export_20220101T000000.zip"  # noqa: F541
-        )
+        headers = "attachment; filename=dashboard_export_20220101T000000.zip"  # noqa: F541
         assert rv.status_code == 200
         assert rv.headers["Content-Disposition"] == headers
 

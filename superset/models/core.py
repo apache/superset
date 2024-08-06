@@ -116,9 +116,7 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(
-    Model, AuditMixinNullable, ImportExportMixin
-):  # pylint: disable=too-many-public-methods
+class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -392,7 +390,9 @@ class Database(
         return (
             username
             if (username := get_username())
-            else object_url.username if self.impersonate_user else None
+            else object_url.username
+            if self.impersonate_user
+            else None
         )
 
     @contextmanager
