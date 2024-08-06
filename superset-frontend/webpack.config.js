@@ -33,9 +33,9 @@ const {
 } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
+const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package');
-const Visualizer = require('webpack-visualizer-plugin2');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
