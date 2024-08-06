@@ -501,6 +501,7 @@ class BaseTemplateProcessor:
         kwargs.update(self._context)
 
         context = validate_template_context(self.engine, kwargs)
+        print("FOO", type(template.render(context)))
         return template.render(context)
 
 
@@ -565,7 +566,7 @@ class NoOpTemplateProcessor(BaseTemplateProcessor):
         """
         Makes processing a template a noop
         """
-        return sql
+        return str(sql)
 
 
 class PrestoTemplateProcessor(JinjaTemplateProcessor):

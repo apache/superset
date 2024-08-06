@@ -93,10 +93,16 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         database_id = self._properties.get("database")
 
+        catalog = self._properties.get("catalog")
+        if not catalog:
+            catalog = self._properties["catalog"] = (
+                self._model.database.get_default_catalog()
+            )
+
         table = Table(
             self._properties.get("table_name"),  # type: ignore
             self._properties.get("schema"),
-            self._properties.get("catalog"),
+            catalog,
         )
 
         # Validate uniqueness
