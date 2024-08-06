@@ -312,11 +312,11 @@ export default function transformProps(
         stack,
         formatter: forcePercentFormatter
           ? percentFormatter
-          : getCustomFormatter(
+          : (getCustomFormatter(
               customFormatters,
               metrics,
               labelMap?.[seriesName]?.[0],
-            ) ?? defaultFormatter,
+            ) ?? defaultFormatter),
         showValue,
         onlyTotal,
         totalStackedValues: sortedTotalValues,
@@ -553,7 +553,7 @@ export default function transformProps(
 
         const formatter = forcePercentFormatter
           ? percentFormatter
-          : getCustomFormatter(customFormatters, metrics) ?? defaultFormatter;
+          : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
 
         const rows: string[][] = [];
         const total = Object.values(forecastValues).reduce(

@@ -636,7 +636,7 @@ const config: ControlPanelConfig = {
                   'verbose_map',
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
-                  : explore?.datasource?.columns ?? {};
+                  : (explore?.datasource?.columns ?? {});
                 const chartStatus = chart?.chartStatus;
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};

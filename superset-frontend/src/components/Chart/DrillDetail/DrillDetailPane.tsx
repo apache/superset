@@ -169,14 +169,13 @@ export default function DrillDetailPane({
 
   const data: DataType[] = useMemo(
     () =>
-      resultsPage?.data.map(
-        (row, index) =>
-          resultsPage?.colNames.reduce(
-            (acc, curr) => ({ ...acc, [curr]: row[curr] }),
-            {
-              key: index,
-            },
-          ),
+      resultsPage?.data.map((row, index) =>
+        resultsPage?.colNames.reduce(
+          (acc, curr) => ({ ...acc, [curr]: row[curr] }),
+          {
+            key: index,
+          },
+        ),
       ) || [],
     [resultsPage?.colNames, resultsPage?.data],
   );
