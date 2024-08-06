@@ -45,6 +45,7 @@ Join our growing community!
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 - [bumper](https://www.bumper.co/) [@vasu-ram, @JamiePercival]
+- [Unit](https://www.unit.co/about-us) [@amitmiran137]
 
 ### Gaming
 - [Popoko VM Games Studio](https://popoko.live)
