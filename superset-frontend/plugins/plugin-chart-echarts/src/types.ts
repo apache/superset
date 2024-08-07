@@ -32,8 +32,8 @@ import {
   SqlaFormData,
   ChartMetadata,
 } from '@superset-ui/core';
-import { EChartsCoreOption, ECharts } from 'echarts';
-import { TooltipMarker } from 'echarts/types/src/util/format';
+import type { EChartsCoreOption, EChartsType } from 'echarts/core';
+import type { TooltipMarker } from 'echarts/types/src/util/format';
 import { StackControlsValue } from './constants';
 
 export type EchartsStylesProps = {
@@ -58,7 +58,7 @@ export interface EchartsProps {
 }
 
 export interface EchartsHandler {
-  getEchartInstance: () => ECharts | undefined;
+  getEchartInstance: () => EChartsType | undefined;
 }
 
 export enum ForecastSeriesEnum {

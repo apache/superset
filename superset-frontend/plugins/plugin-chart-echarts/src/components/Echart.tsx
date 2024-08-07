@@ -28,13 +28,68 @@ import {
 } from 'react';
 
 import { styled } from '@superset-ui/core';
-import { ECharts, init } from 'echarts';
+import { use, init, EChartsType } from 'echarts/core';
+import {
+  SankeyChart,
+  PieChart,
+  BarChart,
+  FunnelChart,
+  GaugeChart,
+  GraphChart,
+  LineChart,
+  ScatterChart,
+  RadarChart,
+  BoxplotChart,
+  TreeChart,
+  TreemapChart,
+  HeatmapChart,
+  SunburstChart,
+} from 'echarts/charts';
+import { CanvasRenderer } from 'echarts/renderers';
+import {
+  TooltipComponent,
+  GridComponent,
+  VisualMapComponent,
+  LegendComponent,
+  DataZoomComponent,
+  ToolboxComponent,
+  GraphicComponent,
+  AriaComponent,
+} from 'echarts/components';
+import { LabelLayout } from 'echarts/features';
 import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
 
 const Styles = styled.div<EchartsStylesProps>`
   height: ${({ height }) => height};
   width: ${({ width }) => width};
 `;
+
+use([
+  CanvasRenderer,
+  BarChart,
+  BoxplotChart,
+  FunnelChart,
+  GaugeChart,
+  GraphChart,
+  HeatmapChart,
+  LineChart,
+  PieChart,
+  RadarChart,
+  SankeyChart,
+  ScatterChart,
+  SunburstChart,
+  TreeChart,
+  TreemapChart,
+  AriaComponent,
+  DataZoomComponent,
+  GraphicComponent,
+  GridComponent,
+  LegendComponent,
+  ToolboxComponent,
+  TooltipComponent,
+  VisualMapComponent,
+  LabelLayout,
+]);
 
 function Echart(
   {
@@ -53,7 +108,7 @@ function Echart(
     // eslint-disable-next-line no-param-reassign
     refs.divRef = divRef;
   }
-  const chartRef = useRef<ECharts>();
+  const chartRef = useRef<EChartsType>();
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
     [selectedValues],

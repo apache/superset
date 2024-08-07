@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { EChartsCoreOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
 import {
   ChartDataResponseResult,
   ContextMenuFilters,
