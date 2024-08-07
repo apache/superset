@@ -35,6 +35,7 @@ from superset.security import SupersetSecurityManager  # noqa: F401
 # to declare "global" dependencies is to define it in extensions.py,
 # then initialize it in app.create_app(). These fields will be removed
 # in subsequent PRs as things are migrated towards the factory pattern
+# ADDING THIS LINE TO TRIGGER CI
 app: Flask = current_app
 cache = cache_manager.cache
 conf = LocalProxy(lambda: current_app.config)
