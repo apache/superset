@@ -150,6 +150,10 @@ class Chart extends Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
+    // Chart should not update if dashboard isn't done hydrating
+    if (!this.context.hydrated) {
+      return false;
+    }
     // this logic mostly pertains to chart resizing. we keep a copy of the dimensions in
     // state so that we can buffer component size updates and only update on the final call
     // which improves performance significantly
