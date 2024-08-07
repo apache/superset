@@ -17,7 +17,7 @@
 
 import logging
 import uuid
-from typing import Any
+from typing import Any, Union
 
 from flask import current_app
 
@@ -34,7 +34,7 @@ class BaseDistributedLockCommand(BaseCommand):
     codec = JsonKeyValueCodec()
     resource = KeyValueResource.LOCK
 
-    def __init__(self, namespace: str, params: dict[str, Any] | None = None):
+    def __init__(self, namespace: str, params: Union[dict[str, Any], None] = None):
         self.key = get_key(namespace, **(params or {}))
 
     def validate(self) -> None:

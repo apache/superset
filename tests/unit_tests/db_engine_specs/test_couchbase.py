@@ -16,7 +16,7 @@
 # under the License.
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import pytest
 from sqlalchemy import types
@@ -84,7 +84,7 @@ def test_convert_dttm(
 def test_get_column_spec(
     native_type: str,
     sqla_type: type[types.TypeEngine],
-    attrs: dict[str, Any] | None,
+    attrs: Union[dict[str, Any], None],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:

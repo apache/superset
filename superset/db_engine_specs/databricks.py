@@ -434,7 +434,25 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         cls,
         database: Database,
     ) -> str | None:
+        """
+        Return the default catalog.
+
+        The default behavior for Databricks is confusing. When Unity Catalog is not
+        enabled we have (the DB engine spec hasn't been tested with it enabled):
+
+            > SHOW CATALOGS;
+            spark_catalog
+            > SELECT current_catalog();
+            hive_metastore
+
+        To handle permissions correctly we use the result of `SHOW CATALOGS` when a
+        single catalog is returned.
+        """
         with database.get_sqla_engine() as engine:
+            catalogs = {catalog for (catalog,) in engine.execute("SHOW CATALOGS")}
+            if len(catalogs) == 1:
+                return catalogs.pop()
+
             return engine.execute("SELECT current_catalog()").scalar()
 
     @classmethod
