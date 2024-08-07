@@ -60,6 +60,7 @@ const propTypes = {
   impressionId: PropTypes.string.isRequired,
   timeout: PropTypes.number,
   userId: PropTypes.string,
+  context: PropTypes.object,
 };
 
 const defaultProps = {
@@ -69,7 +70,7 @@ const defaultProps = {
 
 class Dashboard extends PureComponent {
   static contextType = PluginContext;
-
+  
   static onBeforeUnload(hasChanged) {
     if (hasChanged) {
       window.addEventListener('beforeunload', Dashboard.unload);
@@ -116,7 +117,6 @@ class Dashboard extends PureComponent {
       };
     }
     window.addEventListener('visibilitychange', this.onVisibilityChange);
-    this.applyCharts();
   }
 
   componentDidUpdate() {

@@ -150,10 +150,6 @@ class Chart extends Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    // Chart should not update if dashboard isn't done hydrating
-    if (!this.context.hydrated) {
-      return false;
-    }
     // this logic mostly pertains to chart resizing. we keep a copy of the dimensions in
     // state so that we can buffer component size updates and only update on the final call
     // which improves performance significantly
@@ -425,10 +421,16 @@ class Chart extends Component {
     }
 
     const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
+
+    // Controlling the status of the Chart based on Dashboard hydration
     const controlledChartStatus = this.context.hydrated
       ? chartStatus
       : 'loading';
+    const controlledTriggerQuery = this.context.hydrated
+      ? chart.triggerQuery
+      : false;
     const isLoading = controlledChartStatus === 'loading';
+
     // eslint-disable-next-line camelcase
     const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
     const cachedDttm =
@@ -531,7 +533,7 @@ class Chart extends Component {
             filterState={filterState}
             queriesResponse={chart.queriesResponse}
             timeout={timeout}
-            triggerQuery={chart.triggerQuery}
+            triggerQuery={controlledTriggerQuery}
             vizType={slice.viz_type}
             setControlValue={setControlValue}
             postTransformProps={postTransformProps}

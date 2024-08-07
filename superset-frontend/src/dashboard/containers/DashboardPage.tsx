@@ -19,7 +19,7 @@
 import { createContext, lazy, FC, useEffect, useMemo, useState } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t, useTheme } from '@superset-ui/core';
+import { DataMaskStateWithId, t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
@@ -94,6 +94,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dashboardInfo.uuid === idOrSlug)
         ? dashboardInfo
         : null,
+  );
+  const currentDataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
   );
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
@@ -183,16 +186,21 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       if (activeTabs?.length) {
         dispatch(hydrateDashboardActiveTabs(activeTabs));
       }
-      dispatch(hydrateDashboardDataMask(dataMask, dashboardInfo));
+
       setDashboardDatamaskHydrated(true);
+      dispatch(hydrateDashboardDataMask(dataMask, dashboardInfo));
     }
     if (
       id &&
       dashboardInfo &&
+      !Object.keys(currentDataMask).length &&
       (permalinkKey || nativeFilterKeyValue || isOldRison) &&
       !isDashboardDatamaskHydrated
     ) {
       getDataMaskApplied();
+    }
+    if (Object.keys(currentDataMask).length && !isDashboardDatamaskHydrated) {
+      setDashboardDatamaskHydrated(true);
     }
   }, [
     dispatch,
@@ -200,6 +208,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     id,
     history.location,
     isDashboardDatamaskHydrated,
+    currentDataMask,
   ]);
 
   useEffect(() => {
@@ -233,6 +242,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   if (error) throw error; // caught in error boundary
 
   const isLoading = !dashboardInfo;
+
   const dashboardContext = useMemo(
     () => ({
       hydrated: isDashboardHydrated && isDashboardDatamaskHydrated,

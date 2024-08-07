@@ -384,7 +384,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const uiConfig = useUiConfig();
   const theme = useTheme();
   const dashboardContext = useContext(DashboardPageContext);
-  const { hydrated: isDashboardHydrated } = dashboardContext;
+
   const dashboardId = useSelector<RootState, string>(
     ({ dashboardInfo }) => `${dashboardInfo.id}`,
   );
@@ -472,11 +472,18 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   }, []);
 
   const {
+    showDashboard,
+    requiredFirstFilter,
     missingInitialFilters,
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,
     nativeFiltersEnabled,
   } = useNativeFilters();
+
+  // Dashboard must wait for pre-selected filters
+  const canShowDashboard = !requiredFirstFilter.length
+    ? true
+    : showDashboard && dashboardContext.hydrated;
 
   const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>({
     threshold: [1],
@@ -684,31 +691,35 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             editMode={editMode}
             marginLeft={dashboardContentMarginLeft}
           >
-            {isDashboardHydrated && missingInitialFilters.length > 0 ? (
-              <div
-                css={css`
-                  display: flex;
-                  flex-direction: row;
-                  align-items: center;
-                  justify-content: center;
-                  flex: 1;
-                  & div {
-                    width: 500px;
-                  }
-                `}
-              >
-                <BasicErrorAlert
-                  title={t('Unable to load dashboard')}
-                  body={t(
-                    `The following filters have the 'Select first filter value by default'
+            {canShowDashboard ? (
+              missingInitialFilters.length > 0 ? (
+                <div
+                  css={css`
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: center;
+                    flex: 1;
+                    & div {
+                      width: 500px;
+                    }
+                  `}
+                >
+                  <BasicErrorAlert
+                    title={t('Unable to load dashboard')}
+                    body={t(
+                      `The following filters have the 'Select first filter value by default'
                     option checked and could not be loaded, which is preventing the dashboard
                     from rendering: %s`,
-                    missingInitialFilters.join(', '),
-                  )}
-                />
-              </div>
+                      missingInitialFilters.join(', '),
+                    )}
+                  />
+                </div>
+              ) : (
+                <DashboardContainer topLevelTabs={topLevelTabs} />
+              )
             ) : (
-              <DashboardContainer topLevelTabs={topLevelTabs} />
+              <Loading />
             )}
             {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
           </StyledDashboardContent>
