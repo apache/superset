@@ -396,11 +396,13 @@ def upgrade_database_catalogs(
     """
     Upgrade a given database to support the default catalog.
     """
-    catalog_perm = security_manager.get_catalog_perm(
+    catalog_perm: str | None = security_manager.get_catalog_perm(
         database.database_name,
         default_catalog,
     )
-    pvms: dict[str, tuple[str, ...]] = {catalog_perm: ("catalog_access",)}
+    pvms: dict[str, tuple[str, ...]] = (
+        {catalog_perm: ("catalog_access",)} if catalog_perm else {}
+    )
 
     # rename existing schema permissions to include the catalog, and also find any new
     # schemas
@@ -443,13 +445,15 @@ def add_non_default_catalogs(
         # edited.
         return {}
 
-    pvms = {}
+    pvms: dict[str, tuple[str]] = {}
     for catalog in catalogs:
-        perm = security_manager.get_catalog_perm(database.database_name, catalog)
-        pvms[perm] = ("catalog_access",)
-
-        new_schema_pvms = create_schema_perms(database, catalog, session)
-        pvms.update(new_schema_pvms)
+        perm: str | None = security_manager.get_catalog_perm(
+            database.database_name, catalog
+        )
+        if perm:
+            pvms[perm] = ("catalog_access",)
+            new_schema_pvms = create_schema_perms(database, catalog)
+            pvms.update(new_schema_pvms)
 
     return pvms
 
@@ -476,12 +480,12 @@ def upgrade_schema_perms(
 
     perms = {}
     for schema in schemas:
-        current_perm = security_manager.get_schema_perm(
+        current_perm: str | None = security_manager.get_schema_perm(
             database.database_name,
             None,
             schema,
         )
-        new_perm = security_manager.get_schema_perm(
+        new_perm: str | None = security_manager.get_schema_perm(
             database.database_name,
             default_catalog,
             schema,
@@ -493,7 +497,7 @@ def upgrade_schema_perms(
             .one_or_none()
         ):
             existing_pvm.name = new_perm
-        else:
+        elif new_perm:
             # new schema discovered, need to create a new permission
             perms[new_perm] = ("schema_access",)
 
@@ -503,7 +507,6 @@ def upgrade_schema_perms(
 def create_schema_perms(
     database: Database,
     catalog: str,
-    session: Session,
 ) -> dict[str, tuple[str]]:
     """
     Create schema permissions for a given catalog.
@@ -517,12 +520,14 @@ def create_schema_perms(
         return {}
 
     return {
-        security_manager.get_schema_perm(
-            database.database_name,
-            catalog,
-            schema,
-        ): ("schema_access",)
+        perm: ("schema_access",)
         for schema in schemas
+        if (
+            perm := security_manager.get_schema_perm(
+                database.database_name, catalog, schema
+            )
+        )
+        is not None
     }
 
 
