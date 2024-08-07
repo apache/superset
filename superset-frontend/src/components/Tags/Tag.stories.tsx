@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import TagType from 'src/types/TagType';
+import { Tag } from '.';
 
-import { WordCloudChartPlugin, LegacyWordCloudChartPlugin } from '../src';
+export default {
+  title: 'Tags',
+  component: Tag,
+};
+export const InteractiveTag = (args: TagType) => <Tag {...args} />;
 
-describe('plugin-chart-word-cloud', () => {
-  it('exports WordCloudChartPlugin', () => {
-    expect(WordCloudChartPlugin).toBeDefined();
-  });
-  it('exports LegacyWordCloudChartPlugin', () => {
-    expect(LegacyWordCloudChartPlugin).toBeDefined();
-  });
-});
+InteractiveTag.args = {
+  editable: false,
+  name: 'Tag',
+};

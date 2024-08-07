@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,21 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { render, screen } from 'spec/helpers/testing-library';
+import Slider from '.';
 
-import { WordCloudFormData } from '../../src';
-import buildQuery from '../../src/plugin/buildQuery';
+const mockedProps = {
+  defaultValue: 90,
+  tooltip: {
+    open: true,
+  },
+};
 
-describe('WordCloud buildQuery', () => {
-  const formData: WordCloudFormData = {
-    datasource: '5__table',
-    granularity_sqla: 'ds',
-    series: 'foo',
-    viz_type: 'word_cloud',
-  };
+test('should render', () => {
+  const { container } = render(<Slider {...mockedProps} />);
+  expect(container).toBeInTheDocument();
+});
 
-  it('should build columns from series in form data', () => {
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    expect(query.columns).toEqual(['foo']);
-  });
+test('should render with default value on tooltip', () => {
+  render(<Slider {...mockedProps} />);
+  expect(
+    screen.getAllByText(`${mockedProps.defaultValue}`)[0],
+  ).toBeInTheDocument();
 });

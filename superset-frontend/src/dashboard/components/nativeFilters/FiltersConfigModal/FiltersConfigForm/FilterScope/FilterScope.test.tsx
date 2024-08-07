@@ -34,6 +34,7 @@ describe('FilterScope', () => {
   const save = jest.fn();
   let form: FormInstance<NativeFiltersForm>;
   const mockedProps = {
+    expanded: false,
     filterId: 'DefaultFilterId',
     dependencies: [],
     setErroredFilters: jest.fn(),

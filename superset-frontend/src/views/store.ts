@@ -47,7 +47,7 @@ import {
   DatasourcesActionPayload,
   DatasourcesAction,
 } from 'src/dashboard/actions/datasources';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import {
   BootstrapUser,
   UndefinedUser,
@@ -126,7 +126,7 @@ const reducers = {
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrapData.common),
   user: userReducer,
-  impressionId: noopReducer(shortid.generate()),
+  impressionId: noopReducer(nanoid()),
   charts,
   datasources: CombinedDatasourceReducers,
   dashboardInfo,

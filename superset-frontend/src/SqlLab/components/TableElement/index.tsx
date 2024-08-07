@@ -105,7 +105,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const {
-    data: tableMetadata,
+    currentData: tableMetadata,
     isSuccess: isMetadataSuccess,
     isLoading: isMetadataLoading,
     isError: hasMetadataError,
@@ -119,7 +119,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     { skip: !expanded },
   );
   const {
-    data: tableExtendedMetadata,
+    currentData: tableExtendedMetadata,
     isSuccess: isExtraMetadataSuccess,
     isLoading: isExtraMetadataLoading,
     isError: hasExtendedMetadataError,

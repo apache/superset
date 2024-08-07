@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-03 14:07-0700\n"
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -205,6 +205,8 @@ msgid ""
 "schedule with a minimum interval of %(minimum_interval)d minutes per "
 "execution."
 msgstr ""
+"%(report_type) のスケジュール頻度が制限を超えています。処理ごとに %(minimum_interval) "
+"分の間隔を持ったスケジュールを設定してください。"
 
 #, python-format
 msgid "%(rows)d rows returned"
@@ -345,6 +347,21 @@ msgstr "(説明なし、クリックするとスタック トレースが表示�
 msgid "), and they become available in your SQL (example:"
 msgstr ")、SQL で使用できるようになります (例:"
 
+#, fuzzy, python-format
+msgid ""
+"*%(name)s*\n"
+"\n"
+"    %(description)s\n"
+"\n"
+"    Error: %(text)s\n"
+"    "
+msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"エラー: %(text)s\n"
+
 #, python-format
 msgid ""
 "*%(name)s*\n"
@@ -362,20 +379,6 @@ msgstr ""
 "<%(url)s|スーパーセット内の探索>\n"
 "\n"
 "%(table)s\n"
-
-#, python-format
-msgid ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Error: %(text)s\n"
-msgstr ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"エラー: %(text)s\n"
 
 #, python-format
 msgid "+ %s more"
@@ -794,6 +797,14 @@ msgstr "追加"
 msgid "Add Alert"
 msgstr "アラートを追加"
 
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "最近の"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "最近の"
+
 msgid "Add CSS template"
 msgstr "CSSテンプレートを追加"
 
@@ -990,12 +1001,12 @@ msgstr "比較値からの正または負の変化に基づいてチャート �
 msgid ""
 "Adjust column settings such as specifying the columns to read, how "
 "duplicates are handled, column data types, and more."
-msgstr ""
+msgstr "列の設定を調整する。(例：読み込む列の指定、重複の処理方法、列のデータ型）"
 
 msgid ""
 "Adjust how spaces, blank lines, null values are handled and other file "
 "wide settings."
-msgstr ""
+msgstr "スペース、空白行、NULL値の扱い方や、その他のファイル全体の設定を調整する。"
 
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "このデータベースが SQL Lab とどのように対話するかを調整"
@@ -1177,7 +1188,7 @@ msgid "Allow DML"
 msgstr "DML を許可"
 
 msgid "Allow changing catalogs"
-msgstr ""
+msgstr "カタログ変更の許可"
 
 msgid ""
 "Allow column names to be changed to case insensitive format, if supported"
@@ -1755,6 +1766,10 @@ msgstr "軸上昇"
 msgid "Axis descending"
 msgstr "軸下降"
 
+#, fuzzy
+msgid "BCC recipients"
+msgstr "最近の"
+
 msgid "BOOLEAN"
 msgstr "ブール値"
 
@@ -1981,6 +1996,10 @@ msgstr "値による: メトリック値を並べ替えキーとして使用し�
 
 msgid "CANCEL"
 msgstr "キャンセル"
+
+#, fuzzy
+msgid "CC recipients"
+msgstr "最近の"
 
 msgid "CREATE DATASET"
 msgstr "データセットを作成"
@@ -2456,6 +2475,10 @@ msgid "Choose one of the available databases from the panel on the left."
 msgstr "左側のパネルから利用可能なデータベースの 1 つを選択します。"
 
 #, fuzzy
+msgid "Choose one of the available databases on the left panel."
+msgstr "左側のパネルから利用可能なデータベースの 1 つを選択します。"
+
+#, fuzzy
 msgid "Choose sheet name"
 msgstr "シート名"
 
@@ -2789,7 +2812,7 @@ msgid ""
 msgstr "複数の時系列グラフ (スパークラインとして) と関連するメトリクスをすばやく比較します。"
 
 msgid "Compare results with other time periods."
-msgstr ""
+msgstr "結果を別の期間と比較する。"
 
 msgid "Compare the same summarized metric across multiple groups."
 msgstr "複数のグループ間で同じ要約メトリックを比較します。"
@@ -3480,7 +3503,7 @@ msgid "Database upload file failed"
 msgstr "ファイルをアップロードするデータベースを選択してください。"
 
 msgid "Database upload file failed, while saving metadata"
-msgstr ""
+msgstr "メタデータの保存中にデータベースへのファイルのアップロードが失敗しました。"
 
 msgid "Databases"
 msgstr "データベース"
@@ -4405,7 +4428,7 @@ msgid "Email reports active"
 msgstr "電子メールレポートがアクティブです"
 
 msgid "Email subject name (optional)"
-msgstr ""
+msgstr "メールの件名（任意）"
 
 msgid "Embed"
 msgstr "埋め込む"
@@ -4675,7 +4698,7 @@ msgid "Excel Upload"
 msgstr "CSVアップロード"
 
 msgid "Excel file format cannot be determined"
-msgstr ""
+msgstr "エクセルファイルの形式が特定できません。"
 
 msgid "Exclude selected values"
 msgstr "選択した値を除外する"
@@ -4905,7 +4928,7 @@ msgid "Featured"
 msgstr "作成した項目"
 
 msgid "Featured color palettes"
-msgstr ""
+msgstr "おすすめのカラーパレット"
 
 msgid "February"
 msgstr "2月"
@@ -4946,7 +4969,7 @@ msgid "File extension is not allowed."
 msgstr "データ URI は許可されません。"
 
 msgid "File size exceeds the maximum allowed size."
-msgstr ""
+msgstr "ファイルサイズが最大許容サイズを超えています。"
 
 #, fuzzy
 msgid "File upload"
@@ -5254,7 +5277,7 @@ msgid "Get the specify date for the holiday"
 msgstr "休日の指定日を取得する"
 
 msgid "Give access to multiple catalogs in a single database connection."
-msgstr ""
+msgstr "一つのデータベースに接続することで複数のカタログにアクセスできます。"
 
 msgid "Go to the edit mode to configure the dashboard and add charts"
 msgstr "編集モードに移動してダッシュボードを構成し、グラフを追加します"
@@ -5596,7 +5619,7 @@ msgid "Info"
 msgstr "情報"
 
 msgid "Inherit range from time filter"
-msgstr ""
+msgstr "時間フィルターの範囲を流用する。"
 
 msgid "Inner Radius"
 msgstr "内半径"
@@ -5893,7 +5916,7 @@ msgid "Label already exists"
 msgstr "ラベルはすでに存在します。"
 
 msgid "Label for the index column. Don't use an existing column name."
-msgstr ""
+msgstr "インデックスカラムのラベルです。既存のカラム名は使用しないでください。"
 
 msgid "Label for your query"
 msgstr "クエリのラベル"
@@ -6600,7 +6623,7 @@ msgid "More filters"
 msgstr "その他のフィルター"
 
 msgid "MotherDuck token"
-msgstr ""
+msgstr "MotherDuck トークン"
 
 msgid "Move only"
 msgstr "移動のみ"
@@ -7372,9 +7395,6 @@ msgid ""
 " or username."
 msgstr "所有者は、ダッシュボードを変更できるユーザーのリストです。名前またはユーザー名で検索できます。"
 
-msgid "PDF download failed, please refresh and try again."
-msgstr "PDF のダウンロードに失敗しました。更新してもう一度お試しください。"
-
 msgid "Page length"
 msgstr "ページの長さ"
 
@@ -7624,7 +7644,7 @@ msgid "Please enter a SQLAlchemy URI to test"
 msgstr "テストするには SQLAlchemy URI を入力してください"
 
 msgid "Please enter valid text. Spaces alone are not permitted."
-msgstr ""
+msgstr "有効なテキストを入力してください。スペースのみの入力はできません。"
 
 msgid "Please re-enter the password."
 msgstr "パスワードを再入力してください。"
@@ -7807,6 +7827,9 @@ msgstr "主 y 軸境界"
 msgid "Primary y-axis format"
 msgstr "プライマリ y 軸フォーマット"
 
+msgid "Private Channels (Bot in channel)"
+msgstr ""
+
 msgid "Private Key"
 msgstr "個人のキー"
 
@@ -7847,7 +7870,7 @@ msgid "Put labels outside"
 msgstr "ラベルを外側に貼ります"
 
 msgid "Put positive values and valid minute and second value less than 60"
-msgstr ""
+msgstr "正の値を入れ、分と秒は60を超えない範囲で指定してください。"
 
 #, fuzzy
 msgid "Put some positive value greater than 0"
@@ -8931,6 +8954,10 @@ msgstr "メタデータ検査用の列を選択します"
 msgid "Select catalog or type to search catalogs"
 msgstr "テーブルを選択するか、テーブルを検索するタイプを選択してください"
 
+#, fuzzy
+msgid "Select channels"
+msgstr "チャートを選択"
+
 msgid "Select chart"
 msgstr "チャートを選択"
 
@@ -9168,7 +9195,7 @@ msgid "Set filter mapping"
 msgstr "フィルタマッピングを設定"
 
 msgid "Set header rows and the number of rows to read or skip."
-msgstr ""
+msgstr "ヘッダー行と、データとして扱う行数を設定してください。"
 
 msgid "Set up an email report"
 msgstr "電子メールレポートを設定する"
@@ -9211,6 +9238,10 @@ msgstr "シート名"
 
 msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift クリックして複数の列で並べ替えます"
+
+#, fuzzy
+msgid "Shift start date"
+msgstr "開始日"
 
 msgid "Short description must be unique for this layer"
 msgstr "短い説明はこのレイヤーに対して一意である必要があります。"
@@ -9511,6 +9542,11 @@ msgstr "ソリッド"
 
 msgid "Some roles do not exist"
 msgstr "一部のロールが存在しません"
+
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
+msgstr ""
 
 msgid "Something went wrong."
 msgstr "何か問題が発生しました。"
@@ -10079,7 +10115,7 @@ msgid "Text"
 msgstr "テキスト"
 
 msgid "Text / Markdown"
-msgstr ""
+msgstr "テキスト / マークダウン"
 
 msgid "Text align"
 msgstr "テキストの配置"
@@ -10251,6 +10287,10 @@ msgstr "このクエリで参照されているデータベースが見つかり
 msgid "The database returned an unexpected error."
 msgstr "データベースが予期しないエラーを返しました。"
 
+#, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "データベースが見つかりませんでした。"
+
 msgid "The database was deleted."
 msgstr "データベースが削除されました。"
 
@@ -10300,10 +10340,10 @@ msgid "The datasource is too large to query."
 msgstr "データソースが大きすぎてクエリできません。"
 
 msgid "The default catalog that should be used for the connection."
-msgstr ""
+msgstr "接続に使用するデフォルトのカタログ"
 
 msgid "The default schema that should be used for the connection."
-msgstr ""
+msgstr "接続に使用するデフォルトのスキーマ"
 
 msgid ""
 "The description can be displayed as widget headers in the dashboard view."
@@ -10676,6 +10716,15 @@ msgstr "送信されたペイロードのスキーマが無効です。"
 msgid "The schema was deleted or renamed in the database."
 msgstr "データベース内のスキーマが削除されたか、名前が変更されました。"
 
+msgid "The screenshot could not be downloaded. Please, try again later."
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+
 msgid "The size of each cell in meters"
 msgstr "各セルのサイズ (メートル単位)"
 
@@ -10839,8 +10888,9 @@ msgstr "データセットの関連オブジェクトの取得中にエラーが
 msgid "There was an error fetching the favorite status: %s"
 msgstr "お気に入りステータスの取得中にエラーが発生しました: %s"
 
-msgid "There was an error fetching your recent activity:"
-msgstr "最近のアクティビティの取得中にエラーが発生しました:"
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "お気に入りステータスの取得中にエラーが発生しました: %s"
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -11171,6 +11221,11 @@ msgid "This metric might be incompatible with current dataset"
 msgstr "このメトリクスは現在のデータセットと互換性がない可能性があります"
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
 msgstr ""
 
 msgid ""
@@ -11703,6 +11758,10 @@ msgstr "不明な Doris サーバー ホスト \"%(hostname)s\"。"
 msgid "Unknown MySQL server host \"%(hostname)s\"."
 msgstr "不明な MySQL サーバー ホスト \"%(hostname)s\"。"
 
+#, fuzzy, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
+msgstr "不明な Doris サーバー ホスト \"%(hostname)s\"。"
+
 msgid "Unknown Presto Error"
 msgstr "不明なプレスト エラー"
 
@@ -11811,7 +11870,7 @@ msgstr "ファイルをデータベースにアップロードする"
 
 #, python-format
 msgid "Upload a file with a valid extension. Valid: [%s]"
-msgstr ""
+msgstr "有効な拡張子のファイルをアップロードしてください。有効なもの： [%s]"
 
 msgid "Upload file to database"
 msgstr "ファイルをデータベースにアップロードする"
@@ -12931,7 +12990,7 @@ msgid "Your report could not be deleted"
 msgstr "レポートを削除できませんでした"
 
 msgid "ZIP file contains multiple file types"
-msgstr ""
+msgstr "ZIPファイルには複数のファイルタイプが含まれています。"
 
 msgid "Zero imputation"
 msgstr "ゼロインピュテーション"
@@ -13286,7 +13345,7 @@ msgid "e.g. default"
 msgstr "デフォルト"
 
 msgid "e.g. hive_metastore"
-msgstr ""
+msgstr "例：hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "例param1=値1&param2=値2"
@@ -13389,6 +13448,10 @@ msgstr "In"
 
 msgid "in modal"
 msgstr "モーダルで"
+
+#, fuzzy
+msgid "invalid email"
+msgstr "パーマリンクキーが無効です。"
 
 msgid "is expected to be a Mapbox URL"
 msgstr "Mapbox URL であることが期待されます"

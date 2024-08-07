@@ -62,6 +62,8 @@ export type EmbedDashboardParams = {
   debug?: boolean
   /** The iframe title attribute */
   iframeTitle?: string
+  /** additional iframe sandbox attributes ex (allow-top-navigation, allow-popups-to-escape-sandbox) **/
+  iframeSandboxExtras?: string[]
 }
 
 export type Size = {
@@ -86,6 +88,7 @@ export async function embedDashboard({
   dashboardUiConfig,
   debug = false,
   iframeTitle = "Embedded Dashboard",
+  iframeSandboxExtras = []
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     if (debug) {
@@ -135,8 +138,10 @@ export async function embedDashboard({
       iframe.sandbox.add("allow-downloads"); // for downloading charts as image
       iframe.sandbox.add("allow-forms"); // for forms to submit
       iframe.sandbox.add("allow-popups"); // for exporting charts as csv
-      // add these if it turns out we need them:
-      // iframe.sandbox.add("allow-top-navigation");
+      // additional sandbox props
+      iframeSandboxExtras.forEach((key: string) => {
+        iframe.sandbox.add(key);
+      });
 
       // add the event listener before setting src, to be 100% sure that we capture the load event
       iframe.addEventListener('load', () => {

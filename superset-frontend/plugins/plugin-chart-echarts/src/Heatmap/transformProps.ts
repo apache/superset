@@ -29,14 +29,17 @@ import {
 } from '@superset-ui/core';
 import memoizeOne from 'memoize-one';
 import { maxBy, minBy } from 'lodash';
-import { EChartsOption, HeatmapSeriesOption } from 'echarts';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { ComposeOption } from 'echarts/core';
+import type { HeatmapSeriesOption } from 'echarts/charts';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { HeatmapChartProps, HeatmapTransformedProps } from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
 import { NULL_STRING } from '../constants';
 import { getPercentFormatter } from '../utils/formatters';
+
+type EChartsOption = ComposeOption<HeatmapSeriesOption>;
 
 const DEFAULT_ECHARTS_BOUNDS = [0, 200];
 
@@ -213,7 +216,7 @@ export default function transformProps(
       top: 0,
       itemHeight: legendType === 'continuous' ? 300 : 14,
       itemWidth: 15,
-      formatter: min => valueFormatter(min as number),
+      formatter: (min: number) => valueFormatter(min),
       inRange: {
         color: colors,
       },

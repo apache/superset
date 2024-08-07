@@ -60,12 +60,14 @@ from superset.commands.report.execute import (
 )
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.exceptions import SupersetException
+from superset.key_value.models import KeyValueEntry
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.reports.models import (
     ReportDataFormat,
     ReportExecutionLog,
+    ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
     ReportScheduleValidatorType,
@@ -82,6 +84,9 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.tabbed_dashboard import (
+    tabbed_dashboard,  # noqa: F401
+)
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices_module_scope,  # noqa: F401
     load_world_bank_data,  # noqa: F401
@@ -91,6 +96,7 @@ from tests.integration_tests.reports.utils import (
     create_report_notification,
     CSV_FILE,
     DEFAULT_OWNER_EMAIL,
+    reset_key_values,
     SCREENSHOT_FILE,
     TEST_ID,
 )
@@ -104,6 +110,20 @@ pytestmark = pytest.mark.usefixtures(
 def get_target_from_report_schedule(report_schedule: ReportSchedule) -> list[str]:
     return [
         json.loads(recipient.recipient_config_json)["target"]
+        for recipient in report_schedule.recipients
+    ]
+
+
+def get_cctarget_from_report_schedule(report_schedule: ReportSchedule) -> list[str]:
+    return [
+        json.loads(recipient.recipient_config_json).get("ccTarget", "")
+        for recipient in report_schedule.recipients
+    ]
+
+
+def get_bcctarget_from_report_schedule(report_schedule: ReportSchedule) -> list[str]:
+    return [
+        json.loads(recipient.recipient_config_json).get("bccTarget", "")
         for recipient in report_schedule.recipients
     ]
 
@@ -152,7 +172,9 @@ def assert_log(state: str, error_message: Optional[str] = None):
 @contextmanager
 def create_test_table_context(database: Database):
     with database.get_sqla_engine() as engine:
-        engine.execute("CREATE TABLE test_table AS SELECT 1 as first, 2 as second")
+        engine.execute(
+            "CREATE TABLE IF NOT EXISTS test_table AS SELECT 1 as first, 2 as second"
+        )
         engine.execute("INSERT INTO test_table (first, second) VALUES (1, 2)")
         engine.execute("INSERT INTO test_table (first, second) VALUES (3, 4)")
 
@@ -166,6 +188,20 @@ def create_report_email_chart():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
         email_target="target@email.com", chart=chart
+    )
+    yield report_schedule
+
+    cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture()
+def create_report_email_chart_with_cc_and_bcc():
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        email_target="target@email.com",
+        ccTarget="cc@email.com",
+        bccTarget="bcc@email.com",
+        chart=chart,
     )
     yield report_schedule
 
@@ -262,6 +298,17 @@ def create_report_slack_chart():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
         slack_channel="slack_channel", chart=chart
+    )
+    yield report_schedule
+
+    cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture()
+def create_report_slack_chartv2():
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        slack_channel="slack_channel_id", chart=chart, name="report_slack_chartv2"
     )
     yield report_schedule
 
@@ -604,6 +651,73 @@ def create_invalid_sql_alert_email_chart(request, app_context: AppContext):
         yield report_schedule
 
         cleanup_report_schedule(report_schedule)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices",
+    "create_report_email_chart_with_cc_and_bcc",
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_email_chart_report_schedule_with_cc_bcc(
+    screenshot_mock,
+    email_mock,
+    create_report_email_chart_with_cc_and_bcc,
+):
+    """
+    ExecuteReport Command: Test chart email report schedule with screenshot and email cc, bcc options
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_email_chart_with_cc_and_bcc.id, datetime.utcnow()
+        ).run()
+
+        notification_targets = get_target_from_report_schedule(
+            create_report_email_chart_with_cc_and_bcc
+        )
+
+        notification_cctargets = get_cctarget_from_report_schedule(
+            create_report_email_chart_with_cc_and_bcc
+        )
+
+        notification_bcctargets = get_bcctarget_from_report_schedule(
+            create_report_email_chart_with_cc_and_bcc
+        )
+
+        # assert that the link sent is correct
+        assert (
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
+            f"{create_report_email_chart_with_cc_and_bcc.chart.id}"
+            '%7D&force=false">Explore in Superset</a>' in email_mock.call_args[0][2]
+        )
+        # Assert the email smtp address
+        if notification_targets:
+            assert email_mock.call_args[0][0] == notification_targets[0]
+
+        # Assert the cc recipients if provided
+        if notification_cctargets:
+            expected_cc_targets = [target.strip() for target in notification_cctargets]
+            assert (
+                email_mock.call_args[1].get("cc", "").split(",") == expected_cc_targets
+            )
+
+        if notification_bcctargets:
+            expected_bcc_targets = [
+                target.strip() for target in notification_bcctargets
+            ]
+            assert (
+                email_mock.call_args[1].get("bcc", "").split(",")
+                == expected_bcc_targets
+            )
+
+        # Assert the email inline screenshot
+        smtp_images = email_mock.call_args[1]["images"]
+        assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
+        # Assert logs are correct
+        assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures(
@@ -1064,6 +1178,93 @@ def test_email_dashboard_report_schedule(
             statsd_mock.assert_called_once_with("reports.email.send.ok", 1)
 
 
+@pytest.mark.usefixtures("tabbed_dashboard")
+@patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags", ALERT_REPORT_TABS=True
+)
+def test_email_dashboard_report_schedule_with_tab_anchor(
+    _email_mock,
+    _screenshot_mock,
+):
+    """
+    ExecuteReport Command: Test dashboard email report schedule with tab metadata
+    """
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+            # get tabbed dashboard fixture
+            dashboard = db.session.query(Dashboard).all()[1]
+            # build report_schedule
+            report_schedule = create_report_notification(
+                email_target="target@email.com",
+                dashboard=dashboard,
+                extra={"dashboard": {"anchor": "TAB-L2AB"}},
+            )
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, datetime.utcnow()
+            ).run()
+
+            # Assert logs are correct
+            assert_log(ReportState.SUCCESS)
+            statsd_mock.assert_called_once_with("reports.email.send.ok", 1)
+
+            pl = (
+                db.session.query(KeyValueEntry)
+                .order_by(KeyValueEntry.id.desc())
+                .first()
+            )
+
+            value = json.loads(pl.value)
+            # test that report schedule extra json matches permalink state
+            assert report_schedule.extra["dashboard"] == value["state"]
+
+            # remove report_schedule
+            cleanup_report_schedule(report_schedule)
+            # remove permalink kvalues
+            reset_key_values()
+
+
+@pytest.mark.usefixtures("tabbed_dashboard")
+@patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags", ALERT_REPORT_TABS=False
+)
+def test_email_dashboard_report_schedule_disabled_tabs(
+    _email_mock,
+    _screenshot_mock,
+):
+    """
+    ExecuteReport Command: Test dashboard email report schedule with tab metadata
+    """
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+            # get tabbed dashboard fixture
+            dashboard = db.session.query(Dashboard).all()[1]
+            # build report_schedule
+            report_schedule = create_report_notification(
+                email_target="target@email.com",
+                dashboard=dashboard,
+                extra={"dashboard": {"anchor": "TAB-L2AB"}},
+            )
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, report_schedule.id, datetime.utcnow()
+            ).run()
+
+            # Assert logs are correct
+            assert_log(ReportState.SUCCESS)
+            statsd_mock.assert_called_once_with("reports.email.send.ok", 1)
+
+            permalinks = db.session.query(KeyValueEntry).all()
+
+            # test that report schedule extra json matches permalink state
+            assert len(permalinks) == 0
+
+            # remove report_schedule
+            cleanup_report_schedule(report_schedule)
+
+
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices",
     "create_report_email_dashboard_force_screenshot",
@@ -1102,11 +1303,15 @@ def test_email_dashboard_report_schedule_force_screenshot(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
 )
-@patch("superset.reports.notifications.slack.get_slack_client")
+@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-def test_slack_chart_report_schedule(
+def test_slack_chart_report_schedule_converts_to_v2(
     screenshot_mock,
     slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
     create_report_slack_chart,
 ):
     """
@@ -1114,13 +1319,66 @@ def test_slack_chart_report_schedule(
     """
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
-    notification_targets = get_target_from_report_schedule(create_report_slack_chart)
 
-    channel_name = notification_targets[0]
-    channel_id = "channel_id"
-    slack_client_mock.return_value.conversations_list.return_value = {
-        "channels": [{"id": channel_id, "name": channel_name}]
-    }
+    channel_id = "slack_channel_id"
+
+    get_channels_with_search_mock.return_value = channel_id
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_slack_chart.id, datetime.utcnow()
+            ).run()
+
+            assert (
+                slack_client_mock.return_value.files_upload_v2.call_args[1]["channel"]
+                == channel_id
+            )
+            assert (
+                slack_client_mock.return_value.files_upload_v2.call_args[1]["file"]
+                == SCREENSHOT_FILE
+            )
+
+            # Assert that the report recipients were updated
+            assert create_report_slack_chart.recipients[
+                0
+            ].recipient_config_json == json.dumps({"target": channel_id})
+            assert (
+                create_report_slack_chart.recipients[0].type
+                == ReportRecipientType.SLACKV2
+            )
+
+            # Assert logs are correct
+            assert_log(ReportState.SUCCESS)
+            # this will send a warning
+            assert statsd_mock.call_args_list[0] == call(
+                "reports.slack.send.warning", 1
+            )
+            assert statsd_mock.call_args_list[1] == call("reports.slack.send.ok", 1)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_slack_chartv2"
+)
+@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_slack_chart_report_schedule_v2(
+    screenshot_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
+    create_report_slack_chart,
+):
+    """
+    ExecuteReport Command: Test chart slack report schedule
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+    channel_id = "slack_channel_id"
+
+    get_channels_with_search_mock.return_value = channel_id
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
@@ -1139,56 +1397,17 @@ def test_slack_chart_report_schedule(
 
             # Assert logs are correct
             assert_log(ReportState.SUCCESS)
-            statsd_mock.assert_called_once_with("reports.slack.send.ok", 1)
+            # this will send a warning
+            assert statsd_mock.call_args_list[0] == call(
+                "reports.slack.send.warning", 1
+            )
+            assert statsd_mock.call_args_list[1] == call("reports.slack.send.ok", 1)
 
 
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
 )
-@patch("superset.reports.notifications.slack.get_slack_client")
-@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-def test_slack_chart_report_schedule_deprecated(
-    screenshot_mock,
-    slack_client_mock,
-    create_report_slack_chart,
-):
-    """
-    ExecuteReport Command: Test chart slack report schedule
-    """
-    # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
-    notification_targets = get_target_from_report_schedule(create_report_slack_chart)
-
-    channel_name = notification_targets[0]
-
-    slack_client_mock.return_value.conversations_list.side_effect = SlackApiError(
-        "Error", "Response"
-    )
-
-    with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
-            AsyncExecuteReportScheduleCommand(
-                TEST_ID, create_report_slack_chart.id, datetime.utcnow()
-            ).run()
-
-            assert (
-                slack_client_mock.return_value.files_upload.call_args[1]["channels"]
-                == channel_name
-            )
-            assert (
-                slack_client_mock.return_value.files_upload.call_args[1]["file"]
-                == SCREENSHOT_FILE
-            )
-
-            # Assert logs are correct
-            assert_log(ReportState.SUCCESS)
-            statsd_mock.assert_called_once_with("reports.slack.send.ok", 1)
-
-
-@pytest.mark.usefixtures(
-    "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
-)
-@patch("superset.utils.slack.WebClient")
+@patch("superset.utils.slack.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_chart_report_schedule_with_errors(
     screenshot_mock,
@@ -1214,7 +1433,7 @@ def test_slack_chart_report_schedule_with_errors(
     ]
 
     for idx, er in enumerate(slack_errors):
-        web_client_mock.side_effect = er
+        web_client_mock.side_effect = [SlackApiError(None, None), er]
 
         with pytest.raises(ReportScheduleClientErrorsException):
             AsyncExecuteReportScheduleCommand(
@@ -1242,6 +1461,7 @@ def test_slack_chart_report_schedule_with_errors(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_csv"
 )
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=False)
 @patch("superset.reports.notifications.slack.get_slack_client")
 @patch("superset.utils.csv.urllib.request.urlopen")
 @patch("superset.utils.csv.urllib.request.OpenerDirector.open")
@@ -1251,10 +1471,11 @@ def test_slack_chart_report_schedule_with_csv(
     mock_open,
     mock_urlopen,
     slack_client_mock_class,
+    slack_should_use_v2_api_mock,
     create_report_slack_chart_with_csv,
 ):
     """
-    ExecuteReport Command: Test chart slack report schedule with CSV
+    ExecuteReport Command: Test chart slack report V1 schedule with CSV
     """
     # setup csv mock
     response = Mock()
@@ -1268,63 +1489,6 @@ def test_slack_chart_report_schedule_with_csv(
     )
 
     channel_name = notification_targets[0]
-    channel_id = "channel_id"
-    slack_client_mock_class.return_value = Mock()
-    slack_client_mock_class.return_value.conversations_list.return_value = {
-        "channels": [{"id": channel_id, "name": channel_name}]
-    }
-
-    with freeze_time("2020-01-01T00:00:00Z"):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, create_report_slack_chart_with_csv.id, datetime.utcnow()
-        ).run()
-
-        assert (
-            slack_client_mock_class.return_value.files_upload_v2.call_args[1]["channel"]
-            == channel_id
-        )
-        assert (
-            slack_client_mock_class.return_value.files_upload_v2.call_args[1]["file"]
-            == CSV_FILE
-        )
-
-        # Assert logs are correct
-        assert_log(ReportState.SUCCESS)
-
-
-@pytest.mark.usefixtures(
-    "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_csv"
-)
-@patch("superset.reports.notifications.slack.get_slack_client")
-@patch("superset.utils.csv.urllib.request.urlopen")
-@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
-@patch("superset.utils.csv.get_chart_csv_data")
-def test_slack_chart_report_schedule_with_csv_deprecated_api(
-    csv_mock,
-    mock_open,
-    mock_urlopen,
-    slack_client_mock_class,
-    create_report_slack_chart_with_csv,
-):
-    """
-    ExecuteReport Command: Test chart slack report schedule with CSV
-    """
-    # setup csv mock
-    response = Mock()
-    mock_open.return_value = response
-    mock_urlopen.return_value = response
-    mock_urlopen.return_value.getcode.return_value = 200
-    response.read.return_value = CSV_FILE
-
-    notification_targets = get_target_from_report_schedule(
-        create_report_slack_chart_with_csv
-    )
-
-    channel_name = notification_targets[0]
-    slack_client_mock_class.return_value = Mock()
-    slack_client_mock_class.return_value.conversations_list.side_effect = SlackApiError(
-        "Error", "Response"
-    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
@@ -1347,6 +1511,7 @@ def test_slack_chart_report_schedule_with_csv_deprecated_api(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
 )
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=False)
 @patch("superset.utils.csv.urllib.request.urlopen")
 @patch("superset.utils.csv.urllib.request.OpenerDirector.open")
 @patch("superset.reports.notifications.slack.get_slack_client")
@@ -1356,6 +1521,7 @@ def test_slack_chart_report_schedule_with_text(
     slack_client_mock_class,
     mock_open,
     mock_urlopen,
+    slack_should_use_v2_api_mock,
     create_report_slack_chart_with_text,
 ):
     """
@@ -1383,17 +1549,6 @@ def test_slack_chart_report_schedule_with_text(
         }
     ).encode("utf-8")
 
-    notification_targets = get_target_from_report_schedule(
-        create_report_slack_chart_with_text
-    )
-
-    channel_name = notification_targets[0]
-    channel_id = "channel_id"
-
-    slack_client_mock_class.return_value.conversations_list.return_value = {
-        "channels": [{"id": channel_id, "name": channel_name}]
-    }
-
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
             TEST_ID, create_report_slack_chart_with_text.id, datetime.utcnow()
@@ -1414,87 +1569,6 @@ def test_slack_chart_report_schedule_with_text(
             in slack_client_mock_class.return_value.chat_postMessage.call_args[1][
                 "text"
             ]
-        )
-
-        # Assert logs are correct
-        assert_log(ReportState.SUCCESS)
-
-
-@pytest.mark.usefixtures(
-    "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
-)
-@patch("superset.utils.csv.urllib.request.urlopen")
-@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
-@patch("superset.reports.notifications.slack.get_slack_client")
-@patch("superset.utils.csv.get_chart_dataframe")
-def test_slack_chart_report_schedule_with_text_deprecated_slack_api(
-    dataframe_mock,
-    slack_client_mock_class,
-    mock_open,
-    mock_urlopen,
-    create_report_slack_chart_with_text,
-):
-    """
-    ExecuteReport Command: Test chart slack report schedule with text
-    """
-    # setup dataframe mock
-    response = Mock()
-    mock_open.return_value = response
-    mock_urlopen.return_value = response
-    mock_urlopen.return_value.getcode.return_value = 200
-    response.read.return_value = json.dumps(
-        {
-            "result": [
-                {
-                    "data": {
-                        "t1": {0: "c11", 1: "c21"},
-                        "t2": {0: "c12", 1: "c22"},
-                        "t3__sum": {0: "c13", 1: "c23"},
-                    },
-                    "colnames": [("t1",), ("t2",), ("t3__sum",)],
-                    "indexnames": [(0,), (1,)],
-                    "coltypes": [1, 1, 0],
-                },
-            ],
-        }
-    ).encode("utf-8")
-
-    notification_targets = get_target_from_report_schedule(
-        create_report_slack_chart_with_text
-    )
-
-    channel_name = notification_targets[0]
-
-    slack_client_mock_class.return_value.conversations_list.side_effect = SlackApiError(
-        "Error", "Response"
-    )
-
-    with freeze_time("2020-01-01T00:00:00Z"):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, create_report_slack_chart_with_text.id, datetime.utcnow()
-        ).run()
-
-        table_markdown = """|    | t1   | t2   | t3__sum   |
-|---:|:-----|:-----|:----------|
-|  0 | c11  | c12  | c13       |
-|  1 | c21  | c22  | c23       |"""
-        assert (
-            table_markdown
-            in slack_client_mock_class.return_value.chat_postMessage.call_args[1][
-                "text"
-            ]
-        )
-        assert (
-            f"<http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+{create_report_slack_chart_with_text.chart.id}%7D&force=false|Explore in Superset>"
-            in slack_client_mock_class.return_value.chat_postMessage.call_args[1][
-                "text"
-            ]
-        )
-        assert (
-            slack_client_mock_class.return_value.chat_postMessage.call_args[1][
-                "channel"
-            ]
-            == channel_name
         )
 
         # Assert logs are correct

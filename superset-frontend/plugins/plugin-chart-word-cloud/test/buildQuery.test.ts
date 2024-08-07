@@ -17,27 +17,20 @@
  * under the License.
  */
 
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import transformProps from './transformProps';
-import buildQuery from '../plugin/buildQuery';
-import thumbnail from '../images/thumbnail.png';
-import { LegacyWordCloudFormData } from './types';
+import { WordCloudFormData } from '../src';
+import buildQuery from '../src/plugin/buildQuery';
 
-const metadata = new ChartMetadata({
-  credits: ['https://github.com/jasondavies/d3-cloud'],
-  description: '',
-  name: t('Word Cloud'),
-  thumbnail,
-  useLegacyApi: true,
+describe('WordCloud buildQuery', () => {
+  const formData: WordCloudFormData = {
+    datasource: '5__table',
+    granularity_sqla: 'ds',
+    series: 'foo',
+    viz_type: 'word_cloud',
+  };
+
+  it('should build columns from series in form data', () => {
+    const queryContext = buildQuery(formData);
+    const [query] = queryContext.queries;
+    expect(query.columns).toEqual(['foo']);
+  });
 });
-
-export default class LegacyWordCloudChartPlugin extends ChartPlugin<LegacyWordCloudFormData> {
-  constructor() {
-    super({
-      buildQuery,
-      loadChart: () => import('../chart/WordCloud'),
-      metadata,
-      transformProps,
-    });
-  }
-}

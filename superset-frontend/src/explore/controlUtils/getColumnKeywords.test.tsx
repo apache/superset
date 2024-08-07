@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,13 +17,22 @@
  * under the License.
  */
 
-import { QueryFormColumn, QueryFormData } from '@superset-ui/core';
-import { RotationType } from '../chart/WordCloud';
+import { getColumnKeywords } from './getColumnKeywords';
 
-export type LegacyWordCloudFormData = QueryFormData & {
-  colorScheme: string;
-  rotation?: RotationType;
-  series: QueryFormColumn;
-  sizeFrom?: number;
-  sizeTo: number;
-};
+test('returns HTML for a column tooltip', () => {
+  const expected = {
+    column_name: 'test column1',
+    verbose_name: null,
+    is_certified: false,
+    certified_by: null,
+    description: 'test description',
+    type: 'VARCHAR',
+  };
+  expect(getColumnKeywords([expected])).toContainEqual({
+    name: expected.column_name,
+    value: expected.column_name,
+    docHTML: expect.stringContaining(expected.description),
+    score: 50,
+    meta: 'column',
+  });
+});

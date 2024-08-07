@@ -36,7 +36,7 @@ from sqlalchemy.exc import NoSuchTableError
 from superset import db
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
     SupersetDBAPIDatabaseError,
@@ -241,7 +241,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         execute_thread = threading.Thread(
             target=_execute,
-            args=(execute_result, execute_event, current_app._get_current_object()),  # pylint: disable=protected-access
+            args=(
+                execute_result,
+                execute_event,
+                current_app._get_current_object(),  # pylint: disable=protected-access
+            ),
         )
         execute_thread.start()
 
@@ -433,7 +437,17 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         "schema_options", expand the schema definition out to show all
         subfields of nested ROWs as their appropriate dotted paths.
         """
-        base_cols = super().get_columns(inspector, table, options)
+        # The Trino dialect raises `NoSuchTableError` on the inspection methods when the
+        # table is empty. We can work around this by running a `SHOW COLUMNS FROM` query
+        # when that happens, using the method from the Presto base engine spec.
+        try:
+            # `SELECT * FROM information_schema.columns WHERE ...`
+            sqla_columns = inspector.get_columns(table.table, table.schema)
+            base_cols = convert_inspector_columns(sqla_columns)
+        except NoSuchTableError:
+            # `SHOW COLUMNS FROM ...`
+            base_cols = super().get_columns(inspector, table, options)
+
         if not (options or {}).get("expand_rows"):
             return base_cols
 
@@ -483,9 +497,6 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param to_sql_kwargs: The `pandas.DataFrame.to_sql` keyword arguments
         :see: superset.db_engine_specs.HiveEngineSpec.df_to_sql
         """
-
-        # pylint: disable=import-outside-toplevel
-
         if to_sql_kwargs["if_exists"] == "append":
             raise SupersetException("Append operation not currently supported")
 

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsCoreOption, ScatterSeriesOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { ScatterSeriesOption } from 'echarts/charts';
 import { extent } from 'd3-array';
 import {
   CategoricalColorNamespace,

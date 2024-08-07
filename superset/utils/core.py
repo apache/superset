@@ -167,6 +167,7 @@ class HeaderDataType(TypedDict):
     notification_source: str | None
     chart_id: int | None
     dashboard_id: int | None
+    slack_channels: list[str] | None
 
 
 class DatasourceDict(TypedDict):
@@ -433,7 +434,7 @@ def error_msg_from_exception(ex: Exception) -> str:
             msg = ex.message.get("message")  # type: ignore
         elif ex.message:
             msg = ex.message
-    return msg or str(ex)
+    return str(msg) or str(ex)
 
 
 def markdown(raw: str, markup_wrap: bool | None = False) -> str:
@@ -711,7 +712,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     recipients = smtp_mail_to
     if cc:
         smtp_mail_cc = get_email_address_list(cc)
-        msg["CC"] = ", ".join(smtp_mail_cc)
+        msg["Cc"] = ", ".join(smtp_mail_cc)
         recipients = recipients + smtp_mail_cc
 
     smtp_mail_bcc = []

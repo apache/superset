@@ -94,6 +94,7 @@ import guinea from './countries/guinea.geojson';
 import guyana from './countries/guyana.geojson';
 import haiti from './countries/haiti.geojson';
 import honduras from './countries/honduras.geojson';
+import hungary from './countries/hungary.geojson';
 import iceland from './countries/iceland.geojson';
 import india from './countries/india.geojson';
 import indonesia from './countries/indonesia.geojson';
@@ -293,6 +294,7 @@ export const countries = {
   guyana,
   haiti,
   honduras,
+  hungary,
   iceland,
   india,
   indonesia,

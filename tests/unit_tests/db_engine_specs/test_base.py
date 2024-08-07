@@ -311,3 +311,26 @@ def test_get_default_catalog(mocker: MockerFixture) -> None:
 
     database = mocker.MagicMock()
     assert BaseEngineSpec.get_default_catalog(database) is None
+
+
+def test_quote_table() -> None:
+    """
+    Test the `quote_table` function.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    dialect = sqlite.dialect()
+
+    assert BaseEngineSpec.quote_table(Table("table"), dialect) == '"table"'
+    assert (
+        BaseEngineSpec.quote_table(Table("table", "schema"), dialect)
+        == 'schema."table"'
+    )
+    assert (
+        BaseEngineSpec.quote_table(Table("table", "schema", "catalog"), dialect)
+        == 'catalog.schema."table"'
+    )
+    assert (
+        BaseEngineSpec.quote_table(Table("ta ble", "sche.ma", 'cata"log'), dialect)
+        == '"cata""log"."sche.ma"."ta ble"'
+    )
