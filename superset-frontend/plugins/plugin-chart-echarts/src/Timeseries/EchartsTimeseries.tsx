@@ -27,9 +27,9 @@ import {
   LegendState,
   ensureIsArray,
 } from '@superset-ui/core';
-import { ViewRootGroup } from 'echarts/types/src/util/types';
-import GlobalModel from 'echarts/types/src/model/Global';
-import ComponentModel from 'echarts/types/src/model/Component';
+import type { ViewRootGroup } from 'echarts/types/src/util/types';
+import type GlobalModel from 'echarts/types/src/model/Global';
+import type ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
