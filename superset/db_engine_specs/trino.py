@@ -164,6 +164,19 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return True
 
     @classmethod
+    def execute(cls, cursor: Cursor, query: str, **kwargs: Any) -> None:
+        opts = {}
+        if "async_" in kwargs:
+            opts["deferred_fetch"] = kwargs["async_"]
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
+
+        try:
+            cursor.execute(query, **opts)
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex)
+
+    @classmethod
     def get_tracking_url(cls, cursor: Cursor) -> str | None:
         try:
             return cursor.info_uri
@@ -194,8 +207,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         db.session.commit()
 
-        # if query cancelation was requested prior to the handle_cursor call, but
-        # the query was still executed, trigger the actual query cancelation now
+        # if query cancellation was requested prior to the handle_cursor call, but
+        # the query was still executed, trigger the actual query cancellation now
         if query.extra.get(QUERY_EARLY_CANCEL_KEY):
             cls.cancel_query(
                 cursor=cursor,
@@ -283,11 +296,12 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :return: True if query cancelled successfully, False otherwise
         """
         try:
+            # Can't use cursor.cancel() because
+            # cursor is new object created in sql_lab.cancel_query
             cursor.execute(
                 f"CALL system.runtime.kill_query(query_id => '{cancel_query_id}',"
                 "message => 'Query cancelled by Superset')"
             )
-            cursor.fetchall()  # needed to trigger the call
         except Exception:  # pylint: disable=broad-except
             return False
 
