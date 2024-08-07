@@ -34,7 +34,9 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { SortSeriesType } from '@superset-ui/chart-controls';
-import { format, LegendComponentOption, SeriesOption } from 'echarts';
+import { format } from 'echarts/core';
+import type { LegendComponentOption } from 'echarts/components';
+import type { SeriesOption } from 'echarts';
 import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
 import {
   NULL_STRING,

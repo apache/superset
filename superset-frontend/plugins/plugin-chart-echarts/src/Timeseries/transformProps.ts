@@ -47,8 +47,9 @@ import {
   isDerivedSeries,
   getTimeOffset,
 } from '@superset-ui/chart-controls';
-import { EChartsCoreOption, SeriesOption } from 'echarts';
-import { LineStyleOption } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { LineStyleOption } from 'echarts/types/src/util/types';
+import type { SeriesOption } from 'echarts';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
