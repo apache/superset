@@ -70,7 +70,7 @@ const defaultProps = {
 
 class Dashboard extends PureComponent {
   static contextType = PluginContext;
-  
+
   static onBeforeUnload(hasChanged) {
     if (hasChanged) {
       window.addEventListener('beforeunload', Dashboard.unload);
