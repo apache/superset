@@ -857,6 +857,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_cvas = fields.Boolean()
     allow_dml = fields.Boolean(required=False)
     allow_csv_upload = fields.Boolean()
+    impersonate_user = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
