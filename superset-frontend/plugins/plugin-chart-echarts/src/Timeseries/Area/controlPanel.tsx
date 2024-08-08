@@ -68,6 +68,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ...seriesOrderSection,
         ['color_scheme'],
+        ['time_shift_color'],
         [
           {
             name: 'seriesType',

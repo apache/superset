@@ -66,6 +66,7 @@ export const LABEL_POSITION: [LabelPositionEnum, string][] = [
 export enum OpacityEnum {
   Transparent = 0,
   SemiTransparent = 0.3,
+  DerivedSeries = 0.7,
   NonTransparent = 1,
 }
 
