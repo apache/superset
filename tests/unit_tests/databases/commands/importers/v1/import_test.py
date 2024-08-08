@@ -185,7 +185,7 @@ def test_import_database_with_user_impersonation(
     from tests.integration_tests.fixtures.importexport import database_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
-
+mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
     engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
