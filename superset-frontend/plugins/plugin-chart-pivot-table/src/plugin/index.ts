@@ -58,7 +58,7 @@ export default class PivotTableChartPlugin extends ChartPlugin<
       ),
       exampleGallery: [{ url: example }],
       name: t('Pivot Table'),
-      tags: [t('Additive'), t('Report'), t('Tabular'), t('Featured')],
+      tags: [t('Additive'), t('Report'), t('Tabular'), t('Popular')],
       thumbnail,
     });
 

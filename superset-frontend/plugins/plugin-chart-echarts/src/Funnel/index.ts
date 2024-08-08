@@ -64,7 +64,6 @@ export default class EchartsFunnelChartPlugin extends EchartsChartPlugin<
           t('Report'),
           t('Sequential'),
           t('Trend'),
-          t('Featured'),
         ],
         thumbnail,
       },

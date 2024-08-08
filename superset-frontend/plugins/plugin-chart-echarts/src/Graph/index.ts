@@ -46,7 +46,6 @@ export default class EchartsGraphChartPlugin extends EchartsChartPlugin {
           t('Relational'),
           t('Structural'),
           t('Transformable'),
-          t('Featured'),
         ],
         thumbnail,
         behaviors: [

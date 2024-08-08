@@ -38,7 +38,6 @@ const metadata = new ChartMetadata({
     t('Density'),
     t('Single Metric'),
     t('ECharts'),
-    t('Featured'),
   ],
   thumbnail,
 });

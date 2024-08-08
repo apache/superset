@@ -41,7 +41,7 @@ const metadata = {
     t('Business'),
     t('Legacy'),
     t('Percentages'),
-    t('Featured'),
+    t('Popular'),
     t('Report'),
   ],
   thumbnail,

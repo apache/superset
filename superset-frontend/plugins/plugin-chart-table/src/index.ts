@@ -47,7 +47,7 @@ const metadata = new ChartMetadata({
     t('Additive'),
     t('Business'),
     t('Pattern'),
-    t('Featured'),
+    t('Popular'),
     t('Report'),
     t('Sequential'),
     t('Tabular'),

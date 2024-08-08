@@ -89,7 +89,6 @@ const StyledContainer = styled.div`
       display: flex;
       flex-direction: row;
       align-items: center;
-      margin-bottom: ${theme.gridUnit * 5}px;
 
       & > div {
         min-width: 200px;
@@ -145,7 +144,6 @@ const StyledContainer = styled.div`
 
       .ant-steps-item-description {
         margin-top: ${theme.gridUnit}px;
-        padding-bottom: ${theme.gridUnit}px;
       }
     }
 
