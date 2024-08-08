@@ -29,6 +29,7 @@ for these chart types.
 from io import StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
+import numpy as np
 import pandas as pd
 from flask_babel import gettext as __
 
@@ -150,6 +151,8 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     if show_rows_total:
         # add subtotal for each group and overall total; we start from the
         # overall group, and iterate deeper into subgroups
+        # Ensure "NULL" strings are replaced with NaN
+        df.replace("NULL", np.nan, inplace=True)
         groups = df.columns
         for level in range(df.columns.nlevels):
             subgroups = {group[:level] for group in groups}
@@ -171,7 +174,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             for subgroup in subgroups:
                 slice_ = df.index.get_loc(subgroup)
                 subtotal = pivot_v2_aggfunc_map[aggfunc](
-                    df.iloc[slice_, :].apply(pd.to_numeric), axis=0
+                    df.iloc[slice_, :].apply(pd.to_numeric, errors="coerce"), axis=0
                 )
                 depth = df.index.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
