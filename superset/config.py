@@ -320,6 +320,8 @@ LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 # ex: http://localhost:8080/swagger/v1
 FAB_API_SWAGGER_UI = True
 
+FAB_ADD_SECURITY_API = True
+
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
 # ----------------------------------------------------
