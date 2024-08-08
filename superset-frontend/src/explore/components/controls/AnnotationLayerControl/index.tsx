@@ -16,16 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
-import PropTypes from 'prop-types';
 import { List } from 'src/components';
 import { connect } from 'react-redux';
-import { t, withTheme } from '@superset-ui/core';
+import { PureComponent } from 'react';
+import {
+  HandlerFunction,
+  JsonObject,
+  Payload,
+  SupersetTheme,
+  t,
+  withTheme,
+} from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
+import { ChartState, ExplorePageState } from 'src/explore/types';
 import ControlPopover, {
   getSectionContainerElement,
 } from '../ControlPopover/ControlPopover';
@@ -36,19 +43,37 @@ const AnnotationLayer = AsyncEsmComponent(
   () => <div style={{ width: 450, height: 368 }} />,
 );
 
-const propTypes = {
-  colorScheme: PropTypes.string.isRequired,
-  annotationError: PropTypes.object,
-  annotationQuery: PropTypes.object,
-  vizType: PropTypes.string,
+export interface Annotation {
+  name: string;
+  show?: boolean;
+  annotation: string;
+  timeout: Date;
+  key: string;
+  formData?: any;
+  isDashboardRequest?: boolean;
+  force?: boolean;
+}
 
-  validationErrors: PropTypes.array,
-  name: PropTypes.string.isRequired,
-  actions: PropTypes.object,
-  value: PropTypes.arrayOf(PropTypes.object),
-  onChange: PropTypes.func,
-  refreshAnnotationData: PropTypes.func,
-};
+export interface Props {
+  colorScheme: string;
+  annotationError: Record<string, string>;
+  annotationQuery: Record<string, AbortController>;
+  vizType: string;
+  validationErrors: JsonObject[];
+  name: string;
+  actions: {
+    setControlValue: HandlerFunction;
+  };
+  value: Annotation[];
+  onChange: (annotations: Annotation[]) => void;
+  refreshAnnotationData: (payload: Payload) => void;
+  theme: SupersetTheme;
+}
+
+export interface PopoverState {
+  popoverVisible: Record<number | string, boolean>;
+  addedAnnotationIndex: number | null;
+}
 
 const defaultProps = {
   vizType: '',
@@ -57,9 +82,10 @@ const defaultProps = {
   annotationQuery: {},
   onChange: () => {},
 };
+class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
+  static defaultProps = defaultProps;
 
-class AnnotationLayerControl extends PureComponent {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     this.state = {
       popoverVisible: {},
@@ -75,7 +101,7 @@ class AnnotationLayerControl extends PureComponent {
     AnnotationLayer.preload();
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     const { name, annotationError, validationErrors, value } = nextProps;
     if (Object.keys(annotationError).length && !validationErrors.length) {
       this.props.actions.setControlValue(
@@ -89,7 +115,10 @@ class AnnotationLayerControl extends PureComponent {
     }
   }
 
-  addAnnotationLayer(originalAnnotation, newAnnotation) {
+  addAnnotationLayer = (
+    originalAnnotation: Annotation,
+    newAnnotation: Annotation,
+  ) => {
     let annotations = this.props.value;
     if (annotations.includes(originalAnnotation)) {
       annotations = annotations.map(anno =>
@@ -106,15 +135,15 @@ class AnnotationLayerControl extends PureComponent {
     });
 
     this.props.onChange(annotations);
-  }
+  };
 
-  handleVisibleChange(visible, popoverKey) {
+  handleVisibleChange = (visible: boolean, popoverKey: number | string) => {
     this.setState(prevState => ({
       popoverVisible: { ...prevState.popoverVisible, [popoverKey]: visible },
     }));
-  }
+  };
 
-  removeAnnotationLayer(annotation) {
+  removeAnnotationLayer(annotation: Annotation | undefined) {
     const annotations = this.props.value.filter(anno => anno !== annotation);
     // So scrollbar doesnt get stuck on hidden
     const element = getSectionContainerElement();
@@ -124,17 +153,21 @@ class AnnotationLayerControl extends PureComponent {
     this.props.onChange(annotations);
   }
 
-  renderPopover(popoverKey, annotation, error) {
+  renderPopover = (
+    popoverKey: number | string,
+    annotation: Annotation,
+    error: string,
+  ) => {
     const id = annotation?.name || '_new';
 
     return (
       <div id={`annotation-pop-${id}`} data-test="popover-content">
         <AnnotationLayer
-          {...annotation}
+          {...(annotation || {})}
           error={error}
           colorScheme={this.props.colorScheme}
           vizType={this.props.vizType}
-          addAnnotationLayer={newAnnotation =>
+          addAnnotationLayer={(newAnnotation: Annotation) =>
             this.addAnnotationLayer(annotation, newAnnotation)
           }
           removeAnnotationLayer={() => this.removeAnnotationLayer(annotation)}
@@ -145,9 +178,9 @@ class AnnotationLayerControl extends PureComponent {
         />
       </div>
     );
-  }
+  };
 
-  renderInfo(anno) {
+  renderInfo(anno: Annotation) {
     const { annotationError, annotationQuery, theme } = this.props;
     if (annotationQuery[anno.name]) {
       return (
@@ -175,8 +208,9 @@ class AnnotationLayerControl extends PureComponent {
 
   render() {
     const { addedAnnotationIndex } = this.state;
-    const addedAnnotation = this.props.value[addedAnnotationIndex];
-
+    const addedAnnotation = addedAnnotationIndex
+      ? this.props.value[addedAnnotationIndex]
+      : null;
     const annotations = this.props.value.map((anno, i) => (
       <ControlPopover
         key={i}
@@ -202,57 +236,68 @@ class AnnotationLayerControl extends PureComponent {
         </CustomListItem>
       </ControlPopover>
     ));
-
     const addLayerPopoverKey = 'add';
     return (
       <div>
         <List bordered css={theme => ({ borderRadius: theme.gridUnit })}>
           {annotations}
-          <ControlPopover
-            trigger="click"
-            content={this.renderPopover(addLayerPopoverKey, addedAnnotation)}
-            title={t('Add annotation layer')}
-            visible={this.state.popoverVisible[addLayerPopoverKey]}
-            destroyTooltipOnHide
-            onVisibleChange={visible =>
-              this.handleVisibleChange(visible, addLayerPopoverKey)
-            }
-          >
-            <CustomListItem selectable>
-              <i
-                data-test="add-annotation-layer-button"
-                className="fa fa-plus"
-              />{' '}
-              &nbsp; {t('Add annotation layer')}
-            </CustomListItem>
-          </ControlPopover>
+          {addedAnnotation && (
+            <ControlPopover
+              trigger="click"
+              content={this.renderPopover(
+                addLayerPopoverKey,
+                addedAnnotation,
+                '',
+              )}
+              title={t('Add annotation layer')}
+              visible={this.state.popoverVisible[addLayerPopoverKey]}
+              destroyTooltipOnHide
+              onVisibleChange={visible =>
+                this.handleVisibleChange(visible, addLayerPopoverKey)
+              }
+            >
+              <CustomListItem selectable>
+                <i
+                  data-test="add-annotation-layer-button"
+                  className="fa fa-plus"
+                />{' '}
+                &nbsp; {t('Add annotation layer')}
+              </CustomListItem>
+            </ControlPopover>
+          )}
         </List>
       </div>
     );
   }
 }
 
-AnnotationLayerControl.propTypes = propTypes;
-AnnotationLayerControl.defaultProps = defaultProps;
-
 // Tried to hook this up through stores/control.jsx instead of using redux
 // directly, could not figure out how to get access to the color_scheme
-function mapStateToProps({ charts, explore }) {
+function mapStateToProps({
+  charts,
+  explore,
+}: Pick<ExplorePageState, 'charts' | 'explore'>) {
   const chartKey = getChartKey(explore);
-  const chart = charts[chartKey] || charts[0] || {};
+
+  const defaultChartState: Partial<ChartState> = {
+    annotationError: {},
+    annotationQuery: {},
+  };
+
+  const chart =
+    chartKey && charts[chartKey] ? charts[chartKey] : defaultChartState;
 
   return {
-    // eslint-disable-next-line camelcase
     colorScheme: explore.controls?.color_scheme?.value,
-    annotationError: chart.annotationError,
-    annotationQuery: chart.annotationQuery,
-    vizType: explore.controls.viz_type.value,
+    annotationError: chart.annotationError ?? {},
+    annotationQuery: chart.annotationQuery ?? {},
+    vizType: explore.controls?.viz_type.value,
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
-    refreshAnnotationData: annotationObj =>
+    refreshAnnotationData: (annotationObj: Annotation) =>
       dispatch(runAnnotationQuery(annotationObj)),
   };
 }
