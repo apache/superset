@@ -26,7 +26,7 @@ import {
 
 import { mix } from 'polished';
 import cx from 'classnames';
-import { AntdButton } from 'src/components';
+import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { ButtonProps as AntdButtonProps } from 'antd/lib/button';

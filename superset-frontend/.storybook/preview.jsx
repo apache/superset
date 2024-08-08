@@ -24,6 +24,7 @@ import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { GlobalStyles } from '../src/GlobalStyles';
+import { AntdThemeProvider } from '../src/components/AntdThemeProvider';
 
 import 'src/theme.ts';
 import './storybook.css';

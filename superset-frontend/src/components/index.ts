@@ -24,6 +24,8 @@
  */
 export { default as Select } from './Select/Select';
 export { default as AsyncSelect } from './Select/AsyncSelect';
+export { default as Card } from './Card';
+export { default as Button } from './Button';
 
 /*
  * Components that don't conflict with the ones in src/components.
@@ -56,8 +58,7 @@ export {
  * or extending the components in src/components.
  */
 export {
-  Breadcrumb as AntdBreadcrumb,
-  Button as AntdButton,
+  Breadcrumb as AntdBreadcrumb, // TODO: Make this a real Component
   Card as AntdCard,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,

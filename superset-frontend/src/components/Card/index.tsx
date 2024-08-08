@@ -28,6 +28,8 @@ const Card = ({ padded, ...props }: CardProps) => (
   <AntdCard
     {...props}
     css={(theme: SupersetTheme) => ({
+      // 'border-radius': `${theme.gridUnit}px`,
+      border: `1px solid ${theme.colors.grayscale.light2}`,
       '.antd5-card-body': {
         padding: padded ? theme.gridUnit * 4 : theme.gridUnit,
       },
@@ -35,4 +37,6 @@ const Card = ({ padded, ...props }: CardProps) => (
   />
 );
 
-export default Card;
+export default Object.assign(Card, {
+  Meta: AntdCard.Meta,
+});
