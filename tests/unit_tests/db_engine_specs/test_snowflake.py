@@ -147,6 +147,30 @@ def test_cancel_query_failed(engine_mock: mock.Mock) -> None:
     assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, "123") is False
 
 
+def test_build_sqlalchemy_uri() -> None:
+    from superset.db_engine_specs.snowflake import (
+        SnowflakeEngineSpec,
+        SnowflakeParametersType,
+    )
+
+    parameters: SnowflakeParametersType = {
+        "username": "test-username",
+        "password": "test-password",
+        "account": "test-account",
+        "database": "test-database",
+        "role": "test-role",
+        "warehouse": "test-warehouse",
+    }
+    assert SnowflakeEngineSpec.build_sqlalchemy_uri(parameters) == (
+        "snowflake://test-username:test-password@test-account/test-database?"
+        "role=test-role&warehouse=test-warehouse&application=SUPERSET"
+    )
+    with mock.patch.dict("os.environ", SF_PARTNER="PARTNER"):
+        assert SnowflakeEngineSpec.build_sqlalchemy_uri(parameters) == (
+            "snowflake://test-username:test-password@test-account/test-database?"
+            "role=test-role&warehouse=test-warehouse&application=PARTNER"
+        )
+
 def test_get_extra_params(mocker: MockerFixture) -> None:
     """
     Test the ``get_extra_params`` method.
