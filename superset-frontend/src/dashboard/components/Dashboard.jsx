@@ -60,7 +60,6 @@ const propTypes = {
   impressionId: PropTypes.string.isRequired,
   timeout: PropTypes.number,
   userId: PropTypes.string,
-  context: PropTypes.object,
 };
 
 const defaultProps = {
