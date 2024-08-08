@@ -70,6 +70,14 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: ./.github/actions/setup-supersetbot/
 
+      - name: Set up swap space
+        run: |
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          sudo sh -c 'echo "/swapfile none swap sw 0 0" >> /etc/fstab'
+
       - name: Build Docker Image
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         shell: bash
