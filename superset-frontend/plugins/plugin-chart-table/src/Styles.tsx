@@ -118,5 +118,8 @@ export default styled.div`
     table .right-border-only:last-child {
       border-right: none;
     }
+    .no-select {
+      user-select: none;
+    }
   `}
 `;

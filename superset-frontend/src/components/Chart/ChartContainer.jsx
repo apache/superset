@@ -24,6 +24,12 @@ import { logEvent } from '../../logger/actions';
 import Chart from './Chart';
 import { updateDataMask } from '../../dataMask/actions';
 
+function mapStateToProps(state) {
+  return {
+    user: state.user,
+  };
+}
+
 function mapDispatchToProps(dispatch) {
   return {
     actions: bindActionCreators(
@@ -37,4 +43,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(null, mapDispatchToProps)(Chart);
+export default connect(mapStateToProps, mapDispatchToProps)(Chart);

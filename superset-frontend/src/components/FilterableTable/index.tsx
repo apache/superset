@@ -18,8 +18,11 @@
  */
 import _JSONbig from 'json-bigint';
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import { getMultipleTextDimensions, styled } from '@superset-ui/core';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
+import { RootState } from 'src/dashboard/types';
+import { findPermission } from 'src/utils/findPermission';
 import { useCellContentParser } from './useCellContentParser';
 import { renderResultCell } from './utils';
 import { Table, TableSize } from '../Table';
@@ -35,8 +38,12 @@ const SCROLL_BAR_HEIGHT = 15;
 // See https://stackoverflow.com/a/30987109 for more details
 const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
 
-const StyledFilterableTable = styled.div`
-  ${({ theme }) => `
+interface StyledFilterableTableProps {
+  canExportData?: boolean;
+}
+
+const StyledFilterableTable = styled.div<StyledFilterableTableProps>`
+  ${({ theme, canExportData }) => `
     height: 100%;
     overflow: hidden;
 
@@ -50,6 +57,7 @@ const StyledFilterableTable = styled.div`
       min-width: 0px;
       align-self: center;
       font-size: ${theme.typography.sizes.s}px;
+      user-select: ${canExportData ? 'auto' : 'none'};
     }
 
     .even-row {
@@ -249,11 +257,16 @@ const FilterableTable = ({
       }),
   }));
 
+  const canExportData = useSelector((state: RootState) =>
+    findPermission('can_export_csv', 'SQLLab', state.user?.roles),
+  );
+
   return (
     <StyledFilterableTable
       className="filterable-table-container"
       data-test="table-container"
       ref={container}
+      canExportData={canExportData}
     >
       {fitted && (
         <Table
