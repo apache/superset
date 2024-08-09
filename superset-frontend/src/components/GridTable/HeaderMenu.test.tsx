@@ -1,0 +1,195 @@
+import type { Column, GridApi } from 'ag-grid-community';
+import {
+  fireEvent,
+  render,
+  waitFor,
+  screen,
+} from 'spec/helpers/testing-library';
+import HeaderMenu from './HeaderMenu';
+
+jest.mock('src/components/Menu', () => {
+  const Menu = ({ children }: { children: React.ReactChild }) => (
+    <div data-test="mock-Menu">{children}</div>
+  );
+  Menu.Item = ({
+    children,
+    onClick,
+  }: {
+    children: React.ReactChild;
+    onClick: () => void;
+  }) => (
+    <button type="button" data-test="mock-Item" onClick={onClick}>
+      {children}
+    </button>
+  );
+  Menu.SubMenu = ({
+    title,
+    children,
+  }: {
+    title: React.ReactNode;
+    children: React.ReactNode;
+  }) => (
+    <div>
+      {title}
+      <button type="button" data-test="mock-SubMenu">
+        {children}
+      </button>
+    </div>
+  );
+  Menu.Divider = () => <div data-test="mock-Divider" />;
+  return { Menu };
+});
+
+jest.mock('src/components/Icons', () => ({
+  DownloadOutlined: () => <div data-test="mock-DownloadOutlined" />,
+  CopyOutlined: () => <div data-test="mock-CopyOutlined" />,
+  UnlockOutlined: () => <div data-test="mock-UnlockOutlined" />,
+  VerticalRightOutlined: () => <div data-test="mock-VerticalRightOutlined" />,
+  VerticalLeftOutlined: () => <div data-test="mock-VerticalLeftOutlined" />,
+  EyeInvisibleOutlined: () => <div data-test="mock-EyeInvisibleOutlined" />,
+  EyeOutlined: () => <div data-test="mock-EyeOutlined" />,
+}));
+
+jest.mock('src/components/Dropdown', () => ({
+  Dropdown: ({ overlay }: { overlay: React.ReactChild }) => (
+    <div data-test="mock-Dropdown">{overlay}</div>
+  ),
+}));
+
+jest.mock('src/utils/copy', () => jest.fn().mockImplementation(f => f()));
+
+const mockInvisibleColumn = {
+  getColId: jest.fn().mockReturnValue('column2'),
+  getColDef: jest.fn().mockReturnValue({ headerName: 'column2' }),
+  getDataAsCsv: jest.fn().mockReturnValue('csv'),
+} as any as Column;
+
+const mockInvisibleColumn3 = {
+  getColId: jest.fn().mockReturnValue('column3'),
+  getColDef: jest.fn().mockReturnValue({ headerName: 'column3' }),
+  getDataAsCsv: jest.fn().mockReturnValue('csv'),
+} as any as Column;
+
+const mockGridApi = {
+  setColumnPinned: jest.fn(),
+  getColumns: jest.fn().mockReturnValue([]),
+  getDataAsCsv: jest.fn().mockReturnValue('csv'),
+  exportDataAsCsv: jest.fn().mockReturnValue('csv'),
+  getAllDisplayedColumns: jest.fn().mockReturnValue([]),
+  setColumnsVisible: jest.fn(),
+  setColumnVisible: jest.fn(),
+} as any as GridApi;
+
+const mockedProps = {
+  colId: 'column1',
+  invisibleColumns: [],
+  api: mockGridApi,
+  onVisibleChange: jest.fn(),
+};
+
+afterEach(() => {
+  (mockGridApi.setColumnPinned as jest.Mock).mockClear();
+  (mockGridApi.setColumnVisible as jest.Mock).mockClear();
+});
+
+test('renders copy data', () => {
+  const { queryByText } = render(<HeaderMenu {...mockedProps} />);
+  expect(queryByText('Copy')).toBeTruthy();
+});
+
+test('renders buttons pinning both side', () => {
+  const { queryByText, getByText } = render(<HeaderMenu {...mockedProps} />);
+  expect(queryByText('Pin Left')).toBeTruthy();
+  expect(queryByText('Pin Right')).toBeTruthy();
+  fireEvent.click(getByText('Pin Left'));
+  expect(mockGridApi.setColumnPinned).toHaveBeenCalledTimes(1);
+  expect(mockGridApi.setColumnPinned).toHaveBeenCalledWith(
+    mockedProps.colId,
+    'left',
+  );
+  fireEvent.click(getByText('Pin Right'));
+  expect(mockGridApi.setColumnPinned).toHaveBeenLastCalledWith(
+    mockedProps.colId,
+    'right',
+  );
+});
+
+test('renders unpin on pinned left', () => {
+  const { queryByText, getByText } = render(
+    <HeaderMenu {...mockedProps} pinnedLeft />,
+  );
+  expect(queryByText('Pin Left')).toBeFalsy();
+  expect(queryByText('Unpin')).toBeTruthy();
+  fireEvent.click(getByText('Unpin'));
+  expect(mockGridApi.setColumnPinned).toHaveBeenCalledTimes(1);
+  expect(mockGridApi.setColumnPinned).toHaveBeenCalledWith(
+    mockedProps.colId,
+    null,
+  );
+});
+
+test('renders unpin on pinned right', () => {
+  const { queryByText } = render(<HeaderMenu {...mockedProps} pinnedRight />);
+  expect(queryByText('Pin Right')).toBeFalsy();
+  expect(queryByText('Unpin')).toBeTruthy();
+});
+
+test('renders unhide when invisible column exists', async () => {
+  const { queryByText } = render(
+    <HeaderMenu {...mockedProps} invisibleColumns={[mockInvisibleColumn]} />,
+  );
+  expect(queryByText('Unhide')).toBeTruthy();
+  const unhideColumnsButton = await screen.findByText('column2');
+  fireEvent.click(unhideColumnsButton);
+  expect(mockGridApi.setColumnVisible).toHaveBeenCalledTimes(1);
+  expect(mockGridApi.setColumnVisible).toHaveBeenCalledWith('column2', true);
+});
+
+describe('for main menu', () => {
+  test('renders Copy to Clipboard', async () => {
+    const { getByText, queryByTestId } = render(
+      <HeaderMenu {...mockedProps} isMain />,
+    );
+    expect(queryByTestId('mock-Divider')).not.toBeInTheDocument();
+    fireEvent.click(getByText('Copy the current data'));
+    await waitFor(() =>
+      expect(mockGridApi.getDataAsCsv).toHaveBeenCalledTimes(1),
+    );
+    expect(mockGridApi.getDataAsCsv).toHaveBeenCalledWith({
+      columnKeys: [],
+      columnSeparator: '\t',
+      suppressQuotes: true,
+    });
+  });
+
+  test('renders Download to CSV', async () => {
+    const { getByText } = render(<HeaderMenu {...mockedProps} isMain />);
+    fireEvent.click(getByText('Download to CSV'));
+    await waitFor(() =>
+      expect(mockGridApi.exportDataAsCsv).toHaveBeenCalledTimes(1),
+    );
+    expect(mockGridApi.exportDataAsCsv).toHaveBeenCalledWith({
+      columnKeys: [],
+    });
+  });
+
+  test('renders all unhide all hidden columns when multiple invisible columns exist', async () => {
+    const { queryByTestId } = render(
+      <HeaderMenu
+        {...mockedProps}
+        isMain
+        invisibleColumns={[mockInvisibleColumn, mockInvisibleColumn3]}
+      />,
+    );
+    expect(queryByTestId('mock-Divider')).toBeInTheDocument();
+    const unhideColumnsButton = await screen.findByText(
+      `All ${2} hidden columns`,
+    );
+    fireEvent.click(unhideColumnsButton);
+    expect(mockGridApi.setColumnsVisible).toHaveBeenCalledTimes(1);
+    expect(mockGridApi.setColumnsVisible).toHaveBeenCalledWith(
+      [mockInvisibleColumn, mockInvisibleColumn3],
+      true,
+    );
+  });
+});
