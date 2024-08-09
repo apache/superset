@@ -284,6 +284,7 @@ class SqlLabRestApi(BaseSupersetApi):
             "client_id": client_id,
             "row_count": row_count,
             "database": query.database.name,
+            "catalog": query.catalog,
             "schema": query.schema,
             "sql": query.sql,
             "exported_format": "csv",

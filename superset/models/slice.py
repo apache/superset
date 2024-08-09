@@ -369,6 +369,7 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
             target.perm = ds.perm
+            target.catalog_perm = ds.catalog_perm
             target.schema_perm = ds.schema_perm
 
 

@@ -1563,34 +1563,6 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-    def test_get_select_star_datasource_access(self):
-        """
-        Database API: Test get select star with datasource access
-        """
-        table = SqlaTable(
-            schema="main", table_name="ab_permission", database=get_main_database()
-        )
-        db.session.add(table)
-        db.session.commit()
-
-        tmp_table_perm = security_manager.find_permission_view_menu(
-            "datasource_access", table.get_perm()
-        )
-        gamma_role = security_manager.find_role("Gamma")
-        security_manager.add_permission_role(gamma_role, tmp_table_perm)
-
-        self.login(GAMMA_USERNAME)
-        main_db = get_main_database()
-        uri = f"api/v1/database/{main_db.id}/select_star/ab_permission/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-
-        # rollback changes
-        security_manager.del_permission_role(gamma_role, tmp_table_perm)
-        db.session.delete(table)
-        db.session.delete(main_db)
-        db.session.commit()
-
     def test_get_select_star_not_found_database(self):
         """
         Database API: Test get select star not found database

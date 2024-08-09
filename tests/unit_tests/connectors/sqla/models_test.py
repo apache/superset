@@ -255,11 +255,11 @@ def test_dataset_uniqueness(session: Session) -> None:
 
     # but the DAO enforces application logic for uniqueness
     assert not DatasetDAO.validate_uniqueness(
-        database.id,
+        database,
         Table("table", "schema", None),
     )
 
     assert DatasetDAO.validate_uniqueness(
-        database.id,
+        database,
         Table("table", "schema", "some_catalog"),
     )
