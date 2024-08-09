@@ -38,9 +38,6 @@ const SaveDatasetActionButton = ({
     DropdownButton as FC<DropdownButtonProps>,
   )`
     &.ant-dropdown-button button.ant-btn.ant-btn-default {
-      &:first-of-type {
-        width: ${theme.gridUnit * 16}px;
-      }
       font-weight: ${theme.gridUnit * 150};
       background-color: ${theme.colors.primary.light4};
       color: ${theme.colors.primary.dark1};
@@ -58,11 +55,7 @@ const SaveDatasetActionButton = ({
   `;
 
   return !overlayMenu ? (
-    <Button
-      onClick={() => setShowSave(true)}
-      buttonStyle="primary"
-      css={{ width: theme.gridUnit * 25 }}
-    >
+    <Button onClick={() => setShowSave(true)} buttonStyle="primary">
       {t('Save')}
     </Button>
   ) : (
