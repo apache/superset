@@ -674,7 +674,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 database,
                 catalogs,
             )
-            return self.response(200, result=list(catalogs))
+            default_catalog = database.get_default_catalog()
+            return self.response(200, result=list(catalogs), default=default_catalog)
         except OperationalError:
             return self.response(
                 500,
@@ -741,7 +742,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 catalog,
                 schemas,
             )
-            return self.response(200, result=list(schemas))
+            default_catalog = database.get_default_catalog()
+            default_schema = database.get_default_schema(default_catalog)
+            return self.response(200, result=list(schemas), default=default_schema)
         except OperationalError:
             return self.response(
                 500, message="There was an error connecting to the database"
@@ -1894,9 +1897,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.columnar_upload",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.columnar_upload",
         log_to_statsd=False,
     )
     @requires_form_data

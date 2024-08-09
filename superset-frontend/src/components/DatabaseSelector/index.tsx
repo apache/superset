@@ -233,7 +233,83 @@ export default function DatabaseSelector({
     [formMode, getDbList, sqlLabMode, onEmptyResults],
   );
 
+  function changeSchema(schema: SchemaOption | undefined) {
+    setCurrentSchema(schema);
+    if (onSchemaChange && schema?.value !== schemaRef.current) {
+      onSchemaChange(schema?.value);
+    }
+  }
+
+  const {
+    data: schemaData,
+    isFetching: loadingSchemas,
+    refetch: refetchSchemas,
+  } = useSchemas({
+    dbId: currentDb?.value,
+    catalog: currentCatalog?.value,
+    onSuccess: (schemas, isFetched, defaultSchema) => {
+      if (schemas.length === 1) {
+        changeSchema(schemas[0]);
+      } else if (
+        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
+      ) {
+        changeSchema(defaultSchema || undefined);
+      }
+
+      if (isFetched) {
+        addSuccessToast('List refreshed');
+      }
+    },
+    onError: () => handleError(t('There was an error loading the schemas')),
+  });
+
+  const schemaOptions = schemaData?.schemas || EMPTY_SCHEMA_OPTIONS;
+
+  function changeCatalog(catalog: CatalogOption | null | undefined) {
+    setCurrentCatalog(catalog);
+    if (onCatalogChange && catalog?.value !== catalogRef.current) {
+      onCatalogChange(catalog?.value);
+      console.log('Changed catalog, setting schema to undefined');
+      changeSchema(undefined);
+    }
+  }
+
+  const {
+    data: catalogData,
+    isFetching: loadingCatalogs,
+    refetch: refetchCatalogs,
+  } = useCatalogs({
+    dbId: showCatalogSelector ? currentDb?.value : undefined,
+    onSuccess: (catalogs, isFetched, defaultCatalog) => {
+      if (!showCatalogSelector) {
+        changeCatalog(null);
+      } else if (catalogs.length === 1) {
+        changeCatalog(catalogs[0]);
+      } else if (
+        !catalogs.find(
+          catalogOption => catalogRef.current === catalogOption.value,
+        )
+      ) {
+        changeCatalog(defaultCatalog || undefined);
+      }
+
+      if (showCatalogSelector && isFetched) {
+        addSuccessToast('List refreshed');
+      }
+    },
+    onError: () => {
+      if (showCatalogSelector) {
+        handleError(t('There was an error loading the catalogs'));
+      }
+    },
+  });
+
+  const catalogOptions = catalogData?.catalogs || EMPTY_CATALOG_OPTIONS;
+
   useEffect(() => {
+    console.log('useEffect called');
+    console.log('catalog (current, default):', catalog, catalogData?.defaultCatalog);
+    console.log('schema (current, default):', schema, schemaData?.defaultSchema);
     setCurrentDb(current =>
       current?.id !== db?.id
         ? db
@@ -250,96 +326,20 @@ export default function DatabaseSelector({
           : undefined
         : current,
     );
-  }, [db]);
-
-  function changeSchema(schema: SchemaOption | undefined) {
-    setCurrentSchema(schema);
-    if (onSchemaChange && schema?.value !== schemaRef.current) {
-      onSchemaChange(schema?.value);
-    }
-  }
-
-  const {
-    currentData: schemaData,
-    isFetching: loadingSchemas,
-    refetch: refetchSchemas,
-  } = useSchemas({
-    dbId: currentDb?.value,
-    catalog: currentCatalog?.value,
-    onSuccess: (schemas, isFetched) => {
-      if (schemas.length === 1) {
-        changeSchema(schemas[0]);
-      } else if (
-        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
-      ) {
-        changeSchema(undefined);
-      }
-
-      if (isFetched) {
-        addSuccessToast('List refreshed');
-      }
-    },
-    onError: () => handleError(t('There was an error loading the schemas')),
-  });
-
-  const schemaOptions = schemaData || EMPTY_SCHEMA_OPTIONS;
-
-  function changeCatalog(catalog: CatalogOption | null | undefined) {
-    setCurrentCatalog(catalog);
-    setCurrentSchema(undefined);
-    if (onCatalogChange && catalog?.value !== catalogRef.current) {
-      onCatalogChange(catalog?.value);
-    }
-  }
-
-  const {
-    data: catalogData,
-    isFetching: loadingCatalogs,
-    refetch: refetchCatalogs,
-  } = useCatalogs({
-    dbId: showCatalogSelector ? currentDb?.value : undefined,
-    onSuccess: (catalogs, isFetched) => {
-      if (!showCatalogSelector) {
-        changeCatalog(null);
-      } else if (catalogs.length === 1) {
-        changeCatalog(catalogs[0]);
-      } else if (
-        !catalogs.find(
-          catalogOption => catalogRef.current === catalogOption.value,
-        )
-      ) {
-        changeCatalog(undefined);
-      }
-
-      if (showCatalogSelector && isFetched) {
-        addSuccessToast('List refreshed');
-      }
-    },
-    onError: () => {
-      if (showCatalogSelector) {
-        handleError(t('There was an error loading the catalogs'));
-      }
-    },
-  });
-
-  const catalogOptions = catalogData || EMPTY_CATALOG_OPTIONS;
+    setCurrentCatalog(
+      currentCatalog || catalogData?.defaultCatalog || undefined,
+    );
+    setCurrentSchema(currentSchema || schemaData?.defaultSchema || undefined);
+  }, [db, catalogData, schemaData, currentDb, currentCatalog, currentSchema]);
 
   function changeDatabase(
     value: { label: string; value: number },
     database: DatabaseValue,
   ) {
     setCurrentDb(database);
-    setCurrentCatalog(undefined);
-    setCurrentSchema(undefined);
-    if (onDbChange) {
-      onDbChange(database);
-    }
-    if (onCatalogChange) {
-      onCatalogChange(undefined);
-    }
-    if (onSchemaChange) {
-      onSchemaChange(undefined);
-    }
+    onDbChange?.(database);
+    onCatalogChange?.(undefined);
+    onSchemaChange?.(undefined);
   }
 
   function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
