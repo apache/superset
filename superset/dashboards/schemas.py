@@ -184,6 +184,7 @@ class TagSchema(Schema):
 
 class DashboardGetResponseSchema(Schema):
     id = fields.Int()
+    uuid = fields.String()
     slug = fields.String()
     url = fields.String()
     dashboard_title = fields.String(

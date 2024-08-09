@@ -26,6 +26,7 @@ import mockDatasource from 'spec/fixtures/mockDatasource';
 import chartQueries, {
   sliceId as queryId,
 } from 'spec/fixtures/mockChartQueries';
+import { DashboardPageContext } from 'src/dashboard/containers/DashboardPage';
 
 const props = {
   id: queryId,
@@ -70,11 +71,20 @@ const props = {
   supersetCanShare: false,
 };
 
+const mockDashboardContext = {
+  hydrated: true,
+};
+
 function setup(overrideProps) {
-  return render(<Chart.WrappedComponent {...props} {...overrideProps} />, {
-    useRedux: true,
-    useRouter: true,
-  });
+  return render(
+    <DashboardPageContext.Provider value={mockDashboardContext}>
+      <Chart.WrappedComponent {...props} {...overrideProps} />
+    </DashboardPageContext.Provider>,
+    {
+      useRedux: true,
+      useRouter: true,
+    },
+  );
 }
 
 test('should render a SliceHeader', () => {

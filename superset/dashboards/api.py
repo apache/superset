@@ -179,6 +179,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     list_columns = [
         "id",
+        "uuid",
         "published",
         "status",
         "slug",

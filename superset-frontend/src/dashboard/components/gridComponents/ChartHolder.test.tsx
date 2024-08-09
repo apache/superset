@@ -35,6 +35,7 @@ import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { initialState } from 'src/SqlLab/fixtures';
 import { SET_DIRECT_PATH } from 'src/dashboard/actions/dashboardState';
+import { DashboardPageContext } from 'src/dashboard/containers/DashboardPage';
 import { CHART_TYPE, COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
 import ChartHolder, { CHART_MARGIN } from './ChartHolder';
 import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../util/constants';
@@ -82,6 +83,10 @@ describe('ChartHolder', () => {
     setFullSizeChartId: () => {},
   };
 
+  const mockDashboardContext = {
+    hydrated: true,
+  };
+
   beforeAll(() => {
     scrollViewBase = window.HTMLElement.prototype.scrollIntoView;
     window.HTMLElement.prototype.scrollIntoView = () => {};
@@ -99,12 +104,17 @@ describe('ChartHolder', () => {
     );
 
   const renderWrapper = (store = createMockStore(), props: any = {}) =>
-    render(<ChartHolder {...defaultProps} {...props} />, {
-      useRouter: true,
-      useDnd: true,
-      useRedux: true,
-      store,
-    });
+    render(
+      <DashboardPageContext.Provider value={mockDashboardContext}>
+        <ChartHolder {...defaultProps} {...props} />
+      </DashboardPageContext.Provider>,
+      {
+        useRouter: true,
+        useDnd: true,
+        useRedux: true,
+        store,
+      },
+    );
 
   it('should render empty state', async () => {
     renderWrapper();

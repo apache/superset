@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
+import { createContext, lazy, FC, useEffect, useMemo, useState } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t, useTheme } from '@superset-ui/core';
+import { DataMaskStateWithId, t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
@@ -28,7 +28,11 @@ import {
   useDashboardCharts,
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
-import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
+import {
+  hydrateDashboard,
+  hydrateDashboardActiveTabs,
+  hydrateDashboardDataMask,
+} from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 
@@ -43,7 +47,8 @@ import {
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 
 import { nanoid } from 'nanoid';
-import { RootState } from '../types';
+import { toInteger } from 'lodash';
+import { DashboardInfo, RootState } from '../types';
 import {
   chartContextMenuStyles,
   filterCardPopoverStyle,
@@ -56,6 +61,9 @@ import SyncDashboardState, {
 } from '../components/SyncDashboardState';
 
 export const DashboardPageIdContext = createContext('');
+export const DashboardPageContext = createContext({
+  hydrated: false,
+});
 
 const DashboardBuilder = lazy(
   () =>
@@ -69,7 +77,7 @@ const DashboardBuilder = lazy(
 const originalDocumentTitle = document.title;
 
 type PageProps = {
-  idOrSlug: string;
+  idOrSlug: string | number;
 };
 
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
@@ -77,9 +85,18 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dispatch = useDispatch();
   const history = useHistory();
   const dashboardPageId = useMemo(() => nanoid(), []);
-  const hasDashboardInfoInitiated = useSelector<RootState, Boolean>(
+  const dashboardInfo = useSelector<RootState, DashboardInfo | null>(
     ({ dashboardInfo }) =>
-      dashboardInfo && Object.keys(dashboardInfo).length > 0,
+      dashboardInfo &&
+      Object.keys(dashboardInfo).length > 0 &&
+      (dashboardInfo.id === toInteger(idOrSlug) ||
+        dashboardInfo.slug === idOrSlug ||
+        dashboardInfo.uuid === idOrSlug)
+        ? dashboardInfo
+        : null,
+  );
+  const currentDataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
   );
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
@@ -91,10 +108,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     error: datasetsApiError,
     status,
   } = useDashboardDatasets(idOrSlug);
-  const isDashboardHydrated = useRef(false);
+  const [isDashboardHydrated, setDashboardHydrated] = useState<boolean>(false);
+  const [isDashboardDatamaskHydrated, setDashboardDatamaskHydrated] =
+    useState<boolean>(false);
 
   const error = dashboardApiError || chartsApiError;
-  const readyToRender = Boolean(dashboard && charts);
+  const readyToHydrate = Boolean(dashboard && charts);
   const { dashboard_title, css, id = 0 } = dashboard || {};
 
   useEffect(() => {
@@ -121,15 +140,36 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [dispatch, status]);
 
   useEffect(() => {
-    // eslint-disable-next-line consistent-return
-    async function getDataMaskApplied() {
-      const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
-      const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
-      const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
+    if (readyToHydrate && !isDashboardHydrated) {
+      dispatch(
+        hydrateDashboard({
+          history,
+          dashboard,
+          charts,
+        }),
+      );
+      setDashboardHydrated(true);
+    }
+  }, [
+    charts,
+    dashboard,
+    dispatch,
+    history,
+    isDashboardHydrated,
+    readyToHydrate,
+  ]);
 
+  /*
+   * Decoupled dataMask hydration from the rest of the dashboard.
+   * The dataMask is only dependent on dashboardInfo, does not need to wait for charts.
+   */
+  useEffect(() => {
+    const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
+    const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
+    const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
+
+    async function getDataMaskApplied() {
       let dataMask = nativeFilterKeyValue || {};
-      // activeTabs is initialized with undefined so that it doesn't override
-      // the currently stored value when hydrating
       let activeTabs: string[] | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
@@ -143,25 +183,33 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dataMask = isOldRison;
       }
 
-      if (readyToRender) {
-        if (!isDashboardHydrated.current) {
-          isDashboardHydrated.current = true;
-        }
-        dispatch(
-          hydrateDashboard({
-            history,
-            dashboard,
-            charts,
-            activeTabs,
-            dataMask,
-          }),
-        );
+      if (activeTabs?.length) {
+        dispatch(hydrateDashboardActiveTabs(activeTabs));
       }
-      return null;
+
+      setDashboardDatamaskHydrated(true);
+      dispatch(hydrateDashboardDataMask(dataMask, dashboardInfo));
     }
-    if (id) getDataMaskApplied();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readyToRender]);
+    if (
+      id &&
+      dashboardInfo &&
+      !Object.keys(currentDataMask).length &&
+      (permalinkKey || nativeFilterKeyValue || isOldRison) &&
+      !isDashboardDatamaskHydrated
+    ) {
+      getDataMaskApplied();
+    }
+    if (Object.keys(currentDataMask).length && !isDashboardDatamaskHydrated) {
+      setDashboardDatamaskHydrated(true);
+    }
+  }, [
+    dispatch,
+    dashboardInfo,
+    id,
+    history.location,
+    isDashboardDatamaskHydrated,
+    currentDataMask,
+  ]);
 
   useEffect(() => {
     if (dashboard_title) {
@@ -192,7 +240,15 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
   if (error) throw error; // caught in error boundary
-  if (!readyToRender || !hasDashboardInfoInitiated) return <Loading />;
+
+  const isLoading = !dashboardInfo;
+
+  const dashboardContext = useMemo(
+    () => ({
+      hydrated: isDashboardHydrated && isDashboardDatamaskHydrated,
+    }),
+    [isDashboardDatamaskHydrated, isDashboardHydrated],
+  );
 
   return (
     <>
@@ -205,11 +261,17 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           chartHeaderStyles(theme),
         ]}
       />
-      <SyncDashboardState dashboardPageId={dashboardPageId} />
+      {!isLoading && <SyncDashboardState dashboardPageId={dashboardPageId} />}
       <DashboardPageIdContext.Provider value={dashboardPageId}>
-        <DashboardContainer>
-          <DashboardBuilder />
-        </DashboardContainer>
+        <DashboardPageContext.Provider value={dashboardContext}>
+          {isLoading ? (
+            <Loading />
+          ) : (
+            <DashboardContainer>
+              <DashboardBuilder />
+            </DashboardContainer>
+          )}
+        </DashboardPageContext.Provider>
       </DashboardPageIdContext.Provider>
     </>
   );

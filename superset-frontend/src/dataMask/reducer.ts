@@ -31,7 +31,7 @@ import {
   Filters,
 } from '@superset-ui/core';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
-import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import { HYDRATE_DASHBOARD_DATAMASK } from 'src/dashboard/actions/hydrate';
 import {
   AnyDataMaskAction,
   CLEAR_DATA_MASK_STATE,
@@ -115,7 +115,7 @@ const dataMaskReducer = produce(
         return draft;
       // TODO: update hydrate to .ts
       // @ts-ignore
-      case HYDRATE_DASHBOARD:
+      case HYDRATE_DASHBOARD_DATAMASK:
         if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
           Object.keys(
             // @ts-ignore

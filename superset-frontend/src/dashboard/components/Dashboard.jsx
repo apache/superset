@@ -21,7 +21,6 @@ import PropTypes from 'prop-types';
 import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
 
 import { PluginContext } from 'src/components/DynamicPlugins';
-import Loading from 'src/components/Loading';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
@@ -117,7 +116,6 @@ class Dashboard extends PureComponent {
       };
     }
     window.addEventListener('visibilitychange', this.onVisibilityChange);
-    this.applyCharts();
   }
 
   componentDidUpdate() {
@@ -276,9 +274,6 @@ class Dashboard extends PureComponent {
   }
 
   render() {
-    if (this.context.loading) {
-      return <Loading />;
-    }
     return this.props.children;
   }
 }

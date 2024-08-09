@@ -81,6 +81,7 @@ export const useNativeFilters = () => {
 
   return {
     showDashboard,
+    requiredFirstFilter,
     missingInitialFilters,
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,

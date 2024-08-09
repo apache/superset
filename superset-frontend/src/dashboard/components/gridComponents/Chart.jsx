@@ -25,6 +25,7 @@ import { withRouter } from 'react-router-dom';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import { DashboardPageContext } from 'src/dashboard/containers/DashboardPage';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
@@ -122,6 +123,8 @@ const SliceContainer = styled.div`
 `;
 
 class Chart extends Component {
+  static contextType = DashboardPageContext;
+
   constructor(props) {
     super(props);
     this.state = {
@@ -418,7 +421,16 @@ class Chart extends Component {
     }
 
     const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
-    const isLoading = chartStatus === 'loading';
+
+    // Controlling the status of the Chart based on Dashboard hydration
+    const controlledChartStatus = this.context.hydrated
+      ? chartStatus
+      : 'loading';
+    const controlledTriggerQuery = this.context.hydrated
+      ? chart.triggerQuery
+      : false;
+    const isLoading = controlledChartStatus === 'loading';
+
     // eslint-disable-next-line camelcase
     const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
     const cachedDttm =
@@ -465,7 +477,7 @@ class Chart extends Component {
           addDangerToast={addDangerToast}
           handleToggleFullSize={handleToggleFullSize}
           isFullSize={isFullSize}
-          chartStatus={chart.chartStatus}
+          chartStatus={controlledChartStatus}
           formData={formData}
           width={width}
           height={this.getHeaderHeight()}
@@ -510,7 +522,7 @@ class Chart extends Component {
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}
             chartId={id}
-            chartStatus={chartStatus}
+            chartStatus={controlledChartStatus}
             datasource={datasource}
             dashboardId={dashboardId}
             initialValues={initialValues}
@@ -521,7 +533,7 @@ class Chart extends Component {
             filterState={filterState}
             queriesResponse={chart.queriesResponse}
             timeout={timeout}
-            triggerQuery={chart.triggerQuery}
+            triggerQuery={controlledTriggerQuery}
             vizType={slice.viz_type}
             setControlValue={setControlValue}
             postTransformProps={postTransformProps}

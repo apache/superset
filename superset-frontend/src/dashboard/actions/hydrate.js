@@ -55,9 +55,26 @@ import updateComponentParentsList from '../util/updateComponentParentsList';
 import { FilterBarOrientation } from '../types';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
+export const HYDRATE_DASHBOARD_DATAMASK = 'HYDRATE_DASHBOARD_DATAMASK';
+export const HYDRATE_DASHBOARD_ACTIVETABS = 'HYDRATE_DASHBOARD_ACTIVETABS';
+
+export const hydrateDashboardDataMask = (dataMask, dashboardInfo) => dispatch =>
+  dispatch({
+    type: HYDRATE_DASHBOARD_DATAMASK,
+    data: {
+      dataMask,
+      dashboardInfo,
+    },
+  });
+
+export const hydrateDashboardActiveTabs = activeTabs => dispatch =>
+  dispatch({
+    type: HYDRATE_DASHBOARD_ACTIVETABS,
+    data: activeTabs || [],
+  });
 
 export const hydrateDashboard =
-  ({ history, dashboard, charts, dataMask, activeTabs }) =>
+  ({ history, dashboard, charts }) =>
   (dispatch, getState) => {
     const { user, common, dashboardState } = getState();
     const { metadata, position_data: positionData } = dashboard;
@@ -286,7 +303,6 @@ export const hydrateDashboard =
             FilterBarOrientation.Vertical,
           crossFiltersEnabled,
         },
-        dataMask,
         dashboardFilters,
         nativeFilters,
         dashboardState: {
@@ -311,7 +327,7 @@ export const hydrateDashboard =
           lastModifiedTime: dashboard.changed_on,
           isRefreshing: false,
           isFiltersRefreshing: false,
-          activeTabs: activeTabs || dashboardState?.activeTabs || [],
+          activeTabs: dashboardState?.activeTabs || [],
           datasetsStatus: ResourceStatus.Loading,
         },
         dashboardLayout,
