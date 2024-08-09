@@ -19,8 +19,10 @@
 import { useState, useEffect, useRef } from 'react';
 import type { IAceEditor } from 'react-ace/lib/types';
 import { useDispatch } from 'react-redux';
-import { css, styled, usePrevious, useTheme } from '@superset-ui/core';
+import { css, styled, usePrevious, useTheme, t } from '@superset-ui/core';
 import { Global } from '@emotion/react';
+import { acequire } from 'ace-builds/src-noconflict/ace';
+import type { Range } from 'brace';
 
 import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
 import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
@@ -30,6 +32,11 @@ import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import type { CursorPosition } from 'src/SqlLab/types';
 import { useAnnotations } from './useAnnotations';
 import { useKeywords } from './useKeywords';
+import {
+  MetadataType,
+  TokenMetadata,
+  useTokenContext,
+} from '../AceEditorMetadataPopup/AceEditorTokenProvider';
 
 type HotKey = {
   key: KeyboardShortcut;
@@ -59,6 +66,10 @@ const StyledAceEditor = styled(AceEditor)`
     }
   `}
 `;
+
+const ACTION_MAKER_CLASSNAME = 'ace-action-item';
+const ON_ACTION_PRESSED_CLASSNAME = 'ace_marker-active';
+const ON_ACTION_HOVER_CLASSNAME = 'ace_marker-highlight';
 
 const AceEditorWrapper = ({
   autocomplete,
@@ -111,6 +122,15 @@ const AceEditorWrapper = ({
     onBlur(sql);
   };
 
+  const editorTokenRef = useRef(null);
+  const markerRef = useRef<{
+    id: number;
+    range: Range;
+    metadata: TokenMetadata;
+    metadataType: MetadataType;
+  }>();
+  const { getMatchTokenData, setActiveTokenData } = useTokenContext();
+
   const onEditorLoad = (editor: any) => {
     editor.commands.addCommand({
       name: 'runQuery',
@@ -118,6 +138,104 @@ const AceEditorWrapper = ({
       exec: () => {
         onAltEnter();
       },
+    });
+
+    const AceRange = acequire('ace/range').Range;
+    const textInput = editor.textInput.getElement();
+    const hoverMessage = t('cmd + click for details');
+
+    [document, textInput].forEach(element => {
+      element.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.metaKey) {
+          textInput.classList.add(ON_ACTION_PRESSED_CLASSNAME);
+        }
+      });
+      element.addEventListener('keyup', () => {
+        textInput.classList.remove(ON_ACTION_PRESSED_CLASSNAME);
+      });
+    });
+
+    editor.on('mousemove', (e: MouseEvent) => {
+      const pointerPosition = editor.renderer.screenToTextCoordinates(
+        e.clientX + 5,
+        e.clientY,
+      );
+      const nextCursorPosition = editor.renderer.screenToTextCoordinates(
+        e.clientX + 15,
+        e.clientY,
+      );
+      let shouldRemoveMarker = true;
+      if (nextCursorPosition.column !== pointerPosition.column) {
+        const token = editor.session.getTokenAt(
+          pointerPosition.row,
+          pointerPosition.column,
+        );
+        const siblingTokens = editor.session.getTokens(pointerPosition.row);
+        const [metadataType, metadata] =
+          getMatchTokenData({
+            token,
+            siblingTokens,
+            position: pointerPosition,
+          }) ?? [];
+        shouldRemoveMarker = !metadata;
+        if (metadata && metadataType && editorTokenRef.current !== token) {
+          editor.container.setAttribute('title', hoverMessage);
+          textInput.classList.add(ON_ACTION_HOVER_CLASSNAME);
+          const range = new AceRange(
+            pointerPosition.row,
+            token.start,
+            pointerPosition.row,
+            token.start + token.value.length,
+          ) as Range;
+          if (markerRef.current?.id) {
+            editor.session.removeMarker(markerRef.current.id);
+          }
+          const markerId = editor.session.addMarker(
+            range,
+            ACTION_MAKER_CLASSNAME,
+          );
+          editorTokenRef.current = token;
+          markerRef.current = { id: markerId, range, metadata, metadataType };
+        }
+      }
+
+      if (shouldRemoveMarker && markerRef.current?.id) {
+        textInput.classList.remove(ON_ACTION_HOVER_CLASSNAME);
+        editor.container.removeAttribute('title');
+        editor.session.removeMarker(markerRef.current.id);
+        editorTokenRef.current = null;
+        markerRef.current = undefined;
+      }
+    });
+
+    editor.on('click', () => {
+      if (
+        editorTokenRef.current &&
+        textInput.classList.contains(ON_ACTION_PRESSED_CLASSNAME)
+      ) {
+        if (markerRef.current?.range) {
+          const { range, metadata, metadataType } = markerRef.current;
+          editor.selection.setSelectionRange(range);
+          const { pageX: startX, pageY: startY } =
+            editor.renderer.textToScreenCoordinates(
+              range.start.row,
+              range.start.column,
+            );
+          const { pageX: endX } = editor.renderer.textToScreenCoordinates(
+            range.end.row,
+            range.end.column,
+          );
+          setActiveTokenData({
+            metadataType,
+            metadata,
+            markerStyle: {
+              x: startX,
+              y: startY,
+              width: endX - startX,
+            },
+          });
+        }
+      }
     });
 
     hotkeys.forEach(keyConfig => {
@@ -199,6 +317,21 @@ const AceEditorWrapper = ({
 
           .ace_scroller {
             background-color: ${theme.colors.grayscale.light4};
+          }
+
+          .${ON_ACTION_PRESSED_CLASSNAME}.${ON_ACTION_HOVER_CLASSNAME}
+            ~ .ace_scroller {
+            cursor: pointer;
+            & .${ACTION_MAKER_CLASSNAME} {
+              border-bottom: 1px solid ${theme.colors.primary.base};
+            }
+          }
+          .${ACTION_MAKER_CLASSNAME} {
+            position: absolute;
+            background-color: ${theme.colors.primary.light3};
+            border-bottom: 1px solid ${theme.colors.primary.light3};
+            z-index: ${theme.zIndex.aboveEditorActiveLine};
+            margin-bottom: -1px;
           }
         `}
       />

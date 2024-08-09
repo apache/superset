@@ -70,6 +70,7 @@ interface Column {
   name: string;
   keys?: { type: ColumnKeyTypeType }[];
   type: string;
+  comment?: string;
 }
 
 export type TableMetaData = {
@@ -83,6 +84,7 @@ export type TableMetaData = {
   selectStar?: string;
   view?: string;
   columns: Column[];
+  comment?: string;
 };
 
 type TableMetadataReponse = {

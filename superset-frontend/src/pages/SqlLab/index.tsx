@@ -28,6 +28,7 @@ import { SqlLabGlobalStyles } from 'src/SqlLab//SqlLabGlobalStyles';
 import App from 'src/SqlLab/components/App';
 import Loading from 'src/components/Loading';
 import EditorAutoSync from 'src/SqlLab/components/EditorAutoSync';
+import AceEditorTokenProvider from 'src/SqlLab/components/AceEditorMetadataPopup/AceEditorTokenProvider';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { LocationProvider } from './LocationContext';
 
@@ -63,20 +64,22 @@ export default function SqlLab() {
 
   return (
     <LocationProvider>
-      <div
-        css={css`
-          flex: 1 1 auto;
-          position: relative;
-          display: flex;
-          flex-direction: column;
-        `}
-      >
-        <SqlLabGlobalStyles />
-        <App />
-        {isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) && (
-          <EditorAutoSync />
-        )}
-      </div>
+      <AceEditorTokenProvider>
+        <div
+          css={css`
+            flex: 1 1 auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+          `}
+        >
+          <SqlLabGlobalStyles />
+          <App />
+          {isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) && (
+            <EditorAutoSync />
+          )}
+        </div>
+      </AceEditorTokenProvider>
     </LocationProvider>
   );
 }

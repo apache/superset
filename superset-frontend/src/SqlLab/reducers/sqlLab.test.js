@@ -400,6 +400,27 @@ describe('sqlLabReducer', () => {
       };
       newState = sqlLabReducer(newState, action);
       expect(Object.keys(newState.queries)).toHaveLength(1);
+      expect(newState.activeSouthPaneTab).toEqual('Results');
+    });
+    it('should start a preview query', () => {
+      const action = {
+        type: actions.START_QUERY,
+        query: {
+          id: 'prevewOnly',
+          progress: 0,
+          changed_on: DENORMALIZED_CHANGED_ON,
+          startDttm: CHANGED_ON_TIMESTAMP,
+          state: 'running',
+          cached: false,
+          sqlEditorId: null,
+        },
+        runPreviewOnly: true,
+      };
+      const { activeSouthPaneTab } = newState;
+      newState = sqlLabReducer(newState, action);
+      expect(newState.queries[action.query.id]).toEqual(action.query);
+      expect(newState.activeSouthPaneTab).not.toEqual(action.query.id);
+      expect(newState.activeSouthPaneTab).toEqual(activeSouthPaneTab);
     });
     it('should stop the query', () => {
       const startQueryAction = {

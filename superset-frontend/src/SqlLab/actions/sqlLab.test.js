@@ -844,30 +844,38 @@ describe('async actions', () => {
     });
 
     describe('runTablePreviewQuery', () => {
-      it('updates and runs data preview query when configured', () => {
-        expect.assertions(3);
+      const results = {
+        data: mockBigNumber,
+        query: { sqlEditorId: 'null', dbId: 1 },
+        query_id: 'efgh',
+      };
+      const tableName = 'table';
+      const catalogName = null;
+      const schemaName = 'schema';
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          databases: {
+            1: { disable_data_preview: false },
+          },
+        },
+      });
 
-        const results = {
-          data: mockBigNumber,
-          query: { sqlEditorId: 'null', dbId: 1 },
-          query_id: 'efgh',
-        };
+      beforeEach(() => {
         fetchMock.post(runQueryEndpoint, JSON.stringify(results), {
           overwriteRoutes: true,
         });
+      });
 
-        const tableName = 'table';
-        const catalogName = null;
-        const schemaName = 'schema';
-        const store = mockStore({
-          ...initialState,
-          sqlLab: {
-            ...initialState.sqlLab,
-            databases: {
-              1: { disable_data_preview: false },
-            },
-          },
-        });
+      afterEach(() => {
+        store.clearActions();
+        fetchMock.resetHistory();
+      });
+
+      it('updates and runs data preview query when configured', () => {
+        expect.assertions(3);
+
         const expectedActionTypes = [
           actions.MERGE_TABLE, // addTable (data preview)
           actions.START_QUERY, // runQuery (data preview)
@@ -879,6 +887,30 @@ describe('async actions', () => {
           catalog: catalogName,
           schema: schemaName,
         });
+        return request(store.dispatch, store.getState).then(() => {
+          expect(store.getActions().map(a => a.type)).toEqual(
+            expectedActionTypes,
+          );
+          expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
+          // tab state is not updated, since the query is a data preview
+          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
+        });
+      });
+
+      it('runs data preview query only', () => {
+        const expectedActionTypes = [
+          actions.START_QUERY, // runQuery (data preview)
+          actions.QUERY_SUCCESS, // querySuccess
+        ];
+        const request = actions.runTablePreviewQuery(
+          {
+            dbId: 1,
+            name: tableName,
+            catalog: catalogName,
+            schema: schemaName,
+          },
+          true,
+        );
         return request(store.dispatch, store.getState).then(() => {
           expect(store.getActions().map(a => a.type)).toEqual(
             expectedActionTypes,

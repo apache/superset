@@ -36,6 +36,7 @@ import {
 } from 'src/logger/LogUtils';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
+import AceEditorMetadataPopup from '../AceEditorMetadataPopup';
 
 const SqlLabStyles = styled.div`
   ${({ theme }) => css`
@@ -216,6 +217,7 @@ class App extends PureComponent<AppProps, AppState> {
           queriesLastUpdate={queriesLastUpdate}
         />
         <TabbedSqlEditors />
+        <AceEditorMetadataPopup />
       </SqlLabStyles>
     );
   }

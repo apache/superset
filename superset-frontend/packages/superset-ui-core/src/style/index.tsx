@@ -155,8 +155,10 @@ const defaultTheme = {
     },
   },
   zIndex: {
+    aboveEditorActiveLine: 3,
     aboveDashboardCharts: 10,
     dropdown: 11,
+    belowModal: 900,
     max: 3000,
   },
   transitionTiming: 0.3,
