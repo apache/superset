@@ -27,7 +27,9 @@ import {
   BarChartOutlined,
   BellOutlined,
   BookOutlined,
+  CaretDownOutlined,
   CalendarOutlined,
+  CaretUpOutlined,
   CheckOutlined,
   CheckSquareOutlined,
   CloseOutlined,
@@ -38,6 +40,7 @@ import {
   DatabaseOutlined,
   DeleteFilled,
   DownOutlined,
+  DownloadOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
   EyeOutlined,
@@ -64,8 +67,11 @@ import {
   StopOutlined,
   SyncOutlined,
   TagsOutlined,
+  UnlockOutlined,
   UpOutlined,
   UserOutlined,
+  VerticalLeftOutlined,
+  VerticalRightOutlined,
 } from '@ant-design/icons';
 import { StyledIcon } from './Icon';
 import IconType from './IconType';
@@ -79,7 +85,9 @@ const AntdIcons = {
   BarChartOutlined,
   BellOutlined,
   BookOutlined,
+  CaretDownOutlined,
   CalendarOutlined,
+  CaretUpOutlined,
   CheckOutlined,
   CheckSquareOutlined,
   CloseOutlined,
@@ -90,6 +98,7 @@ const AntdIcons = {
   DatabaseOutlined,
   DeleteFilled,
   DownOutlined,
+  DownloadOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
   EyeOutlined,
@@ -116,8 +125,11 @@ const AntdIcons = {
   StopOutlined,
   SyncOutlined,
   TagsOutlined,
+  UnlockOutlined,
   UpOutlined,
   UserOutlined,
+  VerticalLeftOutlined,
+  VerticalRightOutlined,
 };
 
 const AntdEnhancedIcons = Object.keys(AntdIcons)
