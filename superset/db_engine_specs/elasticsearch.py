@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 from datetime import datetime
 from typing import Any, Optional
 
@@ -28,6 +29,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+from superset.utils.core import GenericDataType
 
 logger = logging.getLogger()
 
@@ -55,7 +57,35 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         TimeGrain.YEAR: "{func}('year', {col})",
     }
 
-    type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
+    # reference: elasticsearch-dbapi
+    type_code_map = {1: "STRING", 2: "NUMBER", 3: "BOOLEAN", 4: "DATETIME"}
+
+    column_type_mappings = (
+        (
+            re.compile(r".*STRING.*", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r".*NUMBER.*", re.IGNORECASE),
+            types.INTEGER(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r".*BOOLEAN.*", re.IGNORECASE),
+            types.Boolean(),
+            GenericDataType.BOOLEAN,
+        ),
+        (
+            re.compile(r".*DATETIME.*", re.IGNORECASE),
+            types.DateTime(),
+            GenericDataType.TEMPORAL,
+        ),
+    )
+
+    @classmethod
+    def get_datatype(cls, type_code: int) -> str:
+        return cls.type_code_map[type_code]
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
