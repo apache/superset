@@ -152,7 +152,7 @@ Superset will try to use aliases whenever possible, in order to give friendly na
 
 ### `allows_alias_in_orderby = True`
 
-Does the DB support referencing alias in the `GROUP BY`, eg:
+Does the DB support referencing alias in the `ORDER BY`, eg:
 
 ```sql
 SELECT
@@ -160,7 +160,7 @@ SELECT
   COUNT(*) AS cnt
 FROM
   some_table
-GROUP BY
+ORDER BY
   country
 ```
 
@@ -206,9 +206,9 @@ LIMIT 10000;
 
 In practice, the attribute doesn't seem to be working as of 2023-07-27.
 
-### `allows_alias_to_source_column = True`
+### `order_by_require_unique_alias = True`
 
-When this is true the database allows queries where alias can overshadow existing column names. For example, in this query:
+When this is true the database requires aliases to have a different name than the selected source column when used in ORDER BY statements. This example query will not work as the alias has the same name:
 
 ```sql
 SELECT
@@ -216,7 +216,20 @@ SELECT
 FROM
   some_table
 ORDER BY
-  foo  -- references the alias `foo + 1`, not the column `foo`
+  foo  -- references the source column `foo`, not the column alias `foo + 1`
+```
+
+### `group_by_require_unique_alias = True`
+
+When this is true the database requires aliases to have a different name than the selected source column when used in GROUP BY statements. This example query will not work as the alias has the same name:
+
+```sql
+SELECT
+  foo + 1 AS foo
+FROM
+  some_table
+GROUP BY
+  foo  -- references the source column `foo`, not the column alias `foo + 1`
 ```
 
 ### `allows_hidden_orderby_agg = True`
