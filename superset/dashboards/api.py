@@ -36,7 +36,10 @@ from superset import db, is_feature_enabled, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.create import CreateDashboardCommand
-from superset.commands.dashboard.delete import DeleteDashboardCommand
+from superset.commands.dashboard.delete import (
+    DeleteDashboardCommand,
+    DeleteEmbeddedDashboardCommand,
+)
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardCopyError,
@@ -1549,7 +1552,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        EmbeddedDashboardDAO.delete(dashboard.embedded)
+        DeleteEmbeddedDashboardCommand(dashboard).run()
         return self.response(200, message="OK")
 
     @expose("/<id_or_slug>/copy/", methods=("POST",))

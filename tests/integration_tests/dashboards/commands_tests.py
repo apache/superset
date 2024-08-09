@@ -23,6 +23,7 @@ from werkzeug.utils import secure_filename
 
 from superset import db, security_manager
 from superset.commands.dashboard.copy import CopyDashboardCommand
+from superset.commands.dashboard.delete import DeleteEmbeddedDashboardCommand
 from superset.commands.dashboard.exceptions import (
     DashboardForbiddenError,
     DashboardInvalidError,
@@ -39,6 +40,7 @@ from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import override_user
@@ -722,3 +724,38 @@ class TestCopyDashboardCommand(SupersetTestCase):
             command = CopyDashboardCommand(example_dashboard, invalid_copy_data)
             with self.assertRaises(DashboardInvalidError):
                 command.run()
+
+
+class TestDeleteEmbeddedDashboardCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_delete_embedded_dashboard_command(self):
+        """Test that an admin user can add and then delete an embedded dashboard"""
+        with self.client.application.test_request_context():
+            example_dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").one()
+            )
+
+            # Step 1: Add an embedded dashboard
+            new_embedded_dashboard = EmbeddedDashboard(
+                dashboard_id=example_dashboard.id
+            )
+            db.session.add(new_embedded_dashboard)
+            db.session.commit()
+
+            # Step 2: Assert that the embedded dashboard was added
+            embedded_dashboards = example_dashboard.embedded
+            assert len(embedded_dashboards) > 0
+            assert new_embedded_dashboard in embedded_dashboards
+
+            # Step 3: Delete the embedded dashboard
+            with override_user(security_manager.find_user("admin")):
+                command = DeleteEmbeddedDashboardCommand(example_dashboard)
+                command.run()
+
+            # Step 4: Assert that the embedded dashboard was deleted
+            deleted_embedded_dashboard = (
+                db.session.query(EmbeddedDashboard)
+                .filter_by(uuid=new_embedded_dashboard.uuid)
+                .one_or_none()
+            )
+            assert deleted_embedded_dashboard is None
