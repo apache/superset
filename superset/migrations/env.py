@@ -55,9 +55,10 @@ target_metadata = Base.metadata  # pylint: disable=no-member
 
 
 def print_duration(start_time: float) -> None:
-    duration = time.time() - start_time
-    formatted_time = time.strftime("%H:%M:%S", time.gmtime(duration))
-    logger.info(f"Migration scripts completed. Duration: {formatted_time}")
+    logger.info(
+        "Migration scripts completed. Duration: %s",
+        time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time)),
+    )
 
 
 def run_migrations_offline() -> None:
@@ -80,7 +81,7 @@ def run_migrations_offline() -> None:
 
     with context.begin_transaction():
         context.run_migrations()
-        print_duration(start_time)
+    print_duration(start_time)
 
 
 def run_migrations_online() -> None:
@@ -130,7 +131,7 @@ def run_migrations_online() -> None:
     try:
         with context.begin_transaction():
             context.run_migrations()
-            print_duration(start_time)
+        print_duration(start_time)
     finally:
         connection.close()
 
