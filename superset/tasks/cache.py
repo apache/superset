@@ -276,10 +276,12 @@ def cache_warmup(
         return message
 
     user = security_manager.get_user_by_username(app.config["THUMBNAIL_SELENIUM_USER"])
-    cookies = MachineAuthProvider.get_auth_cookies(user)
+    auth_data = MachineAuthProvider.get_auth_data(user)
+    cookies = auth_data.get("cookies", {})
     headers = {
         "Cookie": f"session={cookies.get('session', '')}",
         "Content-Type": "application/json",
+        "X-CSRFToken": auth_data.get("csrf_token", ""),
     }
 
     results: dict[str, list[str]] = {"scheduled": [], "errors": []}

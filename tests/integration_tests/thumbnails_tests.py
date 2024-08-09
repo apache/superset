@@ -54,7 +54,9 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
 
     def url_open_auth(self, username: str, url: str):
         admin_user = security_manager.find_user(username=username)
-        cookies = machine_auth_provider_factory.instance.get_auth_cookies(admin_user)
+        cookies = machine_auth_provider_factory.instance.get_auth_data(admin_user).get(
+            "cookies", {}
+        )
         opener = urllib.request.build_opener()
         opener.addheaders.append(("Cookie", f"session={cookies['session']}"))
         return opener.open(f"{self.get_server_url()}/{url}")
