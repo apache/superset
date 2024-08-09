@@ -27,7 +27,10 @@ from marshmallow import ValidationError
 from superset import app, is_feature_enabled
 from superset.commands.sql_lab.estimate import QueryEstimationCommand
 from superset.commands.sql_lab.execute import CommandResult, ExecuteSqlCommand
-from superset.commands.sql_lab.export import SqlResultExportCommand
+from superset.commands.sql_lab.export import (
+    SqlResultCsvExportCommand,
+    SqlResultPandasExportCommand,
+)
 from superset.commands.sql_lab.results import SqlExecutionResultsCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
@@ -62,6 +65,7 @@ from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
+from superset.utils.google_sheets import upload_df_to_new_sheet
 from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
@@ -235,6 +239,7 @@ class SqlLabRestApi(BaseSupersetApi):
             return self.response_400(message=error.messages)
 
     @expose("/export/<string:client_id>/")
+    @expose("/export/<string:client_id>/csv/")
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -271,7 +276,7 @@ class SqlLabRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
-        result = SqlResultExportCommand(client_id=client_id).run()
+        result = SqlResultCsvExportCommand(client_id=client_id).run()
 
         query, data, row_count = result["query"], result["data"], result["count"]
 
@@ -293,6 +298,72 @@ class SqlLabRestApi(BaseSupersetApi):
             "CSV exported: %s", event_rep, extra={"superset_event": event_info}
         )
         return response
+
+    @expose("/export/<string:client_id>/google-sheets/")
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".export_google_sheets",
+        log_to_statsd=False,
+    )
+    def export_google_sheets(self, client_id: str) -> CsvResponse:
+        """Export the SQL query results to a Google Sheet.
+        ---
+        get:
+          summary: Export the SQL query results to a Google Sheet
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: client_id
+            description: The SQL query result identifier
+          responses:
+            200:
+              description: SQL Export Spreadsheet
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      sheetId:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+            501:
+              $ref: '#/components/responses/501'
+        """
+        if not is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
+            return self.response(501, message="GOOGLE_SHEETS_EXPORT is not enabled")
+
+        result = SqlResultPandasExportCommand(client_id=client_id).run()
+
+        query, df = result["query"], result["data"]
+
+        sheet_id = upload_df_to_new_sheet(query.name, df)
+
+        event_info = {
+            "event_type": "data_export",
+            "client_id": client_id,
+            "row_count": len(df.index),
+            "database": query.database.name,
+            "schema": query.schema,
+            "sql": query.sql,
+            "exported_format": "gsheet",
+        }
+        event_rep = repr(event_info)
+        logger.debug(
+            "GSheet exported: %s", event_rep, extra={"superset_event": event_info}
+        )
+        return self.response(200, sheet_id=sheet_id)
 
     @expose("/results/")
     @protect()

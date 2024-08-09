@@ -168,7 +168,7 @@ const SouthPane = ({
                 <ResultSet
                   queryId={dataPreviewQueryId}
                   visualize={false}
-                  csv={false}
+                  isExportable={false}
                   cache
                   height={innerTabContentHeight}
                   displayLimit={displayLimit}
