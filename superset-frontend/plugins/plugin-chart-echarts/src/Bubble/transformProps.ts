@@ -179,7 +179,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       name: bubbleXAxisTitle,
       nameLocation: 'middle',
       nameTextStyle: {
-        fontWight: 'bolder',
+        fontWeight: 'bolder',
       },
       nameGap: convertInteger(xAxisTitleMargin),
       type: xAxisType,
@@ -197,7 +197,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       name: bubbleYAxisTitle,
       nameLocation: 'middle',
       nameTextStyle: {
-        fontWight: 'bolder',
+        fontWeight: 'bolder',
       },
       nameGap: convertInteger(yAxisTitleMargin),
       min: yAxisMin,
