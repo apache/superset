@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional, Type
+from typing import Any, Optional, Type
 from unittest import mock
 
 import redis
@@ -38,7 +38,7 @@ class TestAsyncEventApi(SupersetTestCase):
         uri = f"{base_uri}?last_id={last_id}" if last_id else base_uri
         return self.client.get(uri)
 
-    def run_test_with_cache_backend(self, cache_backend_cls: Type, test_func):
+    def run_test_with_cache_backend(self, cache_backend_cls: Type[Any], test_func):
         app._got_first_request = False
         async_query_manager.init_app(app)
 

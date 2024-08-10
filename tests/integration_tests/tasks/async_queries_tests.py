@@ -54,7 +54,9 @@ class TestAsyncQueries(SupersetTestCase):
     @pytest.mark.usefixtures(
         "load_birth_names_data", "load_birth_names_dashboard_with_slices"
     )
-    def test_load_chart_data_into_cache(self):
+    @mock.patch.object(async_query_manager, "update_job")
+    @mock.patch("superset.tasks.async_queries.set_form_data")
+    def test_load_chart_data_into_cache(self, mock_set_form_data, mock_update_job):
         from superset.tasks.async_queries import load_chart_data_into_cache
 
         app._got_first_request = False
@@ -77,10 +79,13 @@ class TestAsyncQueries(SupersetTestCase):
 
             load_chart_data_into_cache(job_metadata, query_context)
 
-            async_query_manager.update_job.assert_called_once_with(
+            mock_set_form_data.assert_called_once_with(query_context)
+
+            mock_update_job.assert_called_once_with(
                 job_metadata, "done", result_url=mock.ANY
             )
-            async_query_manager.update_job.reset_mock()
+            mock_set_form_data.reset_mock()
+            mock_update_job.reset_mock()
 
     @mock.patch.object(
         ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
@@ -189,7 +194,7 @@ class TestAsyncQueries(SupersetTestCase):
 
             load_explore_json_into_cache(job_metadata, form_data)
 
-            async_query_manager.update_job.assert_called_once_with(
+            mock_update_job.assert_called_once_with(
                 job_metadata, "done", result_url=mock.ANY
             )
             mock_update_job.reset_mock()
