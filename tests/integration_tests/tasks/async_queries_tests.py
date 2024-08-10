@@ -20,8 +20,13 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+import redis
 from celery.exceptions import SoftTimeLimitExceeded
 
+from superset.async_events.cache_backend import (
+    RedisCacheBackend,
+    RedisSentinelCacheBackend,
+)
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.exceptions import SupersetException
@@ -37,33 +42,45 @@ from tests.integration_tests.fixtures.tags import (
 )
 from tests.integration_tests.test_app import app
 
+# Define the cache backends once
+cache_backends = {
+    "RedisCacheBackend": mock.Mock(spec=RedisCacheBackend),
+    "RedisSentinelCacheBackend": mock.Mock(spec=RedisSentinelCacheBackend),
+    "redis.Redis": mock.Mock(spec=redis.Redis),
+}
+
 
 class TestAsyncQueries(SupersetTestCase):
     @pytest.mark.usefixtures(
         "load_birth_names_data", "load_birth_names_dashboard_with_slices"
     )
-    @mock.patch.object(async_query_manager, "update_job")
-    @mock.patch("superset.tasks.async_queries.set_form_data")
-    def test_load_chart_data_into_cache(self, mock_set_form_data, mock_update_job):
+    def test_load_chart_data_into_cache(self):
         from superset.tasks.async_queries import load_chart_data_into_cache
 
         app._got_first_request = False
-        async_query_manager.init_app(app)
-        query_context = get_query_context("birth_names")
-        user = security_manager.find_user("gamma")
-        job_metadata = {
-            "channel_id": str(uuid4()),
-            "job_id": str(uuid4()),
-            "user_id": user.id,
-            "status": "pending",
-            "errors": [],
-        }
 
-        load_chart_data_into_cache(job_metadata, query_context)
-        mock_set_form_data.assert_called_once_with(query_context)
-        mock_update_job.assert_called_once_with(
-            job_metadata, "done", result_url=mock.ANY
-        )
+        for cache_type, cache_backend in cache_backends.items():
+            async_query_manager.get_cache_backend = mock.Mock(
+                return_value=cache_backend
+            )
+            async_query_manager.init_app(app)
+
+            query_context = get_query_context("birth_names")
+            user = security_manager.find_user("gamma")
+            job_metadata = {
+                "channel_id": str(uuid4()),
+                "job_id": str(uuid4()),
+                "user_id": user.id,
+                "status": "pending",
+                "errors": [],
+            }
+
+            load_chart_data_into_cache(job_metadata, query_context)
+
+            async_query_manager.update_job.assert_called_once_with(
+                job_metadata, "done", result_url=mock.ANY
+            )
+            async_query_manager.update_job.reset_mock()
 
     @mock.patch.object(
         ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
@@ -73,22 +90,32 @@ class TestAsyncQueries(SupersetTestCase):
         from superset.tasks.async_queries import load_chart_data_into_cache
 
         app._got_first_request = False
-        async_query_manager.init_app(app)
-        query_context = get_query_context("birth_names")
-        user = security_manager.find_user("gamma")
-        job_metadata = {
-            "channel_id": str(uuid4()),
-            "job_id": str(uuid4()),
-            "user_id": user.id,
-            "status": "pending",
-            "errors": [],
-        }
-        with pytest.raises(ChartDataQueryFailedError):
-            load_chart_data_into_cache(job_metadata, query_context)
 
-        mock_run_command.assert_called_once_with(cache=True)
-        errors = [{"message": "Error: foo"}]
-        mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
+        for cache_type, cache_backend in cache_backends.items():
+            async_query_manager.get_cache_backend = mock.Mock(
+                return_value=cache_backend
+            )
+            async_query_manager.init_app(app)
+
+            query_context = get_query_context("birth_names")
+            user = security_manager.find_user("gamma")
+            job_metadata = {
+                "channel_id": str(uuid4()),
+                "job_id": str(uuid4()),
+                "user_id": user.id,
+                "status": "pending",
+                "errors": [],
+            }
+            with pytest.raises(ChartDataQueryFailedError):
+                load_chart_data_into_cache(job_metadata, query_context)
+
+            mock_run_command.assert_called_once_with(cache=True)
+            errors = [{"message": "Error: foo"}]
+            mock_update_job.assert_called_once_with(
+                job_metadata, "error", errors=errors
+            )
+            mock_run_command.reset_mock()
+            mock_update_job.reset_mock()
 
     @mock.patch.object(ChartDataCommand, "run")
     @mock.patch.object(async_query_manager, "update_job")
@@ -98,25 +125,34 @@ class TestAsyncQueries(SupersetTestCase):
         from superset.tasks.async_queries import load_chart_data_into_cache
 
         app._got_first_request = False
-        async_query_manager.init_app(app)
-        user = security_manager.find_user("gamma")
-        form_data = {}
-        job_metadata = {
-            "channel_id": str(uuid4()),
-            "job_id": str(uuid4()),
-            "user_id": user.id,
-            "status": "pending",
-            "errors": [],
-        }
-        errors = ["A timeout occurred while loading chart data"]
 
-        with pytest.raises(SoftTimeLimitExceeded):
-            with mock.patch(
-                "superset.tasks.async_queries.set_form_data"
-            ) as set_form_data:
-                set_form_data.side_effect = SoftTimeLimitExceeded()
-                load_chart_data_into_cache(job_metadata, form_data)
-            set_form_data.assert_called_once_with(form_data, "error", errors=errors)
+        for cache_type, cache_backend in cache_backends.items():
+            async_query_manager.get_cache_backend = mock.Mock(
+                return_value=cache_backend
+            )
+            async_query_manager.init_app(app)
+
+            user = security_manager.find_user("gamma")
+            form_data = {}
+            job_metadata = {
+                "channel_id": str(uuid4()),
+                "job_id": str(uuid4()),
+                "user_id": user.id,
+                "status": "pending",
+                "errors": [],
+            }
+            errors = ["A timeout occurred while loading chart data"]
+
+            with pytest.raises(SoftTimeLimitExceeded):
+                with mock.patch(
+                    "superset.tasks.async_queries.set_form_data"
+                ) as set_form_data:
+                    set_form_data.side_effect = SoftTimeLimitExceeded()
+                    load_chart_data_into_cache(job_metadata, form_data)
+                set_form_data.assert_called_once_with(form_data, "error", errors=errors)
+
+            mock_run_command.reset_mock()
+            mock_update_job.reset_mock()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
@@ -124,31 +160,39 @@ class TestAsyncQueries(SupersetTestCase):
         from superset.tasks.async_queries import load_explore_json_into_cache
 
         app._got_first_request = False
-        async_query_manager.init_app(app)
-        table = self.get_table(name="birth_names")
-        user = security_manager.find_user("gamma")
-        form_data = {
-            "datasource": f"{table.id}__table",
-            "viz_type": "dist_bar",
-            "granularity_sqla": "ds",
-            "time_range": "No filter",
-            "metrics": ["count"],
-            "adhoc_filters": [],
-            "groupby": ["gender"],
-            "row_limit": 100,
-        }
-        job_metadata = {
-            "channel_id": str(uuid4()),
-            "job_id": str(uuid4()),
-            "user_id": user.id,
-            "status": "pending",
-            "errors": [],
-        }
 
-        load_explore_json_into_cache(job_metadata, form_data)
-        mock_update_job.assert_called_once_with(
-            job_metadata, "done", result_url=mock.ANY
-        )
+        for cache_type, cache_backend in cache_backends.items():
+            async_query_manager.get_cache_backend = mock.Mock(
+                return_value=cache_backend
+            )
+            async_query_manager.init_app(app)
+
+            table = self.get_table(name="birth_names")
+            user = security_manager.find_user("gamma")
+            form_data = {
+                "datasource": f"{table.id}__table",
+                "viz_type": "dist_bar",
+                "granularity_sqla": "ds",
+                "time_range": "No filter",
+                "metrics": ["count"],
+                "adhoc_filters": [],
+                "groupby": ["gender"],
+                "row_limit": 100,
+            }
+            job_metadata = {
+                "channel_id": str(uuid4()),
+                "job_id": str(uuid4()),
+                "user_id": user.id,
+                "status": "pending",
+                "errors": [],
+            }
+
+            load_explore_json_into_cache(job_metadata, form_data)
+
+            async_query_manager.update_job.assert_called_once_with(
+                job_metadata, "done", result_url=mock.ANY
+            )
+            mock_update_job.reset_mock()
 
     @mock.patch.object(async_query_manager, "update_job")
     @mock.patch("superset.tasks.async_queries.set_form_data")
@@ -158,23 +202,33 @@ class TestAsyncQueries(SupersetTestCase):
         from superset.tasks.async_queries import load_explore_json_into_cache
 
         app._got_first_request = False
-        async_query_manager.init_app(app)
-        user = security_manager.find_user("gamma")
-        form_data = {}
-        job_metadata = {
-            "channel_id": str(uuid4()),
-            "job_id": str(uuid4()),
-            "user_id": user.id,
-            "status": "pending",
-            "errors": [],
-        }
 
-        with pytest.raises(SupersetException):
-            load_explore_json_into_cache(job_metadata, form_data)
+        for cache_type, cache_backend in cache_backends.items():
+            async_query_manager.get_cache_backend = mock.Mock(
+                return_value=cache_backend
+            )
+            async_query_manager.init_app(app)
 
-        mock_set_form_data.assert_called_once_with(form_data)
-        errors = ["The dataset associated with this chart no longer exists"]
-        mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
+            user = security_manager.find_user("gamma")
+            form_data = {}
+            job_metadata = {
+                "channel_id": str(uuid4()),
+                "job_id": str(uuid4()),
+                "user_id": user.id,
+                "status": "pending",
+                "errors": [],
+            }
+
+            with pytest.raises(SupersetException):
+                load_explore_json_into_cache(job_metadata, form_data)
+
+            mock_set_form_data.assert_called_once_with(form_data)
+            errors = ["The dataset associated with this chart no longer exists"]
+            mock_update_job.assert_called_once_with(
+                job_metadata, "error", errors=errors
+            )
+            mock_set_form_data.reset_mock()
+            mock_update_job.reset_mock()
 
     @mock.patch.object(ChartDataCommand, "run")
     @mock.patch.object(async_query_manager, "update_job")
@@ -184,22 +238,31 @@ class TestAsyncQueries(SupersetTestCase):
         from superset.tasks.async_queries import load_explore_json_into_cache
 
         app._got_first_request = False
-        async_query_manager.init_app(app)
-        user = security_manager.find_user("gamma")
-        form_data = {}
-        job_metadata = {
-            "channel_id": str(uuid4()),
-            "job_id": str(uuid4()),
-            "user_id": user.id,
-            "status": "pending",
-            "errors": [],
-        }
-        errors = ["A timeout occurred while loading explore json, error"]
 
-        with pytest.raises(SoftTimeLimitExceeded):
-            with mock.patch(
-                "superset.tasks.async_queries.set_form_data"
-            ) as set_form_data:
-                set_form_data.side_effect = SoftTimeLimitExceeded()
-                load_explore_json_into_cache(job_metadata, form_data)
-            set_form_data.assert_called_once_with(form_data, "error", errors=errors)
+        for cache_type, cache_backend in cache_backends.items():
+            async_query_manager.get_cache_backend = mock.Mock(
+                return_value=cache_backend
+            )
+            async_query_manager.init_app(app)
+
+            user = security_manager.find_user("gamma")
+            form_data = {}
+            job_metadata = {
+                "channel_id": str(uuid4()),
+                "job_id": str(uuid4()),
+                "user_id": user.id,
+                "status": "pending",
+                "errors": [],
+            }
+            errors = ["A timeout occurred while loading explore json, error"]
+
+            with pytest.raises(SoftTimeLimitExceeded):
+                with mock.patch(
+                    "superset.tasks.async_queries.set_form_data"
+                ) as set_form_data:
+                    set_form_data.side_effect = SoftTimeLimitExceeded()
+                    load_explore_json_into_cache(job_metadata, form_data)
+                set_form_data.assert_called_once_with(form_data, "error", errors=errors)
+
+            mock_run_command.reset_mock()
+            mock_update_job.reset_mock()

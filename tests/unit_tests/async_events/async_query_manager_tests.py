@@ -17,6 +17,7 @@
 from unittest import mock
 from unittest.mock import ANY, Mock
 
+import redis
 from flask import g
 from jwt import encode
 from pytest import fixture, raises
@@ -26,9 +27,20 @@ from superset.async_events.async_query_manager import (
     AsyncQueryManager,
     AsyncQueryTokenException,
 )
+from superset.async_events.cache_backend import (
+    RedisCacheBackend,
+    RedisSentinelCacheBackend,
+)
 
 JWT_TOKEN_SECRET = "some_secret"
 JWT_TOKEN_COOKIE_NAME = "superset_async_jwt"
+
+# Define the cache backends once as mocks
+cache_backends = {
+    "RedisCacheBackend": mock.Mock(spec=RedisCacheBackend),
+    "RedisSentinelCacheBackend": mock.Mock(spec=RedisSentinelCacheBackend),
+    "redis.Redis": mock.Mock(spec=redis.Redis),
+}
 
 
 @fixture
@@ -36,7 +48,6 @@ def async_query_manager():
     query_manager = AsyncQueryManager()
     query_manager._jwt_secret = JWT_TOKEN_SECRET
     query_manager._jwt_cookie_name = JWT_TOKEN_COOKIE_NAME
-
     return query_manager
 
 
@@ -81,30 +92,36 @@ def test_submit_chart_data_job_as_guest_user(
 ):
     is_feature_enabled_mock.return_value = True
     set_current_as_guest_user()
-    job_mock = Mock()
-    async_query_manager._load_chart_data_into_cache_job = job_mock
-    job_meta = async_query_manager.submit_chart_data_job(
-        channel_id="test_channel_id",
-        form_data={},
-    )
 
-    job_mock.delay.assert_called_once_with(
-        {
-            "channel_id": "test_channel_id",
-            "errors": [],
-            "guest_token": {
-                "resources": [{"id": "some-uuid", "type": "dashboard"}],
-                "user": {},
+    for cache_type, cache_backend in cache_backends.items():
+        # Mock the get_cache_backend method to return the current cache backend
+        async_query_manager.get_cache_backend = mock.Mock(return_value=cache_backend)
+
+        job_mock = Mock()
+        async_query_manager._load_chart_data_into_cache_job = job_mock
+        job_meta = async_query_manager.submit_chart_data_job(
+            channel_id="test_channel_id",
+            form_data={},
+        )
+
+        job_mock.delay.assert_called_once_with(
+            {
+                "channel_id": "test_channel_id",
+                "errors": [],
+                "guest_token": {
+                    "resources": [{"id": "some-uuid", "type": "dashboard"}],
+                    "user": {},
+                },
+                "job_id": ANY,
+                "result_url": None,
+                "status": "pending",
+                "user_id": None,
             },
-            "job_id": ANY,
-            "result_url": None,
-            "status": "pending",
-            "user_id": None,
-        },
-        {},
-    )
+            {},
+        )
 
-    assert "guest_token" not in job_meta
+        assert "guest_token" not in job_meta
+        job_mock.reset_mock()  # Reset the mock for the next iteration
 
 
 @mock.patch("superset.is_feature_enabled")
@@ -113,30 +130,36 @@ def test_submit_explore_json_job_as_guest_user(
 ):
     is_feature_enabled_mock.return_value = True
     set_current_as_guest_user()
-    job_mock = Mock()
-    async_query_manager._load_explore_json_into_cache_job = job_mock
-    job_meta = async_query_manager.submit_explore_json_job(
-        channel_id="test_channel_id",
-        form_data={},
-        response_type="json",
-    )
 
-    job_mock.delay.assert_called_once_with(
-        {
-            "channel_id": "test_channel_id",
-            "errors": [],
-            "guest_token": {
-                "resources": [{"id": "some-uuid", "type": "dashboard"}],
-                "user": {},
+    for cache_type, cache_backend in cache_backends.items():
+        # Mock the get_cache_backend method to return the current cache backend
+        async_query_manager.get_cache_backend = mock.Mock(return_value=cache_backend)
+
+        job_mock = Mock()
+        async_query_manager._load_explore_json_into_cache_job = job_mock
+        job_meta = async_query_manager.submit_explore_json_job(
+            channel_id="test_channel_id",
+            form_data={},
+            response_type="json",
+        )
+
+        job_mock.delay.assert_called_once_with(
+            {
+                "channel_id": "test_channel_id",
+                "errors": [],
+                "guest_token": {
+                    "resources": [{"id": "some-uuid", "type": "dashboard"}],
+                    "user": {},
+                },
+                "job_id": ANY,
+                "result_url": None,
+                "status": "pending",
+                "user_id": None,
             },
-            "job_id": ANY,
-            "result_url": None,
-            "status": "pending",
-            "user_id": None,
-        },
-        {},
-        "json",
-        False,
-    )
+            {},
+            "json",
+            False,
+        )
 
-    assert "guest_token" not in job_meta
+        assert "guest_token" not in job_meta
+        job_mock.reset_mock()  # Reset the mock for the next iteration
