@@ -74,14 +74,14 @@ class CouchbaseParametersSchema(Schema):
     )
 
 
-class CouchbaseDbEngineSpec(BasicParametersMixin, BaseEngineSpec):
-    engine = "couchbasedb"
+class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
+    engine = "couchbase"
     engine_name = "Couchbase"
-    default_driver = "couchbasedb"
+    default_driver = "couchbase"
     allows_joins = False
     allows_subqueries = False
     sqlalchemy_uri_placeholder = (
-        "couchbasedb://user:password@host[:port]?truststorepath=value?ssl=value"
+        "couchbase://user:password@host[:port]?truststorepath=value?ssl=value"
     )
     parameters_schema = CouchbaseParametersSchema()
 
@@ -128,7 +128,7 @@ class CouchbaseDbEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
         if parameters.get("port") is None:
             uri = URL.create(
-                "couchbasedb",
+                "couchbase",
                 username=parameters.get("username"),
                 password=parameters.get("password"),
                 host=parameters["host"],
@@ -137,7 +137,7 @@ class CouchbaseDbEngineSpec(BasicParametersMixin, BaseEngineSpec):
             )
         else:
             uri = URL.create(
-                "couchbasedb",
+                "couchbase",
                 username=parameters.get("username"),
                 password=parameters.get("password"),
                 host=parameters["host"],
