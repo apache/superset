@@ -82,7 +82,9 @@ describe('ImportModelsModal', () => {
   });
 
   it('should render the import button initially disabled', () => {
-    expect(wrapper.find(Button).at(2).find('button').prop('disabled')).toBe(true);
+    expect(wrapper.find(Button).at(2).find('button').prop('disabled')).toBe(
+      true,
+    );
   });
 
   it('should render the import button enabled when a file is selected', () => {
@@ -103,7 +105,9 @@ describe('ImportModelsModal', () => {
       }
     });
     wrapper.update();
-    expect(wrapper.find(Button).at(2).find('button').prop('disabled')).toBe(false);
+    expect(wrapper.find(Button).at(2).find('button').prop('disabled')).toBe(
+      false,
+    );
   });
 
   it('should POST with request header `Accept: application/json`', async () => {
