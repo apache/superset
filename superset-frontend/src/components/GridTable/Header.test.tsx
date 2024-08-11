@@ -34,11 +34,16 @@ class MockApi extends EventTarget {
   getAllDisplayedColumns() {
     return [];
   }
+
+  isDestroyed() {
+    return false;
+  }
 }
 
 const mockedProps = {
   displayName: 'test column',
   setSort: jest.fn(),
+  enableSorting: true,
   column: {
     getColId: () => '123',
     isPinnedLeft: () => true,
@@ -57,13 +62,13 @@ test('renders display name for the column', () => {
 test('sorts by clicking a column header', () => {
   const { getByText, queryByTestId } = render(<Header {...mockedProps} />);
   fireEvent.click(getByText(mockedProps.displayName));
-  expect(mockedProps.setSort).toBeCalledWith('asc', false);
+  expect(mockedProps.setSort).toHaveBeenCalledWith('asc', false);
   expect(queryByTestId('mock-sort-asc')).toBeInTheDocument();
   fireEvent.click(getByText(mockedProps.displayName));
-  expect(mockedProps.setSort).toBeCalledWith('desc', false);
+  expect(mockedProps.setSort).toHaveBeenCalledWith('desc', false);
   expect(queryByTestId('mock-sort-desc')).toBeInTheDocument();
   fireEvent.click(getByText(mockedProps.displayName));
-  expect(mockedProps.setSort).toBeCalledWith(null, false);
+  expect(mockedProps.setSort).toHaveBeenCalledWith(null, false);
   expect(queryByTestId('mock-sort-asc')).not.toBeInTheDocument();
   expect(queryByTestId('mock-sort-desc')).not.toBeInTheDocument();
 });
