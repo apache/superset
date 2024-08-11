@@ -45,7 +45,7 @@ describe('Label', () => {
   it('works with an onClick handler', () => {
     const mockAction = jest.fn();
     wrapper = mount(<Label onClick={mockAction} />);
-    wrapper.find(Label).simulate('click');
+    wrapper.find(Label).find('span').simulate('click');
     expect(mockAction).toHaveBeenCalled();
   });
 

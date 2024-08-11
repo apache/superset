@@ -38,14 +38,14 @@ describe('Button', () => {
   it('works with an onClick handler', () => {
     const mockAction = jest.fn();
     wrapper = mount(<Button onClick={mockAction} />);
-    wrapper.find('Button').first().simulate('click');
+    wrapper.find('button').first().simulate('click');
     expect(mockAction).toHaveBeenCalled();
   });
 
   it('does not handle onClicks when disabled', () => {
     const mockAction = jest.fn();
     wrapper = mount(<Button onClick={mockAction} disabled />);
-    wrapper.find('Button').first().simulate('click');
+    wrapper.find('button').first().simulate('click');
     expect(mockAction).toHaveBeenCalledTimes(0);
   });
 

@@ -82,7 +82,7 @@ describe('ImportModelsModal', () => {
   });
 
   it('should render the import button initially disabled', () => {
-    expect(wrapper.find(Button).at(2).prop('disabled')).toBe(true);
+    expect(wrapper.find(Button).at(2).find('button').prop('disabled')).toBe(true);
   });
 
   it('should render the import button enabled when a file is selected', () => {
@@ -103,7 +103,7 @@ describe('ImportModelsModal', () => {
       }
     });
     wrapper.update();
-    expect(wrapper.find(Button).at(2).prop('disabled')).toBe(false);
+    expect(wrapper.find(Button).at(2).find('button').prop('disabled')).toBe(false);
   });
 
   it('should POST with request header `Accept: application/json`', async () => {
@@ -125,7 +125,7 @@ describe('ImportModelsModal', () => {
     });
     wrapper.update();
 
-    wrapper.find(Button).at(2).simulate('click');
+    wrapper.find(Button).at(2).find('button').simulate('click');
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(DATABASE_IMPORT_URL)[0][1]?.headers).toStrictEqual({
       Accept: 'application/json',
