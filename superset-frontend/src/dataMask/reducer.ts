@@ -19,7 +19,7 @@
 
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
-import produce from 'immer';
+import { produce } from 'immer';
 import {
   DataMask,
   DataMaskStateWithId,
