@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AppSection,
   DataMask,
@@ -44,10 +44,10 @@ import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
   | {
-      type: 'filterState';
-      extraFormData: ExtraFormData;
-      filterState: { value: SelectValue; label?: string };
-    };
+    type: 'filterState';
+    extraFormData: ExtraFormData;
+    filterState: { value: SelectValue; label?: string; selected?: boolean };
+  };
 
 function reducer(draft: DataMask, action: DataMaskAction) {
   switch (action.type) {
@@ -111,6 +111,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   );
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
+
   const [search, setSearch] = useState('');
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
@@ -124,12 +125,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       }),
     [data, col],
   );
-
   const updateDataMask = useCallback(
-    (values: SelectValue) => {
+    (values: SelectValue, type: boolean | undefined = false) => {
       const emptyFilter =
         enableEmptyFilter && !inverseSelection && !values?.length;
-
       const suffix = inverseSelection && values?.length ? t(' (excluded)') : '';
       dispatchDataMask({
         type: 'filterState',
@@ -139,17 +138,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           emptyFilter,
           inverseSelection,
         ),
+
         filterState: {
           ...filterState,
           label: values?.length
             ? `${(values || [])
-                .map(value => labelFormatter(value, datatype))
-                .join(', ')}${suffix}`
+              .map(value => labelFormatter(value, datatype))
+              .join(', ')}${suffix}`
             : undefined,
           value:
             appSection === AppSection.FilterConfigModal && defaultToFirstItem
               ? undefined
               : values,
+          selected: type,
         },
       });
     },
@@ -166,7 +167,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       labelFormatter,
     ],
   );
-
   const isDisabled =
     appSection === AppSection.FilterConfigModal && defaultToFirstItem;
 
@@ -197,9 +197,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       const values = value === null ? [null] : ensureIsArray(value);
 
       if (values.length === 0) {
-        updateDataMask(null);
+        updateDataMask(values, true);
       } else {
-        updateDataMask(values);
+        updateDataMask(values, true);
       }
     },
     [updateDataMask],
@@ -220,7 +220,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     }
     return undefined;
   }, [filterState.validateMessage, filterState.validateStatus]);
-
   const uniqueOptions = useMemo(() => {
     const allOptions = new Set([...data.map(el => el[col])]);
     return [...allOptions].map((value: string) => ({
@@ -254,20 +253,25 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   useEffect(() => {
     if (defaultToFirstItem && filterState.value === undefined) {
-      // initialize to first value if set to default to first item
+      // Initialize to first value if set to default to first item
       const firstItem: SelectValue = data[0]
         ? (groupby.map(col => data[0][col]) as string[])
         : null;
-      // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
-      // TODO: still need repopulate default value in config modal when column changed
+
+      // Handle the case when groupby changed but new data is still not fetched
       if (firstItem?.[0] !== undefined) {
         updateDataMask(firstItem);
       }
-    } else if (isDisabled) {
-      // empty selection if filter is disabled
+      return;
+    }
+
+    if (isDisabled) {
+      // Empty selection if filter is disabled
       updateDataMask(null);
-    } else {
-      // reset data mask based on filter state
+      return;
+    }
+
+    if (!filterState.selected) {
       updateDataMask(filterState.value);
     }
   }, [
@@ -303,7 +307,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             showOverflow
               ? () => (parentRef?.current as HTMLElement) || document.body
               : (trigger: HTMLElement) =>
-                  (trigger?.parentNode as HTMLElement) || document.body
+                (trigger?.parentNode as HTMLElement) || document.body
           }
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}
