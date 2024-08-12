@@ -15,6 +15,7 @@ governing permissions and limitations under the License. #}
 %} {% set favicons = appbuilder.app.config['FAVICONS'] %}
 <html>
   <head>
+    {% include "head_custom_extra.html" %}
     <title>
       {% block title %} {% if title %} {{ title }} {% elif appbuilder and
       appbuilder.app_name %} {{ appbuilder.app_name }} {% endif %} {% endblock
@@ -56,8 +57,6 @@ governing permissions and limitations under the License. #}
       type="text/css"
       href="{{ assets_prefix }}/static/appbuilder/css/select2/select2.min.css"
     />
-
-    {% include "head_custom_extra.html" %}
 
     {{ css_bundle("theme") }} {% if entry %} {{ css_bundle(entry) }} {% endif %}
     {% endblock %} {{ js_bundle("theme") }}
