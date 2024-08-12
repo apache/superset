@@ -90,7 +90,7 @@ jobs:
         # NOTE(joseb): we use gcloud auth for docker login instead of using `docker login` command in build_docker.py script.
         #              So we just set a dummy value for DOCKERHUB_TOKEN.
       - name: Set container registry token
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'release'
         run: |
           echo "DOCKERHUB_TOKEN=dummy" >> $GITHUB_ENV
 
