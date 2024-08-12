@@ -15,6 +15,7 @@ governing permissions and limitations under the License. #}
 %} {% set favicons = appbuilder.app.config['FAVICONS'] %}
 <html>
   <head>
+    {% include "head_custom_extra.html" %}
     <title>
       {% block title %} {% if title %} {{ title }} {% elif appbuilder and
       appbuilder.app_name %} {{ appbuilder.app_name }} {% endif %} {% endblock
