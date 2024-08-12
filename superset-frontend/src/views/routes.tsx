@@ -123,6 +123,11 @@ const RowLevelSecurityList = lazy(
     ),
 );
 
+
+const Assistant = lazy(
+  () => import(/* webpackChunkName: "Assistant" */ 'src/pages/Assistant'),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -132,7 +137,11 @@ type Routes = {
 
 export const routes: Routes = [
   {
-    path: '/superset/welcome/',
+    path: '/assistant',
+    Component: Assistant,
+  },
+  {
+    path: '/superset/welcome',
     Component: Home,
   },
   {

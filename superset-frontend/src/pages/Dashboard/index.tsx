@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC } from 'react';
+
 import { useParams } from 'react-router-dom';
+import { FC } from 'react';
 import { DashboardPage } from 'src/dashboard/containers/DashboardPage';
 
 const DashboardRoute: FC = () => {

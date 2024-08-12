@@ -189,6 +189,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
 
+        from superset.views.assistant.views import AssistantView
+
         set_app_error_handlers(self.superset_app)
 
         #
@@ -228,12 +230,20 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Setup regular views
         #
-        appbuilder.add_link(
-            "Home",
-            label=__("Home"),
-            href="/superset/welcome/",
-            cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
+
+        appbuilder.add_view(
+            AssistantView,
+            "Assistant",
+            label=__("Assistant"),
+            icon="fa-dashboard",
         )
+
+        # appbuilder.add_link(
+        #     "Home",
+        #     label=__("Home"),
+        #     href="/superset/welcome/",
+        #     cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
+        # )
 
         appbuilder.add_view(
             DatabaseView,
@@ -243,6 +253,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Data",
             category_label=__("Data"),
         )
+
         appbuilder.add_view(
             DashboardModelView,
             "Dashboards",
@@ -251,6 +262,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="",
             category_icon="",
         )
+        
         appbuilder.add_view(
             SliceModelView,
             "Charts",

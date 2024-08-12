@@ -47,6 +47,8 @@ setupExtensions();
 
 const bootstrapData = getBootstrapData();
 
+console.log('Superset application bootstrap data', bootstrapData);
+
 let lastLocationPathname: string;
 
 const boundActions = bindActionCreators({ logEvent }, store.dispatch);

@@ -192,6 +192,9 @@ export function Menu({
   },
   isFrontendRoute = () => false,
 }: MenuProps) {
+
+  
+
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
   const uiConfig = useUiConfig();
@@ -213,6 +216,7 @@ export function Menu({
     Explore = '/explore',
     Dashboard = '/dashboard',
     Chart = '/chart',
+    Assistant = '/assistant',
     Datasets = '/tablemodelview',
   }
 
@@ -231,6 +235,10 @@ export function Menu({
       case path.startsWith(Paths.Datasets):
         setActiveTabs(['Datasets']);
         break;
+      case path.startsWith(Paths.Assistant):
+        setActiveTabs(['Assistant']);
+        break;
+
       default:
         setActiveTabs(defaultTabSelection);
     }
@@ -296,6 +304,7 @@ export function Menu({
   };
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
+     
       <Global styles={globalStyles(theme)} />
       <Row>
         <Col md={16} xs={24}>
@@ -330,7 +339,9 @@ export function Menu({
             className="main-nav"
             selectedKeys={activeTabs}
           >
-            {menu.map((item, index) => {
+            {menu.map((item, index) => 
+            {
+              console.log("Item", item);
               const props = {
                 index,
                 ...item,
@@ -348,7 +359,9 @@ export function Menu({
               };
 
               return renderSubMenu(props);
-            })}
+            }
+            
+            )}
           </DropdownMenu>
         </Col>
         <Col md={8} xs={24}>
@@ -367,6 +380,7 @@ export function Menu({
 
 // transform the menu data to reorganize components
 export default function MenuWrapper({ data, ...rest }: MenuProps) {
+  console.log("Data", data);
   const newMenuData = {
     ...data,
   };
