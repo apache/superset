@@ -51,7 +51,7 @@ def get_git_sha() -> str:
     return run_cmd("git rev-parse HEAD").strip()
 
 
-def get_build_context_ref(build_context: str) -> str:
+def get_build_context_ref() -> str:
     """
     Given a context, return a ref:
     - if context is pull_request, return the PR's id
@@ -167,7 +167,7 @@ def get_docker_command(
 
     # Try to get context reference if missing
     if not build_context_ref:
-        build_context_ref = get_build_context_ref(build_context)
+        build_context_ref = get_build_context_ref()
 
     tags = get_docker_tags(
         build_preset,
@@ -255,6 +255,9 @@ def main(
             "--force-latest can only be applied if the build context is set to 'release'"
         )
         exit(1)
+
+    if not build_context_ref:
+        build_context_ref = get_build_context_ref()
 
     if build_context == "release" and not build_context_ref.strip():
         print("Release number has to be provided")
