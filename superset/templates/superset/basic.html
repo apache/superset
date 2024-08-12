@@ -57,6 +57,8 @@ governing permissions and limitations under the License. #}
       href="{{ assets_prefix }}/static/appbuilder/css/select2/select2.min.css"
     />
 
+    {% include "head_custom_extra.html" %}
+
     {{ css_bundle("theme") }} {% if entry %} {{ css_bundle(entry) }} {% endif %}
     {% endblock %} {{ js_bundle("theme") }}
 
