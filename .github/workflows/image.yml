@@ -3,8 +3,10 @@ on:
   pull_request:
   push:
     branches: [ortege]
-    tags:
-      - '**'
+    # tags:
+    #   - '**'
+  release:
+    types: [released]
 
 concurrency:
   group: build-push-agents-${{ github.ref }}
