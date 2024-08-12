@@ -74,6 +74,19 @@ services:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 
+  drill:
+    image: apache/drill:1.19.0
+    container_name: superset_drill
+    restart: unless-stopped
+    stdin_open: true
+    ports:
+      - "31010:31010"
+      - "8047:8047"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./docker/drill/storage-plugins-override.conf:/opt/drill/conf/storage-plugins-override.conf
+
   superset:
     env_file:
       - path: docker/.env # default
