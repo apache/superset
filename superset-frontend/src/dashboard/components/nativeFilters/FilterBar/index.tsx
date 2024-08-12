@@ -18,16 +18,13 @@
  */
 
 /* eslint-disable no-param-reassign */
-import {
-  FC,
-  memo,
+import React, {
   useEffect,
   useState,
   useCallback,
   createContext,
   useRef,
 } from 'react';
-
 import { useDispatch, useSelector } from 'react-redux';
 import {
   DataMaskStateWithId,
@@ -130,7 +127,7 @@ const publishDataMask = debounce(
 );
 
 export const FilterBarScrollContext = createContext(false);
-const FilterBar: FC<FiltersBarProps> = ({
+const FilterBar: React.FC<FiltersBarProps> = ({
   orientation = FilterBarOrientation.Vertical,
   verticalConfig,
   hidden = false,
@@ -146,6 +143,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   const previousFilters = usePrevious(filters);
   const filterValues = Object.values(filters);
   const nativeFilterValues = filterValues.filter(isNativeFilter);
+  const [state, setState] = useState<any>();
   const dashboardId = useSelector<any, number>(
     ({ dashboardInfo }) => dashboardInfo?.id,
   );
@@ -157,7 +155,6 @@ const FilterBar: FC<FiltersBarProps> = ({
     RootState,
     UserWithPermissionsAndRoles
   >(state => state.user);
-
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
 
   const dataMaskSelectedRef = useRef(dataMaskSelected);
@@ -168,25 +165,80 @@ const FilterBar: FC<FiltersBarProps> = ({
       dataMask: Partial<DataMask>,
     ) => {
       setDataMaskSelected(draft => {
-        // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
-        if (
-          // filterState.value === undefined - means that value not initialized
+        const isValueRequired =
           dataMask.filterState?.value !== undefined &&
           dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
-            undefined &&
-          filter.requiredFirst
-        ) {
+          undefined &&
+          filter.requiredFirst;
+
+        const isValidationError =
+          filter?.dataMask?.filterState?.validateMessage ===
+          'Value is required' ||
+          filter?.dataMask?.filterState?.validateMessage === false ||
+          Object.keys(filter?.dataMask?.filterState || {}).length === 0;
+
+        if (isValueRequired || isValidationError) {
           dispatch(updateDataMask(filter.id, dataMask));
         }
+
+        setState(filter);
+
         draft[filter.id] = {
           ...(getInitialDataMask(filter.id) as DataMaskWithId),
           ...dataMask,
         };
       });
     },
+
     [dispatch, setDataMaskSelected],
   );
 
+  useEffect(() => {
+    if (state) {
+      const hasSelectedFilters = Object.values(dataMaskSelected).some(
+        filter => filter.filterState?.selected === true,
+      );
+
+      if (hasSelectedFilters) {
+        const updatedDataMaskSelected1 = Object.keys(dataMaskSelected).map(
+          filterId => {
+            const filter = dataMaskSelected[filterId];
+
+            if (
+              state.id !== filterId &&
+              filter?.filterState &&
+              (filter.filterState.selected || filter?.filterState?.second === 1)
+            ) {
+              return {
+                [filterId]: {
+                  ...filter,
+                  filterState: {
+                    ...filter.filterState,
+                    selected: false,
+                  },
+                },
+              };
+            }
+
+            return {
+              [filterId]: filter,
+            };
+          },
+          {},
+        );
+
+        const result = updatedDataMaskSelected1.reduce(
+          (acc, curr) => ({
+            ...acc,
+            ...curr,
+          }),
+          {},
+        );
+
+        setDataMaskSelected(result);
+      }
+    }
+  }, [state]);
   useEffect(() => {
     if (previousFilters && dashboardId === previousDashboardId) {
       const updates = {};
@@ -222,10 +274,10 @@ const FilterBar: FC<FiltersBarProps> = ({
   ]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
-
   useEffect(() => {
+    // Set the modified object to the state
     setDataMaskSelected(() => dataMaskApplied);
-  }, [dataMaskAppliedText, setDataMaskSelected]);
+  }, [dataMaskApplied, setDataMaskSelected]);
 
   useEffect(() => {
     // embedded users can't persist filter combinations
@@ -234,17 +286,50 @@ const FilterBar: FC<FiltersBarProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId, dataMaskAppliedText, history, updateKey, tabId]);
+  const isApplyDisabled = checkIsApplyDisabled(
+    dataMaskSelected,
+    dataMaskApplied,
+    filtersInScope.filter(isNativeFilter),
+  );
 
-  const handleApply = useCallback(() => {
-    dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
-    const filterIds = Object.keys(dataMaskSelected);
-    setUpdateKey(1);
-    filterIds.forEach(filterId => {
-      if (dataMaskSelected[filterId]) {
-        dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
-      }
-    });
-  }, [dataMaskSelected, dispatch]);
+  const handleApply = useCallback(
+    (type: boolean) => {
+      // if (!isApplyDisabled) {
+      dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
+      // const filterIds = Object.keys(dataMaskSelected);
+      // Clone and update dataMaskSelected
+      const updatedDataMaskSelected = Object.keys(dataMaskSelected).reduce(
+        (acc, filterId) => {
+          const filter = dataMaskSelected[filterId];
+
+          if (filter?.filterState) {
+            acc[filterId] = {
+              ...filter,
+
+              filterState: {
+                ...filter.filterState,
+                selected: type,
+                second: 0,
+              },
+            };
+          } else {
+            acc[filterId] = filter;
+          }
+          return acc;
+        },
+        {},
+      );
+      // Dispatch the updated data mask
+      setUpdateKey(1);
+      Object.keys(updatedDataMaskSelected).forEach(filterId => {
+        if (updatedDataMaskSelected[filterId]) {
+          dispatch(updateDataMask(filterId, updatedDataMaskSelected[filterId]));
+        }
+      });
+      // }
+    },
+    [dataMaskSelected, dispatch],
+  );
 
   const handleClearAll = useCallback(() => {
     const clearDataMaskIds: string[] = [];
@@ -267,20 +352,28 @@ const FilterBar: FC<FiltersBarProps> = ({
       clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
     }
   }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
-
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
-  const isApplyDisabled = checkIsApplyDisabled(
-    dataMaskSelected,
-    dataMaskApplied,
-    filtersInScope.filter(isNativeFilter),
-  );
-  const isInitialized = useInitialization();
+  useEffect(() => {
+    // Check if any filter has filterState.selected set to true
+    const hasSelectedFilters = Object.values(dataMaskSelected).some(
+      filter => filter.filterState?.selected,
+    );
+    const allFiltersValueNull = Object.values(dataMaskSelected).some(
+      filter => filter.filterState?.value === null,
+    );
 
+    // Only call handleApply if no filters are selected and isApplyDisabled is false
+    if (!hasSelectedFilters && !allFiltersValueNull && !isApplyDisabled) {
+      handleApply(false);
+    }
+  }, [isApplyDisabled]);
+
+  const isInitialized = useInitialization();
   const actions = (
     <ActionButtons
       filterBarOrientation={orientation}
       width={verticalConfig?.width}
-      onApply={handleApply}
+      onApply={() => handleApply(true)}
       onClearAll={handleClearAll}
       dataMaskSelected={dataMaskSelected}
       dataMaskApplied={dataMaskApplied}
@@ -321,4 +414,4 @@ const FilterBar: FC<FiltersBarProps> = ({
     filterBarComponent
   );
 };
-export default memo(FilterBar);
+export default React.memo(FilterBar);
