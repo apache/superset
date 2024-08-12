@@ -76,7 +76,7 @@ class CouchbaseParametersSchema(Schema):
 
 class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
     engine = "couchbase"
-    engine_aliases = {"couchbase", "couchbasedb"}
+    engine_aliases = {"couchbasedb"}
     engine_name = "Couchbase"
     default_driver = "couchbase"
     allows_joins = False
