@@ -233,45 +233,12 @@ export default function DatabaseSelector({
     [formMode, getDbList, sqlLabMode, onEmptyResults],
   );
 
-  function changeSchema(schema: SchemaOption | undefined) {
-    setCurrentSchema(schema);
-    if (onSchemaChange && schema?.value !== schemaRef.current) {
-      onSchemaChange(schema?.value);
-    }
-  }
-
-  const {
-    currentData: schemaData,
-    isFetching: loadingSchemas,
-    refetch: refetchSchemas,
-  } = useSchemas({
-    dbId: currentDb?.value,
-    catalog: currentCatalog?.value,
-    onSuccess: (schemas, isFetched, defaultSchema) => {
-      if (schemas.length === 1) {
-        changeSchema(schemas[0]);
-      } else if (
-        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
-      ) {
-        changeSchema(defaultSchema || undefined);
-      }
-
-      if (isFetched) {
-        addSuccessToast('List refreshed');
-      }
-    },
-    onError: () => handleError(t('There was an error loading the schemas')),
-  });
-
-  const schemaOptions = schemaData?.schemas || EMPTY_SCHEMA_OPTIONS;
-
   function changeCatalog(catalog: CatalogOption | null | undefined) {
     setCurrentCatalog(catalog);
     setCurrentSchema(undefined);
     if (onCatalogChange && catalog?.value !== catalogRef.current) {
       onCatalogChange(catalog?.value);
     }
-    refetchSchemas();
   }
 
   const {
@@ -283,13 +250,7 @@ export default function DatabaseSelector({
     onSuccess: (catalogs, isFetched, defaultCatalog) => {
       if (!showCatalogSelector) {
         changeCatalog(null);
-      } else if (catalogs.length === 1) {
-        changeCatalog(catalogs[0]);
-      } else if (
-        !catalogs.find(
-          catalogOption => catalogRef.current === catalogOption.value,
-        )
-      ) {
+      } else {
         changeCatalog(defaultCatalog || undefined);
       }
 
@@ -305,6 +266,38 @@ export default function DatabaseSelector({
   });
 
   const catalogOptions = catalogData?.catalogs || EMPTY_CATALOG_OPTIONS;
+  if (!currentCatalog && catalogData?.defaultCatalog) {
+    setCurrentCatalog(catalogData.defaultCatalog);
+  }
+
+  function changeSchema(schema: SchemaOption | undefined) {
+    setCurrentSchema(schema);
+    if (onSchemaChange && schema?.value !== schemaRef.current) {
+      onSchemaChange(schema?.value);
+    }
+  }
+
+  const {
+    currentData: schemaData,
+    isFetching: loadingSchemas,
+    refetch: refetchSchemas,
+  } = useSchemas({
+    dbId: currentDb?.value,
+    catalog: currentCatalog?.value,
+    onSuccess: (schemas, isFetched, defaultSchema) => {
+      changeSchema(defaultSchema || undefined);
+      if (isFetched) {
+        addSuccessToast('List refreshed');
+      }
+    },
+    onError: () => handleError(t('There was an error loading the schemas')),
+  });
+
+  const schemaOptions = schemaData?.schemas || EMPTY_SCHEMA_OPTIONS;
+  if (!currentSchema && schemaData?.defaultSchema) {
+    setCurrentSchema(schemaData.defaultSchema);
+  }
+  console.log('SCHEMAS:', schemaOptions.map(schema => schema.label).join(', '));
 
   useEffect(() => {
     setCurrentDb(current =>
@@ -323,9 +316,7 @@ export default function DatabaseSelector({
           : undefined
         : current,
     );
-    refetchCatalogs();
-    refetchSchemas();
-  }, [db, refetchCatalogs, refetchSchemas]);
+  }, [db]);
 
   function changeDatabase(
     value: { label: string; value: number },
