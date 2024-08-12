@@ -124,7 +124,7 @@ def get_known_schemas(database_name: str, session: Session) -> list[str]:
 
 def get_batch_size(session: Session) -> int:
     max_sqlite_in = 999
-    return max_sqlite_in if session.bind.dialect.name == "sqlite" else 10000
+    return max_sqlite_in if session.bind.dialect.name == "sqlite" else 1_000_000
 
 
 def print_processed_batch(
@@ -195,6 +195,7 @@ def update_catalog_column(
         )
 
         batch_size = get_batch_size(session)
+        limit_value = min(batch_size, total_rows)
 
         # Update in batches using row numbers
         for i in range(0, total_rows, batch_size):
@@ -204,7 +205,7 @@ def update_catalog_column(
                 .filter(model.catalog == catalog if downgrade else True)
                 .order_by(model.id)
                 .offset(i)
-                .limit(batch_size)
+                .limit(limit_value)
                 .subquery()
             )
 
@@ -226,8 +227,6 @@ def update_catalog_column(
                     .execution_options(synchronize_session=False)
                 )
 
-            # Commit the transaction after each batch
-            session.commit()
             print_processed_batch(start_time, i, total_rows, model, batch_size)
 
 
@@ -318,6 +317,7 @@ def delete_models_non_default_catalog(
         )
 
         batch_size = get_batch_size(session)
+        limit_value = min(batch_size, total_rows)
 
         # Update in batches using row numbers
         for i in range(0, total_rows, batch_size):
@@ -327,7 +327,7 @@ def delete_models_non_default_catalog(
                 .filter(model.catalog != catalog)
                 .order_by(model.id)
                 .offset(i)
-                .limit(batch_size)
+                .limit(limit_value)
                 .subquery()
             )
 
@@ -346,8 +346,7 @@ def delete_models_non_default_catalog(
                     .where(model.id == subquery.c.id)
                     .execution_options(synchronize_session=False)
                 )
-            # Commit the transaction after each batch
-            session.commit()
+
             print_processed_batch(start_time, i, total_rows, model, batch_size)
 
 
