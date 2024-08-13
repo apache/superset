@@ -774,6 +774,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
 
+        default_catalog = database.get_default_catalog()
+        catalog = catalog or default_catalog
+
         if hierarchical and (
             self.can_access_database(database)
             or (catalog and self.can_access_catalog(database, catalog))
@@ -783,7 +786,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # schema_access
         accessible_schemas: set[str] = set()
         schema_access = self.user_view_menu_names("schema_access")
-        default_catalog = database.get_default_catalog()
         default_schema = database.get_default_schema(default_catalog)
 
         for perm in schema_access:
@@ -800,7 +802,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # [database].[catalog].[schema] matches when the catalog is equal to the
             # requested catalog or, when no catalog specified, it's equal to the default
             # catalog.
-            elif len(parts) == 3 and parts[1] == (catalog or default_catalog):
+            elif len(parts) == 3 and parts[1] == catalog:
                 accessible_schemas.add(parts[2])
 
         # datasource_access
@@ -906,16 +908,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if self.can_access_database(database):
             return datasource_names
 
+        catalog = catalog or database.get_default_catalog()
         if catalog:
             catalog_perm = self.get_catalog_perm(database.database_name, catalog)
             if catalog_perm and self.can_access("catalog_access", catalog_perm):
                 return datasource_names
 
         if schema:
-            default_catalog = database.get_default_catalog()
             schema_perm = self.get_schema_perm(
                 database.database_name,
-                catalog or default_catalog,
+                catalog,
                 schema,
             )
             if schema_perm and self.can_access("schema_access", schema_perm):
@@ -2183,6 +2185,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 database = query.database
 
             database = cast("Database", database)
+            default_catalog = database.get_default_catalog()
 
             if self.can_access_database(database):
                 return
@@ -2196,19 +2199,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # from the SQLAlchemy URI if possible; if not, we use the SQLAlchemy
                 # inspector to read it.
                 default_schema = database.get_default_schema_for_query(query)
-                # Determining the default catalog is much easier, because DB engine
-                # specs need explicit support for catalogs.
-                default_catalog = database.get_default_catalog()
                 tables = {
                     Table(
                         table_.table,
                         table_.schema or default_schema,
-                        table_.catalog or default_catalog,
+                        table_.catalog or query.catalog or default_catalog,
                     )
                     for table_ in extract_tables_from_jinja_sql(query.sql, database)
                 }
             elif table:
-                tables = {table}
+                # Make sure table has the default catalog, if not specified.
+                tables = {
+                    Table(table.table, table.schema, table.catalog or default_catalog)
+                }
 
             denied = set()
 
