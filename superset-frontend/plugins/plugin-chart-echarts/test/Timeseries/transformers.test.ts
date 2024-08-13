@@ -1,0 +1,65 @@
+// transformSeries.test.js
+
+import { transformSeries } from '../../src/Timeseries/transformers';
+
+// Mock the colorScale function
+const mockColorScale = (key: string, sliceId: number) =>
+  `color-for-${key}-${sliceId}`;
+
+describe('transformSeries', () => {
+  const series = { name: 'test-series' };
+
+  test('should use the colorScaleKey if timeShiftColor is enabled', () => {
+    const opts = {
+      timeShiftColor: true,
+      colorScaleKey: 'test-key',
+      sliceId: 1,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    expect((result as any)?.itemStyle.color).toBe('color-for-test-key-1');
+  });
+
+  test('should use seriesKey if timeShiftColor is not enabled', () => {
+    const opts = {
+      timeShiftColor: false,
+      seriesKey: 'series-key',
+      sliceId: 2,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    expect((result as any)?.itemStyle.color).toBe('color-for-series-key-2');
+  });
+
+  test('should apply border styles for bar series with connectNulls', () => {
+    const opts = {
+      seriesType: 'bar',
+      connectNulls: true,
+      timeShiftColor: false,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    expect((result as any).itemStyle.borderWidth).toBe(1.5);
+    expect((result as any).itemStyle.borderType).toBe('dotted');
+    expect((result as any).itemStyle.borderColor).toBe(
+      (result as any).itemStyle.color,
+    );
+  });
+
+  test('should not apply border styles for non-bar series', () => {
+    const opts = {
+      seriesType: 'line',
+      connectNulls: true,
+      timeShiftColor: false,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    expect((result as any).itemStyle.borderWidth).toBe(0);
+    expect((result as any).itemStyle.borderType).toBeUndefined();
+    expect((result as any).itemStyle.borderColor).toBeUndefined();
+  });
+});
