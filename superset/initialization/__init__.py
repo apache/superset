@@ -235,15 +235,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             AssistantView,
             "Assistant",
             label=__("Assistant"),
-            icon="fa-dashboard",
         )
-
-        # appbuilder.add_link(
-        #     "Home",
-        #     label=__("Home"),
-        #     href="/superset/welcome/",
-        #     cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
-        # )
 
         appbuilder.add_view(
             DatabaseView,

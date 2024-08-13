@@ -980,6 +980,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_drill", "Dashboard")
         self.add_permission_view_menu("can_tag", "Chart")
         self.add_permission_view_menu("can_tag", "Dashboard")
+        self.add_permission_view_menu("show","Assistant")
 
     def create_missing_perms(self) -> None:
         """

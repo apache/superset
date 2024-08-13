@@ -260,7 +260,8 @@ def menu_data(user: User) -> dict[str, Any]:
         brand_text = brand_text()
 
     logger.info("Menu data for user: %s", user)
-    logger.info("Menu data: %s", appbuilder.menu)
+    logger.info("Menu data: %s", appbuilder.menu.get_flat_name_list())
+    logger.info("Menu data ||: %s", appbuilder.menu.get_data())
 
     return {
         "menu": appbuilder.menu.get_data(),
