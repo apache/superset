@@ -22,9 +22,9 @@ RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
 
-    RUN apt-get update -y
+RUN apt-get update -y
 
-    # Install dependencies to fix `curl https support error` and `delaying package configuration warning`
+# Install dependencies to fix `curl https support error` and `delaying package configuration warning`
 RUN apt-get install -y apt-transport-https apt-utils
 
 # Install superset dependencies
