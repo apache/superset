@@ -25,7 +25,6 @@ from alembic import op
 from sqlalchemy import inspect
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import Query, Session
 
@@ -169,17 +168,3 @@ def try_load_json(data: Optional[str]) -> dict[str, Any]:
     except json.JSONDecodeError:
         print(f"Failed to parse: {data}")
         return {}
-
-
-def drop_constraints(table: str, insp: Inspector) -> None:
-    """
-    Drop all foreign key constraints for a given table.
-    
-    :param table: Table name
-    :param insp: SQLAlchemy Inspector instance
-    """
-    fks = insp.get_foreign_keys(table)
-    for fk in fks:
-        constraint = fk["name"]
-        if constraint:
-            op.drop_constraint(constraint, table, type_="foreignkey")

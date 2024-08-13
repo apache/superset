@@ -14,28 +14,41 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""remove sl_ tables
+"""remove sl_dataset_users
 
-Revision ID: 02f4f7811799
-Revises: f7b6750b67e8
-Create Date: 2024-05-24 11:31:57.115586
+Revision ID: e53fd48cc078
+Revises: 38f4144e8558
+Create Date: 2024-08-13 15:27:11.589886
 
 """
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.engine.reflection import Inspector
+
+from superset.migrations.shared.constraints import drop_fks_for_table
 
 # revision identifiers, used by Alembic.
-revision = "02f4f7811799"
-down_revision = "f7b6750b67e8"
+revision = "e53fd48cc078"
+down_revision = "38f4144e8558"
 
-# We were seeing issues with dropping tables which was causing
-# deadlocks in the database. For now we'll skip the migration to
-# address these issues at a future time.
 
 def upgrade():
-    pass
+    drop_fks_for_table("sl_dataset_users")
+    op.drop_table("sl_dataset_users")
+
 
 def downgrade():
-   pass
+    op.create_table(
+        "sl_dataset_users",
+        sa.Column("dataset_id", sa.Integer(), nullable=False),
+        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["dataset_id"],
+            ["sl_datasets.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["ab_user.id"],
+        ),
+        sa.PrimaryKeyConstraint("dataset_id", "user_id"),
+    )
