@@ -110,6 +110,7 @@ from superset.exceptions import (
     DatabaseNotFoundException,
     InvalidPayloadSchemaError,
     OAuth2Error,
+    OAuth2RedirectError,
     SupersetErrorsException,
     SupersetException,
     SupersetSecurityException,
@@ -398,7 +399,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/", methods=("POST",))
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
@@ -462,6 +462,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 item["ssh_tunnel"] = mask_password_info(new_model.ssh_tunnel)
 
             return self.response(201, id=new_model.id, result=item)
+        except OAuth2RedirectError:
+            raise
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatabaseConnectionFailedError as ex:

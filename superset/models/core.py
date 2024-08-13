@@ -1096,6 +1096,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         return self.db_engine_spec.get_oauth2_config()
 
+    def start_oauth2_dance(self) -> None:
+        return self.db_engine_spec.start_oauth2_dance(self)
+
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)
 sqla.event.listen(Database, "after_update", security_manager.database_after_update)

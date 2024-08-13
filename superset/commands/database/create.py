@@ -42,7 +42,7 @@ from superset.commands.database.test_connection import TestConnectionDatabaseCom
 from superset.daos.database import DatabaseDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.db_engine_specs.base import GenericDBException
-from superset.exceptions import SupersetErrorsException
+from superset.exceptions import OAuth2RedirectError, SupersetErrorsException
 from superset.extensions import event_logger, security_manager
 from superset.models.core import Database
 from superset.utils.decorators import on_error, transaction
@@ -55,13 +55,23 @@ class CreateDatabaseCommand(BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
-    @transaction(on_error=partial(on_error, reraise=DatabaseCreateFailedError))
+    @transaction(
+        on_error=partial(on_error, reraise=DatabaseCreateFailedError),
+        ignored=(OAuth2RedirectError,),
+    )
     def run(self) -> Model:
         self.validate()
 
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
+        except OAuth2RedirectError:
+            # We need to OAuth2 in order to connect and fetch catalogs and/or schemas,
+            # so we create the database in order to store the OAuth2 credentials and
+            # associated user tokens. The frontend has to handle the OAuth2 flow, and
+            # perform and update after the user has authenticated.
+            self._create_database()
+            raise
         except (
             SupersetErrorsException,
             SSHTunnelingNotEnabledError,
@@ -79,12 +89,6 @@ class CreateDatabaseCommand(BaseCommand):
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
             )
             raise DatabaseConnectionFailedError() from ex
-
-        # when creating a new database we don't need to unmask encrypted extra
-        self._properties["encrypted_extra"] = self._properties.pop(
-            "masked_encrypted_extra",
-            "{}",
-        )
 
         ssh_tunnel: Optional[SSHTunnel] = None
 
@@ -195,6 +199,12 @@ class CreateDatabaseCommand(BaseCommand):
             raise exception
 
     def _create_database(self) -> Database:
+        # when creating a new database we don't need to unmask encrypted extra
+        self._properties["encrypted_extra"] = self._properties.pop(
+            "masked_encrypted_extra",
+            "{}",
+        )
+
         database = DatabaseDAO.create(attributes=self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         return database
