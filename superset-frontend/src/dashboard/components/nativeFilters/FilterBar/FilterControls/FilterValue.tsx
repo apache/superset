@@ -286,13 +286,64 @@ const FilterValue: FC<FilterControlProps> = ({
     ],
   );
 
-  const filterState = useMemo(
-    () => ({
-      ...filter.dataMask?.filterState,
+  const filterState = useMemo(() => {
+    const filterStateData = filter.dataMask?.filterState || {};
+
+    if (formData?.defaultValue?.length > 0) {
+      return {
+        ...filterStateData,
+        validateStatus,
+        validateMessage: '',
+      };
+    }
+
+    if (filter?.dataMask?.filterState?.selected) {
+      return {
+        ...filterStateData,
+        validateStatus,
+        validateMessage: '',
+      };
+    }
+
+    if (filter.cascadeParentIds.length <= 0 || !formData.defaultToFirstItem) {
+      return {
+        ...filterStateData,
+        validateStatus,
+        validateMessage: '',
+        selected: false,
+      };
+    }
+
+    if (state?.length > 0 && formData.defaultToFirstItem) {
+      if (formData.multiSelect) {
+        const labels = state[0]?.data.map(item => Object.values(item)[0]);
+        return {
+          label: labels.join(', '), // Joining multiple labels as a single string
+          value: labels, // Keeping values as an array of strings
+          validateStatus,
+        };
+      }
+
+      const firstStateData = state[0]?.data[0];
+      const label = Object.values(firstStateData || {})[0];
+      const value = Object.values(firstStateData || {});
+
+      return {
+        label,
+        value,
+        validateStatus,
+        validateMessage: '',
+        selected: false,
+      };
+    }
+
+    return {
+      ...filterStateData,
       validateStatus,
-    }),
-    [filter.dataMask?.filterState, validateStatus],
-  );
+      selected: false,
+      validateMessage: '',
+    };
+  }, [dependencies, formData, state, validateStatus, filter.dataMask?.filterState])
 
   const displaySettings = useMemo(
     () => ({
