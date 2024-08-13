@@ -51,7 +51,11 @@ build_superset:
       docker push ${NEXUS_IMAGE_NAME};
       docker push --all-tags "${GOOGLE_PREFIX}/${IMAGE_NAME}";
   rules:
+<<<<<<< HEAD
     - if: $CI_COMMIT_BRANCH
+=======
+    - if: $CI_COMMIT_BRANCH || $CI_COMMIT_TAG == "staging"
+>>>>>>> b7b3cce2a6 (Test new cicd)
       variables:
         ASSET_BASE_URL: "https://cdn.brightwrite-staging.com"
         BW_PUBLIC_KEY: "a02b211d9dbb71b299b980b16593ed22"
@@ -82,7 +86,11 @@ sync_CDN_stag:
     - docker cp $(docker ps -lq):/app/superset/static/ ./
     - gsutil rsync -cr ./static "gs://${CDN_BUCKET}/superset/${CI_COMMIT_SHORT_SHA}/static"
   rules:
+<<<<<<< HEAD
     - if: $CI_COMMIT_BRANCH
+=======
+    - if: $CI_COMMIT_BRANCH || $CI_COMMIT_TAG == "staging"
+>>>>>>> b7b3cce2a6 (Test new cicd)
 
 sync_CDN_prod:
   stage: sync_cdn
