@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { CategoricalColorScale } from '@superset-ui/core';
+import { EchartsTimeseriesSeriesType } from '@superset-ui/plugin-chart-echarts';
 import { transformSeries } from '../../src/Timeseries/transformers';
 
 // Mock the colorScale function
-const mockColorScale = (key: string, sliceId: number) =>
-  `color-for-${key}-${sliceId}`;
+const mockColorScale = jest.fn(
+  (key: string, sliceId?: number) => `color-for-${key}-${sliceId}`,
+) as unknown as CategoricalColorScale;
 
 describe('transformSeries', () => {
   const series = { name: 'test-series' };
@@ -52,7 +54,7 @@ describe('transformSeries', () => {
 
   test('should apply border styles for bar series with connectNulls', () => {
     const opts = {
-      seriesType: 'bar',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
       connectNulls: true,
       timeShiftColor: false,
     };
@@ -68,7 +70,7 @@ describe('transformSeries', () => {
 
   test('should not apply border styles for non-bar series', () => {
     const opts = {
-      seriesType: 'line',
+      seriesType: EchartsTimeseriesSeriesType.Line,
       connectNulls: true,
       timeShiftColor: false,
     };
