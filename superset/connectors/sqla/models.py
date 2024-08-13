@@ -461,9 +461,11 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
                 )
             else:
                 _columns = [
-                    utils.get_column_name(column_)
-                    if utils.is_adhoc_column(column_)
-                    else column_
+                    (
+                        utils.get_column_name(column_)
+                        if utils.is_adhoc_column(column_)
+                        else column_
+                    )
                     for column_param in COLUMN_FORM_DATA_PARAMS
                     for column_ in utils.as_list(form_data.get(column_param) or [])
                 ]
@@ -1963,7 +1965,7 @@ class SqlaTable(
         if self.has_extra_cache_key_calls(query_obj):
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
-        return extra_cache_keys
+        return list(set(extra_cache_keys))
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:

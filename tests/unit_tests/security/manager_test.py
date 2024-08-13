@@ -366,6 +366,7 @@ def test_raise_for_access_query_default_schema(
     database.get_default_catalog.return_value = None
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
+    query.catalog = None
     query.database = database
     query.sql = "SELECT * FROM ab_user"
 
@@ -421,6 +422,7 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
     database.get_default_catalog.return_value = None
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
+    query.catalog = None
     query.database = database
     query.sql = "SELECT * FROM {% if True %}ab_user{% endif %} WHERE 1=1"
 
@@ -434,7 +436,7 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
             viz=None,
         )
 
-    get_table_access_error_object.assert_called_with({Table("ab_user", "public")})
+    get_table_access_error_object.assert_called_with({Table("ab_user", "public", None)})
 
 
 def test_raise_for_access_chart_for_datasource_permission(
@@ -736,6 +738,7 @@ def test_raise_for_access_catalog(
     database.get_default_catalog.return_value = "db1"
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
+    query.catalog = "db1"
     query.database = database
     query.sql = "SELECT * FROM ab_user"
 
@@ -776,7 +779,8 @@ def test_get_datasources_accessible_by_user_schema_access(
     database.database_name = "db1"
     database.get_default_catalog.return_value = "catalog2"
 
-    can_access = mocker.patch.object(sm, "can_access", return_value=True)
+    # False for catalog_access, True for schema_access
+    can_access = mocker.patch.object(sm, "can_access", side_effect=[False, True])
 
     datasource_names = [
         DatasourceName("table1", "schema1", "catalog2"),
@@ -795,7 +799,12 @@ def test_get_datasources_accessible_by_user_schema_access(
 
     # Even though we passed `catalog=None,` the schema check uses the default catalog
     # when building the schema permission, since the DB supports catalog.
-    can_access.assert_called_with("schema_access", "[db1].[catalog2].[schema1]")
+    can_access.assert_has_calls(
+        [
+            mocker.call("catalog_access", "[db1].[catalog2]"),
+            mocker.call("schema_access", "[db1].[catalog2].[schema1]"),
+        ]
+    )
 
 
 def test_get_catalogs_accessible_by_user_schema_access(
