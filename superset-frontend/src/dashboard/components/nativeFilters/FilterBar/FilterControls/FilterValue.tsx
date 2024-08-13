@@ -318,8 +318,8 @@ const FilterValue: FC<FilterControlProps> = ({
       if (formData.multiSelect) {
         const labels = state[0]?.data.map(item => Object.values(item)[0]);
         return {
-          label: labels.join(', '), // Joining multiple labels as a single string
-          value: labels, // Keeping values as an array of strings
+          label: labels[0], // Joining multiple labels as a single string
+          value: [labels[0]], // Keeping values as an array of strings
           validateStatus,
         };
       }
