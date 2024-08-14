@@ -19,6 +19,8 @@
 import '@cypress/code-coverage/support';
 import '@applitools/eyes-cypress/commands';
 import failOnConsoleError from 'cypress-fail-on-console-error';
+import './commands';
+import 'cypress-wait-until';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

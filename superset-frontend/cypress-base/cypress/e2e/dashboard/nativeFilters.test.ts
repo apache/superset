@@ -415,15 +415,23 @@ describe('Native filters', () => {
     });
 
     it('Verify that default value is respected after revisit', () => {
+      // Intercept the API call that fetches chart data
+      cy.intercept('GET', '**/api/v1/chart/data*').as('chartData');
+
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
       enterNativeFilterEditModal();
       inputNativeFilterDefaultValue(testItems.filterDefaultValue);
       saveNativeFilterSettings([SAMPLE_CHART]);
+
+      // Wait for chart data to load
+      cy.wait('@chartData');
+
       cy.get(nativeFilters.filterItem)
         .contains(testItems.filterDefaultValue)
         .should('be.visible');
+
       cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
         cy.contains(testItems.filterDefaultValue).should('be.visible');
         cy.contains(testItems.filterOtherCountry).should('not.exist');
@@ -431,10 +439,23 @@ describe('Native filters', () => {
 
       // reload dashboard
       cy.reload();
-      cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
-        cy.contains(testItems.filterDefaultValue).should('be.visible');
-        cy.contains(testItems.filterOtherCountry).should('not.exist');
+
+      // Wait for dashboard to load after reload
+      cy.get('[data-test="dashboard-grid"]', { timeout: 30000 }).should(
+        'be.visible',
+      );
+
+      // Wait for chart data to load again
+      cy.wait('@chartData');
+
+      // Use a custom command to retry assertions
+      cy.retryAssertion(() => {
+        cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
+          cy.contains(testItems.filterDefaultValue).should('be.visible');
+          cy.contains(testItems.filterOtherCountry).should('not.exist');
+        });
       });
+
       validateFilterContentOnDashboard(testItems.filterDefaultValue);
     });
 

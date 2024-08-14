@@ -6,7 +6,7 @@
     "strict": true,
     "target": "es2019",
     "lib": ["es2019", "DOM"],
-    "types": ["cypress", "@applitools/eyes-cypress", "node"],
+    "types": ["cypress", "@applitools/eyes-cypress", "node", "cypress-wait-until"],
     "allowJs": true,
     "noEmit": true
   },
