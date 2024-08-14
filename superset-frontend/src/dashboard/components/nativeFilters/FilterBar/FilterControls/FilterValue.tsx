@@ -288,7 +288,6 @@ const FilterValue: FC<FilterControlProps> = ({
 
   const filterState = useMemo(() => {
     const filterStateData = filter.dataMask?.filterState || {};
-
     if (formData?.defaultValue?.length > 0) {
       return {
         ...filterStateData,
@@ -296,7 +295,6 @@ const FilterValue: FC<FilterControlProps> = ({
         validateMessage: '',
       };
     }
-
     if (filter?.dataMask?.filterState?.selected) {
       return {
         ...filterStateData,
@@ -304,7 +302,6 @@ const FilterValue: FC<FilterControlProps> = ({
         validateMessage: '',
       };
     }
-
     if (filter.cascadeParentIds.length <= 0 || !formData.defaultToFirstItem) {
       return {
         ...filterStateData,
@@ -313,37 +310,43 @@ const FilterValue: FC<FilterControlProps> = ({
         selected: false,
       };
     }
-
     if (state?.length > 0 && formData.defaultToFirstItem) {
       if (formData.multiSelect) {
-        const labels = state[0]?.data.map(item => Object.values(item)[0]);
+        // if (filter.dataMask.filterState.value?.length <= 0) {
+        //   const labels = state[0]?.data.map(item => Object.values(item)[0]);
+        //   console.log(" filter", filter, labels)
+        //   return {
+        //     label: labels[0], // Joining multiple labels as a single string
+        //     value: [labels[0]], // Keeping values as an array of strings
+        //     validateStatus,
+        //   };
+        // }
+      } else {
+        const firstStateData = state[0]?.data[0];
+        const label = Object.values(firstStateData || {})[0];
+        const value = Object.values(firstStateData || {});
         return {
-          label: labels[0], // Joining multiple labels as a single string
-          value: [labels[0]], // Keeping values as an array of strings
+          label,
+          value,
           validateStatus,
+          validateMessage: '',
+          selected: false,
         };
       }
-
-      const firstStateData = state[0]?.data[0];
-      const label = Object.values(firstStateData || {})[0];
-      const value = Object.values(firstStateData || {});
-
-      return {
-        label,
-        value,
-        validateStatus,
-        validateMessage: '',
-        selected: false,
-      };
     }
-
     return {
       ...filterStateData,
       validateStatus,
       selected: false,
       validateMessage: '',
     };
-  }, [dependencies, formData, state, validateStatus, filter.dataMask?.filterState])
+  }, [
+    dependencies,
+    formData,
+    state,
+    validateStatus,
+    filter.dataMask?.filterState,
+  ]);
 
   const displaySettings = useMemo(
     () => ({
