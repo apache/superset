@@ -144,9 +144,7 @@ geopy==2.4.1
 google-auth==2.29.0
     # via shillelagh
 greenlet==3.0.3
-    # via
-    #   shillelagh
-    #   sqlalchemy
+    # via shillelagh
 gunicorn==22.0.0
     # via apache-superset
 hashids==1.3.1
@@ -173,6 +171,8 @@ jinja2==3.1.4
     # via
     #   flask
     #   flask-babel
+jsonpath-ng==1.6.1
+    # via apache-superset
 jsonschema==4.17.3
     # via flask-appbuilder
 kombu==5.3.7
@@ -249,6 +249,8 @@ pgsanity==0.2.9
     # via apache-superset
 platformdirs==3.8.1
     # via requests-cache
+ply==3.11
+    # via jsonpath-ng
 polyline==2.0.2
     # via apache-superset
 prison==0.2.1

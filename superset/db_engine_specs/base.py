@@ -45,6 +45,7 @@ from deprecation import deprecated
 from flask import current_app, g, url_for
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
+from jsonpath_ng import parse
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import column, select, types
@@ -59,7 +60,7 @@ from sqlalchemy.types import TypeEngine
 from sqlparse.tokens import CTE
 
 from superset import sql_parse
-from superset.constants import TimeGrain as TimeGrainConstants
+from superset.constants import PASSWORD_MASK, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
@@ -2160,29 +2161,63 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return user.username if user else None
 
+    # list of JSON path to fields in `encrypted_extra` that should be masked when the
+    # database is edited
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields: list[str] = []
+
     @classmethod
     def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
         """
-        Mask ``encrypted_extra``.
+        Mask `encrypted_extra`.
 
-        This is used to remove any sensitive data in ``encrypted_extra`` when presenting
-        it to the user. For example, a private key might be replaced with a masked value
-        "XXXXXXXXXX". If the masked value is changed the corresponding entry is updated,
-        otherwise the old value is used (see ``unmask_encrypted_extra`` below).
+        This is used to remove any sensitive data in `encrypted_extra` when presenting
+        it to the user when a database is edited. For example, a private key might be
+        replaced with a masked value "XXXXXXXXXX". If the masked value is changed the
+        corresponding entry is updated, otherwise the old value is used (see
+        `unmask_encrypted_extra` below).
         """
-        return encrypted_extra
+        if encrypted_extra is None or not cls.encrypted_extra_sensitive_fields:
+            return encrypted_extra
 
-    # pylint: disable=unused-argument
+        try:
+            config = json.loads(encrypted_extra)
+        except (TypeError, json.JSONDecodeError):
+            return encrypted_extra
+
+        for json_path in cls.encrypted_extra_sensitive_fields:
+            jsonpath_expr = parse(json_path)
+            for match in jsonpath_expr.find(config):
+                match.context.value[match.path.fields[0]] = PASSWORD_MASK
+
+        return json.dumps(config)
+
     @classmethod
     def unmask_encrypted_extra(cls, old: str | None, new: str | None) -> str | None:
         """
-        Remove masks from ``encrypted_extra``.
+        Remove masks from `encrypted_extra`.
 
         This method allows reusing existing values from the current encrypted extra on
         updates. It's useful for reusing masked passwords, allowing keys to be updated
         without having to provide sensitive data to the client.
         """
-        return new
+        if old is None or new is None:
+            return new
+
+        try:
+            old_config = json.loads(old)
+            new_config = json.loads(new)
+        except (TypeError, json.JSONDecodeError):
+            return new
+
+        for json_path in cls.encrypted_extra_sensitive_fields:
+            jsonpath_expr = parse(json_path)
+            for match in jsonpath_expr.find(new_config):
+                if match.value == PASSWORD_MASK:
+                    old_value = jsonpath_expr.find(old_config)
+                    match.context.value[match.path.fields[0]] = old_value[0].value
+
+        return json.dumps(new_config)
 
     @classmethod
     def get_public_information(cls) -> dict[str, Any]:
