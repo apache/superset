@@ -16,32 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/// <reference types="cypress" />
-import 'cypress-wait-until';
-
-declare global {
-  namespace Cypress {
-    interface Chainable {
-      retryAssertion(
-        assertionFn: () => void,
-        options?: Partial<WaitUntilOptions>,
-      ): Chainable<any>;
-    }
-  }
-}
-
-interface WaitUntilOptions {
-  timeout?: number;
-  interval?: number;
-  errorMsg?: string;
-  verbose?: boolean;
-}
 
 Cypress.Commands.add('retryAssertion', (assertionFn, options = {}) => {
-  const defaultOptions: WaitUntilOptions = { timeout: 10000, interval: 1000 };
-  const opts = { ...defaultOptions, ...options };
+  const { timeout = 10000, interval = 1000 } = options;
+  const startTime = Date.now();
 
-  return cy.waitUntil(assertionFn, opts);
+  const retry = () => {
+    try {
+      assertionFn();
+    } catch (error) {
+      if (Date.now() - startTime < timeout) {
+        cy.wait(interval).then(retry);
+      } else {
+        throw error;
+      }
+    }
+  };
+
+  return cy.then(retry);
 });
-
-export {}; // This empty export is necessary to make this a module

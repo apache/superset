@@ -86,6 +86,16 @@ declare namespace Cypress {
      * Update
      */
     updateDashboard(dashboardId: number, body: Record<string, any>): cy;
+
+    /**
+     * Retry an assertion until it passes or times out.
+     * @param assertionFn The assertion function to retry
+     * @param options Optional configuration for timeout and interval
+     */
+    retryAssertion(
+      assertionFn: () => void,
+      options?: { timeout?: number; interval?: number },
+    ): Chainable<any>;
   }
 }
 
