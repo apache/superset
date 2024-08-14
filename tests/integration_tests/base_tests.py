@@ -443,6 +443,7 @@ class SupersetTestCase(TestCase):
         )
         if database:
             db.session.delete(database)
+            db.session.commit()
 
     def create_fake_db_for_macros(self):
         database_name = "db_for_macros_testing"
