@@ -415,7 +415,7 @@ describe('Native filters', () => {
     });
 
     it('Verify that default value is respected after revisit', () => {
-      // Intercept the API call that fetches chart data
+      // Be more specific with the interception if possible
       cy.intercept('GET', '**/api/v1/chart/data*').as('chartData');
 
       prepareDashboardFilters([
@@ -425,17 +425,25 @@ describe('Native filters', () => {
       inputNativeFilterDefaultValue(testItems.filterDefaultValue);
       saveNativeFilterSettings([SAMPLE_CHART]);
 
-      // Wait for chart data to load
-      cy.wait('@chartData');
-
       cy.get(nativeFilters.filterItem)
         .contains(testItems.filterDefaultValue)
         .should('be.visible');
 
-      cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
-        cy.contains(testItems.filterDefaultValue).should('be.visible');
-        cy.contains(testItems.filterOtherCountry).should('not.exist');
-      });
+      // Log for debugging
+      cy.log('Checking initial chart state');
+
+      cy.retryAssertion(
+        () => {
+          cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
+            cy.contains(testItems.filterDefaultValue).should('be.visible');
+            cy.contains(testItems.filterOtherCountry).should('not.exist');
+          });
+        },
+        { timeout: 20000, interval: 1000 },
+      );
+
+      // Log for debugging
+      cy.log('Reloading dashboard');
 
       // reload dashboard
       cy.reload();
@@ -445,16 +453,29 @@ describe('Native filters', () => {
         'be.visible',
       );
 
-      // Wait for chart data to load again
-      cy.wait('@chartData');
+      // Log for debugging
+      cy.log('Waiting for chart data request');
 
-      // Use a custom command to retry assertions
-      cy.retryAssertion(() => {
-        cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
-          cy.contains(testItems.filterDefaultValue).should('be.visible');
-          cy.contains(testItems.filterOtherCountry).should('not.exist');
-        });
+      // Wait for the chart data request with a longer timeout
+      cy.wait('@chartData', { timeout: 30000 }).then(interception => {
+        // Log the interception for debugging
+        cy.log(
+          `Chart data request completed: ${JSON.stringify(interception.response?.statusCode)}`,
+        );
       });
+
+      // Log for debugging
+      cy.log('Checking chart state after reload');
+
+      cy.retryAssertion(
+        () => {
+          cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
+            cy.contains(testItems.filterDefaultValue).should('be.visible');
+            cy.contains(testItems.filterOtherCountry).should('not.exist');
+          });
+        },
+        { timeout: 20000, interval: 1000 },
+      );
 
       validateFilterContentOnDashboard(testItems.filterDefaultValue);
     });
