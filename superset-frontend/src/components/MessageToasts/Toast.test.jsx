@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import Toast from 'src/components/MessageToasts/Toast';
 import mockMessageToasts from './mockMessageToasts';

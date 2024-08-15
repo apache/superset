@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { fireEvent, getByRole, render } from 'spec/helpers/testing-library';
 
 import EditableTable from 'src/components/EditableTitle';
