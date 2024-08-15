@@ -33,7 +33,9 @@ down_revision = "007a1abffe7e"
 
 
 def upgrade():
-    drop_fks_for_table("sl_datasets")
+    connection = op.get_bind()
+    if connection.dialect.name != "sqlite":
+        drop_fks_for_table("sl_datasets")
     op.drop_table("sl_datasets")
 
 

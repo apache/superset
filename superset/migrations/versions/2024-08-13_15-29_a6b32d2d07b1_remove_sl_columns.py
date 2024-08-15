@@ -33,7 +33,9 @@ down_revision = "e53fd48cc078"
 
 
 def upgrade():
-    drop_fks_for_table("sl_columns")
+    connection = op.get_bind()
+    if connection.dialect.name != "sqlite":
+        drop_fks_for_table("sl_columns")
     op.drop_table("sl_columns")
 
 
