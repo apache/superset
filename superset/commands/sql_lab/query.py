@@ -26,6 +26,7 @@ from superset.models.sql_lab import Query
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=consider-using-transaction
 class QueryPruneCommand(BaseCommand):
     """
     Command to prune the query table by deleting rows older than the specified retention period.
@@ -47,14 +48,14 @@ class QueryPruneCommand(BaseCommand):
 
     def run(self) -> None:
         """
-        Executes the prune command.
+        Executes the prune command
         """
         retention_date = datetime.now() - timedelta(days=self.retention_period_days)
 
         # Query the total number of rows to be deleted
-        total_rows = db.session.query(Query).filter(
-            Query.changed_on < retention_date
-        ).count()
+        total_rows = (
+            db.session.query(Query).filter(Query.changed_on < retention_date).count()
+        )
 
         logger.info("Total rows to be deleted: %s", total_rows)
 
@@ -73,7 +74,9 @@ class QueryPruneCommand(BaseCommand):
 
             # Delete the selected batch using equality
             result = db.session.execute(
-                sa.delete(Query).where(Query.id == subquery.c.id).execution_options(synchronize_session="fetch")
+                sa.delete(Query)
+                .where(Query.id == subquery.c.id)
+                .execution_options(synchronize_session="fetch")
             )
 
             # Update the total number of deleted records
