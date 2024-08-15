@@ -368,7 +368,10 @@
     },
     "puppeteer": "^22.4.1",
     "@types/react": "^16.9.53",
-    "underscore": "^1.13.7"
+    "underscore": "^1.13.7",
+    "fast-glob": {
+      "micromatch": "^4.0.6"
+    }
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
