@@ -33,8 +33,18 @@ down_revision = "02f4f7811799"
 
 
 def upgrade():
-    drop_fks_for_table("sl_table_columns")
-    op.drop_table("sl_table_columns")
+    bind = op.get_bind()
+
+    # Determine if we're using SQLite
+    if bind.dialect.name == "sqlite":
+        # Use batch mode for SQLite
+        with op.batch_alter_table("sl_table_columns") as batch_op:
+            drop_fks_for_table("sl_table_columns")
+            batch_op.drop_table("sl_table_columns")
+    else:
+        # Non-SQLite: Directly drop the foreign keys and table
+        drop_fks_for_table("sl_table_columns")
+        op.drop_table("sl_table_columns")
 
 
 def downgrade():
