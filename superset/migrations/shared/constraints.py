@@ -75,21 +75,13 @@ def redefine(
 
 def drop_fks_for_table(table_name: str) -> None:
     """
-    Drop all foreign key constraints for a table, using batch mode for SQLite.
+    Drop all foreign key constraints for a table.
 
-    :param table_name: The table name to drop foreign key constraints for.
+    :param table_name: The table name to drop foreign key constraints for
     """
     connection = op.get_bind()
     inspector = Inspector.from_engine(connection)
     foreign_keys = inspector.get_foreign_keys(table_name)
 
-    # Check if the database is SQLite
-    if connection.dialect.name == "sqlite":
-        # Use batch mode for SQLite
-        with op.batch_alter_table(table_name) as batch_op:
-            for fk in foreign_keys:
-                batch_op.drop_constraint(fk["name"], type_="foreignkey")
-    else:
-        # For non-SQLite databases, drop constraints directly
-        for fk in foreign_keys:
-            op.drop_constraint(fk["name"], table_name, type_="foreignkey")
+    for fk in foreign_keys:
+        op.drop_constraint(fk["name"], table_name, type_="foreignkey")
