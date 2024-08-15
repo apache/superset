@@ -60,8 +60,9 @@ const HeaderAction = styled.div`
   right: ${({ theme }) => theme.gridUnit * 3}px;
   &.main {
     margin: 0 auto;
-    right: auto;
-    left: ${({ theme }) => theme.gridUnit * 2.5 - 1}px;
+    left: 0;
+    right: 0;
+    width: 20px;
   }
   & .ant-dropdown-trigger {
     cursor: context-menu;
