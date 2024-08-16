@@ -238,7 +238,7 @@ def on_error(
 
 def transaction(  # pylint: disable=redefined-outer-name
     on_error: Callable[..., Any] | None = on_error,
-    ignored: tuple[type[Exception], ...] = (),
+    allowed: tuple[type[Exception], ...] = (),
 ) -> Callable[..., Any]:
     """
     Perform a "unit of work".
@@ -252,7 +252,7 @@ def transaction(  # pylint: disable=redefined-outer-name
     redirect to the login page. In this case, we ignore the exception and commit.
 
     :param on_error: Callback invoked when an exception is caught
-    :param ignored: Exception types to ignore and not rollback
+    :param allowed: Exception types to ignore and not rollback
     :see: https://github.com/apache/superset/issues/25108
     """
 
@@ -263,8 +263,12 @@ def transaction(  # pylint: disable=redefined-outer-name
 
             try:
                 result = func(*args, **kwargs)
-            except ignored:
-                pass
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                return result
+            except allowed:
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                raise
+
             except Exception as ex:
                 db.session.rollback()  # pylint: disable=consider-using-transaction
 
@@ -272,9 +276,6 @@ def transaction(  # pylint: disable=redefined-outer-name
                     return on_error(ex)
 
                 raise
-
-            db.session.commit()  # pylint: disable=consider-using-transaction
-            return result
 
         return wrapped
 

@@ -63,11 +63,23 @@ logger = logging.getLogger(__name__)
 
 
 class SnowflakeParametersSchema(Schema):
-    username = fields.Str(required=False, metadata={"description": "Username"})
-    password = fields.Str(required=False, metadata={"description": "Password"})
+    username = fields.Str(
+        required=False,
+        allow_none=True,
+        metadata={"description": "Username"},
+    )
+    password = fields.Str(
+        required=False,
+        allow_none=True,
+        metadata={"description": "Password"},
+    )
     account = fields.Str(required=True, metadata={"description": "Account name"})
     database = fields.Str(required=True, metadata={"description": "Database name"})
-    role = fields.Str(required=False, metadata={"description": "Default role"})
+    role = fields.Str(
+        required=False,
+        allow_none=True,
+        metadata={"description": "Default role"},
+    )
     warehouse = fields.Str(required=True, metadata={"description": "Warehouse name"})
 
 

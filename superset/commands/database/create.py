@@ -57,7 +57,7 @@ class CreateDatabaseCommand(BaseCommand):
 
     @transaction(
         on_error=partial(on_error, reraise=DatabaseCreateFailedError),
-        ignored=(OAuth2RedirectError,),
+        allowed=(OAuth2RedirectError,),
     )
     def run(self) -> Model:
         self.validate()
@@ -66,12 +66,10 @@ class CreateDatabaseCommand(BaseCommand):
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
         except OAuth2RedirectError:
-            # We need to OAuth2 in order to connect and fetch catalogs and/or schemas,
-            # so we create the database in order to store the OAuth2 credentials and
-            # associated user tokens. The frontend has to handle the OAuth2 flow, and
-            # perform and update after the user has authenticated.
-            self._create_database()
-            raise
+            # If we can't connect to the database due to an OAuth2 error we can still
+            # save the database. Later, the user can sync permissions when setting up
+            # data access rules.
+            return self._create_database()
         except (
             SupersetErrorsException,
             SSHTunnelingNotEnabledError,

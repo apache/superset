@@ -844,6 +844,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             ) as inspector:
                 return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
+            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+                self.start_oauth2_dance()
+
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
@@ -865,6 +868,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             with self.get_inspector(ssh_tunnel=ssh_tunnel) as inspector:
                 return self.db_engine_spec.get_catalog_names(self, inspector)
         except Exception as ex:
+            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+                self.start_oauth2_dance()
+
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @property

@@ -623,7 +623,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/catalogs/")
     @protect()
-    @safe
     @rison(database_catalogs_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -682,12 +681,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 500,
                 message="There was an error connecting to the database",
             )
+        except OAuth2RedirectError:
+            raise
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>/schemas/")
     @protect()
-    @safe
     @rison(database_schemas_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -748,6 +748,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(
                 500, message="There was an error connecting to the database"
             )
+        except OAuth2RedirectError:
+            raise
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
@@ -2071,6 +2073,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "sqlalchemy_uri_placeholder": engine_spec.sqlalchemy_uri_placeholder,
                 "preferred": engine_spec.engine_name in preferred_databases,
                 "engine_information": engine_spec.get_public_information(),
+                "supports_oauth2": engine_spec.supports_oauth2,
             }
 
             if engine_spec.default_driver:
