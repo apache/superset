@@ -373,6 +373,22 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
+            original: { datasource_name_text: dsNameTxt },
+          },
+        }: any) => {
+          const schemaName = dsNameTxt?.includes('.')
+            ? dsNameTxt.split('.')[0]
+            : '';
+          return schemaName || '';
+        },
+        Header: t('Schema'),
+        accessor: 'schema_name',
+        disableSortBy: true,
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
             original: {
               datasource_name_text: dsNameTxt,
               datasource_url: dsUrl,
@@ -600,6 +616,15 @@ function ChartList(props: ChartListProps) {
 
             return 0;
           }),
+      },
+      {
+        Header: t('Schema'),
+        key: 'schema',
+        id: 'schema_name',
+        input: 'search',
+        operator: FilterOperator.ChartAllText,
+        fetchSelects: undefined,
+        paginate: false,
       },
       {
         Header: t('Dataset'),
