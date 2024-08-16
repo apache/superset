@@ -18,7 +18,6 @@
  * under the License.
  */
 import {
-  ChartDataResponseResult,
   ensureIsArray,
   GenericDataType,
   isAdhocColumn,
@@ -144,6 +143,21 @@ const percentMetricsControl: typeof sharedControls.metrics = {
   default: [],
   validators: [],
 };
+
+/**
+ * Generate comparison column names for a given column.
+ */
+const generateComparisonColumns = (colname: string) => [
+  `${t('Main')} ${colname}`,
+  `# ${colname}`,
+  `△ ${colname}`,
+  `% ${colname}`,
+];
+/**
+ * Generate column types for the comparison columns.
+ */
+const generateComparisonColumnTypes = (count: number) =>
+  Array(count).fill(GenericDataType.Numeric);
 
 const processComparisonColumns = (columns: any[], suffix: string) =>
   columns
@@ -368,7 +382,7 @@ const config: ControlPanelConfig = {
             name: 'show_totals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show totals'),
+              label: t('Show summary'),
               default: false,
               description: t(
                 'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
@@ -470,10 +484,37 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
+                const timeComparisonStatus =
+                  !!explore?.controls?.time_compare?.value;
+
+                const { colnames: _colnames, coltypes: _coltypes } =
+                  chart?.queriesResponse?.[0] ?? {};
+                let colnames: string[] = _colnames || [];
+                let coltypes: GenericDataType[] = _coltypes || [];
+
+                if (timeComparisonStatus) {
+                  /**
+                   * Replace numeric columns with sets of comparison columns.
+                   */
+                  const updatedColnames: string[] = [];
+                  const updatedColtypes: GenericDataType[] = [];
+                  colnames.forEach((colname, index) => {
+                    if (coltypes[index] === GenericDataType.Numeric) {
+                      updatedColnames.push(
+                        ...generateComparisonColumns(colname),
+                      );
+                      updatedColtypes.push(...generateComparisonColumnTypes(4));
+                    } else {
+                      updatedColnames.push(colname);
+                      updatedColtypes.push(coltypes[index]);
+                    }
+                  });
+
+                  colnames = updatedColnames;
+                  coltypes = updatedColtypes;
+                }
                 return {
-                  queryResponse: chart?.queriesResponse?.[0] as
-                    | ChartDataResponseResult
-                    | undefined,
+                  columnsPropsObject: { colnames, coltypes },
                 };
               },
             },
@@ -595,7 +636,7 @@ const config: ControlPanelConfig = {
                   'verbose_map',
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
-                  : explore?.datasource?.columns ?? {};
+                  : (explore?.datasource?.columns ?? {});
                 const chartStatus = chart?.chartStatus;
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};

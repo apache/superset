@@ -26,6 +26,7 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { legendSection } from '../controls';
@@ -56,12 +57,8 @@ const config: ControlPanelConfig = {
           {
             name: 'sort_by_metric',
             config: {
+              ...sharedControls.sort_by_metric,
               default: true,
-              type: 'CheckboxControl',
-              label: t('Sort by metric'),
-              description: t(
-                'Whether to sort results by the selected metric in descending order.',
-              ),
             },
           },
         ],

@@ -461,9 +461,11 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
                 )
             else:
                 _columns = [
-                    utils.get_column_name(column_)
-                    if utils.is_adhoc_column(column_)
-                    else column_
+                    (
+                        utils.get_column_name(column_)
+                        if utils.is_adhoc_column(column_)
+                        else column_
+                    )
                     for column_param in COLUMN_FORM_DATA_PARAMS
                     for column_ in utils.as_list(form_data.get(column_param) or [])
                 ]
@@ -1450,7 +1452,7 @@ class SqlaTable(
         if not self.is_virtual:
             return self.get_sqla_table(), None
 
-        from_sql = self.get_rendered_sql(template_processor)
+        from_sql = self.get_rendered_sql(template_processor) + "\n"
         parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
         if not (
             parsed_query.is_unknown()
@@ -1768,11 +1770,10 @@ class SqlaTable(
             )
         )
 
-    def fetch_metadata(self, commit: bool = True) -> MetadataResult:
+    def fetch_metadata(self) -> MetadataResult:
         """
         Fetches the metadata for the table and merges it in
 
-        :param commit: should the changes be committed or not.
         :return: Tuple with lists of added, removed and modified column names.
         """
         new_columns = self.external_metadata()
@@ -1850,8 +1851,6 @@ class SqlaTable(
         config["SQLA_TABLE_MUTATOR"](self)
 
         db.session.merge(self)
-        if commit:
-            db.session.commit()
         return results
 
     @classmethod
@@ -1966,7 +1965,7 @@ class SqlaTable(
         if self.has_extra_cache_key_calls(query_obj):
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
-        return extra_cache_keys
+        return list(set(extra_cache_keys))
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:

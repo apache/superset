@@ -39,14 +39,14 @@ export const ISO8601_AND_CONSTANT = RegExp(
 );
 const DATETIME_CONSTANT = ['now', 'today'];
 const SEVEN_DAYS_AGO = new Date();
-SEVEN_DAYS_AGO.setUTCHours(0, 0, 0, 0);
+SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
 
 const MIDNIGHT = new Date();
-MIDNIGHT.setUTCHours(0, 0, 0, 0);
+MIDNIGHT.setHours(0, 0, 0, 0);
 
 const defaultCustomRange: CustomRangeType = {
-  sinceDatetime: SEVEN_DAYS_AGO.setUTCDate(
-    SEVEN_DAYS_AGO.getUTCDate() - 7,
+  sinceDatetime: SEVEN_DAYS_AGO.setDate(
+    SEVEN_DAYS_AGO.getDate() - 7,
   ).toString(),
   sinceMode: 'relative',
   sinceGrain: 'day',

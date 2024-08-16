@@ -17,7 +17,6 @@
  * under the License.
  */
 
-// import { Meta, Source } from '@storybook/addon-docs';
 import Markdown from 'markdown-to-jsx';
 
 export default {

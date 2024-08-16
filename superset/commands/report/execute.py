@@ -25,7 +25,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from superset import app, db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
-from superset.commands.exceptions import CommandException
+from superset.commands.exceptions import CommandException, UpdateFailedError
 from superset.commands.report.alert import AlertCommand
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
@@ -64,14 +64,19 @@ from superset.reports.models import (
 )
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
-from superset.reports.notifications.exceptions import NotificationError
+from superset.reports.notifications.exceptions import (
+    NotificationError,
+    NotificationParamException,
+    SlackV1NotificationError,
+)
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
-from superset.utils.decorators import logs_context
+from superset.utils.decorators import logs_context, transaction
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
@@ -120,7 +125,35 @@ class BaseReportState:
 
         self._report_schedule.last_state = state
         self._report_schedule.last_eval_dttm = datetime.utcnow()
-        db.session.commit()
+
+    def update_report_schedule_slack_v2(self) -> None:
+        """
+        Update the report schedule type and channels for all slack recipients to v2.
+        V2 uses ids instead of names for channels.
+        """
+        try:
+            for recipient in self._report_schedule.recipients:
+                if recipient.type == ReportRecipientType.SLACK:
+                    recipient.type = ReportRecipientType.SLACKV2
+                    slack_recipients = json.loads(recipient.recipient_config_json)
+                    # we need to ensure that existing reports can also fetch
+                    # ids from private channels
+                    recipient.recipient_config_json = json.dumps(
+                        {
+                            "target": get_channels_with_search(
+                                slack_recipients["target"],
+                                types=[
+                                    SlackChannelTypes.PRIVATE,
+                                    SlackChannelTypes.PUBLIC,
+                                ],
+                            )
+                        }
+                    )
+        except Exception as ex:
+            logger.warning(
+                "Failed to update slack recipients to v2: %s", str(ex), exc_info=True
+            )
+            raise UpdateFailedError from ex
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -138,7 +171,7 @@ class BaseReportState:
             uuid=self._execution_id,
         )
         db.session.add(log)
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
     def _get_url(
         self,
@@ -169,15 +202,15 @@ class BaseReportState:
                 force=force,
                 **kwargs,
             )
-
         # If we need to render dashboard in a specific state, use stateful permalink
-        if dashboard_state := self._report_schedule.extra.get("dashboard"):
+        if (
+            dashboard_state := self._report_schedule.extra.get("dashboard")
+        ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
             permalink_key = CreateDashboardPermalinkCommand(
                 dashboard_id=str(self._report_schedule.dashboard.uuid),
                 state=dashboard_state,
             ).run()
             return get_url_path("Superset.dashboard_permalink", key=permalink_key)
-
         dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
             dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
@@ -329,12 +362,21 @@ class BaseReportState:
         chart_id = None
         dashboard_id = None
         report_source = None
+        slack_channels = None
         if self._report_schedule.chart:
             report_source = ReportSourceFormat.CHART
             chart_id = self._report_schedule.chart_id
         else:
             report_source = ReportSourceFormat.DASHBOARD
             dashboard_id = self._report_schedule.dashboard_id
+
+        if self._report_schedule.recipients:
+            slack_channels = [
+                recipient.recipient_config_json
+                for recipient in self._report_schedule.recipients
+                if recipient.type
+                in [ReportRecipientType.SLACK, ReportRecipientType.SLACKV2]
+            ]
 
         log_data: HeaderDataType = {
             "notification_type": self._report_schedule.type,
@@ -343,6 +385,7 @@ class BaseReportState:
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
+            "slack_channels": slack_channels,
         }
         return log_data
 
@@ -440,6 +483,19 @@ class BaseReportState:
                     )
                 else:
                     notification.send()
+            except SlackV1NotificationError as ex:
+                # The slack notification should be sent with the v2 api
+                logger.info("Attempting to upgrade the report to Slackv2: %s", str(ex))
+                try:
+                    self.update_report_schedule_slack_v2()
+                    recipient.type = ReportRecipientType.SLACKV2
+                    notification = create_notification(recipient, notification_content)
+                    notification.send()
+                except (UpdateFailedError, NotificationParamException) as err:
+                    # log the error but keep processing the report with SlackV1
+                    logger.warning(
+                        "Failed to update slack recipients to v2: %s", str(err)
+                    )
             except (NotificationError, SupersetException) as ex:
                 # collect errors but keep processing them
                 notification_errors.append(
@@ -690,6 +746,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
 
+    @transaction()
     def run(self) -> None:
         for state_cls in self.states_cls:
             if (self._report_schedule.last_state is None and state_cls.initial) or (
@@ -718,6 +775,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self._scheduled_dttm = scheduled_dttm
         self._execution_id = UUID(task_id)
 
+    @transaction()
     def run(self) -> None:
         try:
             self.validate()

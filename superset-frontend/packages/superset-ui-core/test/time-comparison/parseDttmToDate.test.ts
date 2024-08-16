@@ -47,7 +47,7 @@ const runTimezoneTest = (
 };
 
 test('should return the current date for "now"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'now',
     NOW_UTC_IN_EUROPE,
@@ -64,7 +64,7 @@ test('should return the current date for "now"', () => {
 });
 
 test('should return the current date for "today"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'today',
     NOW_UTC_IN_EUROPE,
@@ -81,7 +81,7 @@ test('should return the current date for "today"', () => {
 });
 
 test('should return the current date for "No filter"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'No filter',
     NOW_UTC_IN_EUROPE,
@@ -103,7 +103,7 @@ test('should return the current date for "No filter"', () => {
 });
 
 test('should return the current date for an empty string', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     '',
     NOW_UTC_IN_EUROPE,
@@ -120,7 +120,7 @@ test('should return the current date for an empty string', () => {
 });
 
 test('should return yesterday date for "Last day"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'Last day',
     NOW_UTC_IN_EUROPE,
@@ -142,7 +142,7 @@ test('should return yesterday date for "Last day"', () => {
 });
 
 test('should return the date one week ago for "Last week"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'Last week',
     NOW_UTC_IN_EUROPE,
@@ -164,7 +164,7 @@ test('should return the date one week ago for "Last week"', () => {
 });
 
 test('should return the date one month ago for "Last month"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'Last month',
     NOW_UTC_IN_EUROPE,
@@ -186,7 +186,7 @@ test('should return the date one month ago for "Last month"', () => {
 });
 
 test('should return the date three months ago for "Last quarter"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'Last quarter',
     NOW_UTC_IN_EUROPE,
@@ -208,7 +208,7 @@ test('should return the date three months ago for "Last quarter"', () => {
 });
 
 test('should return the date one year ago for "Last year"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'Last year',
     NOW_UTC_IN_EUROPE,
@@ -230,7 +230,7 @@ test('should return the date one year ago for "Last year"', () => {
 });
 
 test('should return the date for "previous calendar week"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'previous calendar week',
     '2024-06-04T22:00:00Z',
@@ -252,7 +252,7 @@ test('should return the date for "previous calendar week"', () => {
 });
 
 test('should return the date for "previous calendar month"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'previous calendar month',
     NOW_UTC_IN_EUROPE,
@@ -274,7 +274,7 @@ test('should return the date for "previous calendar month"', () => {
 });
 
 test('should return the date for "previous calendar year"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'previous calendar year',
     NOW_UTC_IN_EUROPE,
@@ -296,7 +296,7 @@ test('should return the date for "previous calendar year"', () => {
 });
 
 test('should return the date for "1 day ago"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     '1 day ago',
     NOW_UTC_IN_EUROPE,
@@ -318,7 +318,7 @@ test('should return the date for "1 day ago"', () => {
 });
 
 test('should return the date for "1 week ago"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     '1 week ago',
     NOW_UTC_IN_EUROPE,
@@ -340,7 +340,7 @@ test('should return the date for "1 week ago"', () => {
 });
 
 test('should return the date for "1 month ago"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     '1 month ago',
     NOW_UTC_IN_EUROPE,
@@ -362,7 +362,7 @@ test('should return the date for "1 month ago"', () => {
 });
 
 test('should return the date for "1 year ago"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     '1 year ago',
     NOW_UTC_IN_EUROPE,
@@ -384,7 +384,7 @@ test('should return the date for "1 year ago"', () => {
 });
 
 test('should return the date for "2024-03-09"', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     '2024-03-09',
     NOW_UTC_IN_EUROPE,
@@ -406,7 +406,7 @@ test('should return the date for "2024-03-09"', () => {
 });
 
 test('should return the current date for "Last day" with isEndDate true', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'Last day',
     NOW_UTC_IN_EUROPE,
@@ -431,7 +431,7 @@ test('should return the current date for "Last day" with isEndDate true', () => 
 });
 
 test('should return the current date for "Last week" with isEndDate true', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'Last week',
     NOW_UTC_IN_EUROPE,
@@ -456,7 +456,7 @@ test('should return the current date for "Last week" with isEndDate true', () =>
 });
 
 test('should return the current date for "Last quarter" with isEndDate true', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'Last quarter',
     NOW_UTC_IN_EUROPE,
@@ -481,7 +481,7 @@ test('should return the current date for "Last quarter" with isEndDate true', ()
 });
 
 test('should return the current date for "Last year" with isEndDate true', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'Last year',
     NOW_UTC_IN_EUROPE,
@@ -506,7 +506,7 @@ test('should return the current date for "Last year" with isEndDate true', () =>
 });
 
 test('should return the date for "previous calendar week" with isEndDate true', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'previous calendar week',
     NOW_UTC_IN_EUROPE,
@@ -531,7 +531,7 @@ test('should return the date for "previous calendar week" with isEndDate true', 
 });
 
 test('should return the date for "previous calendar month" with isEndDate true', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'previous calendar month',
     NOW_UTC_IN_EUROPE,
@@ -556,7 +556,7 @@ test('should return the date for "previous calendar month" with isEndDate true',
 });
 
 test('should return the date for "previous calendar year" with isEndDate true', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     'previous calendar year',
     NOW_UTC_IN_EUROPE,
@@ -581,7 +581,7 @@ test('should return the date for "previous calendar year" with isEndDate true', 
 });
 
 test('should return the date for "2024" with parts.length === 1', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     '2024',
     NOW_UTC_IN_EUROPE,
@@ -598,7 +598,7 @@ test('should return the date for "2024" with parts.length === 1', () => {
 });
 
 test('should return the date for "2024-03" with parts.length === 2', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     '2024-03',
     NOW_UTC_IN_EUROPE,
@@ -620,7 +620,7 @@ test('should return the date for "2024-03" with parts.length === 2', () => {
 });
 
 test('should return the date for "2024-03-06" with parts.length === 3', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   runTimezoneTest(
     '2024-03-06',
     NOW_UTC_IN_EUROPE,
@@ -642,7 +642,7 @@ test('should return the date for "2024-03-06" with parts.length === 3', () => {
 });
 
 test('should return the date for "2024-03-06" with computingShifts true', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   const expectedDate = new Date('2024-03-06T22:00:00Z');
   expectedDate.setHours(-expectedDate.getTimezoneOffset() / 60, 0, 0, 0);
   runTimezoneTest(
@@ -656,7 +656,7 @@ test('should return the date for "2024-03-06" with computingShifts true', () => 
 });
 
 test('should return the date for "2024-03-06" with computingShifts true and isEndDate true', () => {
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   const expectedDate = new Date('2024-03-06T22:00:00Z');
   expectedDate.setHours(-expectedDate.getTimezoneOffset() / 60, 0, 0, 0);
   runTimezoneTest(

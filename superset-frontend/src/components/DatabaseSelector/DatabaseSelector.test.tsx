@@ -364,7 +364,7 @@ test('Sends the correct schema when changing the schema', async () => {
   });
   await waitFor(() => expect(fetchMock.calls(databaseApiRoute).length).toBe(1));
   rerender(<DatabaseSelector {...props} />);
-  expect(props.onSchemaChange).toBeCalledTimes(0);
+  expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type to search schemas',
   });
@@ -375,5 +375,5 @@ test('Sends the correct schema when changing the schema', async () => {
   await waitFor(() =>
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
-  expect(props.onSchemaChange).toBeCalledTimes(1);
+  expect(props.onSchemaChange).toHaveBeenCalledTimes(1);
 });

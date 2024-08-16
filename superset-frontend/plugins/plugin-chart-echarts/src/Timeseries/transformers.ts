@@ -32,8 +32,7 @@ import {
   TimeseriesDataRecord,
   ValueFormatter,
 } from '@superset-ui/core';
-import { SeriesOption } from 'echarts';
-import {
+import type {
   CallbackDataParams,
   DefaultStatesMixin,
   ItemStyleOption,
@@ -43,11 +42,12 @@ import {
   SeriesLineLabelOption,
   ZRLineType,
 } from 'echarts/types/src/util/types';
-import {
+import type { SeriesOption } from 'echarts';
+import type {
   MarkArea1DDataItemOption,
   MarkArea2DDataItemOption,
 } from 'echarts/types/src/component/marker/MarkAreaModel';
-import { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
+import type { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
 import { extractForecastSeriesContext } from '../utils/forecast';
 import {
   EchartsTimeseriesSeriesType,
@@ -571,10 +571,6 @@ export function getPadding(
     ? TIMESERIES_CONSTANTS.yAxisLabelTopOffset
     : 0;
   const xAxisOffset = addXAxisTitleOffset ? Number(xAxisTitleMargin) || 0 : 0;
-  const showLegendTopOffset =
-    isHorizontal && showLegend && legendOrientation === LegendOrientation.Top
-      ? 100
-      : 0;
 
   return getChartPadding(
     showLegend,
@@ -583,12 +579,8 @@ export function getPadding(
     {
       top:
         yAxisTitlePosition && yAxisTitlePosition === 'Top'
-          ? TIMESERIES_CONSTANTS.gridOffsetTop +
-            showLegendTopOffset +
-            (Number(yAxisTitleMargin) || 0)
-          : TIMESERIES_CONSTANTS.gridOffsetTop +
-            showLegendTopOffset +
-            yAxisOffset,
+          ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
+          : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
       bottom:
         zoomable && !isHorizontal
           ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset

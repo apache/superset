@@ -302,7 +302,9 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
       .indexOf(operator) >= 0;
   // If returned value is an object after changing dataset
   let expression =
-    typeof subject === 'object' ? subject?.column_name ?? '' : subject ?? '';
+    typeof subject === 'object'
+      ? (subject?.column_name ?? '')
+      : (subject ?? '');
   if (subject && operator) {
     expression += ` ${operator}`;
     const firstValue =
@@ -316,7 +318,7 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
       .map(val => optionLabel(val))
       .map(
         val =>
-          `${quote}${isString ? String(val).replace("'", "''") : val}${quote}`,
+          `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
       );
     if (comparatorArray.length > 0) {
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;

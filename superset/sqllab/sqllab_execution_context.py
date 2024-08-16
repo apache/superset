@@ -77,7 +77,9 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self.schema = cast(str, query_params.get("schema"))
         self.sql = cast(str, query_params.get("sql"))
         self.template_params = self._get_template_params(query_params)
-        self.async_flag = cast(bool, query_params.get("runAsync"))
+        self.async_flag = is_feature_enabled("SQLLAB_FORCE_RUN_ASYNC") or cast(
+            bool, query_params.get("runAsync")
+        )
         self.limit = self._get_limit_param(query_params)
         self.status = cast(str, query_params.get("status"))
         if cast(bool, query_params.get("select_as_cta")):
@@ -123,6 +125,8 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     def set_database(self, database: Database) -> None:
         self._validate_db(database)
         self.database = database
+        if self.catalog is None:
+            self.catalog = database.get_default_catalog()
         if self.select_as_cta:
             schema_name = self._get_ctas_target_schema_name(database)
             self.create_table_as_select.target_schema_name = schema_name  # type: ignore

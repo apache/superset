@@ -30,23 +30,24 @@ Join our growing community!
 - [Airbnb](https://github.com/airbnb)
 - [Faasos](http://faasos.com/) [@shashanksingh]
 - [Hostnfly](https://www.hostnfly.com/) [@alexisrosuel]
-- [Lime](https://www.limebike.com/) [@cxmcc]
+- [Lime](https://www.li.me/) [@cxmcc]
 - [Lyft](https://www.lyft.com/)
 - [Ontruck](https://www.ontruck.com/)
 
 ### Financial Services
-- [Aktia Bank plc](https://www.aktia.com) [@villebro]
+- [Aktia Bank plc](https://www.aktia.com)
 - [American Express](https://www.americanexpress.com) [@TheLastSultan]
+- [bumper](https://www.bumper.co/) [@vasu-ram, @JamiePercival]
 - [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
 - [KarrotPay](https://www.daangnpay.com/)
 - [Taveo](https://www.taveo.com) [@codek]
+- [Unit](https://www.unit.co/about-us) [@amitmiran137]
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
 ### Gaming
-- [Digit Game Studios](https://www.digitgaming.com/)
 - [Popoko VM Games Studio](https://popoko.live)
 
 ### E-Commerce
@@ -54,7 +55,7 @@ Join our growing community!
 - [Bazaar Technologies](https://www.bazaartech.com) [@umair-abro]
 - [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
 - [Dropit Shopping](https://www.dropit.shop/) [@dropit-dev]
-- [Fanatics](https://www.fanatics.com) [@coderfender]
+- [Fanatics](https://www.fanatics.com/) [@coderfender]
 - [Fordeal](http://www.fordeal.com) [@Renkai]
 - [GFG - Global Fashion Group](https://global-fashion-group.com) [@ksaagariconic]
 - [HuiShouBao](http://www.huishoubao.com/) [@Yukinoshita-Yukino]
@@ -63,10 +64,10 @@ Join our growing community!
 - [Rakuten Viki](https://www.viki.com)
 - [Shopee](https://shopee.sg) [@xiaohanyu]
 - [Shopkick](https://www.shopkick.com) [@LAlbertalli]
-- [Tails.com](https://tails.com) [@alanmcruickshank]
+- [Tails.com](https://tails.com/gb/) [@alanmcruickshank]
 - [THE ICONIC](http://theiconic.com.au/) [@ksaagariconic]
 - [Utair](https://www.utair.ru) [@utair-digital]
-- [VkusVill](https://www.vkusvill.ru) [@ETselikov]
+- [VkusVill](https://vkusvill.ru/) [@ETselikov]
 - [Zalando](https://www.zalando.com) [@dmigo]
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
 
@@ -79,7 +80,7 @@ Join our growing community!
 - [Caizin](https://caizin.com/) [@tejaskatariya]
 - [Careem](https://www.careem.com/) [@SamraHanifCareem]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
-- [CnOvit](http://www.cnovit.com/) [@xieshaohu]
+- [CnOvit](https://www.cnovit.com/) [@xieshaohu]
 - [Cyberhaven](https://www.cyberhaven.com/) [@toliver-ch]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
 - [Dial Once](https://www.dial-once.com/)
@@ -88,8 +89,7 @@ Join our growing community!
 - [Endress+Hauser](http://www.endress.com/) [@rumbin]
 - [FBK - ICT center](http://ict.fbk.eu)
 - [Gavagai](https://gavagai.io) [@gavagai-corp]
-- [GfK Data Lab](http://datalab.gfk.com) [@mherr]
-- [GrowthSimple](https://growthsimple.ai/)
+- [GfK Data Lab](https://www.gfk.com/home) [@mherr]
 - [Hydrolix](https://www.hydrolix.io/)
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)
@@ -104,17 +104,14 @@ Join our growing community!
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
 - [Preset, Inc.](https://preset.io)
-- [Pronto Tools](http://www.prontotools.io) [@zkan]
 - [PubNub](https://pubnub.com) [@jzucker2]
 - [ReadyTech](https://www.readytech.io)
 - [Reward Gateway](https://www.rewardgateway.com)
 - [ScopeAI](https://www.getscopeai.com) [@iloveluce]
-- [Showmax](https://tech.showmax.com) [@bobek]
-- [source{d}](https://www.sourced.tech) [@marnovo]
-- [Steamroot](https://streamroot.io/)
+- [Showmax](https://showmax.com) [@bobek]
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
-- [Tentacle](https://public.tentaclecmi.com) [@jdclarke5]
+- [Tentacle](https://tentaclecmi.com) [@jdclarke5]
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
 - [Tobii](http://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
@@ -136,6 +133,7 @@ Join our growing community!
 - [Zaihang](http://www.zaih.com/)
 
 ### Education
+- [Aveti Learning](https://avetilearning.com/) [@TheShubhendra]
 - [Brilliant.org](https://brilliant.org/)
 - [Platzi.com](https://platzi.com/)
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
@@ -153,18 +151,19 @@ Join our growing community!
 
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
-- [Beans](https://www.beans.fi) [@kakoni]
+- [Bluesquare](https://www.bluesquarehub.com/) [@madewulf]
 - [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
 - [QPID Health](http://www.qpidhealth.com/)
 - [REDCap Cloud](https://www.redcapcloud.com/)
-- [TrustMedis](https://trustmedis.com) [@famasya]
+- [TrustMedis](https://trustmedis.com/) [@famasya]
 - [WeSure](https://www.wesure.cn/)
 
 ### HR / Staffing
 - [Swile](https://www.swile.co/) [@PaoloTerzi]
 - [Symmetrics](https://www.symmetrics.fyi)
+- [bluquist](https://bluquist.com/)
 
 ### Government
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
@@ -175,6 +174,7 @@ Join our growing community!
 - [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
 
 ### Others
+- [10Web](https://10web.io/)
 - [AI inside](https://inside.ai/en/)
 - [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]

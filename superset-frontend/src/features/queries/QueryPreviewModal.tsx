@@ -32,7 +32,6 @@ const QueryTitle = styled.div`
   color: ${({ theme }) => theme.colors.secondary.light2};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   margin-bottom: 0;
-  text-transform: uppercase;
 `;
 
 const QueryLabel = styled.div`

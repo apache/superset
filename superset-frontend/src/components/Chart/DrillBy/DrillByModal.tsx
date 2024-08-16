@@ -151,6 +151,7 @@ export interface DrillByModalProps {
   drillByConfig: Required<ContextMenuFilters>['drillBy'];
   formData: BaseFormData & { [key: string]: any };
   onHideModal: () => void;
+  canDownload: boolean;
 }
 
 type DrillByConfigs = (ContextMenuFilters['drillBy'] & { column?: Column })[];
@@ -161,6 +162,7 @@ export default function DrillByModal({
   drillByConfig,
   formData,
   onHideModal,
+  canDownload,
 }: DrillByModalProps) {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -187,8 +189,8 @@ export default function DrillByModal({
   const initialGroupbyColumns = useMemo(
     () =>
       ensureIsArray(formData[groupbyFieldName])
-        .map(
-          colName => dataset.columns?.find(col => col.column_name === colName),
+        .map(colName =>
+          dataset.columns?.find(col => col.column_name === colName),
         )
         .filter(isDefined),
     [dataset.columns, formData, groupbyFieldName],
@@ -200,6 +202,7 @@ export default function DrillByModal({
   const resultsTable = useResultsTableView(
     chartDataResult,
     formData.datasource,
+    canDownload,
   );
 
   const [currentFormData, setCurrentFormData] = useState(formData);

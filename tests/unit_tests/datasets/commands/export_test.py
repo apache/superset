@@ -220,6 +220,7 @@ extra:
   engine_params: {{}}
   metadata_cache_timeout: {{}}
   schemas_allowed_for_file_upload: []
+impersonate_user: false
 uuid: {database.uuid}
 version: 1.0.0
 """,

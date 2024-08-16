@@ -15,6 +15,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd ../.. && pwd )"
 LICENSE_TMP=$(mktemp)
@@ -42,10 +43,15 @@ cd $ROOT_DIR
 pybabel extract \
   -F superset/translations/babel.cfg \
   -o superset/translations/messages.pot \
+  --no-location \
   --sort-output \
   --copyright-holder=Superset \
   --project=Superset \
   -k _ -k __ -k t -k tn:1,2 -k tct .
+
+# Normalize .pot file
+msgcat --sort-by-msgid --no-wrap --no-location superset/translations/messages.pot -o superset/translations/messages.pot
+
 cat $LICENSE_TMP superset/translations/messages.pot > messages.pot.tmp \
   && mv messages.pot.tmp superset/translations/messages.pot
 

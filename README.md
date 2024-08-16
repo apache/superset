@@ -73,9 +73,7 @@ Superset provides:
 
 **Video Overview**
 <!-- File hosted here https://github.com/apache/superset-site/raw/lfs/superset-video-4k.mp4 -->
-<video src="https://superset.staged.apache.org/superset-video-4k.mp4" width="100%" height="auto" controls preload="none">
-   https://superset.staged.apache.org/superset-video-4k.mp4
-</video>
+[superset-video-4k.webm](https://github.com/apache/superset/assets/812905/da036bc2-150c-4ee7-80f9-75e63210ff76)
 
 <br/>
 
@@ -135,6 +133,7 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/databend.png" alt="databend" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/doris.png" alt="doris" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/oceanbase.svg" alt="oceanbase" border="0" width="220" />
 </p>
 
 **A more comprehensive list of supported databases** along with the configuration instructions can be found [here](https://superset.apache.org/docs/configuration/databases).
@@ -170,9 +169,9 @@ how to set up a development environment.
 - [Superset SIPs](https://github.com/orgs/apache/projects/170) - The status of Superset's SIPs (Superset Improvement Proposals) for both consensus and implementation status.
 
 Understanding the Superset Points of View
+
 - [The Case for Dataset-Centric Visualization](https://preset.io/blog/dataset-centric-visualization/)
 - [Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
-
 
 - Getting Started with Superset
   - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/docs/installation/docker-compose#installing-superset-locally-using-docker-compose)
@@ -191,8 +190,8 @@ Understanding the Superset Points of View
   - [Mixed Time Series Charts](https://preset.io/events/mixed-time-series-visualization-in-superset-workshop/)
   - [How the Bing Team Customized Superset for the Internal Self-Serve Data & Analytics Platform](https://preset.io/events/how-the-bing-team-heavily-customized-superset-for-their-internal-data/)
   - [Live Demo: Visualizing MongoDB and Pinot Data using Trino](https://preset.io/events/2021-04-13-visualizing-mongodb-and-pinot-data-using-trino/)
-	- [Introduction to the Superset API](https://preset.io/events/introduction-to-the-superset-api/)
-	- [Building a Database Connector for Superset](https://preset.io/events/2021-02-16-building-a-database-connector-for-superset/)
+  - [Introduction to the Superset API](https://preset.io/events/introduction-to-the-superset-api/)
+  - [Building a Database Connector for Superset](https://preset.io/events/2021-02-16-building-a-database-connector-for-superset/)
 
 - Visualizations
   - [Creating Viz Plugins](https://superset.apache.org/docs/contributing/creating-viz-plugins/)
@@ -202,6 +201,7 @@ Understanding the Superset Points of View
 - [Superset API](https://superset.apache.org/docs/rest-api)
 
 ## Repo Activity
+
 <a href="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats?repo_id=39464018" target="_blank" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=dark" width="655" height="auto" />

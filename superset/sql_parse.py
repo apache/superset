@@ -102,6 +102,7 @@ SQLGLOT_DIALECTS = {
     "clickhouse": Dialects.CLICKHOUSE,
     "clickhousedb": Dialects.CLICKHOUSE,
     "cockroachdb": Dialects.POSTGRES,
+    "couchbase": Dialects.MYSQL,
     # "crate": ???
     # "databend": ???
     "databricks": Dialects.DATABRICKS,

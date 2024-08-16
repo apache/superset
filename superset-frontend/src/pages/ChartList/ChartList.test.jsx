@@ -124,7 +124,7 @@ describe('ChartList', () => {
     .mockImplementation(feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW');
 
   afterAll(() => {
-    isFeatureEnabledMock.restore();
+    isFeatureEnabledMock.mockRestore();
   });
 
   beforeEach(() => {
@@ -150,6 +150,11 @@ describe('ChartList', () => {
 
   it('renders', () => {
     expect(wrapper.find(ChartList)).toExist();
+  });
+
+  it('renders, but PropertiesModal initially hidden', () => {
+    expect(wrapper.find(PropertiesModal).exists()).toBe(true);
+    expect(wrapper.find(PropertiesModal).prop('show')).toBe(false);
   });
 
   it('renders a ListView', () => {
@@ -181,10 +186,10 @@ describe('ChartList', () => {
   });
 
   it('edits', async () => {
-    expect(wrapper.find(PropertiesModal)).not.toExist();
+    expect(wrapper.find(PropertiesModal).prop('show')).toBe(false);
     wrapper.find('[data-test="edit-alt"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(PropertiesModal)).toExist();
+    expect(wrapper.find(PropertiesModal).prop('show')).toBe(true);
   });
 
   it('delete', async () => {
@@ -267,7 +272,7 @@ describe('ChartList - anonymous view', () => {
 
   afterAll(() => {
     cleanup();
-    fetch.resetMocks();
+    fetchMock.reset();
   });
 
   it('does not render the Favorite Star column in list view for anonymous user', async () => {

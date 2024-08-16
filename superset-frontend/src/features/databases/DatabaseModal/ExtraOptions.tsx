@@ -20,8 +20,11 @@ import { ChangeEvent, EventHandler } from 'react';
 import cx from 'classnames';
 import {
   t,
-  SupersetTheme,
   DatabaseConnectionExtension,
+  isFeatureEnabled,
+  SupersetTheme,
+  useTheme,
+  FeatureFlag,
 } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
@@ -68,10 +71,16 @@ const ExtraOptions = ({
     }
     return value;
   });
-
+  const theme = useTheme();
   const ExtraExtensionComponent = extraExtension?.component;
   const ExtraExtensionLogo = extraExtension?.logo;
   const ExtensionDescription = extraExtension?.description;
+  const allowRunAsync = isFeatureEnabled(FeatureFlag.ForceSqlLabRunAsync)
+    ? true
+    : !!db?.allow_run_async;
+  const isAllowRunAsyncDisabled = isFeatureEnabled(
+    FeatureFlag.ForceSqlLabRunAsync,
+  );
 
   return (
     <Collapse
@@ -319,7 +328,7 @@ const ExtraOptions = ({
             <IndeterminateCheckbox
               id="allow_run_async"
               indeterminate={false}
-              checked={!!db?.allow_run_async}
+              checked={allowRunAsync}
               onChange={onInputChange}
               labelText={t('Asynchronous query execution')}
             />
@@ -331,6 +340,14 @@ const ExtraOptions = ({
                   'backend. Refer to the installation docs for more information.',
               )}
             />
+            {isAllowRunAsyncDisabled && (
+              <InfoTooltip
+                iconStyle={{ color: theme.colors.error.base }}
+                tooltip={t(
+                  'This option has been disabled by the administrator.',
+                )}
+              />
+            )}
           </div>
         </StyledInputContainer>
         <StyledInputContainer css={{ no_margin_bottom }}>

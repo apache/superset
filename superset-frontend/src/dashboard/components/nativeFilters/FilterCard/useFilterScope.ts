@@ -102,11 +102,10 @@ export const useFilterScope = (filter: Filter) => {
       );
       // Exclude the tabs that contain excluded charts
       filter.scope.excluded.forEach(chartId => {
-        const excludedIndex = topLevelTabsInFullScope.findIndex(
-          tabId =>
-            layoutChartElementsInTabsInScope
-              .find(chart => chart.meta.chartId === chartId)
-              ?.parents.includes(tabId),
+        const excludedIndex = topLevelTabsInFullScope.findIndex(tabId =>
+          layoutChartElementsInTabsInScope
+            .find(chart => chart.meta.chartId === chartId)
+            ?.parents.includes(tabId),
         );
         if (excludedIndex > -1) {
           topLevelTabsInFullScope.splice(excludedIndex, 1);

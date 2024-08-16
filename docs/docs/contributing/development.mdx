@@ -34,19 +34,21 @@ Setting things up to squeeze an "hello world" into any part of Superset should b
 ```bash
 docker-compose up
 ```
+
 Note that:
+
 - this will pull/build docker images and run a cluster of services, including:
   - A Superset **Flask web server**, mounting the local python repo/code
   - A Superset **Celery worker**, also mounting the local python repo/code
   - A Superset **Node service**, mounting, compiling and bundling the JS/TS assets
   - A Superset **Node websocket service** to power the async backend
-  - **Postgres** as the metadata database and to store example datasets, charts and dashboards whic
+  - **Postgres** as the metadata database and to store example datasets, charts and dashboards which
     should be populated upon startup
   - **Redis** as the message queue for our async backend and caching backend
 - It'll load up examples into the database upon first startup
 - all other details and pointers available in
   [docker-compose.yml](https://github.com/apache/superset/blob/master/docker-compose.yml)
-- The local repository is mounted withing the services, meaning updating
+- The local repository is mounted within the services, meaning updating
   the code on the host will be reflected in the docker images
 - Superset is served at localhost:8088/
 - You can login with admin/admin
@@ -106,7 +108,7 @@ functioning across environments.
 #### OS Dependencies
 
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/pypi#os-dependencies) before following these steps.
-You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
+You also need to install MySQL.
 
 Ensure that you are using Python version 3.9, 3.10 or 3.11, then proceed with:
 
@@ -231,7 +233,7 @@ We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node envi
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
 
-incase it shows '-bash: nvm: command not found'
+in case it shows '-bash: nvm: command not found'
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
@@ -261,7 +263,7 @@ cd superset-frontend
 npm ci
 ```
 
-Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` envinronment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` environment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
 
 ```json
 // your-package/package.json
@@ -287,22 +289,28 @@ If while using the above commands you encounter an error related to the limit of
 ```bash
 Error: ENOSPC: System limit for number of file watchers reached
 ```
+
 The error is thrown because the number of files monitored by the system has reached the limit.
 You can address this this error by increasing the number of inotify watchers.
 
 The current value of max watches can be checked with:
+
 ```bash
 cat /proc/sys/fs/inotify/max_user_watches
 ```
-Edit the file /etc/sysctl.conf to increase this value.
+
+Edit the file `/etc/sysctl.conf` to increase this value.
 The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
 
 Open the file in editor and add a line at the bottom specifying the max watches values.
+
 ```bash
 fs.inotify.max_user_watches=524288
 ```
+
 Save the file and exit editor.
-To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from sysctl.conf:
+To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from `sysctl.conf`:
+
 ```bash
 sudo sysctl -p
 ```
@@ -314,14 +322,18 @@ The dev server by default starts at `http://localhost:9000` and proxies the back
 So a typical development workflow is the following:
 
 1. [run Superset locally](#flask-server) using Flask, on port `8088` — but don't access it directly,<br/>
+
    ```bash
    # Install Superset and dependencies, plus load your virtual environment first, as detailed above.
    superset run -p 8088 --with-threads --reload --debugger --debug
    ```
+
 2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
+
    ```bash
    npm run dev-server
    ```
+
 3. access `http://localhost:9000` (the Webpack server, _not_ Flask) in your web browser. This will use the hot-reloading front-end assets from the Webpack development server while redirecting back-end queries to Flask/Superset: your changes on Superset codebase — either front or back-end — will then be reflected live in the browser.
 
 It's possible to change the Webpack server settings:
@@ -704,9 +716,9 @@ VSCode will not stop on breakpoints right away. We've attached to PID 6 however 
 
 ### Debugging Server App in Kubernetes Environment
 
-To debug Flask running in POD inside kubernetes cluster. You'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
+To debug Flask running in POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
 
-```
+```yaml
   securityContext:
     capabilities:
       add: ["SYS_PTRACE"]
@@ -720,7 +732,7 @@ You can follow the same instructions as in the docker-compose. Enter the pod and
 
 Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
-```
+```bash
 kubectl port-forward  pod/superset-<some random id> 5678:5678
 ```
 
@@ -769,7 +781,7 @@ To contribute a plugin to Superset, your plugin must meet the following criteria
 - The plugin should be written with TypeScript
 - The plugin should contain sufficient unit/e2e tests
 - The plugin should use appropriate namespacing, e.g. a folder name of `plugin-chart-whatever` and a package name of `@superset-ui/plugin-chart-whatever`
-- The plugin should use them variables via Emotion, as passed in by the ThemeProvider
+- The plugin should use theme variables via Emotion, as passed in by the ThemeProvider
 - The plugin should provide adequate error handling (no data returned, malformed data, invalid controls, etc.)
 - The plugin should contain documentation in the form of a populated `README.md` file
 - The plugin should have a meaningful and unique icon
@@ -801,7 +813,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
    The output should look like this:
 
-   ```
+   ```log
    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
    INFO  [alembic.runtime.migration] Will assume transactional DDL.
    INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
@@ -821,7 +833,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
    The output should look like this:
 
-   ```
+   ```log
    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
    INFO  [alembic.runtime.migration] Will assume transactional DDL.
    INFO  [alembic.runtime.migration] Running downgrade 40a0a483dd12 -> 1a1d627ebd8e, add_metadata_column_to_annotation_model.py

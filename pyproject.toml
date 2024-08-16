@@ -151,7 +151,7 @@ ocient = [
     "geojson",
 ]
 oracle = ["cx-Oracle>8.0.0, <8.1"]
-pinot = ["pinotdb>=0.3.3, <0.4"]
+pinot = ["pinotdb>=5.0.0, <6.0.0"]
 playwright = ["playwright>=1.37.0, <2"]
 postgres = ["psycopg2-binary==2.9.6"]
 presto = ["pyhive[presto]>=0.6.5"]
@@ -173,6 +173,7 @@ vertica = ["sqlalchemy-vertica-python>=0.5.9, < 0.6"]
 netezza = ["nzalchemy>=11.0.2"]
 starrocks = ["starrocks>=1.0.0"]
 doris = ["pydoris>=1.0.0, <2.0.0"]
+oceanbase = ["oceanbase_py>=0.0.1"]
 development = [
     "docker",
     "flask-testing",
@@ -229,6 +230,7 @@ module = "tests.*"
 check_untyped_defs = false
 disallow_untyped_calls = false
 disallow_untyped_defs = false
+disable_error_code = "annotation-unchecked"
 
 [tool.tox]
 legacy_tox_ini = """
@@ -240,6 +242,7 @@ ignore_basepython_conflict = true
 commands =
     superset db upgrade
     superset init
+    superset load-test-users
     # use -s to be able to use break pointers.
     # no args or tests/* can be passed as an argument to run all tests
     pytest -s {posargs}
@@ -252,9 +255,8 @@ setenv =
     SUPERSET_HOME = {envtmpdir}
     mysql: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
     postgres: SUPERSET__SQLALCHEMY_DATABASE_URI = postgresql+psycopg2://superset:superset@localhost/test
-    sqlite:
-        SUPERSET__SQLALCHEMY_DATABASE_URI = sqlite:////{envtmpdir}/superset.db
-        SUPERSET__SQLALCHEMY_EXAMPLES_URI = sqlite:////{envtmpdir}/examples.db
+    sqlite: SUPERSET__SQLALCHEMY_DATABASE_URI = sqlite:////{envtmpdir}/superset.db
+    sqlite: SUPERSET__SQLALCHEMY_EXAMPLES_URI = sqlite:////{envtmpdir}/examples.db
     mysql-presto: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
     # docker run -p 8080:8080 --name presto starburstdata/presto
     mysql-presto: SUPERSET__SQLALCHEMY_EXAMPLES_URI = presto://localhost:8080/memory/default

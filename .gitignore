@@ -116,4 +116,9 @@ docker/requirements-local.txt
 
 cache/
 docker/*local*
+
 .temp_cache
+
+# Jest test report
+test-report.html
+superset/static/stats/statistics.html

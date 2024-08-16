@@ -62,6 +62,10 @@ class DashboardDeleteFailedError(DeleteFailedError):
     message = _("Dashboard could not be deleted.")
 
 
+class DashboardDeleteEmbeddedFailedError(DeleteFailedError):
+    message = _("Embedded dashboard could not be deleted.")
+
+
 class DashboardDeleteFailedReportsExistError(DashboardDeleteFailedError):
     message = _("There are associated alerts or reports")
 
@@ -76,3 +80,7 @@ class DashboardImportError(ImportFailedError):
 
 class DashboardAccessDeniedError(ForbiddenError):
     message = _("You don't have access to this dashboard.")
+
+
+class DashboardCopyError(CommandInvalidError):
+    message = _("Dashboard cannot be copied due to invalid parameters.")

@@ -65,5 +65,4 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
     tbl.description = "BART lines"
     tbl.database = database
     tbl.filter_select_enabled = True
-    db.session.commit()
     tbl.fetch_metadata()

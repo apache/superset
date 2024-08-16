@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
@@ -50,7 +50,7 @@ def scheduler() -> None:
         datetime.fromisoformat(scheduler.request.expires)
         - app.config["CELERY_BEAT_SCHEDULER_EXPIRES"]
         if scheduler.request.expires
-        else datetime.utcnow()
+        else datetime.now(tz=timezone.utc)
     )
     for active_schedule in active_schedules:
         for schedule in cron_schedule_window(
@@ -94,7 +94,7 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
         ).run()
     except ReportScheduleUnexpectedError:
         logger.exception(
-            "An unexpected occurred while executing the report: %s", task_id
+            "An unexpected error occurred while executing the report: %s", task_id
         )
         self.update_state(state="FAILURE")
     except CommandException as ex:

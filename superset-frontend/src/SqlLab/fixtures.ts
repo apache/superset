@@ -210,7 +210,7 @@ export const extraQueryEditor1 = {
 export const extraQueryEditor2 = {
   ...defaultQueryEditor,
   id: 'owkdi998',
-  sql: 'SELECT *\nFROM\nWHERE\nGROUP BY',
+  sql: '',
   name: 'Untitled Query 3',
 };
 

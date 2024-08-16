@@ -29,27 +29,17 @@ from alembic import op
 revision = "5f57af97bc3f"
 down_revision = "d60591c5515f"
 
+tables = ["tables", "query", "saved_query", "tab_state", "table_schema"]
+
 
 def upgrade():
-    op.add_column("tables", sa.Column("catalog", sa.String(length=256), nullable=True))
-    op.add_column("query", sa.Column("catalog", sa.String(length=256), nullable=True))
-    op.add_column(
-        "saved_query",
-        sa.Column("catalog", sa.String(length=256), nullable=True),
-    )
-    op.add_column(
-        "tab_state",
-        sa.Column("catalog", sa.String(length=256), nullable=True),
-    )
-    op.add_column(
-        "table_schema",
-        sa.Column("catalog", sa.String(length=256), nullable=True),
-    )
+    for table in tables:
+        op.add_column(
+            table,
+            sa.Column("catalog", sa.String(length=256), nullable=True),
+        )
 
 
 def downgrade():
-    op.drop_column("table_schema", "catalog")
-    op.drop_column("tab_state", "catalog")
-    op.drop_column("saved_query", "catalog")
-    op.drop_column("query", "catalog")
-    op.drop_column("tables", "catalog")
+    for table in reversed(tables):
+        op.drop_column(table, "catalog")

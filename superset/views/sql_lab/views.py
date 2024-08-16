@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=consider-using-transaction
 import logging
 
 from flask import request, Response
@@ -238,6 +239,7 @@ class TableSchemaView(BaseSupersetView):
         db.session.query(TableSchema).filter(
             TableSchema.tab_state_id == table["queryEditorId"],
             TableSchema.database_id == table["dbId"],
+            TableSchema.catalog == table["catalog"],
             TableSchema.schema == table["schema"],
             TableSchema.table == table["name"],
         ).delete(synchronize_session=False)
@@ -245,6 +247,7 @@ class TableSchemaView(BaseSupersetView):
         table_schema = TableSchema(
             tab_state_id=table["queryEditorId"],
             database_id=table["dbId"],
+            catalog=table["catalog"],
             schema=table["schema"],
             table=table["name"],
             description=json.dumps(table),
@@ -272,6 +275,5 @@ class TableSchemaView(BaseSupersetView):
             .filter_by(id=table_schema_id)
             .update({"expanded": payload})
         )
-        db.session.commit()
         response = json.dumps({"id": table_schema_id, "expanded": payload})
         return json_success(response)
