@@ -18,7 +18,9 @@
 "Google Sheets Export features"
 
 import datetime
+from numbers import Real
 import os
+from typing import Union
 
 import pandas as pd
 from flask import current_app
@@ -59,15 +61,27 @@ if feature_flag_manager.is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
         ].keys()
 
 
+def _format_cell(x) -> Union[str, Real]:
+    "Ensure a pandas value is JSONSerializable and the type is helpful for GSheets."
+    if pd.isnull(x):
+        return ""
+    if isinstance(x, Real):
+        return x
+    return str(x)
+
+
 def upload_df_to_new_sheet(name: str, df: pd.DataFrame) -> str:
     assert feature_flag_manager.is_feature_enabled("GOOGLE_SHEETS_EXPORT")
+
+    formatted_df = df.applymap(_format_cell)
+
     gc = gspread.service_account(
         filename=current_app.config["GOOGLE_SHEETS_EXPORT_SERVICE_ACCOUNT_JSON_PATH"],
     )
     spreadsheet = gc.create(f"{name} {datetime.datetime.utcnow().isoformat()}")
     spreadsheet.sheet1.update(
         range_name="A1",
-        values=([df.columns.values.tolist()] + df.values.tolist()),
+        values=([formatted_df.columns.values.tolist()] + formatted_df.values.tolist()),
     )
     spreadsheet.share(**current_app.config["GOOGLE_SHEETS_EXPORT_SHARE_PERMISSIONS"])
     return spreadsheet.id
