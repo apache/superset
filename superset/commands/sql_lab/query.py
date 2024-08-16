@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import time
 from datetime import datetime, timedelta
 
 import sqlalchemy as sa
@@ -50,34 +51,34 @@ class QueryPruneCommand(BaseCommand):
         """
         Executes the prune command
         """
-        retention_date = datetime.now() - timedelta(days=self.retention_period_days)
+        batch_size = 999  # SQLite has a IN clause limit of 999
+        total_deleted = 0
+        start_time = time.time()
 
-        # Query the total number of rows to be deleted
-        total_rows = (
-            db.session.query(Query).filter(Query.changed_on < retention_date).count()
+        # Select all IDs that need to be deleted
+        ids_to_delete = (
+            db.session.execute(
+                sa.select(Query.id).where(
+                    Query.changed_on
+                    < datetime.now() - timedelta(days=self.retention_period_days)
+                )
+            )
+            .scalars()
+            .all()
         )
+
+        total_rows = len(ids_to_delete)
 
         logger.info("Total rows to be deleted: %s", total_rows)
 
-        batch_size = 100_000
+        next_logging_threshold = 1
 
-        total_deleted = 0
+        # Iterate over the IDs in batches
+        for i in range(0, total_rows, batch_size):
+            batch_ids = ids_to_delete[i : i + batch_size]
 
-        for _ in range(0, total_rows, batch_size):
-            # Select a batch of records to delete
-            subquery = (
-                sa.select(Query.id)
-                .where(Query.changed_on < retention_date)
-                .limit(batch_size)
-                .subquery()
-            )
-
-            # Delete the selected batch using equality
-            result = db.session.execute(
-                sa.delete(Query)
-                .where(Query.id == subquery.c.id)
-                .execution_options(synchronize_session="fetch")
-            )
+            # Delete the selected batch using IN clause
+            result = db.session.execute(sa.delete(Query).where(Query.id.in_(batch_ids)))
 
             # Update the total number of deleted records
             total_deleted += result.rowcount
@@ -86,14 +87,23 @@ class QueryPruneCommand(BaseCommand):
             # records that have been deleted so far are committed
             db.session.commit()
 
-            # Log the number of deleted records
-            logger.info(
-                "Deleted %s rows from the query table older than %s days",
-                total_deleted,
-                self.retention_period_days,
-            )
+            # Log the number of deleted records every 1% increase in progress
+            percentage_complete = (total_deleted / total_rows) * 100
+            if percentage_complete >= next_logging_threshold:
+                logger.info(
+                    "Deleted %s rows from the query table older than %s days (%d%% complete)",
+                    total_deleted,
+                    self.retention_period_days,
+                    percentage_complete,
+                )
+                next_logging_threshold += 1
 
-        logger.info("Pruning complete")
+        elapsed_time = time.time() - start_time
+        minutes, seconds = divmod(elapsed_time, 60)
+        formatted_time = f"{int(minutes):02}:{int(seconds):02}"
+        logger.info(
+            "Pruning complete: %s rows deleted in %s", total_deleted, formatted_time
+        )
 
     def validate(self) -> None:
         pass
