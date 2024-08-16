@@ -320,24 +320,31 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
-      const canExportData = findPermission(
+      const canExportCsv = findPermission(
         'can_export_csv',
-        'SQLLab',
+        'SqlLab',
+        user?.roles,
+      );
+      const canExportGoogleSheets = findPermission(
+        'can_export_google_sheets',
+        'SqlLab',
         user?.roles,
       );
 
       // Antd >= 4.24.0 format:
       const exportMenuItems = [];
-      exportMenuItems.push({
-        label: t('CSV'),
-        key: 'csv',
-        icon: <Icons.FileOutlined />,
-        onClick: () => {
-          logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
-          window.open(getExportCsvUrl(query.id), '_blank')?.focus();
-        },
-      });
-      if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
+      if (canExportCsv) {
+        exportMenuItems.push({
+          label: t('CSV'),
+          key: 'csv',
+          icon: <Icons.FileOutlined />,
+          onClick: () => {
+            logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+            window.open(getExportCsvUrl(query.id), '_blank')?.focus();
+          },
+        });
+      }
+      if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport) && canExportGoogleSheets) {
         exportMenuItems.push({
           label: t('Google Sheets'),
           key: 'google-sheets',
@@ -355,7 +362,7 @@ const ResultSet = ({
           ))}
         </Menu>
       );
-      const hasExports = exportMenuItems.length > 0 && canExportData;
+      const hasExports = exportMenuItems.length > 0;
 
       return (
         <ResultSetControls>
