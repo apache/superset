@@ -259,10 +259,6 @@ def menu_data(user: User) -> dict[str, Any]:
     if callable(brand_text := appbuilder.app.config["LOGO_RIGHT_TEXT"]):
         brand_text = brand_text()
 
-    logger.info("Menu data for user: %s", user)
-    logger.info("Menu data: %s", appbuilder.menu.get_flat_name_list())
-    logger.info("Menu data ||: %s", appbuilder.menu.get_data())
-
     return {
         "menu": appbuilder.menu.get_data(),
         "brand": {

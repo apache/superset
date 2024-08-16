@@ -1,0 +1,28 @@
+.container {
+    padding: auto;
+    font-family: sans-serif;
+  }
+  
+  .alert-card {
+    background: linear-gradient(135deg, #ff7875, #ffa39e);
+    border-radius: 8px;
+  }
+  
+  .alert-grid {
+    background: #fff;
+    border-radius: 4px;
+    padding: 16px;
+    margin-bottom: 8px;
+  }
+  
+  .visualization-card {
+    background: linear-gradient(135deg, #69c0ff, #91d5ff);
+    border-radius: 8px;
+  }
+  
+  .visualization-grid {
+    background: #fff;
+    border-radius: 4px;
+    padding: 16px;
+    margin-bottom: 8px;
+  }

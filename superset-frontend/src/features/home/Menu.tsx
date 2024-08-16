@@ -341,7 +341,6 @@ export function Menu({
           >
             {menu.map((item, index) => 
             {
-              console.log("Item", item);
               const props = {
                 index,
                 ...item,
@@ -380,7 +379,6 @@ export function Menu({
 
 // transform the menu data to reorganize components
 export default function MenuWrapper({ data, ...rest }: MenuProps) {
-  console.log("Data", data);
   const newMenuData = {
     ...data,
   };

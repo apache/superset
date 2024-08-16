@@ -1,12 +1,7 @@
-import { SupersetClient, t } from '@superset-ui/core';
-import { createErrorHandler } from 'src/views/CRUD/utils';
-import React, { useState, useEffect } from 'react';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu from 'src/features/home/SubMenu';
-import Loading from 'src/components/Loading';
-import { DatabaseData, DatabaseContext, emptyDatabaseContext } from './contextUtils';
-import Card from 'src/components/Card';
-
+import { AssistantSuggestionsGridProps } from './AssistantSuggestionsGrid';
+import { AssistantSuggestionCategory, AssistantSuggestionCategoryProps} from './AssistantSuggestionCategory';
 
 interface AssistantProps {
   user: {
@@ -14,64 +9,64 @@ interface AssistantProps {
     firstName: string;
     lastName: string;
   };
-  common: {
-    locale: string|null;
-  };
+  mydata: string|null;
 }
+
+/**
+ * title: string;
+    suggestion: string;
+    backgroundColor?: string;
+ */
+
+const sampleSuggestions: AssistantSuggestionsGridProps = {
+  suggestions: [
+    {
+      title: 'Suggestion 1',
+      suggestion: 'Suggestion rational Lorem Ipsum Long text',
+      backgroundColor: '#FFD0EC',
+    },
+    {
+      title: 'Suggestion 2',
+      suggestion: 'Suggestion rational Lorem Ipsum Long text',
+      backgroundColor: '#FBD0FF',
+    },
+    {
+      title: 'Suggestion 3',
+      suggestion: 'Suggestion rational Lorem Ipsum Long text',
+      backgroundColor: '#D0E0FF',
+    },
+    {
+      title: 'Suggestion 4',
+      suggestion: 'Suggestion rational Lorem Ipsum Long text',
+      backgroundColor: '#D0F9FF',
+    },
+    {
+      title: 'Suggestion 5',
+      suggestion: 'Suggestion rational Lorem Ipsum Long text',
+      backgroundColor: '#FFD0EC',
+    }
+  ],
+};
+
+const sampleCategory: AssistantSuggestionCategoryProps = {
+  categoryTitle: 'Category Title',
+  categoryDescription: 'Category Description',
+  backgroundGradientStart: '#FF9398',
+  backgroundGradientEnd: '#FF4049',
+  suggestions: sampleSuggestions.suggestions,
+};
 
 function Assistant(props: AssistantProps) {
 
   // This Component Serves as the Assistant's Home Page
   // Header Dispays the Users Name and Databases they have access to
 
-  // Array to Store Databases
-  const [databaseContext, setDatabaseContext] = useState<DatabaseContext>(emptyDatabaseContext);
-
-
-
-
-  const [databases, setDatabases] = useState<string[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    setLoading(true);
-    SupersetClient.get({
-      endpoint: `/api/v1/database/`,
-    }).then(
-      ({ json = {} }) => {
-        const dbList = json.result.map((db: any) => db.database_name);
-        const dbData: DatabaseData[] = json.result.map((db: DatabaseData) => db);
-        dbData.map(db => {
-          db.tables = [];
-          return db;
-        });
-        console.log("Database Data :", dbData);
-        setDatabases(dbList);
-        const dbIds = dbData.map(db => db.id);
-        console.log(dbIds);
-      }
-    ).catch(
-      createErrorHandler(errMsg => 
-        t('An error occurred while fetching databases: %s', errMsg)
-       ),
-    ).finally(() => {
-      setLoading(false);
-    });
-  }, []);
-
-  // Get the Databases the User has Access to
-
-
   return (
    <>
     <SubMenu
-      name={t('Assistant')+ ' dbs: '+ databases.join(', ')}
+      name="Assistant"
     />
-    {/* Welcome message in card*/}
-    <Card title = {'Welcome to the Assistant, ' + props.user.firstName} />
-    
-    {/* if loading show Loading component */}
-    {loading && <Loading />}
+    <AssistantSuggestionCategory {...sampleCategory} />
    </>
   );
 }

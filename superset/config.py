@@ -531,7 +531,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # caution. If the feature is enabled you can also set a limit for how much data is
     # returned from each database in the ``SUPERSET_META_DB_LIMIT`` configuration value
     # in this file.
-    "ENABLE_SUPERSET_META_DB": False,
+    "ENABLE_SUPERSET_META_DB": True,
     # Set to True to replace Selenium with Playwright to execute reports and thumbnails.
     # Unlike Selenium, Playwright reports support deck.gl visualizations
     # Enabling this feature flag requires installing "playwright" pip package
