@@ -2,7 +2,7 @@ apiVersion: v1
 entries:
   superset:
   - apiVersion: v2
-    appVersion: 4.0.1
+    appVersion: 4.0.2
     created: "2024-08-16T17:02:34.795367-04:00"
     dependencies:
     - condition: postgresql.enabled
