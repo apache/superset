@@ -86,16 +86,12 @@ describe('Charts list', () => {
       saveChartToDashboard('3 - Sample dashboard');
       visitChartList();
       cy.getBySel('count-crosslinks').should('be.visible');
-      cy.getBySel('crosslinks')
-        .first()
-        .trigger('mouseover')
-        .then(() => {
-          cy.get('.ant-tooltip')
-            .contains('3 - Sample dashboard')
-            .invoke('removeAttr', 'target')
-            .click();
-          cy.wait('@get');
-        });
+      cy.getBySel('crosslinks').first().trigger('mouseover');
+      cy.get('.ant-tooltip')
+        .contains('3 - Sample dashboard')
+        .invoke('removeAttr', 'target')
+        .click();
+      cy.wait('@get');
     });
   });
 
