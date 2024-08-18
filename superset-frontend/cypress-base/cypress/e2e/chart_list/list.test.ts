@@ -87,15 +87,15 @@ describe('Charts list', () => {
       visitChartList();
       cy.getBySel('count-crosslinks').should('be.visible');
       cy.getBySel('crosslinks')
-      .first()
-      .trigger('mouseover')
-      .then(() => {
-        cy.get('.ant-tooltip')
-          .contains('3 - Sample dashboard')
-          .invoke('removeAttr', 'target')
-          .click();
-        cy.wait('@get');
-      });
+        .first()
+        .trigger('mouseover')
+        .then(() => {
+          cy.get('.ant-tooltip')
+            .contains('3 - Sample dashboard')
+            .invoke('removeAttr', 'target')
+            .click();
+          cy.wait('@get');
+        });
     });
   });
 
