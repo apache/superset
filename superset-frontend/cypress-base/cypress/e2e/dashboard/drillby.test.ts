@@ -43,11 +43,8 @@ const openTableContextMenu = (
   cellContent: string,
   tableSelector = "[data-test-viz-type='table']",
 ) => {
-  cy.get(tableSelector)
-    .scrollIntoView()
-    .contains(cellContent)
-    .first()
-    .rightclick();
+  cy.get(tableSelector).scrollIntoView();
+  cy.get(tableSelector).contains(cellContent).first().rightclick();
 };
 
 const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
@@ -94,14 +91,16 @@ const testEchart = (
 ) => {
   cy.get(`[data-test-viz-type='${vizType}'] canvas`).then($canvas => {
     // click 'boy'
-    cy.wrap($canvas)
-      .scrollIntoView()
-      .trigger(
-        'mouseover',
-        drillClickCoordinates[0][0],
-        drillClickCoordinates[0][1],
-      )
-      .rightclick(drillClickCoordinates[0][0], drillClickCoordinates[0][1]);
+    cy.wrap($canvas).scrollIntoView();
+    cy.wrap($canvas).trigger(
+      'mouseover',
+      drillClickCoordinates[0][0],
+      drillClickCoordinates[0][1],
+    );
+    cy.wrap($canvas).rightclick(
+      drillClickCoordinates[0][0],
+      drillClickCoordinates[0][1],
+    );
 
     drillBy('state').then(intercepted => {
       verifyExpectedFormData(intercepted, {
