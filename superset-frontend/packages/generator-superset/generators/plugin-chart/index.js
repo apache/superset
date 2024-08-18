@@ -20,7 +20,7 @@
 /* eslint-disable sort-keys */
 
 import Generator from 'yeoman-generator';
-import { kebabCase, camelCase, startCase, upperFirst } from 'lodash-es';
+import { kebabCase, camelCase, startCase, upperFirst } from 'es-toolkit';
 
 export default class extends Generator {
   async prompting() {

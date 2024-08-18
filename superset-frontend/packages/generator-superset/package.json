@@ -29,12 +29,12 @@
   },
   "dependencies": {
     "chalk": "^5.3.0",
-    "lodash-es": "^4.17.21",
+    "es-toolkit": "^1.16.0",
     "yeoman-generator": "^7.3.2",
     "yosay": "^3.0.0"
   },
   "devDependencies": {
-    "cross-env": "^5.2.1",
+    "cross-env": "^7.0.3",
     "fs-extra": "^11.2.0",
     "yeoman-test": "^8.3.0",
     "jest": "^29.7.0"
