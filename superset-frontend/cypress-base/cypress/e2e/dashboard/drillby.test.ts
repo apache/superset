@@ -138,14 +138,16 @@ const testEchart = (
     // further drill
     cy.get(`[data-test="drill-by-chart"] canvas`).then($canvas => {
       // click 'other'
-      cy.wrap($canvas)
-        .scrollIntoView()
-        .trigger(
-          'mouseover',
-          drillClickCoordinates[1][0],
-          drillClickCoordinates[1][1],
-        )
-        .rightclick(drillClickCoordinates[1][0], drillClickCoordinates[1][1]);
+      cy.wrap($canvas).scrollIntoView();
+      cy.wrap($canvas).trigger(
+        'mouseover',
+        drillClickCoordinates[1][0],
+        drillClickCoordinates[1][1],
+      );
+      cy.wrap($canvas).rightclick(
+        drillClickCoordinates[1][0],
+        drillClickCoordinates[1][1],
+      );
 
       drillBy(furtherDrillDimension).then(intercepted => {
         verifyExpectedFormData(intercepted, {
@@ -608,10 +610,9 @@ describe('Drill by modal', () => {
     it('Mixed Chart', () => {
       cy.get('[data-test-viz-type="mixed_timeseries"] canvas').then($canvas => {
         // click 'boy'
-        cy.wrap($canvas)
-          .scrollIntoView()
-          .trigger('mouseover', 70, 93)
-          .rightclick(70, 93);
+        cy.wrap($canvas).scrollIntoView();
+        cy.wrap($canvas).trigger('mouseover', 70, 93);
+        cy.wrap($canvas).rightclick(70, 93);
 
         drillBy('name').then(intercepted => {
           const { queries } = intercepted.request.body;
@@ -643,10 +644,9 @@ describe('Drill by modal', () => {
         // further drill
         cy.get(`[data-test="drill-by-chart"] canvas`).then($canvas => {
           // click second query
-          cy.wrap($canvas)
-            .scrollIntoView()
-            .trigger('mouseover', 246, 114)
-            .rightclick(246, 114);
+          cy.wrap($canvas).scrollIntoView();
+          cy.wrap($canvas).trigger('mouseover', 246, 114);
+          cy.wrap($canvas).rightclick(246, 114);
 
           drillBy('ds').then(intercepted => {
             const { queries } = intercepted.request.body;
