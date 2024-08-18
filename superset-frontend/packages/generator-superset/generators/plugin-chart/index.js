@@ -17,10 +17,8 @@
  * under the License.
  */
 
-/* eslint-disable sort-keys */
-
 import Generator from 'yeoman-generator';
-import { kebabCase, camelCase, startCase, upperFirst } from 'es-toolkit';
+import { kebabCase, camelCase, startCase, upperFirst } from 'lodash-es';
 
 export default class extends Generator {
   async prompting() {
