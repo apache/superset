@@ -99,7 +99,8 @@ describe('Dashboard tabs', () => {
     getChartAliasBySpec(TREEMAP).then(treemapAlias => {
       // apply filter
       cy.get('.Select__control').first().should('be.visible').click();
-      cy.get('.Select__control input[type=text]').first().focus().type('South');
+      cy.get('.Select__control input[type=text]').first().focus();
+      cy.focused().type('South');
       cy.get('.Select__option').contains('South Asia').click();
       cy.get('.filter button:not(:disabled)').contains('Apply').click();
 

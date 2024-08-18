@@ -117,7 +117,9 @@ describe('Test explore links', () => {
 
     cy.get('[data-test="query-save-button"]').click();
     cy.get('[data-test="saveas-radio"]').check();
-    cy.get('[data-test="new-chart-name"]').click().clear().type(newChartName);
+    cy.get('[data-test="new-chart-name"]').click();
+    cy.get('[data-test="new-chart-name"]').clear();
+    cy.get('[data-test="new-chart-name"]').type(newChartName);
     // Add a new option using the "CreatableSelect" feature
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
       .find('input[aria-label="Select a dashboard"]')
@@ -147,7 +149,9 @@ describe('Test explore links', () => {
 
     cy.get('[data-test="query-save-button"]').click();
     cy.get('[data-test="save-overwrite-radio"]').check();
-    cy.get('[data-test="new-chart-name"]').click().clear().type(newChartName);
+    cy.get('[data-test="new-chart-name"]').click();
+    cy.get('[data-test="new-chart-name"]').clear();
+    cy.get('[data-test="new-chart-name"]').type(newChartName);
     // This time around, typing the same dashboard name
     // will select the existing one
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')

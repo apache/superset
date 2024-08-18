@@ -663,7 +663,8 @@ describe('Dashboard edit', () => {
     });
 
     it('should edit the title', () => {
-      cy.getBySel('dashboard-title-input').clear().type('Edited title');
+      cy.getBySel('dashboard-title-input').clear();
+      cy.getBySel('dashboard-title-input').type('Edited title');
       applyChanges();
       cy.getBySel('editable-title-input').should('have.value', 'Edited title');
     });
@@ -684,7 +685,8 @@ describe('Dashboard edit', () => {
     });
 
     it('should edit the title inline', () => {
-      cy.getBySel('editable-title-input').clear().type('Edited title{enter}');
+      cy.getBySel('editable-title-input').clear();
+      cy.getBySel('editable-title-input').type('Edited title{enter}');
       cy.getBySel('header-save-button').should('be.enabled');
     });
 
@@ -747,7 +749,8 @@ describe('Dashboard edit', () => {
         'Click here to learn more about [markdown formatting](https://bit.ly/1dQOfRK)',
       );
 
-      cy.getBySel('dashboard-markdown-editor').click().type('Test resize');
+      cy.getBySel('dashboard-markdown-editor').click();
+      cy.getBySel('dashboard-markdown-editor').type('Test resize');
 
       resize(
         '[data-test="dashboard-markdown-editor"] .resizable-container div.resizable-container-handle--bottom + div',

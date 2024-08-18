@@ -70,19 +70,18 @@ describe('Visualization > Bubble', () => {
         },
       ],
     });
-    cy.get('[data-test="chart-container"]')
-      .should('be.visible')
-      .within(() => {
-        cy.get('svg').find('.nv-point-clips circle').should('have.length', 8);
-      })
-      .then(nodeList => {
-        // Check that all circles have same color.
-        const color = nodeList[0].getAttribute('fill');
-        const circles = Array.prototype.slice.call(nodeList);
-        expect(circles.every(c => c.getAttribute('fill') === color)).to.equal(
-          true,
-        );
-      });
+    cy.get('[data-test="chart-container"]').should('be.visible');
+    cy.get('[data-test="chart-container"]').within(() => {
+      cy.get('svg').find('.nv-point-clips circle').should('have.length', 8);
+    });
+    cy.get('[data-test="chart-container"]').then(nodeList => {
+      // Check that all circles have same color.
+      const color = nodeList[0].getAttribute('fill');
+      const circles = Array.prototype.slice.call(nodeList);
+      expect(circles.every(c => c.getAttribute('fill') === color)).to.equal(
+        true,
+      );
+    });
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
