@@ -1,5 +1,5 @@
 import { AssistantSuggestionsGrid, AssistantSuggestionsGridProps } from './AssistantSuggestionsGrid';
-import { readableColor } from './contextUtils';
+import { readableColor } from '../contextUtils';
 
 /**
  * Component that Displays Assistants Suggestion Category and Suggestions

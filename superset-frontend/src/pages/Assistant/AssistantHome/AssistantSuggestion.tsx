@@ -1,4 +1,4 @@
-import { readableColor, adjustOpacity } from './contextUtils';
+import { readableColor, adjustOpacity } from '../contextUtils';
 
 /**
  * Component that displays the single suggestion for the assistant
