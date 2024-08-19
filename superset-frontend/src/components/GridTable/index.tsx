@@ -24,7 +24,7 @@ import type { Column } from 'ag-grid-community';
 import { AgGridReact, AgReactUiProps } from 'ag-grid-react';
 
 import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 import copyTextToClipboard from 'src/utils/copy';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -172,7 +172,7 @@ function GridTable<RecordType extends object>({
     <ErrorBoundary>
       <Global
         styles={() => css`
-          #grid-table.ag-theme-alpine {
+          #grid-table.ag-theme-quartz {
             --ag-icon-font-family: agGridMaterial;
             --ag-grid-size: ${theme.gridUnit}px;
             --ag-font-size: ${theme.typography.sizes.s - 1}px;
@@ -207,7 +207,7 @@ function GridTable<RecordType extends object>({
       />
       <div
         id="grid-table"
-        className="ag-theme-alpine"
+        className="ag-theme-quartz"
         css={css`
           width: 100%;
           height: ${height}px;
