@@ -24,6 +24,7 @@
  */
 export { default as Select } from './Select/Select';
 export { default as AsyncSelect } from './Select/AsyncSelect';
+export { default as Button } from './Button';
 
 /*
  * Components that don't conflict with the ones in src/components.
@@ -57,7 +58,6 @@ export {
  */
 export {
   Breadcrumb as AntdBreadcrumb,
-  Button as AntdButton,
   Card as AntdCard,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
