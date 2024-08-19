@@ -62,6 +62,10 @@ class DashboardDeleteFailedError(DeleteFailedError):
     message = _("Dashboard could not be deleted.")
 
 
+class DashboardDeleteEmbeddedFailedError(DeleteFailedError):
+    message = _("Embedded dashboard could not be deleted.")
+
+
 class DashboardDeleteFailedReportsExistError(DashboardDeleteFailedError):
     message = _("There are associated alerts or reports")
 

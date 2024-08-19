@@ -14,40 +14,43 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Add catalog_perm to tables
+"""remove sl_dataset_tables
 
-Revision ID: 58d051681a3b
-Revises: 4a33124c18ad
-Create Date: 2024-05-01 10:52:31.458433
+Revision ID: 38f4144e8558
+Revises: 39549add7bfc
+Create Date: 2024-08-13 15:23:28.768963
 
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-from superset.migrations.shared.catalogs import (
-    downgrade_catalog_perms,
-    upgrade_catalog_perms,
-)
+from superset.migrations.shared.constraints import drop_fks_for_table
 
 # revision identifiers, used by Alembic.
-revision = "58d051681a3b"
-down_revision = "4a33124c18ad"
+revision = "38f4144e8558"
+down_revision = "39549add7bfc"
 
 
 def upgrade():
-    op.add_column(
-        "tables",
-        sa.Column("catalog_perm", sa.String(length=1000), nullable=True),
-    )
-    op.add_column(
-        "slices",
-        sa.Column("catalog_perm", sa.String(length=1000), nullable=True),
-    )
-    upgrade_catalog_perms(engines={"postgresql"})
+    connection = op.get_bind()
+    if connection.dialect.name != "sqlite":
+        drop_fks_for_table("sl_dataset_tables")
+    op.drop_table("sl_dataset_tables")
 
 
 def downgrade():
-    downgrade_catalog_perms(engines={"postgresql"})
-    op.drop_column("slices", "catalog_perm")
-    op.drop_column("tables", "catalog_perm")
+    op.create_table(
+        "sl_dataset_tables",
+        sa.Column("dataset_id", sa.Integer(), nullable=False),
+        sa.Column("table_id", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["dataset_id"],
+            ["sl_datasets.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["table_id"],
+            ["sl_tables.id"],
+        ),
+        sa.PrimaryKeyConstraint("dataset_id", "table_id"),
+    )

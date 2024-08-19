@@ -371,6 +371,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "allow_dml",
             "allow_csv_upload",
             "extra",
+            "impersonate_user",
             "uuid",
             "version",
         ]

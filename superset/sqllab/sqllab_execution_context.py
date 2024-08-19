@@ -125,6 +125,8 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     def set_database(self, database: Database) -> None:
         self._validate_db(database)
         self.database = database
+        if self.catalog is None:
+            self.catalog = database.get_default_catalog()
         if self.select_as_cta:
             schema_name = self._get_ctas_target_schema_name(database)
             self.create_table_as_select.target_schema_name = schema_name  # type: ignore

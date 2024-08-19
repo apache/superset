@@ -44,9 +44,10 @@ function displayHeaderCell(
 ) {
   const name = namesMapping[value] || value;
   const parsedLabel = parseLabel(name);
-  const labelContent = allowRenderHtml
-    ? safeHtmlSpan(parsedLabel)
-    : parsedLabel;
+  const labelContent =
+    allowRenderHtml && typeof parsedLabel === 'string'
+      ? safeHtmlSpan(parsedLabel)
+      : parsedLabel;
   return needToggle ? (
     <span className="toggle-wrapper">
       <span

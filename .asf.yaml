@@ -73,7 +73,6 @@ github:
           - pre-commit (current)
           - pre-commit (next)
           - pre-commit (previous)
-          - python-lint
           - test-mysql
           - test-postgres (current)
           - test-postgres (next)

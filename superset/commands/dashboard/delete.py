@@ -23,18 +23,32 @@ from flask_babel import lazy_gettext as _
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.exceptions import (
+    DashboardDeleteEmbeddedFailedError,
     DashboardDeleteFailedError,
     DashboardDeleteFailedReportsExistError,
     DashboardForbiddenError,
     DashboardNotFoundError,
 )
-from superset.daos.dashboard import DashboardDAO
+from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
+
+
+class DeleteEmbeddedDashboardCommand(BaseCommand):
+    def __init__(self, dashboard: Dashboard):
+        self._dashboard = dashboard
+
+    @transaction(on_error=partial(on_error, reraise=DashboardDeleteEmbeddedFailedError))
+    def run(self) -> None:
+        self.validate()
+        return EmbeddedDashboardDAO.delete(self._dashboard.embedded)
+
+    def validate(self) -> None:
+        pass
 
 
 class DeleteDashboardCommand(BaseCommand):

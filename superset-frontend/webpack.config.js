@@ -33,6 +33,7 @@ const {
 } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
+const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package');
 
@@ -66,8 +67,6 @@ const {
   mode = 'development',
   devserverPort = 9000,
   measure = false,
-  analyzeBundle = false,
-  analyzerPort = 8888,
   nameChunks = false,
 } = parsedArgs;
 const isDevMode = mode !== 'production';
@@ -586,11 +585,19 @@ if (isDevMode) {
   };
 }
 
-// Bundle analyzer is disabled by default
-// Pass flag --analyzeBundle=true to enable
-// e.g. npm run build -- --analyzeBundle=true
-if (analyzeBundle) {
-  config.plugins.push(new BundleAnalyzerPlugin({ analyzerPort }));
+// To
+// e.g. npm run package-stats
+if (process.env.BUNDLE_ANALYZER) {
+  config.plugins.push(new BundleAnalyzerPlugin({ analyzerMode: 'static' }));
+  config.plugins.push(
+    // this creates an HTML page with a sunburst diagram of dependencies.
+    // you'll find it at superset/static/stats/statistics.html
+    // note that the file is >100MB so it's in .gitignore
+    new Visualizer({
+      filename: path.join('..', 'stats', 'statistics.html'),
+      throwOnError: true,
+    }),
+  );
 }
 
 // Speed measurement is disabled by default
