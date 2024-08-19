@@ -122,7 +122,25 @@ export const ComparisonRangeLabel = ({
             ensureIsArray(newShifts),
           );
         }
-        return Promise.resolve({ value: '' });
+        return fetchTimeRange(filter.comparator, filter.subject).then(res => {
+          const datePattern = /\d{4}-\d{2}-\d{2}/g;
+          const dates = res?.value?.match(datePattern);
+          const [startDate, endDate] = dates ?? [];
+          const postProcessedShifts = getTimeOffset({
+            timeRangeFilter: {
+              ...filter,
+              comparator: `${startDate} : ${endDate}`,
+            },
+            shifts: shiftsArray,
+            startDate: useStartDate,
+            includeFutureOffsets: false, // So we don't trigger requests for future dates
+          });
+          return fetchTimeRange(
+            filter.comparator,
+            filter.subject,
+            ensureIsArray(postProcessedShifts),
+          );
+        });
       });
       Promise.all(promises).then(res => {
         // access the value property inside the res and set the labels with it in the state

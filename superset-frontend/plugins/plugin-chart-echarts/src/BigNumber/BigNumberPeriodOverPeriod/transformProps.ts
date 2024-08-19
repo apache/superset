@@ -130,6 +130,13 @@ export default function transformProps(chartProps: ChartProps) {
           ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
           : startDateOffset,
     });
+    if (isEmpty(dataOffset)) {
+      if (timeComparison && timeComparison === 'custom') {
+        dataOffset = [startDateOffset];
+      } else {
+        dataOffset = ensureIsArray(timeComparison) || [];
+      }
+    }
   }
 
   const { value1, value2 } = data.reduce(

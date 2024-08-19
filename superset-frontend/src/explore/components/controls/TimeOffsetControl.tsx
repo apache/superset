@@ -26,6 +26,7 @@ import {
   css,
   customTimeRangeDecode,
   computeCustomDateTime,
+  fetchTimeRange,
 } from '@superset-ui/core';
 import { DatePicker } from 'antd';
 import { RangePickerProps } from 'antd/lib/date-picker';
@@ -132,7 +133,20 @@ export default function TimeOffsetControls({
     if (!isEmpty(currentTimeRangeFilters)) {
       customTimeRange(currentTimeRangeFilters[0]?.comparator ?? '');
       const date = currentTimeRangeFilters[0]?.comparator.split(' : ')[0];
-      setFormatedFilterDate(moment(parseDttmToDate(date)));
+      const parsedDate = parseDttmToDate(date);
+      if (parsedDate) {
+        setFormatedFilterDate(moment(parseDttmToDate(date)));
+      } else {
+        fetchTimeRange(
+          currentTimeRangeFilters[0]?.comparator,
+          currentTimeRangeFilters[0]?.subject,
+        ).then(res => {
+          const datePattern = /\d{4}-\d{2}-\d{2}/g;
+          const dates = res?.value?.match(datePattern);
+          const [startDate, _] = dates ?? [];
+          setFormatedFilterDate(moment(parseDttmToDate(startDate)));
+        });
+      }
     } else {
       setCustomStartDateInFilter(undefined);
       setFormatedFilterDate(moment(parseDttmToDate('')));

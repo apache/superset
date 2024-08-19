@@ -107,7 +107,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
     }
 
-    const timeOffsets = ensureIsArray(
+    let timeOffsets = ensureIsArray(
       isTimeComparison(formData, baseQueryObject)
         ? getTimeOffset({
             timeRangeFilter: {
@@ -124,6 +124,14 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           })
         : [],
     );
+
+    if (isEmpty(timeOffsets)) {
+      if (formData.time_compare && formData.time_compare === 'custom') {
+        timeOffsets = [formData.start_date_offset];
+      } else {
+        timeOffsets = ensureIsArray(formData.time_compare) || [];
+      }
+    }
 
     let temporalColumAdded = false;
     let temporalColum = null;

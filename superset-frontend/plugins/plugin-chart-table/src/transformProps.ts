@@ -615,7 +615,7 @@ const transformProps = (
       previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
   }
 
-  const timeOffsets = getTimeOffset({
+  let timeOffsets = getTimeOffset({
     timeRangeFilter: {
       ...TimeRangeFilters[0],
       comparator:
@@ -628,6 +628,13 @@ const transformProps = (
         ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
         : formData.start_date_offset,
   });
+  if (isEmpty(timeOffsets)) {
+    if (formData.time_compare && formData.time_compare === 'custom') {
+      timeOffsets = [formData.start_date_offset];
+    } else {
+      timeOffsets = ensureIsArray(formData.time_compare) || [];
+    }
+  }
   const comparisonSuffix = isUsingTimeComparison
     ? ensureIsArray(timeOffsets)[0]
     : '';

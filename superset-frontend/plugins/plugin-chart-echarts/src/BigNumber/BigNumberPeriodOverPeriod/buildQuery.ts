@@ -57,7 +57,7 @@ export default function buildQuery(formData: QueryFormData) {
         previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
     }
 
-    const timeOffsets = ensureIsArray(
+    let timeOffsets = ensureIsArray(
       isTimeComparison(formData, baseQueryObject)
         ? getTimeOffset({
             timeRangeFilter: {
@@ -74,6 +74,13 @@ export default function buildQuery(formData: QueryFormData) {
           })
         : [],
     );
+    if (isEmpty(timeOffsets)) {
+      if (formData.time_compare && formData.time_compare === 'custom') {
+        timeOffsets = [formData.start_date_offset];
+      } else {
+        timeOffsets = ensureIsArray(formData.time_compare) || [];
+      }
+    }
     return [
       {
         ...baseQueryObject,

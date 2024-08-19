@@ -280,9 +280,12 @@ export const getTimeOffset = ({
 
   const customShift =
     customStartDateTime &&
+    filterStartDateTime &&
     Math.round((filterStartDateTime - customStartDateTime) / DAY_IN_MS);
   const inInheritShift =
     isInherit &&
+    filterEndDateTime &&
+    filterStartDateTime &&
     Math.round((filterEndDateTime - filterStartDateTime) / DAY_IN_MS);
 
   const newShifts = ensureIsArray(shifts)
@@ -292,7 +295,7 @@ export const getTimeOffset = ({
           if (includeFutureOffsets && customShift < 0) {
             return `${customShift * -1} days after`;
           }
-          if (customShift >= 0) {
+          if (customShift >= 0 && filterStartDateTime) {
             return `${customShift} days ago`;
           }
         }

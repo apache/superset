@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import copy
+from datetime import datetime
 import logging
 import re
 from typing import Any, cast, ClassVar, TYPE_CHECKING, TypedDict
@@ -369,6 +370,38 @@ class QueryContextProcessor:
                 axis=1,
             )
 
+    def is_valid_date(self, date_string: str):
+        try:
+            # Attempt to parse the string as a date in the format YYYY-MM-DD
+            datetime.strptime(date_string, "%Y-%m-%d")
+            return True
+        except ValueError:
+            # If parsing fails, it's not a valid date in the format YYYY-MM-DD
+            return False
+
+    def get_time_offset_for_custom_or_inherit(
+        self,
+        offset: str,
+        outer_from_dttm: datetime,
+        outer_to_dttm: datetime,
+    ) -> str:
+        """
+        Get the time offset for custom or inherit.
+
+        :param offset: The offset string.
+        :param outer_from_dttm: The outer from datetime.
+        :param outer_to_dttm: The outer to datetime.
+        :returns: The time offset.
+        """
+        if offset == "inherit":
+            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix
+            return f"{(outer_to_dttm - outer_from_dttm).days} days ago"
+        if self.is_valid_date(offset):
+            # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix
+            offset_date = datetime.strptime(offset, "%Y-%m-%d")
+            return f"{(outer_from_dttm - offset_date).days} days ago"
+        return ""
+
     def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
         self,
         df: pd.DataFrame,
@@ -409,6 +442,13 @@ class QueryContextProcessor:
                 #      time_offsets: ['1 year ago'],
                 #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],
                 #    }
+                original_offset = offset
+                if self.is_valid_date(offset) or offset == "inherit":
+                    offset = self.get_time_offset_for_custom_or_inherit(
+                        offset,
+                        outer_from_dttm,
+                        outer_to_dttm,
+                    )
                 query_object_clone.from_dttm = get_past_or_future(
                     offset,
                     outer_from_dttm,
@@ -471,7 +511,7 @@ class QueryContextProcessor:
             query_object_clone_dct = query_object_clone.to_dict()
             # rename metrics: SUM(value) => SUM(value) 1 year ago
             metrics_mapping = {
-                metric: TIME_COMPARISON.join([metric, offset])
+                metric: TIME_COMPARISON.join([metric, original_offset])
                 for metric in metric_names
             }
 
