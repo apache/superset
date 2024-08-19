@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+import { CLEAR_DATA_MASK_STATE } from 'src/dataMask/actions';
 import {
   ADD_SLICE,
   ON_CHANGE,
@@ -50,6 +51,7 @@ import {
 import {
   HYDRATE_DASHBOARD,
   HYDRATE_DASHBOARD_ACTIVETABS,
+  HYDRATE_DASHBOARD_DATAMASK,
 } from '../actions/hydrate';
 
 export default function dashboardStateReducer(state = {}, action) {
@@ -242,6 +244,18 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         datasetsStatus: action.status,
+      };
+    },
+    [CLEAR_DATA_MASK_STATE]() {
+      return {
+        ...state,
+        dataMaskHydrated: false,
+      };
+    },
+    [HYDRATE_DASHBOARD_DATAMASK]() {
+      return {
+        ...state,
+        dataMaskHydrated: true,
       };
     },
   };

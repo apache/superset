@@ -481,9 +481,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   } = useNativeFilters();
 
   // Dashboard must wait for pre-selected filters
+  const isDashboardHydrated = dashboardContext.hydrated;
   const canShowDashboard = !requiredFirstFilter.length
     ? true
-    : showDashboard && dashboardContext.hydrated;
+    : showDashboard && isDashboardHydrated;
 
   const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>({
     threshold: [1],
@@ -692,7 +693,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             marginLeft={dashboardContentMarginLeft}
           >
             {canShowDashboard ? (
-              missingInitialFilters.length > 0 ? (
+              !editMode && missingInitialFilters.length > 0 ? (
                 <div
                   css={css`
                     display: flex;

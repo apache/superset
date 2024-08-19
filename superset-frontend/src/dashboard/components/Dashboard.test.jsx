@@ -144,10 +144,13 @@ describe('Dashboard', () => {
     });
 
     it('should not call refresh when there is no change', () => {
+      wrapper.setState({ firstTimeRender: false });
       wrapper.setProps({
         activeFilters: OVERRIDE_FILTERS,
       });
+
       wrapper.instance().componentDidUpdate(prevProps);
+
       expect(refreshSpy.callCount).toBe(0);
       expect(wrapper.instance().appliedFilters).toBe(OVERRIDE_FILTERS);
     });

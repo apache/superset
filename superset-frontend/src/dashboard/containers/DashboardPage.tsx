@@ -201,6 +201,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
     if (Object.keys(currentDataMask).length && !isDashboardDatamaskHydrated) {
       setDashboardDatamaskHydrated(true);
+      dispatch(hydrateDashboardDataMask(currentDataMask, dashboardInfo));
     }
   }, [
     dispatch,

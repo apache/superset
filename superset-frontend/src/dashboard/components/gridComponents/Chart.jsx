@@ -422,13 +422,10 @@ class Chart extends Component {
 
     const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
 
-    // Controlling the status of the Chart based on Dashboard hydration
-    const controlledChartStatus = this.context.hydrated
-      ? chartStatus
-      : 'loading';
-    const controlledTriggerQuery = this.context.hydrated
-      ? chart.triggerQuery
-      : false;
+    // Controlling the status of a Chart based on Dashboard hydration
+    const isDashboardHydrated = this.context.hydrated;
+    const controlledChartStatus = isDashboardHydrated ? chartStatus : 'loading';
+    const { triggerQuery } = chart;
     const isLoading = controlledChartStatus === 'loading';
 
     // eslint-disable-next-line camelcase
@@ -533,7 +530,7 @@ class Chart extends Component {
             filterState={filterState}
             queriesResponse={chart.queriesResponse}
             timeout={timeout}
-            triggerQuery={controlledTriggerQuery}
+            triggerQuery={triggerQuery}
             vizType={slice.viz_type}
             setControlValue={setControlValue}
             postTransformProps={postTransformProps}

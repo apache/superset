@@ -89,6 +89,11 @@ class Dashboard extends PureComponent {
     this.appliedFilters = props.activeFilters ?? {};
     this.appliedOwnDataCharts = props.ownDataCharts ?? {};
     this.onVisibilityChange = this.onVisibilityChange.bind(this);
+    this.applyCharts = this.applyCharts.bind(this);
+
+    this.state = {
+      firstTimeRender: true,
+    };
   }
 
   componentDidMount() {
@@ -156,7 +161,9 @@ class Dashboard extends PureComponent {
     const { hasUnsavedChanges, editMode } = this.props.dashboardState;
 
     const { appliedFilters, appliedOwnDataCharts } = this;
-    const { activeFilters, ownDataCharts, chartConfiguration } = this.props;
+    const { activeFilters, ownDataCharts, chartConfiguration, dashboardState } =
+      this.props;
+
     if (
       isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
       !chartConfiguration
@@ -165,17 +172,22 @@ class Dashboard extends PureComponent {
       // for correct comparing  of filters to avoid unnecessary requests
       return;
     }
-
-    if (
-      !editMode &&
-      (!areObjectsEqual(appliedOwnDataCharts, ownDataCharts, {
-        ignoreUndefined: true,
-      }) ||
+    if (!editMode && dashboardState?.dataMaskHydrated) {
+      const filtersChanged =
+        !areObjectsEqual(appliedOwnDataCharts, ownDataCharts, {
+          ignoreUndefined: true,
+        }) ||
         !areObjectsEqual(appliedFilters, activeFilters, {
           ignoreUndefined: true,
-        }))
-    ) {
-      this.applyFilters();
+        });
+
+      if (filtersChanged) {
+        this.applyFilters();
+      } else if (this.state.firstTimeRender) {
+        this.refreshCharts(dashboardState.sliceIds);
+      }
+
+      this.setState({ firstTimeRender: false });
     }
 
     if (hasUnsavedChanges) {

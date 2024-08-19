@@ -38,7 +38,7 @@ export const chart: ChartState = {
   sliceFormData: null,
   queryController: null,
   queriesResponse: null,
-  triggerQuery: true,
+  triggerQuery: false,
   lastRendered: 0,
 };
 
@@ -55,6 +55,7 @@ export default function chartReducer(
       return {
         ...chart,
         ...action.chart,
+        triggerQuery: true,
       };
     },
     [actions.CHART_UPDATE_SUCCEEDED](state) {
