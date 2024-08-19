@@ -154,11 +154,10 @@ export function getDatabaseContext(): DatabaseContext {
     return dataBootstrap ? JSON.parse(dataBootstrap) : emptyDatabaseContext;
 }
 
-export function readableColor(hex: string) {
-
-    // if hex is invalid, return white
+export function readableColor(hex: string, thresholdBright: number = 150, thresholdDark: number = 140): string {
+    // If hex is invalid, return black
     if (!hex || hex.length < 7) {
-        return '#FFFFFF';
+        return '#000000';
     }
 
     // Remove the alpha channel if present
@@ -174,15 +173,17 @@ export function readableColor(hex: string) {
 
     // Calculate brightness
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    console.log('Color: %s, Brightness: %d, Threshold: %d <> %d', hex, brightness, thresholdBright, thresholdDark);
 
-    // If the color is bright, darken it
-    if (brightness > 155) {
-        const darken = (color: number) => Math.max(0, color + 50);
-        const darkenedColor = `#${((1 << 24) + (darken(r) << 16) + (darken(g) << 8) + darken(b)).toString(16).slice(1)}`;
-        return darkenedColor;
-    } else {
-        // If the color is dark, return white
+    if (brightness > thresholdBright) {
+        return '#000000';
+    } else if (brightness < thresholdDark) {
         return '#FFFFFF';
+    } else {
+        // Adjust color for better contrast
+        const adjustColor = (color: number) => Math.min(255, color + 50);
+        const adjustedColor = `#${((1 << 24) + (adjustColor(r) << 16) + (adjustColor(g) << 8) + adjustColor(b)).toString(16).slice(1)}`;
+        return adjustedColor;
     }
 }
 

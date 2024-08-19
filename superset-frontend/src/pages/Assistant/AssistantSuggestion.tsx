@@ -1,4 +1,3 @@
-import { prop } from 'lodash/fp';
 import { readableColor, adjustOpacity } from './contextUtils';
 
 /**

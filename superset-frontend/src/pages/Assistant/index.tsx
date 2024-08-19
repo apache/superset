@@ -1,7 +1,10 @@
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu from 'src/features/home/SubMenu';
 import { AssistantSuggestionsGridProps } from './AssistantSuggestionsGrid';
-import { AssistantSuggestionCategory, AssistantSuggestionCategoryProps} from './AssistantSuggestionCategory';
+import { AssistantSuggestionCategoryProps} from './AssistantSuggestionCategory';
+import { AssistantCategoriesProps, AssistantSuggestionCategories } from './AssistantSuggestionCategories';
+import { AssistantWelcomeMessage } from './AssistantWelcomeMessage';
+import { AssistantPrompt } from './AssistantPrompt';
 
 interface AssistantProps {
   user: {
@@ -49,11 +52,23 @@ const sampleSuggestions: AssistantSuggestionsGridProps = {
 };
 
 const sampleCategory: AssistantSuggestionCategoryProps = {
-  categoryTitle: 'Category Title',
-  categoryDescription: 'Category Description',
+  categoryTitle: 'Visualization Suggestions',
+  categoryDescription: 'Suggested Alerts based on available data sources and data sets',
   backgroundGradientStart: '#FF9398',
   backgroundGradientEnd: '#FF4049',
   suggestions: sampleSuggestions.suggestions,
+};
+
+const sampleCategory2: AssistantSuggestionCategoryProps = {
+  categoryTitle: 'Alert Suggestions',
+  categoryDescription: 'Suggested Alerts based on available data sources and data sets',
+  backgroundGradientStart: '#7572FF',
+  backgroundGradientEnd: '#255ACF',
+  suggestions: sampleSuggestions.suggestions,
+};
+
+const categories: AssistantCategoriesProps = {
+  categories: [sampleCategory, sampleCategory2],
 };
 
 function Assistant(props: AssistantProps) {
@@ -66,7 +81,9 @@ function Assistant(props: AssistantProps) {
     <SubMenu
       name="Assistant"
     />
-    <AssistantSuggestionCategory {...sampleCategory} />
+    <AssistantWelcomeMessage userFirsrName={props.user.firstName} />
+    <AssistantSuggestionCategories {...categories} />
+    <AssistantPrompt />
    </>
   );
 }
