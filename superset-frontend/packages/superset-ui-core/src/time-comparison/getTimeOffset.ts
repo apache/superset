@@ -27,12 +27,12 @@ export const parseDttmToDate = (
   computingShifts = false,
 ) => {
   const now = new Date();
-  if (
-    dttm === 'now' ||
-    dttm === 'today' ||
-    dttm === 'No filter' ||
-    dttm === ''
-  ) {
+  if (dttm === 'now' || dttm === 'No filter' || dttm === '') {
+    return now;
+  }
+
+  if (dttm === 'today') {
+    now.setHours(0, 0, 0, 0);
     return now;
   }
 
@@ -154,6 +154,9 @@ export const computeCustomDateTime = (
   let parsed: Date;
   if (dttm === 'now' || dttm === 'today') {
     parsed = new Date();
+    if (dttm === 'today') {
+      parsed.setHours(0, 0, 0, 0);
+    }
   } else {
     parsed = new Date(dttm);
   }
