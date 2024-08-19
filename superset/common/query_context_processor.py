@@ -494,9 +494,19 @@ class QueryContextProcessor:
                 if flt.get("col") != x_axis_label
             ]
 
+            # Inherit or custom start dates might compute the same offset but the response cannot be given
+            # using cached data unless you are using the same date of inherited range, that's why we
+            # set the cache cache using a custom key that includes the original offset and the computed offset
+            # for those two scenarios, the rest of the scenarios will use the original offset as cache key
+            cached_time_offset_key = (
+                offset if offset == original_offset else f"{offset}_{original_offset}"
+            )
+
             # `offset` is added to the hash function
             cache_key = self.query_cache_key(
-                query_object_clone, time_offset=offset, time_grain=time_grain
+                query_object_clone,
+                time_offset=cached_time_offset_key,
+                time_grain=time_grain,
             )
             cache = QueryCacheManager.get(
                 cache_key, CacheRegion.DATA, query_context.force
