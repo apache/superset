@@ -77,7 +77,7 @@ export const fetchSchemaData = async (databaseId: number) => {
     const enpoint = `/api/v1/database/${databaseId}/schemas/`;
     try {
         const response = await SupersetClient.get({ endpoint: enpoint });
-        const schemas = response.json.result.map((schema: any) => {
+        const schemas: DatabaseScemaData[] = response.json.result.map((schema: any) => {
             const schema_name = schema;
             // const tables = await fetchTableData(databaseId, schema_name);
             return {
@@ -107,7 +107,7 @@ export const fetchTableData = async (databaseId: number, schemaName: string) => 
     const enpoint = `/api/v1/database/${databaseId}/tables/?q=${q}`;
     try {
         const response = await SupersetClient.get({ endpoint: enpoint });
-        const tables = response.json.result.map((table: any) => {
+        const tables: DatabaseSchemaTableData[] = response.json.result.map((table: any) => {
            
             // const columns = await fetchColumnData(databaseId, schemaName, table_name);
             return {
@@ -133,10 +133,10 @@ export const fetchColumnData = async (databaseId: number, schemaName: string, ta
     const enpoint = `/api/v1/database/${databaseId}/table/${tableName}/${schemaName}/`;
     try {
         const response = await SupersetClient.get({ endpoint: enpoint });
-        const columns = response.json.columns.map((column: any) => {
+        const columns:ColumnData[]  = response.json.columns.map((column: any) => {
             return {
                 column_name: column.name,
-                type: column.type,
+                data_type: column.type,
                 description: column.comment
             };
         });

@@ -8,6 +8,7 @@ export interface DatasourceTableProps {
     schemaName: string;
     tableName: string;
     columns: DatasourceTableColumnProps[];
+    selectedColumns?: string[];
 }
 
 export interface DatasourceTableColumnProps {
@@ -23,6 +24,7 @@ export class DatasourceTable extends React.Component<DatasourceTableProps> {
     
     state: DatasourceTableProps = {
         selected: this.props.selected || false,
+        selectedColumns: [],
         ...this.props,
     };
 
@@ -30,6 +32,21 @@ export class DatasourceTable extends React.Component<DatasourceTableProps> {
         this.setState((prevState: DatasourceTableProps) => ({
             selected: !prevState.selected,
         }));
+    };
+
+    handleColumnSelect = (columnName: string) => {
+        this.setState((prevState: DatasourceTableProps) => {
+            const selectedColumns = prevState.selectedColumns || [];
+            const index = selectedColumns.indexOf(columnName);
+            if (index > -1) {
+                selectedColumns.splice(index, 1);
+            } else {
+                selectedColumns.push(columnName);
+            }
+            return {
+                selectedColumns,
+            };
+        });
     };
 
     async componentDidMount() {
@@ -51,6 +68,16 @@ export class DatasourceTable extends React.Component<DatasourceTableProps> {
     
     render() {
         const columnsMap = [{
+            title: 'Select',
+            dataIndex: 'columnName',
+            key: 'selected',
+            render: (columnName: string) => {
+                return <input type="checkbox" 
+                    checked={ this.state.selectedColumns?.includes(columnName) } 
+                    onChange={() => this.handleColumnSelect(columnName)}
+                />;
+            }
+        },{
             title: 'Column',
             dataIndex: 'columnName',
             key: 'columnName',
@@ -69,6 +96,7 @@ export class DatasourceTable extends React.Component<DatasourceTableProps> {
                 width: 'fit-content',
                 
             }} >
+                {/* <Collapse  /> */}
                 <Collapse style={{
                     padding: '0px',
                 }} >
@@ -87,7 +115,11 @@ export class DatasourceTable extends React.Component<DatasourceTableProps> {
                             <span>{this.props.tableName}</span>
                         </div>
                     } key="-1">
-                        <Table  columns={columnsMap} dataSource={columns} rowSelection={{ }} />
+                        <Table  
+                            columns={columnsMap} 
+                            dataSource={columns}  
+                          
+                            />
                     </Collapse.Panel>
                 </Collapse>
             </div>
