@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, unused-import, invalid-name
 
-import copy  #
+import copy
 from collections.abc import Generator
 
 import pytest

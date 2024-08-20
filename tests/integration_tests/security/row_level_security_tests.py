@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import re  #
+import re
 from typing import Any, Optional
 from unittest import mock
 

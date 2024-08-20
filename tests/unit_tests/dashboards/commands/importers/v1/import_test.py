@@ -96,7 +96,7 @@ def test_import_dashboard_managed_externally(
     assert dashboard.is_managed_externally is True
     assert dashboard.external_url == "https://example.org/my_dashboard"
 
-    ## Assert that the can write to dashboard was checked
+    # Assert that the can write to dashboard was checked
     mock_can_access.assert_called_once_with("can_write", "Dashboard")
 
 
