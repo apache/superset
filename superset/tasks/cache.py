@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from http.client import HTTPResponse
 from typing import Any, Optional, Union
 from urllib import request
 from urllib.error import URLError
@@ -30,6 +29,7 @@ from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import Tag, TaggedObject
+from superset.tasks.utils import fetch_csrf_token
 from superset.utils import json
 from superset.utils.date_parser import parse_human_datetime
 from superset.utils.machine_auth import MachineAuthProvider
@@ -211,42 +211,6 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
 
 strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
-
-
-def fetch_csrf_token(
-    headers: dict[str, str], session_cookie_name: str = "session"
-) -> dict[str, str]:
-    """
-    Fetches a CSRF token for API requests
-
-    :param headers: A map of headers to use in the request, including the session cookie
-    :returns: A map of headers, including the session cookie and csrf token
-    """
-    url = get_url_path("SecurityRestApi.csrf_token")
-    logger.info("Fetching %s", url)
-    req = request.Request(url, headers=headers, method="GET")
-    response: HTTPResponse
-    with request.urlopen(req, timeout=600) as response:
-        body = response.read().decode("utf-8")
-        session_cookie: Optional[str] = None
-        cookie_headers = response.headers.get_all("set-cookie")
-        if cookie_headers:
-            for cookie in cookie_headers:
-                cookie = cookie.split(";", 1)[0]
-                name, value = cookie.split("=", 1)
-                if name == session_cookie_name:
-                    session_cookie = value
-                    break
-
-        if response.status == 200:
-            data = json.loads(body)
-            res = {"X-CSRF-Token": data["result"]}
-            if session_cookie is not None:
-                res["Cookie"] = session_cookie
-            return res
-
-    logger.error("Error fetching CSRF token, status code: %s", response.status)
-    return {}
 
 
 @celery_app.task(name="fetch_url")
