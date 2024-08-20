@@ -92,7 +92,50 @@ To install run the following:
 pre-commit install
 ```
 
-A series of checks will now run when you make a git commit.
+This will install the hooks in your local repository. From now on, a series of checks will
+automatically run whenever you make a Git commit.
+
+#### Running Pre-commit Manually
+
+You can also run the pre-commit checks manually in various ways:
+
+- **Run pre-commit on all files (same as CI):**
+
+  To run the pre-commit checks across all files in your repository, use the following command:
+
+  ```bash
+  pre-commit run --all-files
+  ```
+
+  This is the same set of checks that will run during CI, ensuring your changes meet the project's standards.
+
+- **Run pre-commit on a specific file:**
+
+  If you want to check or fix a specific file, you can do so by specifying the file path:
+
+  ```bash
+  pre-commit run --files path/to/your/file.py
+  ```
+
+  This will only run the checks on the file(s) you specify.
+
+- **Run a specific pre-commit check:**
+
+  To run a specific check (hook) across all files or a particular file, use the following command:
+
+  ```bash
+  pre-commit run <hook_id> --all-files
+  ```
+
+  Or for a specific file:
+
+  ```bash
+  pre-commit run <hook_id> --files path/to/your/file.py
+  ```
+
+  Replace `<hook_id>` with the ID of the specific hook you want to run. You can find the list
+  of available hooks in the `.pre-commit-config.yaml` file.
+
 
 ## Alternatives to docker-compose
 
