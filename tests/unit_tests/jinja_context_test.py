@@ -466,10 +466,6 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
         "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
         return_value=[],
     )
-    mocker.patch(
-        "superset.models.helpers.security_manager.get_guest_rls_filters",
-        return_value=[],
-    )
 
     assert (
         dataset_macro(1)
