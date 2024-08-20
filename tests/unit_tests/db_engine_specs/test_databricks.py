@@ -178,7 +178,7 @@ def test_extract_errors() -> None:
     Test that custom error messages are extracted correctly.
     """
 
-    msg = ": mismatched input 'from_'. Expecting: "
+    msg = ": mismatched input 'FROM'. Expecting: "
     result = DatabricksNativeEngineSpec.extract_errors(Exception(msg))
 
     assert result == [
