@@ -38,6 +38,8 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
         const tableData: DatasourceTableProps[] = tables.map((table: DatabaseSchemaTableData) => {
             console.log("<<<<>>>> Table:", table);
             return {
+                databaseId: databaseId,
+                schemaName: schemaName,
                 selected: false,
                 tableName: table.table_name,
                 columns: []
@@ -47,7 +49,6 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
         this.setState((prevState: DatasourceSchemaProps) => ({
             tables: tableData
         }));
-
     }
 
     render() {

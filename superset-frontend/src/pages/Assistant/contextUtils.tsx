@@ -129,7 +129,7 @@ export const fetchTableData = async (databaseId: number, schemaName: string) => 
  * @param tableName 
  * @returns Promise<ColumnData[]>
  */
-const fetchColumnData = async (databaseId: number, schemaName: string, tableName: string) => {
+export const fetchColumnData = async (databaseId: number, schemaName: string, tableName: string) => {
     const enpoint = `/api/v1/database/${databaseId}/table/${tableName}/${schemaName}/`;
     try {
         const response = await SupersetClient.get({ endpoint: enpoint });
