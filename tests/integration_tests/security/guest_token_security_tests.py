@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Unit tests for Superset"""
+"""Unit tests for Superset"""  #
 
 from unittest.mock import Mock, patch
 
@@ -113,15 +113,29 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         self.authorized_guest = security_manager.get_guest_user_from_token(
             {
                 "user": {},
-                "resources": [{"type": "dashboard", "id": str(self.embedded.uuid)}],
+                "resources": [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(self.embedded.uuid),
+                    }
+                ],
+                "iat": 0,
+                "exp": 0,
+                "rls_rules": [],
             }
         )
         self.unauthorized_guest = security_manager.get_guest_user_from_token(
             {
                 "user": {},
                 "resources": [
-                    {"type": "dashboard", "id": "06383667-3e02-4e5e-843f-44e9c5896b6c"}
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": "06383667-3e02-4e5e-843f-44e9c5896b6c",
+                    }
                 ],
+                "iat": 0,
+                "exp": 0,
+                "rls_rules": [],
             }
         )
 
@@ -247,15 +261,29 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
         self.authorized_guest = security_manager.get_guest_user_from_token(
             {
                 "user": {},
-                "resources": [{"type": "dashboard", "id": str(self.embedded.uuid)}],
+                "resources": [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(self.embedded.uuid),
+                    }
+                ],
+                "iat": 0,
+                "exp": 0,
+                "rls_rules": [],
             }
         )
         self.unauthorized_guest = security_manager.get_guest_user_from_token(
             {
                 "user": {},
                 "resources": [
-                    {"type": "dashboard", "id": "06383667-3e02-4e5e-843f-44e9c5896b6c"}
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": "06383667-3e02-4e5e-843f-44e9c5896b6c",
+                    }
                 ],
+                "iat": 0,
+                "exp": 0,
+                "rls_rules": [],
             }
         )
         self.chart = self.get_slice("Girls")
