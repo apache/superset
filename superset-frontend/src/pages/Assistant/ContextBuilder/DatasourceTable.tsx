@@ -13,6 +13,7 @@ export interface DatasourceTableProps {
 
 export interface DatasourceTableColumnProps {
     selected?: boolean;
+    key?: React.Key;
     columnName: string;
     columnType: string;
     columnDescription?: string;
@@ -32,30 +33,25 @@ export class DatasourceTable extends React.Component<DatasourceTableProps> {
         this.setState((prevState: DatasourceTableProps) => ({
             selected: !prevState.selected,
         }));
+        this.setState((prevState: DatasourceTableProps) => ({
+            selectedColumns: !prevState.selected ? [] : prevState.columns.map((column) => column.columnName),
+        }));
     };
 
-    handleColumnSelect = (columnName: string) => {
-        this.setState((prevState: DatasourceTableProps) => {
-            const selectedColumns = prevState.selectedColumns || [];
-            const index = selectedColumns.indexOf(columnName);
-            if (index > -1) {
-                selectedColumns.splice(index, 1);
-            } else {
-                selectedColumns.push(columnName);
-            }
-            return {
-                selectedColumns,
-            };
-        });
+    handleColumnSelect = (selectedColumnNames: string[]) => {
+        this.setState((prevState: DatasourceTableProps) => ({
+            selectedColumns: selectedColumnNames,
+            selected: selectedColumnNames.length === prevState.columns.length,
+        }));
     };
 
     async componentDidMount() {
         const { databaseId, schemaName, tableName } = this.props;
         const columns = await fetchColumnData(databaseId, schemaName, tableName);
-        console.log("<<<<>>>> Columns:", columns);
         const columnData: DatasourceTableColumnProps[] = columns.map((column: ColumnData) => {
             return {
                 selected: false,
+                key: column.column_name,
                 columnName: column.column_name,
                 columnType: column.data_type,
             };
@@ -68,16 +64,6 @@ export class DatasourceTable extends React.Component<DatasourceTableProps> {
     
     render() {
         const columnsMap = [{
-            title: 'Select',
-            dataIndex: 'columnName',
-            key: 'selected',
-            render: (columnName: string) => {
-                return <input type="checkbox" 
-                    checked={ this.state.selectedColumns?.includes(columnName) } 
-                    onChange={() => this.handleColumnSelect(columnName)}
-                />;
-            }
-        },{
             title: 'Column',
             dataIndex: 'columnName',
             key: 'columnName',
@@ -87,16 +73,15 @@ export class DatasourceTable extends React.Component<DatasourceTableProps> {
             key: 'columnType',
         }];
 
-        const { selected, columns } = this.state;
+        console.log("<<<<>>>> Columns:", this.state);
 
-        console.log("<<<<>>>> DatasourceTable Props:", this.state);
+        const { selected, columns, selectedColumns } = this.state;
 
         return (
             <div style={{
                 width: 'fit-content',
                 
             }} >
-                {/* <Collapse  /> */}
                 <Collapse style={{
                     padding: '0px',
                 }} >
@@ -115,10 +100,18 @@ export class DatasourceTable extends React.Component<DatasourceTableProps> {
                             <span>{this.props.tableName}</span>
                         </div>
                     } key="-1">
-                        <Table  
+                        <Table
                             columns={columnsMap} 
-                            dataSource={columns}  
-                          
+                            dataSource={columns}
+                            
+                            rowSelection={{
+                                type: 'checkbox',
+                                onChange: (selectedRowKeys, selectedRows) => {
+                                    const selectedColumnNames = selectedRows.map((row) => row.columnName);
+                                    this.handleColumnSelect(selectedColumnNames);
+                                },
+                                selectedRowKeys: selectedColumns
+                            }}
                             />
                     </Collapse.Panel>
                 </Collapse>
