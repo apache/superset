@@ -35,8 +35,7 @@ import {
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
 import Icons from 'src/components/Icons';
-import Button from 'src/components/Button';
-import { AntdButton } from 'src/components/';
+import { Button } from 'src/components/';
 import { findPermission } from 'src/utils/findPermission';
 import { Tooltip } from 'src/components/Tooltip';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -138,7 +137,8 @@ const actionButtonsStyle = theme => css`
   }
 `;
 
-const StyledUndoRedoButton = styled(AntdButton)`
+const StyledUndoRedoButton = styled(Button)`
+  // TODO: check if we need this.
   padding: 0;
   &:hover {
     background: transparent;
