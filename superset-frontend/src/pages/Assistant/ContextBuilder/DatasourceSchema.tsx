@@ -1,4 +1,4 @@
-import { Collapse } from "antd";
+import { Collapse, Spin } from "antd";
 import { DatasourceTableProps } from "./DatasourceTable";
 import { DatasourceTable } from "./DatasourceTable";
 import React, { Component } from "react";
@@ -13,6 +13,8 @@ export interface DatasourceSchemaProps {
     schemaName: string;
     description?: string;
     tables?: DatasourceTableProps[];
+    onChange?: (data: DatasourceTableProps) => void;
+    loading?: boolean;
 }
 
 /**
@@ -23,6 +25,7 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
     state: DatasourceSchemaProps = {
         selected: this.props.selected || false,
         tables: this.props.tables || [],
+        loading: true,
         ...this.props
     };
 
@@ -36,7 +39,6 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
         const { databaseId, schemaName } = this.props;
         const tables = await fetchTableData(databaseId, schemaName);
         const tableData: DatasourceTableProps[] = tables.map((table: DatabaseSchemaTableData) => {
-            console.log("<<<<>>>> Table:", table);
             return {
                 databaseId: databaseId,
                 schemaName: schemaName,
@@ -45,15 +47,16 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
                 columns: []
             };
         });
-        console.log("<<<<>>>> Datasource Tables:", tableData);
         this.setState((prevState: DatasourceSchemaProps) => ({
-            tables: tableData
+            tables: tableData,
+            loading: false
         }));
     }
 
+    
+
     render() {
-        const { selected, schemaName, tables } = this.state;
-        console.log("<<<<>>>> DatasourceSchema Props:", this.state);
+        const { loading, schemaName, tables } = this.state;
         return (
             <>
                 <div style={{
@@ -71,26 +74,18 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
                                     display: 'flex',
                                     flexDirection: 'row',
                                 }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={selected}
-                                        onChange={this.handleSelect} />
-                                    {/* tab */}
-                                    <span
-                                        style={{
-                                            width: '10px',
-                                        }}></span>
                                     <span>{schemaName}</span>
+                                    <span style={{ width: '10px' }}></span>
+                                    {loading && <Spin size="small" />}
                                 </div>
-                            } key="-1">
+                            } key={schemaName}>
                             <div style={{
                                 display: 'flex',
                                 flexDirection: 'row',
                                 flexWrap: 'wrap',
-                                gap: '10px',
                             }}>
                                 {tables?.map((table) => (
-                                    <DatasourceTable key={'tables'+table.tableName} {...table} />
+                                    <DatasourceTable key={'tables'+table.tableName} {...table} onChange={this.state.onChange} />
                                 ))}
                             </div>
                         </Collapse.Panel>

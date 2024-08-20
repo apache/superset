@@ -1,5 +1,6 @@
-import { Collapse } from "antd";
+import { Collapse, Spin } from "antd";
 import { DatasourceSchemaProps, DatasourceSchema } from "./DatasourceSchema";
+import { DatasourceTableProps } from "./DatasourceTable";
 import React from "react";
 import { fetchSchemaData, DatabaseScemaData } from "../contextUtils";
 
@@ -11,6 +12,8 @@ export interface DatasourceProps {
     id: number;
     datasourceName: string;
     schema: DatasourceSchemaProps[];
+    onChange?: (data: DatasourceTableProps) => void;
+    loading?: boolean;
 }
 
 /**
@@ -24,6 +27,7 @@ export class Datasource extends React.Component<DatasourceProps> {
         this.state = {
             ...this.props,
             selected: this.props.selected || false,
+            loading: true,
         };
     }
 
@@ -46,12 +50,13 @@ export class Datasource extends React.Component<DatasourceProps> {
         });
         this.setState((prevState: DatasourceProps) => ({
             schema: schemaData,
+            loading: false,
         }));
     }
     
 
     render() {
-        const { selected, schema } = this.state;
+        const { schema, loading } = this.state;
         const { datasourceName } = this.props;
         return (
             <Collapse style={{
@@ -65,17 +70,9 @@ export class Datasource extends React.Component<DatasourceProps> {
                                 display: "flex",
                                 flexDirection: "row",
                             }}>
-                            <input
-                                type="checkbox"
-                                checked={selected}
-                                onChange={this.handleSelect}
-                            />
-                            {/* tab */}
-                            <span
-                                style={{
-                                    width: "10px",
-                                }}></span>
-                            <span>{datasourceName}</span>
+                            <span>{datasourceName} </span>
+                            <span style={{ width: '10px' }}></span>
+                            {loading && <Spin size="small" />}
                         </div>
                     } key="-1" >
                     <div style={{
@@ -85,7 +82,7 @@ export class Datasource extends React.Component<DatasourceProps> {
                         gap: "10px",
                     }} >
                         {schema.map((schema) => (
-                            <DatasourceSchema key={'d_schema'+schema.schemaName} {...schema} />
+                            <DatasourceSchema key={'d_schema'+schema.schemaName} {...schema} onChange={this.state.onChange} />
                         ))}
                     </div>
                 </Collapse.Panel>

@@ -1,54 +1,22 @@
 import{ Datasource } from './Datasource';
 import{ ContextSelection } from './ContextSelection';
 import { DatasourceProps } from './Datasource';
-import { DatasourceSchemaProps } from './DatasourceSchema';
-import { DatasourceTableProps } from './DatasourceTable';
-import { useMemo, useState } from 'react';
+import { DatasourceTableProps } from "./DatasourceTable";
+import { useEffect, useMemo, useState } from 'react';
 import { fetchDatabaseData, DatabaseData } from '../contextUtils';
+import { Spin } from 'antd';
 
-/**
- * Test Data
- */
-const testTable: DatasourceTableProps = {
-    selected: false,
-    tableName: 'table1-table1',
-    columns: [
-        {
-            columnName: 'column1-column1',
-            columnType: 'int',
-            columnDescription: 'column1 description',
-            columnSuggestions: ['suggestion1', 'suggestion2']
-        },
-        {
-            columnName: 'column2',
-            columnType: 'string',
-            columnDescription: 'column2 description',
-            columnSuggestions: ['suggestion1', 'suggestion2']
-        }
-    ]
-}
 
-const testSchema: DatasourceSchemaProps = {
-    selected: false,
-    schemaName: 'schema1',
-    description: 'schema1 description',
-    tables: [testTable, testTable, testTable, testTable,testTable]
-}
-
-const testDatasource: DatasourceProps = {
-    id: 1,
-    selected: false,
-    datasourceName: 'datasource1',
-    schema: [testSchema, testSchema]
-}
-
-const testDatasources = [testDatasource]
 
 export function DatabaseSelector(){
 
     const [datasources, setDatasources] = useState<DatasourceProps[]>([])
+    const [loading, setLoading] = useState<boolean>(true);
 
-    useMemo(() => {
+    // selectedDict is a dictionary that stores the selected data
+    const [ selectedDict, setSelectedDict ] = useState<{ [key: number]: any }>({});
+
+    useEffect(() => {
         fetchDatabaseData().then((data:DatabaseData[]) => {
             setDatasources(data.map((database: DatabaseData) => {
                 return {
@@ -60,8 +28,39 @@ export function DatabaseSelector(){
             }));
         }).catch((error) => {
             console.error("<<<<>>>> Error fetching database data:", error);
-        })
-    }, [])
+        }).finally(() => {
+            setLoading(false);
+        });
+        console.log("<<<<>>>> Datasources: ", datasources);
+    }, [selectedDict])
+
+    const handleSelectEvent = (data: DatasourceTableProps) => {
+        setSelectedDict((prevState) => {
+            let newState = {
+                ...prevState,
+                [data.databaseId]: (data.selectedColumns || []).length > 0 ? {
+                    ...prevState[data.databaseId],
+                    [data.schemaName]:{
+                        ...prevState[data.databaseId]?.[data.schemaName],
+                        [data.tableName]: data.columns.filter((column) => {
+                            return data.selectedColumns?.includes(column.columnName);
+                        }).map((column) => {
+                            return {
+                                column_name: column.columnName,
+                                column_type: column.columnType,
+                            }
+                        })
+                    }
+                } : null
+            }
+            // remove the key if the value is null
+            if (newState[data.databaseId] === null) {
+                delete newState[data.databaseId];
+            }
+            console.log("<<<<>>>> Selected Data: ", newState);
+            return newState;
+        });
+    };
 
 
     return (
@@ -70,12 +69,31 @@ export function DatabaseSelector(){
                 width: '100%',
                 borderTopRightRadius: '16px',
                 borderBottomRightRadius: '16px',
-                padding: '24px',
+                padding: '0px',
                 background: '#f0f0f0',
             }}>
-                <h4>Databases</h4>
-                <p>Choose the Databases you want the assistant to have access to.</p>
-                {datasources.map((datasource) => <Datasource key={'d_source'+datasource.id} {...datasource} />)}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '24px',
+                    width: '100%',
+                    background: '#f0f0f0',
+                }}>
+                    <div style={{
+                        padding: '24px',
+                        width: 'fit-content',
+                        height: 'fit-content',
+                    }}>
+                        <h4>Databases Connections</h4>
+                        <p>Choose the Databases you want the assistant to have access to.</p>
+                    </div>
+                    <div style={{}}>
+                        {/* Loading Indicator */}
+                        {loading && <Spin size="small" />}
+
+                    </div>
+                </div>
+                {datasources.map((datasource) => <Datasource key={'d_source'+datasource.id} {...datasource} onChange={handleSelectEvent} />)}
                 <ContextSelection />
             </div>
         </>
