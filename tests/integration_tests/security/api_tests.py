@@ -144,7 +144,7 @@ class TestSecurityRolesApi(SupersetTestCase):
     @with_config({"FAB_ADD_SECURITY_API": True})
     def test_get_security_roles_admin(self):
         """
-        Security API: Admin should be able to create roles
+        Security API: Admin should be able to get roles
         """
         self.login(ADMIN_USERNAME)
         response = self.client.get(self.uri)
@@ -153,7 +153,7 @@ class TestSecurityRolesApi(SupersetTestCase):
     @with_config({"FAB_ADD_SECURITY_API": True})
     def test_get_security_roles_gamma(self):
         """
-        Security API: Admin should be able to create roles
+        Security API: Gamma should not be able to get roles
         """
         self.login(GAMMA_USERNAME)
         response = self.client.get(self.uri)
@@ -162,7 +162,7 @@ class TestSecurityRolesApi(SupersetTestCase):
     @with_config({"FAB_ADD_SECURITY_API": True})
     def test_post_security_roles_gamma(self):
         """
-        Security API: Gamma shouldnt be able to create roles
+        Security API: Gamma should not be able to create roles
         """
         self.login(GAMMA_USERNAME)
         response = self.client.post(
