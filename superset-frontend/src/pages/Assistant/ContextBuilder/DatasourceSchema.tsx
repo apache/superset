@@ -53,6 +53,14 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
         }));
     }
 
+    handleOnChange = (data: DatasourceTableProps) => {
+        // percentage done
+        const { loading } = data
+        console.log('Loading: ', loading);
+        // finally
+        this.state.onChange?.call(this, data);
+    };
+
     
 
     render() {
@@ -85,7 +93,7 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
                                 flexWrap: 'wrap',
                             }}>
                                 {tables?.map((table) => (
-                                    <DatasourceTable key={'tables'+table.tableName} {...table} onChange={this.state.onChange} />
+                                    <DatasourceTable key={'tables'+table.tableName} {...table} onChange={this.handleOnChange} />
                                 ))}
                             </div>
                         </Collapse.Panel>

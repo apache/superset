@@ -79,7 +79,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
             columnName: column.column_name,
             columnType: column.data_type,
         }));
-        this.setState({ columns: columnData, loading: false });
+        this.setState({ columns: columnData, loading: false }, () => {this.state.onChange?.call(this, this.state)});
     }
 
     render() {

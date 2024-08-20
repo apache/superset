@@ -1,5 +1,5 @@
 import { ContextBuilderSteps } from './ContextBuilderSteps';
-import {DatabaseSelector } from './DatabaseSelector';
+import { DatasourceSelector } from './DatasourceSelector';
 
 
 
@@ -13,7 +13,8 @@ export function AssistantContextBuilder(props: any) {
             width: 'fill-available',
         }}>
             <ContextBuilderSteps />
-            <DatabaseSelector />
+            
+            <DatasourceSelector />
         </div>
     )
 }

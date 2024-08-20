@@ -2,13 +2,13 @@ import{ Datasource } from './Datasource';
 import{ ContextSelection } from './ContextSelection';
 import { DatasourceProps } from './Datasource';
 import { DatasourceTableProps } from "./DatasourceTable";
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchDatabaseData, DatabaseData } from '../contextUtils';
 import { Spin } from 'antd';
 
 
 
-export function DatabaseSelector(){
+export function DatasourceSelector(){
 
     const [datasources, setDatasources] = useState<DatasourceProps[]>([])
     const [loading, setLoading] = useState<boolean>(true);
@@ -57,10 +57,31 @@ export function DatabaseSelector(){
             if (newState[data.databaseId] === null) {
                 delete newState[data.databaseId];
             }
-            console.log("<<<<>>>> Selected Data: ", newState);
+            
             return newState;
         });
     };
+
+    /**
+     * return data schema
+     * {
+     *      databaseId: number,
+     *      databaseName: string,
+     *      description: string,
+     *      schemas: [
+     *         {
+     *             schemaName: string,
+     *             description: string,
+     *             tables: [
+     *                  {
+     *                    tableName: string,
+     * 
+     *                  }
+     *              ]
+     *          }
+     *     ]
+     * }
+     */
 
 
     return (
