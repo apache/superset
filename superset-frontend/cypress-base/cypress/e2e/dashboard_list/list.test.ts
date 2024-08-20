@@ -240,7 +240,8 @@ describe('Dashboards list', () => {
       // edits in list-view
       setGridMode('list');
       cy.getBySel('edit-alt').eq(0).click();
-      cy.getBySel('dashboard-title-input').clear().type('1 - Sample dashboard');
+      cy.getBySel('dashboard-title-input').clear();
+      cy.getBySel('dashboard-title-input').type('1 - Sample dashboard');
       cy.get('button:contains("Save")').click();
       cy.wait('@update');
       cy.getBySel('table-row').eq(0).contains('1 - Sample dashboard');

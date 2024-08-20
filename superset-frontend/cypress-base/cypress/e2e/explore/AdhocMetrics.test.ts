@@ -41,12 +41,10 @@ describe('AdhocMetrics', () => {
     cy.get('[data-test="AdhocMetricEditTitle#trigger"]').click();
     cy.get('[data-test="AdhocMetricEditTitle#input"]').type(metricName);
 
-    cy.get('input[aria-label="Select column"]')
-      .click()
-      .type('num_girls{enter}');
-    cy.get('input[aria-label="Select aggregate options"]')
-      .click()
-      .type('sum{enter}');
+    cy.get('input[aria-label="Select column"]').click();
+    cy.get('input[aria-label="Select column"]').type('num_girls{enter}');
+    cy.get('input[aria-label="Select aggregate options"]').click();
+    cy.get('input[aria-label="Select aggregate options"]').type('sum{enter}');
 
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 

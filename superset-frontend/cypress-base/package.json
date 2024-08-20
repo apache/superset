@@ -30,6 +30,6 @@
   "devDependencies": {
     "@types/querystringify": "^2.0.0",
     "cypress": "^10.11.0",
-    "eslint-plugin-cypress": "^2.12.1"
+    "eslint-plugin-cypress": "^3.5.0"
   }
 }

@@ -239,15 +239,11 @@ export function enterNativeFilterEditModal(waitForDataset = true) {
  * @summary helper for adding new filter
  ************************************************************************* */
 export function clickOnAddFilterInModal() {
+  cy.get(nativeFilters.addFilterButton.button).first().click();
   return cy
-    .get(nativeFilters.addFilterButton.button)
-    .first()
-    .click()
-    .then(() => {
-      cy.get(nativeFilters.addFilterButton.dropdownItem)
-        .contains('Filter')
-        .click({ force: true });
-    });
+    .get(nativeFilters.addFilterButton.dropdownItem)
+    .contains('Filter')
+    .click({ force: true });
 }
 
 /** ************************************************************************
@@ -272,14 +268,22 @@ export function fillNativeFilterForm(
   cy.get(nativeFilters.modal.container)
     .find(nativeFilters.filtersPanel.filterName)
     .last()
-    .click({ scrollBehavior: false })
-    .clear({ force: true })
+    .click({ scrollBehavior: false });
+  cy.get(nativeFilters.modal.container)
+    .find(nativeFilters.filtersPanel.filterName)
+    .last()
+    .clear({ force: true });
+  cy.get(nativeFilters.modal.container)
+    .find(nativeFilters.filtersPanel.filterName)
+    .last()
     .type(name, { scrollBehavior: false, force: true });
   if (dataset) {
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.datasetName)
       .last()
-      .click({ force: true, scrollBehavior: false })
+      .click({ force: true, scrollBehavior: false });
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
       .type(`${dataset}`, { scrollBehavior: false });
     cy.get(nativeFilters.silentLoading).should('not.exist');
     cy.get(`[label="${dataset}"]`).click({ multiple: true, force: true });
@@ -339,9 +343,9 @@ export function addParentFilterWithValue(index: number, value: string) {
   return cy
     .get(nativeFilters.filterConfigurationSections.displayedSection)
     .within(() => {
+      cy.get('input[aria-label="Limit type"]').eq(index).click({ force: true });
       cy.get('input[aria-label="Limit type"]')
         .eq(index)
-        .click({ force: true })
         .type(`${value}{enter}`, { delay: 30, force: true });
     });
 }
