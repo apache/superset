@@ -336,7 +336,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = 'Syntax error: Expected end of input but got identifier "from_"'
+        msg = 'Syntax error: Expected end of input but got identifier "FROM"'
         result = BigQueryEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
