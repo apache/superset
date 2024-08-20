@@ -78,6 +78,7 @@ import {
   LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD,
   LOG_ACTIONS_SQLLAB_CREATE_CHART,
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
+  LOG_ACTIONS_SQLLAB_DOWNLOAD_GSHEET,
 } from 'src/logger/LogUtils';
 import { AntdDropdown } from 'src/components';
 import Icons from 'src/components/Icons';
@@ -349,8 +350,10 @@ const ResultSet = ({
           label: t('Google Sheets'),
           key: 'google-sheets',
           icon: <Icons.GoogleOutlined />,
-          onClick: () =>
-            window.open(getExportGoogleSheetsUrl(query.id), '_blank')?.focus(),
+          onClick: () => {
+            logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_GSHEET, {});
+            window.open(getExportGoogleSheetsUrl(query.id), '_blank')?.focus();
+          },
         });
       }
       const ExportMenu = (

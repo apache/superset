@@ -81,6 +81,7 @@ export const LOG_ACTIONS_SQLLAB_SAVE_DATASET = 'sqllab_save_dataset';
 export const LOG_ACTIONS_SQLLAB_COPY_LINK = 'sqllab_copy_link';
 export const LOG_ACTIONS_SQLLAB_FORMAT_SQL = 'sqllab_format_sql';
 export const LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV = 'sqllab_download_csv';
+export const LOG_ACTIONS_SQLLAB_DOWNLOAD_GSHEET = 'sqllab_download_gsheet';
 export const LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD =
   'sqllab_copy_result_to_clipboard';
 export const LOG_ACTIONS_SQLLAB_CREATE_CHART = 'sqllab_create_chart';
