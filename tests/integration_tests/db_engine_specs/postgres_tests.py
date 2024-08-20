@@ -421,7 +421,7 @@ psql: error: could not connect to server: Operation timed out
             )
         ]
 
-        msg = 'syntax error at or near "from_"'
+        msg = 'syntax error at or near "FROM"'
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
