@@ -213,7 +213,9 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
 strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
 
-def fetch_csrf_token(headers: dict[str, str]) -> dict[str, str]:
+def fetch_csrf_token(
+    headers: dict[str, str], session_cookie_name: str = "session"
+) -> dict[str, str]:
     """
     Fetches a CSRF token for API requests
 
@@ -226,7 +228,16 @@ def fetch_csrf_token(headers: dict[str, str]) -> dict[str, str]:
     response: HTTPResponse
     with request.urlopen(req, timeout=600) as response:
         body = response.read().decode("utf-8")
-        session_cookie = response.headers.get("Set-Cookie")
+        session_cookie: Optional[str] = None
+        cookie_headers = response.headers.get_all("set-cookie")
+        if cookie_headers:
+            for cookie in cookie_headers:
+                cookie = cookie.split(";", 1)[0]
+                name, value = cookie.split("=", 1)
+                if name == session_cookie_name:
+                    session_cookie = value
+                    break
+
         if response.status == 200:
             data = json.loads(body)
             res = {"X-CSRF-Token": data["result"]}

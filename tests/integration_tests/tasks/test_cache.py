@@ -40,9 +40,12 @@ def test_fetch_csrf_token(mock_urlopen, mock_request_cls, base_url, app_context)
     mock_response = mock.MagicMock()
     mock_urlopen.return_value.__enter__.return_value = mock_response
 
-    mock_response.code = 200
+    mock_response.status = 200
     mock_response.read.return_value = b'{"result": "csrf_token"}'
-    mock_response.headers.get.return_value = "new_session_cookie"
+    mock_response.headers.get_all.return_value = [
+        "session=new_session_cookie",
+        "async-token=websocket_cookie",
+    ]
 
     app.config["WEBDRIVER_BASEURL"] = base_url
     headers = {"Cookie": "original_session_cookie"}
