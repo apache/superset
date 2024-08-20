@@ -653,8 +653,8 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
                     }
                 ],
                 "rls_rules": rules,
-                "iat": 0,
-                "exp": 0,
+                "iat": 10,
+                "exp": 20,
             }
         )
 

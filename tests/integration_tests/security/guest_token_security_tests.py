@@ -119,8 +119,8 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
                         "id": str(self.embedded.uuid),
                     }
                 ],
-                "iat": 0,
-                "exp": 0,
+                "iat": 10,
+                "exp": 20,
                 "rls_rules": [],
             }
         )
@@ -133,8 +133,8 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
                         "id": "06383667-3e02-4e5e-843f-44e9c5896b6c",
                     }
                 ],
-                "iat": 0,
-                "exp": 0,
+                "iat": 10,
+                "exp": 20,
                 "rls_rules": [],
             }
         )
@@ -267,8 +267,8 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                         "id": str(self.embedded.uuid),
                     }
                 ],
-                "iat": 0,
-                "exp": 0,
+                "iat": 10,
+                "exp": 20,
                 "rls_rules": [],
             }
         )
@@ -281,8 +281,8 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                         "id": "06383667-3e02-4e5e-843f-44e9c5896b6c",
                     }
                 ],
-                "iat": 0,
-                "exp": 0,
+                "iat": 10,
+                "exp": 20,
                 "rls_rules": [],
             }
         )
