@@ -73,7 +73,11 @@ class UIManifestProcessor:
 
     def get_manifest(self) -> dict[str, Union[Callable[[str], list[str]], str]]:
         loaded_chunks = set()
-        assets_prefix = self.app.config["STATIC_ASSETS_PREFIX"]
+
+        if self.app:
+            assets_prefix = self.app.config["STATIC_ASSETS_PREFIX"]
+        else:
+            assets_prefix = ""
 
         def get_files(bundle: str, asset_type: str = "js") -> list[str]:
             files = self.get_manifest_files(bundle, asset_type)
@@ -89,9 +93,7 @@ class UIManifestProcessor:
         return {
             "js_manifest": lambda bundle: get_files(bundle, "js"),
             "css_manifest": lambda bundle: get_files(bundle, "css"),
-            "assets_prefix": assets_prefix
-            if self.app
-            else "",
+            "assets_prefix": assets_prefix,
         }
 
     def parse_manifest_json(self) -> None:
