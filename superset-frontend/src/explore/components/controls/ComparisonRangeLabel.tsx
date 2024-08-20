@@ -122,25 +122,42 @@ export const ComparisonRangeLabel = ({
             ensureIsArray(newShifts),
           );
         }
-        return fetchTimeRange(filter.comparator, filter.subject).then(res => {
-          const datePattern = /\d{4}-\d{2}-\d{2}/g;
-          const dates = res?.value?.match(datePattern);
-          const [startDate, endDate] = dates ?? [];
-          const postProcessedShifts = getTimeOffset({
-            timeRangeFilter: {
-              ...filter,
-              comparator: `${startDate} : ${endDate}`,
-            },
-            shifts: shiftsArray,
-            startDate: useStartDate,
-            includeFutureOffsets: false, // So we don't trigger requests for future dates
+        // Need to parse Human readable dates to actual dates
+        if (
+          (ensureIsArray(shifts)[0] === 'custom' && startDate) ||
+          ensureIsArray(shifts)[0] !== 'custom'
+        ) {
+          return fetchTimeRange(filter.comparator, filter.subject).then(res => {
+            const datePattern = /\d{4}-\d{2}-\d{2}/g;
+            const dates = res?.value?.match(datePattern);
+            const [parsedStartDate, parsedEndDate] = dates ?? [];
+            if (parsedStartDate) {
+              const parsedDateMoment = moment(parseDttmToDate(parsedStartDate));
+              const startDateMoment = moment(parseDttmToDate(startDate));
+              if (
+                startDateMoment.isSameOrBefore(parsedDateMoment) ||
+                !startDate
+              ) {
+                const postProcessedShifts = getTimeOffset({
+                  timeRangeFilter: {
+                    ...filter,
+                    comparator: `${parsedStartDate} : ${parsedEndDate}`,
+                  },
+                  shifts: shiftsArray,
+                  startDate: useStartDate,
+                  includeFutureOffsets: false, // So we don't trigger requests for future dates
+                });
+                return fetchTimeRange(
+                  filter.comparator,
+                  filter.subject,
+                  ensureIsArray(postProcessedShifts),
+                );
+              }
+            }
+            return Promise.resolve({ value: '' });
           });
-          return fetchTimeRange(
-            filter.comparator,
-            filter.subject,
-            ensureIsArray(postProcessedShifts),
-          );
-        });
+        }
+        return Promise.resolve({ value: '' });
       });
       Promise.all(promises).then(res => {
         // access the value property inside the res and set the labels with it in the state

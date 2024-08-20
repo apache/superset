@@ -154,9 +154,6 @@ export const computeCustomDateTime = (
   let parsed: Date;
   if (dttm === 'now' || dttm === 'today') {
     parsed = new Date();
-    if (dttm === 'today') {
-      parsed.setHours(0, 0, 0, 0);
-    }
   } else {
     parsed = new Date(dttm);
   }
