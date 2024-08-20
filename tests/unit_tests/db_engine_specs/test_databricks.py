@@ -210,7 +210,7 @@ def test_extract_errors_with_context() -> None:
 
     assert result == [
         SupersetError(
-            message=": mismatched input 'from_'. Expecting: ",
+            message=": mismatched input 'FROM'. Expecting: ",
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
