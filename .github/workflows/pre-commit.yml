@@ -41,8 +41,8 @@ jobs:
       - name: pre-commit
         run: |
           if ! pre-commit run --all-files || git diff --quiet --exit-code; then
-            echo "⚠️ ⚠️  ⚠️ Pre-commit check failed."
-            echo "⚠️  ⚠️  ⚠️ To prevent/address this CI issue, please install/use pre-commit locally."
-            echo "More details here: https://superset.apache.org/docs/contributing/development#git-hooks"
+            echo "❌ Pre-commit check failed."
+            echo "🚒 To prevent/address this CI issue, please install/use pre-commit locally."
+            echo "📖 More details here: https://superset.apache.org/docs/contributing/development#git-hooks"
             exit 1
           fi
