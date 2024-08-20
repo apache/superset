@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t } from '@superset-ui/core';
+import { getClientErrorObject, SupersetClient, t } from '@superset-ui/core';
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
@@ -45,7 +45,14 @@ export default function ExportGoogleSheets() {
       endpoint: `/api/v1/sqllab/export/${clientId}/google-sheets/`,
     })
       .then(res => setState({ data: res.json, isLoading: false, error: null }))
-      .catch(e => setState({ data: null, isLoading: false, error: e }));
+      .catch(response => getClientErrorObject(response).then(
+        ({ error, message }: { error: any; message: string }) => {
+          const errorMessage = error
+            ? error.error || error.statusText || error
+            : message;
+          dispatch(addDangerToast(errorMessage));
+        })
+      )
   }, [dispatch, clientId]);
   useEffect(() => {
     if (!dispatch) {
