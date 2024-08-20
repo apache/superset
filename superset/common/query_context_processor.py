@@ -17,9 +17,9 @@
 from __future__ import annotations
 
 import copy
-from datetime import datetime
 import logging
 import re
+from datetime import datetime
 from typing import Any, cast, ClassVar, TYPE_CHECKING, TypedDict
 
 import numpy as np
@@ -379,7 +379,7 @@ class QueryContextProcessor:
             # If parsing fails, it's not a valid date in the format YYYY-MM-DD
             return False
 
-    def get_time_offset_for_custom_or_inherit(
+    def get_offset_custom_or_inherit(
         self,
         offset: str,
         outer_from_dttm: datetime,
@@ -444,7 +444,7 @@ class QueryContextProcessor:
                 #    }
                 original_offset = offset
                 if self.is_valid_date(offset) or offset == "inherit":
-                    offset = self.get_time_offset_for_custom_or_inherit(
+                    offset = self.get_offset_custom_or_inherit(
                         offset,
                         outer_from_dttm,
                         outer_to_dttm,
