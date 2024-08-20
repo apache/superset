@@ -24,7 +24,7 @@ class TestGsheetsDbEngineSpec(TestDbEngineSpec):
         """
         Test that custom error messages are extracted correctly.
         """
-        msg = 'SQLError: near "FROM": syntax error'
+        msg = 'SQLError: near "from_": syntax error'
         result = GSheetsEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
