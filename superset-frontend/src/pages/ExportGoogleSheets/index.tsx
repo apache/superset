@@ -29,11 +29,10 @@ import {
 export default function ExportGoogleSheets() {
   const { clientId }: any = useParams();
   const dispatch = useDispatch();
-  const [{ isLoading, data, error }, setState] = useState<{
+  const [{ isLoading, data }, setState] = useState<{
     isLoading: boolean;
     data: any;
-    error: any;
-  }>({ isLoading: true, data: null, error: null });
+  }>({ isLoading: true, data: null });
   useEffect(() => {
     if (!dispatch || !clientId) {
       return;
@@ -44,7 +43,7 @@ export default function ExportGoogleSheets() {
     SupersetClient.get({
       endpoint: `/api/v1/sqllab/export/${clientId}/google-sheets/`,
     })
-      .then(res => setState({ data: res.json, isLoading: false, error: null }))
+      .then(res => setState({ data: res.json, isLoading: false }))
       .catch(response => getClientErrorObject(response).then(
         ({ error, message }: { error: any; message: string }) => {
           const errorMessage = error
@@ -54,21 +53,6 @@ export default function ExportGoogleSheets() {
         })
       )
   }, [dispatch, clientId]);
-  useEffect(() => {
-    if (!dispatch) {
-      return;
-    }
-    if (error) {
-      (async () => {
-        const message =
-          (await error?.json())?.message ||
-          (await error?.text()) ||
-          error?.message ||
-          t('Unknown error.');
-        dispatch(addDangerToast(message, { duration: 0 }));
-      })();
-    }
-  }, [dispatch, error]);
   useEffect(() => {
     if (data?.sheet_id) {
       window.location.href = `https://docs.google.com/spreadsheets/d/${data.sheet_id}/`;
