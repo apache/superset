@@ -26,8 +26,6 @@ export { default as Select } from './Select/Select';
 export { default as AsyncSelect } from './Select/AsyncSelect';
 export { default as Button } from './Button';
 export { default as Card } from './Card';
-export { default as Button } from './Button';
-
 /*
  * Components that don't conflict with the ones in src/components.
  * As Superset progresses to support full theming, this list should
