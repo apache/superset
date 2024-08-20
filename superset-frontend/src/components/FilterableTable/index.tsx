@@ -144,7 +144,7 @@ const FilterableTable = ({
       data-test="table-container"
     >
       <GridTable
-        size={GridSize.Middle}
+        size={GridSize.Small}
         height={height}
         usePagination={false}
         columns={columns}
