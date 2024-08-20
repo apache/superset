@@ -175,7 +175,9 @@ function GridTable<RecordType extends object>({
           #grid-table.ag-theme-quartz {
             --ag-icon-font-family: agGridMaterial;
             --ag-grid-size: ${theme.gridUnit}px;
-            --ag-font-size: ${theme.typography.sizes.s - 1}px;
+            --ag-font-size: ${theme.typography.sizes[
+              size === GridSize.Middle ? 'm' : 's'
+            ]}px;
             --ag-font-family: ${theme.typography.families.sansSerif};
             --ag-row-height: ${rowHeight}px;
             ${!striped &&
