@@ -204,7 +204,7 @@ def test_extract_errors_with_context() -> None:
     Test that custom error messages are extracted correctly with context.
     """
 
-    msg = ": mismatched input 'FROM'. Expecting: "
+    msg = ": mismatched input 'from_'. Expecting: "
     context = {"hostname": "foo"}
     result = DatabricksNativeEngineSpec.extract_errors(Exception(msg), context)
 
