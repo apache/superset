@@ -85,10 +85,7 @@ class UIManifestProcessor:
             for f in filtered_files:
                 loaded_chunks.add(f)
 
-            if assets_prefix:
-                return [f"{assets_prefix}{f}" for f in filtered_files]
-
-            return filtered_files
+            return [f"{assets_prefix}{f}" for f in filtered_files]
 
         return {
             "js_manifest": lambda bundle: get_files(bundle, "js"),
