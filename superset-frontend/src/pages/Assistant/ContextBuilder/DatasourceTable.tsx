@@ -1,3 +1,4 @@
+import React from "react";
 import { Collapse, Table } from "antd";
 
 export interface DatasourceTableProps {
@@ -15,43 +16,59 @@ export interface DatasourceTableColumnProps {
 }
 
 // rounded card with checkbox followed by table name
-export function DatasourceTable(props: DatasourceTableProps) {
-    const columns = [{
-        title: 'Column',
-        dataIndex: 'columnName',
-        key: 'columnName',
-    }, {
-        title: 'Type',
-        dataIndex: 'columnType',
-        key: 'columnType',
-    }];
+export class DatasourceTable extends React.Component<DatasourceTableProps> {
+    
+    state: DatasourceTableProps = {
+        selected: this.props.selected || false,
+        ...this.props,
+    };
 
-    return (
-        <div style={{
-            width: 'fit-content',
-            maxWidth: '300px',
-        }} >
-            <Collapse>
-                <Collapse.Panel header={
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                    }}>
-                        <input type="checkbox" checked={props.selected || false}  />
-                        {/* tab */}
-                        <span style={{
-                            width: '10px',
-                        }} ></span>
-                        <span>{props.tableName}</span>
-                    </div>
-                } key="-1">
-                    <Table  columns={columns} dataSource={props.columns} rowSelection={{ }} />
-                </Collapse.Panel>
-            </Collapse>
+    handleSelect = () => {
+        this.setState((prevState: DatasourceTableProps) => ({
+            selected: !prevState.selected,
+        }));
+    };
+    
+    render() {
+        const columns = [{
+            title: 'Column',
+            dataIndex: 'columnName',
+            key: 'columnName',
+        }, {
+            title: 'Type',
+            dataIndex: 'columnType',
+            key: 'columnType',
+        }];
 
+        const { selected } = this.state;
 
-
-        </div>
-    );
-
+        return (
+            <div style={{
+                width: 'fit-content',
+                maxWidth: '300px',
+            }} >
+                <Collapse style={{
+                    padding: '0px',
+                }} >
+                    <Collapse.Panel style={{
+                        padding: '0px',
+                    }} header={
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                        }}>
+                            <input type="checkbox" checked={selected} onChange={this.handleSelect}  />
+                            {/* tab */}
+                            <span style={{
+                                width: '10px',
+                            }} ></span>
+                            <span>{this.props.tableName}</span>
+                        </div>
+                    } key="-1">
+                        <Table  columns={columns} dataSource={this.props.columns} rowSelection={{ }} />
+                    </Collapse.Panel>
+                </Collapse>
+            </div>
+        );
+    }
 }

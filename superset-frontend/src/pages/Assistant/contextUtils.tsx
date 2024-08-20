@@ -52,14 +52,14 @@ export const emptyDatabaseContext: DatabaseContext = {
 export const fetchDatabaseData = async () => {
     try {
         const response = await SupersetClient.get({ endpoint: '/api/v1/database/' });
-        const databases = response.json.result.map(async (database: any) => {
+        const databases = await response.json.result.map((database: any) => {
             const databaseId = database.id;
             const database_name = database.database_name;
-            const schemas = await fetchSchemaData(databaseId);
+            // const schemas = await fetchSchemaData(databaseId);
             return {
-                id: databaseId,
+                database_id: databaseId,
                 database_name: database_name,
-                tables: schemas
+                // tables: schemas
             };
         });
         return databases;
@@ -73,16 +73,16 @@ export const fetchDatabaseData = async () => {
  * @param databaseId
  * @returns Promise<DatabaseScemaData>
  */
-const fetchSchemaData = async (databaseId: number) => {
+export const fetchSchemaData = async (databaseId: number) => {
     const enpoint = `/api/v1/database/${databaseId}/schemas/`;
     try {
         const response = await SupersetClient.get({ endpoint: enpoint });
-        const schemas = response.json.result.map(async (schema: any) => {
+        const schemas = response.json.result.map((schema: any) => {
             const schema_name = schema;
-            const tables = await fetchTableData(databaseId, schema_name);
+            // const tables = await fetchTableData(databaseId, schema_name);
             return {
                 schema_name: schema,
-                tables: tables
+                tables: []
             };
         });
         return schemas;
@@ -98,7 +98,7 @@ const fetchSchemaData = async (databaseId: number) => {
  * @param schemaName
  * @returns Promise<DatabaseSchemaTableData>
  */
-const fetchTableData = async (databaseId: number, schemaName: string) => {
+export const fetchTableData = async (databaseId: number, schemaName: string) => {
     const params = {
         "force": true,
         "schema_name": schemaName
@@ -107,12 +107,12 @@ const fetchTableData = async (databaseId: number, schemaName: string) => {
     const enpoint = `/api/v1/database/${databaseId}/tables/?q=${q}`;
     try {
         const response = await SupersetClient.get({ endpoint: enpoint });
-        const tables = response.json.result.map(async (table: any) => {
-            const table_name = table.value;
-            const columns = await fetchColumnData(databaseId, schemaName, table_name);
+        const tables = response.json.result.map((table: any) => {
+           
+            // const columns = await fetchColumnData(databaseId, schemaName, table_name);
             return {
                 table_name: table.value,
-                columns: columns
+                columns: []
             };
         });
         return tables;

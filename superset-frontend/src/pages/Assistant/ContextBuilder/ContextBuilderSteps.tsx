@@ -48,7 +48,7 @@ export function ContextBuilderSteps(props: any) {
                     <br></br>
                     {testProps.steps.map((step, index) => {
                         return (
-                            <ContextBuilderStep {...step} />
+                            <ContextBuilderStep key={'c_steps'+index} {...step} />
                         )
                     })}
                 </div>
