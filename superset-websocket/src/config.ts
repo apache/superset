@@ -16,6 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { merge as _merge } from 'lodash';
+
+export interface RedisConfig {
+  port: number;
+  host: string;
+  password: string;
+  username: string;
+  db: number;
+  ssl: boolean;
+  validateHostname: boolean;
+}
+
 type ConfigType = {
   port: number;
   logLevel: string;
@@ -26,18 +39,14 @@ type ConfigType = {
     port: number;
     globalTags: Array<string>;
   };
-  redis: {
-    port: number;
-    host: string;
-    password: string;
-    db: number;
-    ssl: boolean;
-  };
+  redis: RedisConfig;
   redisStreamPrefix: string;
   redisStreamReadCount: number;
   redisStreamReadBlockMs: number;
+  jwtAlgorithms: string[];
   jwtSecret: string;
   jwtCookieName: string;
+  jwtChannelIdKey: string;
   socketResponseTimeoutMs: number;
   pingSocketsIntervalMs: number;
   gcChannelsIntervalMs: number;
@@ -52,8 +61,10 @@ function defaultConfig(): ConfigType {
     redisStreamPrefix: 'async-events-',
     redisStreamReadCount: 100,
     redisStreamReadBlockMs: 5000,
+    jwtAlgorithms: ['HS256'],
     jwtSecret: '',
     jwtCookieName: 'async-token',
+    jwtChannelIdKey: 'channel',
     socketResponseTimeoutMs: 60 * 1000,
     pingSocketsIntervalMs: 20 * 1000,
     gcChannelsIntervalMs: 120 * 1000,
@@ -66,8 +77,10 @@ function defaultConfig(): ConfigType {
       host: '127.0.0.1',
       port: 6379,
       password: '',
+      username: 'default',
       db: 0,
       ssl: false,
+      validateHostname: true,
     },
   };
 }
@@ -110,6 +123,7 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     REDIS_HOST: val => (config.redis.host = val),
     REDIS_PORT: val => (config.redis.port = toNumber(val)),
     REDIS_PASSWORD: val => (config.redis.password = val),
+    REDIS_USERNAME: val => (config.redis.username = val),
     REDIS_DB: val => (config.redis.db = toNumber(val)),
     REDIS_SSL: val => (config.redis.ssl = toBoolean(val)),
     STATSD_HOST: val => (config.statsd.host = val),
@@ -128,6 +142,6 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
 }
 
 export function buildConfig(): ConfigType {
-  const config = Object.assign(defaultConfig(), configFromFile());
+  const config = _merge(defaultConfig(), configFromFile());
   return applyEnvOverrides(config);
 }

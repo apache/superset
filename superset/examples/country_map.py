@@ -24,6 +24,7 @@ import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
@@ -40,9 +41,9 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
     tbl_name = "birth_france_by_region"
     database = database_utils.get_example_database()
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
-        table_exists = database.has_table_by_name(tbl_name)
+        table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
             url = get_example_url("birth_france_data_for_country_map.csv")
@@ -80,14 +81,13 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
         obj = table(table_name=tbl_name, schema=schema)
+        db.session.add(obj)
     obj.main_dttm_col = "dttm"
     obj.database = database
     obj.filter_select_enabled = True
     if not any(col.metric_name == "avg__2004" for col in obj.metrics):
         col = str(column("2004").compile(db.engine))
         obj.metrics.append(SqlMetric(metric_name="avg__2004", expression=f"AVG({col})"))
-    db.session.merge(obj)
-    db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 

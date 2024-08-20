@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useRef } from 'react';
+import { FunctionComponent, useState, useRef } from 'react';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import {
@@ -26,12 +26,14 @@ import {
   Metric,
   styled,
   SupersetClient,
+  getClientErrorObject,
   t,
+  SupersetError,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useSelector } from 'react-redux';
 
@@ -203,11 +205,26 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       })
       .catch(response => {
         setIsSaving(false);
-        getClientErrorObject(response).then(({ error }) => {
+        getClientErrorObject(response).then(error => {
+          let errorResponse: SupersetError | undefined;
+          let errorText: string | undefined;
+          // sip-40 error response
+          if (error?.errors?.length) {
+            errorResponse = error.errors[0];
+          } else if (typeof error.error === 'string') {
+            // backward compatible with old error messages
+            errorText = error.error;
+          }
           modal.error({
-            title: t('Error'),
-            content: error || t('An error has occurred'),
+            title: t('Error saving dataset'),
             okButtonProps: { danger: true, className: 'btn-danger' },
+            content: (
+              <ErrorMessageWithStackTrace
+                error={errorResponse}
+                source="crud"
+                fallback={errorText}
+              />
+            ),
           });
         });
       });
@@ -255,7 +272,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   };
 
   const showLegacyDatasourceEditor = !isFeatureEnabled(
-    FeatureFlag.DISABLE_LEGACY_DATASOURCE_EDITOR,
+    FeatureFlag.DisableLegacyDatasourceEditor,
   );
 
   return (

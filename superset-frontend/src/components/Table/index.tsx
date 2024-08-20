@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef, ReactElement } from 'react';
+import { useState, useEffect, useRef, ReactElement, Key } from 'react';
+
 import AntTable, {
   ColumnsType,
   TableProps as AntTableProps,
@@ -31,17 +32,17 @@ import VirtualTable from './VirtualTable';
 export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
 
 export enum SelectionType {
-  'DISABLED' = 'disabled',
-  'SINGLE' = 'single',
-  'MULTI' = 'multi',
+  Disabled = 'disabled',
+  Single = 'single',
+  Multi = 'multi',
 }
 
 export type SortOrder = 'descend' | 'ascend' | null;
 
 export enum ETableAction {
-  PAGINATE = 'paginate',
-  SORT = 'sort',
-  FILTER = 'filter',
+  Paginate = 'paginate',
+  Sort = 'sort',
+  Filter = 'filter',
 }
 
 export type { ColumnsType };
@@ -49,8 +50,8 @@ export type OnChangeFunction<RecordType> =
   AntTableProps<RecordType>['onChange'];
 
 export enum TableSize {
-  SMALL = 'small',
-  MIDDLE = 'middle',
+  Small = 'small',
+  Middle = 'middle',
 }
 
 export interface TableProps<RecordType> {
@@ -69,11 +70,11 @@ export interface TableProps<RecordType> {
   /**
    * Array of row keys to represent list of selected rows.
    */
-  selectedRows?: React.Key[];
+  selectedRows?: Key[];
   /**
    * Callback function invoked when a row is selected by user.
    */
-  handleRowSelection?: (newSelectedRowKeys: React.Key[]) => void;
+  handleRowSelection?: (newSelectedRowKeys: Key[]) => void;
   /**
    * Controls the size of the table.
    */
@@ -150,9 +151,15 @@ export interface TableProps<RecordType> {
    * only supported for virtualize == true
    */
   allowHTML?: boolean;
+
+  /**
+   * The column that contains children to display.
+   * Check https://ant.design/components/table#table for more details.
+   */
+  childrenColumnName?: string;
 }
 
-const defaultRowSelection: React.Key[] = [];
+const defaultRowSelection: Key[] = [];
 
 const PAGINATION_HEIGHT = 40;
 const HEADER_HEIGHT = 68;
@@ -228,9 +235,9 @@ const defaultLocale = {
 
 const selectionMap = {};
 const noop = () => {};
-selectionMap[SelectionType.MULTI] = 'checkbox';
-selectionMap[SelectionType.SINGLE] = 'radio';
-selectionMap[SelectionType.DISABLED] = null;
+selectionMap[SelectionType.Multi] = 'checkbox';
+selectionMap[SelectionType.Single] = 'radio';
+selectionMap[SelectionType.Disabled] = null;
 
 export function Table<RecordType extends object>(
   props: TableProps<RecordType>,
@@ -241,8 +248,8 @@ export function Table<RecordType extends object>(
     columns,
     selectedRows = defaultRowSelection,
     handleRowSelection,
-    size = TableSize.SMALL,
-    selectionType = SelectionType.DISABLED,
+    size = TableSize.Small,
+    selectionType = SelectionType.Disabled,
     sticky = true,
     loading = false,
     resizable = false,
@@ -259,6 +266,7 @@ export function Table<RecordType extends object>(
     recordCount,
     onRow,
     allowHTML = false,
+    childrenColumnName,
   } = props;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -267,11 +275,10 @@ export function Table<RecordType extends object>(
   const [mergedLocale, setMergedLocale] = useState<
     Required<AntTableProps<RecordType>>['locale']
   >({ ...defaultLocale });
-  const [selectedRowKeys, setSelectedRowKeys] =
-    useState<React.Key[]>(selectedRows);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>(selectedRows);
   const interactiveTableUtils = useRef<InteractiveTableUtils | null>(null);
 
-  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
+  const onSelectChange = (newSelectedRowKeys: Key[]) => {
     setSelectedRowKeys(newSelectedRowKeys);
     handleRowSelection?.(newSelectedRowKeys);
   };
@@ -392,6 +399,9 @@ export function Table<RecordType extends object>(
     theme,
     height: bodyHeight,
     bordered,
+    expandable: {
+      childrenColumnName,
+    },
   };
 
   return (

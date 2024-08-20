@@ -110,23 +110,24 @@ export interface QueryObject {
 }
 
 export enum QueryObjectColumns {
-  id = 'id',
-  changed_on = 'changed_on',
-  database = 'database',
-  database_name = 'database.database_name',
-  schema = 'schema',
-  sql = 'sql',
-  executed_sql = 'executed_sql',
-  sql_tables = 'sql_tables',
-  status = 'status',
-  tab_name = 'tab_name',
-  user = 'user',
-  user_first_name = 'user.first_name',
-  start_time = 'start_time',
-  end_time = 'end_time',
-  rows = 'rows',
-  tmp_table_name = 'tmp_table_name',
-  tracking_url = 'tracking_url',
+  Id = 'id',
+  ChangedOn = 'changed_on',
+  ChangedBy = 'changed_by',
+  Database = 'database',
+  DatabaseName = 'database.database_name',
+  Schema = 'schema',
+  Sql = 'sql',
+  ExecutedSql = 'executed_sql',
+  SqlTables = 'sql_tables',
+  Status = 'status',
+  TabName = 'tab_name',
+  User = 'user',
+  UserFirstName = 'user.first_name',
+  StartTime = 'start_time',
+  EndTime = 'end_time',
+  Rows = 'rows',
+  TmpTableName = 'tmp_table_name',
+  TrackingUrl = 'tracking_url',
 }
 
 export type ImportResourceName =
@@ -138,17 +139,11 @@ export type ImportResourceName =
 
 export interface Tag {
   changed_on_delta_humanized: string;
-  changed_by: {
-    first_name: string;
-    last_name: string;
-  };
+  changed_by: Owner;
   created_on_delta_humanized: string;
   name: string;
   id: number;
-  created_by: {
-    first_name: string;
-    last_name: string;
-  };
+  created_by: Owner;
   description: string;
   type: string;
 }

@@ -63,7 +63,7 @@ spec:
               name: {{ tpl .Values.envFromSecret . }}
           {{- range .Values.envFromSecrets }}
           - secretRef:
-              name: {{ tpl . $ }}
+              name: {{ tpl . $ | quote }}
           {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         {{- if .Values.init.containerSecurityContext }}
@@ -83,6 +83,9 @@ spec:
           {{- end }}
         command: {{  tpl (toJson .Values.init.command) . }}
         resources: {{- toYaml .Values.init.resources | nindent 10 }}
+      {{- if .Values.init.extraContainers }}
+          {{- toYaml .Values.init.extraContainers | nindent 6 }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -94,6 +97,9 @@ spec:
         {{- with .Values.init.affinity }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- end }}
+      {{- if .Values.init.priorityClassName }}
+      priorityClassName: {{ .Values.init.priorityClassName }}
       {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.init.topologySpreadConstraints }}
       topologySpreadConstraints:

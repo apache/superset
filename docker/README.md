@@ -46,9 +46,9 @@ Steps:
 
 1. Create `./docker/requirements-local.txt`
 2. Add your new packages
-3. Rebuild docker-compose
-    1. `docker-compose down -v`
-    2. `docker-compose up`
+3. Rebuild docker compose
+    1. `docker compose down -v`
+    2. `docker compose up`
 
 ## Initializing Database
 
@@ -56,7 +56,7 @@ The database will initialize itself upon startup via the init container ([`super
 
 ## Normal Operation
 
-To run the container, simply run: `docker-compose up`
+To run the container, simply run: `docker compose up`
 
 After waiting several minutes for Superset initialization to finish, you can open a browser and view [`http://localhost:8088`](http://localhost:8088)
 to start your journey.

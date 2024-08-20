@@ -96,7 +96,7 @@ describe('exploreUtils', () => {
       compareURI(
         URI(url),
         URI('/explore/').search({
-          standalone: DashboardStandaloneMode.HIDE_NAV,
+          standalone: DashboardStandaloneMode.HideNav,
         }),
       );
     });

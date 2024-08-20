@@ -20,13 +20,14 @@
 import { MouseEventHandler } from 'react';
 
 export interface TagType {
-  id?: string | number;
+  id?: number;
   type?: string | number;
   editable?: boolean;
   onDelete?: (index: number) => void;
   onClick?: MouseEventHandler<HTMLSpanElement>;
   name: string;
   index?: number | undefined;
+  toolTipTitle?: string;
 }
 
 export default TagType;

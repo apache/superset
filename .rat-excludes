@@ -1,6 +1,5 @@
 # Note: these patterns are applied to single files or directories, not full paths
 .gitignore
-docs/README.md
 .gitattributes
 .gitkeep
 .coverage
@@ -36,7 +35,6 @@ apache_superset.egg-info
 # Generated doc files
 env/*
 docs/.htaccess*
-docs-v2/.htaccess*
 .nojekyll
 _build/*
 _static/*
@@ -62,3 +60,15 @@ tsconfig.tsbuildinfo
 .prettierignore
 generator-superset/*
 temporary_superset_ui/*
+
+# docs overrides for third party logos we don't have the rights to
+google-big-query.svg
+google-sheets.svg
+ibm-db2.svg
+postgresql.svg
+snowflake.svg
+
+# docs-related
+erd.puml
+erd.svg
+intro_header.txt

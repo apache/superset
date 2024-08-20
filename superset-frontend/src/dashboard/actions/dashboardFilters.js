@@ -22,26 +22,6 @@ function isValidFilter(getState, chartId) {
   return getState().dashboardState.sliceIds.includes(chartId);
 }
 
-export const ADD_FILTER = 'ADD_FILTER';
-export function addFilter(chartId, component, form_data) {
-  return (dispatch, getState) => {
-    if (isValidFilter(getState, chartId)) {
-      return dispatch({ type: ADD_FILTER, chartId, component, form_data });
-    }
-    return getState().dashboardFilters;
-  };
-}
-
-export const REMOVE_FILTER = 'REMOVE_FILTER';
-export function removeFilter(chartId) {
-  return (dispatch, getState) => {
-    if (isValidFilter(getState, chartId)) {
-      return dispatch({ type: REMOVE_FILTER, chartId });
-    }
-    return getState().dashboardFilters;
-  };
-}
-
 export const CHANGE_FILTER = 'CHANGE_FILTER';
 export function changeFilter(chartId, newSelectedValues, merge) {
   return (dispatch, getState) => {

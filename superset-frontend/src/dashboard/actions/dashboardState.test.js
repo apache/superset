@@ -21,12 +21,10 @@ import { SupersetClient } from '@superset-ui/core';
 import { waitFor } from '@testing-library/react';
 
 import {
-  removeSliceFromDashboard,
   SAVE_DASHBOARD_STARTED,
   saveDashboardRequest,
   SET_OVERRIDE_CONFIRM,
 } from 'src/dashboard/actions/dashboardState';
-import { REMOVE_FILTER } from 'src/dashboard/actions/dashboardFilters';
 import * as uiCore from '@superset-ui/core';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
 import {
@@ -192,15 +190,5 @@ describe('dashboardState actions', () => {
         expect(body).toBe(JSON.stringify(confirmedDashboardData));
       });
     });
-  });
-
-  it('should dispatch removeFilter if a removed slice is a filter_box', () => {
-    const { getState, dispatch } = setup(mockState);
-    const thunk = removeSliceFromDashboard(filterId);
-    thunk(dispatch, getState);
-
-    const removeFilter = dispatch.getCall(0).args[0];
-    removeFilter(dispatch, getState);
-    expect(dispatch.getCall(3).args[0].type).toBe(REMOVE_FILTER);
   });
 });

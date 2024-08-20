@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
@@ -25,7 +25,7 @@ import { t, useTheme, QueryResponse } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 
 import {
-  queryEditorSetAndSaveSql,
+  queryEditorSetSql,
   cloneQueryToNewTab,
   fetchQueryResults,
   clearQueryResults,
@@ -61,7 +61,7 @@ interface QueryTableProps {
 }
 
 const openQuery = (id: number) => {
-  const url = `/superset/sqllab?queryId=${id}`;
+  const url = `/sqllab?queryId=${id}`;
   window.open(url);
 };
 
@@ -109,7 +109,9 @@ const QueryTable = ({
 
   const data = useMemo(() => {
     const restoreSql = (query: QueryResponse) => {
-      dispatch(queryEditorSetAndSaveSql({ id: query.sqlEditorId }, query.sql));
+      dispatch(
+        queryEditorSetSql({ id: query.sqlEditorId }, query.sql, query.id),
+      );
     };
 
     const openQueryInNewTab = (query: QueryResponse) => {
@@ -249,8 +251,7 @@ const QueryTable = ({
               modalBody={
                 <ResultSet
                   showSql
-                  user={user}
-                  query={query}
+                  queryId={query.id}
                   height={400}
                   displayLimit={displayLimit}
                   defaultQueryLimit={1000}

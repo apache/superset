@@ -20,13 +20,14 @@ import * as http from 'http';
 import * as net from 'net';
 import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import jwt from 'jsonwebtoken';
+import jwt, { Algorithm } from 'jsonwebtoken';
 import cookie from 'cookie';
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 import StatsD from 'hot-shots';
 
 import { createLogger } from './logger';
-import { buildConfig } from './config';
+import { buildConfig, RedisConfig } from './config';
+import { checkServerIdentity, PeerCertificate } from 'tls';
 
 export type StreamResult = [
   recordId: string,
@@ -53,7 +54,7 @@ interface EventValue {
   result_url?: string;
 }
 interface JwtPayload {
-  channel: string;
+  [key: string]: string;
 }
 interface FetchRangeFromStreamParams {
   sessionId: string;
@@ -65,13 +66,6 @@ export interface SocketInstance {
   ws: WebSocket;
   channel: string;
   pongTs: number;
-}
-interface RedisConfig {
-  port: number;
-  host: string;
-  password?: string | null;
-  db: number;
-  ssl: boolean;
 }
 
 interface ChannelValue {
@@ -100,18 +94,51 @@ export const statsd = new StatsD({
 });
 
 // enforce JWT secret length
-if (startServer && opts.jwtSecret.length < 32)
-  throw new Error('Please provide a JWT secret at least 32 bytes long');
+if (startServer && opts.jwtSecret.length < 32) {
+  console.error('ERROR: Please provide a JWT secret at least 32 bytes long');
+  process.exit(1);
+}
 
-export const redisUrlFromConfig = (redisConfig: RedisConfig): string => {
-  let url = redisConfig.ssl ? 'rediss://' : 'redis://';
-  if (redisConfig.password) url += `:${redisConfig.password}@`;
-  url += `${redisConfig.host}:${redisConfig.port}/${redisConfig.db}`;
-  return url;
+if (startServer && opts.jwtSecret.startsWith('CHANGE-ME')) {
+  console.warn(
+    'WARNING: it appears you secret in your config.json is insecure',
+  );
+  console.warn('DO NOT USE IN PRODUCTION');
+}
+
+export const buildRedisOpts = (baseConfig: RedisConfig) => {
+  const redisOpts: RedisOptions = {
+    port: baseConfig.port,
+    host: baseConfig.host,
+    db: baseConfig.db,
+  };
+
+  const passwd = baseConfig.password;
+  if (passwd !== '') {
+    redisOpts.username = baseConfig.username;
+    redisOpts.password = baseConfig.password;
+  }
+
+  if (baseConfig.ssl) {
+    redisOpts.tls = {
+      checkServerIdentity: (
+        hostname: string,
+        cert: PeerCertificate,
+      ): Error | undefined => {
+        // Note, the cert chain will have been verified already. the role of this method is to
+        // validate that at least one of the SAN's (or subject) of the server's cert matches the provided hostname
+        if (baseConfig.validateHostname) {
+          return checkServerIdentity(hostname, cert);
+        }
+      },
+    };
+  }
+
+  return redisOpts;
 };
 
 // initialize servers
-const redis = new Redis(redisUrlFromConfig(opts.redis));
+const redis = new Redis(buildRedisOpts(opts.redis));
 const httpServer = http.createServer();
 export const wss = new WebSocket.Server({
   noServer: true,
@@ -253,14 +280,23 @@ export const processStreamResults = (results: StreamResult[]): void => {
 
 /**
  * Verify and parse a JWT cookie from an HTTP request.
- * Returns the JWT payload or throws an error on invalid token.
+ * Returns the channelId from the JWT payload found in the cookie
+ * configured via 'jwtCookieName' in the config.
  */
-const getJwtPayload = (request: http.IncomingMessage): JwtPayload => {
+const readChannelId = (request: http.IncomingMessage): string => {
   const cookies = cookie.parse(request.headers.cookie || '');
   const token = cookies[opts.jwtCookieName];
 
   if (!token) throw new Error('JWT not present');
-  return jwt.verify(token, opts.jwtSecret) as JwtPayload;
+  const jwtPayload = jwt.verify(token, opts.jwtSecret, {
+    algorithms: opts.jwtAlgorithms as Algorithm[],
+    complete: false,
+  }) as JwtPayload;
+  const channelId = jwtPayload[opts.jwtChannelIdKey];
+
+  if (!channelId) throw new Error('Channel ID not present in JWT');
+
+  return channelId;
 };
 
 /**
@@ -286,8 +322,7 @@ export const incrementId = (id: string): string => {
  * WebSocket `connection` event handler, called via wss
  */
 export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
-  const jwtPayload: JwtPayload = getJwtPayload(request);
-  const channel: string = jwtPayload.channel;
+  const channel: string = readChannelId(request);
   const socketInstance: SocketInstance = { ws, channel, pongTs: Date.now() };
 
   // add this ws instance to the internal registry
@@ -351,8 +386,7 @@ export const httpUpgrade = (
   head: Buffer,
 ) => {
   try {
-    const jwtPayload: JwtPayload = getJwtPayload(request);
-    if (!jwtPayload.channel) throw new Error('Channel ID not present');
+    readChannelId(request);
   } catch (err) {
     // JWT invalid, do not establish a WebSocket connection
     logger.error(err);
@@ -431,6 +465,9 @@ export const cleanChannel = (channel: string) => {
 
 if (startServer) {
   // init server event listeners
+  wss.on('connection', function (ws) {
+    ws.on('error', console.error);
+  });
   wss.on('connection', wsConnection);
   httpServer.on('request', httpRequest);
   httpServer.on('upgrade', httpUpgrade);

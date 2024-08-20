@@ -20,14 +20,13 @@ Revision ID: e866bd2d4976
 Revises: 21e88bc06c02
 Create Date: 2018-02-13 08:07:40.766277
 """
-import json
 
 import sqlalchemy as sa
 from alembic import op
-from flask_appbuilder.models.mixins import AuditMixin
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 revision = "e866bd2d4976"
 down_revision = "21e88bc06c02"
@@ -62,7 +61,6 @@ def upgrade():
                 pos["v"] = 1
 
         dashboard.position_json = json.dumps(positions, indent=2)
-        session.merge(dashboard)
         session.commit()
 
     session.close()
@@ -85,6 +83,5 @@ def downgrade():
                 pos["v"] = 0
 
         dashboard.position_json = json.dumps(positions, indent=2)
-        session.merge(dashboard)
         session.commit()
     pass

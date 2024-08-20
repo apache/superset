@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 import { css, SupersetClient } from '@superset-ui/core';
 import { useDatasetMetadataBar } from './useDatasetMetadataBar';
@@ -78,12 +77,4 @@ export const DatasetSpecific = () => {
       >{`${width}x${height}`}</span>
     </div>
   );
-};
-
-DatasetSpecific.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
 };

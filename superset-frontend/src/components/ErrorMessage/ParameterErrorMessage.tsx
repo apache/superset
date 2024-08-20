@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode } from 'react';
 import { t, tn } from '@superset-ui/core';
 import levenshtein from 'js-levenshtein';
 
@@ -101,7 +101,7 @@ function ParameterErrorMessage({
         <br />
         {extra.issue_codes.length > 0 &&
           extra.issue_codes
-            .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
+            .map<ReactNode>(issueCode => <IssueCode {...issueCode} />)
             .reduce((prev, curr) => [prev, <br />, curr])}
       </p>
     </>

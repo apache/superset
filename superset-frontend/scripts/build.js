@@ -25,7 +25,7 @@
  */
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
-const rimraf = require('rimraf');
+const { sync } = require('rimraf');
 const { spawnSync } = require('child_process');
 const fastGlob = require('fast-glob');
 const { argv } = require('yargs')
@@ -106,7 +106,7 @@ function getPackages(packagePattern, tsOnly = false) {
 let scope = getPackages(glob);
 
 if (shouldLint) {
-  run(`npm run lint --fix {packages,plugins}/${scope}/{src,test}`);
+  run(`npm run eslint -- . --fix {packages,plugins}/${scope}/{src,test}`);
 }
 
 if (shouldCleanup) {
@@ -114,7 +114,7 @@ if (shouldCleanup) {
   const dirtyModules = 'node_modules/@types/react,node_modules/@superset-ui';
   const cachePath = `./node_modules/${scope}/{lib,esm,tsconfig.tsbuildinfo,${dirtyModules}}`;
   console.log(`\n>> Cleaning up ${cachePath}`);
-  rimraf.sync(cachePath);
+  sync(cachePath);
 }
 
 if (shouldRunBabel) {

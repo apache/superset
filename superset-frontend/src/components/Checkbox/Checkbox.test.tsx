@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { isValidElement } from 'react';
 import { ReactWrapper } from 'enzyme';
 import {
   styledMount as mount,
@@ -34,7 +34,7 @@ describe('Checkbox', () => {
 
   it('renders the base component', () => {
     expect(
-      React.isValidElement(
+      isValidElement(
         <Checkbox style={{}} checked={false} onChange={() => true} />,
       ),
     ).toBe(true);

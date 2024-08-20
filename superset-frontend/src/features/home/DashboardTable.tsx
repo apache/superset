@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { filter } from 'lodash';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
@@ -57,7 +57,7 @@ function DashboardTable({
 }: DashboardTableProps) {
   const history = useHistory();
   const defaultTab = getItem(
-    LocalStorageKeys.homepage_dashboard_filter,
+    LocalStorageKeys.HomepageDashboardFilter,
     TableTab.Other,
   );
 
@@ -156,7 +156,7 @@ function DashboardTable({
       label: t('Favorite'),
       onClick: () => {
         setActiveTab(TableTab.Favorite);
-        setItem(LocalStorageKeys.homepage_dashboard_filter, TableTab.Favorite);
+        setItem(LocalStorageKeys.HomepageDashboardFilter, TableTab.Favorite);
       },
     },
     {
@@ -164,7 +164,7 @@ function DashboardTable({
       label: t('Mine'),
       onClick: () => {
         setActiveTab(TableTab.Mine);
-        setItem(LocalStorageKeys.homepage_dashboard_filter, TableTab.Mine);
+        setItem(LocalStorageKeys.HomepageDashboardFilter, TableTab.Mine);
       },
     },
   ];
@@ -175,7 +175,7 @@ function DashboardTable({
       label: otherTabTitle,
       onClick: () => {
         setActiveTab(TableTab.Other);
-        setItem(LocalStorageKeys.homepage_dashboard_filter, TableTab.Other);
+        setItem(LocalStorageKeys.HomepageDashboardFilter, TableTab.Other);
       },
     });
   }

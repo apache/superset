@@ -18,11 +18,10 @@
  */
 
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
@@ -55,8 +54,8 @@ jest.mock('src/dashboard/components/DeleteComponentButton', () =>
 );
 jest.mock('src/dashboard/util/getLeafComponentIdFromPath', () => jest.fn());
 
-jest.mock('src/dashboard/components/dnd/DragDroppable', () =>
-  jest.fn(props => {
+jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+  Draggable: jest.fn(props => {
     const childProps = props.editMode
       ? {
           dragSourceRef: props.dragSourceRef,
@@ -72,7 +71,7 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () =>
       </div>
     );
   }),
-);
+}));
 
 const createProps = () => ({
   id: 'TABS-L-d9eyOE-b',
@@ -123,7 +122,7 @@ test('Should render editMode:true', () => {
   const props = createProps();
   render(<Tabs {...props} />, { useRedux: true, useDnd: true });
   expect(screen.getAllByRole('tab')).toHaveLength(3);
-  expect(DragDroppable).toBeCalledTimes(1);
+  expect(Draggable).toBeCalledTimes(1);
   expect(DashboardComponent).toBeCalledTimes(4);
   expect(DeleteComponentButton).toBeCalledTimes(1);
   expect(screen.getAllByRole('button', { name: 'remove' })).toHaveLength(3);
@@ -135,7 +134,7 @@ test('Should render editMode:false', () => {
   props.editMode = false;
   render(<Tabs {...props} />, { useRedux: true, useDnd: true });
   expect(screen.getAllByRole('tab')).toHaveLength(3);
-  expect(DragDroppable).toBeCalledTimes(1);
+  expect(Draggable).toBeCalledTimes(1);
   expect(DashboardComponent).toBeCalledTimes(4);
   expect(DeleteComponentButton).not.toBeCalled();
   expect(

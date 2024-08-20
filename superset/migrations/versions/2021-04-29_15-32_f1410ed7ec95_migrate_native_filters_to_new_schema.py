@@ -26,15 +26,15 @@ Create Date: 2021-04-29 15:32:21.939018
 revision = "f1410ed7ec95"
 down_revision = "d416d0d715cc"
 
-import json
-from collections.abc import Iterable
-from typing import Any
+from collections.abc import Iterable  # noqa: E402
+from typing import Any  # noqa: E402
 
-from alembic import op
-from sqlalchemy import Column, Integer, Text
-from sqlalchemy.ext.declarative import declarative_base
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, Integer, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db
+from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
@@ -111,9 +111,9 @@ def upgrade():
             changed_filters += upgrades[0]
             changed_filter_sets += upgrades[1]
             dashboard.json_metadata = json.dumps(json_metadata, sort_keys=True)
-        except Exception as e:
+        except Exception:
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
-            raise e
+            raise
 
     session.commit()
     session.close()
@@ -151,9 +151,9 @@ def downgrade():
             changed_filters += downgrades[0]
             changed_filter_sets += downgrades[1]
             dashboard.json_metadata = json.dumps(json_metadata, sort_keys=True)
-        except Exception as e:
+        except Exception:
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
-            raise e
+            raise
 
     session.commit()
     session.close()

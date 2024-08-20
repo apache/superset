@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import { shallow } from 'enzyme';
 import { Tooltip } from 'src/components/Tooltip';
 import { IconTooltip } from 'src/components/IconTooltip';
@@ -26,11 +26,11 @@ describe('IconTooltip', () => {
     tooltip: 'This is a tooltip',
   };
   it('renders', () => {
-    expect(React.isValidElement(<IconTooltip>TEST</IconTooltip>)).toBe(true);
+    expect(isValidElement(<IconTooltip>TEST</IconTooltip>)).toBe(true);
   });
   it('renders with props', () => {
     expect(
-      React.isValidElement(<IconTooltip {...mockedProps}>TEST</IconTooltip>),
+      isValidElement(<IconTooltip {...mockedProps}>TEST</IconTooltip>),
     ).toBe(true);
   });
   it('renders a tooltip', () => {

@@ -93,7 +93,8 @@ export const FilterItem = styled.button`
       transition: opacity ease-in-out ${theme.transitionTiming};
     }
 
-    &:hover i svg {
+    &:hover i svg,
+    &:focus-visible i svg {
       opacity: 1;
     }
   `}

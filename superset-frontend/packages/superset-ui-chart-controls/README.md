@@ -20,7 +20,7 @@ under the License.
 ## @superset-ui/chart-controls
 
 [![Version](https://img.shields.io/npm/v/@superset-ui/chart-controls.svg?style=flat)](https://www.npmjs.com/package/@superset-ui/chart-controls)
-[![David (path)](https://img.shields.io/david/apache-superset/superset-ui.svg?path=packages%2Fsuperset-ui-chart-controls&style=flat-square)](https://david-dm.org/apache-superset/superset-ui?path=packages/superset-ui-chart-controls)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Fchart-controls)](https://libraries.io/npm/@superset-ui%2Fchart-controls)
 
 Description
 

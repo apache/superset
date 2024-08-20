@@ -1,10 +1,10 @@
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
-# regarding coperatoryright ownership.  The ASF licenses this file
+# regarding copyright ownership.  The ASF licenses this file
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
-# with the License.  You may obtain a coperatory of the License at
+# with the License.  You may obtain a copy of the License at
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -48,6 +48,11 @@ port_conversion_dict: dict[str, list[int]] = {
     "ldaps": [636],
     "imap2": [143],  # aka imap
     "imaps": [993],
+    "MySQL": [3306],
+    "Remote Desktop": [3389],
+    "dns": [53],
+    "ctf": [84],
+    "pdap": [344],
 }
 
 
@@ -83,7 +88,7 @@ def port_translation_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeRespo
                 else port_conversion_dict[string_value]
             )
         except (KeyError, ValueError):
-            resp["error_message"] = str(
+            resp["error_message"] = (
                 f"'{string_value}' does not appear to be a port name or number"
             )
             break

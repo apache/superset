@@ -21,6 +21,7 @@ Revises: 41f6a59a61f2
 Create Date: 2016-09-07 23:50:59.366779
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import Column, Integer, String
@@ -56,7 +57,6 @@ def upgrade():
             slc.datasource_id = slc.druid_datasource_id
         if slc.table_id:
             slc.datasource_id = slc.table_id
-        session.merge(slc)
         session.commit()
     session.close()
 
@@ -69,7 +69,6 @@ def downgrade():
             slc.druid_datasource_id = slc.datasource_id
         if slc.datasource_type == "table":
             slc.table_id = slc.datasource_id
-        session.merge(slc)
         session.commit()
     session.close()
     op.drop_column("slices", "datasource_id")

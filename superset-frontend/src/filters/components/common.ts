@@ -20,9 +20,11 @@ import { styled } from '@superset-ui/core';
 import { PluginFilterStylesProps } from './types';
 import FormItem from '../../components/Form/FormItem';
 
+export const RESPONSIVE_WIDTH = 0;
+
 export const FilterPluginStyle = styled.div<PluginFilterStylesProps>`
   min-height: ${({ height }) => height}px;
-  width: ${({ width }) => width}px;
+  width: ${({ width }) => (width === RESPONSIVE_WIDTH ? '100%' : `${width}px`)};
 `;
 
 export const StyledFormItem = styled(FormItem)`

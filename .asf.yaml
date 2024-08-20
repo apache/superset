@@ -59,19 +59,28 @@ github:
         # strict means "Require branches to be up to date before merging".
         strict: false
         # contexts are the names of checks that must pass
+        # unfortunately AFAICT for `matrix:` jobs, we have to itemize every
+        # combination here.
         contexts:
-          - check
+          - lint-check
+          - cypress-matrix (0, chrome)
           - cypress-matrix (1, chrome)
           - cypress-matrix (2, chrome)
           - cypress-matrix (3, chrome)
-          - docker-build
+          - cypress-matrix (4, chrome)
+          - cypress-matrix (5, chrome)
           - frontend-build
-          - pre-commit (3.9)
-          - python-lint (3.9)
-          - test-mysql (3.9)
-          - test-postgres (3.9)
-          - test-postgres (3.10)
-          - test-sqlite (3.9)
+          - pre-commit (current)
+          - pre-commit (next)
+          - pre-commit (previous)
+          - test-mysql
+          - test-postgres (current)
+          - test-postgres (next)
+          - test-postgres-hive
+          - test-postgres-presto
+          - test-sqlite
+          - unit-tests (current)
+          - unit-tests (next)
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false

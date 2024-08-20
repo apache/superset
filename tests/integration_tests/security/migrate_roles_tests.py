@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for alerting in Superset"""
+
 import logging
 from contextlib import contextmanager
-from unittest.mock import patch
+from unittest.mock import patch  # noqa: F401
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role
@@ -62,7 +63,6 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             db.session.query(Role).filter(Role.name == "Dummy Role").one_or_none()
         )
         new_role.permissions = []
-        db.session.merge(new_role)
         for old_pvm, new_pvms in pvm_map.items():
             security_manager.del_permission_view_menu(old_pvm.permission, old_pvm.view)
             for new_pvm in new_pvms:
@@ -246,11 +246,10 @@ def test_migrate_role(
     logger.info(description)
     with create_old_role(pvm_map, external_pvms) as old_role:
         role_name = old_role.name
-        session = db.session
 
         # Run migrations
-        add_pvms(session, new_pvms)
-        migrate_roles(session, pvm_map)
+        add_pvms(db.session, new_pvms)
+        migrate_roles(db.session, pvm_map)
 
         role = db.session.query(Role).filter(Role.name == role_name).one_or_none()
         for old_pvm, new_pvms in pvm_map.items():

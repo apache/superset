@@ -3,19 +3,31 @@ on:
   push:
     paths:
       - "superset/migrations/**"
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    paths:
+      - "superset/migrations/**"
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   check_db_migration_conflict:
     name: Check DB migration conflict
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Check and notify
-        uses: actions/github-script@v3
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -23,7 +35,7 @@ jobs:
             const currentBranch = context.ref.replace('refs/heads/', '');
 
             // Find all pull requests to current branch
-            const opts = github.pulls.list.endpoint.merge({
+            const opts = github.rest.pulls.list.endpoint.merge({
               owner: context.repo.owner,
               repo: context.repo.repo,
               base: context.ref,
@@ -37,7 +49,7 @@ jobs:
             }
 
             for (const pull of pulls) {
-              const listFilesOpts = await github.pulls.listFiles.endpoint.merge({
+              const listFilesOpts = await github.rest.pulls.listFiles.endpoint.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pull.number,
@@ -47,7 +59,7 @@ jobs:
                 files.some(x => x.contents_url.includes('/contents/superset/migrations'))
               ) {
                 console.log(`PR #${pull.number} "${pull.title}" also added db migration`)
-                await github.issues.createComment({
+                await github.rest.issues.createComment({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,

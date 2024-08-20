@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { memo, useCallback, useMemo, useRef } from 'react';
+import { memo, useCallback, useMemo, useRef } from 'react';
 import { GeoJsonLayer } from 'deck.gl/typed';
 import geojsonExtent from '@mapbox/geojson-extent';
 import {
@@ -93,13 +93,13 @@ const recurseGeoJson = (
 
 function setTooltipContent(o: JsonObject) {
   return (
-    o.object.extraProps && (
+    o.object?.extraProps && (
       <div className="deckgl-tooltip">
         {Object.keys(o.object.extraProps).map((prop, index) => (
           <TooltipRow
             key={`prop-${index}`}
             label={`${prop}: `}
-            value={`${o.object.extraProps[prop]}`}
+            value={`${o.object.extraProps?.[prop]}`}
           />
         ))}
       </div>

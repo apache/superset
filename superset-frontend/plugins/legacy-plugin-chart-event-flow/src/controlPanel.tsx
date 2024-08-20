@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   columnChoices,
@@ -25,13 +24,11 @@ import {
   ControlPanelConfig,
   ControlState,
   formatSelectOptionsForRange,
-  sections,
   SelectControlConfig,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Event definition'),
       controlSetRows: [

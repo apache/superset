@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 
 const propTypes = {
@@ -24,7 +24,7 @@ const propTypes = {
   onRedo: PropTypes.func.isRequired,
 };
 
-class UndoRedoKeyListeners extends React.PureComponent {
+class UndoRedoKeyListeners extends PureComponent {
   constructor(props) {
     super(props);
     this.handleKeydown = this.handleKeydown.bind(this);

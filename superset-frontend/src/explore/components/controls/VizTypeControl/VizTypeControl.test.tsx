@@ -25,7 +25,6 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
-import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import { testWithId } from 'src/utils/testUtils';
@@ -128,9 +127,7 @@ describe('VizTypeControl', () => {
     expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
 
     expect(
-      within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Line Chart',
-      ),
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Table'),
@@ -142,14 +139,10 @@ describe('VizTypeControl', () => {
       within(screen.getByTestId('fast-viz-switcher')).getByText('Pie Chart'),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Bar Chart',
-      ),
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Bar Chart'),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Area Chart',
-      ),
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Area Chart'),
     ).toBeInTheDocument();
   });
 
@@ -163,9 +156,7 @@ describe('VizTypeControl', () => {
 
     expect(screen.getByLabelText('monitor')).toBeVisible();
     expect(
-      within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Line Chart',
-      ),
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
     ).toBeVisible();
   });
 
@@ -192,9 +183,7 @@ describe('VizTypeControl', () => {
     await waitForRenderWrapper(props, state);
     expect(screen.getByLabelText('check-square')).toBeVisible();
     expect(
-      within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Line Chart',
-      ),
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
     ).toBeVisible();
   });
 
@@ -206,9 +195,7 @@ describe('VizTypeControl', () => {
     };
     await waitForRenderWrapper(props);
     userEvent.click(
-      within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Line Chart',
-      ),
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
     );
     expect(props.onChange).not.toHaveBeenCalled();
     userEvent.click(
@@ -235,9 +222,7 @@ describe('VizTypeControl', () => {
 
     userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
 
-    expect(
-      await within(visualizations).findByText('Time-series Line Chart'),
-    ).toBeVisible();
+    expect(await within(visualizations).findByText('Line Chart')).toBeVisible();
 
     // search
     userEvent.type(
@@ -246,17 +231,6 @@ describe('VizTypeControl', () => {
     );
     expect(
       await within(visualizations).findByText('Time-series Table'),
-    ).toBeVisible();
-    expect(within(visualizations).getByText('Time-series Chart')).toBeVisible();
-    expect(within(visualizations).getByText('Mixed Time-Series')).toBeVisible();
-    expect(
-      within(visualizations).getByText('Time-series Area Chart'),
-    ).toBeVisible();
-    expect(
-      within(visualizations).getByText('Time-series Line Chart'),
-    ).toBeVisible();
-    expect(
-      within(visualizations).getByText('Time-series Bar Chart'),
     ).toBeVisible();
     expect(within(visualizations).queryByText('Table')).not.toBeInTheDocument();
     expect(
@@ -271,12 +245,10 @@ describe('VizTypeControl', () => {
     await waitForRenderWrapper();
     userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
     const visualizations = screen.getByTestId(getTestId('viz-row'));
-    userEvent.click(within(visualizations).getByText('Time-series Bar Chart'));
+    userEvent.click(within(visualizations).getByText('Bar Chart'));
 
     expect(defaultProps.onChange).not.toBeCalled();
-    userEvent.dblClick(
-      within(visualizations).getByText('Time-series Line Chart'),
-    );
+    userEvent.dblClick(within(visualizations).getByText('Line Chart'));
 
     expect(defaultProps.onChange).toHaveBeenCalledWith(
       'echarts_timeseries_line',

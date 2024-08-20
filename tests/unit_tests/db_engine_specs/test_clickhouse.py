@@ -30,13 +30,15 @@ from sqlalchemy.types import (
     String,
     TypeEngine,
 )
+from urllib3.connection import HTTPConnection
+from urllib3.exceptions import NewConnectionError
 
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
 )
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -48,7 +50,9 @@ from tests.unit_tests.fixtures.common import dttm
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec as spec
 
@@ -56,17 +60,17 @@ def test_convert_dttm(
 
 
 def test_execute_connection_error() -> None:
-    from urllib3.exceptions import NewConnectionError
-
     from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
     from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 
+    database = Mock()
     cursor = Mock()
     cursor.execute.side_effect = NewConnectionError(
-        "Dummypool", "Exception with sensitive data"
+        HTTPConnection("localhost"), "Exception with sensitive data"
     )
-    with pytest.raises(SupersetDBAPIDatabaseError) as ex:
-        ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1")
+    with pytest.raises(SupersetDBAPIDatabaseError) as excinfo:
+        ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1", database)
+    assert str(excinfo.value) == "Connection failed"
 
 
 @pytest.mark.parametrize(
@@ -78,7 +82,9 @@ def test_execute_connection_error() -> None:
     ],
 )
 def test_connect_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec as spec
 

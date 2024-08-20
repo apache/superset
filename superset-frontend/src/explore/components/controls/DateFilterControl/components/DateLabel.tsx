@@ -17,15 +17,16 @@
  * under the License.
  */
 
-import React, { forwardRef, ReactNode, RefObject } from 'react';
-import { css, styled, useTheme } from '@superset-ui/core';
+import { forwardRef, MouseEvent, ReactNode, RefObject } from 'react';
+
+import { css, styled, useTheme, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
 export type DateLabelProps = {
   label: ReactNode;
   isActive?: boolean;
   isPlaceholder?: boolean;
-  onClick?: (event: React.MouseEvent) => void;
+  onClick?: (event: MouseEvent) => void;
 };
 
 // This is the color that antd components (such as Select or Input) use on hover
@@ -88,7 +89,7 @@ export const DateLabel = forwardRef(
     return (
       <LabelContainer {...props} tabIndex={0}>
         <span className="date-label-content" ref={ref}>
-          {props.label}
+          {typeof props.label === 'string' ? t(props.label) : props.label}
         </span>
         <Icons.CalendarOutlined
           iconSize="s"

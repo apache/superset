@@ -19,5 +19,5 @@
 import { QueryFormData, QueryObject } from '@superset-ui/core';
 
 export interface PostProcessingFactory<T> {
-  (formData: QueryFormData, queryObject: QueryObject): T;
+  (formData: QueryFormData, queryObject: QueryObject, options?: any): T;
 }

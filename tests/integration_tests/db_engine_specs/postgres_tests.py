@@ -25,6 +25,7 @@ from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
+from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.fixtures.certificates import ssl_certificate
@@ -119,29 +120,29 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         assert "postgres" in backends
 
     def test_extras_without_ssl(self):
-        db = mock.Mock()
-        db.extra = default_db_extra
-        db.server_cert = None
-        extras = PostgresEngineSpec.get_extra_params(db)
+        database = mock.Mock()
+        database.extra = default_db_extra
+        database.server_cert = None
+        extras = PostgresEngineSpec.get_extra_params(database)
         assert "connect_args" not in extras["engine_params"]
 
     def test_extras_with_ssl_default(self):
-        db = mock.Mock()
-        db.extra = default_db_extra
-        db.server_cert = ssl_certificate
-        extras = PostgresEngineSpec.get_extra_params(db)
+        database = mock.Mock()
+        database.extra = default_db_extra
+        database.server_cert = ssl_certificate
+        extras = PostgresEngineSpec.get_extra_params(database)
         connect_args = extras["engine_params"]["connect_args"]
         assert connect_args["sslmode"] == "verify-full"
         assert "sslrootcert" in connect_args
 
     def test_extras_with_ssl_custom(self):
-        db = mock.Mock()
-        db.extra = default_db_extra.replace(
+        database = mock.Mock()
+        database.extra = default_db_extra.replace(
             '"engine_params": {}',
             '"engine_params": {"connect_args": {"sslmode": "verify-ca"}}',
         )
-        db.server_cert = ssl_certificate
-        extras = PostgresEngineSpec.get_extra_params(db)
+        database.server_cert = ssl_certificate
+        extras = PostgresEngineSpec.get_extra_params(database)
         connect_args = extras["engine_params"]["connect_args"]
         assert connect_args["sslmode"] == "verify-ca"
         assert "sslrootcert" in connect_args
@@ -525,13 +526,12 @@ def test_get_catalog_names(app_context: AppContext) -> None:
     """
     Test the ``get_catalog_names`` method.
     """
-    database = get_example_database()
-
-    if database.backend != "postgresql":
+    if backend() != "postgresql":
         return
 
-    with database.get_inspector_with_context() as inspector:
-        assert PostgresEngineSpec.get_catalog_names(database, inspector) == [
+    database = get_example_database()
+    with database.get_inspector() as inspector:
+        assert PostgresEngineSpec.get_catalog_names(database, inspector) == {
             "postgres",
             "superset",
-        ]
+        }

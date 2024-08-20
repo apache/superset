@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render, waitFor } from 'spec/helpers/testing-library';
@@ -29,9 +28,6 @@ import { AsyncAceEditorProps } from 'src/components/AsyncAceEditor';
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('src/components/DeprecatedSelect', () => () => (
-  <div data-test="mock-deprecated-select" />
-));
 jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
@@ -54,6 +50,7 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
       onChange={jest.fn()}
       onBlur={jest.fn()}
       autocomplete
+      onCursorPositionChange={jest.fn()}
     />,
     {
       useRedux: true,

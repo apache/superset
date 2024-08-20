@@ -24,7 +24,6 @@ Create Date: 2018-07-22 11:59:07.025119
 
 # revision identifiers, used by Alembic.
 import collections
-import json
 import sys
 import uuid
 from functools import reduce
@@ -35,6 +34,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from superset import db
+from superset.utils import json
 
 revision = "bebcf3fed1fe"
 down_revision = "fc480c87706c"
@@ -469,9 +469,9 @@ def convert_to_layout(positions):
                                         root[childId], root
                                     )
                                 else:
-                                    root[childId]["meta"][
-                                        "width"
-                                    ] = reduce_component_width(root[childId])
+                                    root[childId]["meta"]["width"] = (
+                                        reduce_component_width(root[childId])
+                                    )
 
                             root[current_column]["meta"]["width"] = get_children_max(
                                 root[current_column]["children"], "width", root
@@ -647,7 +647,6 @@ def upgrade():
 
             sorted_by_key = collections.OrderedDict(sorted(v2_layout.items()))
             dashboard.position_json = json.dumps(sorted_by_key, indent=2)
-            session.merge(dashboard)
             session.commit()
         else:
             print(f"Skip converted dash_id: {dashboard.id}")

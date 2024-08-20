@@ -188,13 +188,12 @@ describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
       .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: uiCore.FeatureFlag) =>
-          featureFlag !== uiCore.FeatureFlag.DASHBOARD_RBAC,
+          featureFlag !== uiCore.FeatureFlag.DashboardRbac,
       );
   });
 
   afterAll(() => {
-    // @ts-ignore
-    isFeatureEnabledMock.restore();
+    isFeatureEnabledMock.mockRestore();
   });
 
   it('allows owners', () => {
@@ -216,13 +215,12 @@ describe('canUserSaveAsDashboard with RBAC feature flag enabled', () => {
       .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: uiCore.FeatureFlag) =>
-          featureFlag === uiCore.FeatureFlag.DASHBOARD_RBAC,
+          featureFlag === uiCore.FeatureFlag.DashboardRbac,
       );
   });
 
   afterAll(() => {
-    // @ts-ignore
-    isFeatureEnabledMock.restore();
+    isFeatureEnabledMock.mockRestore();
   });
 
   it('allows owners', () => {

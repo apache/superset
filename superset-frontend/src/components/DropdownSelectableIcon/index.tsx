@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled, useTheme } from '@superset-ui/core';
-import React, { RefObject, useMemo } from 'react';
+import { FC, RefObject, useMemo, ReactNode } from 'react';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { DropdownButtonProps } from 'antd/lib/dropdown';
@@ -25,28 +25,26 @@ import { Menu, MenuProps } from 'src/components/Menu';
 
 const { SubMenu } = Menu;
 
-type SubMenuItemProps = { key: string; label: string | React.ReactNode };
+type SubMenuItemProps = { key: string; label: string | ReactNode };
 
 export interface DropDownSelectableProps extends Pick<MenuProps, 'onSelect'> {
   ref?: RefObject<HTMLDivElement>;
-  icon: React.ReactNode;
+  icon: ReactNode;
   info?: string;
   menuItems: {
     key: string;
-    label: string | React.ReactNode;
+    label: string | ReactNode;
     children?: SubMenuItemProps[];
     divider?: boolean;
   }[];
   selectedKeys?: string[];
 }
 
-const StyledDropdownButton = styled(
-  DropdownButton as React.FC<DropdownButtonProps>,
-)`
+const StyledDropdownButton = styled(DropdownButton as FC<DropdownButtonProps>)`
   button.ant-btn:first-of-type {
     display: none;
   }
-  > button.ant-btn:nth-child(2) {
+  > button.ant-btn:nth-of-type(2) {
     display: inline-flex;
     background-color: transparent !important;
     height: unset;
@@ -69,8 +67,8 @@ const StyledMenu = styled(Menu)`
       font-size: ${theme.typography.sizes.s}px;
       color: ${theme.colors.grayscale.base};
       padding: ${theme.gridUnit}px ${theme.gridUnit * 3}px ${
-    theme.gridUnit
-  }px ${theme.gridUnit * 3}px;
+        theme.gridUnit
+      }px ${theme.gridUnit * 3}px;
     }
     .ant-dropdown-menu-item-selected {
       color: ${theme.colors.grayscale.dark1};
@@ -101,21 +99,20 @@ export default (props: DropDownSelectableProps) => {
   const theme = useTheme();
   const { icon, info, menuItems, selectedKeys, onSelect } = props;
   const menuItem = useMemo(
-    () => (label: string | React.ReactNode, key: string, divider?: boolean) =>
-      (
-        <StyleMenuItem key={key} divider={divider}>
-          <StyleSubmenuItem>
-            <span>{label}</span>
-            {selectedKeys?.includes(key) && (
-              <Icons.Check
-                iconColor={theme.colors.primary.base}
-                className="tick-menu-item"
-                iconSize="xl"
-              />
-            )}
-          </StyleSubmenuItem>
-        </StyleMenuItem>
-      ),
+    () => (label: string | ReactNode, key: string, divider?: boolean) => (
+      <StyleMenuItem key={key} divider={divider}>
+        <StyleSubmenuItem>
+          <span>{label}</span>
+          {selectedKeys?.includes(key) && (
+            <Icons.Check
+              iconColor={theme.colors.primary.base}
+              className="tick-menu-item"
+              iconSize="xl"
+            />
+          )}
+        </StyleSubmenuItem>
+      </StyleMenuItem>
+    ),
     [selectedKeys, theme.colors.primary.base],
   );
 

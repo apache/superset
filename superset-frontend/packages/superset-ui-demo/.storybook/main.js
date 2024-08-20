@@ -1,16 +1,16 @@
+import { dirname, join } from 'path';
 const customConfig = require('../../../webpack.config.js');
 
 module.exports = {
-  core: {
-    builder: 'webpack5',
-  },
   addons: [
-    '@storybook/addon-knobs',
-    'storybook-addon-jsx',
-    '@storybook/addon-actions',
-    '@storybook/addon-links',
+    getAbsolutePath('@storybook/addon-controls'),
+    '@mihkeleidast/storybook-addon-source',
+    getAbsolutePath('@storybook/addon-actions'),
+    getAbsolutePath('@storybook/addon-links'),
   ],
-  stories: ['../storybook/stories/**/*Stories.[tj]sx'],
+
+  stories: ['../storybook/stories/**/*.stories.[tj]sx'],
+
   webpackFinal: config => ({
     ...config,
     module: {
@@ -22,7 +22,21 @@ module.exports = {
       ...customConfig.resolve,
     },
   }),
+
   typescript: {
     reactDocgen: 'none',
   },
+
+  framework: {
+    name: getAbsolutePath('@storybook/react-webpack5'),
+    options: {},
+  },
+
+  docs: {
+    autodocs: false,
+  },
 };
+
+function getAbsolutePath(value) {
+  return dirname(require.resolve(join(value, 'package.json')));
+}

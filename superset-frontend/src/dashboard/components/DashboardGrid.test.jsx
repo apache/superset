@@ -16,78 +16,93 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-import sinon from 'sinon';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 
-import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DashboardGrid from 'src/dashboard/components/DashboardGrid';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
 import { DASHBOARD_GRID_TYPE } from 'src/dashboard/util/componentTypes';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 
-describe('DashboardGrid', () => {
-  const props = {
-    depth: 1,
-    editMode: false,
-    gridComponent: {
-      ...newComponentFactory(DASHBOARD_GRID_TYPE),
-      children: ['a'],
-    },
-    handleComponentDrop() {},
-    resizeComponent() {},
-    width: 500,
-    isComponentVisible: true,
-    setDirectPathToChild() {},
-  };
+const args = { id: 'id', widthMultiple: 1, heightMultiple: 3 };
 
-  function setup(overrideProps) {
-    const wrapper = shallow(<DashboardGrid {...props} {...overrideProps} />);
-    return wrapper;
-  }
+jest.mock(
+  'src/dashboard/containers/DashboardComponent',
+  () =>
+    ({ onResizeStart, onResizeStop }) => (
+      <button
+        type="button"
+        data-test="mock-dashboard-component"
+        onClick={() => onResizeStart()}
+        onBlur={() => onResizeStop(args)}
+      >
+        Mock
+      </button>
+    ),
+);
 
-  it('should render a div with class "dashboard-grid"', () => {
-    const wrapper = setup();
-    expect(wrapper.find('.dashboard-grid')).toExist();
+const props = {
+  depth: 1,
+  editMode: false,
+  gridComponent: {
+    ...newComponentFactory(DASHBOARD_GRID_TYPE),
+    children: ['a'],
+  },
+  handleComponentDrop() {},
+  resizeComponent() {},
+  width: 500,
+  isComponentVisible: true,
+  setDirectPathToChild() {},
+};
+
+function setup(overrideProps) {
+  return render(<DashboardGrid {...props} {...overrideProps} />, {
+    useRedux: true,
+    useDnd: true,
   });
+}
 
-  it('should render one DashboardComponent for each gridComponent child', () => {
-    const wrapper = setup({
-      gridComponent: { ...props.gridComponent, children: ['a', 'b'] },
-    });
-    expect(wrapper.find(DashboardComponent)).toHaveLength(2);
+test('should render a div with class "dashboard-grid"', () => {
+  const { container } = setup();
+  expect(container.querySelector('.dashboard-grid')).toBeInTheDocument();
+});
+
+test('should render one DashboardComponent for each gridComponent child', () => {
+  const { getAllByTestId } = setup({
+    gridComponent: { ...props.gridComponent, children: ['a', 'b'] },
   });
+  expect(getAllByTestId('mock-dashboard-component')).toHaveLength(2);
+});
 
-  it('should render two empty DragDroppables in editMode to increase the drop target zone', () => {
-    const viewMode = setup({ editMode: false });
-    const editMode = setup({ editMode: true });
-    expect(viewMode.find(DragDroppable)).toHaveLength(0);
-    expect(editMode.find(DragDroppable)).toHaveLength(2);
-  });
+test('should render two empty DragDroppables in editMode to increase the drop target zone', () => {
+  const { queryAllByTestId } = setup({ editMode: false });
+  expect(queryAllByTestId('dragdroppable-object').length).toEqual(0);
+  const { getAllByTestId } = setup({ editMode: true });
+  expect(getAllByTestId('dragdroppable-object').length).toEqual(2);
+});
 
-  it('should render grid column guides when resizing', () => {
-    const wrapper = setup({ editMode: true });
-    expect(wrapper.find('.grid-column-guide')).not.toExist();
+test('should render grid column guides when resizing', () => {
+  const { container, getAllByTestId } = setup({ editMode: true });
+  expect(container.querySelector('.grid-column-guide')).not.toBeInTheDocument();
 
-    wrapper.setState({ isResizing: true });
+  // map handleResizeStart to the onClick prop of the mock DashboardComponent
+  fireEvent.click(getAllByTestId('mock-dashboard-component')[0]);
 
-    expect(wrapper.find('.grid-column-guide')).toHaveLength(GRID_COLUMN_COUNT);
-  });
+  expect(container.querySelectorAll('.grid-column-guide')).toHaveLength(
+    GRID_COLUMN_COUNT,
+  );
+});
 
-  it('should call resizeComponent when a child DashboardComponent calls resizeStop', () => {
-    const resizeComponent = sinon.spy();
-    const args = { id: 'id', widthMultiple: 1, heightMultiple: 3 };
-    const wrapper = setup({ resizeComponent });
-    const dashboardComponent = wrapper.find(DashboardComponent).first();
-    dashboardComponent.prop('onResizeStop')(args);
+test('should call resizeComponent when a child DashboardComponent calls resizeStop', () => {
+  const resizeComponent = jest.fn();
+  const { getAllByTestId } = setup({ resizeComponent });
+  const dashboardComponent = getAllByTestId('mock-dashboard-component')[0];
+  fireEvent.blur(dashboardComponent);
 
-    expect(resizeComponent.callCount).toBe(1);
-    expect(resizeComponent.getCall(0).args[0]).toEqual({
-      id: 'id',
-      width: 1,
-      height: 3,
-    });
+  expect(resizeComponent).toHaveBeenCalledTimes(1);
+  expect(resizeComponent).toHaveBeenCalledWith({
+    id: 'id',
+    width: 1,
+    height: 3,
   });
 });

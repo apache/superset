@@ -16,18 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { useState } from 'react';
 import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
+import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
+import {
+  Comparator,
+  MultipleValueComparators,
+} from '@superset-ui/chart-controls';
 import { Form, FormItem, FormProps } from 'src/components/Form';
 import Select from 'src/components/Select/Select';
 import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
 import Button from 'src/components/Button';
-import {
-  COMPARATOR,
-  ConditionalFormattingConfig,
-  MULTIPLE_VALUE_COMPARATORS,
-} from './types';
+import { ConditionalFormattingConfig } from './types';
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
@@ -48,17 +49,17 @@ const colorSchemeOptions = (theme: SupersetTheme) => [
 ];
 
 const operatorOptions = [
-  { value: COMPARATOR.NONE, label: t('None') },
-  { value: COMPARATOR.GREATER_THAN, label: '>' },
-  { value: COMPARATOR.LESS_THAN, label: '<' },
-  { value: COMPARATOR.GREATER_OR_EQUAL, label: '≥' },
-  { value: COMPARATOR.LESS_OR_EQUAL, label: '≤' },
-  { value: COMPARATOR.EQUAL, label: '=' },
-  { value: COMPARATOR.NOT_EQUAL, label: '≠' },
-  { value: COMPARATOR.BETWEEN, label: '< x <' },
-  { value: COMPARATOR.BETWEEN_OR_EQUAL, label: '≤ x ≤' },
-  { value: COMPARATOR.BETWEEN_OR_LEFT_EQUAL, label: '≤ x <' },
-  { value: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL, label: '< x ≤' },
+  { value: Comparator.None, label: t('None') },
+  { value: Comparator.GreaterThan, label: '>' },
+  { value: Comparator.LessThan, label: '<' },
+  { value: Comparator.GreaterOrEqual, label: '≥' },
+  { value: Comparator.LessOrEqual, label: '≤' },
+  { value: Comparator.Equal, label: '=' },
+  { value: Comparator.NotEqual, label: '≠' },
+  { value: Comparator.Between, label: '< x <' },
+  { value: Comparator.BetweenOrEqual, label: '≤ x ≤' },
+  { value: Comparator.BetweenOrLeftEqual, label: '≤ x <' },
+  { value: Comparator.BetweenOrRightEqual, label: '< x ≤' },
 ];
 
 const targetValueValidator =
@@ -88,11 +89,11 @@ const targetValueRightValidator = targetValueValidator(
   t('This value should be greater than the left target value'),
 );
 
-const isOperatorMultiValue = (operator?: COMPARATOR) =>
-  operator && MULTIPLE_VALUE_COMPARATORS.includes(operator);
+const isOperatorMultiValue = (operator?: Comparator) =>
+  operator && MultipleValueComparators.includes(operator);
 
-const isOperatorNone = (operator?: COMPARATOR) =>
-  !operator || operator === COMPARATOR.NONE;
+const isOperatorNone = (operator?: Comparator) =>
+  !operator || operator === Comparator.None;
 
 const rulesRequired = [{ required: true, message: t('Required') }];
 
@@ -123,21 +124,24 @@ const shouldFormItemUpdate = (
   isOperatorMultiValue(prevValues.operator) !==
     isOperatorMultiValue(currentValues.operator);
 
-const operatorField = (
+const renderOperator = ({ showOnlyNone }: { showOnlyNone?: boolean } = {}) => (
   <FormItem
     name="operator"
     label={t('Operator')}
     rules={rulesRequired}
     initialValue={operatorOptions[0].value}
   >
-    <Select ariaLabel={t('Operator')} options={operatorOptions} />
+    <Select
+      ariaLabel={t('Operator')}
+      options={showOnlyNone ? [operatorOptions[0]] : operatorOptions}
+    />
   </FormItem>
 );
 
 const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
   isOperatorNone(getFieldValue('operator')) ? (
     <Row gutter={12}>
-      <Col span={6}>{operatorField}</Col>
+      <Col span={6}>{renderOperator()}</Col>
     </Row>
   ) : isOperatorMultiValue(getFieldValue('operator')) ? (
     <Row gutter={12}>
@@ -153,7 +157,7 @@ const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
           <FullWidthInputNumber />
         </FormItem>
       </Col>
-      <Col span={6}>{operatorField}</Col>
+      <Col span={6}>{renderOperator()}</Col>
       <Col span={9}>
         <FormItem
           name="targetValueRight"
@@ -169,7 +173,7 @@ const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
     </Row>
   ) : (
     <Row gutter={12}>
-      <Col span={6}>{operatorField}</Col>
+      <Col span={6}>{renderOperator()}</Col>
       <Col span={18}>
         <FormItem
           name="targetValue"
@@ -186,13 +190,26 @@ export const FormattingPopoverContent = ({
   config,
   onChange,
   columns = [],
+  extraColorChoices = [],
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string }[];
+  extraColorChoices?: { label: string; value: string }[];
 }) => {
   const theme = useTheme();
   const colorScheme = colorSchemeOptions(theme);
+  const [showOperatorFields, setShowOperatorFields] = useState(
+    config === undefined ||
+      (config?.colorScheme !== ColorSchemeEnum.Green &&
+        config?.colorScheme !== ColorSchemeEnum.Red),
+  );
+  const handleChange = (event: any) => {
+    setShowOperatorFields(
+      !(event === ColorSchemeEnum.Green || event === ColorSchemeEnum.Red),
+    );
+  };
+
   return (
     <Form
       onFinish={onChange}
@@ -218,12 +235,22 @@ export const FormattingPopoverContent = ({
             rules={rulesRequired}
             initialValue={colorScheme[0].value}
           >
-            <Select ariaLabel={t('Color scheme')} options={colorScheme} />
+            <Select
+              onChange={event => handleChange(event)}
+              ariaLabel={t('Color scheme')}
+              options={[...colorScheme, ...extraColorChoices]}
+            />
           </FormItem>
         </Col>
       </Row>
       <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
-        {renderOperatorFields}
+        {showOperatorFields ? (
+          renderOperatorFields
+        ) : (
+          <Row gutter={12}>
+            <Col span={6}>{renderOperator({ showOnlyNone: true })}</Col>
+          </Row>
+        )}
       </FormItem>
       <FormItem>
         <JustifyEnd>

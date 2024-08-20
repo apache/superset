@@ -48,9 +48,9 @@ export default class EchartsTreemapChartPlugin extends EchartsChartPlugin<
       loadChart: () => import('./EchartsTreemap'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Part of a Whole'),
         credits: ['https://echarts.apache.org'],
@@ -60,13 +60,13 @@ export default class EchartsTreemapChartPlugin extends EchartsChartPlugin<
         exampleGallery: [{ url: example1 }, { url: example2 }],
         name: t('Treemap'),
         tags: [
-          t('Aesthetic'),
           t('Categorical'),
           t('Comparison'),
           t('ECharts'),
           t('Multi-Levels'),
           t('Percentages'),
           t('Proportional'),
+          t('Featured'),
         ],
         thumbnail,
       },

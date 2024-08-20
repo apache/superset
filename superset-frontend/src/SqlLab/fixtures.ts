@@ -22,9 +22,11 @@ import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 import {
   DatasourceType,
   denormalizeTimestamp,
+  GenericDataType,
   QueryResponse,
   QueryState,
 } from '@superset-ui/core';
+import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
 export const mockedActions = sinon.stub({ ...actions });
@@ -33,7 +35,8 @@ export const alert = { bsStyle: 'danger', msg: 'Ooops', id: 'lksvmcx32' };
 export const table = {
   dbId: 1,
   selectStar: 'SELECT * FROM ab_user',
-  queryEditorId: 'rJ-KP47a',
+  queryEditorId: 'dfsadfs',
+  catalog: null,
   schema: 'superset',
   name: 'ab_user',
   id: 'r11Vgt60',
@@ -181,6 +184,7 @@ export const table = {
 };
 
 export const defaultQueryEditor = {
+  version: LatestQueryEditorVersion,
   id: 'dfsadfs',
   autorun: false,
   dbId: undefined,
@@ -188,6 +192,7 @@ export const defaultQueryEditor = {
   selectedText: undefined,
   sql: 'SELECT *\nFROM\nWHERE',
   name: 'Untitled Query 1',
+  catalog: null,
   schema: 'main',
   remoteId: null,
   hideLeftBar: false,
@@ -205,7 +210,7 @@ export const extraQueryEditor1 = {
 export const extraQueryEditor2 = {
   ...defaultQueryEditor,
   id: 'owkdi998',
-  sql: 'SELECT *\nFROM\nWHERE\nGROUP BY',
+  sql: '',
   name: 'Untitled Query 3',
 };
 
@@ -221,7 +226,7 @@ export const queries = [
     id: 'BkA1CLrJg',
     progress: 100,
     startDttm: 1476910566092.96,
-    state: QueryState.SUCCESS,
+    state: QueryState.Success,
     tempTable: null,
     userId: 1,
     executedSql: null,
@@ -230,6 +235,7 @@ export const queries = [
     queryLimit: 100,
     endDttm: 1476910566798,
     limit_reached: false,
+    catalog: null,
     schema: 'test_schema',
     errorMessage: null,
     db: 'main',
@@ -279,7 +285,7 @@ export const queries = [
     id: 'S1zeAISkx',
     progress: 100,
     startDttm: 1476910570802.2,
-    state: QueryState.SUCCESS,
+    state: QueryState.Success,
     tempTable: null,
     userId: 1,
     executedSql:
@@ -291,6 +297,7 @@ export const queries = [
     rows: 42,
     endDttm: 1476910579693,
     limit_reached: false,
+    catalog: null,
     schema: null,
     errorMessage: null,
     db: 'main',
@@ -312,7 +319,7 @@ export const queryWithNoQueryLimit = {
   id: 'BkA1CLrJg',
   progress: 100,
   startDttm: 1476910566092.96,
-  state: QueryState.SUCCESS,
+  state: QueryState.Success,
   tempTable: null,
   userId: 1,
   executedSql: null,
@@ -320,6 +327,7 @@ export const queryWithNoQueryLimit = {
   rows: 42,
   endDttm: 1476910566798,
   limit_reached: false,
+  catalog: null,
   schema: 'test_schema',
   errorMessage: null,
   db: 'main',
@@ -453,18 +461,21 @@ export const tables = {
   options: [
     {
       value: 'birth_names',
+      catalog: null,
       schema: 'main',
       label: 'birth_names',
       title: 'birth_names',
     },
     {
       value: 'energy_usage',
+      catalog: null,
       schema: 'main',
       label: 'energy_usage',
       title: 'energy_usage',
     },
     {
       value: 'wb_health_population',
+      catalog: null,
       schema: 'main',
       label: 'wb_health_population',
       title: 'wb_health_population',
@@ -480,11 +491,12 @@ export const stoppedQuery = {
   progress: 0,
   results: [],
   runAsync: false,
+  catalog: null,
   schema: 'main',
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.STOPPED,
+  state: QueryState.Stopped,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -498,11 +510,12 @@ export const failedQueryWithErrorMessage = {
   progress: 0,
   results: [],
   runAsync: false,
+  catalog: null,
   schema: 'main',
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.FAILED,
+  state: QueryState.Failed,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -523,11 +536,12 @@ export const failedQueryWithErrors = {
   progress: 0,
   results: [],
   runAsync: false,
+  catalog: null,
   schema: 'main',
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.FAILED,
+  state: QueryState.Failed,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -543,7 +557,7 @@ const baseQuery: QueryResponse = {
   id: 'BkA1CLrJg',
   progress: 100,
   startDttm: 1476910566092.96,
-  state: QueryState.SUCCESS,
+  state: QueryState.Success,
   tempSchema: null,
   tempTable: 'temp',
   userId: 1,
@@ -552,6 +566,7 @@ const baseQuery: QueryResponse = {
   started: 'started',
   queryLimit: 100,
   endDttm: 1476910566798,
+  catalog: null,
   schema: 'test_schema',
   errorMessage: null,
   db: { key: 'main' },
@@ -579,11 +594,13 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.String,
       },
       {
         is_dttm: false,
         column_name: 'gender',
         type: 'STRING',
+        type_generic: GenericDataType.String,
       },
     ],
     selected_columns: [
@@ -591,11 +608,13 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.Temporal,
       },
       {
         is_dttm: false,
         column_name: 'gender',
         type: 'STRING',
+        type_generic: GenericDataType.String,
       },
     ],
     expanded_columns: [
@@ -603,6 +622,7 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.String,
       },
     ],
     data: [
@@ -619,7 +639,7 @@ export const runningQuery: QueryResponse = {
   ctas: false,
   id: 'ryhMUZCGb',
   progress: 90,
-  state: QueryState.RUNNING,
+  state: QueryState.Running,
   startDttm: Date.now() - 500,
 };
 
@@ -630,7 +650,7 @@ export const successfulQuery: QueryResponse = {
   ctas: false,
   id: 'ryhMUZCGb',
   progress: 100,
-  state: QueryState.SUCCESS,
+  state: QueryState.Success,
   startDttm: Date.now() - 500,
 };
 
@@ -661,6 +681,7 @@ export const initialState = {
     queriesLastUpdate: 0,
     activeSouthPaneTab: 'Results',
     unsavedQueryEditor: {},
+    destroyedQueryEditors: {},
   },
   messageToasts: [],
   user,
@@ -671,6 +692,7 @@ export const initialState = {
       DISPLAY_MAX_ROW: 100,
       SQLALCHEMY_DOCS_URL: 'test_SQLALCHEMY_DOCS_URL',
       SQLALCHEMY_DISPLAY_TEXT: 'test_SQLALCHEMY_DISPLAY_TEXT',
+      SUPERSET_WEBSERVER_TIMEOUT: '300',
     },
   },
 };
@@ -680,6 +702,7 @@ export const query = {
   dbId: 1,
   sql: 'SELECT * FROM something',
   description: 'test description',
+  catalog: null,
   schema: 'test schema',
   resultsKey: 'test',
 };
@@ -689,6 +712,7 @@ export const queryId = 'clientId2353';
 export const testQuery: ISaveableDatasource = {
   name: 'unimportant',
   dbId: 1,
+  catalog: null,
   schema: 'main',
   sql: 'SELECT *',
   columns: [
@@ -718,6 +742,7 @@ export const mockdatasets = [...new Array(3)].map((_, i) => ({
   database_name: `db ${i}`,
   explore_url: `/explore/?datasource_type=table&datasource_id=${i}`,
   id: i,
+  catalog: null,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
   owners: [{ username: 'admin', userId: 1 }],

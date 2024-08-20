@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject } from 'react';
+import { RefObject, Ref } from 'react';
+
 import {
   ChartDataResponseResult,
   ChartProps,
@@ -31,8 +32,8 @@ import {
   SqlaFormData,
   ChartMetadata,
 } from '@superset-ui/core';
-import { EChartsCoreOption, ECharts } from 'echarts';
-import { TooltipMarker } from 'echarts/types/src/util/format';
+import type { EChartsCoreOption, EChartsType } from 'echarts/core';
+import type { TooltipMarker } from 'echarts/types/src/util/format';
 import { StackControlsValue } from './constants';
 
 export type EchartsStylesProps = {
@@ -41,7 +42,7 @@ export type EchartsStylesProps = {
 };
 
 export type Refs = {
-  echartRef?: React.Ref<EchartsHandler>;
+  echartRef?: Ref<EchartsHandler>;
   divRef?: RefObject<HTMLDivElement>;
 };
 
@@ -57,7 +58,7 @@ export interface EchartsProps {
 }
 
 export interface EchartsHandler {
-  getEchartInstance: () => ECharts | undefined;
+  getEchartInstance: () => EChartsType | undefined;
 }
 
 export enum ForecastSeriesEnum {

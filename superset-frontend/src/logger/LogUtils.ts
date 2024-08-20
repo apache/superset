@@ -51,6 +51,8 @@ export const LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA =
   'confirm_overwrite_dashboard_metadata';
 export const LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE =
   'dashboard_download_as_image';
+export const LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF =
+  'dashboard_download_as_pdf';
 export const LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE = 'chart_download_as_image';
 export const LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV = 'chart_download_as_csv';
 export const LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED =
@@ -68,6 +70,21 @@ export const LOG_ACTIONS_DRILL_BY_BREADCRUMB_CLICKED =
   'drill_by_breadcrumb_clicked';
 export const LOG_ACTIONS_SQLLAB_MONITOR_LOCAL_STORAGE_USAGE =
   'sqllab_monitor_local_storage_usage';
+export const LOG_ACTIONS_SQLLAB_CREATE_TABLE_AS = 'sqllab_create_table_as';
+export const LOG_ACTIONS_SQLLAB_CREATE_VIEW_AS = 'sqllab_create_view_as';
+export const LOG_ACTIONS_SQLLAB_RUN_QUERY = 'sqllab_run_query';
+export const LOG_ACTIONS_SQLLAB_STOP_QUERY = 'sqllab_stop_query';
+export const LOG_ACTIONS_SQLLAB_ESTIMATE_QUERY_COST =
+  'sqllab_estimate_query_cost';
+export const LOG_ACTIONS_SQLLAB_SAVE_QUERY = 'sqllab_save_query';
+export const LOG_ACTIONS_SQLLAB_SAVE_DATASET = 'sqllab_save_dataset';
+export const LOG_ACTIONS_SQLLAB_COPY_LINK = 'sqllab_copy_link';
+export const LOG_ACTIONS_SQLLAB_FORMAT_SQL = 'sqllab_format_sql';
+export const LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV = 'sqllab_download_csv';
+export const LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD =
+  'sqllab_copy_result_to_clipboard';
+export const LOG_ACTIONS_SQLLAB_CREATE_CHART = 'sqllab_create_chart';
+export const LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE = 'sqllab_load_tab_state';
 
 // Log event types --------------------------------------------------------------
 export const LOG_EVENT_TYPE_TIMING = new Set([
@@ -75,6 +92,7 @@ export const LOG_EVENT_TYPE_TIMING = new Set([
   LOG_ACTIONS_RENDER_CHART,
   LOG_ACTIONS_HIDE_BROWSER_TAB,
   LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY,
+  LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE,
 ]);
 export const LOG_EVENT_TYPE_USER = new Set([
   LOG_ACTIONS_MOUNT_DASHBOARD,
@@ -90,6 +108,7 @@ export const LOG_EVENT_TYPE_USER = new Set([
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
 ]);
 

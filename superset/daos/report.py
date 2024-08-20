@@ -16,16 +16,11 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
-
 from superset.daos.base import BaseDAO
-from superset.daos.exceptions import DAODeleteFailedError
 from superset.extensions import db
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
@@ -35,6 +30,7 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportState,
 )
+from superset.utils import json
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -138,15 +134,12 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         cls,
         item: ReportSchedule | None = None,
         attributes: dict[str, Any] | None = None,
-        commit: bool = True,
     ) -> ReportSchedule:
         """
         Create a report schedule with nested recipients.
 
         :param item: The object to create
         :param attributes: The attributes associated with the object to create
-        :param commit: Whether to commit the transaction
-        :raises: DAOCreateFailedError: If the creation failed
         """
 
         # TODO(john-bodley): Determine why we need special handling for recipients.
@@ -166,22 +159,19 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
                     for recipient in recipients
                 ]
 
-        return super().create(item, attributes, commit)
+        return super().create(item, attributes)
 
     @classmethod
     def update(
         cls,
         item: ReportSchedule | None = None,
         attributes: dict[str, Any] | None = None,
-        commit: bool = True,
     ) -> ReportSchedule:
         """
         Update a report schedule with nested recipients.
 
         :param item: The object to update
         :param attributes: The attributes associated with the object to update
-        :param commit: Whether to commit the transaction
-        :raises: DAOUpdateFailedError: If the updation failed
         """
 
         # TODO(john-bodley): Determine why we need special handling for recipients.
@@ -201,30 +191,28 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
                     for recipient in recipients
                 ]
 
-        return super().update(item, attributes, commit)
+        return super().update(item, attributes)
 
     @staticmethod
-    def find_active(session: Session | None = None) -> list[ReportSchedule]:
+    def find_active() -> list[ReportSchedule]:
         """
-        Find all active reports. If session is passed it will be used instead of the
-        default `db.session`, this is useful when on a celery worker session context
+        Find all active reports.
         """
-        session = session or db.session
         return (
-            session.query(ReportSchedule).filter(ReportSchedule.active.is_(True)).all()
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.active.is_(True))
+            .all()
         )
 
     @staticmethod
     def find_last_success_log(
         report_schedule: ReportSchedule,
-        session: Session | None = None,
     ) -> ReportExecutionLog | None:
         """
         Finds last success execution log for a given report
         """
-        session = session or db.session
         return (
-            session.query(ReportExecutionLog)
+            db.session.query(ReportExecutionLog)
             .filter(
                 ReportExecutionLog.state == ReportState.SUCCESS,
                 ReportExecutionLog.report_schedule == report_schedule,
@@ -236,14 +224,12 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     @staticmethod
     def find_last_entered_working_log(
         report_schedule: ReportSchedule,
-        session: Session | None = None,
     ) -> ReportExecutionLog | None:
         """
         Finds last success execution log for a given report
         """
-        session = session or db.session
         return (
-            session.query(ReportExecutionLog)
+            db.session.query(ReportExecutionLog)
             .filter(
                 ReportExecutionLog.state == ReportState.WORKING,
                 ReportExecutionLog.report_schedule == report_schedule,
@@ -256,14 +242,12 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     @staticmethod
     def find_last_error_notification(
         report_schedule: ReportSchedule,
-        session: Session | None = None,
     ) -> ReportExecutionLog | None:
         """
         Finds last error email sent
         """
-        session = session or db.session
         last_error_email_log = (
-            session.query(ReportExecutionLog)
+            db.session.query(ReportExecutionLog)
             .filter(
                 ReportExecutionLog.error_message
                 == REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
@@ -276,7 +260,7 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
             return None
         # Checks that only errors have occurred since the last email
         report_from_last_email = (
-            session.query(ReportExecutionLog)
+            db.session.query(ReportExecutionLog)
             .filter(
                 ReportExecutionLog.state.notin_(
                     [ReportState.ERROR, ReportState.WORKING]
@@ -290,25 +274,12 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         return last_error_email_log if not report_from_last_email else None
 
     @staticmethod
-    def bulk_delete_logs(
-        model: ReportSchedule,
-        from_date: datetime,
-        session: Session | None = None,
-        commit: bool = True,
-    ) -> int | None:
-        session = session or db.session
-        try:
-            row_count = (
-                session.query(ReportExecutionLog)
-                .filter(
-                    ReportExecutionLog.report_schedule == model,
-                    ReportExecutionLog.end_dttm < from_date,
-                )
-                .delete(synchronize_session="fetch")
+    def bulk_delete_logs(model: ReportSchedule, from_date: datetime) -> int | None:
+        return (
+            db.session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.report_schedule == model,
+                ReportExecutionLog.end_dttm < from_date,
             )
-            if commit:
-                session.commit()
-            return row_count
-        except SQLAlchemyError as ex:
-            session.rollback()
-            raise DAODeleteFailedError(str(ex)) from ex
+            .delete(synchronize_session="fetch")
+        )

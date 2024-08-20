@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
-import { AntdButton, AntdSelect } from 'src/components';
+import { Button, AntdSelect } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
-import { FieldPropTypes } from '.';
+import { FieldPropTypes } from '../../types';
 import { infoTooltip, labelMarginBottom, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {
-  jsonUpload,
-  copyPaste,
+  JsonUpload,
+  CopyPaste,
 }
 
 // These are the columns that are going to be added to encrypted extra, they differ in name based
@@ -47,7 +47,7 @@ export const EncryptedField = ({
   editNewDb,
 }: FieldPropTypes) => {
   const [uploadOption, setUploadOption] = useState<number>(
-    CredentialInfoOptions.jsonUpload.valueOf(),
+    CredentialInfoOptions.JsonUpload.valueOf(),
   );
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
@@ -97,17 +97,17 @@ export const EncryptedField = ({
             style={{ width: '100%' }}
             onChange={option => setUploadOption(option)}
           >
-            <AntdSelect.Option value={CredentialInfoOptions.jsonUpload}>
+            <AntdSelect.Option value={CredentialInfoOptions.JsonUpload}>
               {t('Upload JSON file')}
             </AntdSelect.Option>
 
-            <AntdSelect.Option value={CredentialInfoOptions.copyPaste}>
+            <AntdSelect.Option value={CredentialInfoOptions.CopyPaste}>
               {t('Copy and Paste JSON credentials')}
             </AntdSelect.Option>
           </AntdSelect>
         </>
       )}
-      {uploadOption === CredentialInfoOptions.copyPaste ||
+      {uploadOption === CredentialInfoOptions.CopyPaste ||
       isEditMode ||
       editNewDb ? (
         <div className="input-container">
@@ -142,14 +142,14 @@ export const EncryptedField = ({
             </div>
 
             {!fileToUpload && (
-              <AntdButton
+              <Button
                 className="input-upload-btn"
                 onClick={() =>
                   document?.getElementById('selectedFile')?.click()
                 }
               >
                 {t('Choose File')}
-              </AntdButton>
+              </Button>
             )}
             {fileToUpload && (
               <div className="input-upload-current">

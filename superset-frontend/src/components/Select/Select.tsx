@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   forwardRef,
+  FocusEvent,
   ReactElement,
   RefObject,
   useEffect,
@@ -26,6 +27,7 @@ import React, {
   useCallback,
   ClipboardEvent,
 } from 'react';
+
 import {
   ensureIsArray,
   formatNumber,
@@ -51,6 +53,9 @@ import {
   mapValues,
   mapOptions,
   hasCustomLabels,
+  getOption,
+  isObject,
+  isEqual as utilsIsEqual,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -71,8 +76,6 @@ import { customTagRender } from './CustomTag';
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
- * The aim of the component was to combine all the instances of select components throughout the
- * project under one and to remove the react-select component entirely.
  * This Select component provides an API that is tested against all the different use cases of Superset.
  * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
  * and to enforce simplification and standardization.
@@ -179,8 +182,18 @@ const Select = forwardRef(
 
     // add selected values to options list if they are not in it
     const fullSelectOptions = useMemo(() => {
+      // check to see if selectOptions are grouped
+      let groupedOptions: SelectOptionsType;
+      if (selectOptions.some(opt => opt.options)) {
+        groupedOptions = selectOptions.reduce(
+          (acc, group) => [...acc, ...group.options],
+          [] as SelectOptionsType,
+        );
+      }
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
-        .filter(opt => !hasOption(getValue(opt), selectOptions))
+        .filter(
+          opt => !hasOption(getValue(opt), groupedOptions || selectOptions),
+        )
         .map(opt =>
           isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
         );
@@ -227,7 +240,16 @@ const Select = forwardRef(
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
+        // on select is fired in single value mode if the same value is selected
+        const valueChanged = !utilsIsEqual(
+          selectedItem,
+          selectValue as RawValue | AntdLabeledValue,
+          'value',
+        );
         setSelectValue(selectedItem);
+        if (valueChanged) {
+          fireOnChange();
+        }
       } else {
         setSelectValue(previousState => {
           const array = ensureIsArray(previousState);
@@ -259,8 +281,8 @@ const Select = forwardRef(
           }
           return previousState;
         });
+        fireOnChange();
       }
-      fireOnChange();
       onSelect?.(selectedItem, option);
     };
 
@@ -279,8 +301,8 @@ const Select = forwardRef(
                 : option.value,
             ),
         );
-        fireOnChange();
       }
+      fireOnChange();
     };
 
     const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
@@ -432,7 +454,7 @@ const Select = forwardRef(
       [selectAllEligible],
     );
 
-    const handleOnBlur = (event: React.FocusEvent<HTMLElement>) => {
+    const handleOnBlur = (event: FocusEvent<HTMLElement>) => {
       setInputValue('');
       onBlur?.(event);
     };
@@ -530,30 +552,54 @@ const Select = forwardRef(
       actualMaxTagCount -= 1;
     }
 
+    const getPastedTextValue = useCallback(
+      (text: string) => {
+        const option = getOption(text, fullSelectOptions, true);
+        if (!option && !allowNewOptions) {
+          return undefined;
+        }
+        if (labelInValue) {
+          const value: AntdLabeledValue = {
+            label: text,
+            value: text,
+          };
+          if (option) {
+            value.label = isObject(option) ? option.label : option;
+            value.value = isObject(option) ? option.value! : option;
+          }
+          return value;
+        }
+        return option ? (isObject(option) ? option.value! : option) : text;
+      },
+      [allowNewOptions, fullSelectOptions, labelInValue],
+    );
+
     const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
       const pastedText = e.clipboardData.getData('text');
       if (isSingleMode) {
-        setSelectValue(
-          labelInValue ? { label: pastedText, value: pastedText } : pastedText,
-        );
+        const value = getPastedTextValue(pastedText);
+        if (value) {
+          setSelectValue(value);
+        }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
         const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const values = array
+          .map(item => getPastedTextValue(item))
+          .filter(item => item !== undefined);
         if (labelInValue) {
           setSelectValue(previous => [
             ...((previous || []) as AntdLabeledValue[]),
-            ...array.map<AntdLabeledValue>(value => ({
-              label: value,
-              value,
-            })),
+            ...(values as AntdLabeledValue[]),
           ]);
         } else {
           setSelectValue(previous => [
             ...((previous || []) as string[]),
-            ...array,
+            ...(values as string[]),
           ]);
         }
       }
+      fireOnChange();
     };
 
     return (

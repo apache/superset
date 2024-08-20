@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import TagModal from 'src/features/tags/TagModal';
 import fetchMock from 'fetch-mock';
@@ -56,10 +55,12 @@ test('renders correctly in edit mode', () => {
     changed_on_delta_humanized: '',
     created_on_delta_humanized: '',
     created_by: {
+      id: 1,
       first_name: 'joe',
       last_name: 'smith',
     },
     changed_by: {
+      id: 2,
       first_name: 'tom',
       last_name: 'brown',
     },

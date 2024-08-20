@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { kebabCase } from 'lodash';
 import { t, useTheme, styled } from '@superset-ui/core';
 import Tooltip from './Tooltip';

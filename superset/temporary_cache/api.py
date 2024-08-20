@@ -24,13 +24,13 @@ from apispec.exceptions import DuplicateComponentNameError
 from flask import request, Response
 from marshmallow import ValidationError
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.key_value.types import JsonKeyValueCodec
-from superset.temporary_cache.commands.exceptions import (
+from superset.commands.temporary_cache.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,
 )
-from superset.temporary_cache.commands.parameters import CommandParameters
+from superset.commands.temporary_cache.parameters import CommandParameters
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.key_value.types import JsonKeyValueCodec
 from superset.temporary_cache.schemas import (
     TemporaryCachePostSchema,
     TemporaryCachePutSchema,
@@ -132,17 +132,13 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
             return self.response(404, message=str(ex))
 
     @abstractmethod
-    def get_create_command(self) -> Any:
-        ...
+    def get_create_command(self) -> Any: ...
 
     @abstractmethod
-    def get_update_command(self) -> Any:
-        ...
+    def get_update_command(self) -> Any: ...
 
     @abstractmethod
-    def get_get_command(self) -> Any:
-        ...
+    def get_get_command(self) -> Any: ...
 
     @abstractmethod
-    def get_delete_command(self) -> Any:
-        ...
+    def get_delete_command(self) -> Any: ...

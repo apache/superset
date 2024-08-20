@@ -25,8 +25,8 @@ from inspect import (
     isclass,
     isfunction,
     ismethod,
-    signature,
     Signature,
+    signature,
 )
 from logging import Logger
 from typing import Any, Callable, cast, Union
@@ -169,5 +169,6 @@ def _make_decorator(
 def _get_logger(decorated: Decorated) -> Logger:
     module = getmodule(decorated)
     return module.__dict__.get(
-        _LOGGER_VAR_NAME, logging.getLogger(module.__name__)  # type: ignore
+        _LOGGER_VAR_NAME,
+        logging.getLogger(module.__name__),  # type: ignore
     )

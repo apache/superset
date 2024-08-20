@@ -49,7 +49,7 @@ class AdvancedDataTypeResponse(TypedDict, total=False):
 @dataclass
 class AdvancedDataType:
     """
-    Used for coverting base type value into an advanced type value
+    Used for converting base type value into an advanced type value
     """
 
     verbose_name: str

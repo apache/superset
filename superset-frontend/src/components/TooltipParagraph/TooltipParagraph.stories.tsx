@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import TooltipParagraph from '.';
 
 export default {
@@ -34,14 +33,6 @@ export const InteractiveTooltip = (args: IProps) => (
     <TooltipParagraph>{args.title}</TooltipParagraph>
   </div>
 );
-
-InteractiveTooltip.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
 
 InteractiveTooltip.args = {
   title: 'This is too long and should truncate.',

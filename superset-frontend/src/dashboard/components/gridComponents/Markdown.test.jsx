@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Provider } from 'react-redux';
-import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
 import { DndProvider } from 'react-dnd';
@@ -30,7 +29,7 @@ import MarkdownConnected from 'src/dashboard/components/gridComponents/Markdown'
 import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 
@@ -62,7 +61,7 @@ describe('Markdown', () => {
 
   function setup(overrideProps) {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
-    // otherwise we cannot assert on DragDroppable children
+    // otherwise we cannot assert on Droppable children
     const wrapper = mount(
       <Provider store={mockStore}>
         <DndProvider backend={HTML5Backend}>
@@ -73,9 +72,9 @@ describe('Markdown', () => {
     return wrapper;
   }
 
-  it('should render a DragDroppable', () => {
+  it('should render a Draggable', () => {
     const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).toExist();
+    expect(wrapper.find(Draggable)).toExist();
   });
 
   it('should render a WithPopoverMenu', () => {

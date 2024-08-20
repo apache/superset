@@ -21,10 +21,12 @@ import {
   getMetricLabel,
   DataRecord,
   DataRecordValue,
+  tooltipHtml,
 } from '@superset-ui/core';
-import { EChartsCoreOption, GraphSeriesOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { GraphSeriesOption } from 'echarts/charts';
+import type { GraphEdgeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import { extent as d3Extent } from 'd3-array';
-import { GraphEdgeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import {
   EchartsGraphFormData,
   EChartGraphNode,
@@ -136,19 +138,6 @@ function getKeyByValue(
   value: number,
 ): string {
   return Object.keys(object).find(key => object[key] === value) as string;
-}
-
-function edgeFormatter(
-  sourceIndex: string,
-  targetIndex: string,
-  value: number,
-  nodes: { [name: string]: number },
-): string {
-  const source = Number(sourceIndex);
-  const target = Number(targetIndex);
-  return `${sanitizeHtml(getKeyByValue(nodes, source))} > ${sanitizeHtml(
-    getKeyByValue(nodes, target),
-  )} : ${value}`;
 }
 
 function getCategoryName(columnName: string, name?: DataRecordValue) {
@@ -289,7 +278,7 @@ export default function transformProps(
       type: 'graph',
       categories: categoryList.map(c => ({
         name: c,
-        itemStyle: { color: colorFn(c, sliceId) },
+        itemStyle: { color: colorFn(c, sliceId, colorScheme) },
       })),
       layout,
       force: {
@@ -321,13 +310,16 @@ export default function transformProps(
     tooltip: {
       ...getDefaultTooltip(refs),
       show: !inContextMenu,
-      formatter: (params: any): string =>
-        edgeFormatter(
-          params.data.source,
-          params.data.target,
-          params.value,
-          nodes,
-        ),
+      formatter: (params: any): string => {
+        const source = sanitizeHtml(
+          getKeyByValue(nodes, Number(params.data.source)),
+        );
+        const target = sanitizeHtml(
+          getKeyByValue(nodes, Number(params.data.target)),
+        );
+        const title = `${source} > ${target}`;
+        return tooltipHtml([[metricLabel, `${params.value}`]], title);
+      },
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),

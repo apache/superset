@@ -1,0 +1,53 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: World Map
+description: null
+certified_by: null
+certification_details: null
+viz_type: world_map
+params:
+  datasource: 1__table
+  viz_type: world_map
+  entity: country_name
+  country_fieldtype: name
+  metric: sum__SP_POP_TOTL
+  adhoc_filters:
+    - clause: WHERE
+      subject: year
+      operator: TEMPORAL_RANGE
+      comparator: No filter
+      expressionType: SIMPLE
+  row_limit: 10000
+  show_bubbles: true
+  secondary_metric: sum__SP_RUR_TOTL
+  max_bubble_size: "25"
+  color_picker:
+    r: 0
+    g: 122
+    b: 135
+    a: 1
+  color_by: metric
+  linear_color_scheme: superset_seq_1
+  color_scheme: supersetColors
+  y_axis_format: SMART_NUMBER
+  extra_form_data: {}
+  dashboards:
+    - 13
+cache_timeout: null
+uuid: f0606234-1644-426f-8fc6-3eaf8e77fd58
+version: 1.0.0
+dataset_uuid: 3cee7b7f-0009-4d9d-8de4-1da4cad4569e

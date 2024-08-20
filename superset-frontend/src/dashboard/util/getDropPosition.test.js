@@ -21,6 +21,7 @@ import getDropPosition, {
   DROP_RIGHT,
   DROP_BOTTOM,
   DROP_LEFT,
+  DROP_FORBIDDEN,
 } from 'src/dashboard/util/getDropPosition';
 
 import {
@@ -80,7 +81,7 @@ describe('getDropPosition', () => {
   }
 
   describe('invalid child + invalid sibling', () => {
-    it('should return null', () => {
+    it('should return DROP_FORBIDDEN', () => {
       const result = getDropPosition(
         // TAB is an invalid child + sibling of GRID > ROW
         ...getMocks({
@@ -89,7 +90,7 @@ describe('getDropPosition', () => {
           draggingType: TAB_TYPE,
         }),
       );
-      expect(result).toBeNull();
+      expect(result).toBe(DROP_FORBIDDEN);
     });
   });
 

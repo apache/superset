@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   forwardRef,
+  Key,
   ReactNode,
   RefObject,
   useCallback,
@@ -90,9 +91,24 @@ const ChartContextMenu = (
   const canExplore = useSelector((state: RootState) =>
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
+  const canWriteExploreFormData = useSelector((state: RootState) =>
+    findPermission('can_write', 'ExploreFormDataRestApi', state.user?.roles),
+  );
+  const canDatasourceSamples = useSelector((state: RootState) =>
+    findPermission('can_samples', 'Datasource', state.user?.roles),
+  );
+  const canDownload = useSelector((state: RootState) =>
+    findPermission('can_csv', 'Superset', state.user?.roles),
+  );
+  const canDrill = useSelector((state: RootState) =>
+    findPermission('can_drill', 'Dashboard', state.user?.roles),
+  );
+  const canDrillBy = (canExplore || canDrill) && canWriteExploreFormData;
+  const canDrillToDetail = (canExplore || canDrill) && canDatasourceSamples;
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
+  const [openKeys, setOpenKeys] = useState<Key[]>([]);
 
   const isDisplayed = (item: ContextMenuItem) =>
     displayedItems === ContextMenuItem.All ||
@@ -104,25 +120,27 @@ const ChartContextMenu = (
     filters?: ContextMenuFilters;
   }>({ clientX: 0, clientY: 0 });
 
+  const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
+
   const menuItems = [];
 
   const showDrillToDetail =
-    isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-    canExplore &&
+    isFeatureEnabled(FeatureFlag.DrillToDetail) &&
+    canDrillToDetail &&
     isDisplayed(ContextMenuItem.DrillToDetail);
 
   const showDrillBy =
-    isFeatureEnabled(FeatureFlag.DRILL_BY) &&
-    canExplore &&
+    isFeatureEnabled(FeatureFlag.DrillBy) &&
+    canDrillBy &&
     isDisplayed(ContextMenuItem.DrillBy);
 
   const showCrossFilters =
-    isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+    isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
     isDisplayed(ContextMenuItem.CrossFilter);
 
   const isCrossFilteringSupportedByChart = getChartMetadataRegistry()
     .get(formData.viz_type)
-    ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
+    ?.behaviors?.includes(Behavior.InteractiveChart);
 
   let itemsCount = 0;
   if (showCrossFilters) {
@@ -220,6 +238,8 @@ const ChartContextMenu = (
         contextMenuY={clientY}
         onSelection={onSelection}
         submenuIndex={showCrossFilters ? 2 : 1}
+        showModal={drillModalIsOpen}
+        setShowModal={setDrillModalIsOpen}
         {...(additionalConfig?.drillToDetail || {})}
       />,
     );
@@ -239,6 +259,9 @@ const ChartContextMenu = (
         formData={formData}
         contextMenuY={clientY}
         submenuIndex={submenuIndex}
+        canDownload={canDownload}
+        open={openKeys.includes('drill-by-submenu')}
+        key="drill-by-submenu"
         {...(additionalConfig?.drillBy || {})}
       />,
     );
@@ -273,7 +296,13 @@ const ChartContextMenu = (
   return ReactDOM.createPortal(
     <Dropdown
       overlay={
-        <Menu className="chart-context-menu" data-test="chart-context-menu">
+        <Menu
+          className="chart-context-menu"
+          data-test="chart-context-menu"
+          onOpenChange={openKeys => {
+            setOpenKeys(openKeys);
+          }}
+        >
           {menuItems.length ? (
             menuItems
           ) : (

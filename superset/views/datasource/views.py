@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from collections import Counter
 from typing import Any
 
@@ -24,27 +23,27 @@ from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import _
 from marshmallow import ValidationError
-from sqlalchemy.exc import NoSuchTableError
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound, NoSuchTableError
 
 from superset import db, event_logger, security_manager
-from superset.commands.utils import populate_owners
-from superset.connectors.sqla.models import SqlaTable
-from superset.connectors.sqla.utils import get_physical_table_metadata
-from superset.daos.datasource import DatasourceDAO
-from superset.datasets.commands.exceptions import (
+from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
+from superset.commands.utils import populate_owner_list
+from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.utils import get_physical_table_metadata
+from superset.daos.datasource import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
+from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
+from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.views.base import (
     api,
     BaseSupersetView,
     deprecated,
-    handle_api_exception,
     json_error_response,
 )
 from superset.views.datasource.schemas import (
@@ -55,6 +54,7 @@ from superset.views.datasource.schemas import (
     SamplesRequestSchema,
 )
 from superset.views.datasource.utils import get_samples
+from superset.views.error_handling import handle_api_exception
 from superset.views.utils import sanitize_datasource_data
 
 
@@ -84,7 +84,7 @@ class Datasource(BaseSupersetView):
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
         orm_datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), datasource_id
+            DatasourceType(datasource_type), datasource_id
         )
         orm_datasource.database_id = database_id
 
@@ -95,7 +95,7 @@ class Datasource(BaseSupersetView):
             except SupersetSecurityException as ex:
                 raise DatasetForbiddenError() from ex
 
-        datasource_dict["owners"] = populate_owners(
+        datasource_dict["owners"] = populate_owner_list(
             datasource_dict["owners"], default_to_user=False
         )
 
@@ -116,7 +116,7 @@ class Datasource(BaseSupersetView):
             )
         orm_datasource.update_from_object(datasource_dict)
         data = orm_datasource.data
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         return self.json_response(sanitize_datasource_data(data))
 
@@ -127,7 +127,7 @@ class Datasource(BaseSupersetView):
     @deprecated(new_target="/api/v1/dataset/<int:pk>")
     def get(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), datasource_id
+            DatasourceType(datasource_type), datasource_id
         )
         return self.json_response(sanitize_datasource_data(datasource.data))
 
@@ -140,7 +140,6 @@ class Datasource(BaseSupersetView):
     ) -> FlaskResponse:
         """Gets column info from the source system"""
         datasource = DatasourceDAO.get_datasource(
-            db.session,
             DatasourceType(datasource_type),
             datasource_id,
         )
@@ -165,8 +164,8 @@ class Datasource(BaseSupersetView):
             return json_error_response(str(err), status=400)
 
         datasource = SqlaTable.get_datasource_by_name(
-            session=db.session,
             database_name=params["database_name"],
+            catalog=params.get("catalog_name"),
             schema=params["schema_name"],
             datasource_name=params["table_name"],
         )
@@ -183,8 +182,7 @@ class Datasource(BaseSupersetView):
                 )
                 external_metadata = get_physical_table_metadata(
                     database=database,
-                    table_name=params["table_name"],
-                    schema_name=params["schema_name"],
+                    table=Table(params["table_name"], params["schema_name"]),
                     normalize_columns=params.get("normalize_columns") or False,
                 )
         except (NoResultFound, NoSuchTableError) as ex:

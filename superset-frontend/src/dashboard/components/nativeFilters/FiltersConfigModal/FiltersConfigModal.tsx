@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useEffect,
-  useCallback,
-  useMemo,
-  useState,
-  useRef,
-} from 'react';
+import { memo, useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { uniq, isEqual, sortBy, debounce, isEmpty } from 'lodash';
 import {
   Filter,
@@ -423,7 +417,7 @@ function FiltersConfigModal({
       )();
       resetForm(true);
     } else {
-      configFormRef.current.changeTab('configuration');
+      configFormRef.current?.changeTab?.('configuration');
     }
   };
 
@@ -587,6 +581,7 @@ function FiltersConfigModal({
               />
             ) : (
               <FiltersConfigForm
+                expanded={expanded}
                 ref={configFormRef}
                 form={form}
                 filterId={id}
@@ -619,6 +614,7 @@ function FiltersConfigModal({
       validateDependencies,
       getDependencySuggestion,
       handleActiveFilterPanelChange,
+      expanded,
     ],
   );
 
@@ -687,4 +683,4 @@ function FiltersConfigModal({
   );
 }
 
-export default React.memo(FiltersConfigModal);
+export default memo(FiltersConfigModal);

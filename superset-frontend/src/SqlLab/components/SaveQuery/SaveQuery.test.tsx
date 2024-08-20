@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
@@ -27,7 +26,7 @@ import { initialState, databases } from 'src/SqlLab/fixtures';
 const mockedProps = {
   queryEditorId: '123',
   animation: false,
-  database: databases.result[0],
+  database: { ...databases.result[0], allows_virtual_table_explore: false },
   onUpdate: () => {},
   onSave: () => {},
   saveQueryWarning: null,
@@ -42,6 +41,7 @@ const mockState = {
       {
         id: mockedProps.queryEditorId,
         dbId: 1,
+        catalog: null,
         schema: 'main',
         sql: 'SELECT * FROM t',
       },
@@ -61,6 +61,25 @@ const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
 describe('SavedQuery', () => {
+  it('doesnt render save button when allows_virtual_table_explore is undefined', async () => {
+    const noRenderProps = {
+      ...mockedProps,
+      database: {
+        ...mockedProps.database,
+        allows_virtual_table_explore: undefined,
+      },
+    };
+    render(<SaveQuery {...noRenderProps} />, {
+      useRedux: true,
+      store: mockStore(mockState),
+    });
+    expect(() => {
+      screen.getByRole('button', { name: /save/i });
+    }).toThrow(
+      'Unable to find an accessible element with the role "button" and name `/save/i`',
+    );
+  });
+
   it('renders a non-split save button when allows_virtual_table_explore is not enabled', () => {
     render(<SaveQuery {...mockedProps} />, {
       useRedux: true,

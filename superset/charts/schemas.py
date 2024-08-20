@@ -27,7 +27,6 @@ from marshmallow.validate import Length, Range
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
-from superset.tags.models import TagTypes
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
@@ -91,7 +90,7 @@ query_context_description = (
 )
 query_context_generation_description = (
     "The query context generation represents whether the query_context"
-    "is user generated or not so that it does not update user modfied"
+    "is user generated or not so that it does not update user modified"
     "state."
 )
 cache_timeout_description = (
@@ -101,12 +100,12 @@ cache_timeout_description = (
 )
 datasource_id_description = (
     "The id of the dataset/datasource this new chart will use. "
-    "A complete datasource identification needs `datasouce_id` "
+    "A complete datasource identification needs `datasource_id` "
     "and `datasource_type`."
 )
 datasource_uid_description = (
     "The uid of the dataset/datasource this new chart will use. "
-    "A complete datasource identification needs `datasouce_uid` "
+    "A complete datasource identification needs `datasource_uid` "
 )
 datasource_type_description = (
     "The type of dataset/datasource identified on `datasource_id`."
@@ -122,6 +121,7 @@ description_markeddown_description = "Sanitized HTML version of the chart descri
 owners_name_description = "Name of an owner of the chart."
 certified_by_description = "Person or group that has certified this chart"
 certification_details_description = "Details of the certification"
+tags_description = "Tags to be associated with the chart"
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get a chart detail information"}},
@@ -141,12 +141,6 @@ openapi_spec_methods_override = {
         }
     },
 }
-
-
-class TagSchema(Schema):
-    id = fields.Int()
-    name = fields.String()
-    type = fields.Enum(TagTypes, by_value=True)
 
 
 class ChartEntityResponseSchema(Schema):
@@ -284,7 +278,7 @@ class ChartPutSchema(Schema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
-    tags = fields.Nested(TagSchema, many=True)
+    tags = fields.List(fields.Integer(metadata={"description": tags_description}))
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -990,6 +984,14 @@ class ChartDataExtrasSchema(Schema):
         ),
         allow_none=True,
     )
+    instant_time_comparison_range = fields.String(
+        metadata={
+            "description": "This is only set using the new time comparison controls "
+            "that is made available in some plugins behind the experimental "
+            "feature flag."
+        },
+        allow_none=True,
+    )
 
 
 class AnnotationLayerSchema(Schema):
@@ -1593,7 +1595,7 @@ CHART_SCHEMAS = (
     ChartDataResponseSchema,
     ChartDataAsyncResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
-    #  in ChartDataPostPricessingOperation.options, but since `anyOf` is not
+    #  in ChartDataPostProcessingOperation.options, but since `anyOf` is not
     #  by Marshmallow<3, this is not currently possible.
     ChartDataAdhocMetricSchema,
     ChartDataAggregateOptionsSchema,

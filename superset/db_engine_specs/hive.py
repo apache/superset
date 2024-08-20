@@ -34,9 +34,9 @@ from sqlalchemy import Column, text, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
+from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -50,8 +50,6 @@ from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from pyhive.hive import Cursor
-    from TCLIService.ttypes import TFetchOrientation
 
     from superset.models.core import Database
 
@@ -81,6 +79,12 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
         )
 
     s3 = boto3.client("s3")
+
+    # The location is merely an S3 prefix and thus we first need to ensure that there is
+    # one and only one key associated with the table.
+    bucket = s3.Bucket(bucket_path)
+    bucket.objects.filter(Prefix=os.path.join(upload_prefix, table.table)).delete()
+
     location = os.path.join("s3a://", bucket_path, upload_prefix, table.table)
     s3.upload_file(
         filename,
@@ -207,7 +211,11 @@ class HiveEngineSpec(PrestoEngineSpec):
             if table_exists:
                 raise SupersetException("Table already exists")
         elif to_sql_kwargs["if_exists"] == "replace":
-            with cls.get_engine(database) as engine:
+            with cls.get_engine(
+                database,
+                catalog=table.catalog,
+                schema=table.schema,
+            ) as engine:
                 engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
 
         def _get_hive_type(dtype: np.dtype[Any]) -> str:
@@ -229,7 +237,11 @@ class HiveEngineSpec(PrestoEngineSpec):
         ) as file:
             pq.write_table(pa.Table.from_pandas(df), where=file.name)
 
-            with cls.get_engine(database) as engine:
+            with cls.get_engine(
+                database,
+                catalog=table.catalog,
+                schema=table.schema,
+            ) as engine:
                 engine.execute(
                     text(
                         f"""
@@ -334,7 +346,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def handle_cursor(  # pylint: disable=too-many-locals
-        cls, cursor: Any, query: Query, session: Session
+        cls, cursor: Any, query: Query
     ) -> None:
         """Updates progress information"""
         # pylint: disable=import-outside-toplevel
@@ -353,8 +365,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             # Queries don't terminate when user clicks the STOP button on SQL LAB.
             # Refresh session so that the `query.status` modified in stop_query in
             # views/core.py is reflected here.
-            session.refresh(query)
-            query = session.query(type(query)).filter_by(id=query_id).one()
+            db.session.refresh(query)
+            query = db.session.query(type(query)).filter_by(id=query_id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
                 break
@@ -392,11 +404,11 @@ class HiveEngineSpec(PrestoEngineSpec):
                     # Wait for job id before logging things out
                     # this allows for prefixing all log lines and becoming
                     # searchable in something like Kibana
-                    for l in log_lines[last_log_line:]:
+                    for l in log_lines[last_log_line:]:  # noqa: E741
                         logger.info("Query %s: [%s] %s", str(query_id), str(job_id), l)
                     last_log_line = len(log_lines)
                 if needs_commit:
-                    session.commit()
+                    db.session.commit()  # pylint: disable=consider-using-transaction
             if sleep_interval := current_app.config.get("HIVE_POLL_INTERVAL"):
                 logger.warning(
                     "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL_SECONDS instead"
@@ -410,22 +422,26 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str | None
+        cls,
+        inspector: Inspector,
+        table: Table,
+        options: dict[str, Any] | None = None,
     ) -> list[ResultSetColumnType]:
-        return BaseEngineSpec.get_columns(inspector, table_name, schema)
+        return BaseEngineSpec.get_columns(inspector, table, options)
 
     @classmethod
-    def where_latest_partition(  # pylint: disable=too-many-arguments
+    def where_latest_partition(
         cls,
-        table_name: str,
-        schema: str | None,
         database: Database,
+        table: Table,
         query: Select,
         columns: list[ResultSetColumnType] | None = None,
     ) -> Select | None:
         try:
             col_names, values = cls.latest_partition(
-                table_name, schema, database, show_first=True
+                database,
+                table,
+                show_first=True,
             )
         except Exception:  # pylint: disable=broad-except
             # table is not partitioned
@@ -445,7 +461,10 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def latest_sub_partition(  # type: ignore
-        cls, table_name: str, schema: str | None, database: Database, **kwargs: Any
+        cls,
+        database: Database,
+        table: Table,
+        **kwargs: Any,
     ) -> str:
         # TODO(bogdan): implement`
         pass
@@ -463,24 +482,24 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def _partition_query(  # pylint: disable=too-many-arguments
         cls,
-        table_name: str,
-        schema: str | None,
+        table: Table,
         indexes: list[dict[str, Any]],
         database: Database,
         limit: int = 0,
         order_by: list[tuple[str, bool]] | None = None,
         filters: dict[Any, Any] | None = None,
     ) -> str:
-        full_table_name = f"{schema}.{table_name}" if schema else table_name
+        full_table_name = (
+            f"{table.schema}.{table.table}" if table.schema else table.table
+        )
         return f"SHOW PARTITIONS {full_table_name}"
 
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments
         cls,
         database: Database,
-        table_name: str,
+        table: Table,
         engine: Engine,
-        schema: str | None = None,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -489,9 +508,8 @@ class HiveEngineSpec(PrestoEngineSpec):
     ) -> str:
         return super(PrestoEngineSpec, cls).select_star(
             database,
-            table_name,
+            table,
             engine,
-            schema,
             limit,
             show_cols,
             indent,
@@ -501,7 +519,11 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def get_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: str | None
+        cls,
+        url: URL,
+        impersonate_user: bool,
+        username: str | None,
+        access_token: str | None,
     ) -> URL:
         """
         Return a modified URL with the username set.
@@ -520,6 +542,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
+        access_token: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -543,7 +566,10 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @staticmethod
     def execute(  # type: ignore
-        cursor, query: str, async_: bool = False
+        cursor,
+        query: str,
+        database: Database,
+        async_: bool = False,
     ):  # pylint: disable=arguments-differ
         kwargs = {"async": async_}
         cursor.execute(query, **kwargs)

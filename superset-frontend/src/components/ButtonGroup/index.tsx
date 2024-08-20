@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode } from 'react';
 
 export interface ButtonGroupProps {
   className?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export default function ButtonGroup(props: ButtonGroupProps) {
@@ -30,18 +30,18 @@ export default function ButtonGroup(props: ButtonGroupProps) {
       role="group"
       className={className}
       css={{
-        '& :nth-child(1):not(:nth-last-child(1))': {
+        '& :nth-of-type(1):not(:nth-last-of-type(1))': {
           borderTopRightRadius: 0,
           borderBottomRightRadius: 0,
           borderRight: 0,
           marginLeft: 0,
         },
-        '& :not(:nth-child(1)):not(:nth-last-child(1))': {
+        '& :not(:nth-of-type(1)):not(:nth-last-of-type(1))': {
           borderRadius: 0,
           borderRight: 0,
           marginLeft: 0,
         },
-        '& :nth-last-child(1):not(:nth-child(1))': {
+        '& :nth-last-of-type(1):not(:nth-of-type(1))': {
           borderTopLeftRadius: 0,
           borderBottomLeftRadius: 0,
           marginLeft: 0,

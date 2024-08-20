@@ -15,32 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
-import json
 import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
-import yaml
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset import event_logger, is_feature_enabled
-from superset.commands.exceptions import CommandException
-from superset.commands.importers.exceptions import NoValidFilesFoundError
-from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.connectors.sqla.models import SqlaTable
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.dataset import DatasetDAO
-from superset.databases.filters import DatabaseFilter
-from superset.datasets.commands.create import CreateDatasetCommand
-from superset.datasets.commands.delete import DeleteDatasetCommand
-from superset.datasets.commands.duplicate import DuplicateDatasetCommand
-from superset.datasets.commands.exceptions import (
+from superset import event_logger
+from superset.commands.dataset.create import CreateDatasetCommand
+from superset.commands.dataset.delete import DeleteDatasetCommand
+from superset.commands.dataset.duplicate import DuplicateDatasetCommand
+from superset.commands.dataset.exceptions import (
     DatasetCreateFailedError,
     DatasetDeleteFailedError,
     DatasetForbiddenError,
@@ -49,11 +40,18 @@ from superset.datasets.commands.exceptions import (
     DatasetRefreshFailedError,
     DatasetUpdateFailedError,
 )
-from superset.datasets.commands.export import ExportDatasetsCommand
-from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
-from superset.datasets.commands.refresh import RefreshDatasetCommand
-from superset.datasets.commands.update import UpdateDatasetCommand
-from superset.datasets.commands.warm_up_cache import DatasetWarmUpCacheCommand
+from superset.commands.dataset.export import ExportDatasetsCommand
+from superset.commands.dataset.importers.dispatcher import ImportDatasetsCommand
+from superset.commands.dataset.refresh import RefreshDatasetCommand
+from superset.commands.dataset.update import UpdateDatasetCommand
+from superset.commands.dataset.warm_up_cache import DatasetWarmUpCacheCommand
+from superset.commands.exceptions import CommandException
+from superset.commands.importers.exceptions import NoValidFilesFoundError
+from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.connectors.sqla.models import SqlaTable
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.dataset import DatasetDAO
+from superset.databases.filters import DatabaseFilter
 from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
     DatasetCacheWarmUpRequestSchema,
@@ -67,8 +65,9 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
+from superset.utils import json
 from superset.utils.core import parse_boolean_string
-from superset.views.base import DatasourceFilter, generate_download_headers
+from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -108,6 +107,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_by_name",
         "changed_by.first_name",
         "changed_by.last_name",
+        "changed_by.id",
         "changed_on_utc",
         "changed_on_delta_humanized",
         "default_endpoint",
@@ -119,6 +119,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.id",
         "owners.first_name",
         "owners.last_name",
+        "catalog",
         "schema",
         "sql",
         "table_name",
@@ -126,6 +127,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
         "table_name",
+        "catalog",
         "schema",
         "changed_by.first_name",
         "changed_on_delta_humanized",
@@ -139,6 +141,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "sql",
         "filter_select_enabled",
         "fetch_values_predicate",
+        "catalog",
         "schema",
         "description",
         "main_dttm_col",
@@ -197,6 +200,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     show_columns = show_select_columns + [
         "columns.type_generic",
         "database.backend",
+        "database.allow_multi_catalog",
         "columns.advanced_data_type",
         "is_managed_externally",
         "uid",
@@ -212,12 +216,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     duplicate_model_schema = DatasetDuplicateSchema()
-    add_columns = ["database", "schema", "table_name", "sql", "owners"]
+    add_columns = ["database", "catalog", "schema", "table_name", "sql", "owners"]
     edit_columns = [
         "table_name",
         "sql",
         "filter_select_enabled",
         "fetch_values_predicate",
+        "catalog",
         "schema",
         "description",
         "main_dttm_col",
@@ -237,19 +242,31 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     base_related_field_filters = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
     }
     search_filters = {
         "sql": [DatasetIsNullOrEmptyFilter],
         "id": [DatasetCertifiedFilter],
     }
-    search_columns = ["id", "database", "owners", "schema", "sql", "table_name"]
-    allowed_rel_fields = {"database", "owners"}
-    allowed_distinct_fields = {"schema"}
+    search_columns = [
+        "id",
+        "database",
+        "owners",
+        "catalog",
+        "schema",
+        "sql",
+        "table_name",
+        "created_by",
+        "changed_by",
+    ]
+    allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
+    allowed_distinct_fields = {"catalog", "schema"}
 
     apispec_parameter_schemas = {
         "get_export_ids_schema": get_export_ids_schema,
@@ -332,7 +349,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>", methods=("PUT",))
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
@@ -480,7 +496,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
     )
-    def export(self, **kwargs: Any) -> Response:  # pylint: disable=too-many-locals
+    def export(self, **kwargs: Any) -> Response:
         """Download multiple datasets as YAML files.
         ---
         get:
@@ -510,49 +526,31 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         requested_ids = kwargs["rison"]
 
-        if is_feature_enabled("VERSIONED_EXPORT"):
-            token = request.args.get("token")
-            timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-            root = f"dataset_export_{timestamp}"
-            filename = f"{root}.zip"
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"dataset_export_{timestamp}"
+        filename = f"{root}.zip"
 
-            buf = BytesIO()
-            with ZipFile(buf, "w") as bundle:
-                try:
-                    for file_name, file_content in ExportDatasetsCommand(
-                        requested_ids
-                    ).run():
-                        with bundle.open(f"{root}/{file_name}", "w") as fp:
-                            fp.write(file_content.encode())
-                except DatasetNotFoundError:
-                    return self.response_404()
-            buf.seek(0)
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            try:
+                for file_name, file_content in ExportDatasetsCommand(
+                    requested_ids
+                ).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content().encode())
+            except DatasetNotFoundError:
+                return self.response_404()
+        buf.seek(0)
 
-            response = send_file(
-                buf,
-                mimetype="application/zip",
-                as_attachment=True,
-                download_name=filename,
-            )
-            if token:
-                response.set_cookie(token, "done", max_age=600)
-            return response
-
-        query = self.datamodel.session.query(SqlaTable).filter(
-            SqlaTable.id.in_(requested_ids)
+        response = send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=filename,
         )
-        query = self._base_filters.apply_all(query)
-        items = query.all()
-        ids = [item.id for item in items]
-        if len(ids) != len(requested_ids):
-            return self.response_404()
-
-        data = [t.export_to_dict() for t in items]
-        return Response(
-            yaml.safe_dump(data),
-            headers=generate_download_headers("yaml"),
-            mimetype="application/text",
-        )
+        if token := request.args.get("token"):
+            response.set_cookie(token, "done", max_age=600)
+        return response
 
     @expose("/duplicate", methods=("POST",))
     @protect()

@@ -16,21 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import { ColorScheme, SequentialScheme, styled, t } from '@superset-ui/core';
-import { isFunction } from 'lodash';
-import { Select } from 'src/components';
+import { useMemo, ReactNode } from 'react';
+
+import {
+  css,
+  ColorScheme,
+  ColorSchemeGroup,
+  SequentialScheme,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
+import AntdSelect from 'antd/lib/select';
+import { isFunction, sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import { SelectOptionsType } from 'src/components/Select/types';
+import { StyledSelect } from 'src/components/Select/styles';
+import { handleFilterOptionHelper } from 'src/components/Select/utils';
 import ColorSchemeLabel from './ColorSchemeLabel';
+
+const { Option, OptGroup } = AntdSelect;
+
+export type OptionData = SelectOptionsType[number]['options'][number];
 
 export interface ColorSchemes {
   [key: string]: ColorScheme;
 }
 
 export interface ColorSchemeControlProps {
-  hasCustomLabelColors: boolean;
+  hasCustomLabelsColor: boolean;
   dashboardId?: number;
   label: string;
   name: string;
@@ -59,14 +75,14 @@ const DASHBOARD_ALERT = t(
 
 const Label = ({
   label,
-  hasCustomLabelColors,
+  hasCustomLabelsColor,
   dashboardId,
 }: Pick<
   ColorSchemeControlProps,
-  'label' | 'hasCustomLabelColors' | 'dashboardId'
+  'label' | 'hasCustomLabelsColor' | 'dashboardId'
 >) => {
-  if (hasCustomLabelColors || dashboardId) {
-    const alertTitle = hasCustomLabelColors
+  if (hasCustomLabelsColor || dashboardId) {
+    const alertTitle = hasCustomLabelsColor
       ? CUSTOM_LABEL_ALERT
       : DASHBOARD_ALERT;
     return (
@@ -82,10 +98,9 @@ const Label = ({
 };
 
 const ColorSchemeControl = ({
-  hasCustomLabelColors = false,
+  hasCustomLabelsColor = false,
   dashboardId,
   label = t('Color scheme'),
-  name,
   onChange = () => {},
   value,
   clearable = false,
@@ -95,6 +110,7 @@ const ColorSchemeControl = ({
   isLinear,
   ...rest
 }: ColorSchemeControlProps) => {
+  const theme = useTheme();
   const currentScheme = useMemo(() => {
     if (dashboardId) {
       return 'dashboard';
@@ -110,13 +126,9 @@ const ColorSchemeControl = ({
   const options = useMemo(() => {
     if (dashboardId) {
       return [
-        {
-          value: 'dashboard',
-          label: t('dashboard'),
-          customLabel: (
-            <Tooltip title={DASHBOARD_ALERT}>{t('Dashboard scheme')}</Tooltip>
-          ),
-        },
+        <Option value="dashboard" label={t('dashboard')} key="dashboard">
+          <Tooltip title={DASHBOARD_ALERT}>{t('Dashboard scheme')}</Tooltip>
+        </Option>,
       ];
     }
     const schemesObject = isFunction(schemes) ? schemes() : schemes;
@@ -130,30 +142,82 @@ const ColorSchemeControl = ({
       return isValidColorOption;
     });
 
-    return filteredColorOptions.map(([value]) => {
-      const currentScheme = schemesObject[value];
+    const groups = filteredColorOptions.reduce(
+      (acc, [value]) => {
+        const currentScheme = schemesObject[value];
 
-      // For categorical scheme, display all the colors
-      // For sequential scheme, show 10 or interpolate to 10.
-      // Sequential schemes usually have at most 10 colors.
-      let colors: string[] = [];
-      if (currentScheme) {
-        colors = isLinear
-          ? (currentScheme as SequentialScheme).getColors(10)
-          : currentScheme.colors;
-      }
-      return {
-        customLabel: (
-          <ColorSchemeLabel
-            id={currentScheme.id}
-            label={currentScheme.label}
-            colors={colors}
-          />
-        ),
-        label: schemesObject?.[value]?.label || value,
-        value,
-      };
-    });
+        // For categorical scheme, display all the colors
+        // For sequential scheme, show 10 or interpolate to 10.
+        // Sequential schemes usually have at most 10 colors.
+        let colors: string[] = [];
+        if (currentScheme) {
+          colors = isLinear
+            ? (currentScheme as SequentialScheme).getColors(10)
+            : currentScheme.colors;
+        }
+        const option = {
+          customLabel: (
+            <ColorSchemeLabel
+              id={currentScheme.id}
+              label={currentScheme.label}
+              colors={colors}
+            />
+          ) as ReactNode,
+          label: schemesObject?.[value]?.label || value,
+          value,
+        };
+        acc[currentScheme.group ?? ColorSchemeGroup.Other].options.push(option);
+        return acc;
+      },
+      {
+        [ColorSchemeGroup.Custom]: {
+          title: ColorSchemeGroup.Custom,
+          label: t('Custom color palettes'),
+          options: [] as OptionData,
+        },
+        [ColorSchemeGroup.Featured]: {
+          title: ColorSchemeGroup.Featured,
+          label: t('Featured color palettes'),
+          options: [] as OptionData,
+        },
+        [ColorSchemeGroup.Other]: {
+          title: ColorSchemeGroup.Other,
+          label: t('Other color palettes'),
+          options: [] as OptionData,
+        },
+      },
+    );
+    const nonEmptyGroups = Object.values(groups)
+      .filter(group => group.options.length > 0)
+      .map(group => ({
+        ...group,
+        options: sortBy(group.options, opt => opt.label),
+      }));
+
+    // if there are no featured or custom color schemes, return the ungrouped options
+    if (
+      nonEmptyGroups.length === 1 &&
+      nonEmptyGroups[0].title === ColorSchemeGroup.Other
+    ) {
+      return nonEmptyGroups[0].options.map((opt, index) => (
+        <Option value={opt.value} label={opt.label} key={index}>
+          {opt.customLabel}
+        </Option>
+      ));
+    }
+    return nonEmptyGroups.map((group, groupIndex) => (
+      <OptGroup label={group.label} key={groupIndex}>
+        {group.options.map((opt, optIndex) => (
+          <Option
+            value={opt.value}
+            label={opt.label}
+            key={`${groupIndex}-${optIndex}`}
+          >
+            {opt.customLabel}
+          </Option>
+        ))}
+      </OptGroup>
+    ));
   }, [choices, dashboardId, isLinear, schemes]);
 
   // We can't pass on change directly because it receives a second
@@ -161,28 +225,48 @@ const ColorSchemeControl = ({
   const handleOnChange = (value: string) => onChange(value);
 
   return (
-    <Select
-      header={
-        <ControlHeader
-          {...rest}
-          label={
-            <Label
-              label={label}
-              hasCustomLabelColors={hasCustomLabelColors}
-              dashboardId={dashboardId}
-            />
+    <>
+      <ControlHeader
+        {...rest}
+        label={
+          <Label
+            label={label}
+            hasCustomLabelsColor={hasCustomLabelsColor}
+            dashboardId={dashboardId}
+          />
+        }
+      />
+      <StyledSelect
+        css={css`
+          width: 100%;
+          & .ant-select-item.ant-select-item-group {
+            padding-left: ${theme.gridUnit}px;
+            font-size: ${theme.typography.sizes.m}px;
           }
-        />
-      }
-      ariaLabel={t('Select color scheme')}
-      allowClear={clearable}
-      disabled={!!dashboardId}
-      name={`select-${name}`}
-      onChange={handleOnChange}
-      options={options}
-      placeholder={t('Select scheme')}
-      value={currentScheme}
-    />
+          & .ant-select-item-option-grouped {
+            padding-left: ${theme.gridUnit * 3}px;
+          }
+        `}
+        aria-label={t('Select color scheme')}
+        allowClear={clearable}
+        disabled={!!dashboardId}
+        onChange={handleOnChange}
+        placeholder={t('Select scheme')}
+        value={currentScheme}
+        getPopupContainer={triggerNode => triggerNode.parentNode}
+        showSearch
+        filterOption={(search, option) =>
+          handleFilterOptionHelper(
+            search,
+            option as OptionData,
+            ['label', 'value'],
+            true,
+          )
+        }
+      >
+        {options}
+      </StyledSelect>
+    </>
   );
 };
 

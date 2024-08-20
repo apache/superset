@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
@@ -124,7 +124,7 @@ export const ChartList = styled.div`
   min-height: 0;
 `;
 
-class SliceAdder extends React.Component {
+class SliceAdder extends Component {
   static sortByComparator(attr) {
     const desc = attr === 'changed_on' ? -1 : 1;
 
@@ -147,7 +147,7 @@ class SliceAdder extends React.Component {
       sortBy: DEFAULT_SORT_KEY,
       selectedSliceIdsSet: new Set(props.selectedSliceIds),
       showOnlyMyCharts: getItem(
-        LocalStorageKeys.dashboard__editor_show_only_my_charts,
+        LocalStorageKeys.DashboardEditorShowOnlyMyCharts,
         true,
       ),
     };
@@ -312,10 +312,7 @@ class SliceAdder extends React.Component {
         showOnlyMyCharts,
       ),
     }));
-    setItem(
-      LocalStorageKeys.dashboard__editor_show_only_my_charts,
-      showOnlyMyCharts,
-    );
+    setItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, showOnlyMyCharts);
   }
 
   render() {

@@ -18,7 +18,6 @@
  */
 import {
   ControlPanelConfig,
-  sections,
   formatSelectOptions,
 } from '@superset-ui/chart-controls';
 import {
@@ -50,7 +49,6 @@ const RADIUS_PIXEL_OPTIONS = Array.from(
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -99,7 +97,8 @@ const config: ControlPanelConfig = {
     {
       label: t('Map'),
       controlSetRows: [
-        [mapboxStyle, viewport],
+        [mapboxStyle],
+        [viewport],
         ['linear_color_scheme'],
         [autozoom],
         [

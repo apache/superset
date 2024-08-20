@@ -25,7 +25,7 @@
   "dependencies": {
     "d3": "^3.5.17",
     "nvd3-fork": "^2.0.5",
-    "prop-types": "^15.6.2"
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@emotion/react": "^11.4.1",

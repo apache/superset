@@ -110,12 +110,10 @@ def random_str():
 def grant_access_to_dashboard(dashboard, role_name):
     role = security_manager.find_role(role_name)
     dashboard.roles.append(role)
-    db.session.merge(dashboard)
     db.session.commit()
 
 
 def revoke_access_to_dashboard(dashboard, role_name):
     role = security_manager.find_role(role_name)
     dashboard.roles.remove(role)
-    db.session.merge(dashboard)
     db.session.commit()

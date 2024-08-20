@@ -17,10 +17,11 @@
 # isort:skip_file
 from datetime import datetime
 
-import tests.integration_tests.test_app
+import tests.integration_tests.test_app  # noqa: F401
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.result_set import dedup, SupersetResultSet
+from superset.utils.core import GenericDataType
 
 from .base_tests import SupersetTestCase
 
@@ -48,9 +49,27 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_dttm": False, "type": "STRING", "column_name": "a", "name": "a"},
-                {"is_dttm": False, "type": "STRING", "column_name": "b", "name": "b"},
-                {"is_dttm": False, "type": "STRING", "column_name": "c", "name": "c"},
+                {
+                    "is_dttm": False,
+                    "type": "STRING",
+                    "type_generic": GenericDataType.STRING,
+                    "column_name": "a",
+                    "name": "a",
+                },
+                {
+                    "is_dttm": False,
+                    "type": "STRING",
+                    "type_generic": GenericDataType.STRING,
+                    "column_name": "b",
+                    "name": "b",
+                },
+                {
+                    "is_dttm": False,
+                    "type": "STRING",
+                    "type_generic": GenericDataType.STRING,
+                    "column_name": "c",
+                    "name": "c",
+                },
             ],
         )
 
@@ -61,8 +80,20 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_dttm": False, "type": "STRING", "column_name": "a", "name": "a"},
-                {"is_dttm": False, "type": "INT", "column_name": "b", "name": "b"},
+                {
+                    "is_dttm": False,
+                    "type": "STRING",
+                    "type_generic": GenericDataType.STRING,
+                    "column_name": "a",
+                    "name": "a",
+                },
+                {
+                    "is_dttm": False,
+                    "type": "INT",
+                    "type_generic": GenericDataType.NUMERIC,
+                    "column_name": "b",
+                    "name": "b",
+                },
             ],
         )
 
@@ -76,11 +107,41 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_dttm": False, "type": "FLOAT", "column_name": "a", "name": "a"},
-                {"is_dttm": False, "type": "INT", "column_name": "b", "name": "b"},
-                {"is_dttm": False, "type": "STRING", "column_name": "c", "name": "c"},
-                {"is_dttm": True, "type": "DATETIME", "column_name": "d", "name": "d"},
-                {"is_dttm": False, "type": "BOOL", "column_name": "e", "name": "e"},
+                {
+                    "is_dttm": False,
+                    "type": "FLOAT",
+                    "type_generic": GenericDataType.NUMERIC,
+                    "column_name": "a",
+                    "name": "a",
+                },
+                {
+                    "is_dttm": False,
+                    "type": "INT",
+                    "type_generic": GenericDataType.NUMERIC,
+                    "column_name": "b",
+                    "name": "b",
+                },
+                {
+                    "is_dttm": False,
+                    "type": "STRING",
+                    "type_generic": GenericDataType.STRING,
+                    "column_name": "c",
+                    "name": "c",
+                },
+                {
+                    "is_dttm": True,
+                    "type": "DATETIME",
+                    "type_generic": GenericDataType.TEMPORAL,
+                    "column_name": "d",
+                    "name": "d",
+                },
+                {
+                    "is_dttm": False,
+                    "type": "BOOL",
+                    "type_generic": GenericDataType.BOOLEAN,
+                    "column_name": "e",
+                    "name": "e",
+                },
             ],
         )
 
@@ -108,6 +169,7 @@ class TestSupersetResultSet(SupersetTestCase):
         cursor_descr = [("user_id", "bigint", None, None, None, None, True)]
         results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(results.columns[0]["type"], "BIGINT")
+        self.assertEqual(results.columns[0]["type_generic"], GenericDataType.NUMERIC)
 
     def test_data_as_list_of_lists(self):
         data = [[1, "a"], [2, "b"]]
@@ -127,6 +189,7 @@ class TestSupersetResultSet(SupersetTestCase):
         cursor_descr = [("is_test", "bool", None, None, None, None, True)]
         results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(results.columns[0]["type"], "BOOL")
+        self.assertEqual(results.columns[0]["type_generic"], GenericDataType.BOOLEAN)
         df = results.to_pandas_df()
         self.assertEqual(
             df_to_records(df),
@@ -158,9 +221,13 @@ class TestSupersetResultSet(SupersetTestCase):
         cursor_descr = [("id",), ("dict_arr",), ("num_arr",), ("map_col",)]
         results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(results.columns[0]["type"], "INT")
+        self.assertEqual(results.columns[0]["type_generic"], GenericDataType.NUMERIC)
         self.assertEqual(results.columns[1]["type"], "STRING")
+        self.assertEqual(results.columns[1]["type_generic"], GenericDataType.STRING)
         self.assertEqual(results.columns[2]["type"], "STRING")
+        self.assertEqual(results.columns[2]["type_generic"], GenericDataType.STRING)
         self.assertEqual(results.columns[3]["type"], "STRING")
+        self.assertEqual(results.columns[3]["type_generic"], GenericDataType.STRING)
         df = results.to_pandas_df()
         self.assertEqual(
             df_to_records(df),
@@ -204,6 +271,7 @@ class TestSupersetResultSet(SupersetTestCase):
         cursor_descr = [("metadata",)]
         results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(results.columns[0]["type"], "STRING")
+        self.assertEqual(results.columns[0]["type_generic"], GenericDataType.STRING)
         df = results.to_pandas_df()
         self.assertEqual(
             df_to_records(df),
@@ -219,6 +287,7 @@ class TestSupersetResultSet(SupersetTestCase):
         cursor_descr = [("metadata",)]
         results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(results.columns[0]["type"], "STRING")
+        self.assertEqual(results.columns[0]["type_generic"], GenericDataType.STRING)
         df = results.to_pandas_df()
         self.assertEqual(
             df_to_records(df), [{"metadata": '[{"TestKey": [123456, "foo"]}]'}]
@@ -229,6 +298,7 @@ class TestSupersetResultSet(SupersetTestCase):
         cursor_descr = [("ds", "timestamp", None, None, None, None, True)]
         results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(results.columns[0]["type"], "TIMESTAMP")
+        self.assertEqual(results.columns[0]["type_generic"], GenericDataType.TEMPORAL)
 
     def test_no_type_coercion(self):
         data = [("a", 1), ("b", 2)]
@@ -238,7 +308,9 @@ class TestSupersetResultSet(SupersetTestCase):
         ]
         results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(results.columns[0]["type"], "VARCHAR")
+        self.assertEqual(results.columns[0]["type_generic"], GenericDataType.STRING)
         self.assertEqual(results.columns[1]["type"], "INT")
+        self.assertEqual(results.columns[1]["type_generic"], GenericDataType.NUMERIC)
 
     def test_empty_data(self):
         data = []

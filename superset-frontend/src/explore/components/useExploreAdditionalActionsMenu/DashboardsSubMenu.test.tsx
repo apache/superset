@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from 'src/components/Menu';
@@ -30,7 +29,7 @@ const asyncRender = (numberOfItems: number) =>
     }
     render(
       <Menu openKeys={['menu']}>
-        <Menu.SubMenu title="Dashboards added to" key="menu">
+        <Menu.SubMenu title="On dashboards" key="menu">
           <DashboardItems key="menu" dashboards={dashboards} />
         </Menu.SubMenu>
       </Menu>,

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
+import { ReactNode, FC, useCallback, useState, memo } from 'react';
+
 import { useDispatch } from 'react-redux';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
 import Button from 'src/components/Button';
@@ -29,14 +30,14 @@ export interface FCBProps {
   dashboardId?: number;
   initialFilterId?: string;
   onClick?: () => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 const HeaderButton = styled(Button)`
   padding: 0;
 `;
 
-export const FilterConfigurationLink: React.FC<FCBProps> = ({
+export const FilterConfigurationLink: FC<FCBProps> = ({
   createNewOnOpen,
   dashboardId,
   initialFilterId,
@@ -88,4 +89,4 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
   );
 };
 
-export default React.memo(FilterConfigurationLink);
+export default memo(FilterConfigurationLink);

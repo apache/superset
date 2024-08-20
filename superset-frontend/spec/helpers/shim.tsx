@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { AriaAttributes } from 'react';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
@@ -48,14 +48,14 @@ if (defaultView != null) {
 }
 
 const g = global as any;
-g.window = g.window || {};
-g.window.location = { href: 'about:blank' };
-g.window.performance = { now: () => new Date().getTime() };
-g.window.Worker = Worker;
-g.window.IntersectionObserver = IntersectionObserver;
-g.window.ResizeObserver = ResizeObserver;
-g.window.featureFlags = {};
-g.URL.createObjectURL = () => '';
+g.window ??= Object.create(window);
+g.window.location ??= { href: 'about:blank' };
+g.window.performance ??= { now: () => new Date().getTime() };
+g.window.Worker ??= Worker;
+g.window.IntersectionObserver ??= IntersectionObserver;
+g.window.ResizeObserver ??= ResizeObserver;
+g.window.featureFlags ??= {};
+g.URL.createObjectURL ??= () => '';
 g.caches = new CacheStorage();
 
 Object.defineProperty(window, 'matchMedia', {
@@ -101,7 +101,7 @@ jest.mock('src/components/Icons/Icon', () => ({
   }: {
     fileName: string;
     role: string;
-    'aria-label': React.AriaAttributes['aria-label'];
+    'aria-label': AriaAttributes['aria-label'];
   }) => (
     <span
       role={role ?? 'img'}
@@ -115,7 +115,7 @@ jest.mock('src/components/Icons/Icon', () => ({
     ...rest
   }: {
     role: string;
-    'aria-label': React.AriaAttributes['aria-label'];
+    'aria-label': AriaAttributes['aria-label'];
   }) => <span role={role ?? 'img'} aria-label={ariaLabel} {...rest} />,
 }));
 

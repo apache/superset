@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useEffect } from 'react';
+import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
+
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
@@ -105,6 +106,9 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         const update_id = currentCssTemplate.id;
         delete currentCssTemplate.id;
         delete currentCssTemplate.created_by;
+        delete currentCssTemplate.changed_by;
+        delete currentCssTemplate.changed_on_delta_humanized;
+
         updateResource(update_id, currentCssTemplate).then(response => {
           if (!response) {
             return;
@@ -133,7 +137,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
     }
   };
 
-  const onTemplateNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onTemplateNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { target } = event;
 
     const data = {
@@ -235,7 +239,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       </StyledCssTemplateTitle>
       <TemplateContainer>
         <div className="control-label">
-          {t('CSS template name')}
+          {t('Name')}
           <span className="required">*</span>
         </div>
         <input

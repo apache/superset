@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import * as utils from 'src/utils/getClientErrorObject';
+import * as uiCore from '@superset-ui/core';
 import { Column, JsonObject } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { ColumnSelect } from './ColumnSelect';
@@ -97,7 +96,7 @@ test('Should call "getClientErrorObject" when api returns an error', async () =>
   const props = createProps();
 
   props.datasetId = 789;
-  const spy = jest.spyOn(utils, 'getClientErrorObject');
+  const spy = jest.spyOn(uiCore, 'getClientErrorObject');
 
   expect(spy).not.toBeCalled();
   render(<ColumnSelect {...(props as any)} />, {

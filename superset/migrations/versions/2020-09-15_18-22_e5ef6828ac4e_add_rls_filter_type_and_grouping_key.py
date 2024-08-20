@@ -26,16 +26,16 @@ Create Date: 2020-09-15 18:22:40.130985
 revision = "e5ef6828ac4e"
 down_revision = "ae19b4ee3692"
 
-import sqlalchemy as sa
-from alembic import op
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
 
-from superset.utils import core as utils
+from superset.utils import core as utils  # noqa: E402
 
 
 def upgrade():
     with op.batch_alter_table("row_level_security_filters") as batch_op:
-        batch_op.add_column(sa.Column("filter_type", sa.VARCHAR(255), nullable=True)),
-        batch_op.add_column(sa.Column("group_key", sa.VARCHAR(255), nullable=True)),
+        (batch_op.add_column(sa.Column("filter_type", sa.VARCHAR(255), nullable=True)),)
+        (batch_op.add_column(sa.Column("group_key", sa.VARCHAR(255), nullable=True)),)
         batch_op.create_index(
             op.f("ix_row_level_security_filters_filter_type"),
             ["filter_type"],

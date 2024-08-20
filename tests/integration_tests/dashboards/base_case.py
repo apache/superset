@@ -20,9 +20,9 @@ from flask import Response
 
 from superset import app, security_manager
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.dashboards.consts import *
+from tests.integration_tests.dashboards.consts import *  # noqa: F403
 from tests.integration_tests.dashboards.dashboard_test_utils import (
-    build_save_dash_parts,
+    build_save_dash_parts,  # noqa: F401
 )
 from tests.integration_tests.dashboards.superset_factory_util import (
     delete_all_inserted_objects,
@@ -31,31 +31,31 @@ from tests.integration_tests.dashboards.superset_factory_util import (
 
 class DashboardTestCase(SupersetTestCase):
     def get_dashboard_via_api_by_id(self, dashboard_id: int) -> Response:
-        uri = DASHBOARD_API_URL_FORMAT.format(dashboard_id)
+        uri = DASHBOARD_API_URL_FORMAT.format(dashboard_id)  # noqa: F405
         return self.get_assert_metric(uri, "get")
 
     def get_dashboard_view_response(self, dashboard_to_access) -> Response:
         return self.client.get(dashboard_to_access.url)
 
     def get_dashboard_api_response(self, dashboard_to_access) -> Response:
-        return self.client.get(DASHBOARD_API_URL_FORMAT.format(dashboard_to_access.id))
+        return self.client.get(DASHBOARD_API_URL_FORMAT.format(dashboard_to_access.id))  # noqa: F405
 
     def get_dashboards_list_response(self) -> Response:
-        return self.client.get(GET_DASHBOARDS_LIST_VIEW)
+        return self.client.get(GET_DASHBOARDS_LIST_VIEW)  # noqa: F405
 
     def get_dashboards_api_response(self) -> Response:
-        return self.client.get(DASHBOARDS_API_URL)
+        return self.client.get(DASHBOARDS_API_URL)  # noqa: F405
 
     def delete_dashboard_via_view(self, dashboard_id: int) -> Response:
-        delete_dashboard_url = DELETE_DASHBOARD_VIEW_URL_FORMAT.format(dashboard_id)
+        delete_dashboard_url = DELETE_DASHBOARD_VIEW_URL_FORMAT.format(dashboard_id)  # noqa: F405
         return self.get_resp(delete_dashboard_url, {})
 
     def delete_dashboard_via_api(self, dashboard_id):
-        uri = DASHBOARD_API_URL_FORMAT.format(dashboard_id)
+        uri = DASHBOARD_API_URL_FORMAT.format(dashboard_id)  # noqa: F405
         return self.delete_assert_metric(uri, "delete")
 
     def bulk_delete_dashboard_via_api(self, dashboard_ids):
-        uri = DASHBOARDS_API_URL_WITH_QUERY_FORMAT.format(prison.dumps(dashboard_ids))
+        uri = DASHBOARDS_API_URL_WITH_QUERY_FORMAT.format(prison.dumps(dashboard_ids))  # noqa: F405
         return self.delete_assert_metric(uri, "bulk_delete")
 
     def delete_dashboard(self, dashboard_id: int) -> Response:
@@ -79,7 +79,4 @@ class DashboardTestCase(SupersetTestCase):
 
     def clean_created_objects(self):
         with app.test_request_context():
-            self.logout()
-            self.login("admin")
             delete_all_inserted_objects()
-            self.logout()

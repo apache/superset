@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import { shallow, ShallowWrapper } from 'enzyme';
 import { GenericDataType } from '@superset-ui/core';
 
@@ -42,7 +42,7 @@ describe('ColumnOption', () => {
     props = { ...defaultProps };
   });
   it('is a valid element', () => {
-    expect(React.isValidElement(<ColumnOption {...defaultProps} />)).toBe(true);
+    expect(isValidElement(<ColumnOption {...defaultProps} />)).toBe(true);
   });
   it('shows a label with verbose_name', () => {
     const lbl = wrapper.find('.option-label');
@@ -65,7 +65,7 @@ describe('ColumnOption', () => {
         column: {
           column_name: 'foo',
           type: 'VARCHAR',
-          type_generic: GenericDataType.STRING,
+          type_generic: GenericDataType.String,
         },
       }),
     );
@@ -92,11 +92,11 @@ describe('ColumnOption', () => {
   it('dttm column has correct column label if showType is true', () => {
     props.showType = true;
     props.column.expression = undefined;
-    props.column.type_generic = GenericDataType.TEMPORAL;
+    props.column.type_generic = GenericDataType.Temporal;
     wrapper = shallow(factory(props));
     expect(wrapper.find(ColumnTypeLabel)).toHaveLength(1);
     expect(wrapper.find(ColumnTypeLabel).props().type).toBe(
-      GenericDataType.TEMPORAL,
+      GenericDataType.Temporal,
     );
   });
 });

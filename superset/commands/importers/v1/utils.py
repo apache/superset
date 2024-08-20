@@ -26,6 +26,7 @@ from superset import db
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.models.core import Database
+from superset.utils.core import check_is_safe_zip
 
 METADATA_FILE_NAME = "metadata.yaml"
 IMPORT_VERSION = "1.0.0"
@@ -74,7 +75,7 @@ def load_metadata(contents: dict[str, str]) -> dict[str, str]:
 
         # otherwise we raise the validation error
         ex.messages = {METADATA_FILE_NAME: ex.messages}
-        raise ex
+        raise
 
     return metadata
 
@@ -172,16 +173,16 @@ def load_configs(
 
                 # populate ssh_tunnel_passwords from the request or from existing DBs
                 if file_name in ssh_tunnel_priv_key_passwords:
-                    config["ssh_tunnel"][
-                        "private_key_password"
-                    ] = ssh_tunnel_priv_key_passwords[file_name]
+                    config["ssh_tunnel"]["private_key_password"] = (
+                        ssh_tunnel_priv_key_passwords[file_name]
+                    )
                 elif (
                     prefix == "databases"
                     and config["uuid"] in db_ssh_tunnel_priv_key_passws
                 ):
-                    config["ssh_tunnel"][
-                        "private_key_password"
-                    ] = db_ssh_tunnel_priv_key_passws[config["uuid"]]
+                    config["ssh_tunnel"]["private_key_password"] = (
+                        db_ssh_tunnel_priv_key_passws[config["uuid"]]
+                    )
 
                 schema.load(config)
                 configs[file_name] = config
@@ -207,6 +208,7 @@ def is_valid_config(file_name: str) -> bool:
 
 
 def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
+    check_is_safe_zip(bundle)
     return {
         remove_root(file_name): bundle.read(file_name).decode()
         for file_name in bundle.namelist()

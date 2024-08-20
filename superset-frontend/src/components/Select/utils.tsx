@@ -18,7 +18,7 @@
  */
 import { ensureIsArray, t } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import React, { ReactElement, RefObject } from 'react';
+import { ReactElement, RefObject } from 'react';
 import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
@@ -49,25 +49,33 @@ export function getValue(
   return isLabeledValue(option) ? option.value : option;
 }
 
+export function isEqual(a: V | LabeledValue, b: V | LabeledValue, key: string) {
+  const actualA = isObject(a) && key in a ? a[key] : a;
+  const actualB = isObject(b) && key in b ? b[key] : b;
+  // When comparing the values we use the equality
+  // operator to automatically convert different types
+  // eslint-disable-next-line eqeqeq
+  return actualA == actualB;
+}
+
+export function getOption(
+  value: V,
+  options?: V | LabeledValue | (V | LabeledValue)[],
+  checkLabel = false,
+): V | LabeledValue {
+  const optionsArray = ensureIsArray(options);
+  return optionsArray.find(
+    x =>
+      isEqual(x, value, 'value') || (checkLabel && isEqual(x, value, 'label')),
+  );
+}
+
 export function hasOption(
   value: V,
   options?: V | LabeledValue | (V | LabeledValue)[],
   checkLabel = false,
 ): boolean {
-  const optionsArray = ensureIsArray(options);
-  // When comparing the values we use the equality
-  // operator to automatically convert different types
-  return (
-    optionsArray.find(
-      x =>
-        // eslint-disable-next-line eqeqeq
-        x == value ||
-        (isObject(x) &&
-          // eslint-disable-next-line eqeqeq
-          (('value' in x && x.value == value) ||
-            (checkLabel && 'label' in x && x.label === value))),
-    ) !== undefined
-  );
+  return getOption(value, options, checkLabel) !== undefined;
 }
 
 /**

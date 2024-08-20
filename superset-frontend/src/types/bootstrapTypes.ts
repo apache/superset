@@ -7,6 +7,7 @@ import {
   SequentialSchemeConfig,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
+import { TimeLocaleDefinition } from 'd3-time-format';
 import { isPlainObject } from 'lodash';
 import { Languages } from 'src/features/home/LanguagePicker';
 import { FlashMessage } from '../components/FlashProvider';
@@ -109,7 +110,6 @@ export interface NavBarProps {
   user_info_url: string;
   user_login_url: string;
   user_logout_url: string;
-  user_profile_url: string | null;
   locale: string;
 }
 
@@ -119,6 +119,7 @@ export interface MenuObjectChildProps {
   icon?: string;
   index?: number;
   url?: string;
+  onClick?: () => void;
   isFrontendRoute?: boolean;
   perm?: string | boolean;
   view?: string;
@@ -152,6 +153,7 @@ export interface CommonBootstrapData {
   theme_overrides: JsonObject;
   menu_data: MenuData;
   d3_format: Partial<FormatLocaleDefinition>;
+  d3_time_format: Partial<TimeLocaleDefinition>;
 }
 
 export interface BootstrapData {
@@ -161,6 +163,7 @@ export interface BootstrapData {
   embedded?: {
     dashboard_id: string;
   };
+  requested_query?: JsonObject;
 }
 
 export function isUser(user: any): user is User {

@@ -17,12 +17,16 @@
  * under the License.
  */
 
+import { KeyboardEvent, ReactElement } from 'react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
-import { getMockStore } from 'spec/fixtures/mockStore';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
-import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
+import mockState from 'spec/fixtures/mockState';
+import { Menu } from 'src/components/Menu';
+import SliceHeaderControls, {
+  SliceHeaderControlsProps,
+  handleDropdownNavigation,
+} from '.';
 
 jest.mock('src/components/Dropdown', () => {
   const original = jest.requireActual('src/components/Dropdown');
@@ -37,7 +41,7 @@ jest.mock('src/components/Dropdown', () => {
   };
 });
 
-const createProps = (viz_type = 'sunburst') =>
+const createProps = (viz_type = 'sunburst_v2') =>
   ({
     addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
@@ -59,7 +63,9 @@ const createProps = (viz_type = 'sunburst') =>
         adhoc_filters: [],
         color_scheme: 'supersetColors',
         datasource: '58__table',
-        groupby: ['product_category', 'clinical_stage'],
+        ...(viz_type === 'sunburst_v2'
+          ? { columns: ['product_category', 'clinical_stage'] }
+          : { groupby: ['product_category', 'clinical_stage'] }),
         linear_color_scheme: 'schemeYlOrBr',
         metric: 'count',
         queryFields: {
@@ -93,17 +99,27 @@ const createProps = (viz_type = 'sunburst') =>
     chartStatus: 'rendered',
     showControls: true,
     supersetCanShare: true,
-    formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst' },
+    formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst_v2' },
     exploreUrl: '/explore',
-  } as SliceHeaderControlsProps);
+  }) as SliceHeaderControlsProps;
 
-const renderWrapper = (overrideProps?: SliceHeaderControlsProps) => {
+const renderWrapper = (
+  overrideProps?: SliceHeaderControlsProps,
+  roles?: Record<string, string[][]>,
+) => {
   const props = overrideProps || createProps();
-  const store = getMockStore();
   return render(<SliceHeaderControls {...props} />, {
     useRedux: true,
     useRouter: true,
-    store,
+    initialState: {
+      ...mockState,
+      user: {
+        ...mockState.user,
+        roles: roles ?? {
+          Admin: [['can_samples', 'Datasource']],
+        },
+      },
+    },
   });
 };
 
@@ -181,16 +197,9 @@ test('Should "export to Excel"', async () => {
   expect(props.exportXLSX).toBeCalledWith(371);
 });
 
-test('Should not show "Download" if slice is filter box', () => {
-  const props = createProps('filter_box');
-  renderWrapper(props);
-  expect(screen.queryByText('Download')).not.toBeInTheDocument();
-});
-
 test('Export full CSV is under featureflag', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: false,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -200,9 +209,8 @@ test('Export full CSV is under featureflag', async () => {
 });
 
 test('Should "export full CSV"', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -214,9 +222,8 @@ test('Should "export full CSV"', async () => {
 });
 
 test('Should not show export full CSV if report is not table', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
   userEvent.hover(screen.getByText('Download'));
@@ -225,9 +232,8 @@ test('Should not show export full CSV if report is not table', async () => {
 });
 
 test('Export full Excel is under featureflag', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: false,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -237,9 +243,8 @@ test('Export full Excel is under featureflag', async () => {
 });
 
 test('Should "export full Excel"', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -251,9 +256,8 @@ test('Should "export full Excel"', async () => {
 });
 
 test('Should not show export full Excel if report is not table', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
   userEvent.hover(screen.getByText('Download'));
@@ -290,22 +294,320 @@ test('Should "Enter fullscreen"', () => {
 });
 
 test('Drill to detail modal is under featureflag', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: false,
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: false,
   };
   const props = createProps();
   renderWrapper(props);
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should show the "Drill to detail"', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: true,
+test('Should show "Drill to detail" with `can_explore` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
   };
-  const props = createProps();
+  const props = {
+    ...createProps(),
+    supersetCanExplore: true,
+  };
   props.slice.slice_id = 18;
-  renderWrapper(props);
+  renderWrapper(props, {
+    Admin: [['can_samples', 'Datasource']],
+  });
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
+
+test('Should show "Drill to detail" with `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_drill', 'Dashboard'],
+    ],
+  });
+  expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
+
+test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: true,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_drill', 'Dashboard'],
+    ],
+  });
+  expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with neither of required perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" only `can_dril` perm', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_drill', 'Dashboard']],
+  });
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should show "View query"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_view_query', 'Dashboard']],
+  });
+  expect(screen.getByText('View query')).toBeInTheDocument();
+});
+
+test('Should not show "View query"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  expect(screen.queryByText('View query')).not.toBeInTheDocument();
+});
+
+test('Should show "View as table"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_view_chart_as_table', 'Dashboard']],
+  });
+  expect(screen.getByText('View as table')).toBeInTheDocument();
+});
+
+test('Should not show "View as table"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  expect(screen.queryByText('View as table')).not.toBeInTheDocument();
+});
+
+test('Should not show the "Edit chart" button', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_view_query', 'Dashboard'],
+      ['can_view_chart_as_table', 'Dashboard'],
+    ],
+  });
+  expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
+});
+
+describe('handleDropdownNavigation', () => {
+  const mockToggleDropdown = jest.fn();
+  const mockSetSelectedKeys = jest.fn();
+  const mockSetOpenKeys = jest.fn();
+
+  const menu = (
+    <Menu selectedKeys={['item1']}>
+      <Menu.Item key="item1">Item 1</Menu.Item>
+      <Menu.Item key="item2">Item 2</Menu.Item>
+      <Menu.Item key="item3">Item 3</Menu.Item>
+    </Menu>
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('should continue with system tab navigation if dropdown is closed and tab key is pressed', () => {
+    const event = {
+      key: 'Tab',
+      preventDefault: jest.fn(),
+    } as unknown as KeyboardEvent<HTMLDivElement>;
+
+    handleDropdownNavigation(
+      event,
+      false,
+      <div />,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+      mockSetOpenKeys,
+    );
+    expect(mockToggleDropdown).not.toHaveBeenCalled();
+    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
+  });
+
+  test(`should prevent default behavior and toggle dropdown if dropdown
+      is closed and action key is pressed`, () => {
+    const event = {
+      key: 'Enter',
+      preventDefault: jest.fn(),
+    } as unknown as KeyboardEvent<HTMLDivElement>;
+
+    handleDropdownNavigation(
+      event,
+      false,
+      <div />,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+      mockSetOpenKeys,
+    );
+    expect(mockToggleDropdown).toHaveBeenCalled();
+    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
+  });
+
+  test(`should trigger menu item click,
+      clear selected keys, close dropdown, and focus on menu trigger
+      if action key is pressed and menu item is selected`, () => {
+    const event = {
+      key: 'Enter',
+      preventDefault: jest.fn(),
+      currentTarget: { focus: jest.fn() },
+    } as unknown as KeyboardEvent<HTMLDivElement>;
+
+    handleDropdownNavigation(
+      event,
+      true,
+      menu,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+      mockSetOpenKeys,
+    );
+    expect(mockToggleDropdown).toHaveBeenCalled();
+    expect(mockSetSelectedKeys).toHaveBeenCalledWith([]);
+    expect(event.currentTarget.focus).toHaveBeenCalled();
+  });
+
+  test('should select the next menu item if down arrow key is pressed', () => {
+    const event = {
+      key: 'ArrowDown',
+      preventDefault: jest.fn(),
+    } as unknown as KeyboardEvent<HTMLDivElement>;
+
+    handleDropdownNavigation(
+      event,
+      true,
+      menu,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+      mockSetOpenKeys,
+    );
+    expect(mockSetSelectedKeys).toHaveBeenCalledWith(['item2']);
+  });
+
+  test('should select the previous menu item if up arrow key is pressed', () => {
+    const event = {
+      key: 'ArrowUp',
+      preventDefault: jest.fn(),
+    } as unknown as KeyboardEvent<HTMLDivElement>;
+
+    handleDropdownNavigation(
+      event,
+      true,
+      menu,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+      mockSetOpenKeys,
+    );
+    expect(mockSetSelectedKeys).toHaveBeenCalledWith(['item1']);
+  });
+
+  test('should close dropdown menu if escape key is pressed', () => {
+    const event = {
+      key: 'Escape',
+      preventDefault: jest.fn(),
+    } as unknown as KeyboardEvent<HTMLDivElement>;
+
+    handleDropdownNavigation(
+      event,
+      true,
+      <div />,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+      mockSetOpenKeys,
+    );
+    expect(mockToggleDropdown).toHaveBeenCalled();
+    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
+  });
+
+  test('should do nothing if an unsupported key is pressed', () => {
+    const event = {
+      key: 'Shift',
+      preventDefault: jest.fn(),
+    } as unknown as KeyboardEvent<HTMLDivElement>;
+
+    handleDropdownNavigation(
+      event,
+      true,
+      <div />,
+      mockToggleDropdown,
+      mockSetSelectedKeys,
+      mockSetOpenKeys,
+    );
+    expect(mockToggleDropdown).not.toHaveBeenCalled();
+    expect(mockSetSelectedKeys).not.toHaveBeenCalled();
+  });
+
+  test('should find a child element with a key', () => {
+    const item = {
+      props: {
+        children: [
+          <div key="1">Child 1</div>,
+          <div key="2">Child 2</div>,
+          <div key="3">Child 3</div>,
+        ],
+      },
+    };
+
+    const childWithKey = item?.props?.children?.find(
+      (child: ReactElement) => child?.key,
+    );
+
+    expect(childWithKey).toBeDefined();
+  });
 });

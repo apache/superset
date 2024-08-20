@@ -38,7 +38,6 @@ import logger from 'src/middleware/loggerMiddleware';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import exploreDatasources from 'src/explore/reducers/datasourcesReducer';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 
 import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
@@ -48,7 +47,7 @@ import {
   DatasourcesActionPayload,
   DatasourcesAction,
 } from 'src/dashboard/actions/datasources';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import {
   BootstrapUser,
   UndefinedUser,
@@ -109,7 +108,7 @@ const CombinedDatasourceReducers = (
   datasources: DatasourcesState | undefined | { [key: string]: Dataset },
   action: DatasourcesActionPayload | AnyDatasourcesAction | HydrateExplore,
 ) => {
-  if (action.type === DatasourcesAction.SET_DATASOURCES) {
+  if (action.type === DatasourcesAction.SetDatasources) {
     return dashboardDatasources(
       datasources as DatasourcesState | undefined,
       action as DatasourcesActionPayload,
@@ -127,7 +126,7 @@ const reducers = {
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrapData.common),
   user: userReducer,
-  impressionId: noopReducer(shortid.generate()),
+  impressionId: noopReducer(nanoid()),
   charts,
   datasources: CombinedDatasourceReducers,
   dashboardInfo,
@@ -167,9 +166,7 @@ export function setupStore({
     },
     middleware: getMiddleware,
     devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
-    ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
-      enhancers: [persistSqlLabStateEnhancer as StoreEnhancer],
-    }),
+    enhancers: [persistSqlLabStateEnhancer as StoreEnhancer],
     ...overrides,
   });
 }

@@ -17,19 +17,12 @@
  * under the License.
  */
 import {
-  isFeatureEnabled,
-  FeatureFlag,
   getExtensionsRegistry,
   styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, {
-  FunctionComponent,
-  useState,
-  useMemo,
-  useCallback,
-} from 'react';
+import { FunctionComponent, useState, useMemo, useCallback } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
@@ -70,6 +63,8 @@ import {
 } from 'src/features/datasets/constants';
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import { useSelector } from 'react-redux';
+import { ModifiedInfo } from 'src/components/AuditInfo';
+import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
@@ -205,8 +200,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
   const canDuplicate = hasPerm('can_duplicate');
-  const canExport =
-    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const canExport = hasPerm('can_export');
 
   const initialSort = SORT_BY;
 
@@ -347,9 +341,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   />
                 )}
                 {titleLink}
-                {description && (
-                  <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
-                )}
+                {description && <InfoTooltip tooltip={description} />}
               </FlexRowContainer>
             );
           } catch {
@@ -381,26 +373,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         size: 'lg',
       },
       {
-        Cell: ({
-          row: {
-            original: { changed_on_delta_humanized: changedOn },
-          },
-        }: any) => <span className="no-wrap">{changedOn}</span>,
-        Header: t('Modified'),
-        accessor: 'changed_on_delta_humanized',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { changed_by_name: changedByName },
-          },
-        }: any) => changedByName,
-        Header: t('Modified by'),
-        accessor: 'changed_by.first_name',
-        size: 'xl',
-      },
-      {
         accessor: 'database',
         disableSortBy: true,
         hidden: true,
@@ -415,6 +387,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         id: 'owners',
         disableSortBy: true,
         size: 'lg',
+      },
+      {
+        Cell: ({
+          row: {
+            original: {
+              changed_on_delta_humanized: changedOn,
+              changed_by: changedBy,
+            },
+          },
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
+        Header: t('Last modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
       },
       {
         accessor: 'sql',
@@ -515,6 +500,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         hidden: !canEdit && !canDelete && !canDuplicate,
         disableSortBy: true,
       },
+      {
+        accessor: QueryObjectColumns.ChangedBy,
+        hidden: true,
+      },
     ],
     [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate, user],
   );
@@ -522,38 +511,30 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const filterTypes: Filters = useMemo(
     () => [
       {
-        Header: t('Search'),
+        Header: t('Name'),
         key: 'search',
         id: 'table_name',
         input: 'search',
-        operator: FilterOperator.contains,
+        operator: FilterOperator.Contains,
       },
       {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
+        Header: t('Type'),
+        key: 'sql',
+        id: 'sql',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.DatasetIsNullOrEmpty,
         unfilteredLabel: 'All',
-        fetchSelects: createFetchRelated(
-          'dataset',
-          'owners',
-          createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset owner values: %s',
-              errMsg,
-            ),
-          ),
-          user,
-        ),
-        paginate: true,
+        selects: [
+          { label: t('Virtual'), value: false },
+          { label: t('Physical'), value: true },
+        ],
       },
       {
         Header: t('Database'),
         key: 'database',
         id: 'database',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'dataset',
@@ -569,7 +550,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         key: 'schema',
         id: 'schema',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: 'All',
         fetchSelects: createFetchDistinct(
           'dataset',
@@ -581,16 +562,24 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         paginate: true,
       },
       {
-        Header: t('Type'),
-        key: 'sql',
-        id: 'sql',
+        Header: t('Owner'),
+        key: 'owner',
+        id: 'owners',
         input: 'select',
-        operator: FilterOperator.datasetIsNullOrEmpty,
+        operator: FilterOperator.RelationManyMany,
         unfilteredLabel: 'All',
-        selects: [
-          { label: t('Virtual'), value: false },
-          { label: t('Physical'), value: true },
-        ],
+        fetchSelects: createFetchRelated(
+          'dataset',
+          'owners',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset owner values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
       },
       {
         Header: t('Certified'),
@@ -598,12 +587,32 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
-        operator: FilterOperator.datasetIsCertified,
+        operator: FilterOperator.DatasetIsCertified,
         unfilteredLabel: t('Any'),
         selects: [
           { label: t('Yes'), value: true },
           { label: t('No'), value: false },
         ],
+      },
+      {
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
+        input: 'select',
+        operator: FilterOperator.RelationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'dataset',
+          'changed_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
       },
     ],
     [user],
@@ -637,21 +646,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       buttonStyle: 'primary',
     });
 
-    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
-      buttonArr.push({
-        name: (
-          <Tooltip
-            id="import-tooltip"
-            title={t('Import datasets')}
-            placement="bottomRight"
-          >
-            <Icons.Import data-test="import-button" />
-          </Tooltip>
-        ),
-        buttonStyle: 'link',
-        onClick: openDatasetImportModal,
-      });
-    }
+    buttonArr.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import datasets')}
+          placement="bottomRight"
+        >
+          <Icons.Import data-test="import-button" />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: openDatasetImportModal,
+    });
   }
 
   menuData.buttons = buttonArr;

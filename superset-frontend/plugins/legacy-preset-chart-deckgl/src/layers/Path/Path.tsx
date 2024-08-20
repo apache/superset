@@ -17,7 +17,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { PathLayer } from 'deck.gl/typed';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
@@ -29,7 +28,7 @@ import { Point } from '../../types';
 
 function setTooltipContent(o: JsonObject) {
   return (
-    o.object.extraProps && (
+    o.object?.extraProps && (
       <div className="deckgl-tooltip">
         {Object.keys(o.object.extraProps).map((prop, index) => (
           <TooltipRow

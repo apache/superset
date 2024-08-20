@@ -16,21 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Provider } from 'react-redux';
-import React from 'react';
-import { shallow } from 'enzyme';
-import sinon from 'sinon';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 
-import { LineEditableTabs } from 'src/components/Tabs';
 import { AntdModal } from 'src/components';
 import fetchMock from 'fetch-mock';
-import { styledMount as mount } from 'spec/helpers/theming';
-import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
-import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import { Tabs } from 'src/dashboard/components/gridComponents/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
@@ -39,179 +28,174 @@ import { getMockStore } from 'spec/fixtures/mockStore';
 import { nativeFilters } from 'spec/fixtures/mockNativeFilters';
 import { initialState } from 'src/SqlLab/fixtures';
 
-describe('Tabs', () => {
-  fetchMock.post('glob:*/r/shortener/', {});
+jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+  Draggable: ({ children }) => (
+    <div data-test="mock-draggable">{children({})}</div>
+  ),
+  Droppable: ({ children }) => (
+    <div data-test="mock-droppable">{children({})}</div>
+  ),
+}));
+jest.mock('src/dashboard/containers/DashboardComponent', () => ({ id }) => (
+  <div data-test="mock-dashboard-component">{id}</div>
+));
 
-  const props = {
-    id: 'TABS_ID',
-    parentId: DASHBOARD_ROOT_ID,
-    component: dashboardLayoutWithTabs.present.TABS_ID,
-    parentComponent: dashboardLayoutWithTabs.present[DASHBOARD_ROOT_ID],
-    index: 0,
-    depth: 1,
-    renderTabContent: true,
-    editMode: false,
-    availableColumnCount: 12,
-    columnWidth: 50,
-    dashboardId: 1,
-    onResizeStart() {},
-    onResize() {},
-    onResizeStop() {},
-    createComponent() {},
-    handleComponentDrop() {},
-    onChangeTab() {},
-    deleteComponent() {},
-    updateComponents() {},
-    logEvent() {},
-    dashboardLayout: emptyDashboardLayout,
-    nativeFilters: nativeFilters.filters,
+jest.mock(
+  'src/dashboard/components/DeleteComponentButton',
+  () =>
+    ({ onDelete }) => (
+      <button
+        type="button"
+        data-test="mock-delete-component-button"
+        onClick={onDelete}
+      >
+        Delete
+      </button>
+    ),
+);
+
+fetchMock.post('glob:*/r/shortener/', {});
+
+const props = {
+  id: 'TABS_ID',
+  parentId: DASHBOARD_ROOT_ID,
+  component: dashboardLayoutWithTabs.present.TABS_ID,
+  parentComponent: dashboardLayoutWithTabs.present[DASHBOARD_ROOT_ID],
+  index: 0,
+  depth: 1,
+  renderTabContent: true,
+  editMode: false,
+  availableColumnCount: 12,
+  columnWidth: 50,
+  dashboardId: 1,
+  onResizeStart() {},
+  onResize() {},
+  onResizeStop() {},
+  createComponent() {},
+  handleComponentDrop() {},
+  onChangeTab() {},
+  deleteComponent() {},
+  updateComponents() {},
+  logEvent() {},
+  dashboardLayout: emptyDashboardLayout,
+  nativeFilters: nativeFilters.filters,
+};
+
+const mockStore = getMockStore({
+  ...initialState,
+  dashboardLayout: dashboardLayoutWithTabs,
+  dashboardFilters: {},
+});
+
+function setup(overrideProps) {
+  return render(<Tabs {...props} {...overrideProps} />, {
+    useDnd: true,
+    useRouter: true,
+    store: mockStore,
+  });
+}
+
+test('should render a Draggable', () => {
+  // test just Tabs with no children Draggable
+  const { getByTestId } = setup({
+    component: { ...props.component, children: [] },
+  });
+  expect(getByTestId('mock-draggable')).toBeInTheDocument();
+});
+
+test('should render non-editable tabs', () => {
+  const { getAllByRole, container } = setup();
+  expect(getAllByRole('tab')[0]).toBeInTheDocument();
+  expect(container.querySelector('.ant-tabs-nav-add')).not.toBeInTheDocument();
+});
+
+test('should render a tab pane for each child', () => {
+  const { getAllByRole } = setup();
+  expect(getAllByRole('tab')).toHaveLength(props.component.children.length);
+});
+
+test('should render editable tabs in editMode', () => {
+  const { getAllByRole, container } = setup({ editMode: true });
+  expect(getAllByRole('tab')[0]).toBeInTheDocument();
+  expect(container.querySelector('.ant-tabs-nav-add')).toBeInTheDocument();
+});
+
+test('should render a DashboardComponent for each child', () => {
+  // note: this does not test Tab content
+  const { getAllByTestId } = setup({ renderTabContent: false });
+  expect(getAllByTestId('mock-dashboard-component')).toHaveLength(
+    props.component.children.length,
+  );
+});
+
+test('should call createComponent if the (+) tab is clicked', () => {
+  const createComponent = jest.fn();
+  const { getAllByRole } = setup({ editMode: true, createComponent });
+  const addButtons = getAllByRole('button', { name: 'Add tab' });
+  fireEvent.click(addButtons[0]);
+  expect(createComponent).toHaveBeenCalledTimes(1);
+});
+
+test('should call onChangeTab when a tab is clicked', () => {
+  const onChangeTab = jest.fn();
+  const { getByRole } = setup({ editMode: true, onChangeTab });
+  const newTab = getByRole('tab', { selected: false });
+  fireEvent.click(newTab);
+  expect(onChangeTab).toHaveBeenCalledTimes(1);
+});
+
+test('should not call onChangeTab when anchor link is clicked', () => {
+  const onChangeTab = jest.fn();
+  const { getByRole } = setup({ editMode: true, onChangeTab });
+  const currentTab = getByRole('tab', { selected: true });
+  fireEvent.click(currentTab);
+
+  expect(onChangeTab).toHaveBeenCalledTimes(0);
+});
+
+test('should render a HoverMenu in editMode', () => {
+  const { container } = setup({ editMode: true });
+  expect(container.querySelector('.hover-menu')).toBeInTheDocument();
+});
+
+test('should render a DeleteComponentButton in editMode', () => {
+  const { getByTestId } = setup({ editMode: true });
+  expect(getByTestId('mock-delete-component-button')).toBeInTheDocument();
+});
+
+test('should call deleteComponent when deleted', () => {
+  const deleteComponent = jest.fn();
+  const { getByTestId } = setup({ editMode: true, deleteComponent });
+  fireEvent.click(getByTestId('mock-delete-component-button'));
+  expect(deleteComponent).toHaveBeenCalledTimes(1);
+});
+
+test('should direct display direct-link tab', () => {
+  // display child in directPathToChild list
+  const directPathToChild =
+    dashboardLayoutWithTabs.present.ROW_ID2.parents.slice();
+  const directLinkProps = {
+    ...props,
+    directPathToChild,
   };
+  const { getByRole } = setup(directLinkProps);
+  expect(getByRole('tab', { selected: true })).toHaveTextContent('TAB_ID2');
+});
 
-  const mockStore = getMockStore({
-    ...initialState,
-    dashboardLayout: dashboardLayoutWithTabs,
-    dashboardFilters: {},
+test('should render Modal when clicked remove tab button', () => {
+  const deleteComponent = jest.fn();
+  const modalMock = jest.spyOn(AntdModal, 'confirm');
+  const { container } = setup({ editMode: true, deleteComponent });
+  fireEvent.click(container.querySelector('.ant-tabs-tab-remove'));
+  expect(modalMock).toHaveBeenCalledTimes(1);
+  expect(deleteComponent).toHaveBeenCalledTimes(0);
+});
+
+test('should set new tab key if dashboardId was changed', () => {
+  const { getByRole } = setup({
+    ...props,
+    dashboardId: 2,
+    component: dashboardLayoutWithTabs.present.TAB_ID,
   });
-
-  function setup(overrideProps) {
-    // We have to wrap provide DragDropContext for the underlying DragDroppable
-    // otherwise we cannot assert on DragDroppable children
-    const wrapper = mount(
-      <Provider store={mockStore}>
-        <DndProvider backend={HTML5Backend}>
-          <Tabs {...props} {...overrideProps} />
-        </DndProvider>
-      </Provider>,
-    );
-    return wrapper;
-  }
-
-  it('should render a DragDroppable', () => {
-    // test just Tabs with no children DragDroppables
-    const wrapper = setup({ component: { ...props.component, children: [] } });
-    expect(wrapper.find(DragDroppable)).toExist();
-  });
-
-  it('should render non-editable tabs', () => {
-    const wrapper = setup();
-    expect(wrapper.find(LineEditableTabs)).toExist();
-    expect(wrapper.find('.ant-tabs-nav-add').exists()).toBeFalsy();
-  });
-
-  it('should render a tab pane for each child', () => {
-    const wrapper = setup();
-    expect(wrapper.find(LineEditableTabs.TabPane)).toHaveLength(
-      props.component.children.length,
-    );
-  });
-
-  it('should render editable tabs in editMode', () => {
-    const wrapper = setup({ editMode: true });
-    expect(wrapper.find(LineEditableTabs)).toExist();
-    expect(wrapper.find('.ant-tabs-nav-add')).toExist();
-  });
-
-  it('should render a DashboardComponent for each child', () => {
-    // note: this does not test Tab content
-    const wrapper = setup({ renderTabContent: false });
-    expect(wrapper.find(DashboardComponent)).toHaveLength(
-      props.component.children.length,
-    );
-  });
-
-  it('should call createComponent if the (+) tab is clicked', () => {
-    const createComponent = sinon.spy();
-    const wrapper = setup({ editMode: true, createComponent });
-    wrapper
-      .find('[data-test="dashboard-component-tabs"] .ant-tabs-nav-add')
-      .last()
-      .simulate('click');
-
-    expect(createComponent.callCount).toBe(1);
-  });
-
-  it('should call onChangeTab when a tab is clicked', () => {
-    const onChangeTab = sinon.spy();
-    const wrapper = setup({ editMode: true, onChangeTab });
-    wrapper
-      .find('[data-test="dashboard-component-tabs"] .ant-tabs-tab')
-      .at(1) // will not call if it is already selected
-      .simulate('click');
-
-    expect(onChangeTab.callCount).toBe(1);
-  });
-
-  it('should not call onChangeTab when anchor link is clicked', () => {
-    const onChangeTab = sinon.spy();
-    const wrapper = setup({ editMode: true, onChangeTab });
-    wrapper
-      .find(
-        '[data-test="dashboard-component-tabs"] .ant-tabs-tab [role="button"]',
-      )
-      .at(1) // will not call if it is already selected
-      .simulate('click');
-
-    expect(onChangeTab.callCount).toBe(0);
-  });
-
-  it('should render a HoverMenu in editMode', () => {
-    let wrapper = setup();
-    expect(wrapper.find(HoverMenu)).not.toExist();
-
-    wrapper = setup({ editMode: true });
-    expect(wrapper.find(HoverMenu)).toExist();
-  });
-
-  it('should render a DeleteComponentButton in editMode', () => {
-    let wrapper = setup();
-    expect(wrapper.find(DeleteComponentButton)).not.toExist();
-
-    wrapper = setup({ editMode: true });
-    expect(wrapper.find(DeleteComponentButton)).toExist();
-  });
-
-  it('should call deleteComponent when deleted', () => {
-    const deleteComponent = sinon.spy();
-    const wrapper = setup({ editMode: true, deleteComponent });
-    wrapper.find(DeleteComponentButton).simulate('click');
-
-    expect(deleteComponent.callCount).toBe(1);
-  });
-
-  it('should direct display direct-link tab', () => {
-    let wrapper = shallow(<Tabs {...props} />);
-    // default show first tab child
-    expect(wrapper.state('tabIndex')).toBe(0);
-
-    // display child in directPathToChild list
-    const directPathToChild =
-      dashboardLayoutWithTabs.present.ROW_ID2.parents.slice();
-    const directLinkProps = {
-      ...props,
-      directPathToChild,
-    };
-
-    wrapper = shallow(<Tabs {...directLinkProps} />);
-    expect(wrapper.state('tabIndex')).toBe(1);
-  });
-
-  it('should render Modal when clicked remove tab button', () => {
-    const deleteComponent = sinon.spy();
-    const modalMock = jest.spyOn(AntdModal, 'confirm');
-    const wrapper = setup({ editMode: true, deleteComponent });
-    wrapper.find('.ant-tabs-tab-remove').at(0).simulate('click');
-    expect(modalMock.mock.calls).toHaveLength(1);
-    expect(deleteComponent.callCount).toBe(0);
-  });
-
-  it('should set new tab key if dashboardId was changed', () => {
-    const wrapper = shallow(<Tabs {...props} />);
-    expect(wrapper.state('activeKey')).toBe('TAB_ID');
-    wrapper.setProps({
-      ...props,
-      dashboardId: 2,
-      component: dashboardLayoutWithTabs.present.TAB_ID,
-    });
-    expect(wrapper.state('activeKey')).toBe('ROW_ID');
-  });
+  expect(getByRole('tab', { selected: true })).toHaveTextContent('ROW_ID');
 });

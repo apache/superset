@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { t } from '@superset-ui/core';
 import {
   filterNulls,
   autozoom,
@@ -25,7 +25,6 @@ import {
   jsDataMutator,
   jsTooltip,
   jsOnclickHref,
-  lineColumn,
   viewport,
   lineWidth,
   lineType,
@@ -36,16 +35,11 @@ import { dndLineColumn } from '../../utilities/sharedDndControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [
-          isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-            ? dndLineColumn
-            : lineColumn,
-        ],
+        [dndLineColumn],
         [
           {
             ...lineType,
@@ -67,7 +61,8 @@ const config: ControlPanelConfig = {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        [mapboxStyle, viewport],
+        [mapboxStyle],
+        [viewport],
         ['color_picker'],
         [lineWidth],
         [

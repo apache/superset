@@ -17,8 +17,7 @@
 import logging
 from typing import Any
 
-from sqlalchemy.orm import Session
-
+from superset import db
 from superset.models.core import Database
 
 EXPORT_VERSION = "1.0.0"
@@ -38,11 +37,11 @@ def export_schema_to_dict(back_references: bool) -> dict[str, Any]:
 
 
 def export_to_dict(
-    session: Session, recursive: bool, back_references: bool, include_defaults: bool
+    recursive: bool, back_references: bool, include_defaults: bool
 ) -> dict[str, Any]:
     """Exports databases to a dictionary"""
     logger.info("Starting export")
-    dbs = session.query(Database)
+    dbs = db.session.query(Database)
     databases = [
         database.export_to_dict(
             recursive=recursive,

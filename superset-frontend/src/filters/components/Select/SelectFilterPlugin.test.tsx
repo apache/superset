@@ -18,7 +18,6 @@
  */
 import userEvent from '@testing-library/user-event';
 import { AppSection } from '@superset-ui/core';
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
@@ -66,7 +65,7 @@ const selectMultipleProps = {
   width: 220,
   behaviors: ['NATIVE_FILTER'],
   isRefreshing: false,
-  appSection: AppSection.DASHBOARD,
+  appSection: AppSection.Dashboard,
 };
 
 describe('SelectFilterPlugin', () => {
@@ -91,15 +90,6 @@ describe('SelectFilterPlugin', () => {
   test('Add multiple values with first render', async () => {
     getWrapper();
     expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {},
-      filterState: {
-        value: ['boy'],
-      },
-    });
-    expect(setDataMask).toHaveBeenCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {
         filters: [
           {
@@ -118,9 +108,6 @@ describe('SelectFilterPlugin', () => {
     userEvent.click(screen.getByTitle('girl'));
     expect(await screen.findByTitle(/girl/i)).toBeInTheDocument();
     expect(setDataMask).toHaveBeenCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {
         filters: [
           {
@@ -146,9 +133,6 @@ describe('SelectFilterPlugin', () => {
       }),
     );
     expect(setDataMask).toHaveBeenCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {
         adhoc_filters: [
           {
@@ -174,9 +158,6 @@ describe('SelectFilterPlugin', () => {
       }),
     );
     expect(setDataMask).toHaveBeenCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {},
       filterState: {
         label: undefined,
@@ -191,9 +172,6 @@ describe('SelectFilterPlugin', () => {
     expect(await screen.findByTitle('girl')).toBeInTheDocument();
     userEvent.click(screen.getByTitle('girl'));
     expect(setDataMask).toHaveBeenCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {
         filters: [
           {
@@ -216,9 +194,6 @@ describe('SelectFilterPlugin', () => {
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     userEvent.click(screen.getByTitle(NULL_STRING));
     expect(setDataMask).toHaveBeenLastCalledWith({
-      __cache: {
-        value: ['boy'],
-      },
       extraFormData: {
         filters: [
           {

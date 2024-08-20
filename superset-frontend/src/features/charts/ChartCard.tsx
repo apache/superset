@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -67,8 +66,7 @@ export default function ChartCard({
   const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport =
-    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const canExport = hasPerm('can_export');
   const theme = useTheme();
 
   const menu = (
@@ -147,7 +145,7 @@ export default function ChartCard({
         certifiedBy={chart.certified_by}
         certificationDetails={chart.certification_details}
         cover={
-          !isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? (
+          !isFeatureEnabled(FeatureFlag.Thumbnails) || !showThumbnails ? (
             <></>
           ) : null
         }

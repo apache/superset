@@ -1,0 +1,153 @@
+# TODO (if we can)
+# - Label PRs in need of codeowner review
+# - viz:charts:xyz labels
+# – component/design system areas
+# - storybook(s)
+# - f/e and b/e test changes?
+# - product areas (SQL Lab, Explore, Dashboard, etc.)
+# - database areas (SQLAlchemy, labelind DBs by driver, etc.)
+
+############################################
+# General workflow warnings
+# full list of labels is here: https://github.com/apache/superset/labels
+############################################
+
+"risk:db-migration":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/migrations/**'
+
+############################################
+# Dependencies
+############################################
+
+"dependencies:python":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/requirements/**'
+    - 'superset/translations/requirements.txt'
+    - 'RELEASING/requirements.txt'
+
+"dependencies:npm":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset-frontend/package.json'
+    - 'superset-frontend/package-lock.json'
+    - 'superset-embedded-sdk/package.json'
+    - 'superset-embedded-sdk/package-lock.json'
+    - 'superset-websocket/package.json'
+    - 'superset-websocket/package-lock.json'
+    - 'superset-frontend/cypress-base/package.json'
+    - 'superset-frontend/cypress-base/package-lock.json'
+    - 'superset-frontend/packages/**/package.json'
+    - 'superset-frontend/plugins/**/package.json'
+
+############################################
+# Areas of the main codebase
+############################################
+
+"doc":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'docs/**'
+
+"api":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/**/api.py'
+    - 'superset/views/core.py'
+
+"i18n":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/**'
+
+"i18n:brazilian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/pt_BR/**'
+
+"i18n:chinese":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/zh/**'
+
+"i18n:traditional-chinese":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/zh_TW/**'
+
+"i18n:dutch":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/nl/**'
+
+"i18n:french":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/fr/**'
+
+"i18n:italian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/it/**'
+
+"i18n:japanese":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/ja/**'
+
+"i18n:korean":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/ko/**'
+
+"i18n:portuguese":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/pt/**'
+
+"i18n:russian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/ru/**'
+
+"i18n:slovak":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/sk/**'
+
+"i18n:ukrainian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/uk/**'
+
+"i18n:spanish":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/es/**'
+
+############################################
+# Sub-projects and monorepo packages
+############################################
+
+"plugins":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset-frontend/plugins/**'
+
+"packages":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset-frontend/packages/**'
+
+"embedded":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset-embedded-sdk/**'
+
+"github_actions":
+- changed-files:
+  - any-glob-to-any-file:
+    - '.github/actions/**'
+    - '.github/workflows/**'

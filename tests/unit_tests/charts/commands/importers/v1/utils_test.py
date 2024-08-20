@@ -15,9 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
-
-from superset.charts.commands.importers.v1.utils import migrate_chart
+from superset.commands.chart.importers.v1.utils import migrate_chart
+from superset.utils import json
 
 
 def test_migrate_chart_area() -> None:
@@ -31,12 +30,21 @@ def test_migrate_chart_area() -> None:
         "description": None,
         "certified_by": None,
         "certification_details": None,
-        "viz_type": "area",
+        "viz_type": "echarts_area",
+        "query_context": None,
         "params": json.dumps(
             {
-                "adhoc_filters": [],
+                "adhoc_filters": [
+                    {
+                        "clause": "WHERE",
+                        "subject": "ds",
+                        "operator": "TEMPORAL_RANGE",
+                        "comparator": "No filter",
+                        "expressionType": "SIMPLE",
+                    }
+                ],
                 "annotation_layers": [],
-                "bottom_margin": "auto",
+                "x_axis_title_margin": "auto",
                 "color_scheme": "supersetColors",
                 "comparison_type": "values",
                 "dashboards": [],

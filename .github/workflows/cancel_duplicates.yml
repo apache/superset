@@ -9,7 +9,7 @@ on:
 jobs:
   cancel-duplicate-runs:
     name: Cancel duplicate workflow runs
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       actions: write
       contents: read
@@ -27,11 +27,11 @@ jobs:
           }
           count=$(( `get_count queued` + `get_count in_progress` ))
           echo "Found $count unfinished jobs."
-          echo "::set-output name=count::$count"
+          echo "count=$count" >> $GITHUB_OUTPUT
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         if: steps.check_queued.outputs.count >= 20
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Cancel duplicate workflow runs
         if: steps.check_queued.outputs.count >= 20

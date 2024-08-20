@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { styled, css, t, useTheme } from '@superset-ui/core';
+import { Comparator } from '@superset-ui/chart-controls';
 import Icons from 'src/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { FormattingPopover } from './FormattingPopover';
 import {
-  COMPARATOR,
   ConditionalFormattingConfig,
   ConditionalFormattingControlProps,
 } from './types';
@@ -71,6 +71,7 @@ const ConditionalFormattingControl = ({
   columnOptions,
   verboseMap,
   removeIrrelevantConditions,
+  extraColorChoices,
   ...props
 }: ConditionalFormattingControlProps) => {
   const theme = useTheme();
@@ -123,16 +124,16 @@ const ConditionalFormattingControl = ({
   }: ConditionalFormattingConfig) => {
     const columnName = (column && verboseMap?.[column]) ?? column;
     switch (operator) {
-      case COMPARATOR.NONE:
+      case Comparator.None:
         return `${columnName}`;
-      case COMPARATOR.BETWEEN:
-        return `${targetValueLeft} ${COMPARATOR.LESS_THAN} ${columnName} ${COMPARATOR.LESS_THAN} ${targetValueRight}`;
-      case COMPARATOR.BETWEEN_OR_EQUAL:
-        return `${targetValueLeft} ${COMPARATOR.LESS_OR_EQUAL} ${columnName} ${COMPARATOR.LESS_OR_EQUAL} ${targetValueRight}`;
-      case COMPARATOR.BETWEEN_OR_LEFT_EQUAL:
-        return `${targetValueLeft} ${COMPARATOR.LESS_OR_EQUAL} ${columnName} ${COMPARATOR.LESS_THAN} ${targetValueRight}`;
-      case COMPARATOR.BETWEEN_OR_RIGHT_EQUAL:
-        return `${targetValueLeft} ${COMPARATOR.LESS_THAN} ${columnName} ${COMPARATOR.LESS_OR_EQUAL} ${targetValueRight}`;
+      case Comparator.Between:
+        return `${targetValueLeft} ${Comparator.LessThan} ${columnName} ${Comparator.LessThan} ${targetValueRight}`;
+      case Comparator.BetweenOrEqual:
+        return `${targetValueLeft} ${Comparator.LessOrEqual} ${columnName} ${Comparator.LessOrEqual} ${targetValueRight}`;
+      case Comparator.BetweenOrLeftEqual:
+        return `${targetValueLeft} ${Comparator.LessOrEqual} ${columnName} ${Comparator.LessThan} ${targetValueRight}`;
+      case Comparator.BetweenOrRightEqual:
+        return `${targetValueLeft} ${Comparator.LessThan} ${columnName} ${Comparator.LessOrEqual} ${targetValueRight}`;
       default:
         return `${columnName} ${operator} ${targetValue}`;
     }
@@ -155,6 +156,7 @@ const ConditionalFormattingControl = ({
                 onEdit(newConfig, index)
               }
               destroyTooltipOnHide
+              extraColorChoices={extraColorChoices}
             >
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
@@ -170,6 +172,7 @@ const ConditionalFormattingControl = ({
           columns={columnOptions}
           onChange={onSave}
           destroyTooltipOnHide
+          extraColorChoices={extraColorChoices}
         >
           <AddControlLabel>
             <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />

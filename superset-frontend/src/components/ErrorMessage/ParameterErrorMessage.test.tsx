@@ -18,16 +18,16 @@
  */
 
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import ParameterErrorMessage from './ParameterErrorMessage';
-import { ErrorLevel, ErrorSource, ErrorTypeEnum } from './types';
 
 jest.mock(
   'src/components/Icons/Icon',
   () =>
-    ({ fileName }: { fileName: string }) =>
-      <span role="img" aria-label={fileName.replace('_', '-')} />,
+    ({ fileName }: { fileName: string }) => (
+      <span role="img" aria-label={fileName.replace('_', '-')} />
+    ),
 );
 
 const mockedProps = {

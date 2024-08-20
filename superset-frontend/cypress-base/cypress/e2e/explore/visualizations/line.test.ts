@@ -51,10 +51,10 @@ describe('Visualization > Line', () => {
     // Title edit for saved metrics is disabled - switch to Simple
     cy.get('[id="adhoc-metric-edit-tabs-tab-SIMPLE"]').click();
 
-    cy.get('input[aria-label="Select column"]').click().type('num{enter}');
-    cy.get('input[aria-label="Select aggregate options"]')
-      .click()
-      .type('sum{enter}');
+    cy.get('input[aria-label="Select column"]').click();
+    cy.get('input[aria-label="Select column"]').type('num{enter}');
+    cy.get('input[aria-label="Select aggregate options"]').click();
+    cy.get('input[aria-label="Select aggregate options"]').type('sum{enter}');
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
     cy.get('[data-test="metrics-header"]').contains('Metrics');
@@ -77,15 +77,14 @@ describe('Visualization > Line', () => {
   it('should allow type to search color schemes and apply the scheme', () => {
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
-    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
-      .focus()
-      .type('bnbColors{enter}');
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
+    cy.focused().type('bnbColors{enter}');
     cy.get(
       '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
     ).should('exist');
     cy.get('.line .nv-legend .nv-legend-symbol')
       .first()
-      .should('have.css', 'fill', 'rgb(255, 90, 95)');
+      .should('have.css', 'fill', 'rgb(41, 105, 107)');
   });
 
   it('should work with adhoc metric', () => {

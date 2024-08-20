@@ -17,13 +17,7 @@
  * under the License.
  */
 
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   BaseFormData,
   Column,
@@ -54,11 +48,13 @@ import {
   LOG_ACTIONS_DRILL_BY_MODAL_OPENED,
   LOG_ACTIONS_FURTHER_DRILL_BY,
 } from 'src/logger/LogUtils';
+import { findPermission } from 'src/utils/findPermission';
+import { getQuerySettings } from 'src/explore/exploreUtils';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
 import { useContextMenu } from '../ChartContextMenu/useContextMenu';
-import { getChartDataRequest } from '../chartAction';
+import { getChartDataRequest, handleChartDataResponse } from '../chartAction';
 import { useDisplayModeToggle } from './useDisplayModeToggle';
 import {
   DrillByBreadcrumb,
@@ -75,6 +71,7 @@ interface ModalFooterProps {
 const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
   const dispatch = useDispatch();
   const { addDangerToast } = useToasts();
+  const theme = useTheme();
   const [url, setUrl] = useState('');
   const dashboardPageId = useContext(DashboardPageIdContext);
   const onEditChartClick = useCallback(() => {
@@ -84,6 +81,9 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
       }),
     );
   }, [dispatch, formData.slice_id]);
+  const canExplore = useSelector((state: RootState) =>
+    findPermission('can_explore', 'Superset', state.user?.roles),
+  );
 
   const [datasource_id, datasource_type] = formData.datasource.split('__');
   useEffect(() => {
@@ -103,13 +103,20 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
     datasource_type,
     formData,
   ]);
+  const isEditDisabled = !url || !canExplore;
+
   return (
     <>
       <Button
         buttonStyle="secondary"
         buttonSize="small"
         onClick={onEditChartClick}
-        disabled={!url}
+        disabled={isEditDisabled}
+        tooltip={
+          isEditDisabled
+            ? t('You do not have sufficient permissions to edit the chart')
+            : undefined
+        }
       >
         <Link
           css={css`
@@ -128,6 +135,9 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
         buttonSize="small"
         onClick={closeModal}
         data-test="close-drill-by-modal"
+        css={css`
+          margin-left: ${theme.gridUnit * 2}px;
+        `}
       >
         {t('Close')}
       </Button>
@@ -141,6 +151,7 @@ export interface DrillByModalProps {
   drillByConfig: Required<ContextMenuFilters>['drillBy'];
   formData: BaseFormData & { [key: string]: any };
   onHideModal: () => void;
+  canDownload: boolean;
 }
 
 type DrillByConfigs = (ContextMenuFilters['drillBy'] & { column?: Column })[];
@@ -151,6 +162,7 @@ export default function DrillByModal({
   drillByConfig,
   formData,
   onHideModal,
+  canDownload,
 }: DrillByModalProps) {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -190,6 +202,7 @@ export default function DrillByModal({
   const resultsTable = useResultsTableView(
     chartDataResult,
     formData.datasource,
+    canDownload,
   );
 
   const [currentFormData, setCurrentFormData] = useState(formData);
@@ -390,13 +403,17 @@ export default function DrillByModal({
 
   useEffect(() => {
     if (drilledFormData) {
+      const [useLegacyApi] = getQuerySettings(drilledFormData);
       setIsChartDataLoading(true);
       setChartDataResult(undefined);
       getChartDataRequest({
         formData: drilledFormData,
       })
-        .then(({ json }) => {
-          setChartDataResult(json.result);
+        .then(({ response, json }) =>
+          handleChartDataResponse(response, json, useLegacyApi),
+        )
+        .then(queriesResponse => {
+          setChartDataResult(queriesResponse);
         })
         .catch(() => {
           addDangerToast(t('Failed to load chart data.'));

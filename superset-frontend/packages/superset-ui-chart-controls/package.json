@@ -25,18 +25,18 @@
   ],
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
-    "@types/enzyme": "^3.10.5",
+    "@types/enzyme": "^3.10.18",
     "@types/react": "*",
-    "lodash": "^4.17.15",
-    "prop-types": "^15.7.2"
+    "lodash": "^4.17.21",
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.0.1",
     "@emotion/react": "^11.4.1",
     "@superset-ui/core": "*",
-    "@testing-library/dom": "^7.29.4",
+    "@testing-library/dom": "^8.20.1",
     "@testing-library/jest-dom": "^5.11.6",
-    "@testing-library/react": "^11.2.0",
+    "@testing-library/react": "^12.1.5",
     "@testing-library/react-hooks": "^5.0.3",
     "@testing-library/user-event": "^12.7.0",
     "ace-builds": "^1.4.14",

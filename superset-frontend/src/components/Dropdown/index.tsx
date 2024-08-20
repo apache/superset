@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject } from 'react';
+import {
+  RefObject,
+  ReactElement,
+  ReactNode,
+  FocusEvent,
+  KeyboardEvent,
+  cloneElement,
+} from 'react';
+
 import { AntdDropdown } from 'src/components';
 import { DropDownProps } from 'antd/lib/dropdown';
 import { styled } from '@superset-ui/core';
@@ -68,19 +76,19 @@ const MenuDotsWrapper = styled.div`
 `;
 
 export enum IconOrientation {
-  VERTICAL = 'vertical',
-  HORIZONTAL = 'horizontal',
+  Vertical = 'vertical',
+  Horizontal = 'horizontal',
 }
 export interface DropdownProps extends DropDownProps {
-  overlay: React.ReactElement;
+  overlay: ReactElement;
   iconOrientation?: IconOrientation;
 }
 
 const RenderIcon = (
-  iconOrientation: IconOrientation = IconOrientation.VERTICAL,
+  iconOrientation: IconOrientation = IconOrientation.Vertical,
 ) => {
   const component =
-    iconOrientation === IconOrientation.HORIZONTAL ? (
+    iconOrientation === IconOrientation.Horizontal ? (
       <Icons.MoreHoriz iconSize="xl" />
     ) : (
       <MenuDots />
@@ -90,7 +98,7 @@ const RenderIcon = (
 
 export const Dropdown = ({
   overlay,
-  iconOrientation = IconOrientation.VERTICAL,
+  iconOrientation = IconOrientation.Vertical,
   ...rest
 }: DropdownProps) => (
   <AntdDropdown overlay={overlay} {...rest}>
@@ -104,12 +112,22 @@ interface ExtendedDropDownProps extends DropDownProps {
   ref?: RefObject<HTMLDivElement>;
 }
 
-// @z-index-below-dashboard-header (100) - 1 = 99
-export const NoAnimationDropdown = (
-  props: ExtendedDropDownProps & { children?: React.ReactNode },
-) => (
-  <AntdDropdown
-    overlayStyle={{ zIndex: 99, animationDuration: '0s' }}
-    {...props}
-  />
-);
+export interface NoAnimationDropdownProps extends ExtendedDropDownProps {
+  children: ReactNode;
+  onBlur?: (e: FocusEvent<HTMLDivElement>) => void;
+  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
+}
+
+export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
+  const { children, onBlur, onKeyDown, ...rest } = props;
+  const childrenWithProps = cloneElement(children as ReactElement, {
+    onBlur,
+    onKeyDown,
+  });
+
+  return (
+    <AntdDropdown overlayStyle={props.overlayStyle} {...rest}>
+      {childrenWithProps}
+    </AntdDropdown>
+  );
+};

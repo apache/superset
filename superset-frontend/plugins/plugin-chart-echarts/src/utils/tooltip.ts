@@ -17,13 +17,14 @@
  * under the License.
  */
 
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { TOOLTIP_OVERFLOW_MARGIN, TOOLTIP_POINTER_MARGIN } from '../constants';
 import { Refs } from '../types';
 
 export function getDefaultTooltip(refs: Refs) {
   return {
     appendToBody: true,
+    borderColor: 'transparent',
     position: (
       canvasMousePos: [number, number],
       params: CallbackDataParams,

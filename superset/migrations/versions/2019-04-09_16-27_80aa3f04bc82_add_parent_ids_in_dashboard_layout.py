@@ -21,16 +21,15 @@ Revises: 45e7da7cfeba
 Create Date: 2019-04-09 16:27:03.392872
 
 """
-import json
+
 import logging
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 
 from superset import db
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "80aa3f04bc82"
@@ -80,7 +79,6 @@ def upgrade():
             dashboard.position_json = json.dumps(
                 layout, indent=None, separators=(",", ":"), sort_keys=True
             )
-            session.merge(dashboard)
         except Exception as ex:
             logging.exception(ex)
 
@@ -110,7 +108,6 @@ def downgrade():
             dashboard.position_json = json.dumps(
                 layout, indent=None, separators=(",", ":"), sort_keys=True
             )
-            session.merge(dashboard)
         except Exception as ex:
             logging.exception(ex)
 

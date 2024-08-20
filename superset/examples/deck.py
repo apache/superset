@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 
 from superset import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.core import DatasourceType
 
 from .helpers import (
@@ -532,6 +532,7 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
 
     if not dash:
         dash = Dashboard()
+        db.session.add(dash)
     dash.published = True
     js = POSITION_JSON
     pos = json.loads(js)
@@ -540,5 +541,3 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
     dash.dashboard_title = title
     dash.slug = slug
     dash.slices = slices
-    db.session.merge(dash)
-    db.session.commit()

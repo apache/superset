@@ -16,17 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Children, ReactElement } from 'react';
-import { kebabCase } from 'lodash';
+import {
+  Children,
+  ReactElement,
+  ReactNode,
+  Fragment,
+  MouseEventHandler,
+} from 'react';
+
 import { mix } from 'polished';
 import cx from 'classnames';
-import { AntdButton } from 'src/components';
+import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
 import { TooltipProps } from 'antd/lib/tooltip';
 
-export type OnClickHandler = React.MouseEventHandler<HTMLElement>;
+export type OnClickHandler = MouseEventHandler<HTMLElement>;
 
 export type ButtonStyle =
   | 'primary'
@@ -43,7 +49,7 @@ export type ButtonSize = 'default' | 'small' | 'xsmall';
 
 export type ButtonProps = Omit<AntdButtonProps, 'css'> &
   Pick<TooltipProps, 'placement'> & {
-    tooltip?: string;
+    tooltip?: ReactNode;
     className?: string;
     buttonSize?: ButtonSize;
     buttonStyle?: ButtonStyle;
@@ -136,7 +142,7 @@ export default function Button(props: ButtonProps) {
   const element = children as ReactElement;
 
   let renderedChildren = [];
-  if (element && element.type === React.Fragment) {
+  if (element && element.type === Fragment) {
     renderedChildren = Children.toArray(element.props.children);
   } else {
     renderedChildren = Children.toArray(children);
@@ -148,7 +154,14 @@ export default function Button(props: ButtonProps) {
     <AntdButton
       href={disabled ? undefined : href}
       disabled={disabled}
-      className={cx(className, 'superset-button', { cta: !!cta })}
+      className={cx(
+        className,
+        'superset-button',
+        // A static class name containing the button style is available to
+        // support customizing button styles in embedded dashboards.
+        `superset-button-${buttonStyle}`,
+        { cta: !!cta },
+      )}
       css={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -157,7 +170,6 @@ export default function Button(props: ButtonProps) {
         fontSize: typography.sizes.s,
         fontWeight: typography.weights.bold,
         height,
-        textTransform: 'uppercase',
         padding: `0px ${padding}px`,
         transition: `all ${transitionTiming}s`,
         minWidth: cta ? theme.gridUnit * 36 : undefined,
@@ -207,11 +219,7 @@ export default function Button(props: ButtonProps) {
 
   if (tooltip) {
     return (
-      <Tooltip
-        placement={placement}
-        id={`${kebabCase(tooltip)}-tooltip`}
-        title={tooltip}
-      >
+      <Tooltip placement={placement} title={tooltip}>
         {/* wrap the button in a span so that the tooltip shows up
         when the button is disabled. */}
         {disabled ? (

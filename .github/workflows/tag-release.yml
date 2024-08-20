@@ -1,0 +1,137 @@
+name: Publish a Release
+
+on:
+  release:
+    types: [published, edited]
+
+  # Can be triggered manually
+  workflow_dispatch:
+    inputs:
+      release:
+        required: true
+        description: The version to generate
+      git-ref:
+        required: true
+        description: The git reference to checkout prior to running the docker build
+      force-latest:
+        required: true
+        type: choice
+        default: 'false'
+        description: Whether to force a latest tag on the release
+        options:
+          - 'true'
+          - 'false'
+jobs:
+  config:
+    runs-on: "ubuntu-22.04"
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+    steps:
+      - name: "Check for secrets"
+        id: check
+        shell: bash
+        run: |
+          if [ -n "${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
+
+  docker-release:
+    needs: config
+    if: needs.config.outputs.has-secrets
+    name: docker-release
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        build_preset: ["dev", "lean", "py310", "websocket", "dockerize"]
+      fail-fast: false
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
+
+      - name: Try to login to DockerHub
+        continue-on-error: true
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Execute custom Node.js script
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE="${{ github.event.release.tag_name }}"
+          FORCE_LATEST=""
+          EVENT="${{github.event_name}}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # in the case of a manually-triggered run, read release from input
+            RELEASE="${{ github.event.inputs.release }}"
+            if [ "${{ github.event.inputs.force-latest }}" = "true" ]; then
+              FORCE_LATEST="--force-latest"
+            fi
+            git checkout "${{ github.event.inputs.git-ref }}"
+            EVENT="release"
+          fi
+
+          supersetbot docker \
+            --preset ${{ matrix.build_preset }} \
+            --context "$EVENT" \
+            --context-ref "$RELEASE" $FORCE_LATEST \
+            --platform "linux/arm64" \
+            --platform "linux/amd64"
+
+          # Returning to master to support closing setup-supersetbot
+          git checkout master
+
+  update-prs-with-release-info:
+    needs: config
+    if: needs.config.outputs.has-secrets
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
+
+      - name: Label the PRs with the right release-related labels
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export GITHUB_ACTOR=""
+          git fetch --all --tags
+          git checkout master
+          RELEASE="${{ github.event.release.tag_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # in the case of a manually-triggered run, read release from input
+            RELEASE="${{ github.event.inputs.release }}"
+          fi
+          supersetbot release-label $RELEASE

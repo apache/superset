@@ -27,6 +27,7 @@ export type InitialState = {
     label: string;
     active: boolean;
     database_id: number;
+    catalog?: string | null;
     schema?: string;
     table_schemas: {
       id: number;
@@ -38,6 +39,7 @@ export type InitialState = {
         }[];
         dataPreviewQueryId?: string;
       } & Record<string, any>;
+      catalog?: string | null;
       schema?: string;
       tab_state_id: number;
       database_id?: number;
@@ -50,17 +52,24 @@ export type InitialState = {
     template_params: string | null;
     hide_left_bar?: boolean;
     saved_query: { id: number } | null;
-    extra_json?: object;
+    extra_json?: Record<string, any>;
   };
   databases: object[];
-  queries: Record<string, QueryResponse & { inLocalStorage?: boolean }>;
+  queries: Record<
+    string,
+    Omit<QueryResponse, 'startDttm' | 'endDttm'> & {
+      startDttm: number | string;
+      endDttm: number | string;
+      inLocalStorage?: boolean;
+    }
+  >;
   tab_state_ids: {
     id: number;
     label: string;
   }[];
 };
 
-const queryValidationApi = api.injectEndpoints({
+const initialStateApi = api.injectEndpoints({
   endpoints: builder => ({
     sqlLabInitialState: builder.query<InitialState, void>({
       providesTags: ['SqlLabInitialState'],
@@ -74,4 +83,4 @@ const queryValidationApi = api.injectEndpoints({
 });
 
 export const { useSqlLabInitialStateQuery: useSqlLabInitialState } =
-  queryValidationApi;
+  initialStateApi;

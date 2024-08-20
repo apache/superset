@@ -26,7 +26,7 @@ function reset_db() {
   echo --------------------
   echo Resetting test DB
   echo --------------------
-  docker-compose stop superset-tests-worker superset || true
+  docker compose stop superset-tests-worker superset || true
   RESET_DB_CMD="psql \"postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432\" <<-EOF
     DROP DATABASE IF EXISTS ${DB_NAME};
     CREATE DATABASE ${DB_NAME};
@@ -38,7 +38,7 @@ function reset_db() {
 EOF
 "
   docker exec -i superset_db bash -c "${RESET_DB_CMD}"
-  docker-compose start superset-tests-worker superset
+  docker compose start superset-tests-worker superset
 }
 
 #
@@ -53,6 +53,9 @@ function test_init() {
   echo Superset init
   echo --------------------
   superset init
+  echo Load test users
+  echo --------------------
+  superset load-test-users
 }
 
 #
@@ -61,7 +64,10 @@ function test_init() {
 DB_NAME="test"
 DB_USER="superset"
 DB_PASSWORD="superset"
+
+# Pointing to use the test database in local docker-compose setup
 export SUPERSET__SQLALCHEMY_DATABASE_URI=${SUPERSET__SQLALCHEMY_DATABASE_URI:-postgresql+psycopg2://"${DB_USER}":"${DB_PASSWORD}"@localhost/"${DB_NAME}"}
+
 export SUPERSET_CONFIG=${SUPERSET_CONFIG:-tests.integration_tests.superset_test_config}
 RUN_INIT=1
 RUN_RESET_DB=1
@@ -138,5 +144,5 @@ fi
 
 if [ $RUN_TESTS -eq 1 ]
 then
-  pytest --durations=0 --maxfail=1 "${TEST_MODULE}"
+  pytest -vv --durations=0 "${TEST_MODULE}"
 fi

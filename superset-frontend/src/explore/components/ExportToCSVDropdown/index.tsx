@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactChild, useCallback } from 'react';
+import { ReactChild, useCallback, Key } from 'react';
+
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 
-enum MENU_KEYS {
-  EXPORT_ORIGINAL = 'export_original',
-  EXPORT_PIVOTED = 'export_pivoted',
+enum MenuKeys {
+  ExportOriginal = 'export_original',
+  ExportPivoted = 'export_pivoted',
 }
 
 interface ExportToCSVButtonProps {
@@ -50,12 +51,12 @@ export const ExportToCSVDropdown = ({
   children,
 }: ExportToCSVButtonProps) => {
   const handleMenuClick = useCallback(
-    ({ key }: { key: React.Key }) => {
+    ({ key }: { key: Key }) => {
       switch (key) {
-        case MENU_KEYS.EXPORT_ORIGINAL:
+        case MenuKeys.ExportOriginal:
           exportCSVOriginal();
           break;
-        case MENU_KEYS.EXPORT_PIVOTED:
+        case MenuKeys.ExportPivoted:
           exportCSVPivoted();
           break;
         default:
@@ -70,13 +71,13 @@ export const ExportToCSVDropdown = ({
       trigger={['click']}
       overlay={
         <Menu onClick={handleMenuClick} selectable={false}>
-          <Menu.Item key={MENU_KEYS.EXPORT_ORIGINAL}>
+          <Menu.Item key={MenuKeys.ExportOriginal}>
             <MenuItemContent>
               {t('Original')}
               <Icons.Download />
             </MenuItemContent>
           </Menu.Item>
-          <Menu.Item key={MENU_KEYS.EXPORT_PIVOTED}>
+          <Menu.Item key={MenuKeys.ExportPivoted}>
             <MenuItemContent>
               {t('Pivoted')}
               <Icons.Download />

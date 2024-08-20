@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import * as resizeDetector from 'react-resize-detector';
-import { supersetTheme } from '@superset-ui/core';
-import { hexToRgb } from 'src/utils/colorUtils';
+import { supersetTheme, hexToRgb } from '@superset-ui/core';
 import MetadataBar, {
   MIN_NUMBER_ITEMS,
   MAX_NUMBER_ITEMS,
@@ -59,39 +57,39 @@ const runWithBarCollapsed = async (func: Function) => {
 
 const ITEMS: ContentType[] = [
   {
-    type: MetadataType.DASHBOARDS,
+    type: MetadataType.Dashboards,
     title: DASHBOARD_TITLE,
     description: DASHBOARD_DESCRIPTION,
   },
   {
-    type: MetadataType.DESCRIPTION,
+    type: MetadataType.Description,
     value: DESCRIPTION_VALUE,
   },
   {
-    type: MetadataType.LAST_MODIFIED,
+    type: MetadataType.LastModified,
     value: TWO_DAYS_AGO,
     modifiedBy: MODIFIED_BY,
   },
   {
-    type: MetadataType.OWNER,
+    type: MetadataType.Owner,
     createdBy: CREATED_BY,
     owners: OWNERS,
     createdOn: A_WEEK_AGO,
   },
   {
-    type: MetadataType.ROWS,
+    type: MetadataType.Rows,
     title: ROWS_TITLE,
   },
   {
-    type: MetadataType.SQL,
+    type: MetadataType.Sql,
     title: SQL_TITLE,
   },
   {
-    type: MetadataType.TABLE,
+    type: MetadataType.Table,
     title: TABLE_TITLE,
   },
   {
-    type: MetadataType.TAGS,
+    type: MetadataType.Tags,
     values: TAGS,
   },
 ];
@@ -265,4 +263,26 @@ test('correctly renders the tags tooltip', async () => {
       expect(within(tooltip).getByText(tag)).toBeInTheDocument(),
     );
   });
+});
+
+test('renders StyledItem with role="button" when onClick is defined', () => {
+  const onClick = jest.fn();
+  const items = [
+    { ...ITEMS[0], onClick },
+    { ...ITEMS[1], onClick },
+  ];
+  render(<MetadataBar items={items} />);
+
+  const styledItems = screen.getAllByRole('button');
+
+  expect(styledItems.length).toBe(2);
+});
+
+test('renders StyledItem with role=undefined when onClick is not defined', () => {
+  const items = [ITEMS[0], ITEMS[1]];
+  render(<MetadataBar items={items} />);
+
+  const styledItems = screen.queryAllByRole('button');
+
+  expect(styledItems.length).toBe(0);
 });

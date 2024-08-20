@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -30,7 +30,6 @@ const QueryTitle = styled.div`
   color: ${({ theme }) => theme.colors.secondary.light2};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   margin-bottom: 0;
-  text-transform: uppercase;
 `;
 
 const QueryLabel = styled.div`
@@ -65,77 +64,80 @@ type SavedQueryObject = {
 interface SavedQueryPreviewModalProps extends ToastProps {
   fetchData: (id: number) => {};
   onHide: () => void;
-  openInSqlLab: (id: number) => {};
+  openInSqlLab: (id: number, openInNewWindow: boolean) => {};
   queries: Array<SavedQueryObject>;
   savedQuery: SavedQueryObject;
   show: boolean;
 }
 
-const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> =
-  ({
-    fetchData,
-    onHide,
-    openInSqlLab,
-    queries,
-    savedQuery,
-    show,
-    addDangerToast,
-    addSuccessToast,
-  }) => {
-    const { handleKeyPress, handleDataChange, disablePrevious, disableNext } =
-      useQueryPreviewState<SavedQueryObject>({
-        queries,
-        currentQueryId: savedQuery.id,
-        fetchData,
-      });
+const SavedQueryPreviewModal: FunctionComponent<
+  SavedQueryPreviewModalProps
+> = ({
+  fetchData,
+  onHide,
+  openInSqlLab,
+  queries,
+  savedQuery,
+  show,
+  addDangerToast,
+  addSuccessToast,
+}) => {
+  const { handleKeyPress, handleDataChange, disablePrevious, disableNext } =
+    useQueryPreviewState<SavedQueryObject>({
+      queries,
+      currentQueryId: savedQuery.id,
+      fetchData,
+    });
 
-    return (
-      <div role="none" onKeyUp={handleKeyPress}>
-        <StyledModal
-          onHide={onHide}
-          show={show}
-          title={t('Query preview')}
-          footer={
-            <>
-              <Button
-                data-test="previous-saved-query"
-                key="previous-saved-query"
-                disabled={disablePrevious}
-                onClick={() => handleDataChange(true)}
-              >
-                {t('Previous')}
-              </Button>
-              <Button
-                data-test="next-saved-query"
-                key="next-saved-query"
-                disabled={disableNext}
-                onClick={() => handleDataChange(false)}
-              >
-                {t('Next')}
-              </Button>
-              <Button
-                data-test="open-in-sql-lab"
-                key="open-in-sql-lab"
-                buttonStyle="primary"
-                onClick={() => openInSqlLab(savedQuery.id)}
-              >
-                {t('Open in SQL Lab')}
-              </Button>
-            </>
-          }
+  return (
+    <div role="none" onKeyUp={handleKeyPress}>
+      <StyledModal
+        onHide={onHide}
+        show={show}
+        title={t('Query preview')}
+        footer={
+          <>
+            <Button
+              data-test="previous-saved-query"
+              key="previous-saved-query"
+              disabled={disablePrevious}
+              onClick={() => handleDataChange(true)}
+            >
+              {t('Previous')}
+            </Button>
+            <Button
+              data-test="next-saved-query"
+              key="next-saved-query"
+              disabled={disableNext}
+              onClick={() => handleDataChange(false)}
+            >
+              {t('Next')}
+            </Button>
+            <Button
+              data-test="open-in-sql-lab"
+              key="open-in-sql-lab"
+              buttonStyle="primary"
+              onClick={({ metaKey }) =>
+                openInSqlLab(savedQuery.id, Boolean(metaKey))
+              }
+            >
+              {t('Open in SQL Lab')}
+            </Button>
+          </>
+        }
+      >
+        <QueryTitle>{t('Query name')}</QueryTitle>
+        <QueryLabel>{savedQuery.label}</QueryLabel>
+        <SyntaxHighlighterCopy
+          language="sql"
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
         >
-          <QueryTitle>{t('Query name')}</QueryTitle>
-          <QueryLabel>{savedQuery.label}</QueryLabel>
-          <SyntaxHighlighterCopy
-            language="sql"
-            addDangerToast={addDangerToast}
-            addSuccessToast={addSuccessToast}
-          >
-            {savedQuery.sql || ''}
-          </SyntaxHighlighterCopy>
-        </StyledModal>
-      </div>
-    );
-  };
+          {savedQuery.sql || ''}
+        </SyntaxHighlighterCopy>
+      </StyledModal>
+    </div>
+  );
+};
 
 export default withToasts(SavedQueryPreviewModal);

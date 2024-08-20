@@ -19,12 +19,12 @@
 
 // These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
 
-import React from 'react';
 import {
   FeatureFlag,
   isFeatureEnabled,
   t,
   validateNonEmpty,
+  validateMapboxStylesUrl,
 } from '@superset-ui/core';
 import { D3_FORMAT_OPTIONS, sharedControls } from '@superset-ui/chart-controls';
 import { columnChoices, PRIMARY_COLOR } from './controls';
@@ -71,12 +71,12 @@ function jsFunctionControl(
         {extraDescr}
       </div>
     ),
-    warning: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS)
+    warning: !isFeatureEnabled(FeatureFlag.EnableJavascriptControls)
       ? t(
           'This functionality is disabled in your environment for security reasons.',
         )
       : null,
-    readOnly: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS),
+    readOnly: !isFeatureEnabled(FeatureFlag.EnableJavascriptControls),
   };
 }
 
@@ -370,6 +370,8 @@ export const mapboxStyle = {
     label: t('Map Style'),
     clearable: false,
     renderTrigger: true,
+    freeForm: true,
+    validators: [validateMapboxStylesUrl],
     choices: [
       ['mapbox://styles/mapbox/streets-v9', t('Streets')],
       ['mapbox://styles/mapbox/dark-v9', t('Dark')],
@@ -379,7 +381,10 @@ export const mapboxStyle = {
       ['mapbox://styles/mapbox/outdoors-v9', t('Outdoors')],
     ],
     default: 'mapbox://styles/mapbox/light-v9',
-    description: t('Base layer map style'),
+    description: t(
+      'Base layer map style. See Mapbox documentation: %s',
+      'https://docs.mapbox.com/help/glossary/style-url/',
+    ),
   },
 };
 

@@ -36,12 +36,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ template "superset.name" . }}-celerybeat
-      release: {{ .Release.Name }}
+    {{- include "supersetCeleryBeat.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
         checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
+        checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
         checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
@@ -119,6 +119,9 @@ spec:
             {{- else }}
               {{- toYaml .Values.resources | nindent 12 }}
             {{- end }}
+        {{- if .Values.supersetCeleryBeat.extraContainers }}
+            {{- toYaml .Values.supersetCeleryBeat.extraContainers | nindent 8 }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -130,6 +133,9 @@ spec:
         {{- with .Values.supersetCeleryBeat.affinity }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- end }}
+      {{- if .Values.supersetCeleryBeat.priorityClassName }}
+      priorityClassName: {{ .Values.supersetCeleryBeat.priorityClassName }}
       {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.supersetCeleryBeat.topologySpreadConstraints }}
       topologySpreadConstraints:

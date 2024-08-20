@@ -25,10 +25,6 @@ from superset.db_engine_specs.base import BaseEngineSpec
 class PinotEngineSpec(BaseEngineSpec):
     engine = "pinot"
     engine_name = "Apache Pinot"
-    allows_subqueries = False
-    allows_joins = False
-    allows_alias_in_select = False
-    allows_alias_in_orderby = False
 
     # https://docs.pinot.apache.org/users/user-guide-query/supported-transformations#datetime-functions
     _time_grain_expressions = {
@@ -62,7 +58,7 @@ class PinotEngineSpec(BaseEngineSpec):
         )
 
     @classmethod
-    def epoch_ms_to_dttm_(cls) -> str:
+    def epoch_ms_to_dttm(cls) -> str:
         return (
             "DATETIMECONVERT({col}, '1:MILLISECONDS:EPOCH', "
             + "'1:MILLISECONDS:EPOCH', '1:MILLISECONDS')"

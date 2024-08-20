@@ -25,7 +25,6 @@ import { TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { expandFilterOnLeftPanel } from './utils';
 
 const TREEMAP = { name: 'Treemap', viz: 'treemap_v2' };
-const FILTER_BOX = { name: 'Region Filter', viz: 'filter_box' };
 const LINE_CHART = { name: 'Growth Rate', viz: 'line' };
 const BOX_PLOT = { name: 'Box plot', viz: 'box_plot' };
 const BIG_NUMBER = { name: 'Number of Girls', viz: 'big_number_total' };
@@ -41,7 +40,6 @@ function topLevelTabs() {
 function resetTabs() {
   topLevelTabs();
   cy.get('@top-level-tabs').first().click();
-  waitForChartLoad(FILTER_BOX);
   waitForChartLoad(TREEMAP);
   waitForChartLoad(BIG_NUMBER);
   waitForChartLoad(TABLE);
@@ -59,9 +57,9 @@ describe('Dashboard tabs', () => {
   it('should switch tabs', () => {
     topLevelTabs();
 
+    cy.get('@top-level-tabs').first().click();
     cy.get('@top-level-tabs')
       .first()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
     cy.get('@top-level-tabs')
       .last()
@@ -70,9 +68,9 @@ describe('Dashboard tabs', () => {
     cy.getBySel('grid-container').find('.box_plot').should('not.exist');
     cy.getBySel('grid-container').find('.line').should('not.exist');
 
+    cy.get('@top-level-tabs').last().click();
     cy.get('@top-level-tabs')
       .last()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
     cy.get('@top-level-tabs')
       .first()
@@ -96,15 +94,15 @@ describe('Dashboard tabs', () => {
 
   it.skip('should send new queries when tab becomes visible', () => {
     // landing in first tab
-    waitForChartLoad(FILTER_BOX);
     waitForChartLoad(TREEMAP);
 
     getChartAliasBySpec(TREEMAP).then(treemapAlias => {
       // apply filter
       cy.get('.Select__control').first().should('be.visible').click();
-      cy.get('.Select__control input[type=text]').first().focus().type('South');
+      cy.get('.Select__control input[type=text]').first().focus();
+      cy.focused().type('South');
       cy.get('.Select__option').contains('South Asia').click();
-      cy.get('.filter_box button:not(:disabled)').contains('Apply').click();
+      cy.get('.filter button:not(:disabled)').contains('Apply').click();
 
       // send new query from same tab
       cy.wait(treemapAlias).then(({ request }) => {
@@ -152,7 +150,7 @@ describe('Dashboard tabs', () => {
       cy.get('.ant-tabs-tab').contains('row tab 1').click();
 
       cy.get('.Select__clear-indicator').click();
-      cy.get('.filter_box button:not(:disabled)').contains('Apply').click();
+      cy.get('.filter button:not(:disabled)').contains('Apply').click();
 
       // trigger 1 new query
       waitForChartLoad(TREEMAP);
@@ -169,18 +167,18 @@ describe('Dashboard tabs', () => {
   });
 
   it('should update size when switch tab', () => {
+    cy.get('@top-level-tabs').last().click();
     cy.get('@top-level-tabs')
       .last()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
 
     expandFilterOnLeftPanel();
 
     cy.wait(1000);
 
+    cy.get('@top-level-tabs').first().click();
     cy.get('@top-level-tabs')
       .first()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
 
     cy.wait(1000);

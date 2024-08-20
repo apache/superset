@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import AddDataset from 'src/pages/DatasetCreation';
 
@@ -31,7 +30,7 @@ jest.mock('react-router-dom', () => ({
 
 describe('AddDataset', () => {
   it('renders a blank state AddDataset', async () => {
-    render(<AddDataset />, { useRedux: true });
+    render(<AddDataset />, { useRedux: true, useRouter: true });
 
     const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
 

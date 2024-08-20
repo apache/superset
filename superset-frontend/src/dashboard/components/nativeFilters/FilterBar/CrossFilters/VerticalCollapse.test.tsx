@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { IndicatorStatus } from '../../selectors';
 import VerticalCollapse from './VerticalCollapse';
@@ -98,7 +97,7 @@ test('Tags should be visible', () => {
 
 test('Tags should be closable', () => {
   setup(mockedProps);
-  expect(screen.getAllByRole('img', { name: 'close' })).toHaveLength(2);
+  expect(screen.getAllByRole('button', { name: 'close' })).toHaveLength(2);
 });
 
 test('Divider should be visible', () => {

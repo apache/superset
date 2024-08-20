@@ -30,8 +30,8 @@ from werkzeug.wrappers import Response
 from superset import db
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
-from superset.utils.core import json_int_dttm_ser
 from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
@@ -89,14 +89,7 @@ ONE_YEAR = 365 * 24 * 60 * 60  # 1 year in seconds
 logger = logging.getLogger(__name__)
 
 
-def view_cache_key(*args: Any, **kwargs: Any) -> str:  # pylint: disable=unused-argument
-    args_hash = hash(frozenset(request.args.items()))
-    return f"view/{request.path}/{args_hash}"
-
-
-def memoized_func(
-    key: str | None = None, cache: Cache = cache_manager.cache
-) -> Callable[..., Any]:
+def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[..., Any]:
     """
     Decorator with configurable key and cache backend.
 
@@ -126,23 +119,24 @@ def memoized_func(
 
     def wrap(f: Callable[..., Any]) -> Callable[..., Any]:
         def wrapped_f(*args: Any, **kwargs: Any) -> Any:
-            if not kwargs.get("cache", True):
+            should_cache = kwargs.pop("cache", True)
+            force = kwargs.pop("force", False)
+            cache_timeout = kwargs.pop("cache_timeout", 0)
+
+            if not should_cache:
                 return f(*args, **kwargs)
 
-            if key:
-                # format the key using args/kwargs passed to the decorated function
-                signature = inspect.signature(f)
-                bound_args = signature.bind(*args, **kwargs)
-                bound_args.apply_defaults()
-                cache_key = key.format(**bound_args.arguments)
-            else:
-                cache_key = view_cache_key(*args, **kwargs)
+            # format the key using args/kwargs passed to the decorated function
+            signature = inspect.signature(f)
+            bound_args = signature.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            cache_key = key.format(**bound_args.arguments)
 
             obj = cache.get(cache_key)
-            if not kwargs.get("force") and obj is not None:
+            if not force and obj is not None:
                 return obj
             obj = f(*args, **kwargs)
-            cache.set(cache_key, obj, timeout=kwargs.get("cache_timeout", 0))
+            cache.set(cache_key, obj, timeout=cache_timeout)
             return obj
 
         return wrapped_f
@@ -153,7 +147,7 @@ def memoized_func(
 def etag_cache(
     cache: Cache = cache_manager.cache,
     get_last_modified: Callable[..., datetime] | None = None,
-    max_age: int | float | None = None,
+    max_age: int | float = app.config["CACHE_DEFAULT_TIMEOUT"],
     raise_for_access: Callable[..., Any] | None = None,
     skip: Callable[..., bool] | None = None,
 ) -> Callable[..., Any]:
@@ -169,8 +163,6 @@ def etag_cache(
     dataframe cache for requests that produce the same SQL.
 
     """
-    if max_age is None:
-        max_age = app.config["CACHE_DEFAULT_TIMEOUT"]
 
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)

@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import * as reactRedux from 'react-redux';
 import { Filter, NativeFilterType } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
@@ -49,7 +48,7 @@ const baseInitialState = {
           rootPath: [DASHBOARD_ROOT_ID],
           excluded: [],
         },
-        type: NativeFilterType.NATIVE_FILTER,
+        type: NativeFilterType.NativeFilter,
         description: '',
       },
       'NATIVE_FILTER-2': {
@@ -71,7 +70,7 @@ const baseInitialState = {
           rootPath: [DASHBOARD_ROOT_ID],
           excluded: [],
         },
-        type: NativeFilterType.NATIVE_FILTER,
+        type: NativeFilterType.NativeFilter,
         description: '',
       },
     },
@@ -188,7 +187,7 @@ const baseFilter: Filter = {
     rootPath: [DASHBOARD_ROOT_ID],
     excluded: [],
   },
-  type: NativeFilterType.NATIVE_FILTER,
+  type: NativeFilterType.NativeFilter,
   description: '',
 };
 

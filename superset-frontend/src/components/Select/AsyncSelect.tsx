@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   forwardRef,
+  FocusEvent,
   ReactElement,
   RefObject,
   UIEvent,
@@ -29,12 +30,16 @@ import React, {
   useImperativeHandle,
   ClipboardEvent,
 } from 'react';
-import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
+
+import {
+  ensureIsArray,
+  t,
+  usePrevious,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import debounce from 'lodash/debounce';
-import { isEqual, uniq } from 'lodash';
+import { debounce, isEqual, uniq } from 'lodash';
 import Icons from 'src/components/Icons';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
 import {
   getValue,
@@ -49,10 +54,14 @@ import {
   dropDownRenderHelper,
   handleFilterOptionHelper,
   mapOptions,
+  getOption,
+  isObject,
+  isEqual as utilsIsEqual,
 } from './utils';
 import {
   AsyncSelectProps,
   AsyncSelectRef,
+  RawValue,
   SelectOptionsPagePromise,
   SelectOptionsType,
   SelectOptionsTypePage,
@@ -88,8 +97,6 @@ const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
- * The aim of the component was to combine all the instances of select components throughout the
- * project under one and to remove the react-select component entirely.
  * This Select component provides an API that is tested against all the different use cases of Superset.
  * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
  * and to enforce simplification and standardization.
@@ -221,7 +228,16 @@ const AsyncSelect = forwardRef(
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
+        // on select is fired in single value mode if the same value is selected
+        const valueChanged = !utilsIsEqual(
+          selectedItem,
+          selectValue as RawValue | AntdLabeledValue,
+          'value',
+        );
         setSelectValue(selectedItem);
+        if (valueChanged) {
+          fireOnChange();
+        }
       } else {
         setSelectValue(previousState => {
           const array = ensureIsArray(previousState);
@@ -235,8 +251,8 @@ const AsyncSelect = forwardRef(
           }
           return previousState;
         });
+        fireOnChange();
       }
-      fireOnChange();
       onSelect?.(selectedItem, option);
     };
 
@@ -447,7 +463,7 @@ const AsyncSelect = forwardRef(
       fireOnChange();
     };
 
-    const handleOnBlur = (event: React.FocusEvent<HTMLElement>) => {
+    const handleOnBlur = (event: FocusEvent<HTMLElement>) => {
       setInputValue('');
       onBlur?.(event);
     };
@@ -523,21 +539,51 @@ const AsyncSelect = forwardRef(
       [ref],
     );
 
-    const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    const getPastedTextValue = useCallback(
+      async (text: string) => {
+        let option = getOption(text, fullSelectOptions, true);
+        if (!option && !allValuesLoaded) {
+          const fetchOptions = options as SelectOptionsPagePromise;
+          option = await fetchOptions(text, 0, pageSize).then(
+            ({ data }: SelectOptionsTypePage) =>
+              data.find(item => item.label === text),
+          );
+        }
+        if (!option && !allowNewOptions) {
+          return undefined;
+        }
+        const value: AntdLabeledValue = {
+          label: text,
+          value: text,
+        };
+        if (option) {
+          value.label = isObject(option) ? option.label : option;
+          value.value = isObject(option) ? option.value! : option;
+        }
+        return value;
+      },
+      [allValuesLoaded, allowNewOptions, fullSelectOptions, options, pageSize],
+    );
+
+    const onPaste = async (e: ClipboardEvent<HTMLInputElement>) => {
       const pastedText = e.clipboardData.getData('text');
       if (isSingleMode) {
-        setSelectValue({ label: pastedText, value: pastedText });
+        const value = await getPastedTextValue(pastedText);
+        if (value) {
+          setSelectValue(value);
+        }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
         const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const values = (
+          await Promise.all(array.map(item => getPastedTextValue(item)))
+        ).filter(item => item !== undefined) as AntdLabeledValue[];
         setSelectValue(previous => [
           ...((previous || []) as AntdLabeledValue[]),
-          ...array.map<AntdLabeledValue>(value => ({
-            label: value,
-            value,
-          })),
+          ...values.filter(value => !hasOption(value.value, previous)),
         ]);
       }
+      fireOnChange();
     };
 
     const shouldRenderChildrenOptions = useMemo(

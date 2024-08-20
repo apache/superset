@@ -3,11 +3,12 @@ name: release-workflow
 on:
   push:
     branches:
-      - 'master'
+      - "master"
+      - "[0-9].[0-9]*"
 
 jobs:
   config:
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-22.04"
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -24,14 +25,14 @@ jobs:
     if: needs.config.outputs.has-secrets
     name: Bump version and publish package(s)
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
-        node-version: [16]
+        node-version: [18]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           # pulls all commits (needed for lerna / semantic release to correctly version)
           fetch-depth: 0
@@ -47,13 +48,13 @@ jobs:
 
       - name: Use Node.js ${{ matrix.node-version }}
         if: env.HAS_TAGS
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Cache npm
         if: env.HAS_TAGS
-        uses: actions/cache@v1
+        uses: actions/cache@v4
         with:
           path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
           key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -64,10 +65,10 @@ jobs:
       - name: Get npm cache directory path
         if: env.HAS_TAGS
         id: npm-cache-dir-path
-        run: echo "::set-output name=dir::$(npm config get cache)"
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
       - name: Cache npm
         if: env.HAS_TAGS
-        uses: actions/cache@v1
+        uses: actions/cache@v4
         id: npm-cache # use this to check for `cache-hit` (`steps.npm-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.npm-cache-dir-path.outputs.dir }}

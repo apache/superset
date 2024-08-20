@@ -16,14 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ReactNode } from 'react';
-import { styled, useTheme, t } from '@superset-ui/core';
+import { useState, ReactNode } from 'react';
+import {
+  ErrorLevel,
+  ErrorSource,
+  styled,
+  useTheme,
+  t,
+} from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
+import { isCurrentUserBot } from 'src/utils/isBot';
 
 import Icons from 'src/components/Icons';
-import { ErrorLevel, ErrorSource } from './types';
 import CopyToClipboard from '../CopyToClipboard';
 
 const ErrorAlertDiv = styled.div<{ level: ErrorLevel }>`
@@ -52,6 +58,11 @@ const ErrorAlertDiv = styled.div<{ level: ErrorLevel }>`
   .link {
     color: ${({ level, theme }) => theme.colors[level].dark2};
     text-decoration: underline;
+    &:focus-visible {
+      border: 1px solid ${({ theme }) => theme.colors.primary.base};
+      padding: ${({ theme }) => theme.gridUnit / 2}px;
+      margin: -${({ theme }) => theme.gridUnit / 2 + 1}px;
+      border-radius: ${({ theme }) => theme.borderRadius}px;
   }
 `;
 
@@ -102,9 +113,10 @@ export default function ErrorAlert({
   const theme = useTheme();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isBodyExpanded, setIsBodyExpanded] = useState(false);
+  const [isBodyExpanded, setIsBodyExpanded] = useState(isCurrentUserBot());
 
-  const isExpandable = ['explore', 'sqllab'].includes(source);
+  const isExpandable =
+    isCurrentUserBot() || ['explore', 'sqllab'].includes(source);
   const iconColor = theme.colors[level].base;
 
   return (
@@ -124,6 +136,11 @@ export default function ErrorAlert({
             tabIndex={0}
             className="link"
             onClick={() => setIsModalOpen(true)}
+            onKeyDown={event => {
+              if (event.key === 'Enter') {
+                setIsModalOpen(true);
+              }
+            }}
           >
             {t('See more')}
           </span>
@@ -138,6 +155,11 @@ export default function ErrorAlert({
               tabIndex={0}
               className="link"
               onClick={() => setIsModalOpen(true)}
+              onKeyDown={event => {
+                if (event.key === 'Enter') {
+                  setIsModalOpen(true);
+                }
+              }}
             >
               {t('See more')}
             </span>
@@ -155,6 +177,11 @@ export default function ErrorAlert({
                   tabIndex={0}
                   className="link"
                   onClick={() => setIsBodyExpanded(true)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      setIsBodyExpanded(true);
+                    }
+                  }}
                 >
                   {t('See more')}
                 </span>
@@ -168,6 +195,11 @@ export default function ErrorAlert({
                     tabIndex={0}
                     className="link"
                     onClick={() => setIsBodyExpanded(false)}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') {
+                        setIsBodyExpanded(false);
+                      }
+                    }}
                   >
                     {t('See less')}
                   </span>
@@ -181,6 +213,7 @@ export default function ErrorAlert({
           level={level}
           show={isModalOpen}
           onHide={() => setIsModalOpen(false)}
+          destroyOnClose
           title={
             <div className="header">
               {level === 'error' ? (
@@ -205,6 +238,12 @@ export default function ErrorAlert({
                 cta
                 buttonStyle="primary"
                 onClick={() => setIsModalOpen(false)}
+                tabIndex={0}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') {
+                    setIsModalOpen(false);
+                  }
+                }}
               >
                 {t('Close')}
               </Button>

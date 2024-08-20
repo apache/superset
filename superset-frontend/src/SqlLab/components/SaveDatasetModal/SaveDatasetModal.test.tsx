@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import * as reactRedux from 'react-redux';
 import {
   fireEvent,
@@ -39,7 +38,7 @@ const mockedProps = {
   datasource: testQuery,
 };
 
-fetchMock.get('glob:*/api/v1/dataset?*', {
+fetchMock.get('glob:*/api/v1/dataset/?*', {
   result: mockdatasets,
   dataset_count: 3,
 });
@@ -210,6 +209,38 @@ describe('SaveDatasetModal', () => {
     expect(createDatasource).toHaveBeenCalledWith({
       datasourceName: 'my dataset',
       dbId: 1,
+      catalog: null,
+      schema: 'main',
+      sql: 'SELECT *',
+      templateParams: undefined,
+    });
+  });
+
+  it('sends the catalog when creating the dataset', async () => {
+    const dummyDispatch = jest.fn().mockResolvedValue({});
+    useDispatchMock.mockReturnValue(dummyDispatch);
+    useSelectorMock.mockReturnValue({ ...user });
+
+    render(
+      <SaveDatasetModal
+        {...mockedProps}
+        datasource={{ ...mockedProps.datasource, catalog: 'public' }}
+      />,
+      { useRedux: true },
+    );
+
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    expect(createDatasource).toHaveBeenCalledWith({
+      datasourceName: 'my dataset',
+      dbId: 1,
+      catalog: 'public',
       schema: 'main',
       sql: 'SELECT *',
       templateParams: undefined,

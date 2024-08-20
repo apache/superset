@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { CommonWrapper } from 'enzyme';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -66,6 +65,116 @@ describe('plugin-chart-table', () => {
       expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
+    it('should process comparison columns when time_compare and comparison_type are set', () => {
+      const transformedProps = transformProps(testData.comparison);
+
+      // Check if comparison columns are processed
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.label === 'Main' ||
+          col.label === '#' ||
+          col.label === '△' ||
+          col.label === '%',
+      );
+
+      expect(comparisonColumns.length).toBeGreaterThan(0);
+      expect(comparisonColumns.some(col => col.label === 'Main')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '#')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '△')).toBe(true);
+      expect(comparisonColumns.some(col => col.label === '%')).toBe(true);
+    });
+
+    it('should not process comparison columns when time_compare is empty', () => {
+      const propsWithoutTimeCompare = {
+        ...testData.comparison,
+        rawFormData: {
+          ...testData.comparison.rawFormData,
+          time_compare: [],
+        },
+      };
+
+      const transformedProps = transformProps(propsWithoutTimeCompare);
+
+      // Check if comparison columns are not processed
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.label === 'Main' ||
+          col.label === '#' ||
+          col.label === '△' ||
+          col.label === '%',
+      );
+
+      expect(comparisonColumns.length).toBe(0);
+    });
+
+    it('should correctly apply column configuration for comparison columns', () => {
+      const transformedProps = transformProps(testData.comparisonWithConfig);
+
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.key.startsWith('Main') ||
+          col.key.startsWith('#') ||
+          col.key.startsWith('△') ||
+          col.key.startsWith('%'),
+      );
+
+      expect(comparisonColumns).toHaveLength(4);
+
+      const mainMetricConfig = comparisonColumns.find(
+        col => col.key === 'Main metric_1',
+      );
+      expect(mainMetricConfig).toBeDefined();
+      expect(mainMetricConfig?.config).toEqual({ d3NumberFormat: '.2f' });
+
+      const hashMetricConfig = comparisonColumns.find(
+        col => col.key === '# metric_1',
+      );
+      expect(hashMetricConfig).toBeDefined();
+      expect(hashMetricConfig?.config).toEqual({ d3NumberFormat: '.1f' });
+
+      const deltaMetricConfig = comparisonColumns.find(
+        col => col.key === '△ metric_1',
+      );
+      expect(deltaMetricConfig).toBeDefined();
+      expect(deltaMetricConfig?.config).toEqual({ d3NumberFormat: '.0f' });
+
+      const percentMetricConfig = comparisonColumns.find(
+        col => col.key === '% metric_1',
+      );
+      expect(percentMetricConfig).toBeDefined();
+      expect(percentMetricConfig?.config).toEqual({ d3NumberFormat: '.3f' });
+    });
+
+    it('should correctly format comparison columns using getComparisonColFormatter', () => {
+      const transformedProps = transformProps(testData.comparisonWithConfig);
+      const comparisonColumns = transformedProps.columns.filter(
+        col =>
+          col.key.startsWith('Main') ||
+          col.key.startsWith('#') ||
+          col.key.startsWith('△') ||
+          col.key.startsWith('%'),
+      );
+
+      const formattedMainMetric = comparisonColumns
+        .find(col => col.key === 'Main metric_1')
+        ?.formatter?.(12345.678);
+      expect(formattedMainMetric).toBe('12345.68');
+
+      const formattedHashMetric = comparisonColumns
+        .find(col => col.key === '# metric_1')
+        ?.formatter?.(12345.678);
+      expect(formattedHashMetric).toBe('12345.7');
+
+      const formattedDeltaMetric = comparisonColumns
+        .find(col => col.key === '△ metric_1')
+        ?.formatter?.(12345.678);
+      expect(formattedDeltaMetric).toBe('12346');
+
+      const formattedPercentMetric = comparisonColumns
+        .find(col => col.key === '% metric_1')
+        ?.formatter?.(0.123456);
+      expect(formattedPercentMetric).toBe('0.123');
+    });
   });
 
   describe('TableChart', () => {
@@ -76,6 +185,7 @@ describe('plugin-chart-table', () => {
       wrap = mount(
         <TableChart {...transformProps(testData.basic)} sticky={false} />,
       );
+
       tree = wrap.render(); // returns a CheerioWrapper with jQuery-like API
       const cells = tree.find('td');
       expect(cells).toHaveLength(12);
@@ -158,10 +268,53 @@ describe('plugin-chart-table', () => {
         }),
       );
       const cells = document.querySelectorAll('td');
+
       expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
       expect(cells[0]).toHaveTextContent('$ 1.23k');
       expect(cells[1]).toHaveTextContent('$ 10k');
       expect(cells[2]).toHaveTextContent('$ 0');
+    });
+
+    it('render small formatted data with currencies', () => {
+      const props = transformProps({
+        ...testData.raw,
+        rawFormData: {
+          ...testData.raw.rawFormData,
+          column_config: {
+            num: {
+              d3SmallNumberFormat: '.2r',
+              currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
+            },
+          },
+        },
+        queriesData: [
+          {
+            ...testData.raw.queriesData[0],
+            data: [
+              {
+                num: 1234,
+              },
+              {
+                num: 0.5,
+              },
+              {
+                num: 0.61234,
+              },
+            ],
+          },
+        ],
+      });
+      render(
+        ProviderWrapper({
+          children: <TableChart {...props} sticky={false} />,
+        }),
+      );
+      const cells = document.querySelectorAll('td');
+
+      expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
+      expect(cells[0]).toHaveTextContent('$ 1.23k');
+      expect(cells[1]).toHaveTextContent('$ 0.50');
+      expect(cells[2]).toHaveTextContent('$ 0.61');
     });
 
     it('render empty data', () => {
@@ -240,6 +393,63 @@ describe('plugin-chart-table', () => {
         '',
       );
       expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+    });
+  });
+
+  it('render cell bars properly, and only when it is toggled on in both regular and percent metrics', () => {
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: { ...testData.raw.rawFormData },
+    });
+
+    props.columns[0].isMetric = true;
+
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    let cells = document.querySelectorAll('div.cell-bar');
+    cells.forEach(cell => {
+      expect(cell).toHaveClass('positive');
+    });
+    props.columns[0].isMetric = false;
+    props.columns[0].isPercentMetric = true;
+
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    cells = document.querySelectorAll('div.cell-bar');
+    cells.forEach(cell => {
+      expect(cell).toHaveClass('positive');
+    });
+
+    props.showCellBars = false;
+
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    cells = document.querySelectorAll('td');
+
+    cells.forEach(cell => {
+      expect(cell).toHaveClass('test-c7w8t3');
+    });
+
+    props.columns[0].isPercentMetric = false;
+    props.columns[0].isMetric = true;
+
+    render(
+      ProviderWrapper({
+        children: <TableChart {...props} sticky={false} />,
+      }),
+    );
+    cells = document.querySelectorAll('td');
+    cells.forEach(cell => {
+      expect(cell).toHaveClass('test-c7w8t3');
     });
   });
 });

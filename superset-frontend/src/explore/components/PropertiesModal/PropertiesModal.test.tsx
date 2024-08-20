@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
@@ -38,7 +37,7 @@ const createProps = () =>
     onHide: jest.fn(),
     onSave: jest.fn(),
     addSuccessToast: jest.fn(),
-  } as PropertiesModalProps);
+  }) as PropertiesModalProps;
 
 fetchMock.get('glob:*/api/v1/chart/318', {
   body: {

@@ -243,7 +243,6 @@ def migrate_roles(
                     if new_pvm not in role.permissions:
                         logger.info(f"Add {new_pvm} to {role}")
                         role.permissions.append(new_pvm)
-        session.merge(role)
 
     # Delete old permissions
     _delete_old_permissions(session, pvm_map)

@@ -19,10 +19,10 @@ from typing import Any, Optional
 from unittest.mock import MagicMock
 
 import pytest
-from sqlalchemy import column
+from sqlalchemy import column  # noqa: F401
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -51,7 +51,7 @@ def test_elasticsearch_convert_dttm(
     target_type: str,
     db_extra: Optional[dict[str, Any]],
     expected_result: Optional[str],
-    dttm: datetime,
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec as spec
 
@@ -68,7 +68,7 @@ def test_elasticsearch_convert_dttm(
 def test_opendistro_convert_dttm(
     target_type: str,
     expected_result: Optional[str],
-    dttm: datetime,
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec as spec
 
@@ -97,10 +97,13 @@ def test_opendistro_strip_comments() -> None:
     """
     from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec
 
+    mock_database = MagicMock()
     mock_cursor = MagicMock()
     mock_cursor.execute.return_value = []
 
     OpenDistroEngineSpec.execute(
-        mock_cursor, "-- some comment \nSELECT 1\n --other comment"
+        mock_cursor,
+        "-- some comment \nSELECT 1\n --other comment",
+        mock_database,
     )
     mock_cursor.execute.assert_called_once_with("SELECT 1\n")

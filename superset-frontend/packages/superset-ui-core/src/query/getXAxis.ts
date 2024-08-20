@@ -18,8 +18,6 @@
  */
 import {
   DTTM_ALIAS,
-  FeatureFlag,
-  isFeatureEnabled,
   getColumnLabel,
   isQueryFormColumn,
   QueryFormData,
@@ -29,10 +27,6 @@ import {
 
 export const isXAxisSet = (formData: QueryFormData) =>
   isQueryFormColumn(formData.x_axis);
-
-export const hasGenericChartAxes = isFeatureEnabled(
-  FeatureFlag.GENERIC_CHART_AXES,
-);
 
 export const getXAxisColumn = (
   formData: QueryFormData,

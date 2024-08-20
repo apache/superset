@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
+import { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
 import { styled, t } from '@superset-ui/core';
 import TableSelector, { TableOption } from 'src/components/TableSelector';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
@@ -125,27 +125,35 @@ export default function LeftPanel({
 
   const setDatabase = useCallback(
     (db: Partial<DatabaseObject>) => {
-      setDataset({ type: DatasetActionType.selectDatabase, payload: { db } });
+      setDataset({ type: DatasetActionType.SelectDatabase, payload: { db } });
     },
     [setDataset],
   );
+  const setCatalog = (catalog: string | null) => {
+    if (catalog) {
+      setDataset({
+        type: DatasetActionType.SelectCatalog,
+        payload: { name: 'catalog', value: catalog },
+      });
+    }
+  };
   const setSchema = (schema: string) => {
     if (schema) {
       setDataset({
-        type: DatasetActionType.selectSchema,
+        type: DatasetActionType.SelectSchema,
         payload: { name: 'schema', value: schema },
       });
     }
   };
   const setTable = (tableName: string) => {
     setDataset({
-      type: DatasetActionType.selectTable,
+      type: DatasetActionType.SelectTable,
       payload: { name: 'table_name', value: tableName },
     });
   };
   useEffect(() => {
     const currentUserSelectedDb = getItem(
-      LocalStorageKeys.db,
+      LocalStorageKeys.Database,
       null,
     ) as DatabaseObject;
     if (currentUserSelectedDb) {
@@ -178,10 +186,12 @@ export default function LeftPanel({
         handleError={addDangerToast}
         emptyState={emptyStateComponent(false)}
         onDbChange={setDatabase}
+        onCatalogChange={setCatalog}
         onSchemaChange={setSchema}
         onTableSelectChange={setTable}
         sqlLabMode={false}
         customTableOptionLabelRenderer={customTableOptionLabelRenderer}
+        {...(dataset?.catalog && { catalog: dataset.catalog })}
         {...(dataset?.schema && { schema: dataset.schema })}
       />
     </LeftPanelStyle>

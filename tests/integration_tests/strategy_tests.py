@@ -16,35 +16,41 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset cache warmup"""
-from unittest.mock import MagicMock
+
+from unittest.mock import MagicMock  # noqa: F401
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 
-from sqlalchemy import String, Date, Float
+from sqlalchemy import String, Date, Float  # noqa: F401
 
 import pytest
-import pandas as pd
+import pandas as pd  # noqa: F401
 
-from superset.models.slice import Slice
-from superset.utils.database import get_example_database
+from superset.models.slice import Slice  # noqa: F401
+from superset.utils.database import get_example_database  # noqa: F401
 
 from superset import db
 
 from superset.models.core import Log
-from superset.tags.models import get_tag, ObjectTypes, TaggedObject, TagTypes
+from superset.tags.models import get_tag, ObjectType, TaggedObject, TagType
 from superset.tasks.cache import (
     DashboardTagsStrategy,
     TopNDashboardsStrategy,
 )
-from superset.utils.urls import get_url_host
+from superset.utils.urls import get_url_host  # noqa: F401
 
-from .base_tests import SupersetTestCase
-from .dashboard_utils import create_dashboard, create_slice, create_table_metadata
-from .fixtures.unicode_dashboard import (
-    load_unicode_dashboard_with_slice,
-    load_unicode_data,
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.dashboard_utils import (
+    create_dashboard,  # noqa: F401
+    create_slice,  # noqa: F401
+    create_table_metadata,  # noqa: F401
+)
+from tests.integration_tests.fixtures.unicode_dashboard import (
+    load_unicode_dashboard_with_slice,  # noqa: F401
+    load_unicode_data,  # noqa: F401
 )
 
 
@@ -70,7 +76,7 @@ class TestCacheWarmUp(SupersetTestCase):
     def test_top_n_dashboards_strategy(self):
         # create a top visited dashboard
         db.session.query(Log).delete()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         dash = self.get_dash_by_slug("births")
         for _ in range(10):
             self.client.get(f"/superset/dashboard/{dash.id}/")
@@ -93,7 +99,7 @@ class TestCacheWarmUp(SupersetTestCase):
         "load_unicode_dashboard_with_slice", "load_birth_names_dashboard_with_slices"
     )
     def test_dashboard_tags_strategy(self):
-        tag1 = get_tag("tag1", db.session, TagTypes.custom)
+        tag1 = get_tag("tag1", db.session, TagType.custom)
         # delete first to make test idempotent
         self.reset_tag(tag1)
 
@@ -103,11 +109,11 @@ class TestCacheWarmUp(SupersetTestCase):
         self.assertEqual(result, expected)
 
         # tag dashboard 'births' with `tag1`
-        tag1 = get_tag("tag1", db.session, TagTypes.custom)
+        tag1 = get_tag("tag1", db.session, TagType.custom)
         dash = self.get_dash_by_slug("births")
         tag1_urls = [{"chart_id": chart.id} for chart in dash.slices]
         tagged_object = TaggedObject(
-            tag_id=tag1.id, object_id=dash.id, object_type=ObjectTypes.dashboard
+            tag_id=tag1.id, object_id=dash.id, object_type=ObjectType.dashboard
         )
         db.session.add(tagged_object)
         db.session.commit()
@@ -115,7 +121,7 @@ class TestCacheWarmUp(SupersetTestCase):
         self.assertCountEqual(strategy.get_payloads(), tag1_urls)
 
         strategy = DashboardTagsStrategy(["tag2"])
-        tag2 = get_tag("tag2", db.session, TagTypes.custom)
+        tag2 = get_tag("tag2", db.session, TagType.custom)
         self.reset_tag(tag2)
 
         result = strategy.get_payloads()
@@ -128,7 +134,7 @@ class TestCacheWarmUp(SupersetTestCase):
         tag2_urls = [{"chart_id": chart.id}]
         object_id = chart.id
         tagged_object = TaggedObject(
-            tag_id=tag2.id, object_id=object_id, object_type=ObjectTypes.chart
+            tag_id=tag2.id, object_id=object_id, object_type=ObjectType.chart
         )
         db.session.add(tagged_object)
         db.session.commit()

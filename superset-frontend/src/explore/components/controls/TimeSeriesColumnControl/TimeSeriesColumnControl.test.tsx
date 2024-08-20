@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import TimeSeriesColumnControl from '.';
@@ -93,6 +92,19 @@ test('triggers onChange when type changes', () => {
 
 test('triggers onChange when time lag changes', () => {
   const timeLag = '1';
+  const onChange = jest.fn();
+  render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
+  userEvent.click(screen.getByRole('button'));
+  const timeLagInput = screen.getByPlaceholderText('Time Lag');
+  userEvent.clear(timeLagInput);
+  userEvent.type(timeLagInput, timeLag);
+  expect(onChange).not.toHaveBeenCalled();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ timeLag }));
+});
+
+test('time lag allows negative values', () => {
+  const timeLag = '-1';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));

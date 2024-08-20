@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
@@ -43,26 +42,26 @@ const dropdownItems = [
       {
         label: 'Upload a CSV',
         name: 'Upload a CSV',
-        url: '/csvtodatabaseview/form',
+        url: '#',
         perm: true,
       },
       {
         label: 'Upload a Columnar File',
         name: 'Upload a Columnar file',
-        url: '/columnartodatabaseview/form',
+        url: '#',
         perm: true,
       },
       {
         label: 'Upload Excel',
         name: 'Upload Excel',
-        url: '/exceltodatabaseview/form',
+        url: '#',
         perm: true,
       },
     ],
   },
   {
     label: 'SQL query',
-    url: '/superset/sqllab?new=true',
+    url: '/sqllab?new=true',
     icon: 'fa-fw fa-search',
     perm: 'can_sqllab',
     view: 'Superset',
@@ -171,7 +170,7 @@ const mockedProps = {
       },
     ],
     brand: {
-      path: '/superset/profile/admin/',
+      path: '/superset/welcome/',
       icon: '/static/assets/images/superset-logo-horiz.png',
       alt: 'Superset',
       width: '126',
@@ -203,7 +202,6 @@ const mockedProps = {
       user_info_url: '/users/userinfo/',
       user_logout_url: '/logout/',
       user_login_url: '/login/',
-      user_profile_url: '/profile/',
       locale: 'en',
       version_string: '1.0.0',
       version_sha: 'randomSHA',
@@ -295,7 +293,11 @@ test('should render the environment tag', async () => {
   const {
     data: { environment_tag },
   } = mockedProps;
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
   expect(await screen.findByText(environment_tag.text)).toBeInTheDocument();
 });
 
@@ -458,25 +460,6 @@ test('should NOT render the user actions when user is anonymous', async () => {
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByText('User')).not.toBeInTheDocument();
-});
-
-test('should render the Profile link when available', async () => {
-  useSelectorMock.mockReturnValue({ roles: user.roles });
-  const {
-    data: {
-      navbar_right: { user_profile_url },
-    },
-  } = mockedProps;
-
-  render(<Menu {...notanonProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-    useRouter: true,
-  });
-
-  userEvent.hover(screen.getByText('Settings'));
-  const profile = await screen.findByText('Profile');
-  expect(profile).toHaveAttribute('href', user_profile_url);
 });
 
 test('should render the About section and version_string, sha or build_number when available', async () => {

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one
   or more contributor license agreements.  See the NOTICE file
@@ -16,7 +17,6 @@
   specific language governing permissions and limitations
   under the License.
 -->
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" height="900" width="1e3" version="1.1" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="0 0 1000 900">
  <g stroke="#fdee21" stroke-width="5.1286" transform="translate(-.53268 66.8)" fill-rule="evenodd">
   <path d="m597.33 637.79v192.85h47.346v-88.632l9.7674 0.18273v88.45h47.881v-192.85h-47.881v71.552h-9.7674v-71.552z"/>

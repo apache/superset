@@ -12,7 +12,7 @@ env:
 
 jobs:
   config:
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-22.04"
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -27,19 +27,19 @@ jobs:
   cron:
     needs: config
     if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        node: [16]
+        node: [18]
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
           ref: master
       - name: Set up Node.js
-        uses: actions/setup-node@v3.1.1
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - name: Install eyes-storybook dependencies

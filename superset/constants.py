@@ -42,6 +42,14 @@ QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
 LRU_CACHE_MAX_SIZE = 256
 
 
+# Used when calculating the time shift for time comparison
+class InstantTimeComparison(StrEnum):
+    INHERITED = "r"
+    YEAR = "y"
+    MONTH = "m"
+    WEEK = "w"
+
+
 class RouteMethod:  # pylint: disable=too-few-public-methods
     """
     Route methods are a FAB concept around ModelView and RestModelView
@@ -124,9 +132,12 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "related_objects": "read",
     "tables": "read",
     "schemas": "read",
+    "catalogs": "read",
     "select_star": "read",
     "table_metadata": "read",
+    "table_metadata_deprecated": "read",
     "table_extra_metadata": "read",
+    "table_extra_metadata_deprecated": "read",
     "test_connection": "write",
     "validate_parameters": "write",
     "favorite_status": "read",
@@ -141,6 +152,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "data_from_cache": "read",
     "get_charts": "read",
     "get_datasets": "read",
+    "get_tabs": "read",
     "function_names": "read",
     "available": "read",
     "validate_sql": "read",
@@ -157,6 +169,10 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "delete_object": "write",
     "copy_dash": "write",
     "get_connection": "write",
+    "excel_metadata": "excel_upload",
+    "columnar_metadata": "columnar_upload",
+    "csv_metadata": "csv_upload",
+    "slack_channels": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

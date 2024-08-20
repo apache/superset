@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { OptionName } from 'echarts/types/src/util/types';
+import type { OptionName } from 'echarts/types/src/util/types';
 import {
   AnnotationLayer,
   AxisType,
   ContributionType,
-  QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   TimeFormatter,
@@ -38,8 +37,8 @@ import {
 } from '../types';
 
 export enum OrientationType {
-  vertical = 'vertical',
-  horizontal = 'horizontal',
+  Vertical = 'vertical',
+  Horizontal = 'horizontal',
 }
 
 export enum EchartsTimeseriesSeriesType {
@@ -68,6 +67,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   markerSize: number;
   metrics: QueryFormMetric[];
   minorSplitLine: boolean;
+  minorTicks: boolean;
   opacity: number;
   orderDesc: boolean;
   rowLimit: number;
@@ -75,15 +75,17 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   stack: StackType;
   timeCompare?: string[];
   tooltipTimeFormat?: string;
+  truncateXAxis: boolean;
   truncateYAxis: boolean;
   yAxisFormat?: string;
+  xAxisForceCategorical?: boolean;
   xAxisTimeFormat?: string;
   timeGrainSqla?: TimeGranularity;
+  xAxisBounds: [number | undefined | null, number | undefined | null];
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
   richTooltip: boolean;
   xAxisLabelRotation: number;
-  groupby: QueryFormColumn[];
   showValue: boolean;
   onlyTotal: boolean;
   showExtraControls: boolean;

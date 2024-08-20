@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
+
 from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -24,6 +25,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Table,
@@ -40,6 +42,7 @@ from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
 from superset.utils.backports import StrEnum
+from superset.utils.core import MediumText
 
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -59,6 +62,7 @@ class ReportScheduleValidatorType(StrEnum):
 class ReportRecipientType(StrEnum):
     EMAIL = "Email"
     SLACK = "Slack"
+    SLACKV2 = "SlackV2"
 
 
 class ReportState(StrEnum):
@@ -70,8 +74,9 @@ class ReportState(StrEnum):
 
 
 class ReportDataFormat(StrEnum):
-    VISUALIZATION = "PNG"
-    DATA = "CSV"
+    PDF = "PDF"
+    PNG = "PNG"
+    CSV = "CSV"
     TEXT = "TEXT"
 
 
@@ -106,8 +111,7 @@ report_schedule_user = Table(
 )
 
 
-class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
-
+class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     """
     Report Schedules, supports alerts and reports
     """
@@ -126,8 +130,8 @@ class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
         String(255), server_default=ReportCreationMethod.ALERTS_REPORTS
     )
     timezone = Column(String(100), default="UTC", nullable=False)
-    report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
-    sql = Column(Text())
+    report_format = Column(String(50), default=ReportDataFormat.PNG)
+    sql = Column(MediumText())
     # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)
     chart = relationship(Slice, backref="report_schedules", foreign_keys=[chart_id])
@@ -149,11 +153,11 @@ class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
     last_eval_dttm = Column(DateTime)
     last_state = Column(String(50), default=ReportState.NOOP)
     last_value = Column(Float)
-    last_value_row_json = Column(Text)
+    last_value_row_json = Column(MediumText())
 
     # (Alerts) Observed value validation related columns
     validator_type = Column(String(100))
-    validator_config_json = Column(Text, default="{}")
+    validator_config_json = Column(MediumText(), default="{}")
 
     # Log retention
     log_retention = Column(Integer, default=90)
@@ -169,6 +173,8 @@ class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
     custom_height = Column(Integer, nullable=True)
 
     extra: ReportScheduleExtra  # type: ignore
+
+    email_subject = Column(String(255))
 
     def __repr__(self) -> str:
         return str(self.name)
@@ -186,7 +192,7 @@ class ReportRecipients(Model, AuditMixinNullable):
     __tablename__ = "report_recipient"
     id = Column(Integer, primary_key=True)
     type = Column(String(50), nullable=False)
-    recipient_config_json = Column(Text, default="{}")
+    recipient_config_json = Column(MediumText(), default="{}")
     report_schedule_id = Column(
         Integer, ForeignKey("report_schedule.id"), nullable=False
     )
@@ -196,9 +202,12 @@ class ReportRecipients(Model, AuditMixinNullable):
         foreign_keys=[report_schedule_id],
     )
 
+    __table_args__ = (
+        Index("ix_report_recipient_report_schedule_id", report_schedule_id),
+    )
+
 
 class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
-
     """
     Report Execution Log, hold the result of the report execution with timestamps,
     last observation and possible error messages
@@ -215,7 +224,7 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
 
     # (Alerts) Observed values
     value = Column(Float)
-    value_row_json = Column(Text)
+    value_row_json = Column(MediumText())
 
     state = Column(String(50), nullable=False)
     error_message = Column(Text)
@@ -227,4 +236,9 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
         ReportSchedule,
         backref=backref("logs", cascade="all,delete,delete-orphan"),
         foreign_keys=[report_schedule_id],
+    )
+
+    __table_args__ = (
+        Index("ix_report_execution_log_report_schedule_id", report_schedule_id),
+        Index("ix_report_execution_log_start_dttm", start_dttm),
     )

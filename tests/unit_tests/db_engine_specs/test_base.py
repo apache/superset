@@ -14,14 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=unused-argument, import-outside-toplevel, protected-access
+
+# pylint: disable=import-outside-toplevel, protected-access
+
+from __future__ import annotations
 
 from textwrap import dedent
-from typing import Any, Optional
+from typing import Any
 
 import pytest
+from pytest_mock import MockerFixture
 from sqlalchemy import types
+from sqlalchemy.dialects import sqlite
+from sqlalchemy.engine.url import URL
+from sqlalchemy.sql import sqltypes
 
+from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
@@ -64,6 +72,25 @@ def test_parse_sql_multi_statement() -> None:
         "SELECT foo FROM tbl1",
         "SELECT bar FROM tbl2",
     ]
+
+
+def test_validate_db_uri(mocker: MockerFixture) -> None:
+    """
+    Ensures that the `validate_database_uri` method invokes the validator correctly
+    """
+
+    def mock_validate(sqlalchemy_uri: URL) -> None:
+        raise ValueError("Invalid URI")
+
+    mocker.patch(
+        "superset.db_engine_specs.base.current_app.config",
+        {"DB_SQLA_URI_VALIDATOR": mock_validate},
+    )
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    with pytest.raises(ValueError):
+        BaseEngineSpec.validate_database_uri(URL.create("sqlite"))
 
 
 @pytest.mark.parametrize(
@@ -132,7 +159,7 @@ def test_cte_query_parsing(original: types.TypeEngine, expected: str) -> None:
 def test_get_column_spec(
     native_type: str,
     sqla_type: type[types.TypeEngine],
-    attrs: Optional[dict[str, Any]],
+    attrs: dict[str, Any] | None,
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
@@ -168,3 +195,142 @@ def test_convert_inspector_columns(
     from superset.db_engine_specs.base import convert_inspector_columns
 
     assert convert_inspector_columns(cols) == expected_result
+
+
+def test_select_star(mocker: MockerFixture) -> None:
+    """
+    Test the ``select_star`` method.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class NoLimitDBEngineSpec(BaseEngineSpec):
+        allow_limit_clause = False
+
+    cols: list[ResultSetColumnType] = [
+        {
+            "column_name": "a",
+            "name": "a",
+            "type": sqltypes.String(),
+            "nullable": True,
+            "comment": None,
+            "default": None,
+            "precision": None,
+            "scale": None,
+            "max_length": None,
+            "is_dttm": False,
+        },
+    ]
+
+    # mock the database so we can compile the query
+    database = mocker.MagicMock()
+    database.compile_sqla_query = lambda query: str(
+        query.compile(dialect=sqlite.dialect())
+    )
+
+    engine = mocker.MagicMock()
+    engine.dialect = sqlite.dialect()
+
+    sql = BaseEngineSpec.select_star(
+        database=database,
+        table=Table("my_table"),
+        engine=engine,
+        limit=100,
+        show_cols=True,
+        indent=True,
+        latest_partition=False,
+        cols=cols,
+    )
+    assert (
+        sql
+        == """SELECT
+  a
+FROM my_table
+LIMIT ?
+OFFSET ?"""
+    )
+
+    sql = NoLimitDBEngineSpec.select_star(
+        database=database,
+        table=Table("my_table"),
+        engine=engine,
+        limit=100,
+        show_cols=True,
+        indent=True,
+        latest_partition=False,
+        cols=cols,
+    )
+    assert (
+        sql
+        == """SELECT
+  a
+FROM my_table"""
+    )
+
+
+def test_extra_table_metadata(mocker: MockerFixture) -> None:
+    """
+    Test the deprecated `extra_table_metadata` method.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.core import Database
+
+    class ThirdPartyDBEngineSpec(BaseEngineSpec):
+        @classmethod
+        def extra_table_metadata(
+            cls,
+            database: Database,
+            table_name: str,
+            schema_name: str | None,
+        ) -> dict[str, Any]:
+            return {"table": table_name, "schema": schema_name}
+
+    database = mocker.MagicMock()
+    warnings = mocker.patch("superset.db_engine_specs.base.warnings")
+
+    assert ThirdPartyDBEngineSpec.get_extra_table_metadata(
+        database,
+        Table("table", "schema"),
+    ) == {"table": "table", "schema": "schema"}
+
+    assert (
+        ThirdPartyDBEngineSpec.get_extra_table_metadata(
+            database,
+            Table("table", "schema", "catalog"),
+        )
+        == {}
+    )
+
+    warnings.warn.assert_called()
+
+
+def test_get_default_catalog(mocker: MockerFixture) -> None:
+    """
+    Test the `get_default_catalog` method.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = mocker.MagicMock()
+    assert BaseEngineSpec.get_default_catalog(database) is None
+
+
+def test_quote_table() -> None:
+    """
+    Test the `quote_table` function.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    dialect = sqlite.dialect()
+
+    assert BaseEngineSpec.quote_table(Table("table"), dialect) == '"table"'
+    assert (
+        BaseEngineSpec.quote_table(Table("table", "schema"), dialect)
+        == 'schema."table"'
+    )
+    assert (
+        BaseEngineSpec.quote_table(Table("table", "schema", "catalog"), dialect)
+        == 'catalog.schema."table"'
+    )
+    assert (
+        BaseEngineSpec.quote_table(Table("ta ble", "sche.ma", 'cata"log'), dialect)
+        == '"cata""log"."sche.ma"."ta ble"'
+    )

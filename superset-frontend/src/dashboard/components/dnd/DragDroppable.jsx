@@ -17,7 +17,7 @@
  * under the License.
  */
 import { getEmptyImage } from 'react-dnd-html5-backend';
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { DragSource, DropTarget } from 'react-dnd';
 import cx from 'classnames';
@@ -25,12 +25,7 @@ import { css, styled } from '@superset-ui/core';
 
 import { componentShape } from '../../util/propShapes';
 import { dragConfig, dropConfig } from './dragDroppableConfig';
-import {
-  DROP_TOP,
-  DROP_RIGHT,
-  DROP_BOTTOM,
-  DROP_LEFT,
-} from '../../util/getDropPosition';
+import { DROP_FORBIDDEN } from '../../util/getDropPosition';
 
 const propTypes = {
   children: PropTypes.func,
@@ -39,6 +34,7 @@ const propTypes = {
   parentComponent: componentShape,
   depth: PropTypes.number.isRequired,
   disableDragDrop: PropTypes.bool,
+  dropToChild: PropTypes.bool,
   orientation: PropTypes.oneOf(['row', 'column']),
   index: PropTypes.number.isRequired,
   style: PropTypes.object,
@@ -61,6 +57,7 @@ const defaultProps = {
   style: null,
   parentComponent: null,
   disableDragDrop: false,
+  dropToChild: false,
   children() {},
   onDrop() {},
   onHover() {},
@@ -77,6 +74,14 @@ const defaultProps = {
 const DragDroppableStyles = styled.div`
   ${({ theme }) => css`
     position: relative;
+    /*
+      Next line is a workaround for a bug in react-dnd where the drag
+      preview expands outside of the bounds of the drag source card, see:
+      https://github.com/react-dnd/react-dnd/issues/832#issuecomment-442071628
+    */
+    &.dragdroppable--edit-mode {
+      transform: translate3d(0, 0, 0);
+    }
 
     &.dragdroppable--dragging {
       opacity: 0.2;
@@ -96,44 +101,18 @@ const DragDroppableStyles = styled.div`
         background-color: ${theme.colors.primary.base};
         position: absolute;
         z-index: 10;
-      }
-
-      .drop-indicator--top {
-        top: 0;
-        left: 0;
-        height: ${theme.gridUnit}px;
+        opacity: 0.3;
         width: 100%;
-        min-width: ${theme.gridUnit * 4}px;
-      }
-
-      .drop-indicator--bottom {
-        top: 100%;
-        left: 0;
-        height: ${theme.gridUnit}px;
-        width: 100%;
-        min-width: ${theme.gridUnit * 4}px;
-      }
-
-      .drop-indicator--right {
-        top: 0;
-        left: 100%;
         height: 100%;
-        width: ${theme.gridUnit}px;
-        min-height: ${theme.gridUnit * 4}px;
-      }
-
-      .drop-indicator--left {
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: ${theme.gridUnit}px;
-        min-height: ${theme.gridUnit * 4}px;
+        &.drop-indicator--forbidden {
+          background-color: ${theme.colors.error.light1};
+        }
       }
     }
   `};
 `;
 // export unwrapped component for testing
-export class UnwrappedDragDroppable extends React.PureComponent {
+export class UnwrappedDragDroppable extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -184,10 +163,7 @@ export class UnwrappedDragDroppable extends React.PureComponent {
         ? {
             className: cx(
               'drop-indicator',
-              dropIndicator === DROP_TOP && 'drop-indicator--top',
-              dropIndicator === DROP_BOTTOM && 'drop-indicator--bottom',
-              dropIndicator === DROP_LEFT && 'drop-indicator--left',
-              dropIndicator === DROP_RIGHT && 'drop-indicator--right',
+              dropIndicator === DROP_FORBIDDEN && 'drop-indicator--forbidden',
             ),
           }
         : null;
@@ -206,6 +182,7 @@ export class UnwrappedDragDroppable extends React.PureComponent {
         data-test="dragdroppable-object"
         className={cx(
           'dragdroppable',
+          editMode && 'dragdroppable--edit-mode',
           orientation === 'row' && 'dragdroppable-row',
           orientation === 'column' && 'dragdroppable-column',
           isDragging && 'dragdroppable--dragging',
@@ -220,6 +197,9 @@ export class UnwrappedDragDroppable extends React.PureComponent {
 
 UnwrappedDragDroppable.propTypes = propTypes;
 UnwrappedDragDroppable.defaultProps = defaultProps;
+
+export const Draggable = DragSource(...dragConfig)(UnwrappedDragDroppable);
+export const Droppable = DropTarget(...dropConfig)(UnwrappedDragDroppable);
 
 // note that the composition order here determines using
 // component.method() vs decoratedComponentInstance.method() in the drag/drop config

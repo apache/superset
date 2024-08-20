@@ -32,10 +32,9 @@ fi
 NAME="${1}"
 if [ -z "${2}" ]; then
   gpg --armor --output "${NAME}".asc --detach-sig "${NAME}"
-  gpg --print-md SHA512 "${NAME}" > "${NAME}".sha512
 else
   # The GPG key name to use
   GPG_LOCAL_USER="${2}"
   gpg --local-user "${GPG_LOCAL_USER}" --armor --output "${NAME}".asc --detach-sig "${NAME}"
-  gpg --local-user "${GPG_LOCAL_USER}" --print-md SHA512 "${NAME}" > "${NAME}".sha512
 fi
+shasum -a 512 "${NAME}" > "${NAME}.sha512"

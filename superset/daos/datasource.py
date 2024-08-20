@@ -18,19 +18,16 @@
 import logging
 from typing import Union
 
-from sqlalchemy.orm import Session
-
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
-from superset.datasets.models import Dataset
 from superset.models.sql_lab import Query, SavedQuery
-from superset.tables.models import Table
 from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
-Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
+Datasource = Union[SqlaTable, Query, SavedQuery]
 
 
 class DatasourceDAO(BaseDAO[Datasource]):
@@ -38,14 +35,11 @@ class DatasourceDAO(BaseDAO[Datasource]):
         DatasourceType.TABLE: SqlaTable,
         DatasourceType.QUERY: Query,
         DatasourceType.SAVEDQUERY: SavedQuery,
-        DatasourceType.DATASET: Dataset,
-        DatasourceType.SLTABLE: Table,
     }
 
     @classmethod
     def get_datasource(
         cls,
-        session: Session,
         datasource_type: Union[DatasourceType, str],
         datasource_id: int,
     ) -> Datasource:
@@ -53,7 +47,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
             raise DatasourceTypeNotSupportedError()
 
         datasource = (
-            session.query(cls.sources[datasource_type])
+            db.session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)
             .one_or_none()
         )

@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { useEffect, useState } from 'react';
+import { t, SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Select } from 'src/components';
 import { SelectOptionsType, SelectProps } from 'src/components/Select/types';
 import { SelectValue, LabeledValue } from 'antd/lib/select';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 type SelectAsyncProps = Omit<SelectProps, 'options' | 'ariaLabel' | 'onChange'>;
 

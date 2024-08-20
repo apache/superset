@@ -18,24 +18,26 @@ import logging
 from typing import Any, cast, Optional
 from urllib import parse
 
-import simplejson as json
 from flask import request, Response
+from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset import app, is_feature_enabled
+from superset.commands.sql_lab.estimate import QueryEstimationCommand
+from superset.commands.sql_lab.execute import CommandResult, ExecuteSqlCommand
+from superset.commands.sql_lab.export import SqlResultExportCommand
+from superset.commands.sql_lab.results import SqlExecutionResultsCommand
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
 from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
 from superset.sql_lab import get_sql_results
+from superset.sql_parse import SQLScript
 from superset.sqllab.command_status import SqlJsonExecutionStatus
-from superset.sqllab.commands.estimate import QueryEstimationCommand
-from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
-from superset.sqllab.commands.export import SqlResultExportCommand
-from superset.sqllab.commands.results import SqlExecutionResultsCommand
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
@@ -45,6 +47,7 @@ from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.schemas import (
     EstimateQueryCostSchema,
     ExecutePayloadSchema,
+    FormatQueryPayloadSchema,
     QueryExecutionResponseSchema,
     sql_lab_get_results_schema,
     SQLLabBootstrapSchema,
@@ -58,7 +61,7 @@ from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
@@ -67,6 +70,7 @@ logger = logging.getLogger(__name__)
 
 
 class SqlLabRestApi(BaseSupersetApi):
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     datamodel = SQLAInterface(Query)
 
     resource_name = "sqllab"
@@ -76,6 +80,7 @@ class SqlLabRestApi(BaseSupersetApi):
 
     estimate_model_schema = EstimateQueryCostSchema()
     execute_model_schema = ExecutePayloadSchema()
+    format_model_schema = FormatQueryPayloadSchema()
 
     apispec_parameter_schemas = {
         "sql_lab_get_results_schema": sql_lab_get_results_schema,
@@ -128,7 +133,7 @@ class SqlLabRestApi(BaseSupersetApi):
         return json_success(
             json.dumps(
                 {"result": result},
-                default=utils.json_iso_dttm_ser,
+                default=json.json_iso_dttm_ser,
                 ignore_nan=True,
             ),
             200,
@@ -183,6 +188,52 @@ class SqlLabRestApi(BaseSupersetApi):
         result = command.run()
         return self.response(200, result=result)
 
+    @expose("/format_sql/", methods=("POST",))
+    @statsd_metrics
+    @protect()
+    @permission_name("read")
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".format",
+        log_to_statsd=False,
+    )
+    def format_sql(self) -> FlaskResponse:
+        """Format the SQL query.
+        ---
+        post:
+          summary: Format SQL code
+          requestBody:
+            description: SQL query
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/FormatQueryPayloadSchema'
+          responses:
+            200:
+              description: Format SQL result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            model = self.format_model_schema.load(request.json)
+            result = SQLScript(model["sql"], model.get("engine")).format()
+            return self.response(200, result=result)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
     @expose("/export/<string:client_id>/")
     @protect()
     @statsd_metrics
@@ -233,6 +284,7 @@ class SqlLabRestApi(BaseSupersetApi):
             "client_id": client_id,
             "row_count": row_count,
             "database": query.database.name,
+            "catalog": query.catalog,
             "schema": query.schema,
             "sql": query.sql,
             "exported_format": "csv",
@@ -288,13 +340,15 @@ class SqlLabRestApi(BaseSupersetApi):
         key = params.get("key")
         rows = params.get("rows")
         result = SqlExecutionResultsCommand(key=key, rows=rows).run()
-        # return the result without special encoding
-        return json_success(
-            json.dumps(
-                result, default=utils.json_iso_dttm_ser, ignore_nan=True, encoding=None
-            ),
-            200,
+
+        # Using pessimistic json serialization since some database drivers can return
+        # unserializeable types at times
+        payload = json.dumps(
+            result,
+            default=json.pessimistic_json_iso_dttm_ser,
+            ignore_nan=True,
         )
+        return json_success(payload, 200)
 
     @expose("/execute/", methods=("POST",))
     @protect()

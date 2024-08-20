@@ -1,0 +1,157 @@
+---
+title: Caching
+hide_title: true
+sidebar_position: 3
+version: 1
+---
+
+# Caching
+
+Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purposes.
+Flask-Caching supports various caching backends, including Redis (recommended), Memcached,
+SimpleCache (in-memory), or the local filesystem.
+[Custom cache backends](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends)
+are also supported.
+
+Caching can be configured by providing a dictionaries in
+`superset_config.py` that comply with[the Flask-Caching config specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
+
+The following cache configurations can be customized in this way:
+- Dashboard filter state (required): `FILTER_STATE_CACHE_CONFIG`.
+- Explore chart form data (required): `EXPLORE_FORM_DATA_CACHE_CONFIG`
+- Metadata cache (optional): `CACHE_CONFIG`
+- Charting data queried from datasets (optional): `DATA_CACHE_CONFIG`
+
+For example, to configure the filter state cache using redis:
+
+```python
+FILTER_STATE_CACHE_CONFIG = {
+    'CACHE_TYPE': 'RedisCache',
+    'CACHE_DEFAULT_TIMEOUT': 86400,
+    'CACHE_KEY_PREFIX': 'superset_filter_cache',
+    'CACHE_REDIS_URL': 'redis://localhost:6379/0'
+}
+```
+
+## Dependencies
+
+In order to use dedicated cache stores, additional python libraries must be installed
+
+- For Redis: we recommend the [redis](https://pypi.python.org/pypi/redis) Python package
+- Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
+  `python-memcached` does not handle storing binary data correctly.
+
+These libraries can be installed using pip.
+
+## Fallback Metastore Cache
+
+Note, that some form of Filter State and Explore caching are required. If either of these caches
+are undefined, Superset falls back to using a built-in cache that stores data in the metadata
+database. While it is recommended to use a dedicated cache, the built-in cache can also be used
+to cache other data.
+
+For example, to use the built-in cache to store chart data, use the following config:
+
+```python
+DATA_CACHE_CONFIG = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
+    "CACHE_KEY_PREFIX": "superset_results",  # make sure this string is unique to avoid collisions
+    "CACHE_DEFAULT_TIMEOUT": 86400,  # 60 seconds * 60 minutes * 24 hours
+}
+```
+
+## Chart Cache Timeout
+
+The cache timeout for charts may be overridden by the settings for an individual chart, dataset, or
+database. Each of these configurations will be checked in order before falling back to the default
+value defined in `DATA_CACHE_CONFIG`.
+
+Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
+per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
+
+## SQL Lab Query Results
+
+Caching for SQL Lab query results is used when async queries are enabled and is configured using
+`RESULTS_BACKEND`.
+
+Note that this configuration does not use a flask-caching dictionary for its configuration, but
+instead requires a cachelib object.
+
+See [Async Queries via Celery](/docs/configuration/async-queries-celery) for details.
+
+## Caching Thumbnails
+
+This is an optional feature that can be turned on by activating it’s [feature flag](/docs/configuration/configuring-superset#feature-flags) on config:
+
+```
+FEATURE_FLAGS = {
+    "THUMBNAILS": True,
+    "THUMBNAILS_SQLA_LISTENERS": True,
+}
+```
+
+By default thumbnails are rendered per user, and will fall back to the Selenium user for anonymous users.
+To always render thumbnails as a fixed user (`admin` in this example), use the following configuration:
+
+```python
+from superset.tasks.types import ExecutorType
+
+THUMBNAIL_SELENIUM_USER = "admin"
+THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
+```
+
+
+For this feature you will need a cache system and celery workers. All thumbnails are stored on cache
+and are processed asynchronously by the workers.
+
+An example config where images are stored on S3 could be:
+
+```python
+from flask import Flask
+from s3cache.s3cache import S3Cache
+
+...
+
+class CeleryConfig(object):
+    broker_url = "redis://localhost:6379/0"
+    imports = (
+        "superset.sql_lab",
+        "superset.tasks.thumbnails",
+    )
+    result_backend = "redis://localhost:6379/0"
+    worker_prefetch_multiplier = 10
+    task_acks_late = True
+
+
+CELERY_CONFIG = CeleryConfig
+
+def init_thumbnail_cache(app: Flask) -> S3Cache:
+    return S3Cache("bucket_name", 'thumbs_cache/')
+
+
+THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
+# Async selenium thumbnail task will use the following user
+THUMBNAIL_SELENIUM_USER = "Admin"
+```
+
+Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`. You can
+override the base URL for selenium using:
+
+```
+WEBDRIVER_BASEURL = "https://superset.company.com"
+```
+
+Additional selenium web drive configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
+implement a custom function to authenticate selenium. The default function uses the `flask-login`
+session cookie. Here's an example of a custom function signature:
+
+```python
+def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
+    pass
+```
+
+Then on configuration:
+
+```
+WEBDRIVER_AUTH_FUNC = auth_driver
+```

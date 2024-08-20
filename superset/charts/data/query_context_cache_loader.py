@@ -17,7 +17,7 @@
 from typing import Any
 
 from superset import cache
-from superset.charts.commands.exceptions import ChartDataCacheLoadError
+from superset.commands.chart.exceptions import ChartDataCacheLoadError
 
 
 class QueryContextCacheLoader:  # pylint: disable=too-few-public-methods

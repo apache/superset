@@ -21,13 +21,13 @@ Revises: f231d82b9b26
 Create Date: 2018-04-10 11:19:47.621878
 
 """
-import json
 
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 Base = declarative_base()
 
@@ -59,7 +59,6 @@ def upgrade():
             params["metrics"] = [params.get("metric")]
             del params["metric"]
             slc.params = json.dumps(params, indent=2, sort_keys=True)
-            session.merge(slc)
             session.commit()
             print(f"Upgraded ({i}/{slice_len}): {slc.slice_name}")
         except Exception as ex:

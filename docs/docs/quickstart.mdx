@@ -1,0 +1,78 @@
+---
+title: Quickstart
+hide_title: false
+sidebar_position: 2
+---
+
+**Ready to try Apache Superset?** This quickstart guide will help you
+get up and running on your local machine in **3 simple steps**. Note that
+it assumes that you have [Docker](https://www.docker.com),
+[Docker Compose](https://docs.docker.com/compose/), and
+[Git](https://git-scm.com/) installed.
+
+:::caution
+Although we recommend using `Docker Compose` for a quick start in a sandbox-type
+environment and for other development-type use cases, **we
+do not recommend this setup for production**. For this purpose please
+refer to our
+[Installing on Kubernetes](/docs/installation/kubernetes/)
+page.
+:::
+
+### 1. Get Superset
+
+```bash
+$ git clone https://github.com/apache/superset
+```
+
+### 2. Start the latest official release of Superset
+
+```bash
+# Enter the repository you just cloned
+$ cd superset
+
+# Fire up Superset using Docker Compose
+$ docker compose -f docker-compose-image-tag.yml up
+```
+
+This may take a moment as Docker Compose will fetch the underlying
+container images and will load up some examples. Once all containers
+are downloaded and the output settles, you're ready to log in.
+
+⚠️ If you get an error message like `validating superset\docker-compose-image-tag.yml: services.superset-worker-beat.env_file.0 must be a string`, you need to update your version of `docker-compose`.
+
+### 3. Log into Superset
+
+Now head over to [http://localhost:8088](http://localhost:8088) and log in with the default created account:
+
+```bash
+username: admin
+password: admin
+```
+
+#### 🎉 Congratulations! Superset is now up and running on your machine! 🎉
+
+### Wrapping Up
+
+Once you're done with Superset, you can stop and delete just like any other container environment:
+
+```bash
+$ docker compose down
+```
+
+:::tip
+You can use the same environment more than once, as Superset will persist data locally. However, make sure to properly stop all
+processes by running Docker Compose `stop` command. By doing so, you can avoid data corruption and/or loss of data.
+:::
+
+## What's next?
+
+From this point on, you can head on to:
+
+- [Create your first Dashboard](/docs/using-superset/creating-your-first-dashboard)
+- [Connect to a Database](/docs/configuration/databases)
+- [Using Docker Compose](/docs/installation/docker-compose)
+- [Configure Superset](/docs/configuration/configuring-superset/)
+- [Installing on Kubernetes](/docs/installation/kubernetes/)
+
+Or just explore our [Documentation](https://superset.apache.org/docs/intro)!

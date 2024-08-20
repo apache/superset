@@ -42,6 +42,8 @@ module.exports = {
     'prettier',
     'prettier/react',
     'plugin:react-hooks/recommended',
+    'plugin:react-prefer-function-component/recommended',
+    'plugin:storybook/recommended',
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
@@ -68,11 +70,13 @@ module.exports = {
     },
   },
   plugins: [
-    'prettier',
     'react',
     'file-progress',
+    'lodash',
     'theme-colors',
     'translation-vars',
+    'react-prefer-function-component',
+    'prettier',
   ],
   overrides: [
     {
@@ -85,11 +89,22 @@ module.exports = {
         'prettier/@typescript-eslint',
         'prettier/react',
       ],
-      plugins: ['@typescript-eslint/eslint-plugin', 'prettier', 'react'],
+      plugins: ['@typescript-eslint/eslint-plugin', 'react', 'prettier'],
       rules: {
         '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
         '@typescript-eslint/ban-types': 0, // disabled temporarily
+        '@typescript-eslint/naming-convention': [
+          'error',
+          {
+            selector: 'enum',
+            format: ['PascalCase'],
+          },
+          {
+            selector: 'enumMember',
+            format: ['PascalCase'],
+          },
+        ],
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
         '@typescript-eslint/no-use-before-define': 1, // disabled temporarily
@@ -113,7 +128,7 @@ module.exports = {
         'import/no-named-as-default-member': 0,
         'import/prefer-default-export': 0,
         indent: 0,
-        'jsx-a11y/anchor-is-valid': 1,
+        'jsx-a11y/anchor-is-valid': 2,
         'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
         'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
         'max-classes-per-file': 0,
@@ -147,6 +162,38 @@ module.exports = {
         'react/static-property-placement': 0, // re-enable up for discussion
         'prettier/prettier': 'error',
         'file-progress/activate': 1,
+        // delete me later: temporary rules to help with migration
+        'jsx-no-useless-fragment': 0,
+        'react/function-component-definition': [
+          0,
+          {
+            namedComponents: 'arrow-function',
+          },
+        ],
+        'default-param-last': 0,
+        'react/no-unstable-nested-components': 0,
+        'react/jsx-no-useless-fragment': 0,
+        'react/no-unknown-property': 0,
+        'no-restricted-exports': 0,
+        'react/default-props-match-prop-types': 0,
+        'no-unsafe-optional-chaining': 0,
+        'react/state-in-constructor': 0,
+        'import/no-import-module-exports': 0,
+        'no-promise-executor-return': 0,
+        'prefer-regex-literals': 0,
+        'react/no-unused-class-component-methods': 0,
+        'import/no-relative-packages': 0,
+        'prefer-exponentiation-operator': 0,
+        'react/react-in-jsx-scope': 0,
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector:
+              "ImportDeclaration[source.value='react'] :matches(ImportDefaultSpecifier, ImportNamespaceSpecifier)",
+            message:
+              'Default React import is not required due to automatic JSX runtime in React 16.4',
+          },
+        ],
       },
       settings: {
         'import/resolver': {
@@ -189,6 +236,31 @@ module.exports = {
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
+        // temporary rules to help with migration - please re-enable!
+        'testing-library/await-async-queries': 0,
+        'testing-library/await-async-utils': 0,
+        'testing-library/no-await-sync-events': 0,
+        'testing-library/no-render-in-lifecycle': 0,
+        'testing-library/no-unnecessary-act': 0,
+        'testing-library/no-wait-for-multiple-assertions': 0,
+        'testing-library/prefer-screen-queries': 0,
+        'testing-library/await-async-events': 0,
+        'testing-library/no-node-access': 0,
+        'testing-library/no-wait-for-side-effects': 0,
+        'testing-library/prefer-presence-queries': 0,
+        'testing-library/render-result-naming-convention': 0,
+        'testing-library/no-container': 0,
+        'testing-library/prefer-find-by': 0,
+        'testing-library/no-manual-cleanup': 0,
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector:
+              "ImportDeclaration[source.value='react'] :matches(ImportDefaultSpecifier, ImportNamespaceSpecifier)",
+            message:
+              'Default React import is not required due to automatic JSX runtime in React 16.4',
+          },
+        ],
       },
     },
     {
@@ -208,6 +280,8 @@ module.exports = {
         'theme-colors/no-literal-colors': 0,
         'translation-vars/no-template-vars': 0,
         'no-restricted-imports': 0,
+        'jest/no-alias-methods': 0,
+        'react/no-void-elements': 0,
       },
     },
   ],
@@ -241,6 +315,7 @@ module.exports = {
     'jsx-a11y/anchor-is-valid': 1,
     'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
     'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
+    'lodash/import-scope': [2, 'member'],
     'new-cap': 0,
     'no-bitwise': 0,
     'no-continue': 0,
@@ -265,7 +340,12 @@ module.exports = {
             message:
               'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
           },
+          {
+            name: 'lodash/memoize',
+            message: 'Lodash Memoize is unsafe! Please use memoize-one instead',
+          },
         ],
+        patterns: ['antd/*'],
       },
     ],
     'no-shadow': 0, // re-enable up for discussion
@@ -274,6 +354,7 @@ module.exports = {
     'prefer-object-spread': 1,
     'prefer-destructuring': ['error', { object: true, array: false }],
     'react/destructuring-assignment': 0, // re-enable up for discussion
+    'react/forbid-component-props': 1,
     'react/forbid-prop-types': 0,
     'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
     'react/jsx-fragments': 1,
@@ -287,7 +368,27 @@ module.exports = {
     'react/require-default-props': 0,
     'react/sort-comp': 0, // TODO: re-enable in separate PR
     'react/static-property-placement': 0, // disabled temporarily
+    'react-prefer-function-component/react-prefer-function-component': 1,
     'prettier/prettier': 'error',
+    // disabling some things that come with the eslint 7->8 upgrade. Will address these in a separate PR
+    'jest/no-alias-methods': 0,
+    'react/no-unknown-property': 0,
+    'react/no-void-elements': 0,
+    'react/function-component-definition': [
+      0,
+      {
+        namedComponents: 'arrow-function',
+      },
+    ],
+    'react/no-unstable-nested-components': 0,
+    'react/jsx-no-useless-fragment': 0,
+    'default-param-last': 0,
+    'no-import-assign': 0,
+    'import/no-relative-packages': 0,
+    'default-case-last': 0,
+    'no-promise-executor-return': 0,
+    'react/no-unused-class-component-methods': 0,
+    'react/react-in-jsx-scope': 0,
   },
   ignorePatterns,
 };

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ChangeEvent, useState, useEffect } from 'react';
+import { ChangeEvent, useState, useEffect, FC } from 'react';
+
 import rison from 'rison';
 import Modal from 'src/components/Modal';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
@@ -26,11 +27,14 @@ import { Input } from 'antd';
 import { Divider } from 'src/components';
 import Button from 'src/components/Button';
 import { Tag } from 'src/views/CRUD/types';
-import { fetchObjects } from 'src/features/tags/tags';
+import { fetchObjectsByTagIds } from 'src/features/tags/tags';
 
 const StyledModalBody = styled.div`
   .ant-select-dropdown {
-    max-height: ${({ theme }) => theme.gridUnit * 25}px;
+    max-height: ${({ theme }) => theme.gridUnit * 40}px;
+  }
+  .tag-input {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
   }
 `;
 
@@ -56,7 +60,7 @@ interface TagModalProps {
   editTag?: Tag | null;
 }
 
-const TagModal: React.FC<TagModalProps> = ({
+const TagModal: FC<TagModalProps> = ({
   show,
   onHide,
   editTag,
@@ -85,6 +89,14 @@ const TagModal: React.FC<TagModalProps> = ({
     setSavedQueriesToTag([]);
   };
 
+  const clearTagForm = () => {
+    setTagName('');
+    setDescription('');
+    setDashboardsToTag([]);
+    setChartsToTag([]);
+    setSavedQueriesToTag([]);
+  };
+
   useEffect(() => {
     const resourceMap: { [key: string]: TaggableResourceOption[] } = {
       [TaggableResources.Dashboard]: [],
@@ -104,8 +116,8 @@ const TagModal: React.FC<TagModalProps> = ({
     };
     clearResources();
     if (isEditMode) {
-      fetchObjects(
-        { tags: editTag.name, types: null },
+      fetchObjectsByTagIds(
+        { tagIds: [editTag.id], types: null },
         (data: Tag[]) => {
           data.forEach(updateResourceOptions);
           setDashboardsToTag(resourceMap[TaggableResources.Dashboard]);
@@ -219,10 +231,16 @@ const TagModal: React.FC<TagModalProps> = ({
           name: tagName,
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
-      }).then(({ json = {} }) => {
-        refreshData();
-        addSuccessToast(t('Tag updated'));
-      });
+      })
+        .then(({ json = {} }) => {
+          refreshData();
+          clearTagForm();
+          addSuccessToast(t('Tag updated'));
+          onHide();
+        })
+        .catch(err => {
+          addDangerToast(err.message || 'Error Updating Tag');
+        });
     } else {
       SupersetClient.post({
         endpoint: `/api/v1/tag/`,
@@ -231,25 +249,22 @@ const TagModal: React.FC<TagModalProps> = ({
           name: tagName,
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
-      }).then(({ json = {} }) => {
-        refreshData();
-        addSuccessToast(t('Tag created'));
-      });
+      })
+        .then(({ json = {} }) => {
+          refreshData();
+          clearTagForm();
+          addSuccessToast(t('Tag created'));
+          onHide();
+        })
+        .catch(err => addDangerToast(err.message || 'Error Creating Tag'));
     }
-    onHide();
   };
 
   return (
     <Modal
       title={modalTitle}
       onHide={() => {
-        if (clearOnHide) {
-          setTagName('');
-          setDescription('');
-          setDashboardsToTag([]);
-          setChartsToTag([]);
-          setSavedQueriesToTag([]);
-        }
+        if (clearOnHide) clearTagForm();
         onHide();
       }}
       show={show}
@@ -272,21 +287,24 @@ const TagModal: React.FC<TagModalProps> = ({
         </div>
       }
     >
-      <FormLabel>{t('Tag name')}</FormLabel>
-      <Input
-        onChange={handleTagNameChange}
-        placeholder={t('Name of your tag')}
-        value={tagName}
-      />
-      <FormLabel>{t('Description')}</FormLabel>
-      <Input
-        onChange={handleDescriptionChange}
-        placeholder={t('Add description of your tag')}
-        value={description}
-      />
-      <Divider />
       <StyledModalBody>
+        <FormLabel>{t('Tag name')}</FormLabel>
+        <Input
+          className="tag-input"
+          onChange={handleTagNameChange}
+          placeholder={t('Name of your tag')}
+          value={tagName}
+        />
+        <FormLabel>{t('Description')}</FormLabel>
+        <Input
+          className="tag-input"
+          onChange={handleDescriptionChange}
+          placeholder={t('Add description of your tag')}
+          value={description}
+        />
+        <Divider />
         <AsyncSelect
+          className="tag-input"
           ariaLabel={t('Select dashboards')}
           mode="multiple"
           name="dashboards"
@@ -300,6 +318,7 @@ const TagModal: React.FC<TagModalProps> = ({
           allowClear
         />
         <AsyncSelect
+          className="tag-input"
           ariaLabel={t('Select charts')}
           mode="multiple"
           name="charts"
@@ -311,6 +330,7 @@ const TagModal: React.FC<TagModalProps> = ({
           allowClear
         />
         <AsyncSelect
+          className="tag-input"
           ariaLabel={t('Select saved queries')}
           mode="multiple"
           name="savedQueries"

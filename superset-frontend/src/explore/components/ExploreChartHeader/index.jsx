@@ -16,18 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/components/Tooltip';
-import {
-  CategoricalColorNamespace,
-  css,
-  logging,
-  SupersetClient,
-  t,
-  tn,
-} from '@superset-ui/core';
+import { css, logging, SupersetClient, t, tn } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import Button from 'src/components/Button';
@@ -37,6 +31,7 @@ import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
+import { applyColors, resetColors } from 'src/utils/colorScheme';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 
 const propTypes = {
@@ -95,6 +90,13 @@ export const ExploreChartHeader = ({
     const dashboard =
       dashboardId && dashboards && dashboards.find(d => d.id === dashboardId);
 
+    if (!dashboard) {
+      // clean up color namespace and shared color maps
+      // to avoid colors spill outside of dashboard context
+      resetColors(metadata?.color_namespace);
+      return;
+    }
+
     if (dashboard) {
       try {
         // Dashboards from metadata don't contain the json_metadata field
@@ -105,23 +107,8 @@ export const ExploreChartHeader = ({
         const result = response?.json?.result;
 
         // setting the chart to use the dashboard custom label colors if any
-        const metadata = JSON.parse(result.json_metadata);
-        const sharedLabelColors = metadata.shared_label_colors || {};
-        const customLabelColors = metadata.label_colors || {};
-        const mergedLabelColors = {
-          ...sharedLabelColors,
-          ...customLabelColors,
-        };
-
-        const categoricalNamespace = CategoricalColorNamespace.getNamespace();
-
-        Object.keys(mergedLabelColors).forEach(label => {
-          categoricalNamespace.setColor(
-            label,
-            mergedLabelColors[label],
-            metadata.color_scheme,
-          );
-        });
+        const dashboardMetadata = JSON.parse(result.json_metadata);
+        applyColors(dashboardMetadata);
       } catch (error) {
         logging.info(t('Unable to retrieve dashboard colors'));
       }
@@ -129,7 +116,7 @@ export const ExploreChartHeader = ({
   };
 
   useEffect(() => {
-    if (dashboardId) updateCategoricalNamespace();
+    updateCategoricalNamespace();
   }, []);
 
   const openPropertiesModal = () => {
@@ -151,12 +138,22 @@ export const ExploreChartHeader = ({
     [dispatch],
   );
 
+  const history = useHistory();
+  const { redirectSQLLab } = actions;
+
+  const redirectToSQLLab = useCallback(
+    (formData, openNewWindow = false) => {
+      redirectSQLLab(formData, !openNewWindow && history);
+    },
+    [redirectSQLLab, history],
+  );
+
   const [menu, isDropdownVisible, setIsDropdownVisible] =
     useExploreAdditionalActionsMenu(
       latestQueryFormData,
       canDownload,
       slice,
-      actions.redirectSQLLab,
+      redirectToSQLLab,
       openPropertiesModal,
       ownState,
       metadata?.dashboards,
@@ -168,7 +165,7 @@ export const ExploreChartHeader = ({
     }
     const items = [];
     items.push({
-      type: MetadataType.DASHBOARDS,
+      type: MetadataType.Dashboards,
       title:
         metadata.dashboards.length > 0
           ? tn(
@@ -186,19 +183,19 @@ export const ExploreChartHeader = ({
           : undefined,
     });
     items.push({
-      type: MetadataType.LAST_MODIFIED,
+      type: MetadataType.LastModified,
       value: metadata.changed_on_humanized,
       modifiedBy: metadata.changed_by || t('Not available'),
     });
     items.push({
-      type: MetadataType.OWNER,
+      type: MetadataType.Owner,
       createdBy: metadata.created_by || t('Not available'),
       owners: metadata.owners.length > 0 ? metadata.owners : t('None'),
       createdOn: metadata.created_on_humanized,
     });
     if (slice?.description) {
       items.push({
-        type: MetadataType.DESCRIPTION,
+        type: MetadataType.Description,
         value: slice?.description,
       });
     }

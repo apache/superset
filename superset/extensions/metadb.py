@@ -38,6 +38,7 @@ joins and unions are done in memory, using the SQLite engine.
 from __future__ import annotations
 
 import datetime
+import decimal
 import operator
 import urllib.parse
 from collections.abc import Iterator
@@ -49,7 +50,6 @@ from shillelagh.adapters.base import Adapter
 from shillelagh.backends.apsw.dialects.base import APSWDialect
 from shillelagh.exceptions import ProgrammingError
 from shillelagh.fields import (
-    Blob,
     Boolean,
     Date,
     DateTime,
@@ -72,7 +72,6 @@ from superset import db, feature_flag_manager, security_manager, sql_parse
 
 # pylint: disable=abstract-method
 class SupersetAPSWDialect(APSWDialect):
-
     """
     A SQLAlchemy dialect for an internal Superset engine.
 
@@ -86,7 +85,7 @@ class SupersetAPSWDialect(APSWDialect):
 
     Queries can also join data across different Superset databases.
 
-    The dialect is built in top of the shillelagh library, leveraging SQLite to
+    The dialect is built in top of the Shillelagh library, leveraging SQLite to
     create virtual tables on-the-fly proxying Superset tables. The
     `SupersetShillelaghAdapter` adapter is responsible for returning data when a
     Superset table is accessed.
@@ -155,11 +154,40 @@ def has_rowid(method: F) -> F:
     return cast(F, wrapper)
 
 
+class Duration(Field[datetime.timedelta, datetime.timedelta]):
+    """
+    Shillelagh field used for representing durations as `timedelta` objects.
+    """
+
+    type = "DURATION"
+    db_api_type = "DATETIME"
+
+
+class Decimal(Field[decimal.Decimal, decimal.Decimal]):
+    """
+    Shillelagh field used for representing decimals.
+    """
+
+    type = "DECIMAL"
+    db_api_type = "NUMBER"
+
+
+class FallbackField(Field[Any, str]):
+    """
+    Fallback field for unknown types; converts to string.
+    """
+
+    type = "TEXT"
+    db_api_type = "STRING"
+
+    def parse(self, value: Any) -> str | None:
+        return value if value is None else str(value)
+
+
 # pylint: disable=too-many-instance-attributes
 class SupersetShillelaghAdapter(Adapter):
-
     """
-    A shillelagh adapter for Superset tables.
+    A Shillelagh adapter for Superset tables.
 
     Shillelagh adapters are responsible for fetching data from a given resource,
     allowing it to be represented as a virtual table in SQLite. This one works
@@ -180,6 +208,8 @@ class SupersetShillelaghAdapter(Adapter):
         datetime.date: Date,
         datetime.datetime: DateTime,
         datetime.time: Time,
+        datetime.timedelta: Duration,
+        decimal.Decimal: Decimal,
     }
 
     @staticmethod
@@ -240,9 +270,6 @@ class SupersetShillelaghAdapter(Adapter):
         self.schema = parts.pop(-1) if parts else None
         self.catalog = parts.pop(-1) if parts else None
 
-        if self.catalog:
-            raise NotImplementedError("Catalogs are not currently supported")
-
         # If the table has a single integer primary key we use that as the row ID in order
         # to perform updates and deletes. Otherwise we can only do inserts and selects.
         self._rowid: str | None = None
@@ -258,7 +285,7 @@ class SupersetShillelaghAdapter(Adapter):
         """
         Convert a Python type into a Shillelagh field.
         """
-        class_ = cls.type_map.get(python_type, Blob)
+        class_ = cls.type_map.get(python_type, FallbackField)
         return class_(filters=[Equal, Range], order=Order.ANY, exact=True)
 
     def _set_columns(self) -> None:
@@ -283,8 +310,9 @@ class SupersetShillelaghAdapter(Adapter):
 
         # store this callable for later whenever we need an engine
         self.engine_context = partial(
-            database.get_sqla_engine_with_context,
-            self.schema,
+            database.get_sqla_engine,
+            catalog=self.catalog,
+            schema=self.schema,
         )
 
         # fetch column names and types

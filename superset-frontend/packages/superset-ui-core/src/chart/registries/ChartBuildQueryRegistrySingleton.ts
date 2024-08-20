@@ -43,7 +43,7 @@ export type BuildQuery<T = any> = (
 
 class ChartBuildQueryRegistry extends Registry<BuildQuery> {
   constructor() {
-    super({ name: 'ChartBuildQuery', overwritePolicy: OverwritePolicy.WARN });
+    super({ name: 'ChartBuildQuery', overwritePolicy: OverwritePolicy.Warn });
   }
 }
 

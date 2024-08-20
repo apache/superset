@@ -17,25 +17,32 @@
 # type: ignore
 from copy import copy
 
-from superset.config import *
+from sqlalchemy.engine import make_url
 
+from superset.config import *  # noqa: F403
+from superset.config import DATA_DIR
+
+SECRET_KEY = "dummy_secret_key_for_test_to_silence_warnings"
 AUTH_USER_REGISTRATION_ROLE = "alpha"
-SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(
-    DATA_DIR, "unittests.integration_tests.db"
+SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(  # noqa: F405
+    DATA_DIR,
+    "unittests.integration_tests.db",  # noqa: F405
 )
 DEBUG = True
-SUPERSET_WEBSERVER_PORT = 8081
 
 # Allowing SQLALCHEMY_DATABASE_URI to be defined as an env var for
 # continuous integration
-if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:
-    SQLALCHEMY_DATABASE_URI = os.environ["SUPERSET__SQLALCHEMY_DATABASE_URI"]
+if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:  # noqa: F405
+    SQLALCHEMY_DATABASE_URI = os.environ["SUPERSET__SQLALCHEMY_DATABASE_URI"]  # noqa: F405
 
-if "sqlite" in SQLALCHEMY_DATABASE_URI:
-    logger.warning(
+if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() == "sqlite":
+    logger.warning(  # noqa: F405
         "SQLite Database support for metadata databases will be removed \
         in a future version of Superset."
     )
+
+if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() in ("postgresql", "mysql"):
+    SQLALCHEMY_ENGINE_OPTIONS["isolation_level"] = "READ COMMITTED"  # noqa: F405
 
 SQL_SELECT_AS_CTA = True
 SQL_MAX_ROW = 666
@@ -51,21 +58,19 @@ TESTING = True
 WTF_CSRF_ENABLED = False
 PUBLIC_ROLE_LIKE = "Gamma"
 AUTH_ROLE_PUBLIC = "Public"
-EMAIL_NOTIFICATIONS = False
 
 CACHE_CONFIG = {"CACHE_TYPE": "SimpleCache"}
 
-REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
-REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
-REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
-REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
+REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")  # noqa: F405
+REDIS_PORT = os.environ.get("REDIS_PORT", "6379")  # noqa: F405
+REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)  # noqa: F405
+REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)  # noqa: F405
 
 
 class CeleryConfig:
-    BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks.thumbnails")
-    CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
-    CONCURRENCY = 1
+    broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
+    imports = ("superset.sql_lab", "superset.tasks.thumbnails")
+    concurrency = 1
 
 
 CELERY_CONFIG = CeleryConfig

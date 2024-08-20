@@ -26,15 +26,15 @@ Create Date: 2018-07-26 11:10:23.653524
 revision = "c82ee8a39623"
 down_revision = "c617da68de7d"
 
-from datetime import datetime
+from datetime import datetime  # noqa: E402
 
-from alembic import op
-from flask_appbuilder.models.mixins import AuditMixin
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from alembic import op  # noqa: E402
+from flask_appbuilder.models.mixins import AuditMixin  # noqa: E402
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base, declared_attr  # noqa: E402
 
-from superset.tags.models import ObjectTypes, TagTypes
-from superset.utils.core import get_user_id
+from superset.tags.models import ObjectType, TagType  # noqa: E402
+from superset.utils.core import get_user_id  # noqa: E402
 
 Base = declarative_base()
 
@@ -77,16 +77,16 @@ class Tag(Base, AuditMixinNullable):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(250), unique=True)
-    type = Column(Enum(TagTypes))
+    type = Column(Enum(TagType))
 
 
-class TaggedObject(Base, AuditMixinNullable):
+class TaggedObject(AuditMixinNullable, Base):
     __tablename__ = "tagged_object"
 
     id = Column(Integer, primary_key=True)
     tag_id = Column(Integer, ForeignKey("tag.id"))
     object_id = Column(Integer)
-    object_type = Column(Enum(ObjectTypes))
+    object_type = Column(Enum(ObjectType))
 
 
 class User(Base):

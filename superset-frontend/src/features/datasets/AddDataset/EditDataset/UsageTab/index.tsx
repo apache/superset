@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   css,
@@ -161,7 +161,7 @@ const useDatasetChartRecords = (datasetId: string) => {
     () => [
       {
         id: 'datasource_id',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         value: datasetId,
       },
     ],
@@ -241,7 +241,7 @@ const DatasetUsage = ({ datasetId }: DatasetUsageProps) => {
       <Table
         columns={columns}
         data={data}
-        size={TableSize.MIDDLE}
+        size={TableSize.Middle}
         defaultPageSize={DEFAULT_PAGE_SIZE}
         recordCount={recordCount}
         loading={loading}

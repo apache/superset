@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import SliceHeader from '.';
@@ -471,4 +471,16 @@ test('Correct actions to "SliceHeaderControls"', () => {
   expect(props.handleToggleFullSize).toBeCalledTimes(0);
   userEvent.click(screen.getByTestId('handleToggleFullSize'));
   expect(props.handleToggleFullSize).toBeCalledTimes(1);
+});
+
+test('Add extension to SliceHeader', () => {
+  const extensionsRegistry = getExtensionsRegistry();
+  extensionsRegistry.set('dashboard.slice.header', () => (
+    <div>This is an extension</div>
+  ));
+
+  const props = createProps();
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+
+  expect(screen.getByText('This is an extension')).toBeInTheDocument();
 });

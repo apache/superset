@@ -6,7 +6,7 @@ on:
 
 jobs:
   config:
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-22.04"
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -22,12 +22,12 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: Cleanup ephemeral envs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       pull-requests: write
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -36,7 +36,7 @@ jobs:
       - name: Describe ECS service
         id: describe-services
         run: |
-          echo "::set-output name=active::$(aws ecs describe-services --cluster superset-ci --services pr-${{ github.event.number }}-service | jq '.services[] | select(.status == "ACTIVE") | any')"
+          echo "active=$(aws ecs describe-services --cluster superset-ci --services pr-${{ github.event.number }}-service | jq '.services[] | select(.status == "ACTIVE") | any')" >> $GITHUB_OUTPUT
 
       - name: Delete ECS service
         if: steps.describe-services.outputs.active == 'true'
@@ -50,7 +50,7 @@ jobs:
       - name: Login to Amazon ECR
         if: steps.describe-services.outputs.active == 'true'
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Delete ECR image tag
         if: steps.describe-services.outputs.active == 'true'
@@ -63,11 +63,11 @@ jobs:
 
       - name: Comment (success)
         if: steps.describe-services.outputs.active == 'true'
-        uses: actions/github-script@v3
+        uses: actions/github-script@v7
         with:
           github-token: ${{github.token}}
           script: |
-            github.issues.createComment({
+            github.rest.issues.createComment({
               issue_number: ${{ github.event.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,

@@ -6,13 +6,13 @@ on:
 jobs:
   latest-release:
     name: Add/update tag to new release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
 
     steps:
     - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         persist-credentials: false
         submodules: recursive
@@ -21,6 +21,11 @@ jobs:
       id: latest-tag
       run: |
         source ./scripts/tag_latest_release.sh $(echo ${{ github.event.release.tag_name }}) --dry-run
+
+    - name: Configure Git
+      run: |
+        git config user.name "$GITHUB_ACTOR"
+        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
     - name: Run latest-tag
       uses: ./.github/actions/latest-tag

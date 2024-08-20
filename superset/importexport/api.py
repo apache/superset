@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from datetime import datetime
 from io import BytesIO
 from zipfile import is_zipfile, ZipFile
@@ -30,6 +29,7 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.extensions import event_logger
+from superset.utils import json
 from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
 
 
@@ -80,7 +80,7 @@ class ImportExportRestApi(BaseSupersetApi):
         with ZipFile(buf, "w") as bundle:
             for file_name, file_content in ExportAssetsCommand().run():
                 with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content.encode())
+                    fp.write(file_content().encode())
         buf.seek(0)
 
         response = send_file(

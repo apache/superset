@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import Alert, { AlertProps } from './index';
 
 type AlertType = Pick<AlertProps, 'type'>;
@@ -60,17 +59,12 @@ export const AlertGallery = () => (
   </>
 );
 
-AlertGallery.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    controls: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+AlertGallery.parameters = {
+  actions: {
+    disable: true,
+  },
+  controls: {
+    disable: true,
   },
 };
 
@@ -93,14 +87,7 @@ InteractiveAlert.args = {
 InteractiveAlert.argTypes = {
   onClose: { action: 'onClose' },
   type: {
-    control: { type: 'select', options: types },
-  },
-};
-
-InteractiveAlert.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
+    control: { type: 'select' },
+    options: types,
   },
 };

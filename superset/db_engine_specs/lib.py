@@ -39,9 +39,8 @@ DATABASE_DETAILS = {
     "subqueries": "Supports subqueries",
     "alias_in_select": "Allows aliases in the SELECT statement",
     "alias_in_orderby": "Allows referencing aliases in the ORDER BY statement",
-    "secondary_time_columns": "Supports secondary time columns",
     "time_groupby_inline": (
-        "Allows ommiting time filters from inline GROUP BYs"
+        "Allows omitting time filters from inline GROUP BYs"
     ),  # E: line too long (80 > 79 characters)
     "alias_to_source_column": (
         "Able to use source column when an alias overshadows it"
@@ -64,7 +63,7 @@ BASIC_FEATURES = {
 NICE_TO_HAVE_FEATURES = {
     "user_impersonation": "Supports user impersonation",
     "file_upload": "Support file upload",
-    "extra_table_metadata": "Returns extra table metadata",
+    "get_extra_table_metadata": "Returns extra table metadata",
     "dbapi_exception_mapping": "Maps driver exceptions to Superset exceptions",
     "custom_errors": "Parses error messages and returns Superset errors",
     "dynamic_schema": "Supports changing the schema per-query",
@@ -143,7 +142,9 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
                 or has_custom_method(spec, "get_url_for_impersonation")
             ),
             "file_upload": spec.supports_file_upload,
-            "extra_table_metadata": has_custom_method(spec, "extra_table_metadata"),
+            "get_extra_table_metadata": has_custom_method(
+                spec, "get_extra_table_metadata"
+            ),
             "dbapi_exception_mapping": has_custom_method(
                 spec, "get_dbapi_exception_mapping"
             ),
@@ -178,7 +179,7 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
     nice_to_have = [
         "user_impersonation",
         "file_upload",
-        "extra_table_metadata",
+        "get_extra_table_metadata",
         "dbapi_exception_mapping",
         "custom_errors",
         "dynamic_schema",
@@ -230,7 +231,6 @@ def generate_table() -> list[list[Any]]:
         "subqueries",
         "alias_in_select",
         "alias_in_orderby",
-        "secondary_time_columns",
         "time_groupby_inline",
         "alias_to_source_column",
         "order_by_not_in_select",
@@ -266,7 +266,7 @@ def generate_table() -> list[list[Any]]:
     keys = [
         "user_impersonation",
         "file_upload",
-        "extra_table_metadata",
+        "get_extra_table_metadata",
         "dbapi_exception_mapping",
         "custom_errors",
         "dynamic_schema",

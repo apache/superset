@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
@@ -75,7 +74,7 @@ describe('DatasourceEditor', () => {
       setTimeout(() => {
         expect(fetchMock.calls(DATASOURCE_ENDPOINT)).toHaveLength(1);
         expect(fetchMock.calls(DATASOURCE_ENDPOINT)[0][0]).toContain(
-          'Vehicle%20Sales%20%2B%27',
+          'Vehicle+Sales%20%2B',
         );
         fetchMock.reset();
         done();
@@ -96,7 +95,7 @@ describe('DatasourceEditor', () => {
 
     const inputLabel = screen.getByPlaceholderText('Label');
     const inputDescription = screen.getByPlaceholderText('Description');
-    const inputDtmFormat = screen.getByPlaceholderText('%Y/%m/%d');
+    const inputDtmFormat = screen.getByPlaceholderText('%Y-%m-%d');
     const inputCertifiedBy = screen.getByPlaceholderText('Certified by');
     const inputCertDetails = screen.getByPlaceholderText(
       'Certification details',
@@ -188,22 +187,6 @@ describe('DatasourceEditor', () => {
       });
       expect(physicalRadioBtn).toBeDisabled();
       expect(virtualRadioBtn).toBeDisabled();
-    });
-  });
-
-  describe('render editor with feature flag false', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => true);
-    });
-
-    it('disable edit Source tab', async () => {
-      await asyncRender(props);
-      expect(
-        screen.queryByRole('img', { name: /lock-locked/i }),
-      ).not.toBeInTheDocument();
-      isFeatureEnabledMock.mockRestore();
     });
   });
 });

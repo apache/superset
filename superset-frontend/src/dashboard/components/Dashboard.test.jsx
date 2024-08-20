@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
 import Dashboard from 'src/dashboard/components/Dashboard';
-import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
@@ -48,7 +46,6 @@ describe('Dashboard', () => {
       triggerQuery() {},
       logEvent() {},
     },
-    initMessages: [],
     dashboardState,
     dashboardInfo,
     charts: chartQueries,
@@ -63,8 +60,14 @@ describe('Dashboard', () => {
     loadStats: {},
   };
 
+  const ChildrenComponent = () => <div>Test</div>;
+
   function setup(overrideProps) {
-    const wrapper = shallow(<Dashboard {...props} {...overrideProps} />);
+    const wrapper = shallow(
+      <Dashboard {...props} {...overrideProps}>
+        <ChildrenComponent />
+      </Dashboard>,
+    );
     return wrapper;
   }
 
@@ -76,9 +79,9 @@ describe('Dashboard', () => {
     '3_country_name': { values: ['USA'], scope: [] },
   };
 
-  it('should render a DashboardBuilder', () => {
+  it('should render the children component', () => {
     const wrapper = setup();
-    expect(wrapper.find(DashboardBuilder)).toExist();
+    expect(wrapper.find(ChildrenComponent)).toExist();
   });
 
   describe('UNSAFE_componentWillReceiveProps', () => {

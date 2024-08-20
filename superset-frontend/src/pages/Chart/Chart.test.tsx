@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import { Link } from 'react-router-dom';
 import {
@@ -40,12 +39,11 @@ jest.mock('re-resizable', () => ({
 jest.mock(
   'src/explore/components/ExploreChartPanel',
   () =>
-    ({ exploreState }: { exploreState: JsonObject }) =>
-      (
-        <div data-test="mock-explore-chart-panel">
-          {JSON.stringify(exploreState)}
-        </div>
-      ),
+    ({ exploreState }: { exploreState: JsonObject }) => (
+      <div data-test="mock-explore-chart-panel">
+        {JSON.stringify(exploreState)}
+      </div>
+    ),
 );
 jest.mock('src/dashboard/util/charts/getFormDataWithExtraFilters');
 
@@ -66,6 +64,7 @@ describe('ChartPage', () => {
     const { getByTestId } = render(<ChartPage />, {
       useRouter: true,
       useRedux: true,
+      useDnd: true,
     });
     await waitFor(() =>
       expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
@@ -81,7 +80,7 @@ describe('ChartPage', () => {
 
     beforeEach(() => {
       localStorage.setItem(
-        LocalStorageKeys.dashboard__explore_context,
+        LocalStorageKeys.DashboardExploreContext,
         JSON.stringify({
           [dashboardPageId]: {},
         }),
@@ -111,6 +110,7 @@ describe('ChartPage', () => {
       const { getByTestId } = render(<ChartPage />, {
         useRouter: true,
         useRedux: true,
+        useDnd: true,
       });
       await waitFor(() =>
         expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
@@ -157,6 +157,7 @@ describe('ChartPage', () => {
         {
           useRouter: true,
           useRedux: true,
+          useDnd: true,
         },
       );
       await waitFor(() =>
