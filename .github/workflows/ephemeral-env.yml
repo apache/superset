@@ -262,12 +262,17 @@ jobs:
       with:
         github-token: ${{github.token}}
         script: |
+          const logGroupName = "/ecs/superset-ci";
+          const logStreamName = `ecs/${{ github.event.issue.number }}/${{ steps.get-sha.outputs.sha }}`;
+          const region = "us-west-2";  // Replace with your AWS region
+          const logLink = `https://console.aws.amazon.com/cloudwatch/home?region=${region}#logsV2:log-groups/log-group/${encodeURIComponent(logGroupName)}/log-events/${encodeURIComponent(logStreamName)}`;
+
           github.rest.issues.createComment({
             issue_number: ${{ github.event.issue.number }},
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: '@${{ github.event.comment.user.login }} Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8080. Credentials are `admin`/`admin`. Please allow several minutes for bootstrapping and startup.'
-          })
+            body: `@${{ github.event.comment.user.login }} Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8080. Logs can be found [here](${logLink}). Credentials are \`admin\`/\`admin\`. Please allow several minutes for bootstrapping and startup.`
+          });
 
     - name: Comment (failure)
       if: ${{ failure() }}
