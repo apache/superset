@@ -208,7 +208,7 @@ jobs:
 
     - name: Update env vars in the Amazon ECS task definition
       run: |
-        cat <<< "$(jq '.containerDefinitions[0].environment += ${{ needs.ephemeral-env-comment.outputs.feature-flags }}' < ${{ steps.task-def.outputs.task-definition }})" > ${{ steps.task-def.outputs.task-definition }}
+        cat <<< "$(jq '.containerDefinitions[0].environment += [{"name": "SUPERSET_LOAD_EXAMPLES", "value": "yes"}] + ${{ needs.ephemeral-env-comment.outputs.feature-flags }}' < ${{ steps.task-def.outputs.task-definition }})" > ${{ steps.task-def.outputs.task-definition }}
 
     - name: Describe ECS service
       id: describe-services
