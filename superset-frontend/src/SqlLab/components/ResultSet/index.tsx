@@ -390,7 +390,7 @@ const ResultSet = ({
               <AntdDropdown overlay={ExportMenu}>
                 <Button>
                   <Space>
-                    Export
+                    {t('Export')}
                     <Icons.DownOutlined iconSize="s" />
                   </Space>
                 </Button>
