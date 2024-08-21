@@ -266,12 +266,18 @@ jobs:
           const logStreamName = `ecs/${{ github.event.issue.number }}/${{ steps.get-sha.outputs.sha }}`;
           const region = "us-west-2";  // Replace with your AWS region
           const logLink = `https://console.aws.amazon.com/cloudwatch/home?region=${region}#logsV2:log-groups/log-group/${encodeURIComponent(logGroupName)}/log-events/${encodeURIComponent(logStreamName)}`;
+          let body;
+          body += `@${{ github.event.comment.user.login }}, your ephemeral environment is spinning up at `
+          body += `http://${{ steps.get-ip.outputs.ip }}:8080.\n`
+          body += `Logs can be found [here](${logLink}).\n`
+          body += `Credentials are \`admin\`/\`admin\`.`
+          body += `Please allow several minutes for bootstrapping and startup.`
 
           github.rest.issues.createComment({
             issue_number: ${{ github.event.issue.number }},
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: `@${{ github.event.comment.user.login }} Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8080. Logs can be found [here](${logLink}). Credentials are \`admin\`/\`admin\`. Please allow several minutes for bootstrapping and startup.`
+            body,
           });
 
     - name: Comment (failure)
