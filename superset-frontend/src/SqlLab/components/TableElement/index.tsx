@@ -108,7 +108,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   const {
     currentData: tableMetadata,
     isSuccess: isMetadataSuccess,
-    isFetching: isMetadataLoading,
+    isFetching: isMetadataFetching,
     isError: hasMetadataError,
   } = useTableMetadataQuery(
     {
@@ -354,7 +354,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
         </Tooltip>
 
         <div className="pull-right header-right-side">
-          {isMetadataLoading || isExtraMetadataLoading ? (
+          {isMetadataFetching || isExtraMetadataLoading ? (
             <Loading position="inline" />
           ) : (
             <Fade
