@@ -30,9 +30,15 @@ def test_get_manifest_with_prefix():
     manifest_processor = UIManifestProcessor(APP_DIR)
     manifest_processor.init_app(app)
     manifest = manifest_processor.get_manifest()
-    assert manifest["js_manifest"]("main") == ["/static/dist/main-js.js"]
-    assert manifest["css_manifest"]("main") == ["/static/dist/main-css.css"]
-    assert manifest["js_manifest"]("styles") == ["/static/dist/styles-js.js"]
+    assert manifest["js_manifest"]("main") == [
+        "https://cool.url/here/static/dist/main-js.js"
+    ]
+    assert manifest["css_manifest"]("main") == [
+        "https://cool.url/here/static/dist/main-css.css"
+    ]
+    assert manifest["js_manifest"]("styles") == [
+        "https://cool.url/here/static/dist/styles-js.js"
+    ]
     assert manifest["css_manifest"]("styles") == []
     assert manifest["assets_prefix"] == "https://cool.url/here"
 
