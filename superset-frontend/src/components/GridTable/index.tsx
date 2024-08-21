@@ -228,6 +228,7 @@ function GridTable<RecordType extends object>({
             ensureDomOrder: true,
             suppressFieldDotNotation: true,
             headerHeight: rowHeight,
+            rowSelection: 'multiple',
             rowHeight,
           }}
           onCellKeyDown={onKeyDown}
