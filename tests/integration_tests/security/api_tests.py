@@ -26,6 +26,7 @@ from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host
 from superset.utils import json
+from tests.integration_tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -135,3 +136,64 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         )
 
         self.assert400(response)
+
+
+class TestSecurityRolesApi(SupersetTestCase):
+    uri = "api/v1/security/roles/"  # noqa: F541
+
+    @with_config({"FAB_ADD_SECURITY_API": True})
+    def test_get_security_roles_admin(self):
+        """
+        Security API: Admin should be able to get roles
+        """
+        self.login(ADMIN_USERNAME)
+        response = self.client.get(self.uri)
+        self.assert200(response)
+
+    @with_config({"FAB_ADD_SECURITY_API": True})
+    def test_get_security_roles_gamma(self):
+        """
+        Security API: Gamma should not be able to get roles
+        """
+        self.login(GAMMA_USERNAME)
+        response = self.client.get(self.uri)
+        self.assert403(response)
+
+    @with_config({"FAB_ADD_SECURITY_API": True})
+    def test_post_security_roles_gamma(self):
+        """
+        Security API: Gamma should not be able to create roles
+        """
+        self.login(GAMMA_USERNAME)
+        response = self.client.post(
+            self.uri,
+            data=json.dumps({"name": "new_role"}),
+            content_type="application/json",
+        )
+        self.assert403(response)
+
+    @with_config({"FAB_ADD_SECURITY_API": True})
+    def test_put_security_roles_gamma(self):
+        """
+        Security API: Gamma shouldnt be able to update roles
+        """
+        self.login(GAMMA_USERNAME)
+        response = self.client.put(
+            f"{self.uri}1",
+            data=json.dumps({"name": "new_role"}),
+            content_type="application/json",
+        )
+        self.assert403(response)
+
+    @with_config({"FAB_ADD_SECURITY_API": True})
+    def test_delete_security_roles_gamma(self):
+        """
+        Security API: Gamma shouldnt be able to delete roles
+        """
+        self.login(GAMMA_USERNAME)
+        response = self.client.delete(
+            f"{self.uri}1",
+            data=json.dumps({"name": "new_role"}),
+            content_type="application/json",
+        )
+        self.assert403(response)
