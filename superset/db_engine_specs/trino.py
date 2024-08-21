@@ -227,12 +227,17 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         execute_event = threading.Event()
 
         def _execute(
-            results: dict[str, Any], event: threading.Event, app: Flask
+            results: dict[str, Any],
+            event: threading.Event,
+            app: Flask,
+            g_copy: dict[str, Any],
         ) -> None:
             logger.debug("Query %d: Running query: %s", query_id, sql)
 
             try:
                 with app.app_context():
+                    for key, value in g_copy.__dict__.items():
+                        setattr(g, key, value)
                     cls.execute(cursor, sql, query.database)
             except Exception as ex:  # pylint: disable=broad-except
                 results["error"] = ex
@@ -245,6 +250,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 execute_result,
                 execute_event,
                 current_app._get_current_object(),  # pylint: disable=protected-access
+                g._get_current_object(),  # pylint: disable=protected-access
             ),
         )
         execute_thread.start()
