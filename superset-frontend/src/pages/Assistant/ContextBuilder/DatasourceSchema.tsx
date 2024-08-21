@@ -4,19 +4,17 @@ import { DatasourceTable } from "./DatasourceTable";
 import React, { Component } from "react";
 import { fetchTableData, DatabaseSchemaTableData } from "../contextUtils";
 
-
-const { TextArea } = Input;
-
 /**
  * Props
  */
 export interface DatasourceSchemaProps {
     databaseId: number;
+    datasourceName: string;
     selected?: boolean;
     schemaName: string;
     description?: string;
     tables?: DatasourceTableProps[];
-    onChange?: (data: DatasourceTableProps) => void;
+    onChange?: (data: DatasourceSchemaProps) => void;
     loading?: boolean;
     descriptionFocused?: boolean;
     isDescriptionLoading?: boolean;
@@ -43,11 +41,12 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
     };
 
     async componentDidMount() {
-        const { databaseId, schemaName } = this.props;
+        const { databaseId, schemaName, datasourceName } = this.props;
         const tables = await fetchTableData(databaseId, schemaName);
         const tableData: DatasourceTableProps[] = tables.map((table: DatabaseSchemaTableData) => {
             return {
                 databaseId: databaseId,
+                datasourceName:datasourceName,
                 schemaName: schemaName,
                 selected: false,
                 tableName: table.table_name,
@@ -61,11 +60,28 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
     }
 
     handleOnChange = (data: DatasourceTableProps) => {
-        // percentage done
-        const { loading } = data
-        console.log('Loading: ', loading);
-        // finally
-        this.state.onChange?.call(this, data);
+        //update the state
+        this.setState((prevState: DatasourceSchemaProps) => {
+            const newState = {
+                ...prevState,
+                tables: prevState.tables?.map((table) => {
+                    if (table.tableName === data.tableName) {
+                        return data;
+                    }
+                    return table;
+                })
+            };
+            return newState;
+        }, () => {
+            // filter out where [].tables.selectedColumns.length > 0
+            const filteredState = {
+                ...this.state,
+                tables: this.state.tables?.filter((table) => {
+                    return (table.selectedColumns || []).length > 0;
+                })
+            }
+            this.state.onChange?.call(this, filteredState);
+        });
     };
 
     handleDescriptionFocus = (isFocused:boolean) => {
@@ -110,6 +126,9 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
                                     }}>
                                         <span>{schemaName}</span>
                                         <span style={{ width: '10px' }}></span>
+                                        <span>
+                                            {description? '✅' : '?'}
+                                        </span>
                                         {loading && <Spin size="small" />}
                                     </div>
                                     <div>

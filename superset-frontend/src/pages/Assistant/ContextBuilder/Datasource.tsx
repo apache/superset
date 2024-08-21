@@ -1,6 +1,5 @@
 import { Collapse, Spin } from "antd";
 import { DatasourceSchemaProps, DatasourceSchema } from "./DatasourceSchema";
-import { DatasourceTableProps } from "./DatasourceTable";
 import React from "react";
 import { fetchSchemaData, DatabaseScemaData } from "../contextUtils";
 
@@ -12,7 +11,7 @@ export interface DatasourceProps {
     id: number;
     datasourceName: string;
     schema: DatasourceSchemaProps[];
-    onChange?: (data: DatasourceTableProps) => void;
+    onChange?: (data: DatasourceProps) => void;
     loading?: boolean;
 }
 
@@ -38,10 +37,11 @@ export class Datasource extends React.Component<DatasourceProps> {
     };
 
     async componentDidMount() {
-        const { id } = this.props;
+        const { id , datasourceName} = this.props;
         const schema = await fetchSchemaData(id);
         const schemaData:DatasourceSchemaProps[]  = schema.map((schema: DatabaseScemaData) => {
             return {
+                datasourceName: datasourceName,
                 databaseId: id,
                 selected: false,
                 schemaName: schema.schema_name,
@@ -53,6 +53,29 @@ export class Datasource extends React.Component<DatasourceProps> {
             loading: false,
         }));
     }
+
+    handleOnChange = (data: DatasourceSchemaProps) => {
+        this.setState((prevState: DatasourceProps) => {
+            const newSchema = prevState.schema.map((schema) => {
+                return schema.schemaName === data.schemaName ? data : schema;
+            });
+            return {
+                ...prevState,
+                schema: newSchema,
+            };
+        }, () => {
+            // filter out where [].schema.tables.selectedColumns.length > 0
+            const filteredState = {
+                ...this.state,
+                schema: this.state.schema.filter((schema) => {
+                    return (schema.tables || []).filter((table) => {
+                        return (table.selectedColumns || []).length > 0;
+                    }).length > 0;
+                }),
+            };
+            this.state.onChange?.call(this, filteredState);
+        });
+    };
     
 
     render() {
@@ -82,7 +105,7 @@ export class Datasource extends React.Component<DatasourceProps> {
                         gap: "10px",
                     }} >
                         {schema.map((schema) => (
-                            <DatasourceSchema key={'d_schema'+schema.schemaName} {...schema} onChange={this.state.onChange} />
+                            <DatasourceSchema key={'d_schema'+schema.schemaName} {...schema} onChange={this.handleOnChange} />
                         ))}
                     </div>
                 </Collapse.Panel>

@@ -1,22 +1,25 @@
 import{ Datasource } from './Datasource';
 import{ ContextSelection } from './ContextSelection';
 import { DatasourceProps } from './Datasource';
-import { DatasourceTableProps } from "./DatasourceTable";
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { fetchDatabaseData, DatabaseData } from '../contextUtils';
 import { Spin } from 'antd';
 
+/**
+ * Props
+ */
+
+interface DatasourceSelectorProps {
+    onChange: (data: DatasourceProps[]) => void;
+}
 
 
-export function DatasourceSelector(){
+export function DatasourceSelector(props: DatasourceSelectorProps) {
 
     const [datasources, setDatasources] = useState<DatasourceProps[]>([])
     const [loading, setLoading] = useState<boolean>(true);
 
-    // selectedDict is a dictionary that stores the selected data
-    const [ selectedDict, setSelectedDict ] = useState<{ [key: number]: any }>({});
-
-    useEffect(() => {
+    useMemo(() => {
         fetchDatabaseData().then((data:DatabaseData[]) => {
             setDatasources(data.map((database: DatabaseData) => {
                 return {
@@ -32,33 +35,25 @@ export function DatasourceSelector(){
             setLoading(false);
         });
         console.log("<<<<>>>> Datasources: ", datasources);
-    }, [selectedDict])
+    }, [])
 
-    const handleSelectEvent = (data: DatasourceTableProps) => {
-        setSelectedDict((prevState) => {
-            let newState = {
-                ...prevState,
-                [data.databaseId]: (data.selectedColumns || []).length > 0 ? {
-                    ...prevState[data.databaseId],
-                    [data.schemaName]:{
-                        ...prevState[data.databaseId]?.[data.schemaName],
-                        [data.tableName]: data.columns.filter((column) => {
-                            return data.selectedColumns?.includes(column.columnName);
-                        }).map((column) => {
-                            return {
-                                column_name: column.columnName,
-                                column_type: column.columnType,
-                            }
-                        })
-                    }
-                } : null
-            }
-            // remove the key if the value is null
-            if (newState[data.databaseId] === null) {
-                delete newState[data.databaseId];
-            }
+    const handleSelectEvent = (data: DatasourceProps) => {
+        setDatasources((prevDatasources) => {
             
-            return newState;
+            const updated = prevDatasources.map((datasource) => {
+                return datasource.id === data.id ? data : datasource;
+            });
+            
+            // filter out where [].schema.tables.selectedColumns.length > 0
+            const selectedDatasources = updated.filter((datasource) => {
+                return datasource.schema.filter((schema) => {
+                    return (schema.tables || []).filter((table) => {
+                        return (table.selectedColumns || []).length > 0;
+                    }).length > 0;
+                }).length > 0
+            });
+            props.onChange(selectedDatasources);
+            return updated;
         });
     };
 

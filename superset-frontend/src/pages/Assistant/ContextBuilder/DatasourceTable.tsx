@@ -4,12 +4,13 @@ import { fetchColumnData, ColumnData } from "../contextUtils";
 
 export interface DatasourceTableProps {
     databaseId: number;
+    datasourceName: string;
     selected?: boolean;
     schemaName: string;
     tableName: string;
     columns: DatasourceTableColumnProps[];
     selectedColumns?: string[];
-    onChange?: (data:DatasourceTableProps) => void;
+    onChange?: (data: DatasourceTableProps) => void;
     loading?: boolean;
     description?: string;
     descriptionFocused?: boolean;
@@ -40,6 +41,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
 
     handleSelect = () => {
         this.setState((prevState) => ({
+            ...prevState,
             selected: !prevState.selected,
             selectedColumns: prevState.selected ? [] : prevState.columns.map((column) => column.columnName),
             columns: prevState.columns.map((column) => {
@@ -67,10 +69,10 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                 }),
             };
             return newState
-        },()=>{
+        }, () => {
             this.state.onChange?.call(this, this.state);
         });
-        
+
     };
 
 
@@ -84,25 +86,31 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
             columnName: column.column_name,
             columnType: column.data_type,
         }));
-        this.setState({ columns: columnData, loading: false }, () => {this.state.onChange?.call(this, this.state)});
+        this.setState({ columns: columnData, loading: false });
     }
 
-    handleDescriptionFocus = (isFocused:boolean) => {
+    handleDescriptionFocus = (isFocused: boolean) => {
         this.setState({
             descriptionFocused: isFocused
-        });
+        },() => { this.state.onChange?.call(this, this.state) });
     };
 
     handleGenerateDescription = () => {
         this.setState({
             isDescriptionLoading: true
-        });
+        },() => { this.state.onChange?.call(this, this.state) });
         setTimeout(() => {
             this.setState({
                 description: 'This schema contains data related to sales and customers.',
                 isDescriptionLoading: false
-            });
+            }, () => { this.state.onChange?.call(this, this.state) });
         }, 2000);
+    };
+
+    handleDescriptionInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.setState({
+            description: e.target.value
+        },() => { this.state.onChange?.call(this, this.state) });
     };
 
     render() {
@@ -117,35 +125,39 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                 <Collapse.Panel
                     header={
                         <div style={{ display: 'flex', flexDirection: 'row' }}>
-                            <input type="checkbox" checked={selected} onChange={this.handleSelect} />
+                            <input type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading} />
                             <span style={{ width: '10px' }}></span>
                             <span>{this.props.tableName}</span>
                             <span style={{ width: '10px' }}></span>
+                            <span>
+                                {description ? '✅' : '?'}
+                            </span>
                             {loading && <Spin size="small" />}
                         </div>
                     }
                     key={databaseId}>
-                    <Input 
-                                        prefix={
-                                            <img height={'20px'} width={'20px'} src="/static/assets/images/assistant_logo_b_w.svg" onClick={this.handleGenerateDescription}/>
-                                        }
-                                        suffix={
-                                            isDescriptionLoading ? <Spin size="small" /> : null
-                                        }
-                                        placeholder={description || 'What data does this database schema contain?'} 
-                                        value={description}
-                                        onFocus={()=>{this.handleDescriptionFocus(true)}} 
-                                        onBlur={()=>{this.handleDescriptionFocus(false)}}
-                                        style={{
-                                            
-                                            width: '100%',
-                                            padding: '10px',
-                                            margin: '10px 0px',
-                                            borderRadius: '5px',
-                                            border: descriptionFocused ? '1px solid #1890ff' : '0px solid #d9d9d9',
-                                        }}
-                                        />
-                    
+                    <Input
+                        prefix={
+                            <img height={'20px'} width={'20px'} src="/static/assets/images/assistant_logo_b_w.svg" onClick={this.handleGenerateDescription} />
+                        }
+                        suffix={
+                            isDescriptionLoading ? <Spin size="small" /> : null
+                        }
+                        placeholder={description || 'What data does this database schema contain?'}
+                        value={description}
+                        onFocus={() => { this.handleDescriptionFocus(true) }}
+                        onBlur={() => { this.handleDescriptionFocus(false) }}
+                        style={{
+
+                            width: '100%',
+                            padding: '10px',
+                            margin: '10px 0px',
+                            borderRadius: '5px',
+                            border: descriptionFocused ? '1px solid #1890ff' : '0px solid #d9d9d9',
+                        }}
+                        onChange={this.handleDescriptionInput}
+                    />
+
                     <Table
                         columns={tableColumns}
                         dataSource={columns}
