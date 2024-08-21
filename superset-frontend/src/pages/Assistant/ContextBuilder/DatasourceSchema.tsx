@@ -4,6 +4,9 @@ import { DatasourceTable } from "./DatasourceTable";
 import React, { Component } from "react";
 import { fetchTableData, DatabaseSchemaTableData } from "../contextUtils";
 
+
+const { TextArea } = Input;
+
 /**
  * Props
  */
@@ -16,6 +19,7 @@ export interface DatasourceSchemaProps {
     onChange?: (data: DatasourceTableProps) => void;
     loading?: boolean;
     descriptionFocused?: boolean;
+    isDescriptionLoading?: boolean;
 }
 
 /**
@@ -28,6 +32,7 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
         tables: this.props.tables || [],
         loading: true,
         descriptionFocused: false,
+        isDescriptionLoading: false,
         ...this.props
     };
 
@@ -69,10 +74,20 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
         });
     };
 
-
+    handleGenerateDescription = () => {
+        this.setState({
+            isDescriptionLoading: true
+        });
+        setTimeout(() => {
+            this.setState({
+                description: 'This schema contains data related to sales and customers.',
+                isDescriptionLoading: false
+            });
+        }, 2000);
+    };
 
     render() {
-        const { loading, schemaName, tables, description, descriptionFocused } = this.state;
+        const { loading, schemaName, tables, description, descriptionFocused, isDescriptionLoading } = this.state;
         return (
             <>
                 <div style={{
@@ -100,9 +115,13 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
                                     <div>
                                         <Input 
                                         prefix={
-                                            <img height={'24px'} width={'24px'} src="/static/assets/images/assistant_logo_b_n_w.svg" />
+                                            <img height={'20px'} width={'20px'} src="/static/assets/images/assistant_logo_b_w.svg" onClick={this.handleGenerateDescription}/>
+                                        }
+                                        suffix={
+                                            isDescriptionLoading ? <Spin size="small" /> : null
                                         }
                                         placeholder={description || 'What data does this database schema contain?'} 
+                                        value={description}
                                         onFocus={()=>{this.handleDescriptionFocus(true)}} 
                                         onBlur={()=>{this.handleDescriptionFocus(false)}}
                                         style={{
@@ -122,6 +141,7 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
                                 display: 'flex',
                                 flexDirection: 'row',
                                 flexWrap: 'wrap',
+                                gap: 'px',
                             }}>
                                 {tables?.map((table) => (
                                     <DatasourceTable key={'tables' + table.tableName} {...table} onChange={this.handleOnChange} />

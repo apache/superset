@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Collapse, Table, Spin } from "antd";
+import { Collapse, Table, Spin, Input } from "antd";
 import { fetchColumnData, ColumnData } from "../contextUtils";
 
 export interface DatasourceTableProps {
@@ -11,6 +11,9 @@ export interface DatasourceTableProps {
     selectedColumns?: string[];
     onChange?: (data:DatasourceTableProps) => void;
     loading?: boolean;
+    description?: string;
+    descriptionFocused?: boolean;
+    isDescriptionLoading?: boolean;
 }
 
 export interface DatasourceTableColumnProps {
@@ -29,6 +32,8 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
             selected: props.selected || false,
             selectedColumns: [],
             loading: true,
+            descriptionFocused: false,
+            isDescriptionLoading: false,
             ...props,
         };
     }
@@ -82,8 +87,26 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
         this.setState({ columns: columnData, loading: false }, () => {this.state.onChange?.call(this, this.state)});
     }
 
+    handleDescriptionFocus = (isFocused:boolean) => {
+        this.setState({
+            descriptionFocused: isFocused
+        });
+    };
+
+    handleGenerateDescription = () => {
+        this.setState({
+            isDescriptionLoading: true
+        });
+        setTimeout(() => {
+            this.setState({
+                description: 'This schema contains data related to sales and customers.',
+                isDescriptionLoading: false
+            });
+        }, 2000);
+    };
+
     render() {
-        const { databaseId, selected, columns, selectedColumns, loading } = this.state;
+        const { databaseId, selected, columns, selectedColumns, loading, description, descriptionFocused, isDescriptionLoading } = this.state;
         const tableColumns = [
             { title: 'Column', dataIndex: 'columnName', key: 'columnName' },
             { title: 'Type', dataIndex: 'columnType', key: 'columnType' },
@@ -101,8 +124,27 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                             {loading && <Spin size="small" />}
                         </div>
                     }
-                    key={databaseId}
-                >
+                    key={databaseId}>
+                    <Input 
+                                        prefix={
+                                            <img height={'20px'} width={'20px'} src="/static/assets/images/assistant_logo_b_w.svg" onClick={this.handleGenerateDescription}/>
+                                        }
+                                        suffix={
+                                            isDescriptionLoading ? <Spin size="small" /> : null
+                                        }
+                                        placeholder={description || 'What data does this database schema contain?'} 
+                                        value={description}
+                                        onFocus={()=>{this.handleDescriptionFocus(true)}} 
+                                        onBlur={()=>{this.handleDescriptionFocus(false)}}
+                                        style={{
+                                            
+                                            width: '100%',
+                                            padding: '10px',
+                                            margin: '10px 0px',
+                                            borderRadius: '5px',
+                                            border: descriptionFocused ? '1px solid #1890ff' : '0px solid #d9d9d9',
+                                        }}
+                                        />
                     
                     <Table
                         columns={tableColumns}
