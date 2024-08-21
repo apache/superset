@@ -27,7 +27,7 @@ from typing import Any, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-from flask import current_app, Flask, g
+from flask import ctx, current_app, Flask, g
 from sqlalchemy import text
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -230,11 +230,16 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             results: dict[str, Any],
             event: threading.Event,
             app: Flask,
-            g_copy: dict[str, Any],
+            g_copy: ctx._AppCtxGlobals,
         ) -> None:
             logger.debug("Query %d: Running query: %s", query_id, sql)
 
             try:
+                # Flask contexts are local to the thread that handles the request.
+                # When you spawn a new thread, it does not inherit the contexts
+                # from the parent thread,
+                # meaning the g object and other context-bound variables are not
+                # accessible
                 with app.app_context():
                     for key, value in g_copy.__dict__.items():
                         setattr(g, key, value)

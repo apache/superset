@@ -23,6 +23,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pandas as pd
 import pytest
+from flask import g, has_app_context
 from pytest_mock import MockerFixture
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from sqlalchemy import sql, text, types
@@ -433,6 +434,33 @@ def test_execute_with_cursor_in_parallel(app, mocker: MockerFixture):
         mock_query.set_extra_json_key.assert_called_once_with(
             key=QUERY_CANCEL_KEY, value=query_id
         )
+
+
+def test_execute_with_cursor_app_context(app, mocker: MockerFixture):
+    """Test that `execute_with_cursor` still contains the current app context"""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.query_id = None
+
+    mock_query = mocker.MagicMock()
+    g.some_value = "some_value"
+
+    def _mock_execute(*args, **kwargs):
+        assert has_app_context()
+        assert g.some_value == "some_value"
+
+    with patch.object(TrinoEngineSpec, "execute", side_effect=_mock_execute):
+        with patch.dict(
+            "superset.config.DISALLOWED_SQL_FUNCTIONS",
+            {},
+            clear=True,
+        ):
+            TrinoEngineSpec.execute_with_cursor(
+                cursor=mock_cursor,
+                sql="SELECT 1 FROM foo",
+                query=mock_query,
+            )
 
 
 def test_get_columns(mocker: MockerFixture):
