@@ -17,6 +17,8 @@
  * under the License.
  */
 import { normalizeTimestamp, QueryState, t } from '@superset-ui/core';
+import { omit } from 'lodash';
+import { shallowEqual } from 'react-redux';
 import * as actions from '../actions/sqlLab';
 import { now } from '../../utils/dates';
 import {
@@ -696,7 +698,19 @@ export default function sqlLabReducer(state = {}, action) {
                 ? prevState
                 : currentState,
           };
-          change = true;
+          const newExtra = JSON.stringify(newQueries[id].extra);
+          const prevExtra = JSON.stringify(state.queries[id].extra);
+          if (
+            shallowEqual(
+              omit(newQueries[id], ['extra']),
+              omit(state.queries[id], ['extra']),
+            ) &&
+            newExtra === prevExtra
+          ) {
+            newQueries[id] = state.queries[id];
+          } else {
+            change = true;
+          }
         }
       });
       if (!change) {
