@@ -53,7 +53,7 @@ const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
 const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
 const commitHashPath = process.env.CI_COMMIT_SHORT_SHA
-  ? process.env.CI_COMMIT_SHORT_SHA + '/'
+  ? `${process.env.CI_COMMIT_SHORT_SHA}/`
   : '';
 
 const output = {

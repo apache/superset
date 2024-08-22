@@ -252,29 +252,113 @@ export function querySuccess(query, results) {
   return { type: QUERY_SUCCESS, query, results };
 }
 
+function haveCommonElement(arr1, arr2) {
+  return arr1.filter(item => arr2.includes(item));
+}
+
+function recursivelyGetExpObject(node) {
+  const SEARCH_KEYS = ['expr', 'left', 'right'];
+  const FINAL_KEY = 'object';
+
+  const thisObjectSearchKeys = haveCommonElement(
+    Object.keys(node),
+    SEARCH_KEYS,
+  );
+
+  if (thisObjectSearchKeys.length) {
+    return thisObjectSearchKeys.map(key => recursivelyGetExpObject(node[key]));
+  }
+  if (node[FINAL_KEY]) {
+    return node;
+  }
+  return undefined;
+}
+
 export function queryFailed(query, msg, link, errors) {
-  return function (dispatch) {
-    const eventData = {
-      has_err: true,
-      start_offset: query.startDttm,
-      ts: new Date().getTime(),
-    };
-    errors?.forEach(({ error_type: errorType, extra }) => {
-      const messages = extra?.issue_codes?.map(({ message }) => message) || [
-        errorType,
-      ];
-      messages.forEach(message => {
-        dispatch(
-          logEvent(LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY, {
-            ...eventData,
-            error_type: errorType,
-            error_details: message,
-          }),
-        );
-      });
+  let concreteSyntaxTree = {};
+  try {
+    concreteSyntaxTree = parse(query.sql, {
+      dialect: 'bigquery',
     });
 
-    dispatch({ type: QUERY_FAILED, query, msg, link, errors });
+    const fromClauseMaps = [];
+    const parseTree = cstVisitor({
+      from_clause: node => {
+        fromClauseMaps.push(recursivelyGetExpObject(node));
+      },
+    });
+
+    parseTree(concreteSyntaxTree);
+
+    const fromClauseMapsValid = fromClauseMaps.flat(Infinity).filter(Boolean);
+    const tablesMissingProjectId = fromClauseMapsValid.reduce((acc, cur) => {
+      if (cur.object.property) {
+        return acc;
+      }
+      return [...acc, show(cur)];
+    }, []);
+
+    return function (dispatch) {
+      const eventData = {
+        has_err: true,
+        start_offset: query.startDttm,
+        ts: new Date().getTime(),
+      };
+      errors?.forEach(({ error_type: errorType, extra }) => {
+        const messages = extra?.issue_codes?.map(({ message }) => message) || [
+          errorType,
+        ];
+        messages.forEach(message => {
+          dispatch(
+            logEvent(LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY, {
+              ...eventData,
+              error_type: errorType,
+              error_details: message,
+            }),
+          );
+        });
+      });
+
+      const isCustomBWError = tablesMissingProjectId.length;
+
+      const customMsg = isCustomBWError
+        ? `Missing ProjectId in following tables: \n${tablesMissingProjectId.join(
+            '\n',
+          )}`
+        : msg;
+
+      dispatch({
+        type: QUERY_FAILED,
+        query,
+        msg: customMsg,
+        link,
+        errors: isCustomBWError
+          ? [
+              {
+                error_type: 'TABLE_DOES_NOT_EXIST_ERROR',
+                level: 'error',
+                extra: {
+                  issue_codes: [
+                    { message: 'BW custom detailed message PLACEHOLDER' },
+                  ],
+                },
+              },
+            ]
+          : errors,
+      });
+    };
+  } catch (e) {
+    console.log({ err: e });
+  }
+
+  return function (dispatch) {
+    dispatch({
+      type: QUERY_FAILED,
+      query,
+      msg: `${msg} -- failed FE SQL syntax parsing.`,
+      link,
+      errors,
+    });
   };
 }
 
