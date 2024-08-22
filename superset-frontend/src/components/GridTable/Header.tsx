@@ -21,6 +21,7 @@ import { styled, useTheme, t } from '@superset-ui/core';
 import type { Column, GridApi } from 'ag-grid-community';
 
 import Icons from 'src/components/Icons';
+import { PIVOT_COL_ID } from './constants';
 import HeaderMenu from './HeaderMenu';
 
 interface Params {
@@ -32,7 +33,6 @@ interface Params {
   setSort: (sort: string | null, multiSort: boolean) => void;
 }
 
-export const PIVOT_COL_ID = '-1';
 const SORT_DIRECTION = [null, 'asc', 'desc'];
 
 const HeaderCell = styled.div`

@@ -1603,7 +1603,7 @@ TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True
 TALISMAN_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
-        "default-src": ["'self'"],
+        "default-src": ["'self'", "data:"],
         "img-src": [
             "'self'",
             "blob:",
@@ -1634,7 +1634,7 @@ TALISMAN_CONFIG = {
 TALISMAN_DEV_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
-        "default-src": ["'self'"],
+        "default-src": ["'self'", "data:"],
         "img-src": [
             "'self'",
             "blob:",

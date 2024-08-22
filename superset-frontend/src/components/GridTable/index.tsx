@@ -29,16 +29,14 @@ import 'ag-grid-community/styles/ag-theme-quartz.css';
 import copyTextToClipboard from 'src/utils/copy';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 
-import Header, { PIVOT_COL_ID } from './Header';
+import { PIVOT_COL_ID, GridSize } from './constants';
+import Header from './Header';
 
 const gridComponents = {
   agColumnHeader: Header,
 };
 
-export enum GridSize {
-  Small = 'small',
-  Middle = 'middle',
-}
+export { GridSize };
 
 export type ColDef = {
   type: string;
@@ -67,7 +65,7 @@ export interface TableProps<RecordType> {
 
   height: number;
 
-  cellSelectable?: boolean;
+  columnReorderable?: boolean;
 
   sortable?: boolean;
 
@@ -87,6 +85,7 @@ function GridTable<RecordType extends object>({
   data,
   columns,
   sortable = true,
+  columnReorderable,
   height,
   externalFilter,
   showRowNumber,
@@ -138,6 +137,7 @@ function GridTable<RecordType extends object>({
           resizable: false,
           pinned: 'left' as const,
           sortable: false,
+          ...(columnReorderable && { suppressMovable: true }),
         },
         ...columns.map(
           (
@@ -157,10 +157,10 @@ function GridTable<RecordType extends object>({
           }),
         ),
       ].slice(showRowNumber ? 0 : 1),
-    [columns, sortable, showRowNumber, rowIndexLength],
+    [rowIndexLength, columnReorderable, columns, showRowNumber, sortable],
   );
   const defaultColDef: AgReactUiProps['defaultColDef'] = {
-    suppressMovable: true,
+    ...(!columnReorderable && { suppressMovable: true }),
     resizable: true,
     sortable,
     filter: Boolean(enableActions),

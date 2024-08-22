@@ -153,6 +153,7 @@ const FilterableTable = ({
         showRowNumber
         striped={striped}
         enableActions
+        columnReorderable
       />
     </StyledFilterableTable>
   );
