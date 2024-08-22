@@ -18,6 +18,7 @@ export interface DatasourceSchemaProps {
     loading?: boolean;
     descriptionFocused?: boolean;
     isDescriptionLoading?: boolean;
+    tablesToShow?: number;
 }
 
 /**
@@ -31,6 +32,7 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
         loading: true,
         descriptionFocused: false,
         isDescriptionLoading: false,
+        tablesToShow: 15,
         ...this.props
     };
 
@@ -95,15 +97,27 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
             isDescriptionLoading: true
         });
         setTimeout(() => {
-            this.setState({
-                description: 'This schema contains data related to sales and customers.',
-                isDescriptionLoading: false
+            this.setState((prevState) => {
+                return {
+                    description: 'This schema contains data related to sales and customers.',
+                    isDescriptionLoading: false
+                }
             });
         }, 2000);
     };
 
+
+    loadMoreTables = () => {
+        this.setState((prevState) => {
+            return {
+                tablesToShow: prevState.tablesToShow + 15
+            };
+        });
+    };
+
     render() {
-        const { loading, schemaName, tables, description, descriptionFocused, isDescriptionLoading } = this.state;
+        const { loading, schemaName, tables, description, descriptionFocused, isDescriptionLoading, tablesToShow } = this.state;
+        const tablesToDisplay = tables?.slice(0, tablesToShow);
         return (
             <>
                 <div style={{
@@ -162,10 +176,13 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
                                 flexWrap: 'wrap',
                                 gap: 'px',
                             }}>
-                                {tables?.map((table) => (
+                                {tablesToDisplay?.map((table) => (
                                     <DatasourceTable key={'tables' + table.tableName} {...table} onChange={this.handleOnChange} />
                                 ))}
                             </div>
+                            {(tablesToShow || 15) < (tables || []).length && (
+                                <button onClick={this.loadMoreTables}>Load More</button>
+                            )}
                         </Collapse.Panel>
                     </Collapse>
                 </div>

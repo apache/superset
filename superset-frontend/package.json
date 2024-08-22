@@ -86,6 +86,7 @@
     "@emotion/styled": "^11.3.0",
     "@fontsource/fira-code": "^5.0.18",
     "@fontsource/inter": "^5.0.20",
+    "@google/generative-ai": "^0.17.0",
     "@reduxjs/toolkit": "^1.9.3",
     "@rjsf/core": "^5.19.3",
     "@rjsf/utils": "^5.19.3",

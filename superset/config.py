@@ -91,6 +91,9 @@ if "SUPERSET_HOME" in os.environ:
 else:
     DATA_DIR = os.path.expanduser("~/.superset")
 
+# Assistant configuration
+GEMINI_API_KEY = None
+
 # ---------------------------------------------------------
 # Superset specific config
 # ---------------------------------------------------------
@@ -1809,6 +1812,7 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 
 
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
+
 
 
 # -------------------------------------------------------------------

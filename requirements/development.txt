@@ -12,6 +12,8 @@
     #   -r requirements/development.in
 sqlalchemy-drill==1.1.5
 
+google-generativeai==0.7.2
+
 appnope==0.1.4
     # via ipython
 astroid==3.1.0

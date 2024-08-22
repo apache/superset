@@ -1,6 +1,9 @@
 import React, { Component } from "react";
 import { Collapse, Table, Spin, Input } from "antd";
 import { fetchColumnData, ColumnData, getSelectStarQuery, executeQuery } from "../contextUtils";
+import { getTableDescription } from "../assistantUtils";
+
+const { TextArea } = Input;
 
 export interface DatasourceTableProps {
     databaseId: number;
@@ -13,6 +16,7 @@ export interface DatasourceTableProps {
     onChange?: (data: DatasourceTableProps) => void;
     loading?: boolean;
     description?: string;
+    descriptionExtra?: string;
     descriptionFocused?: boolean;
     isDescriptionLoading?: boolean;
     selectStarQuery?: string;
@@ -55,7 +59,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
         }), () => {
             this.loadTableData();
         });
-        
+
     };
 
     handleColumnSelect = (selectedColumnNames: string[]) => {
@@ -75,7 +79,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
         }, () => {
             this.loadTableData();
         });
-        
+
     };
 
     loadTableData = async () => {
@@ -87,16 +91,16 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
             this.setState({
                 loading: false,
                 data: data
-            },()=>{this.state.onChange?.call(this, this.state);});
+            }, () => { this.state.onChange?.call(this, this.state); });
             return;
         }
-        const selectStarQuery = await getSelectStarQuery( databaseId, tableName, schemaName);
+        const selectStarQuery = await getSelectStarQuery(databaseId, tableName, schemaName);
         const tableData = await executeQuery(databaseId, schemaName, selectStarQuery);
         this.setState({
             loading: false,
             selectStarQuery: selectStarQuery,
             data: tableData,
-        },()=>{this.state.onChange?.call(this, this.state);})
+        }, () => { this.state.onChange?.call(this, this.state); })
     };
 
 
@@ -111,7 +115,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
             columnType: column.data_type,
         }));
 
-        
+
 
         this.setState({ columns: columnData, loading: false });
     }
@@ -119,25 +123,28 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
     handleDescriptionFocus = (isFocused: boolean) => {
         this.setState({
             descriptionFocused: isFocused
-        },() => { this.state.onChange?.call(this, this.state) });
+        }, () => { this.state.onChange?.call(this, this.state) });
     };
 
-    handleGenerateDescription = () => {
+    handleGenerateDescription = async () => {
         this.setState({
             isDescriptionLoading: true
-        },() => { this.state.onChange?.call(this, this.state) });
-        setTimeout(() => {
-            this.setState({
-                description: 'This schema contains data related to sales and customers.',
-                isDescriptionLoading: false
-            }, () => { this.state.onChange?.call(this, this.state) });
-        }, 2000);
+        }, () => { this.state.onChange?.call(this, this.state) });
+        await this.loadTableData();
+        const descriptions = await getTableDescription(this.state, this.state.tableName);
+        this.setState({
+            description: descriptions.human_understandable,
+            descriptionExtra: descriptions.llm_optimized,
+            isDescriptionLoading: false
+        }, () => { this.state.onChange?.call(this, this.state) });
+        console.log("Generated Descriptions", descriptions);
     };
 
-    handleDescriptionInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleDescriptionInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        console.log("Description Input", e.target.value);
         this.setState({
             description: e.target.value
-        },() => { this.state.onChange?.call(this, this.state) });
+        }, () => { this.state.onChange?.call(this, this.state) });
     };
 
     render() {
@@ -148,22 +155,24 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
         ];
 
         return (
+
             <Collapse>
                 <Collapse.Panel
                     header={
                         <div style={{ display: 'flex', flexDirection: 'row' }}>
-                            <input type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading || columns.length === 0 } />
+                            <input type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading || columns.length === 0} />
                             <span style={{ width: '10px' }}></span>
                             <span>{this.props.tableName}</span>
                             <span style={{ width: '10px' }}></span>
                             <span>
-                                {description ? '✅' : '?'}
+                                {description ? ' ✅ ' : ' ? '}
                             </span>
                             {loading && <Spin size="small" />}
                         </div>
                     }
                     key={databaseId}>
-                    <Input
+
+                    {/* <Input
                         prefix={
                             <img height={'20px'} width={'20px'} src="/static/assets/images/assistant_logo_b_w.svg" onClick={this.handleGenerateDescription} />
                         }
@@ -175,7 +184,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                         onFocus={() => { this.handleDescriptionFocus(true) }}
                         onBlur={() => { this.handleDescriptionFocus(false) }}
                         style={{
-
+                            height: 'auto',
                             width: '100%',
                             padding: '10px',
                             margin: '10px 0px',
@@ -183,7 +192,38 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                             border: descriptionFocused ? '1px solid #1890ff' : '0px solid #d9d9d9',
                         }}
                         onChange={this.handleDescriptionInput}
-                    />
+                    /> */}
+                    {/* Replace Input with TextArea */}
+                    <div>
+                        {/* assistant logo in top right */}
+                        {/* loading icon in top left */}
+                        <img style={{
+                            right: '10px',
+                            top: '10px'
+                        }} height={'20px'} width={'20px'} src="/static/assets/images/assistant_logo_b_w.svg" onClick={this.handleGenerateDescription} />
+                        {isDescriptionLoading ? <Spin style={{
+                            left: '10px',
+                            top: '10px'
+                        }} size="small" /> : null}
+                        <TextArea
+                            placeholder={description || 'What data does this database schema contain?'}
+                            value={description}
+                            onFocus={() => { this.handleDescriptionFocus(true) }}
+                            onBlur={() => { this.handleDescriptionFocus(false) }}
+                            style={{
+                                height: 'auto',
+                                width: '100%',
+                                padding: '10px',
+                                margin: '10px 0px',
+                                borderRadius: '5px',
+                                border: descriptionFocused ? '1px solid #1890ff' : '0px solid #d9d9d9',
+                            }}
+                            onChange={this.handleDescriptionInput}
+                            autoSize={true}
+                        />
+
+                    </div>
+
 
                     <Table
                         columns={tableColumns}
