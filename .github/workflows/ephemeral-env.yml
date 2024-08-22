@@ -21,7 +21,7 @@ jobs:
           fi
 
   ephemeral-env-comment:
-    if: needs.config.outputs.has-secrets && github.event_name != 'workflow_dispatch'
+    if: needs.config.outputs.has-secrets || github.event_name == 'workflow_dispatch'
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.issue.number || github.run_id }}-comment
       cancel-in-progress: true
@@ -35,6 +35,10 @@ jobs:
       feature-flags: ${{ steps.eval-feature-flags.outputs.result }}
 
     steps:
+    - name: Dummy no-op for workflow_dispatch
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        echo "Skipping with success"
     - name: Debug
       run: |
         echo "Comment on PR #${{ github.event.issue.number }} by ${{ github.event.issue.user.login }}, ${{ github.event.comment.author_association }}"
