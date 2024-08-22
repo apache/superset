@@ -100,6 +100,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Get Info from comment
+        if: github.event_name != 'workflow_dispatch'
         uses: actions/github-script@v7
         id: get-pr-info
         with:
@@ -114,6 +115,7 @@ jobs:
             return pr.data;
 
       - name: Debug
+        if: github.event_name != 'workflow_dispatch'
         id: get-sha
         run: |
           echo "sha=${{ fromJSON(steps.get-pr-info.outputs.result).head.sha }}" >> $GITHUB_OUTPUT
@@ -121,7 +123,7 @@ jobs:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} : ${{steps.get-sha.outputs.sha}} )"
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.get-sha.outputs.sha }}
+          ref: ${{ steps.get-sha.outputs.sha || github.sha }}
           persist-credentials: false
 
       - name: Set up QEMU
@@ -153,7 +155,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: superset-ci
-          IMAGE_TAG: apache/superset:${{ steps.get-sha.outputs.sha }}-ci
+          IMAGE_TAG: apache/superset:${{ steps.get-sha.outputs.sha || github.sha }}-ci
         run: |
           docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:pr-${{ github.event.issue.number }}-ci
           docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
