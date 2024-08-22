@@ -223,7 +223,13 @@ const HeaderMenu: React.FC<Params> = ({
           <IconMenuItem
             onClick={() => {
               const column = api.getColumn(colId);
-              column?.setColDef(column?.getColDef(), { minWidth: undefined });
+              column?.setColDef(
+                {
+                  ...column?.getColDef(),
+                  minWidth: undefined,
+                },
+                column?.getColDef(),
+              );
               api.autoSizeColumn(colId);
             }}
           >
