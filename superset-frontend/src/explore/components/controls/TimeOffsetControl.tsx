@@ -131,22 +131,16 @@ export default function TimeOffsetControls({
 
   useEffect(() => {
     if (!isEmpty(currentTimeRangeFilters)) {
-      customTimeRange(currentTimeRangeFilters[0]?.comparator ?? '');
-      const date = currentTimeRangeFilters[0]?.comparator.split(' : ')[0];
-      const parsedDate = parseDttmToDate(date);
-      if (parsedDate) {
-        setFormatedFilterDate(moment(parseDttmToDate(date)));
-      } else {
-        fetchTimeRange(
-          currentTimeRangeFilters[0]?.comparator,
-          currentTimeRangeFilters[0]?.subject,
-        ).then(res => {
-          const datePattern = /\d{4}-\d{2}-\d{2}/g;
-          const dates = res?.value?.match(datePattern);
-          const [startDate, _] = dates ?? [];
-          setFormatedFilterDate(moment(parseDttmToDate(startDate)));
-        });
-      }
+      fetchTimeRange(
+        currentTimeRangeFilters[0]?.comparator,
+        currentTimeRangeFilters[0]?.subject,
+      ).then(res => {
+        const datePattern = /\d{4}-\d{2}-\d{2}/g;
+        const dates = res?.value?.match(datePattern);
+        const [startDate, endDate] = dates ?? [];
+        customTimeRange(`${startDate} : ${endDate}` ?? '');
+        setFormatedFilterDate(moment(parseDttmToDate(startDate)));
+      });
     } else {
       setCustomStartDateInFilter(undefined);
       setFormatedFilterDate(moment(parseDttmToDate('')));

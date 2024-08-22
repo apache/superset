@@ -90,27 +90,34 @@ export default function PopKPI(props: PopKPIProps) {
     if (!currentTimeRangeFilter || (!shift && !startDateOffset)) {
       setComparisonRange('');
     } else if (!isEmpty(shift) || startDateOffset) {
-      const newShift = getTimeOffset({
-        timeRangeFilter: {
-          ...currentTimeRangeFilter,
-          comparator:
-            dashboardTimeRange ?? (currentTimeRangeFilter as any).comparator,
-        },
-        shifts: ensureIsArray(shift),
-        startDate: startDateOffset || '',
-      });
       const promise: any = fetchTimeRange(
         dashboardTimeRange ?? (currentTimeRangeFilter as any).comparator,
         currentTimeRangeFilter.subject,
-        newShift || [],
       );
       Promise.resolve(promise).then((res: any) => {
-        const response: string[] = ensureIsArray(res.value);
-        const firstRange: string = response.flat()[0];
-        const rangeText = firstRange.split('vs\n');
-        setComparisonRange(
-          rangeText.length > 1 ? rangeText[1].trim() : rangeText[0],
-        );
+        const datePattern = /\d{4}-\d{2}-\d{2}/g;
+        const dates = res?.value?.match(datePattern);
+        const [parsedStartDate, parsedEndDate] = dates ?? [];
+        const newShift = getTimeOffset({
+          timeRangeFilter: {
+            ...currentTimeRangeFilter,
+            comparator: `${parsedStartDate} : ${parsedEndDate}`,
+          },
+          shifts: ensureIsArray(shift),
+          startDate: startDateOffset || '',
+        });
+        fetchTimeRange(
+          dashboardTimeRange ?? (currentTimeRangeFilter as any).comparator,
+          currentTimeRangeFilter.subject,
+          ensureIsArray(newShift),
+        ).then(res => {
+          const response: string[] = ensureIsArray(res.value);
+          const firstRange: string = response.flat()[0];
+          const rangeText = firstRange.split('vs\n');
+          setComparisonRange(
+            rangeText.length > 1 ? rangeText[1].trim() : rangeText[0],
+          );
+        });
       });
     }
   }, [currentTimeRangeFilter, shift, startDateOffset, dashboardTimeRange]);

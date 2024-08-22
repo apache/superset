@@ -108,24 +108,28 @@ export const ComparisonRangeLabel = ({
         );
       }
       const promises = currentTimeRangeFilters.map(filter => {
-        const newShifts = getTimeOffset({
-          timeRangeFilter: filter,
-          shifts: shiftsArray,
-          startDate: useStartDate,
-          includeFutureOffsets: false, // So we don't trigger requests for future dates
-        });
+        const nonCustomNorInheritShifts =
+          shiftsArray.filter(
+            (shift: string) => shift !== 'custom' && shift !== 'inherit',
+          ) || [];
+        const customOrInheritShifts =
+          shiftsArray.filter(
+            (shift: string) => shift === 'custom' || shift === 'inherit',
+          ) || [];
 
-        if (!isEmpty(newShifts)) {
+        // There's no custom or inherit to compute, so we can just fetch the time range
+        if (isEmpty(customOrInheritShifts)) {
           return fetchTimeRange(
             filter.comparator,
             filter.subject,
-            ensureIsArray(newShifts),
+            ensureIsArray(nonCustomNorInheritShifts),
           );
         }
-        // Need to parse Human readable dates to actual dates
+        // Need to compute custom or inherit shifts first and then mix with the non custom or inherit shifts
         if (
-          (ensureIsArray(shifts)[0] === 'custom' && startDate) ||
-          ensureIsArray(shifts)[0] !== 'custom'
+          (ensureIsArray(customOrInheritShifts).includes('custom') &&
+            startDate) ||
+          ensureIsArray(customOrInheritShifts).includes('inherit')
         ) {
           return fetchTimeRange(filter.comparator, filter.subject).then(res => {
             const datePattern = /\d{4}-\d{2}-\d{2}/g;
@@ -143,14 +147,16 @@ export const ComparisonRangeLabel = ({
                     ...filter,
                     comparator: `${parsedStartDate} : ${parsedEndDate}`,
                   },
-                  shifts: shiftsArray,
+                  shifts: customOrInheritShifts,
                   startDate: useStartDate,
                   includeFutureOffsets: false, // So we don't trigger requests for future dates
                 });
                 return fetchTimeRange(
                   filter.comparator,
                   filter.subject,
-                  ensureIsArray(postProcessedShifts),
+                  ensureIsArray(
+                    postProcessedShifts.concat(nonCustomNorInheritShifts),
+                  ),
                 );
               }
             }

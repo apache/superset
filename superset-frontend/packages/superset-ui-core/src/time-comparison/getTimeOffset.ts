@@ -22,27 +22,6 @@ import { customTimeRangeDecode } from './customTimeRangeDecode';
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-export const parseDateParts = (dateParts: string[]) => {
-  const parts = ensureIsArray(dateParts);
-  if (parts.length === 3) {
-    const [a, b, c] = parts;
-    const parsedA = parseInt(a, 10);
-    const parsedB = parseInt(b, 10);
-    const parsedC = parseInt(c, 10);
-    if (parsedA > 31)
-      return { year: parsedA, month: parsedB - 1, day: parsedC }; // a is year: YYYY-MM-DD
-    if (parsedC > 31)
-      return { year: parsedC, month: parsedA - 1, day: parsedB }; // c is year: MM-DD-YYYY
-  } else if (parts.length === 2) {
-    const [a, b] = parts;
-    const parsedA = parseInt(a, 10);
-    const parsedB = parseInt(b, 10);
-    if (parsedA > 31) return { year: parsedA, month: parsedB - 1, day: 0 }; // a is year: YYYY-MM
-    return { year: parsedB, month: parsedA - 1, day: 0 }; // b is year: MM-YYYY
-  }
-  return { year: 0, month: 0, day: 0 };
-};
-
 export const parseDttmToDate = (
   dttm: string,
   isEndDate = false,
@@ -141,11 +120,15 @@ export const parseDttmToDate = (
     if (parts.length === 1) {
       parsed = new Date(Date.UTC(parseInt(parts[0], 10), 0));
     } else if (parts.length === 2) {
-      const parsedParts = parseDateParts(parts);
-      parsed = new Date(Date.UTC(parsedParts.year, parsedParts.month));
+      parsed = new Date(
+        Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1),
+      );
     } else if (parts.length === 3) {
-      const parsedParts = parseDateParts(parts);
-      parsed = new Date(parsedParts.year, parsedParts.month, parsedParts.day);
+      parsed = new Date(
+        parseInt(parts[0], 10),
+        parseInt(parts[1], 10) - 1,
+        parseInt(parts[2], 10),
+      );
     } else {
       parsed = new Date(dttm);
     }
