@@ -264,7 +264,7 @@ jobs:
         echo "ip=$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq -r '.NetworkInterfaces | first | .Association.PublicIp')" >> $GITHUB_OUTPUT
 
     - name: Comment (success)
-      if: ${{ success() }}  && github.event_name != 'workflow_dispatch'
+      if: ${{ success() }}k
       uses: actions/github-script@v7
       with:
         github-token: ${{github.token}}
@@ -274,18 +274,22 @@ jobs:
           const region = "us-west-2";  // Replace with your AWS region
           const logLink = `https://console.aws.amazon.com/cloudwatch/home?region=${region}#logsV2:log-groups/log-group/${encodeURIComponent(logGroupName)}/log-events/${encodeURIComponent(logStreamName)}`;
           let body;
-          body += `@${{ github.event.comment.user.login }}, your ephemeral environment is spinning up at `
+          body += `@${{ github.actor }}, your ephemeral environment is spinning up at `
           body += `http://${{ steps.get-ip.outputs.ip }}:8080.\n`
           body += `Logs can be found [here](${logLink}).\n`
           body += `Credentials are \`admin\`/\`admin\`.`
           body += `Please allow several minutes for bootstrapping and startup.`
 
-          github.rest.issues.createComment({
-            issue_number: ${{ github.event.issue.number }},
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body,
-          });
+          console.log(body);
+
+          if (github.event_name !== 'workflow_dispatch') {
+            github.rest.issues.createComment({
+              issue_number: ${{ github.event.issue.number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+          }
 
     - name: Comment (failure)
       if: ${{ failure() }} && github.event_name != 'workflow_dispatch'
