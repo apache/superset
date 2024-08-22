@@ -170,6 +170,12 @@ jobs:
       pull-requests: write
 
     steps:
+
+    - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} : ${{steps.get-sha.outputs.sha}} )"
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
