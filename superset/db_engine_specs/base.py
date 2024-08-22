@@ -45,7 +45,6 @@ from deprecation import deprecated
 from flask import current_app, g, url_for
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
-from jsonpath_ng import parse
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import column, select, types
@@ -60,7 +59,7 @@ from sqlalchemy.types import TypeEngine
 from sqlparse.tokens import CTE
 
 from superset import sql_parse
-from superset.constants import PASSWORD_MASK, TimeGrain as TimeGrainConstants
+from superset.constants import TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
@@ -75,6 +74,7 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
+from superset.utils.json import redact_sensitive, reveal_sensitive
 from superset.utils.network import is_hostname_valid, is_port_open
 from superset.utils.oauth2 import encode_oauth2_state
 
@@ -398,6 +398,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     custom_errors: dict[
         Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
     ] = {}
+
+    # List of JSON path to fields in `encrypted_extra` that should be masked when the
+    # database is edited. By default everything is masked.
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields: set[str] = {"$.*"}
 
     # Whether the engine supports file uploads
     # if True, database will be listed as option in the upload file form
@@ -2161,11 +2166,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return user.username if user else None
 
-    # list of JSON path to fields in `encrypted_extra` that should be masked when the
-    # database is edited
-    # pylint: disable=invalid-name
-    encrypted_extra_sensitive_fields: list[str] = []
-
     @classmethod
     def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
         """
@@ -2185,12 +2185,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         except (TypeError, json.JSONDecodeError):
             return encrypted_extra
 
-        for json_path in cls.encrypted_extra_sensitive_fields:
-            jsonpath_expr = parse(json_path)
-            for match in jsonpath_expr.find(config):
-                match.context.value[match.path.fields[0]] = PASSWORD_MASK
+        masked_encrypted_extra = redact_sensitive(
+            config,
+            cls.encrypted_extra_sensitive_fields,
+        )
 
-        return json.dumps(config)
+        return json.dumps(masked_encrypted_extra)
 
     @classmethod
     def unmask_encrypted_extra(cls, old: str | None, new: str | None) -> str | None:
@@ -2210,12 +2210,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         except (TypeError, json.JSONDecodeError):
             return new
 
-        for json_path in cls.encrypted_extra_sensitive_fields:
-            jsonpath_expr = parse(json_path)
-            for match in jsonpath_expr.find(new_config):
-                if match.value == PASSWORD_MASK:
-                    old_value = jsonpath_expr.find(old_config)
-                    match.context.value[match.path.fields[0]] = old_value[0].value
+        new_config = reveal_sensitive(
+            old_config,
+            new_config,
+            cls.encrypted_extra_sensitive_fields,
+        )
 
         return json.dumps(new_config)
 

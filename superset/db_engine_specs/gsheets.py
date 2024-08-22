@@ -93,7 +93,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
-    encrypted_extra_sensitive_fields = ["$.service_account_info.private_key"]
+    encrypted_extra_sensitive_fields = {"$.service_account_info.private_key"}
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         SYNTAX_ERROR_REGEX: (

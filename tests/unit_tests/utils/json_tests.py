@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import copy
 import datetime
 import math
 from unittest.mock import MagicMock
@@ -146,3 +147,48 @@ def test_validate_json():
         str(excinfo.value)
         == "Unterminated string starting at: line 1 column 28 (char 27)"
     )
+
+
+def test_sensitive_fields() -> None:
+    """
+    Test masking/unmasking of sensitive fields.
+    """
+    payload = {
+        "password": "SECRET",
+        "credentials": {
+            "user_id": "alice",
+            "user_token": "TOKEN",
+        },
+    }
+    sensitive_fields = {"$.password", "$.credentials.user_token"}
+
+    redacted_payload = json.redact_sensitive(payload, sensitive_fields)
+    assert redacted_payload == {
+        "password": "XXXXXXXXXX",
+        "credentials": {
+            "user_id": "alice",
+            "user_token": "XXXXXXXXXX",
+        },
+    }
+
+    new_payload = copy.deepcopy(redacted_payload)
+    new_payload["credentials"]["user_id"] = "bob"
+
+    assert json.reveal_sensitive(payload, new_payload, sensitive_fields) == {
+        "password": "SECRET",
+        "credentials": {
+            "user_id": "bob",
+            "user_token": "TOKEN",
+        },
+    }
+
+    new_payload = copy.deepcopy(redacted_payload)
+    new_payload["credentials"]["user_token"] = "NEW_TOKEN"
+
+    assert json.reveal_sensitive(payload, new_payload, sensitive_fields) == {
+        "password": "SECRET",
+        "credentials": {
+            "user_id": "alice",
+            "user_token": "NEW_TOKEN",
+        },
+    }
