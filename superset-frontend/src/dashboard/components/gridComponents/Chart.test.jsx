@@ -72,13 +72,10 @@ const props = {
 };
 
 function setup(overrideProps) {
-  return render(
-      <Chart.WrappedComponent {...props} {...overrideProps} />,
-    {
-      useRedux: true,
-      useRouter: true,
-    },
-  );
+  return render(<Chart.WrappedComponent {...props} {...overrideProps} />, {
+    useRedux: true,
+    useRouter: true,
+  });
 }
 
 test('should render a SliceHeader', () => {

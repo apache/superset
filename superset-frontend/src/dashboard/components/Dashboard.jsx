@@ -222,7 +222,7 @@ class Dashboard extends Component {
         !areObjectsEqual(appliedFilters, activeFilters, {
           ignoreUndefined: true,
         });
-      
+
       // triggers when filters are/were present and are changed/removed
       if (!editMode && filtersChanged && (hasFilters || hadFilters)) {
         this.setState({
@@ -235,7 +235,8 @@ class Dashboard extends Component {
       // triggers for dashboards with no filters
       if (
         (editMode || (!hasFilters && !hadFilters)) &&
-        dashboardState.sliceIds.length > 0 && !hasTriggered
+        dashboardState.sliceIds.length > 0 &&
+        !hasTriggered
       ) {
         this.setState({ hasTriggered: true });
         this.refreshCharts(dashboardState.sliceIds);
