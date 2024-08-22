@@ -18,15 +18,7 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import {
-  FC,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   addAlpha,
   css,
@@ -85,7 +77,6 @@ import {
   EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
-import { DashboardPageContext } from 'src/dashboard/containers/DashboardPage';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -383,7 +374,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const theme = useTheme();
-  const dashboardContext = useContext(DashboardPageContext);
+  const isDashboardHydrated = useSelector<RootState, boolean>(
+    state => state.dashboardState.dashboardHydrated,
+  );
 
   const dashboardId = useSelector<RootState, string>(
     ({ dashboardInfo }) => `${dashboardInfo.id}`,
@@ -480,8 +473,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     nativeFiltersEnabled,
   } = useNativeFilters();
 
-  // Dashboard must wait for pre-selected filters
-  const isDashboardHydrated = dashboardContext.hydrated;
+  // Unblocking the Dashboard rendering unless filters are required
   const canShowDashboard = !requiredFirstFilter.length
     ? true
     : showDashboard && isDashboardHydrated;

@@ -329,6 +329,7 @@ export const hydrateDashboard =
           isFiltersRefreshing: false,
           activeTabs: dashboardState?.activeTabs || [],
           datasetsStatus: ResourceStatus.Loading,
+          dashboardHydrated: true,
         },
         dashboardLayout,
       },

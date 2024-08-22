@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { CLEAR_DATA_MASK_STATE } from 'src/dataMask/actions';
 import {
   ADD_SLICE,
   ON_CHANGE,
@@ -47,6 +46,7 @@ import {
   SET_OVERRIDE_CONFIRM,
   SAVE_DASHBOARD_STARTED,
   SAVE_DASHBOARD_FINISHED,
+  ON_LEAVE_DASHBOARD,
 } from '../actions/dashboardState';
 import {
   HYDRATE_DASHBOARD,
@@ -246,16 +246,17 @@ export default function dashboardStateReducer(state = {}, action) {
         datasetsStatus: action.status,
       };
     },
-    [CLEAR_DATA_MASK_STATE]() {
-      return {
-        ...state,
-        dataMaskHydrated: false,
-      };
-    },
     [HYDRATE_DASHBOARD_DATAMASK]() {
       return {
         ...state,
         dataMaskHydrated: true,
+      };
+    },
+    [ON_LEAVE_DASHBOARD]() {
+      return {
+        ...state,
+        dataMaskHydrated: false,
+        dashboardHydrated: false,
       };
     },
   };

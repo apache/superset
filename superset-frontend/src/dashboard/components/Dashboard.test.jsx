@@ -144,7 +144,6 @@ describe('Dashboard', () => {
     });
 
     it('should not call refresh when there is no change', () => {
-      wrapper.setState({ firstTimeRender: false });
       wrapper.setProps({
         activeFilters: OVERRIDE_FILTERS,
       });

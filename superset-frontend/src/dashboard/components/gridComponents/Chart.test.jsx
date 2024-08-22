@@ -26,7 +26,6 @@ import mockDatasource from 'spec/fixtures/mockDatasource';
 import chartQueries, {
   sliceId as queryId,
 } from 'spec/fixtures/mockChartQueries';
-import { DashboardPageContext } from 'src/dashboard/containers/DashboardPage';
 
 const props = {
   id: queryId,
@@ -77,9 +76,7 @@ const mockDashboardContext = {
 
 function setup(overrideProps) {
   return render(
-    <DashboardPageContext.Provider value={mockDashboardContext}>
-      <Chart.WrappedComponent {...props} {...overrideProps} />
-    </DashboardPageContext.Provider>,
+      <Chart.WrappedComponent {...props} {...overrideProps} />,
     {
       useRedux: true,
       useRouter: true,

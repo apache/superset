@@ -119,7 +119,7 @@ const dataMaskReducer = produce(
         if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
           Object.keys(
             // @ts-ignore
-            action.data.dashboardInfo?.metadata?.chart_configuration,
+            action.data.dashboardInfo?.metadata?.chart_configuration ?? {},
           ).forEach(id => {
             cleanState[id] = {
               ...getInitialDataMask(id), // take initial data

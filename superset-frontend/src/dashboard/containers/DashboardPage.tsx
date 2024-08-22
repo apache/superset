@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, lazy, FC, useEffect, useMemo, useState } from 'react';
+import { createContext, lazy, FC, useEffect, useMemo } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import { DataMaskStateWithId, t, useTheme } from '@superset-ui/core';
@@ -61,9 +61,6 @@ import SyncDashboardState, {
 } from '../components/SyncDashboardState';
 
 export const DashboardPageIdContext = createContext('');
-export const DashboardPageContext = createContext({
-  hydrated: false,
-});
 
 const DashboardBuilder = lazy(
   () =>
@@ -95,6 +92,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         ? dashboardInfo
         : null,
   );
+  const [isDashboardHydrated, isDashboardDatamaskHydrated] = useSelector<
+    RootState,
+    [boolean, boolean]
+  >(state => [
+    state.dashboardState.dashboardHydrated,
+    state.dashboardState.dataMaskHydrated,
+  ]);
   const currentDataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
@@ -108,9 +112,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     error: datasetsApiError,
     status,
   } = useDashboardDatasets(idOrSlug);
-  const [isDashboardHydrated, setDashboardHydrated] = useState<boolean>(false);
-  const [isDashboardDatamaskHydrated, setDashboardDatamaskHydrated] =
-    useState<boolean>(false);
 
   const error = dashboardApiError || chartsApiError;
   const readyToHydrate = Boolean(dashboard && charts);
@@ -148,7 +149,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           charts,
         }),
       );
-      setDashboardHydrated(true);
     }
   }, [
     charts,
@@ -159,10 +159,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     readyToHydrate,
   ]);
 
-  /*
-   * Decoupled dataMask hydration from the rest of the dashboard.
-   * The dataMask is only dependent on dashboardInfo, does not need to wait for charts.
-   */
   useEffect(() => {
     const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
     const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
@@ -187,7 +183,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dispatch(hydrateDashboardActiveTabs(activeTabs));
       }
 
-      setDashboardDatamaskHydrated(true);
       dispatch(hydrateDashboardDataMask(dataMask, dashboardInfo));
     }
     if (
@@ -199,8 +194,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     ) {
       getDataMaskApplied();
     }
-    if (Object.keys(currentDataMask).length && !isDashboardDatamaskHydrated) {
-      setDashboardDatamaskHydrated(true);
+    if (
+      Object.keys(currentDataMask).length &&
+      dashboardInfo &&
+      !isDashboardDatamaskHydrated
+    ) {
       dispatch(hydrateDashboardDataMask(currentDataMask, dashboardInfo));
     }
   }, [
@@ -244,13 +242,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const isLoading = !dashboardInfo;
 
-  const dashboardContext = useMemo(
-    () => ({
-      hydrated: isDashboardHydrated && isDashboardDatamaskHydrated,
-    }),
-    [isDashboardDatamaskHydrated, isDashboardHydrated],
-  );
-
   return (
     <>
       <Global
@@ -264,15 +255,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       />
       {!isLoading && <SyncDashboardState dashboardPageId={dashboardPageId} />}
       <DashboardPageIdContext.Provider value={dashboardPageId}>
-        <DashboardPageContext.Provider value={dashboardContext}>
-          {isLoading ? (
-            <Loading />
-          ) : (
-            <DashboardContainer>
-              <DashboardBuilder />
-            </DashboardContainer>
-          )}
-        </DashboardPageContext.Provider>
+        {isLoading ? (
+          <Loading />
+        ) : (
+          <DashboardContainer>
+            <DashboardBuilder />
+          </DashboardContainer>
+        )}
       </DashboardPageIdContext.Provider>
     </>
   );

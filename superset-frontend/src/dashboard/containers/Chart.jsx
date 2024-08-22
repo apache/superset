@@ -101,6 +101,7 @@ function mapStateToProps(
     setControlValue,
     datasetsStatus,
     emitCrossFilters: !!dashboardInfo.crossFiltersEnabled,
+    isDashboardHydrated: !!dashboardState.dashboardHydrated,
   };
 }
 

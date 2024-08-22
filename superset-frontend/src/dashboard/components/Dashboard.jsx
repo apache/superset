@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
 
@@ -67,7 +67,7 @@ const defaultProps = {
   userId: '',
 };
 
-class Dashboard extends PureComponent {
+class Dashboard extends Component {
   static contextType = PluginContext;
 
   static onBeforeUnload(hasChanged) {
@@ -92,7 +92,9 @@ class Dashboard extends PureComponent {
     this.applyCharts = this.applyCharts.bind(this);
 
     this.state = {
-      firstTimeRender: true,
+      prevActiveFilters: {},
+      prevOwnDataCharts: {},
+      hasTriggered: false,
     };
   }
 
@@ -125,6 +127,35 @@ class Dashboard extends PureComponent {
 
   componentDidUpdate() {
     this.applyCharts();
+  }
+
+  shouldComponentUpdate(nextProps) {
+    const { activeFilters, ownDataCharts, chartConfiguration, dashboardState } =
+      this.props;
+    const nextDataMaskHydrated = nextProps.dashboardState.dataMaskHydrated;
+    const nextActiveFilters = nextProps.activeFilters;
+    const nextOwnDataCharts = nextProps.ownDataCharts;
+    const nextChartConfiguration = nextProps.chartConfiguration;
+    const nextDashboardState = nextProps.dashboardState;
+
+    if (
+      nextDataMaskHydrated &&
+      (!areObjectsEqual(dashboardState, nextDashboardState, {
+        ignoreUndefined: true,
+      }) ||
+        !areObjectsEqual(activeFilters, nextActiveFilters, {
+          ignoreUndefined: true,
+        }) ||
+        !areObjectsEqual(ownDataCharts, nextOwnDataCharts, {
+          ignoreUndefined: true,
+        }) ||
+        !areObjectsEqual(chartConfiguration, nextChartConfiguration, {
+          ignoreUndefined: true,
+        }))
+    ) {
+      return true;
+    }
+    return false;
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -164,6 +195,8 @@ class Dashboard extends PureComponent {
     const { activeFilters, ownDataCharts, chartConfiguration, dashboardState } =
       this.props;
 
+    const { dataMaskHydrated } = dashboardState;
+
     if (
       isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
       !chartConfiguration
@@ -172,7 +205,16 @@ class Dashboard extends PureComponent {
       // for correct comparing  of filters to avoid unnecessary requests
       return;
     }
-    if (!editMode && dashboardState?.dataMaskHydrated) {
+
+    if (dataMaskHydrated) {
+      const hasFilters =
+        Object.keys(activeFilters).length > 0 ||
+        Object.keys(ownDataCharts).length > 0;
+      const hadFilters =
+        Object.keys(this.state.prevActiveFilters).length > 0 ||
+        Object.keys(this.state.prevOwnDataCharts).length > 0;
+      const { hasTriggered } = this.state;
+
       const filtersChanged =
         !areObjectsEqual(appliedOwnDataCharts, ownDataCharts, {
           ignoreUndefined: true,
@@ -181,13 +223,21 @@ class Dashboard extends PureComponent {
           ignoreUndefined: true,
         });
 
-      if (filtersChanged) {
+      if (!editMode && filtersChanged && (hasFilters || hadFilters)) {
+        this.setState({
+          prevActiveFilters: activeFilters,
+          prevOwnDataCharts: ownDataCharts,
+          hasTriggered: true,
+        });
         this.applyFilters();
-      } else if (this.state.firstTimeRender) {
+      }
+      if (
+        ((editMode && !hasTriggered) || (!hasFilters && !hadFilters)) &&
+        dashboardState.sliceIds.length > 0
+      ) {
+        this.setState({ hasTriggered: true });
         this.refreshCharts(dashboardState.sliceIds);
       }
-
-      this.setState({ firstTimeRender: false });
     }
 
     if (hasUnsavedChanges) {
@@ -200,6 +250,7 @@ class Dashboard extends PureComponent {
   componentWillUnmount() {
     window.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.props.actions.clearDataMaskState();
+    this.props.actions.onLeaveDashboard();
   }
 
   onVisibilityChange() {

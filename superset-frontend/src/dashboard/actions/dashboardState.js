@@ -731,3 +731,8 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
     console.error('Failed to update dashboard color settings:', error);
   }
 };
+
+export const ON_LEAVE_DASHBOARD = 'ON_LEAVE_DASHBOARD';
+export function onLeaveDashboard() {
+  return { type: ON_LEAVE_DASHBOARD };
+}

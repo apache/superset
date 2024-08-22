@@ -114,6 +114,9 @@ export type DashboardState = {
     dashboardId: number;
     data: JsonObject;
   };
+  activeTabsHydrated: boolean;
+  dataMaskHydrated: boolean;
+  dashboardHydrated: boolean;
 };
 export type DashboardInfo = {
   id: number;

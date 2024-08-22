@@ -25,7 +25,6 @@ import { withRouter } from 'react-router-dom';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
-import { DashboardPageContext } from 'src/dashboard/containers/DashboardPage';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
@@ -84,6 +83,7 @@ const propTypes = {
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
   emitCrossFilters: PropTypes.bool,
+  isDashboardHydrated: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -123,8 +123,6 @@ const SliceContainer = styled.div`
 `;
 
 class Chart extends Component {
-  static contextType = DashboardPageContext;
-
   constructor(props) {
     super(props);
     this.state = {
@@ -423,7 +421,7 @@ class Chart extends Component {
     const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
 
     // Controlling the status of a Chart based on Dashboard hydration
-    const isDashboardHydrated = this.context.hydrated;
+    const { isDashboardHydrated } = this.props;
     const controlledChartStatus = isDashboardHydrated ? chartStatus : 'loading';
     const { triggerQuery } = chart;
     const isLoading = controlledChartStatus === 'loading';
