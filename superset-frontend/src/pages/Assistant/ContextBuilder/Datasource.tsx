@@ -69,7 +69,7 @@ export class Datasource extends React.Component<DatasourceProps> {
                 ...this.state,
                 schema: this.state.schema.filter((schema) => {
                     return (schema.tables || []).filter((table) => {
-                        return (table.selectedColumns || []).length > 0;
+                        return table.selectedColumns
                     }).length > 0;
                 }),
             };

@@ -1,117 +1,139 @@
-import{ Datasource } from './Datasource';
-import{ ContextSelection } from './ContextSelection';
+import React, { Component } from 'react';
+import { Datasource } from './Datasource';
+import { ContextSelection, ContextSelectionProps } from './ContextSelection';
 import { DatasourceProps } from './Datasource';
-import { useMemo, useState } from 'react';
 import { fetchDatabaseData, DatabaseData } from '../contextUtils';
 import { Spin } from 'antd';
 
 /**
  * Props
  */
-
-interface DatasourceSelectorProps {
+export interface DatasourceSelectorProps {
     onChange: (data: DatasourceProps[]) => void;
 }
 
+export interface DatasourceSelectorState {
+    datasources: DatasourceProps[];
+    loading: boolean;
+}
 
-export function DatasourceSelector(props: DatasourceSelectorProps) {
+export class DatasourceSelector extends Component<DatasourceSelectorProps, DatasourceSelectorState> {
+    constructor(props: DatasourceSelectorProps) {
+        super(props);
+        this.state = {
+            datasources: [],
+            loading: true,
+        };
+    }
 
-    const [datasources, setDatasources] = useState<DatasourceProps[]>([])
-    const [loading, setLoading] = useState<boolean>(true);
-
-    useMemo(() => {
-        fetchDatabaseData().then((data:DatabaseData[]) => {
-            setDatasources(data.map((database: DatabaseData) => {
-                return {
-                    id: database.database_id,
-                    selected: false,
-                    datasourceName: database.database_name,
-                    schema:[]
-                }
+    async componentDidMount() {
+        try {
+            const data: DatabaseData[] = await fetchDatabaseData();
+            const datasources = data.map((database: DatabaseData) => ({
+                id: database.database_id,
+                selected: false,
+                datasourceName: database.database_name,
+                schema: [],
             }));
-        }).catch((error) => {
+            this.setState({ datasources });
+        } catch (error) {
             console.error("<<<<>>>> Error fetching database data:", error);
-        }).finally(() => {
-            setLoading(false);
-        });
-        console.log("<<<<>>>> Datasources: ", datasources);
-    }, [])
+        } finally {
+            this.setState({ loading: false });
+        }
+    }
 
-    const handleSelectEvent = (data: DatasourceProps) => {
-        setDatasources((prevDatasources) => {
-            
-            const updated = prevDatasources.map((datasource) => {
-                return datasource.id === data.id ? data : datasource;
-            });
-            
-            // filter out where [].schema.tables.selectedColumns.length > 0
-            const selectedDatasources = updated.filter((datasource) => {
-                return datasource.schema.filter((schema) => {
-                    return (schema.tables || []).filter((table) => {
-                        return (table.selectedColumns || []).length > 0;
-                    }).length > 0;
-                }).length > 0
-            });
-            props.onChange(selectedDatasources);
-            return updated;
+    handleSelectEvent = (data: DatasourceProps) => {
+        this.setState((prevState) => {
+            const updated = prevState.datasources.map((datasource) =>
+                datasource.id === data.id ? data : datasource
+            );
+
+            const selectedDatasources = updated.filter((datasource) =>
+                datasource.schema.some((schema) =>
+                    (schema.tables || []).some((table) => (table.selectedColumns || []).length > 0)
+                )
+            );
+
+            this.props.onChange(selectedDatasources);
+            return { datasources: updated };
         });
     };
 
-    /**
-     * return data schema
-     * {
-     *      databaseId: number,
-     *      databaseName: string,
-     *      description: string,
-     *      schemas: [
-     *         {
-     *             schemaName: string,
-     *             description: string,
-     *             tables: [
-     *                  {
-     *                    tableName: string,
-     * 
-     *                  }
-     *              ]
-     *          }
-     *     ]
-     * }
-     */
+    render() {
+        const { datasources, loading } = this.state;
+        const summary: ContextSelectionProps = {
+            numDataSources: datasources.length,
+            numSchemas: datasources.reduce((acc, datasource) => acc + datasource.schema.length, 0),
+            numTables: datasources.reduce(
+                (acc, datasource) =>
+                    acc +
+                    datasource.schema.reduce(
+                        (acc, schema) => acc + (schema.tables || []).length,
+                        0
+                    ),
+                0
+            ),
+            numColumns: datasources.reduce(
+                (acc, datasource) =>
+                    acc +
+                    datasource.schema.reduce(
+                        (acc, schema) =>
+                            acc +
+                            (schema.tables || []).reduce(
+                                (acc, table) => acc + (table.selectedColumns || []).length,
+                                0
+                            ),
+                        0
+                    ),
+                0
+            ),
+        };
 
-
-    return (
-        <>
-        <div style={{
-                width: '100%',
-                borderTopRightRadius: '16px',
-                borderBottomRightRadius: '16px',
-                padding: '0px',
-                background: '#f0f0f0',
-            }}>
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '24px',
-                    width: '100%',
-                    background: '#f0f0f0',
-                }}>
-                    <div style={{
-                        padding: '24px',
-                        width: 'fit-content',
-                        height: 'fit-content',
-                    }}>
-                        <h4>Databases Connections</h4>
-                        <p>Choose the Databases you want the assistant to have access to.</p>
+        return (
+            <>
+                <div
+                    style={{
+                        width: '100%',
+                        borderTopRightRadius: '16px',
+                        borderBottomRightRadius: '16px',
+                        padding: '0px',
+                        background: '#f0f0f0',
+                    }}
+                >
+                    <div
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            padding: '24px',
+                            width: '100%',
+                        }}
+                    >
+                        <div
+                            style={{
+                                padding: '24px',
+                                width: 'fit-content',
+                                height: 'fit-content',
+                            }}
+                        >
+                            <h4>Databases Connections</h4>
+                            <p>Choose the Databases you want the assistant to have access to.</p>
+                        </div>
+                        <div style={{}}>
+                            {/* Loading Indicator */}
+                            {loading && <Spin size="small" />}
+                        </div>
                     </div>
-                    <div style={{}}>
-                        {/* Loading Indicator */}
-                        {loading && <Spin size="small" />}
-
-                    </div>
+                    {datasources.map((datasource) => (
+                        <Datasource
+                            key={'d_source' + datasource.id}
+                            {...datasource}
+                            onChange={this.handleSelectEvent}
+                        />
+                    ))}
+                    <ContextSelection {...summary} />
                 </div>
-                {datasources.map((datasource) => <Datasource key={'d_source'+datasource.id} {...datasource} onChange={handleSelectEvent} />)}
-                <ContextSelection />
-            </div>
-        </>
-    )
+            </>
+        );
+    }
 }

@@ -343,8 +343,9 @@ export function runQuery(query) {
       queryLimit: query.queryLimit,
       expand_data: true,
     };
-
+    console.log('postPayload', postPayload);
     const search = window.location.search || '';
+    console.log('endpoint', `/api/v1/sqllab/execute/${search}`);
     return SupersetClient.post({
       endpoint: `/api/v1/sqllab/execute/${search}`,
       body: JSON.stringify(postPayload),
@@ -397,6 +398,7 @@ export function runQueryFromSqlEditor(
       ctas_method: ctasMethod,
       updateTabState: !qe.selectedText,
     };
+    console.log('query', query);
     dispatch(runQuery(query));
   };
 }

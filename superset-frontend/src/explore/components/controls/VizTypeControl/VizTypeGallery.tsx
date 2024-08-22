@@ -456,6 +456,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           nativeFilterGate(value.behaviors || []) && !value.deprecated,
       )
       .sort((a, b) => a.value.name.localeCompare(b.value.name));
+      
     return result;
   }, [mountedPluginMetadata, denyList]);
 

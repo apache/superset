@@ -1,8 +1,10 @@
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu from 'src/features/home/SubMenu';
 import { AssistantHome, AssistantProps } from './AssistantHome';
+import { useState } from 'react';
+import { DatasourceProps } from './ContextBuilder/Datasource';
 import { AssistantContextBuilder } from './ContextBuilder';
-
+import { Tabs } from 'antd';
 
 
 /**
@@ -15,6 +17,9 @@ import { AssistantContextBuilder } from './ContextBuilder';
 
 function Assistant(props: AssistantProps) {
 
+  // data selection state
+  const [datasources, setDatasources] = useState<DatasourceProps[]>([]);
+
   // This Component Serves as the Assistant's Home Page
   // Header Dispays the Users Name and Databases they have access to
 
@@ -23,8 +28,27 @@ function Assistant(props: AssistantProps) {
     <SubMenu
       name="Assistant"
     />
-    {/* <AssistantHome {...props} /> */}
-    <AssistantContextBuilder {...props} />
+    {/* Tabs */}
+    <Tabs tabBarStyle={{
+      padding: '24px',
+    }} defaultActiveKey="1" >
+      <Tabs.TabPane tab={
+        <span>
+          &nbsp;Assistant Chat&nbsp;
+        </span>
+      } key="1">
+        <AssistantHome {...props} />
+      </Tabs.TabPane>
+      <Tabs.TabPane tab={
+        <span>
+          &nbsp;Context Builder&nbsp;
+        </span>
+      } key="2">
+        <AssistantContextBuilder {...props} onChange={(data)=>{
+          setDatasources(data);
+        }} />
+      </Tabs.TabPane>
+    </Tabs>
    </>
   );
 }

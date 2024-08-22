@@ -1,4 +1,5 @@
 import { SupersetClient } from "@superset-ui/core";
+import { nanoid } from "nanoid";
 
 
 export interface DatabaseContext {
@@ -74,9 +75,9 @@ export const fetchDatabaseData = async () => {
  * @returns Promise<DatabaseScemaData>
  */
 export const fetchSchemaData = async (databaseId: number) => {
-    const enpoint = `/api/v1/database/${databaseId}/schemas/`;
+    const endpoint = `/api/v1/database/${databaseId}/schemas/`;
     try {
-        const response = await SupersetClient.get({ endpoint: enpoint });
+        const response = await SupersetClient.get({ endpoint: endpoint });
         const schemas: DatabaseScemaData[] = response.json.result.map((schema: any) => {
             const schema_name = schema;
             // const tables = await fetchTableData(databaseId, schema_name);
@@ -104,9 +105,9 @@ export const fetchTableData = async (databaseId: number, schemaName: string) => 
         "schema_name": schemaName
     }
     const q = encodeURIComponent(JSON.stringify(params));
-    const enpoint = `/api/v1/database/${databaseId}/tables/?q=${q}`;
+    const endpoint = `/api/v1/database/${databaseId}/tables/?q=${q}`;
     try {
-        const response = await SupersetClient.get({ endpoint: enpoint });
+        const response = await SupersetClient.get({ endpoint: endpoint });
         const tables: DatabaseSchemaTableData[] = response.json.result.map((table: any) => {
            
             // const columns = await fetchColumnData(databaseId, schemaName, table_name);
@@ -130,9 +131,9 @@ export const fetchTableData = async (databaseId: number, schemaName: string) => 
  * @returns Promise<ColumnData[]>
  */
 export const fetchColumnData = async (databaseId: number, schemaName: string, tableName: string) => {
-    const enpoint = `/api/v1/database/${databaseId}/table/${tableName}/${schemaName}/`;
+    const endpoint = `/api/v1/database/${databaseId}/table/${tableName}/${schemaName}/`;
     try {
-        const response = await SupersetClient.get({ endpoint: enpoint });
+        const response = await SupersetClient.get({ endpoint: endpoint });
         const columns:ColumnData[]  = response.json.columns.map((column: any) => {
             return {
                 column_name: column.name,
@@ -146,6 +147,73 @@ export const fetchColumnData = async (databaseId: number, schemaName: string, ta
         return [];
     }
 }
+
+/**
+ * Request example 
+ * {
+    "client_id": "nxRxlemJ_5A",
+    "database_id": 3,
+    "json": true,
+    "runAsync": true,
+    "schema": "mongo.repo",
+    "sql": "SELECT * FROM mongo.repo.ambulances;",
+    "sql_editor_id": "1",
+    "tab": "Untitled Query 1",
+    "tmp_table_name": "",
+    "select_as_cta": true,
+    "ctas_method": "TABLE",
+    "queryLimit": 1000,
+    "expand_data": true
+}
+    endpoint POST: /api/v1/sqllab/execute/
+ * @param query 
+ */
+export const executeQuery = async (databaseId: number, schema: string, query: string) => {
+    const endpoint = `/api/v1/sqllab/execute/`;
+    const data = {
+        client_id: nanoid(11),
+        database_id: databaseId,
+        json: true,
+        runAsync: false,
+        catalog: null,
+        schema: schema,
+        sql: query,
+        sql_editor_id: "2",
+        tab: "Assistant Query Lab",
+        tmp_table_name: "",
+        select_as_cta: false,
+        ctas_method: "TABLE",
+        queryLimit: 20,
+        expand_data: true
+      };
+      // required schema, sql 
+    try {
+        const response = await SupersetClient.post({ endpoint: endpoint, body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+        console.log("Request: ", JSON.stringify(data));
+        console.log("Response:", response);
+        return response.json.data
+    } catch (error) {
+        console.log("Request: ", JSON.stringify(data));
+        console.log("Error executing query:", error);
+        return [];
+    }
+};
+
+/**
+ * Get Select Star Query for a given table
+ */
+export const getSelectStarQuery = async ( databaseId: number, tableName: string, schemaName: string ) =>{
+    // http://localhost:8088/api/v1/database/3/select_star/activate_org_laboratory/mongo.repo/
+    const endpoint = `/api/v1/database/${databaseId}/select_star/${tableName}/${schemaName}/`;
+    try {
+        const response = await SupersetClient.get({ endpoint: endpoint });
+        console.log("Response:", response.json.result);
+        return response.json.result;
+    } catch (error) {
+        console.error("Error fetching select star query:", error);
+        return '';
+    }
+};
 
 
 export function getDatabaseContext(): DatabaseContext {
@@ -173,7 +241,7 @@ export function readableColor(hex: string, thresholdBright: number = 150, thresh
 
     // Calculate brightness
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    console.log('Color: %s, Brightness: %d, Threshold: %d <> %d', hex, brightness, thresholdBright, thresholdDark);
+    // console.log('Color: %s, Brightness: %d, Threshold: %d <> %d', hex, brightness, thresholdBright, thresholdDark);
 
     if (brightness > thresholdBright) {
         return '#000000';

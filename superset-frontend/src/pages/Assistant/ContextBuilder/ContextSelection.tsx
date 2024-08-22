@@ -1,7 +1,8 @@
+import { DatasourceProps } from './Datasource';
 /**
  * Props
  */
-interface ContextSelectionProps {
+export interface ContextSelectionProps {
     numDataSources: number;
     numSchemas: number;
     numTables: number;
@@ -22,8 +23,8 @@ const testProps: ContextSelectionProps = {
  * ContextSelection Component
  */
 
-export function ContextSelection() {
-    const props: ContextSelectionProps = testProps;
+export function ContextSelection(props: ContextSelectionProps) {
+     
     return (
         <div style={{
             position: 'relative',
@@ -36,7 +37,6 @@ export function ContextSelection() {
                 alignItems: 'center',
                 justifyContent: 'right',
                 padding: '10px',
-                background: '#f0f0f0',
                 borderRadius: '16px',
             }}>
                 <div style={{
@@ -55,7 +55,7 @@ export function ContextSelection() {
                     flexDirection: 'row',
                     gap: '10px',
                 }}>
-                    <button style={{
+                    {/* <button style={{
                         padding: '10px',
                         borderRadius: '4px',
                         background: '#95C9E7',
@@ -72,7 +72,7 @@ export function ContextSelection() {
                         border: 'none',
                         width: '100px',
                         fontSize: '16px',
-                    }} >Confirm</button>
+                    }} >Confirm</button> */}
                 </div>
             </div>
         </div>

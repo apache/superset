@@ -1,13 +1,12 @@
+import { DatasourceProps } from './Datasource';
 import { ContextBuilderSteps } from './ContextBuilderSteps';
-import { DatasourceSelector } from './DatasourceSelector';
+import { DatasourceSelector, DatasourceSelectorProps } from './DatasourceSelector';
 
+export function AssistantContextBuilder(props: DatasourceSelectorProps) {
 
-
-
-export function AssistantContextBuilder(props: any) {
-
-    const handleDatasourceChange = (data: any) => {
-        console.log("<<<<>>>> Datasource Change: ", data);
+    const handleDatasourceChange = (data: DatasourceProps[]) => {
+        console.log("<<<<>>>> Datasource Change:", data);
+        props.onChange(data);
     };
 
     return (

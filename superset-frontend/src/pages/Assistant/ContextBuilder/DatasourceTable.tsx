@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { Collapse, Table, Spin, Input } from "antd";
-import { fetchColumnData, ColumnData } from "../contextUtils";
+import { fetchColumnData, ColumnData, getSelectStarQuery, executeQuery } from "../contextUtils";
 
 export interface DatasourceTableProps {
     databaseId: number;
@@ -15,6 +15,8 @@ export interface DatasourceTableProps {
     description?: string;
     descriptionFocused?: boolean;
     isDescriptionLoading?: boolean;
+    selectStarQuery?: string;
+    data?: any;
 }
 
 export interface DatasourceTableColumnProps {
@@ -51,8 +53,9 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                 };
             }),
         }), () => {
-            this.state.onChange?.call(this, this.state);
+            this.loadTableData();
         });
+        
     };
 
     handleColumnSelect = (selectedColumnNames: string[]) => {
@@ -70,9 +73,30 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
             };
             return newState
         }, () => {
-            this.state.onChange?.call(this, this.state);
+            this.loadTableData();
         });
+        
+    };
 
+    loadTableData = async () => {
+        this.setState({
+            loading: true
+        });
+        const { databaseId, tableName, schemaName, data } = this.state;
+        if (data) {
+            this.setState({
+                loading: false,
+                data: data
+            },()=>{this.state.onChange?.call(this, this.state);});
+            return;
+        }
+        const selectStarQuery = await getSelectStarQuery( databaseId, tableName, schemaName);
+        const tableData = await executeQuery(databaseId, schemaName, selectStarQuery);
+        this.setState({
+            loading: false,
+            selectStarQuery: selectStarQuery,
+            data: tableData,
+        },()=>{this.state.onChange?.call(this, this.state);})
     };
 
 
@@ -86,6 +110,9 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
             columnName: column.column_name,
             columnType: column.data_type,
         }));
+
+        
+
         this.setState({ columns: columnData, loading: false });
     }
 
@@ -125,7 +152,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                 <Collapse.Panel
                     header={
                         <div style={{ display: 'flex', flexDirection: 'row' }}>
-                            <input type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading} />
+                            <input type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading || columns.length === 0 } />
                             <span style={{ width: '10px' }}></span>
                             <span>{this.props.tableName}</span>
                             <span style={{ width: '10px' }}></span>

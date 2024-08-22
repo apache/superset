@@ -403,10 +403,13 @@ class SqlLabRestApi(BaseSupersetApi):
             log_params = {
                 "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
             }
+            
             execution_context = SqlJsonExecutionContext(request.json)
+            
             command = self._create_sql_json_command(execution_context, log_params)
+           
             command_result: CommandResult = command.run()
-
+          
             response_status = (
                 202
                 if command_result["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING

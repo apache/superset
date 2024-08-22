@@ -77,7 +77,7 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
             const filteredState = {
                 ...this.state,
                 tables: this.state.tables?.filter((table) => {
-                    return (table.selectedColumns || []).length > 0;
+                    return table.selectedColumns;
                 })
             }
             this.state.onChange?.call(this, filteredState);
