@@ -129,8 +129,8 @@ def main(docker: bool, frontend: bool, backend: bool) -> None:
         ),
         Requirement(
             "node",
-            (Version("18.0.0"), Version("18.999.999")),
-            (Version("18.0.0"), Version("18.999.999")),
+            (Version("20.0.0"), Version("20.999.999")),
+            (Version("20.0.0"), Version("20.999.999")),
             "frontend",
             "node -v",
         ),
