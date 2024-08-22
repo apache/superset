@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
+from __future__ import annotations
+
 import copy
 from collections import namedtuple
 from datetime import datetime
@@ -719,7 +721,15 @@ def test_adjust_engine_params_catalog_only() -> None:
     assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
 
 
-def test_get_default_catalog() -> None:
+@pytest.mark.parametrize(
+    "sqlalchemy_uri,result",
+    [
+        ("trino://user:pass@localhost:8080/system", "system"),
+        ("trino://user:pass@localhost:8080/system/default", "system"),
+        ("trino://trino@localhost:8081", None),
+    ],
+)
+def test_get_default_catalog(sqlalchemy_uri: str, result: str | None) -> None:
     """
     Test the ``get_default_catalog`` method.
     """
@@ -728,15 +738,9 @@ def test_get_default_catalog() -> None:
 
     database = Database(
         database_name="my_db",
-        sqlalchemy_uri="trino://user:pass@localhost:8080/system",
+        sqlalchemy_uri=sqlalchemy_uri,
     )
-    assert TrinoEngineSpec.get_default_catalog(database) == "system"
-
-    database = Database(
-        database_name="my_db",
-        sqlalchemy_uri="trino://user:pass@localhost:8080/system/default",
-    )
-    assert TrinoEngineSpec.get_default_catalog(database) == "system"
+    assert TrinoEngineSpec.get_default_catalog(database) == result
 
 
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.latest_partition")
