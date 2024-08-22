@@ -137,7 +137,7 @@ jobs:
           ./scripts/build_docker.py \
             "ci" \
             "pull_request" \
-            --build_context_ref ${{ github.event.issue.number }}
+            --build_context_ref ${{ github.event.issue.number || github.sha }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -170,12 +170,6 @@ jobs:
       pull-requests: write
 
     steps:
-    - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} : ${{steps.get-sha.outputs.sha}} )"
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ steps.get-sha.outputs.sha }}
-        persist-credentials: false
-
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -202,7 +196,7 @@ jobs:
       with:
         github-token: ${{github.token}}
         script: |
-          const errMsg = '@${{ github.event.comment.user.login }} Container image not yet published for this PR. Please try again when build is complete.'
+          const errMsg = '@${{ github.actor }} Container image not yet published for this PR. Please try again when build is complete.'
           github.rest.issues.createComment({
             issue_number: ${{ github.event.issue.number }},
             owner: context.repo.owner,
@@ -270,7 +264,7 @@ jobs:
         echo "ip=$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq -r '.NetworkInterfaces | first | .Association.PublicIp')" >> $GITHUB_OUTPUT
 
     - name: Comment (success)
-      if: ${{ success() }}
+      if: ${{ success() }}  && github.event_name != 'workflow_dispatch'
       uses: actions/github-script@v7
       with:
         github-token: ${{github.token}}
@@ -294,7 +288,7 @@ jobs:
           });
 
     - name: Comment (failure)
-      if: ${{ failure() }}
+      if: ${{ failure() }} && github.event_name != 'workflow_dispatch'
       uses: actions/github-script@v7
       with:
         github-token: ${{github.token}}
