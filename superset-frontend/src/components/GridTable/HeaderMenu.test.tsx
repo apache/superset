@@ -66,6 +66,7 @@ jest.mock('src/components/Icons', () => ({
   VerticalLeftOutlined: () => <div data-test="mock-VerticalLeftOutlined" />,
   EyeInvisibleOutlined: () => <div data-test="mock-EyeInvisibleOutlined" />,
   EyeOutlined: () => <div data-test="mock-EyeOutlined" />,
+  ColumnWidthOutlined: () => <div data-test="mock-column-width" />,
 }));
 
 jest.mock('src/components/Dropdown', () => ({
@@ -165,10 +166,7 @@ test('renders unhide when invisible column exists', async () => {
 
 describe('for main menu', () => {
   test('renders Copy to Clipboard', async () => {
-    const { getByText, queryByTestId } = render(
-      <HeaderMenu {...mockedProps} isMain />,
-    );
-    expect(queryByTestId('mock-Divider')).not.toBeInTheDocument();
+    const { getByText } = render(<HeaderMenu {...mockedProps} isMain />);
     fireEvent.click(getByText('Copy the current data'));
     await waitFor(() =>
       expect(mockGridApi.getDataAsCsv).toHaveBeenCalledTimes(1),
@@ -192,14 +190,13 @@ describe('for main menu', () => {
   });
 
   test('renders all unhide all hidden columns when multiple invisible columns exist', async () => {
-    const { queryByTestId } = render(
+    render(
       <HeaderMenu
         {...mockedProps}
         isMain
         invisibleColumns={[mockInvisibleColumn, mockInvisibleColumn3]}
       />,
     );
-    expect(queryByTestId('mock-Divider')).toBeInTheDocument();
     const unhideColumnsButton = await screen.findByText(
       `All ${2} hidden columns`,
     );
