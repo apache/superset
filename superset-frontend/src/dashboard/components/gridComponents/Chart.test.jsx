@@ -68,10 +68,7 @@ const props = {
   supersetCanExplore: false,
   supersetCanCSV: false,
   supersetCanShare: false,
-};
-
-const mockDashboardContext = {
-  hydrated: true,
+  isDashboardHydrated: true,
 };
 
 function setup(overrideProps) {

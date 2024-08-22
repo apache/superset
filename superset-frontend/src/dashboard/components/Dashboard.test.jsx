@@ -133,6 +133,7 @@ describe('Dashboard', () => {
     });
 
     it('should not call refresh when is editMode', () => {
+      wrapper.setState({ hasTriggered: true });
       wrapper.setProps({
         dashboardState: {
           ...dashboardState,
@@ -188,6 +189,9 @@ describe('Dashboard', () => {
     });
 
     it('should call refresh if a filter is removed', () => {
+      wrapper.setState({
+        prevActiveFilters: OVERRIDE_FILTERS,
+      });
       wrapper.setProps({
         activeFilters: {},
       });

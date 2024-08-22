@@ -222,7 +222,8 @@ class Dashboard extends Component {
         !areObjectsEqual(appliedFilters, activeFilters, {
           ignoreUndefined: true,
         });
-
+      
+      // triggers when filters are/were present and are changed/removed
       if (!editMode && filtersChanged && (hasFilters || hadFilters)) {
         this.setState({
           prevActiveFilters: activeFilters,
@@ -231,9 +232,10 @@ class Dashboard extends Component {
         });
         this.applyFilters();
       }
+      // triggers for dashboards with no filters
       if (
-        ((editMode && !hasTriggered) || (!hasFilters && !hadFilters)) &&
-        dashboardState.sliceIds.length > 0
+        (editMode || (!hasFilters && !hadFilters)) &&
+        dashboardState.sliceIds.length > 0 && !hasTriggered
       ) {
         this.setState({ hasTriggered: true });
         this.refreshCharts(dashboardState.sliceIds);
