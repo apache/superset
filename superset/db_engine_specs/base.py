@@ -74,6 +74,7 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
+from superset.utils.json import redact_sensitive, reveal_sensitive
 from superset.utils.network import is_hostname_valid, is_port_open
 from superset.utils.oauth2 import encode_oauth2_state
 
@@ -397,6 +398,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     custom_errors: dict[
         Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
     ] = {}
+
+    # List of JSON path to fields in `encrypted_extra` that should be masked when the
+    # database is edited. By default everything is masked.
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields: set[str] = {"$.*"}
 
     # Whether the engine supports file uploads
     # if True, database will be listed as option in the upload file form
@@ -2163,26 +2169,54 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
         """
-        Mask ``encrypted_extra``.
+        Mask `encrypted_extra`.
 
-        This is used to remove any sensitive data in ``encrypted_extra`` when presenting
-        it to the user. For example, a private key might be replaced with a masked value
-        "XXXXXXXXXX". If the masked value is changed the corresponding entry is updated,
-        otherwise the old value is used (see ``unmask_encrypted_extra`` below).
+        This is used to remove any sensitive data in `encrypted_extra` when presenting
+        it to the user when a database is edited. For example, a private key might be
+        replaced with a masked value "XXXXXXXXXX". If the masked value is changed the
+        corresponding entry is updated, otherwise the old value is used (see
+        `unmask_encrypted_extra` below).
         """
-        return encrypted_extra
+        if encrypted_extra is None or not cls.encrypted_extra_sensitive_fields:
+            return encrypted_extra
 
-    # pylint: disable=unused-argument
+        try:
+            config = json.loads(encrypted_extra)
+        except (TypeError, json.JSONDecodeError):
+            return encrypted_extra
+
+        masked_encrypted_extra = redact_sensitive(
+            config,
+            cls.encrypted_extra_sensitive_fields,
+        )
+
+        return json.dumps(masked_encrypted_extra)
+
     @classmethod
     def unmask_encrypted_extra(cls, old: str | None, new: str | None) -> str | None:
         """
-        Remove masks from ``encrypted_extra``.
+        Remove masks from `encrypted_extra`.
 
         This method allows reusing existing values from the current encrypted extra on
         updates. It's useful for reusing masked passwords, allowing keys to be updated
         without having to provide sensitive data to the client.
         """
-        return new
+        if old is None or new is None:
+            return new
+
+        try:
+            old_config = json.loads(old)
+            new_config = json.loads(new)
+        except (TypeError, json.JSONDecodeError):
+            return new
+
+        new_config = reveal_sensitive(
+            old_config,
+            new_config,
+            cls.encrypted_extra_sensitive_fields,
+        )
+
+        return json.dumps(new_config)
 
     @classmethod
     def get_public_information(cls) -> dict[str, Any]:
