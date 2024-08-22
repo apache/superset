@@ -17,13 +17,22 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { css, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import type { Column, ColumnPinnedType, GridApi } from 'ag-grid-community';
 
 import Icons from 'src/components/Icons';
 import { Dropdown, DropdownProps } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import copyTextToClipboard from 'src/utils/copy';
+import { PIVOT_COL_ID } from './constants';
+
+const IconMenuItem = styled(Menu.Item)`
+  display: flex;
+  align-items: center;
+`;
+const IconEmpty = styled.span`
+  width: 20px;
+`;
 
 type Params = {
   colId: string;
@@ -72,6 +81,7 @@ const HeaderMenu: React.FC<Params> = ({
       )}
       {invisibleColumns.map(c => (
         <Menu.Item
+          key={c.getColId()}
           onClick={() => {
             api.setColumnVisible(c.getColId(), true);
           }}
@@ -90,7 +100,7 @@ const HeaderMenu: React.FC<Params> = ({
         onVisibleChange={onVisibleChange}
         overlay={
           <Menu style={{ width: 250 }} mode="vertical">
-            <Menu.Item
+            <IconMenuItem
               onClick={() => {
                 copyTextToClipboard(
                   () =>
@@ -111,14 +121,10 @@ const HeaderMenu: React.FC<Params> = ({
                     }),
                 );
               }}
-              css={css`
-                display: flex;
-                align-items: center;
-              `}
             >
               <Icons.CopyOutlined iconSize="m" /> {t('Copy the current data')}
-            </Menu.Item>
-            <Menu.Item
+            </IconMenuItem>
+            <IconMenuItem
               onClick={() => {
                 api.exportDataAsCsv({
                   columnKeys: api
@@ -127,15 +133,42 @@ const HeaderMenu: React.FC<Params> = ({
                     .filter(id => id !== colId),
                 });
               }}
-              css={css`
-                display: flex;
-                align-items: center;
-              `}
             >
               <Icons.DownloadOutlined iconSize="m" /> {t('Download to CSV')}
-            </Menu.Item>
-            {invisibleColumns.length > 0 && <Menu.Divider />}
+            </IconMenuItem>
+            <Menu.Divider />
+            <IconMenuItem
+              onClick={() => {
+                api.autoSizeAllColumns();
+              }}
+            >
+              <Icons.ColumnWidthOutlined iconSize="m" />
+              {t('Autosize all columns')}
+            </IconMenuItem>
             {unHideAction}
+            <Menu.Divider />
+            <IconMenuItem
+              onClick={() => {
+                api.setColumnsVisible(invisibleColumns, true);
+                const columns = api.getColumns();
+                if (columns) {
+                  const pinnedColumns = columns.filter(
+                    c => c.getColId() !== PIVOT_COL_ID && c.isPinned(),
+                  );
+                  api.setColumnsPinned(pinnedColumns, null);
+                  api.moveColumns(columns, 0);
+                  const firstColumn = columns.find(
+                    c => c.getColId() !== PIVOT_COL_ID,
+                  );
+                  if (firstColumn) {
+                    api.ensureColumnVisible(firstColumn, 'start');
+                  }
+                }
+              }}
+            >
+              <IconEmpty className="anticon" />
+              {t('Reset columns')}
+            </IconMenuItem>
           </Menu>
         }
       />
@@ -149,7 +182,7 @@ const HeaderMenu: React.FC<Params> = ({
       onVisibleChange={onVisibleChange}
       overlay={
         <Menu style={{ width: 180 }} mode="vertical">
-          <Menu.Item
+          <IconMenuItem
             onClick={() => {
               copyTextToClipboard(
                 () =>
@@ -166,62 +199,46 @@ const HeaderMenu: React.FC<Params> = ({
                   }),
               );
             }}
-            css={css`
-              display: flex;
-              align-items: center;
-            `}
           >
             <Icons.CopyOutlined iconSize="m" /> {t('Copy')}
-          </Menu.Item>
+          </IconMenuItem>
           {(pinnedLeft || pinnedRight) && (
-            <Menu.Item
-              onClick={() => pinColumn(null)}
-              css={css`
-                display: flex;
-                align-items: center;
-              `}
-            >
+            <IconMenuItem onClick={() => pinColumn(null)}>
               <Icons.UnlockOutlined iconSize="m" /> {t('Unpin')}
-            </Menu.Item>
+            </IconMenuItem>
           )}
           {!pinnedLeft && (
-            <Menu.Item
-              onClick={() => pinColumn('left')}
-              css={css`
-                display: flex;
-                align-items: center;
-              `}
-            >
+            <IconMenuItem onClick={() => pinColumn('left')}>
               <Icons.VerticalRightOutlined iconSize="m" />
               {t('Pin Left')}
-            </Menu.Item>
+            </IconMenuItem>
           )}
           {!pinnedRight && (
-            <Menu.Item
-              onClick={() => pinColumn('right')}
-              css={css`
-                display: flex;
-                align-items: center;
-              `}
-            >
+            <IconMenuItem onClick={() => pinColumn('right')}>
               <Icons.VerticalLeftOutlined iconSize="m" />
               {t('Pin Right')}
-            </Menu.Item>
+            </IconMenuItem>
           )}
           <Menu.Divider />
-          <Menu.Item
+          <IconMenuItem
+            onClick={() => {
+              const column = api.getColumn(colId);
+              column?.setColDef(column?.getColDef(), { minWidth: undefined });
+              api.autoSizeColumn(colId);
+            }}
+          >
+            <Icons.ColumnWidthOutlined iconSize="m" />
+            {t('Autosize Column')}
+          </IconMenuItem>
+          <IconMenuItem
             onClick={() => {
               api.setColumnVisible(colId, false);
             }}
-            css={css`
-              display: flex;
-              align-items: center;
-            `}
             disabled={api.getColumns()?.length === invisibleColumns.length + 1}
           >
             <Icons.EyeInvisibleOutlined iconSize="m" />
             {t('Hide Column')}
-          </Menu.Item>
+          </IconMenuItem>
           {unHideAction}
         </Menu>
       }
