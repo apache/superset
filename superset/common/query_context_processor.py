@@ -370,7 +370,7 @@ class QueryContextProcessor:
                 axis=1,
             )
 
-    def is_valid_date(self, date_string: str):
+    def is_valid_date(self, date_string: str) -> bool:
         try:
             # Attempt to parse the string as a date in the format YYYY-MM-DD
             datetime.strptime(date_string, "%Y-%m-%d")
