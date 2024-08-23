@@ -76,7 +76,9 @@ def test_import_chart(mocker: MockerFixture, session_with_schema: Session) -> No
     Test importing a chart.
     """
 
-    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
 
     config = copy.deepcopy(chart_config)
     config["datasource_id"] = 1
@@ -89,7 +91,7 @@ def test_import_chart(mocker: MockerFixture, session_with_schema: Session) -> No
     assert chart.external_url is None
 
     # Assert that the can write to chart was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access.assert_called_once_with("can_write", "Chart")
 
 
 def test_import_chart_managed_externally(
@@ -98,7 +100,9 @@ def test_import_chart_managed_externally(
     """
     Test importing a chart that is managed externally.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
 
     config = copy.deepcopy(chart_config)
     config["datasource_id"] = 1
@@ -111,7 +115,7 @@ def test_import_chart_managed_externally(
     assert chart.external_url == "https://example.org/my_chart"
 
     # Assert that the can write to chart was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access.assert_called_once_with("can_write", "Chart")
 
 
 def test_import_chart_without_permission(
@@ -121,7 +125,9 @@ def test_import_chart_without_permission(
     """
     Test importing a chart when a user doesn't have permissions to create.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=False)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=False
+    )
 
     config = copy.deepcopy(chart_config)
     config["datasource_id"] = 1
@@ -134,7 +140,7 @@ def test_import_chart_without_permission(
         == "Chart doesn't exist and user doesn't have permission to create charts"
     )
     # Assert that the can write to chart was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access.assert_called_once_with("can_write", "Chart")
 
 
 def test_filter_chart_annotations(session: Session) -> None:
@@ -162,8 +168,12 @@ def test_import_existing_chart_without_permission(
     """
     Test importing a chart when a user doesn't have permissions to modify.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(security_manager, "can_access_chart", return_value=False)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+    mock_can_access_chart = mocker.patch.object(
+        security_manager, "can_access_chart", return_value=False
+    )
 
     slice = (
         session_with_data.query(Slice)
@@ -180,8 +190,8 @@ def test_import_existing_chart_without_permission(
         )
 
     # Assert that the can write to chart was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Chart")
-    security_manager.can_access_chart.assert_called_once_with(slice)
+    mock_can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access_chart.assert_called_once_with(slice)
 
 
 def test_import_existing_chart_with_permission(
@@ -191,8 +201,12 @@ def test_import_existing_chart_with_permission(
     """
     Test importing a chart that exists when a user has access permission to that chart.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(security_manager, "can_access_chart", return_value=True)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+    mock_can_access_chart = mocker.patch.object(
+        security_manager, "can_access_chart", return_value=True
+    )
 
     admin = User(
         first_name="Alice",
@@ -215,5 +229,5 @@ def test_import_existing_chart_with_permission(
     with override_user(admin):
         import_chart(config, overwrite=True)
     # Assert that the can write to chart was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Chart")
-    security_manager.can_access_chart.assert_called_once_with(slice)
+    mock_can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access_chart.assert_called_once_with(slice)
