@@ -362,6 +362,7 @@
     "npm": "^10.8.1"
   },
   "overrides": {
+    "core-js": "^3.38.1",
     "d3-color": "^3.1.0",
     "yosay": {
       "ansi-regex": "^4.1.1"
