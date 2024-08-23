@@ -26,7 +26,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Tooltip } from '@superset-ui/chart-controls';
+import { DEFAULT_DATE_PATTERN, Tooltip } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import {
   ColorSchemeEnum,
@@ -95,8 +95,7 @@ export default function PopKPI(props: PopKPIProps) {
         currentTimeRangeFilter.subject,
       );
       Promise.resolve(promise).then((res: any) => {
-        const datePattern = /\d{4}-\d{2}-\d{2}/g;
-        const dates = res?.value?.match(datePattern);
+        const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
         const [parsedStartDate, parsedEndDate] = dates ?? [];
         const newShift = getTimeOffset({
           timeRangeFilter: {

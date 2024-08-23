@@ -34,6 +34,7 @@ import { useSelector } from 'react-redux';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
+import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
 
 export interface TimeOffsetControlsProps {
   label?: ReactNode;
@@ -135,8 +136,7 @@ export default function TimeOffsetControls({
         currentTimeRangeFilters[0]?.comparator,
         currentTimeRangeFilters[0]?.subject,
       ).then(res => {
-        const datePattern = /\d{4}-\d{2}-\d{2}/g;
-        const dates = res?.value?.match(datePattern);
+        const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
         const [startDate, endDate] = dates ?? [];
         customTimeRange(`${startDate} : ${endDate}` ?? '');
         setFormatedFilterDate(moment(parseDttmToDate(startDate)));

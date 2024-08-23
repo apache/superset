@@ -35,6 +35,7 @@ import ControlHeader, {
   ControlHeaderProps,
 } from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
+import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
 
 const MOMENT_FORMAT = 'YYYY-MM-DD';
 
@@ -132,8 +133,7 @@ export const ComparisonRangeLabel = ({
           ensureIsArray(customOrInheritShifts).includes('inherit')
         ) {
           return fetchTimeRange(filter.comparator, filter.subject).then(res => {
-            const datePattern = /\d{4}-\d{2}-\d{2}/g;
-            const dates = res?.value?.match(datePattern);
+            const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
             const [parsedStartDate, parsedEndDate] = dates ?? [];
             if (parsedStartDate) {
               const parsedDateMoment = moment(parseDttmToDate(parsedStartDate));
