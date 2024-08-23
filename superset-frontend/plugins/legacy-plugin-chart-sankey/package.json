@@ -29,9 +29,12 @@
     "access": "public"
   },
   "dependencies": {
+    "@cypress/react": "8.0.2",
+    "bootstrap": "5.3.3",
     "d3": "^3.5.17",
-    "d3-sankey": "^0.4.2",
-    "prop-types": "^15.8.1"
+    "d3-sankey": "^0.12.3",
+    "prop-types": "^15.8.1",
+    "react-bootstrap-slider": "2.2.3"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",

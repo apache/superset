@@ -23,9 +23,13 @@
     "lib"
   ],
   "dependencies": {
-    "d3-sankey-diagram": "^0.7.3",
+    "@cypress/react": "8.0.2",
+    "bootstrap": "5.3.3",
+    "d3-sankey": "0.12.3",
+    "d3-sankey-diagram": "^0.4.4",
     "d3-selection": "^3.0.0",
-    "prop-types": "^15.8.1"
+    "prop-types": "^15.8.1",
+    "react-bootstrap-slider": "2.2.3"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
