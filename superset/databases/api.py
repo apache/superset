@@ -2274,6 +2274,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         # otherwise the database should have been filtered out
         # in CsvToDatabaseForm
         schemas_allowed_processed = security_manager.get_schemas_accessible_by_user(
-            database, schemas_allowed, True
+            database, database.get_default_catalog(), schemas_allowed, True
         )
         return self.response(200, schemas=schemas_allowed_processed)
