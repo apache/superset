@@ -56,6 +56,7 @@ from superset.utils.core import (
     DTTM_ALIAS,
     error_msg_from_exception,
     FilterOperator,
+    GenericDataType,
     get_base_axis_labels,
     get_column_names_from_columns,
     get_column_names_from_metrics,
@@ -641,7 +642,9 @@ class QueryContextProcessor:
 
         return str(value)
 
-    def get_data(self, df: pd.DataFrame) -> str | list[dict[str, Any]]:
+    def get_data(
+        self, df: pd.DataFrame, coltypes: list[GenericDataType]
+    ) -> str | list[dict[str, Any]]:
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -655,6 +658,7 @@ class QueryContextProcessor:
                     df, index=include_index, **config["CSV_EXPORT"]
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
+                excel.apply_column_types(df, coltypes)
                 result = excel.df_to_excel(df, **config["EXCEL_EXPORT"])
             return result or ""
 
