@@ -173,7 +173,7 @@ describe('Admin DatabaseList', () => {
 
            db 0
 
-         </b>
+          </b>
           is linked to 0 charts that appear on 0 dashboards and users have 0 SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.
         </p>
       </React.Fragment>
