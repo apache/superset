@@ -168,7 +168,13 @@ describe('Admin DatabaseList', () => {
       .toMatchInlineSnapshot(`
       <React.Fragment>
         <p>
-          The database db 0 is linked to 0 charts that appear on 0 dashboards and users have 0 SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.
+          The database
+          <b>
+
+           db 0
+
+         </b>
+          is linked to 0 charts that appear on 0 dashboards and users have 0 SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.
         </p>
       </React.Fragment>
     `);
