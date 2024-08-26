@@ -34,9 +34,14 @@ down_revision = "007a1abffe7e"
 
 def upgrade():
     connection = op.get_bind()
-    if connection.dialect.name != "sqlite":
-        drop_fks_for_table("sl_datasets")
-    op.drop_table("sl_datasets")
+
+    try:
+        if connection.dialect.name != "sqlite":
+            drop_fks_for_table("sl_datasets")
+        op.drop_table("sl_datasets")
+    except sa.exc.NoSuchTableError:
+        # Table doesn't exist, so we can safely ignore this error
+        pass
 
 
 def downgrade():
