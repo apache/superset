@@ -747,7 +747,7 @@ msgid ""
 msgstr ""
 
 msgid "APPLY"
-msgstr "APPLICAR"
+msgstr "APLICAR"
 
 msgid "APR"
 msgstr "ABR"
