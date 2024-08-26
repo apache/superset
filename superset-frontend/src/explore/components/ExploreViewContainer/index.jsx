@@ -542,6 +542,8 @@ function ExploreViewContainer(props) {
   }, [props.controls]);
 
   function renderChartContainer() {
+    const logProps = {...props}
+    console.log('ExploreViewContainer renderChartContainer props', logProps)
     return (
       <ExploreChartPanel
         {...props}

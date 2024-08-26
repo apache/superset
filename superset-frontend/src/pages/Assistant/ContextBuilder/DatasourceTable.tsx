@@ -2,6 +2,8 @@ import React, { Component } from "react";
 import { Collapse, Table, Spin, Input } from "antd";
 import { fetchColumnData, ColumnData, getSelectStarQuery, executeQuery } from "../contextUtils";
 import { getTableDescription } from "../assistantUtils";
+import FilterableTable from "src/components/FilterableTable";
+import { data } from "jquery";
 
 const { TextArea } = Input;
 
@@ -20,7 +22,8 @@ export interface DatasourceTableProps {
     descriptionFocused?: boolean;
     isDescriptionLoading?: boolean;
     selectStarQuery?: string;
-    data?: any;
+    data?: Record<string, unknown>[];
+    query?: any;
 }
 
 export interface DatasourceTableColumnProps {
@@ -99,7 +102,8 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
         this.setState({
             loading: false,
             selectStarQuery: selectStarQuery,
-            data: tableData,
+            data: tableData?.results?.data || [],
+            query: tableData?.results?.query,
         }, () => { this.state.onChange?.call(this, this.state); })
     };
 
@@ -148,11 +152,12 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
     };
 
     render() {
-        const { databaseId, selected, columns, selectedColumns, loading, description, descriptionFocused, isDescriptionLoading } = this.state;
+        const { databaseId, selected, columns, selectedColumns, loading, description, descriptionFocused, isDescriptionLoading,data, query } = this.state;
         const tableColumns = [
             { title: 'Column', dataIndex: 'columnName', key: 'columnName' },
             { title: 'Type', dataIndex: 'columnType', key: 'columnType' },
         ];
+        console.log("DatasourceTable data", columns);
 
         return (
 
@@ -239,6 +244,23 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                             selectedRowKeys: selectedColumns,
                         }}
                     />
+                    <div style={{
+                        position: 'relative',
+                        overflow: 'scroll',
+                    }}>
+
+                    { (query && data && columns.length > 0) && <FilterableTable {...{
+                        orderedColumnKeys: columns.map((column) => column.columnName).sort(),
+                        data: data,
+                        height: 200,
+                        filterText: '',
+                        expandedColumns: [],
+                        allowHTML: true
+                    }} /> }
+                    </div>
+                    
+                   
+
                 </Collapse.Panel>
             </Collapse>
         );

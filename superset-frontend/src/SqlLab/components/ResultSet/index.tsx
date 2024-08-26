@@ -719,10 +719,12 @@ const ResultSet = ({
   const progressMsg = query?.extra?.progress ?? null;
 
   return (
+    
     <ResultlessStyles>
       <div>{!progressBar && <Loading position="normal" />}</div>
       {/* show loading bar whenever progress bar is completed but needs time to render */}
       <div>{query.progress === 100 && <Loading position="normal" />}</div>
+      {console.log('ResultSet query', query)}
       <QueryStateLabel query={query} />
       <div>{progressMsg && <Alert type="success" message={progressMsg} />}</div>
       <div>{query.progress !== 100 && progressBar}</div>

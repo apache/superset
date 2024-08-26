@@ -1,4 +1,4 @@
-import { SupersetClient } from "@superset-ui/core";
+import { QueryResults, SupersetClient } from "@superset-ui/core";
 import { nanoid } from "nanoid";
 
 
@@ -191,11 +191,22 @@ export const executeQuery = async (databaseId: number, schema: string, query: st
         const response = await SupersetClient.post({ endpoint: endpoint, body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
         console.log("Request: ", JSON.stringify(data));
         console.log("Response:", response);
-        return response.json.data
+        const queryResults: QueryResults = {
+            results: {
+                displayLimitReached: false,
+                columns: response.json.columns,
+                data: response.json.data,
+                expanded_columns: response.json.expanded_columns,
+                selected_columns: response.json.selected_columns,
+                query: response.json.query,
+                query_id: response.json.query_id,
+            }
+        }
+        return queryResults
     } catch (error) {
         console.log("Request: ", JSON.stringify(data));
         console.log("Error executing query:", error);
-        return [];
+        return null;
     }
 };
 
