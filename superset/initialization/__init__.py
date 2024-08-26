@@ -230,7 +230,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         appbuilder.add_link(
             "Home",
-            label=__("Home"),
+            label="Home",
             href="/superset/welcome/",
             cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
         )
@@ -238,15 +238,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             DatabaseView,
             "Databases",
-            label=__("Database Connections"),
+            label="Database Connections",
             icon="fa-database",
             category="Data",
-            category_label=__("Data"),
+            category_label="Data",
         )
         appbuilder.add_view(
             DashboardModelView,
             "Dashboards",
-            label=__("Dashboards"),
+            label="Dashboards",
             icon="fa-dashboard",
             category="",
             category_icon="",
@@ -254,7 +254,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             SliceModelView,
             "Charts",
-            label=__("Charts"),
+            label="Charts",
             icon="fa-bar-chart",
             category="",
             category_icon="",
@@ -262,7 +262,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         appbuilder.add_link(
             "Datasets",
-            label=__("Datasets"),
+            label="Datasets",
             href="/tablemodelview/list/",
             icon="fa-table",
             category="",
@@ -272,9 +272,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             DynamicPluginsView,
             "Plugins",
-            label=__("Plugins"),
+            label="Plugins",
             category="Manage",
-            category_label=__("Manage"),
+            category_label="Manage",
             icon="fa-puzzle-piece",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled(
                 "DYNAMIC_PLUGINS"
@@ -283,10 +283,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             CssTemplateModelView,
             "CSS Templates",
-            label=__("CSS Templates"),
+            label="CSS Templates",
             icon="fa-css3",
             category="Manage",
-            category_label=__("Manage"),
+            category_label="Manage",
             category_icon="",
         )
 
@@ -322,34 +322,34 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         appbuilder.add_link(
             "SQL Editor",
-            label=__("SQL Lab"),
+            label="SQL Lab",
             href="/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
-            category_label=__("SQL"),
+            category_label="SQL",
         )
         appbuilder.add_link(
             "Saved Queries",
-            label=__("Saved Queries"),
+            label="Saved Queries",
             href="/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
-            category_label=__("SQL"),
+            category_label="SQL",
         )
         appbuilder.add_link(
             "Query Search",
-            label=__("Query History"),
+            label="Query History",
             href="/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
-            category_label=__("SQL Lab"),
+            category_label="SQL Lab",
         )
         appbuilder.add_view(
             TagModelView,
             "Tags",
-            label=__("Tags"),
+            label="Tags",
             icon="",
             category_icon="",
             category="Manage",
@@ -359,9 +359,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             LogModelView,
             "Action Log",
-            label=__("Action Log"),
+            label="Action Log",
             category="Security",
-            category_label=__("Security"),
+            category_label="Security",
             icon="fa-list-ol",
             menu_cond=lambda: (
                 self.config["FAB_ADD_SECURITY_VIEWS"]
@@ -376,9 +376,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             AlertView,
             "Alerts & Report",
-            label=__("Alerts & Reports"),
+            label="Alerts & Reports",
             category="Manage",
-            category_label=__("Manage"),
+            category_label="Manage",
             icon="fa-exclamation-triangle",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("ALERT_REPORTS"),
         )
@@ -386,21 +386,21 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             AnnotationLayerView,
             "Annotation Layers",
-            label=__("Annotation Layers"),
+            label="Annotation Layers",
             href="/annotationlayer/list/",
             icon="fa-comment",
             category_icon="",
             category="Manage",
-            category_label=__("Manage"),
+            category_label="Manage",
         )
 
         appbuilder.add_view(
             RowLevelSecurityView,
             "Row Level Security",
             href="/rowlevelsecurity/list/",
-            label=__("Row Level Security"),
+            label="Row Level Security",
             category="Security",
-            category_label=__("Security"),
+            category_label="Security",
             icon="fa-lock",
         )
 
