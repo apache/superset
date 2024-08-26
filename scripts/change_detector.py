@@ -52,7 +52,7 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 def fetch_files_github_api(url: str):  # type: ignore
     """Fetches data using GitHub API."""
     req = Request(url)
-    req.add_header("Authorization", f"token {GITHUB_TOKEN}")
+    req.add_header("Authorization", f"Bearer {GITHUB_TOKEN}")
     req.add_header("Accept", "application/vnd.github.v3+json")
 
     print(f"Fetching from {url}")

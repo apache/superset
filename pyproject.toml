@@ -61,6 +61,7 @@ dependencies = [
     "humanize",
     "importlib_metadata",
     "isodate",
+    "jsonpath-ng>=1.6.1, <2",
     "Mako>=1.2.2",
     "markdown>=3.0",
     "msgpack>=1.0.0, <1.1",

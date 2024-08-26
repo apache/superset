@@ -39,14 +39,12 @@ describe('SqlLab query panel', () => {
     }).as('mockSQLResponse');
 
     cy.get('.TableSelector .Select:eq(0)').click();
-    cy.get('.TableSelector .Select:eq(0) input[type=text]')
-      .focus()
-      .type('{enter}');
+    cy.get('.TableSelector .Select:eq(0) input[type=text]').focus();
+    cy.focused().type('{enter}');
 
-    cy.get('#brace-editor textarea')
-      .focus()
-      .clear()
-      .type(`{selectall}{backspace}SELECT 1`);
+    cy.get('#brace-editor textarea').focus();
+    cy.focused().clear();
+    cy.focused().type(`{selectall}{backspace}SELECT 1`);
 
     cy.get('#js-sql-toolbar button:eq(0)').eq(0).click();
 
@@ -92,11 +90,12 @@ describe('SqlLab query panel', () => {
     let initialResultsTable: HTMLElement | null = null;
     let savedQueryResultsTable = null;
 
-    cy.get('#brace-editor textarea')
-      .clear({ force: true })
-      .type(`{selectall}{backspace}${query}`, { force: true })
-      .focus() // focus => blur is required for updating the query that is to be saved
-      .blur();
+    cy.get('#brace-editor textarea').clear({ force: true });
+    cy.get('#brace-editor textarea').type(`{selectall}{backspace}${query}`, {
+      force: true,
+    });
+    cy.get('#brace-editor textarea').focus(); // focus => blur is required for updating the query that is to be saved
+    cy.focused().blur();
 
     // ctrl + r also runs query
     cy.get('#brace-editor textarea').type('{ctrl}r', { force: true });
@@ -113,11 +112,10 @@ describe('SqlLab query panel', () => {
       .click();
 
     // Enter name + save into modal
-    cy.get('.modal-sm input')
-      .clear({ force: true })
-      .type(`{selectall}{backspace}${savedQueryTitle}`, {
-        force: true,
-      });
+    cy.get('.modal-sm input').clear({ force: true });
+    cy.get('.modal-sm input').type(`{selectall}{backspace}${savedQueryTitle}`, {
+      force: true,
+    });
 
     cy.get('.modal-sm .modal-body button')
       .eq(0) // save
@@ -159,10 +157,9 @@ describe('SqlLab query panel', () => {
 
     const query = 'SELECT gender, name FROM birth_names';
 
-    cy.get('.ace_text-input')
-      .focus()
-      .clear({ force: true })
-      .type(`{selectall}{backspace}${query}`, { force: true });
+    cy.get('.ace_text-input').focus();
+    cy.focused().clear({ force: true });
+    cy.focused().type(`{selectall}{backspace}${query}`, { force: true });
     cy.get('.sql-toolbar button').contains('Run').click();
     cy.wait('@queryFinished');
 

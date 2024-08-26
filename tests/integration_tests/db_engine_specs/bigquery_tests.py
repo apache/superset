@@ -336,11 +336,11 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = 'Syntax error: Expected end of input but got identifier "fromm"'
+        msg = 'Syntax error: Expected end of input but got identifier "from_"'
         result = BigQueryEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='Please check your query for syntax errors at or near "fromm". Then, try running your query again.',
+                message='Please check your query for syntax errors at or near "from_". Then, try running your query again.',
                 error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={

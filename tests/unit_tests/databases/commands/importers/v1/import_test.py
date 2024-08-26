@@ -172,6 +172,30 @@ def test_import_database_with_version(mocker: MockerFixture, session: Session) -
     assert json.loads(database.extra)["version"] == "1.1.1"
 
 
+def test_import_database_with_user_impersonation(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test importing a database that is managed externally.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    config["impersonate_user"] = True
+
+    database = import_database(config)
+    assert database.impersonate_user is True
+
+
 def test_add_permissions(mocker: MockerFixture) -> None:
     """
     Test adding permissions to a database when it's imported.

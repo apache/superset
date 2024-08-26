@@ -2,7 +2,7 @@
 
 # https://github.com/apache/superset/issues/13351
 
-/superset/migrations/ @mistercrunch @michael-s-molina
+/superset/migrations/ @mistercrunch @michael-s-molina @betodealmeida @eschutho
 
 # Notify some committers of changes in the components
 

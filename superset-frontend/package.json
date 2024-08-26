@@ -283,7 +283,7 @@
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
     "babel-plugin-lodash": "^3.3.4",
     "copy-webpack-plugin": "^12.0.2",
-    "cross-env": "^5.2.1",
+    "cross-env": "^7.0.3",
     "css-loader": "^6.8.1",
     "css-minimizer-webpack-plugin": "^5.0.1",
     "enzyme": "^3.11.0",
@@ -294,7 +294,7 @@
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^7.2.0",
     "eslint-import-resolver-typescript": "^3.6.1",
-    "eslint-plugin-cypress": "^2.11.2",
+    "eslint-plugin-cypress": "^3.5.0",
     "eslint-plugin-file-progress": "^1.4.0",
     "eslint-plugin-import": "^2.24.2",
     "eslint-plugin-jest": "^27.8.0",
@@ -358,8 +358,8 @@
     "xdm": "^3.4.0"
   },
   "engines": {
-    "node": "^18.19.1",
-    "npm": "^10.2.4"
+    "node": "^20.16.0",
+    "npm": "^10.8.1"
   },
   "overrides": {
     "d3-color": "^3.1.0",
@@ -368,7 +368,10 @@
     },
     "puppeteer": "^22.4.1",
     "@types/react": "^16.9.53",
-    "underscore": "^1.13.7"
+    "underscore": "^1.13.7",
+    "fast-glob": {
+      "micromatch": "^4.0.6"
+    }
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {

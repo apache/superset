@@ -87,6 +87,12 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = True
 
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields = {
+        "$.auth_params.privatekey_body",
+        "$.auth_params.privatekey_pass",
+    }
+
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('SECOND', {col})",

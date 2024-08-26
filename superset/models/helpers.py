@@ -22,7 +22,6 @@ import dataclasses
 import logging
 import re
 import uuid
-from collections import defaultdict
 from collections.abc import Hashable
 from datetime import datetime, timedelta
 from typing import Any, cast, NamedTuple, Optional, TYPE_CHECKING, Union
@@ -52,7 +51,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-from superset import app, db, is_feature_enabled, security_manager
+from superset import app, db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -806,47 +805,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_sqla_row_level_filters(
         self,
-        template_processor: Optional[BaseTemplateProcessor] = None,
+        template_processor: Optional[BaseTemplateProcessor] = None,  # pylint: disable=unused-argument
     ) -> list[TextClause]:
-        """
-        Return the appropriate row level security filters for this table and the
-        current user. A custom username can be passed when the user is not present in the
-        Flask global namespace.
-
-        :param template_processor: The template processor to apply to the filters.
-        :returns: A list of SQL clauses to be ANDed together.
-        """
-        template_processor = template_processor or self.get_template_processor()
-
-        all_filters: list[TextClause] = []
-        filter_groups: dict[Union[int, str], list[TextClause]] = defaultdict(list)
-        try:
-            for filter_ in security_manager.get_rls_filters(self):
-                clause = self.text(
-                    f"({template_processor.process_template(filter_.clause)})"
-                )
-                if filter_.group_key:
-                    filter_groups[filter_.group_key].append(clause)
-                else:
-                    all_filters.append(clause)
-
-            if is_feature_enabled("EMBEDDED_SUPERSET"):
-                for rule in security_manager.get_guest_rls_filters(self):
-                    clause = self.text(
-                        f"({template_processor.process_template(rule['clause'])})"
-                    )
-                    all_filters.append(clause)
-
-            grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
-            all_filters.extend(grouped_filters)
-            return all_filters
-        except TemplateError as ex:
-            raise QueryObjectValidationError(
-                _(
-                    "Error in jinja expression in RLS filters: %(msg)s",
-                    msg=ex.message,
-                )
-            ) from ex
+        # TODO: We should refactor this mixin and remove this method
+        # as it exists in the BaseDatasource and is not applicable
+        # for datasources of type query
+        return []
 
     def _process_sql_expression(
         self,
