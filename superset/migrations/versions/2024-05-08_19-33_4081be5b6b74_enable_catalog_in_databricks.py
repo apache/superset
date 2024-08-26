@@ -33,8 +33,8 @@ down_revision = "645bb206f96c"
 
 
 def upgrade():
-    upgrade_catalog_perms(engine="databricks")
+    upgrade_catalog_perms(engines={"databricks"})
 
 
 def downgrade():
-    downgrade_catalog_perms(engine="databricks")
+    downgrade_catalog_perms(engines={"databricks"})

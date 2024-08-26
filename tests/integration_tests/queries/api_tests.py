@@ -19,7 +19,6 @@
 
 from datetime import datetime, timedelta
 from unittest import mock
-import json
 import random
 import string
 
@@ -32,6 +31,7 @@ from superset import db, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.utils.database import get_example_database, get_main_database
+from superset.utils import json
 from superset.models.sql_lab import Query
 
 from tests.integration_tests.base_tests import SupersetTestCase

@@ -52,9 +52,17 @@ TEST_SCHEDULES_SINGLE_MINUTES = {
 TEST_SCHEDULES = TEST_SCHEDULES_EVERY_MINUTE.union(TEST_SCHEDULES_SINGLE_MINUTES)
 
 
+def dynamic_alert_minimum_interval(**kwargs) -> int:
+    return int(timedelta(minutes=10).total_seconds())
+
+
+def dynamic_report_minimum_interval(**kwargs) -> int:
+    return int(timedelta(minutes=5).total_seconds())
+
+
 def app_custom_config(
-    alert_minimum_interval: int | str = 0,
-    report_minimum_interval: int | str = 0,
+    alert_minimum_interval: int | str | Callable[[], int] = 0,
+    report_minimum_interval: int | str | Callable[[], int] = 0,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     Decorator to mock the current_app.config values dynamically for each test.
@@ -253,3 +261,37 @@ def test_validate_report_frequency_invalid_config(
         f"invalid value for {report_type}_MINIMUM_INTERVAL: 10 minutes"
     )
     assert expected_error_message.lower() in caplog.text.lower()
+
+
+@app_custom_config(
+    alert_minimum_interval=dynamic_alert_minimum_interval,
+    report_minimum_interval=dynamic_report_minimum_interval,
+)
+def test_validate_report_frequency_using_callable() -> None:
+    """
+    Test the ``validate_report_frequency`` method when the config
+    values are set to a function.
+    """
+    # Should fail with a 9 minutes interval, and work with 10
+    with pytest.raises(ReportScheduleFrequencyNotAllowed):
+        BaseReportScheduleCommand().validate_report_frequency(
+            "1,10 * * * *",
+            ReportScheduleType.ALERT,
+        )
+
+    BaseReportScheduleCommand().validate_report_frequency(
+        "1,11 * * * *",
+        ReportScheduleType.ALERT,
+    )
+
+    # Should fail with a 4 minutes interval, and work with 5
+    with pytest.raises(ReportScheduleFrequencyNotAllowed):
+        BaseReportScheduleCommand().validate_report_frequency(
+            "1,5 * * * *",
+            ReportScheduleType.REPORT,
+        )
+
+    BaseReportScheduleCommand().validate_report_frequency(
+        "1,6 * * * *",
+        ReportScheduleType.REPORT,
+    )

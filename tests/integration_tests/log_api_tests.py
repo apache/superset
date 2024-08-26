@@ -18,7 +18,6 @@
 """Unit tests for Superset"""
 
 from datetime import datetime, timedelta
-import json
 from typing import Optional
 from unittest.mock import ANY
 
@@ -29,6 +28,7 @@ from unittest.mock import patch
 from superset import db
 from superset.models.core import Log
 from superset.views.log.api import LogRestApi
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags  # noqa: F401
 from tests.integration_tests.constants import (

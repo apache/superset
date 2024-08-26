@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy import types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.engine.url import make_url
@@ -149,7 +149,7 @@ def test_get_prequeries() -> None:
     ]
 
 
-def test_get_default_schema_for_query(mocker: MockFixture) -> None:
+def test_get_default_schema_for_query(mocker: MockerFixture) -> None:
     """
     Test the ``get_default_schema_for_query`` method.
     """

@@ -58,6 +58,8 @@ repos:
     rev: v3.1.0 # Use the sha or tag you want to point at
     hooks:
       - id: prettier
+        additional_dependencies:
+          - prettier@3.3.3
         args: ["--ignore-path=./superset-frontend/.prettierignore"]
         files: "superset-frontend"
   # blacklist unsafe functions like make_url (see #19526)

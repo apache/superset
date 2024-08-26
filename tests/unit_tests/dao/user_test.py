@@ -90,4 +90,3 @@ def test_set_avatar_url_without_existing_attributes(mock_db_session):
     assert len(user.extra_attributes) == 1
     assert user.extra_attributes[0].avatar_url == new_url
     mock_db_session.add.assert_called()  # New attribute should be added
-    mock_db_session.commit.assert_called()

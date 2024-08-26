@@ -40,4 +40,3 @@ class UserDAO(BaseDAO[User]):
             attrs = UserAttribute(avatar_url=url, user_id=user.id)
             user.extra_attributes = [attrs]
             db.session.add(attrs)
-            db.session.commit()

@@ -79,6 +79,8 @@ STATS_LOGGER = DummyStatsLogger()
 
 # By default will log events to the metadata database with `DBEventLogger`
 # Note that you can use `StdOutEventLogger` for debugging
+# Note that you can write your own event logger by extending `AbstractEventLogger`
+# https://github.com/apache/superset/blob/master/superset/utils/log.py
 EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
@@ -194,6 +196,13 @@ SQLALCHEMY_DATABASE_URI = (
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
+# The default MySQL isolation level is REPEATABLE READ whereas the default PostgreSQL
+# isolation level is READ COMMITTED. All backends should use READ COMMITTED (or similar)
+# to help ensure consistent behavior.
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "isolation_level": "SERIALIZABLE",  # SQLite does not support READ COMMITTED.
+}
+
 # In order to hook up a custom password store for all SQLALCHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
 # returns a password and set SQLALCHEMY_CUSTOM_PASSWORD_STORE.
@@ -249,10 +258,11 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.log",
     "superset.views.core.explore_json",
     "superset.charts.data.api.data",
+    "superset.dashboards.api.cache_dashboard_screenshot",
 ]
 
 # Whether to run the web server in debug mode or not
-DEBUG = os.environ.get("FLASK_DEBUG")
+DEBUG = parse_boolean_string(os.environ.get("FLASK_DEBUG"))
 FLASK_USE_RELOAD = True
 
 # Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
@@ -398,6 +408,38 @@ class D3Format(TypedDict, total=False):
 
 D3_FORMAT: D3Format = {}
 
+
+# Override the default d3 locale for time format
+# Default values are equivalent to
+# D3_TIME_FORMAT = {
+#     "dateTime": "%x, %X",
+#     "date": "%-m/%-d/%Y",
+#     "time": "%-I:%M:%S %p",
+#     "periods": ["AM", "PM"],
+#     "days": ["Sunday", "Monday", "Tuesday", "Wednesday",
+#              "Thursday", "Friday", "Saturday"],
+#     "shortDays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+#     "months": ["January", "February", "March", "April",
+#                "May", "June", "July", "August",
+#                "September", "October", "November", "December"],
+#     "shortMonths": ["Jan", "Feb", "Mar", "Apr",
+#                     "May", "Jun", "Jul", "Aug",
+#                     "Sep", "Oct", "Nov", "Dec"]
+# }
+# https://github.com/d3/d3-time-format/tree/main#locales
+class D3TimeFormat(TypedDict, total=False):
+    date: str
+    dateTime: str
+    time: str
+    periods: list[str]
+    days: list[str]
+    shortDays: list[str]
+    months: list[str]
+    shortMonths: list[str]
+
+
+D3_TIME_FORMAT: D3TimeFormat = {}
+
 CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 
 # ---------------------------------------------------
@@ -442,6 +484,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     "ALERT_REPORT_TABS": False,
+    "ALERT_REPORT_SLACK_V2": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_ADVANCED_DATA_TYPES": False,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
@@ -459,6 +502,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
+    # When impersonating a user, use the email prefix instead of the username
+    "IMPERSONATE_WITH_EMAIL_PREFIX": False,
     # Enable caching per impersonation key (e.g username) in a datasource where user
     # impersonation is enabled
     "CACHE_IMPERSONATION": False,
@@ -494,6 +539,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
     "CHART_PLUGINS_EXPERIMENTAL": False,
+    # Regardless of database configuration settings, force SQLLAB to run async using Celery
+    "SQLLAB_FORCE_RUN_ASYNC": False,
+    # Set to True to to enable factory resent CLI command
+    "ENABLE_FACTORY_RESET_COMMAND": False,
 }
 
 # ------------------------------
@@ -850,7 +899,7 @@ LOGGING_CONFIGURATOR = DefaultLoggingConfigurator()
 # Console Log Settings
 
 LOG_FORMAT = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.DEBUG if DEBUG else logging.INFO
 
 # ---------------------------------------------------
 # Enable Time Rotate Log Handler
@@ -858,7 +907,7 @@ LOG_LEVEL = logging.INFO
 # LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 ENABLE_TIME_ROTATE = False
-TIME_ROTATE_LOG_LEVEL = logging.INFO
+TIME_ROTATE_LOG_LEVEL = logging.DEBUG if DEBUG else logging.INFO
 FILENAME = os.path.join(DATA_DIR, "superset.log")
 ROLLOVER = "midnight"
 INTERVAL = 1
@@ -927,7 +976,12 @@ CELERY_BEAT_SCHEDULER_EXPIRES = timedelta(weeks=1)
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
-    imports = ("superset.sql_lab", "superset.tasks.scheduler")
+    imports = (
+        "superset.sql_lab",
+        "superset.tasks.scheduler",
+        "superset.tasks.thumbnails",
+        "superset.tasks.cache",
+    )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
     task_acks_late = False
@@ -946,6 +1000,12 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "task": "reports.prune_log",
             "schedule": crontab(minute=0, hour=0),
         },
+        # Uncomment to enable pruning of the query table
+        # "prune_query": {
+        #     "task": "prune_query",
+        #     "schedule": crontab(minute=0, hour=0, day_of_month=1),
+        #     "options": {"retention_period_days": 180},
+        # },
     }
 
 
@@ -1121,7 +1181,6 @@ CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 FLASK_APP_MUTATOR = None
 
 # smtp server configuration
-EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
 SMTP_HOST = "localhost"
 SMTP_STARTTLS = True
 SMTP_SSL = False
@@ -1224,6 +1283,24 @@ DB_CONNECTION_MUTATOR = None
 #           raise Exception("URI invalid")
 #
 DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
+
+# A set of disallowed SQL functions per engine. This is used to restrict the use of
+# unsafe SQL functions in SQL Lab and Charts. The keys of the dictionary are the engine
+# names, and the values are sets of disallowed functions.
+DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
+    "postgresql": {
+        "database_to_xml",
+        "inet_client_addr",
+        "inet_server_addr",
+        "query_to_xml",
+        "query_to_xml_and_xmlschema",
+        "table_to_xml",
+        "table_to_xml_and_xmlschema",
+        "version",
+    },
+    "clickhouse": {"url"},
+    "mysql": {"version"},
+}
 
 
 # A function that intercepts the SQL to be executed and can alter it.
@@ -1330,6 +1407,7 @@ ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
+# You can also assign a function to the config that returns the expected integer
 ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 

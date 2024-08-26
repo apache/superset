@@ -23,9 +23,10 @@ import {
   DataRecordValue,
   tooltipHtml,
 } from '@superset-ui/core';
-import { EChartsCoreOption, GraphSeriesOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { GraphSeriesOption } from 'echarts/charts';
+import type { GraphEdgeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import { extent as d3Extent } from 'd3-array';
-import { GraphEdgeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import {
   EchartsGraphFormData,
   EChartGraphNode,
@@ -277,7 +278,7 @@ export default function transformProps(
       type: 'graph',
       categories: categoryList.map(c => ({
         name: c,
-        itemStyle: { color: colorFn(c, sliceId) },
+        itemStyle: { color: colorFn(c, sliceId, colorScheme) },
       })),
       layout,
       force: {

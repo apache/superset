@@ -15,9 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
-
 from superset.commands.chart.importers.v1.utils import migrate_chart
+from superset.utils import json
 
 
 def test_migrate_chart_area() -> None:

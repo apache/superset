@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Optional, Union
 from urllib import request
@@ -30,6 +29,7 @@ from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import Tag, TaggedObject
+from superset.utils import json
 from superset.utils.date_parser import parse_human_datetime
 from superset.utils.machine_auth import MachineAuthProvider
 from superset.utils.urls import get_url_path

@@ -19,7 +19,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { formatNumber, styled } from '@superset-ui/core';
 
 const StyledLegend = styled.div`

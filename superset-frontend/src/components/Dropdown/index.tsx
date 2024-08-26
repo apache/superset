@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject } from 'react';
+import {
+  RefObject,
+  ReactElement,
+  ReactNode,
+  FocusEvent,
+  KeyboardEvent,
+  cloneElement,
+} from 'react';
+
 import { AntdDropdown } from 'src/components';
 import { DropDownProps } from 'antd/lib/dropdown';
 import { styled } from '@superset-ui/core';
@@ -72,7 +80,7 @@ export enum IconOrientation {
   Horizontal = 'horizontal',
 }
 export interface DropdownProps extends DropDownProps {
-  overlay: React.ReactElement;
+  overlay: ReactElement;
   iconOrientation?: IconOrientation;
 }
 
@@ -105,14 +113,14 @@ interface ExtendedDropDownProps extends DropDownProps {
 }
 
 export interface NoAnimationDropdownProps extends ExtendedDropDownProps {
-  children: React.ReactNode;
-  onBlur?: (e: React.FocusEvent<HTMLDivElement>) => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+  children: ReactNode;
+  onBlur?: (e: FocusEvent<HTMLDivElement>) => void;
+  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
 }
 
 export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   const { children, onBlur, onKeyDown, ...rest } = props;
-  const childrenWithProps = React.cloneElement(children as React.ReactElement, {
+  const childrenWithProps = cloneElement(children as ReactElement, {
     onBlur,
     onKeyDown,
   });

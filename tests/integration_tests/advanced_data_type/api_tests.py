@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
-import json
 import prison
 
 from superset.utils.core import get_example_default_schema  # noqa: F401
@@ -32,6 +31,7 @@ from superset.advanced_data_type.types import (
     AdvancedDataTypeResponse,
 )
 from superset.utils.core import FilterOperator, FilterStringOperators
+from superset.utils import json
 
 
 target_resp: AdvancedDataTypeResponse = {

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
@@ -446,5 +445,83 @@ describe('ResultSet', () => {
         name: /refetch results/i,
       }),
     ).toBe(null);
+  });
+
+  test('should allow download as CSV when user has permission to export data', async () => {
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_csv', 'SQLLab']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('export-csv-button')).toBeInTheDocument();
+  });
+
+  test('should not allow download as CSV when user does not have permission to export data', async () => {
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('export-csv-button')).not.toBeInTheDocument();
+  });
+
+  test('should allow copy to clipboard when user has permission to export data', async () => {
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_csv', 'SQLLab']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('copy-to-clipboard-button')).toBeInTheDocument();
+  });
+
+  test('should not allow copy to clipboard when user does not have permission to export data', async () => {
+    const { queryByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
+    expect(queryByTestId('copy-to-clipboard-button')).not.toBeInTheDocument();
   });
 });

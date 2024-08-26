@@ -21,7 +21,7 @@ import moment from 'moment';
 import {
   getTimeFormatter,
   getTimeFormatterForGranularity,
-  smartDateFormatter,
+  SMART_DATE_ID,
   TimeGranularity,
 } from '@superset-ui/core';
 
@@ -41,6 +41,6 @@ export const getDateFormatter = (
   granularity?: TimeGranularity,
   fallbackFormat?: string | null,
 ) =>
-  timeFormat === smartDateFormatter.id
+  timeFormat === SMART_DATE_ID
     ? getTimeFormatterForGranularity(granularity)
     : getTimeFormatter(timeFormat ?? fallbackFormat);

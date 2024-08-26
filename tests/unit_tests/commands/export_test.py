@@ -17,10 +17,10 @@
 # pylint: disable=invalid-name, unused-argument, import-outside-toplevel
 
 from freezegun import freeze_time
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 
-def test_export_assets_command(mocker: MockFixture) -> None:
+def test_export_assets_command(mocker: MockerFixture) -> None:
     """
     Test that all assets are exported correctly.
     """

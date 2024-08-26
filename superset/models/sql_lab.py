@@ -24,7 +24,6 @@ from collections.abc import Hashable
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
-import simplejson as json
 import sqlalchemy as sqla
 from flask import current_app
 from flask_appbuilder import Model
@@ -59,7 +58,14 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import get_column_name, MediumText, QueryStatus, user_label
+from superset.utils import json
+from superset.utils.core import (
+    get_column_name,
+    LongText,
+    MediumText,
+    QueryStatus,
+    user_label,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -110,11 +116,11 @@ class Query(
     sql_editor_id = Column(String(256), index=True)
     schema = Column(String(256))
     catalog = Column(String(256), nullable=True, default=None)
-    sql = Column(MediumText())
+    sql = Column(LongText())
     # Query to retrieve the results,
     # used only in case of select_as_cta_used is true.
-    select_sql = Column(MediumText())
-    executed_sql = Column(MediumText())
+    select_sql = Column(LongText())
+    executed_sql = Column(LongText())
     # Could be configured in the superset config.
     limit = Column(Integer)
     limiting_factor = Column(
@@ -409,10 +415,11 @@ class SavedQuery(
     tags = relationship(
         "Tag",
         secondary="tagged_object",
-        overlaps="tags",
-        primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        overlaps="objects,tag,tags",
+        primaryjoin="and_(SavedQuery.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'query')",
+        secondaryjoin="TaggedObject.tag_id == Tag.id",
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
     )
 
     export_parent = "database"

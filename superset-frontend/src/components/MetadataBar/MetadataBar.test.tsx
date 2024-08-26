@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import * as resizeDetector from 'react-resize-detector';

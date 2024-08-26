@@ -45,9 +45,11 @@ import {
   extractExtraMetrics,
   getOriginalSeries,
   isDerivedSeries,
+  getTimeOffset,
 } from '@superset-ui/chart-controls';
-import { EChartsCoreOption, SeriesOption } from 'echarts';
-import { ZRLineType } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { LineStyleOption } from 'echarts/types/src/util/types';
+import type { SeriesOption } from 'echarts';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
@@ -273,10 +275,22 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
+  const offsetLineWidths = {};
+
   rawSeries.forEach(entry => {
-    const lineStyle = isDerivedSeries(entry, chartProps.rawFormData)
-      ? { type: 'dashed' as ZRLineType }
-      : {};
+    const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
+    const lineStyle: LineStyleOption = {};
+    if (derivedSeries) {
+      const offset = getTimeOffset(
+        entry,
+        ensureIsArray(chartProps.rawFormData?.time_compare),
+      )!;
+      if (!offsetLineWidths[offset]) {
+        offsetLineWidths[offset] = Object.keys(offsetLineWidths).length + 1;
+      }
+      lineStyle.type = 'dashed';
+      lineStyle.width = offsetLineWidths[offset];
+    }
 
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
@@ -288,6 +302,7 @@ export default function transformProps(
       colorScaleKey,
       {
         area,
+        connectNulls: derivedSeries,
         filterState,
         seriesContexts,
         markerEnabled,
@@ -298,11 +313,11 @@ export default function transformProps(
         stack,
         formatter: forcePercentFormatter
           ? percentFormatter
-          : getCustomFormatter(
+          : (getCustomFormatter(
               customFormatters,
               metrics,
               labelMap?.[seriesName]?.[0],
-            ) ?? defaultFormatter,
+            ) ?? defaultFormatter),
         showValue,
         onlyTotal,
         totalStackedValues: sortedTotalValues,
@@ -504,7 +519,6 @@ export default function transformProps(
   if (isHorizontal) {
     [xAxis, yAxis] = [yAxis, xAxis];
     [padding.bottom, padding.left] = [padding.left, padding.bottom];
-    yAxis.inverse = true;
   }
 
   const echartOptions: EChartsCoreOption = {
@@ -540,7 +554,7 @@ export default function transformProps(
 
         const formatter = forcePercentFormatter
           ? percentFormatter
-          : getCustomFormatter(customFormatters, metrics) ?? defaultFormatter;
+          : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
 
         const rows: string[][] = [];
         const total = Object.values(forecastValues).reduce(
@@ -618,6 +632,18 @@ export default function transformProps(
             end: TIMESERIES_CONSTANTS.dataZoomEnd,
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
             yAxisIndex: isHorizontal ? 0 : undefined,
+          },
+          {
+            type: 'inside',
+            yAxisIndex: 0,
+            zoomOnMouseWheel: false,
+            moveOnMouseWheel: true,
+          },
+          {
+            type: 'inside',
+            xAxisIndex: 0,
+            zoomOnMouseWheel: false,
+            moveOnMouseWheel: true,
           },
         ]
       : [],

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { filter } from 'lodash';
 import {
@@ -171,15 +171,12 @@ function ChartTable({
   if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
     <ErrorBoundary>
-      {sliceCurrentlyEditing && (
-        <PropertiesModal
-          onHide={closeChartEditModal}
-          onSave={handleChartUpdated}
-          show
-          slice={sliceCurrentlyEditing}
-        />
-      )}
-
+      <PropertiesModal
+        onHide={closeChartEditModal}
+        onSave={handleChartUpdated}
+        show={sliceCurrentlyEditing}
+        slice={sliceCurrentlyEditing}
+      />
       <SubMenu
         activeChild={activeTab}
         tabs={menuTabs}

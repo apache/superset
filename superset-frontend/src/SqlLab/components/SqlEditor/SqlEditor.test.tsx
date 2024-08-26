@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FocusEventHandler } from 'react';
 import * as uiCore from '@superset-ui/core';
 import { act } from 'react-dom/test-utils';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
@@ -45,7 +45,7 @@ jest.mock('src/components/AsyncAceEditor', () => ({
     value,
   }: {
     onChange: (value: string) => void;
-    onBlur: React.FocusEventHandler<HTMLTextAreaElement>;
+    onBlur: FocusEventHandler<HTMLTextAreaElement>;
     value: string;
   }) => (
     <textarea
@@ -160,10 +160,20 @@ describe('SqlEditor', () => {
   });
 
   it('does not render SqlEditor if no db selected', async () => {
-    const queryEditor = initialState.sqlLab.queryEditors[1];
+    const queryEditor = initialState.sqlLab.queryEditors[2];
     const { findByText } = setup({ ...mockedProps, queryEditor }, store);
     expect(
       await findByText('Select a database to write a query'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders db unavailable message', async () => {
+    const queryEditor = initialState.sqlLab.queryEditors[1];
+    const { findByText } = setup({ ...mockedProps, queryEditor }, store);
+    expect(
+      await findByText(
+        'The database that was used to generate this query could not be found',
+      ),
     ).toBeInTheDocument();
   });
 
@@ -411,7 +421,8 @@ describe('SqlEditor', () => {
       await waitFor(() =>
         expect(fetchMock.calls('glob:*/tabstateview/*').length).toBe(1),
       );
-      expect(fetchMock.calls(switchTabApi).length).toBe(1);
+      // it will be called from EditorAutoSync
+      expect(fetchMock.calls(switchTabApi).length).toBe(0);
     });
   });
 });

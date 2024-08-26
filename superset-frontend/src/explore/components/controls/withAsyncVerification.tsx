@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  ComponentType,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { ComponentType, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ExtraControlProps,
   sharedControlComponents,

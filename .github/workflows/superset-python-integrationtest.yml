@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - "master"
-      - "[0-9].[0-9]"
+      - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   test-mysql:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -24,7 +24,7 @@ jobs:
         mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
     services:
       mysql:
-        image: mysql:5.7
+        image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
@@ -58,9 +58,11 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-mysql
-      - name: Run celery
+      - name: Start Celery worker
         if: steps.check.outputs.python
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
       - name: Python integration tests (MySQL)
         if: steps.check.outputs.python
         run: |
@@ -72,7 +74,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
   test-postgres:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         python-version: ["current", "next", "previous"]
@@ -117,9 +119,11 @@ jobs:
         with:
           run: |
             setup-postgres
-      - name: Run celery
+      - name: Start Celery worker
         if: steps.check.outputs.python
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
       - name: Python integration tests (PostgreSQL)
         if: steps.check.outputs.python
         run: |
@@ -132,7 +136,7 @@ jobs:
           verbose: true
 
   test-sqlite:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -167,9 +171,11 @@ jobs:
           run: |
             # sqlite needs this working directory
             mkdir ${{ github.workspace }}/.temp
-      - name: Run celery
+      - name: Start Celery worker
         if: steps.check.outputs.python
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
       - name: Python integration tests (SQLite)
         if: steps.check.outputs.python
         run: |

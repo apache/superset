@@ -25,8 +25,8 @@ import hashids
 from flask_babel import gettext as _
 
 from superset.key_value.exceptions import KeyValueParseKeyError
-from superset.key_value.types import KeyValueFilter, KeyValueResource
-from superset.utils.core import json_dumps_w_dates
+from superset.key_value.types import Key, KeyValueFilter, KeyValueResource
+from superset.utils.json import json_dumps_w_dates
 
 HASHIDS_MIN_LENGTH = 11
 
@@ -35,7 +35,7 @@ def random_key() -> str:
     return token_urlsafe(48)
 
 
-def get_filter(resource: KeyValueResource, key: int | UUID) -> KeyValueFilter:
+def get_filter(resource: KeyValueResource, key: Key) -> KeyValueFilter:
     try:
         filter_: KeyValueFilter = {"resource": resource.value}
         if isinstance(key, UUID):

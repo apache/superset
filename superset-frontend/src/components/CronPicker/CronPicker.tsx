@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { ConfigProvider } from 'antd';
 import { styled, t } from '@superset-ui/core';
 import ReactCronPicker, { Locale, CronProps } from 'react-js-cron';

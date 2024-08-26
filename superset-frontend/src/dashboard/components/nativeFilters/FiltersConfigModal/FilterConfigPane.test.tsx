@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import { buildNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';

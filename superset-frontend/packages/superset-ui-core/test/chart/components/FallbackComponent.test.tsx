@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { FallbackProps } from 'react-error-boundary';

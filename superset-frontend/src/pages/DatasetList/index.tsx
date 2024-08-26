@@ -22,12 +22,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, {
-  FunctionComponent,
-  useState,
-  useMemo,
-  useCallback,
-} from 'react';
+import { FunctionComponent, useState, useMemo, useCallback } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {

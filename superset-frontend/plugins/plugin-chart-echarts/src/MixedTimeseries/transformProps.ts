@@ -44,7 +44,8 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { getOriginalSeries } from '@superset-ui/chart-controls';
-import { EChartsCoreOption, SeriesOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { SeriesOption } from 'echarts';
 import {
   DEFAULT_FORM_DATA,
   EchartsMixedTimeseriesChartTransformedProps,
@@ -392,6 +393,7 @@ export default function transformProps(
         seriesType,
         showValue,
         stack: Boolean(stack),
+        stackIdSuffix: '\na',
         yAxisIndex,
         filterState,
         seriesKey: entry.name,
@@ -438,6 +440,7 @@ export default function transformProps(
         seriesType: seriesTypeB,
         showValue: showValueB,
         stack: Boolean(stackB),
+        stackIdSuffix: '\nb',
         yAxisIndex: yAxisIndexB,
         filterState,
         seriesKey: primarySeries.has(entry.name as string)

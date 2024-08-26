@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 from datetime import datetime
@@ -37,7 +36,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
 from superset.sql_parse import SQLScript
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:

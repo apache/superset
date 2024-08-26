@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { configure as configureTranslation } from '@superset-ui/core';
 import CertifiedBadge, { CertifiedBadgeProps } from '.';
+
+configureTranslation();
 
 export default {
   title: 'CertifiedBadgeWithTooltip',

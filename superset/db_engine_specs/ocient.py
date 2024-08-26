@@ -315,12 +315,12 @@ class OcientEngineSpec(BaseEngineSpec):
     ) -> list[tuple[Any, ...]]:
         try:
             rows: list[tuple[Any, ...]] = super().fetch_data(cursor, limit)
-        except Exception as exception:
+        except Exception:
             with OcientEngineSpec.query_id_mapping_lock:
                 del OcientEngineSpec.query_id_mapping[
                     getattr(cursor, "superset_query_id")
                 ]
-            raise exception
+            raise
 
         # TODO: Unsure if we need to verify that we are receiving rows:
         if len(rows) > 0 and type(rows[0]).__name__ == "Row":

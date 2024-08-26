@@ -16,11 +16,10 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import
 
-import json
-
 from sqlalchemy.orm.session import Session
 
 from superset import db
+from superset.utils import json
 
 
 def test_export(session: Session) -> None:
@@ -221,6 +220,7 @@ extra:
   engine_params: {{}}
   metadata_cache_timeout: {{}}
   schemas_allowed_for_file_upload: []
+impersonate_user: false
 uuid: {database.uuid}
 version: 1.0.0
 """,

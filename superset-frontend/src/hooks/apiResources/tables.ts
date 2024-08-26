@@ -117,6 +117,13 @@ const tableApi = api.injectEndpoints({
       }),
     }),
     tableMetadata: builder.query<TableMetaData, FetchTableMetadataQueryParams>({
+      providesTags: result =>
+        result
+          ? [
+              { type: 'TableMetadatas', id: result.name },
+              { type: 'TableMetadatas', id: 'LIST' },
+            ]
+          : [{ type: 'TableMetadatas', id: 'LIST' }],
       query: ({ dbId, catalog, schema, table }) => ({
         endpoint: `/api/v1/database/${dbId}/table_metadata/${toQueryString({
           name: table,
@@ -152,7 +159,7 @@ export const {
 export function useTables(options: Params) {
   const { dbId, catalog, schema, onSuccess, onError } = options || {};
   const isMountedRef = useRef(false);
-  const { data: schemaOptions, isFetching } = useSchemas({
+  const { currentData: schemaOptions, isFetching } = useSchemas({
     dbId,
     catalog: catalog || undefined,
   });
@@ -203,13 +210,13 @@ export function useTables(options: Params) {
         isSuccess,
         isError,
         isFetching,
-        data,
+        currentData,
         error,
         originalArgs,
       } = result;
       if (!originalArgs?.forceRefresh && requestId && !isFetching) {
-        if (isSuccess && data) {
-          handleOnSuccess(data, false);
+        if (isSuccess && currentData) {
+          handleOnSuccess(currentData, false);
         }
         if (isError) {
           handleOnError(error as Response);

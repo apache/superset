@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { css, isEqualArray, t } from '@superset-ui/core';
 import Select from 'src/components/Select/Select';
@@ -87,7 +87,7 @@ const defaultProps = {
   valueKey: 'value',
 };
 
-export default class SelectControl extends React.PureComponent {
+export default class SelectControl extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {

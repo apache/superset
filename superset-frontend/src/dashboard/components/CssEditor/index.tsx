@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Key, ReactNode, PureComponent } from 'react';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
@@ -26,7 +26,7 @@ import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 
 export interface CssEditorProps {
   initialCss: string;
-  triggerNode: React.ReactNode;
+  triggerNode: ReactNode;
   onChange: (css: string) => void;
   addDangerToast: (msg: string) => void;
 }
@@ -56,7 +56,7 @@ const StyledWrapper = styled.div`
   `}
 `;
 
-class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
+class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
   static defaultProps: Partial<CssEditorProps> = {
     initialCss: '',
     onChange: () => {},
@@ -99,7 +99,7 @@ class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
     });
   }
 
-  changeCssTemplate(info: { key: React.Key }) {
+  changeCssTemplate(info: { key: Key }) {
     const keyAsString = String(info.key);
     this.changeCss(keyAsString);
   }

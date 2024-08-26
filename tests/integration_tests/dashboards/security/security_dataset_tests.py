@@ -16,14 +16,13 @@
 # under the License.
 """Unit tests for Superset"""
 
-import json
-
 import prison
 import pytest
 from flask import escape  # noqa: F401
 
 from superset import app
 from superset.daos.dashboard import DashboardDAO
+from superset.utils import json
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.dashboards.base_case import DashboardTestCase
 from tests.integration_tests.dashboards.consts import *  # noqa: F403

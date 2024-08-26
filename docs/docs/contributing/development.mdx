@@ -34,19 +34,21 @@ Setting things up to squeeze an "hello world" into any part of Superset should b
 ```bash
 docker-compose up
 ```
+
 Note that:
+
 - this will pull/build docker images and run a cluster of services, including:
   - A Superset **Flask web server**, mounting the local python repo/code
   - A Superset **Celery worker**, also mounting the local python repo/code
   - A Superset **Node service**, mounting, compiling and bundling the JS/TS assets
   - A Superset **Node websocket service** to power the async backend
-  - **Postgres** as the metadata database and to store example datasets, charts and dashboards whic
+  - **Postgres** as the metadata database and to store example datasets, charts and dashboards which
     should be populated upon startup
   - **Redis** as the message queue for our async backend and caching backend
 - It'll load up examples into the database upon first startup
 - all other details and pointers available in
   [docker-compose.yml](https://github.com/apache/superset/blob/master/docker-compose.yml)
-- The local repository is mounted withing the services, meaning updating
+- The local repository is mounted within the services, meaning updating
   the code on the host will be reflected in the docker images
 - Superset is served at localhost:8088/
 - You can login with admin/admin
@@ -90,7 +92,50 @@ To install run the following:
 pre-commit install
 ```
 
-A series of checks will now run when you make a git commit.
+This will install the hooks in your local repository. From now on, a series of checks will
+automatically run whenever you make a Git commit.
+
+#### Running Pre-commit Manually
+
+You can also run the pre-commit checks manually in various ways:
+
+- **Run pre-commit on all files (same as CI):**
+
+  To run the pre-commit checks across all files in your repository, use the following command:
+
+  ```bash
+  pre-commit run --all-files
+  ```
+
+  This is the same set of checks that will run during CI, ensuring your changes meet the project's standards.
+
+- **Run pre-commit on a specific file:**
+
+  If you want to check or fix a specific file, you can do so by specifying the file path:
+
+  ```bash
+  pre-commit run --files path/to/your/file.py
+  ```
+
+  This will only run the checks on the file(s) you specify.
+
+- **Run a specific pre-commit check:**
+
+  To run a specific check (hook) across all files or a particular file, use the following command:
+
+  ```bash
+  pre-commit run <hook_id> --all-files
+  ```
+
+  Or for a specific file:
+
+  ```bash
+  pre-commit run <hook_id> --files path/to/your/file.py
+  ```
+
+  Replace `<hook_id>` with the ID of the specific hook you want to run. You can find the list
+  of available hooks in the `.pre-commit-config.yaml` file.
+
 
 ## Alternatives to docker-compose
 
@@ -106,7 +151,7 @@ functioning across environments.
 #### OS Dependencies
 
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/pypi#os-dependencies) before following these steps.
-You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
+You also need to install MySQL.
 
 Ensure that you are using Python version 3.9, 3.10 or 3.11, then proceed with:
 
@@ -223,7 +268,7 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 First, be sure you are using the following versions of Node.js and npm:
 
-- `Node.js`: Version 18
+- `Node.js`: Version 20
 - `npm`: Version 10
 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
@@ -231,7 +276,7 @@ We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node envi
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
 
-incase it shows '-bash: nvm: command not found'
+in case it shows '-bash: nvm: command not found'
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
@@ -261,7 +306,7 @@ cd superset-frontend
 npm ci
 ```
 
-Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` envinronment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` environment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
 
 ```json
 // your-package/package.json
@@ -287,22 +332,28 @@ If while using the above commands you encounter an error related to the limit of
 ```bash
 Error: ENOSPC: System limit for number of file watchers reached
 ```
+
 The error is thrown because the number of files monitored by the system has reached the limit.
 You can address this this error by increasing the number of inotify watchers.
 
 The current value of max watches can be checked with:
+
 ```bash
 cat /proc/sys/fs/inotify/max_user_watches
 ```
-Edit the file /etc/sysctl.conf to increase this value.
+
+Edit the file `/etc/sysctl.conf` to increase this value.
 The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
 
 Open the file in editor and add a line at the bottom specifying the max watches values.
+
 ```bash
 fs.inotify.max_user_watches=524288
 ```
+
 Save the file and exit editor.
-To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from sysctl.conf:
+To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from `sysctl.conf`:
+
 ```bash
 sudo sysctl -p
 ```
@@ -314,14 +365,18 @@ The dev server by default starts at `http://localhost:9000` and proxies the back
 So a typical development workflow is the following:
 
 1. [run Superset locally](#flask-server) using Flask, on port `8088` — but don't access it directly,<br/>
+
    ```bash
    # Install Superset and dependencies, plus load your virtual environment first, as detailed above.
    superset run -p 8088 --with-threads --reload --debugger --debug
    ```
+
 2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
+
    ```bash
    npm run dev-server
    ```
+
 3. access `http://localhost:9000` (the Webpack server, _not_ Flask) in your web browser. This will use the hot-reloading front-end assets from the Webpack development server while redirecting back-end queries to Flask/Superset: your changes on Superset codebase — either front or back-end — will then be reflected live in the browser.
 
 It's possible to change the Webpack server settings:
@@ -704,9 +759,9 @@ VSCode will not stop on breakpoints right away. We've attached to PID 6 however 
 
 ### Debugging Server App in Kubernetes Environment
 
-To debug Flask running in POD inside kubernetes cluster. You'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
+To debug Flask running in POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
 
-```
+```yaml
   securityContext:
     capabilities:
       add: ["SYS_PTRACE"]
@@ -720,7 +775,7 @@ You can follow the same instructions as in the docker-compose. Enter the pod and
 
 Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
-```
+```bash
 kubectl port-forward  pod/superset-<some random id> 5678:5678
 ```
 
@@ -736,97 +791,6 @@ npm run storybook
 ```
 
 When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.
-
-## Translating
-
-We use [Flask-Babel](https://python-babel.github.io/flask-babel/) to translate Superset.
-In Python files, we import the magic `_` function using:
-
-```python
-from flask_babel import lazy_gettext as _
-```
-
-then wrap our translatable strings with it, e.g. `_('Translate me')`.
-During extraction, string literals passed to `_` will be added to the
-generated `.po` file for each language for later translation.
-
-At runtime, the `_` function will return the translation of the given
-string for the current language, or the given string itself
-if no translation is available.
-
-In TypeScript/JavaScript, the technique is similar:
-we import `t` (simple translation), `tn` (translation containing a number).
-
-```javascript
-import { t, tn } from "@superset-ui/translation";
-```
-
-### Enabling language selection
-
-Add the `LANGUAGES` variable to your `superset_config.py`. Having more than one
-option inside will add a language selection dropdown to the UI on the right side
-of the navigation bar.
-
-```python
-LANGUAGES = {
-    'en': {'flag': 'us', 'name': 'English'},
-    'fr': {'flag': 'fr', 'name': 'French'},
-    'zh': {'flag': 'cn', 'name': 'Chinese'},
-}
-```
-
-### Updating language files
-
-```bash
-./scripts/babel_update.sh
-```
-
-This script will
-
-1. update the template file `superset/translations/messages.pot` with current application strings.
-2. update language files with the new extracted strings.
-
-You can then translate the strings gathered in files located under
-`superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)
-to translate the `po` file more conveniently.
-There are some [tutorials in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
-
-In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
-
-```bash
-npm install -g po2json
-```
-
-To convert all PO files to formatted JSON files you can use the `po2json.sh` script.
-
-```bash
-./scripts/po2json.sh
-```
-
-If you get errors running `po2json`, you might be running the Ubuntu package with the same
-name, rather than the Node.js package (they have a different format for the arguments). If
-there is a conflict, you may need to update your `PATH` environment variable or fully qualify
-the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
-If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
-For example, `"year":["年"]` is correct while `"year":[null,"年"]`is incorrect.
-
-For the translations to take effect we need to compile translation catalogs into binary MO files.
-
-```bash
-pybabel compile -d superset/translations
-```
-
-### Creating a new language dictionary
-
-To create a dictionary for a new language, run the following, where `LANGUAGE_CODE` is replaced with
-the language code for your target language, e.g. `es` (see [Flask AppBuilder i18n documentation](https://flask-appbuilder.readthedocs.io/en/latest/i18n.html) for more details):
-
-```bash
-pip install -r superset/translations/requirements.txt
-pybabel init -i superset/translations/messages.pot -d superset/translations -l LANGUAGE_CODE
-```
-
-Then, [Updating language files](#updating-language-files).
 
 ## Tips
 
@@ -860,7 +824,7 @@ To contribute a plugin to Superset, your plugin must meet the following criteria
 - The plugin should be written with TypeScript
 - The plugin should contain sufficient unit/e2e tests
 - The plugin should use appropriate namespacing, e.g. a folder name of `plugin-chart-whatever` and a package name of `@superset-ui/plugin-chart-whatever`
-- The plugin should use them variables via Emotion, as passed in by the ThemeProvider
+- The plugin should use theme variables via Emotion, as passed in by the ThemeProvider
 - The plugin should provide adequate error handling (no data returned, malformed data, invalid controls, etc.)
 - The plugin should contain documentation in the form of a populated `README.md` file
 - The plugin should have a meaningful and unique icon
@@ -892,7 +856,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
    The output should look like this:
 
-   ```
+   ```log
    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
    INFO  [alembic.runtime.migration] Will assume transactional DDL.
    INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
@@ -912,7 +876,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
    The output should look like this:
 
-   ```
+   ```log
    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
    INFO  [alembic.runtime.migration] Will assume transactional DDL.
    INFO  [alembic.runtime.migration] Running downgrade 40a0a483dd12 -> 1a1d627ebd8e, add_metadata_column_to_annotation_model.py

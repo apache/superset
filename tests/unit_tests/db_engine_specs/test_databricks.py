@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
-import json
 from datetime import datetime
 from typing import Optional
 
@@ -25,6 +24,7 @@ from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -178,12 +178,12 @@ def test_extract_errors() -> None:
     Test that custom error messages are extracted correctly.
     """
 
-    msg = ": mismatched input 'fromm'. Expecting: "
+    msg = ": mismatched input 'from_'. Expecting: "
     result = DatabricksNativeEngineSpec.extract_errors(Exception(msg))
 
     assert result == [
         SupersetError(
-            message=": mismatched input 'fromm'. Expecting: ",
+            message=": mismatched input 'from_'. Expecting: ",
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -204,13 +204,13 @@ def test_extract_errors_with_context() -> None:
     Test that custom error messages are extracted correctly with context.
     """
 
-    msg = ": mismatched input 'fromm'. Expecting: "
+    msg = ": mismatched input 'from_'. Expecting: "
     context = {"hostname": "foo"}
     result = DatabricksNativeEngineSpec.extract_errors(Exception(msg), context)
 
     assert result == [
         SupersetError(
-            message=": mismatched input 'fromm'. Expecting: ",
+            message=": mismatched input 'from_'. Expecting: ",
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={

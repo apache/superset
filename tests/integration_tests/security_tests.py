@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import json
 import inspect
 import time
 import unittest
@@ -45,6 +44,7 @@ from superset.utils.core import (
     get_example_default_schema,
     override_user,
 )
+from superset.utils import json
 from superset.utils.database import get_example_database
 from superset.utils.urls import get_url_host
 
@@ -1633,7 +1633,10 @@ class TestSecurityManager(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_query(self, mock_can_access, mock_is_owner):
         query = Mock(
-            database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM foo",
+            catalog=None,
         )
 
         mock_can_access.return_value = True

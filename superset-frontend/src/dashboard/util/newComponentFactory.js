@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import { t } from '@superset-ui/core';
 
 import {
@@ -65,7 +65,7 @@ const typeToDefaultMetaData = {
 };
 
 function uuid(type) {
-  return `${type}-${shortid.generate()}`;
+  return `${type}-${nanoid()}`;
 }
 
 export default function entityFactory(type, meta, parents = []) {

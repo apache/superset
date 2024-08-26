@@ -17,7 +17,6 @@
  * under the License.
  */
 import { ArcLayer } from 'deck.gl/typed';
-import React from 'react';
 import {
   HandlerFunction,
   JsonObject,

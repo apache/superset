@@ -19,7 +19,8 @@ from __future__ import annotations
 import copy
 import logging
 import re
-from typing import Any, ClassVar, TYPE_CHECKING, TypedDict
+from datetime import datetime
+from typing import Any, cast, ClassVar, TYPE_CHECKING, TypedDict
 
 import numpy as np
 import pandas as pd
@@ -55,11 +56,13 @@ from superset.utils.core import (
     DateColumn,
     DTTM_ALIAS,
     error_msg_from_exception,
+    FilterOperator,
+    GenericDataType,
     get_base_axis_labels,
     get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
-    get_xaxis_label,
+    get_x_axis_label,
     normalize_dttm_col,
     TIME_COMPARISON,
 )
@@ -77,8 +80,8 @@ config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
-# Temporary column used for joining aggregated offset results
-AGGREGATED_JOIN_COLUMN = "__aggregated_join_column"
+# Offset join column suffix used for joining offset results
+OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 
 # This only includes time grains that may influence
 # the temporal column used for joining offset results.
@@ -339,21 +342,65 @@ class QueryContextProcessor:
 
         return query_object.extras.get("time_grain_sqla")
 
-    def add_aggregated_join_column(
+    # pylint: disable=too-many-arguments
+    def add_offset_join_column(
         self,
         df: pd.DataFrame,
+        name: str,
         time_grain: str,
+        time_offset: str | None = None,
         join_column_producer: Any = None,
     ) -> None:
+        """
+        Adds an offset join column to the provided DataFrame.
+
+        The function modifies the DataFrame in-place.
+
+        :param df: pandas DataFrame to which the offset join column will be added.
+        :param name: The name of the new column to be added.
+        :param time_grain: The time grain used to calculate the new column.
+        :param time_offset: The time offset used to calculate the new column.
+        :param join_column_producer: A function to generate the join column.
+        """
         if join_column_producer:
-            df[AGGREGATED_JOIN_COLUMN] = df.apply(
-                lambda row: join_column_producer(row, 0), axis=1
-            )
+            df[name] = df.apply(lambda row: join_column_producer(row, 0), axis=1)
         else:
-            df[AGGREGATED_JOIN_COLUMN] = df.apply(
-                lambda row: self.get_aggregated_join_column(row, 0, time_grain),
+            df[name] = df.apply(
+                lambda row: self.generate_join_column(row, 0, time_grain, time_offset),
                 axis=1,
             )
+
+    def is_valid_date(self, date_string: str) -> bool:
+        try:
+            # Attempt to parse the string as a date in the format YYYY-MM-DD
+            datetime.strptime(date_string, "%Y-%m-%d")
+            return True
+        except ValueError:
+            # If parsing fails, it's not a valid date in the format YYYY-MM-DD
+            return False
+
+    def get_offset_custom_or_inherit(
+        self,
+        offset: str,
+        outer_from_dttm: datetime,
+        outer_to_dttm: datetime,
+    ) -> str:
+        """
+        Get the time offset for custom or inherit.
+
+        :param offset: The offset string.
+        :param outer_from_dttm: The outer from datetime.
+        :param outer_to_dttm: The outer to datetime.
+        :returns: The time offset.
+        """
+        if offset == "inherit":
+            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix
+            return f"{(outer_to_dttm - outer_from_dttm).days} days ago"
+        if self.is_valid_date(offset):
+            # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix
+            offset_date = datetime.strptime(offset, "%Y-%m-%d")
+            return f"{(outer_from_dttm - offset_date).days} days ago"
+        return ""
 
     def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
         self,
@@ -365,7 +412,7 @@ class QueryContextProcessor:
         query_object_clone = copy.copy(query_object)
         queries: list[str] = []
         cache_keys: list[str | None] = []
-        offset_dfs: list[pd.DataFrame] = []
+        offset_dfs: dict[str, pd.DataFrame] = {}
 
         outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
         if not outer_from_dttm or not outer_to_dttm:
@@ -376,33 +423,17 @@ class QueryContextProcessor:
                 )
             )
 
-        columns = df.columns
         time_grain = self.get_time_grain(query_object)
 
-        if not time_grain:
-            raise QueryObjectValidationError(
-                _("Time Grain must be specified when using Time Shift.")
-            )
-
-        join_column_producer = config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
-            time_grain
-        )
-        use_aggregated_join_column = (
-            join_column_producer or time_grain in AGGREGATED_JOIN_GRAINS
-        )
-        if use_aggregated_join_column:
-            self.add_aggregated_join_column(df, time_grain, join_column_producer)
-            # skips the first column which is the temporal column
-            # because we'll use the aggregated join columns instead
-            columns = df.columns[1:]
-
         metric_names = get_metric_names(query_object.metrics)
-        join_keys = [col for col in columns if col not in metric_names]
+
+        # use columns that are not metrics as join keys
+        join_keys = [col for col in df.columns if col not in metric_names]
 
         for offset in query_object.time_offsets:
             try:
                 # pylint: disable=line-too-long
-                # Since the xaxis is also a column name for the time filter, xaxis_label will be set as granularity
+                # Since the x-axis is also a column name for the time filter, x_axis_label will be set as granularity
                 # these query object are equivalent:
                 # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}
                 # 2) { columns: [
@@ -411,15 +442,22 @@ class QueryContextProcessor:
                 #      time_offsets: ['1 year ago'],
                 #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],
                 #    }
+                original_offset = offset
+                if self.is_valid_date(offset) or offset == "inherit":
+                    offset = self.get_offset_custom_or_inherit(
+                        offset,
+                        outer_from_dttm,
+                        outer_to_dttm,
+                    )
                 query_object_clone.from_dttm = get_past_or_future(
                     offset,
                     outer_from_dttm,
                 )
                 query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
 
-                xaxis_label = get_xaxis_label(query_object.columns)
+                x_axis_label = get_x_axis_label(query_object.columns)
                 query_object_clone.granularity = (
-                    query_object_clone.granularity or xaxis_label
+                    query_object_clone.granularity or x_axis_label
                 )
             except ValueError as ex:
                 raise QueryObjectValidationError(str(ex)) from ex
@@ -428,22 +466,54 @@ class QueryContextProcessor:
             query_object_clone.inner_to_dttm = outer_to_dttm
             query_object_clone.time_offsets = []
             query_object_clone.post_processing = []
+            # Get time offset index
+            index = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
+            # The comparison is not using a temporal column so we need to modify
+            # the temporal filter so we run the query with the correct time range
+            if not dataframe_utils.is_datetime_series(df.get(index)):
+                # Lets find the first temporal filter in the filters array and change
+                # its val to be the result of get_since_until with the offset
+                for flt in query_object_clone.filter:
+                    if flt.get(
+                        "op"
+                    ) == FilterOperator.TEMPORAL_RANGE.value and isinstance(
+                        flt.get("val"), str
+                    ):
+                        time_range = cast(str, flt.get("val"))
+                        (
+                            new_outer_from_dttm,
+                            new_outer_to_dttm,
+                        ) = get_since_until_from_time_range(
+                            time_range=time_range,
+                            time_shift=offset,
+                        )
+                        flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
             query_object_clone.filter = [
                 flt
                 for flt in query_object_clone.filter
-                if flt.get("col") != xaxis_label
+                if flt.get("col") != x_axis_label
             ]
+
+            # Inherit or custom start dates might compute the same offset but the response cannot be given
+            # using cached data unless you are using the same date of inherited range, that's why we
+            # set the cache cache using a custom key that includes the original offset and the computed offset
+            # for those two scenarios, the rest of the scenarios will use the original offset as cache key
+            cached_time_offset_key = (
+                offset if offset == original_offset else f"{offset}_{original_offset}"
+            )
 
             # `offset` is added to the hash function
             cache_key = self.query_cache_key(
-                query_object_clone, time_offset=offset, time_grain=time_grain
+                query_object_clone,
+                time_offset=cached_time_offset_key,
+                time_grain=time_grain,
             )
             cache = QueryCacheManager.get(
                 cache_key, CacheRegion.DATA, query_context.force
             )
             # whether hit on the cache
             if cache.is_loaded:
-                offset_dfs.append(cache.df)
+                offset_dfs[offset] = cache.df
                 queries.append(cache.query)
                 cache_keys.append(cache_key)
                 continue
@@ -451,7 +521,7 @@ class QueryContextProcessor:
             query_object_clone_dct = query_object_clone.to_dict()
             # rename metrics: SUM(value) => SUM(value) 1 year ago
             metrics_mapping = {
-                metric: TIME_COMPARISON.join([metric, offset])
+                metric: TIME_COMPARISON.join([metric, original_offset])
                 for metric in metric_names
             }
 
@@ -487,26 +557,6 @@ class QueryContextProcessor:
                 # 2. rename extra query columns
                 offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
 
-                # 3. set time offset for index
-                index = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
-                if not dataframe_utils.is_datetime_series(offset_metrics_df.get(index)):
-                    raise QueryObjectValidationError(
-                        _(
-                            "A time column must be specified "
-                            "when using a Time Comparison."
-                        )
-                    )
-
-                # modifies temporal column using offset
-                offset_metrics_df[index] = offset_metrics_df[index] - DateOffset(
-                    **normalize_time_delta(offset)
-                )
-
-                if use_aggregated_join_column:
-                    self.add_aggregated_join_column(
-                        offset_metrics_df, time_grain, join_column_producer
-                    )
-
             # cache df and query
             value = {
                 "df": offset_metrics_df,
@@ -519,53 +569,132 @@ class QueryContextProcessor:
                 datasource_uid=query_context.datasource.uid,
                 region=CacheRegion.DATA,
             )
-            offset_dfs.append(offset_metrics_df)
+            offset_dfs[offset] = offset_metrics_df
 
         if offset_dfs:
-            # iterate on offset_dfs, left join each with df
-            for offset_df in offset_dfs:
-                df = dataframe_utils.left_join_df(
-                    left_df=df,
-                    right_df=offset_df,
-                    join_keys=join_keys,
-                    rsuffix=R_SUFFIX,
-                )
-
-        # removes columns used for join
-        df.drop(
-            list(df.filter(regex=f"{AGGREGATED_JOIN_COLUMN}|{R_SUFFIX}")),
-            axis=1,
-            inplace=True,
-        )
+            df = self.join_offset_dfs(
+                df,
+                offset_dfs,
+                time_grain,
+                join_keys,
+            )
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
 
+    def join_offset_dfs(
+        self,
+        df: pd.DataFrame,
+        offset_dfs: dict[str, pd.DataFrame],
+        time_grain: str | None,
+        join_keys: list[str],
+    ) -> pd.DataFrame:
+        """
+        Join offset DataFrames with the main DataFrame.
+
+        :param df: The main DataFrame.
+        :param offset_dfs: A list of offset DataFrames.
+        :param time_grain: The time grain used to calculate the temporal join key.
+        :param join_keys: The keys to join on.
+        """
+        join_column_producer = config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
+            time_grain
+        )
+
+        if join_column_producer and not time_grain:
+            raise QueryObjectValidationError(
+                _("Time Grain must be specified when using Time Shift.")
+            )
+
+        # iterate on offset_dfs, left join each with df
+        for offset, offset_df in offset_dfs.items():
+            actual_join_keys = join_keys
+
+            if time_grain:
+                # defines a column name for the offset join column
+                column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
+
+                # add offset join column to df
+                self.add_offset_join_column(
+                    df, column_name, time_grain, offset, join_column_producer
+                )
+
+                # add offset join column to offset_df
+                self.add_offset_join_column(
+                    offset_df, column_name, time_grain, None, join_column_producer
+                )
+
+                # the temporal column is the first column in the join keys
+                # so we use the join column instead of the temporal column
+                actual_join_keys = [column_name, *join_keys[1:]]
+
+            if join_keys:
+                df = dataframe_utils.left_join_df(
+                    left_df=df,
+                    right_df=offset_df,
+                    join_keys=actual_join_keys,
+                    rsuffix=R_SUFFIX,
+                )
+            else:
+                df = dataframe_utils.full_outer_join_df(
+                    left_df=df,
+                    right_df=offset_df,
+                    rsuffix=R_SUFFIX,
+                )
+
+            if time_grain:
+                # move the temporal column to the first column in df
+                if join_keys:
+                    col = df.pop(join_keys[0])
+                    df.insert(0, col.name, col)
+
+                # removes columns created only for join purposes
+                df.drop(
+                    list(df.filter(regex=f"{OFFSET_JOIN_COLUMN_SUFFIX}|{R_SUFFIX}")),
+                    axis=1,
+                    inplace=True,
+                )
+        return df
+
     @staticmethod
-    def get_aggregated_join_column(
-        row: pd.Series, column_index: int, time_grain: str
+    def generate_join_column(
+        row: pd.Series,
+        column_index: int,
+        time_grain: str,
+        time_offset: str | None = None,
     ) -> str:
-        if time_grain in (
-            TimeGrain.WEEK_STARTING_SUNDAY,
-            TimeGrain.WEEK_ENDING_SATURDAY,
-        ):
-            return row[column_index].strftime("%Y-W%U")
+        value = row[column_index]
 
-        if time_grain in (
-            TimeGrain.WEEK,
-            TimeGrain.WEEK_STARTING_MONDAY,
-            TimeGrain.WEEK_ENDING_SUNDAY,
-        ):
-            return row[column_index].strftime("%Y-W%W")
+        if hasattr(value, "strftime"):
+            if time_offset:
+                value = value + DateOffset(**normalize_time_delta(time_offset))
 
-        if time_grain == TimeGrain.MONTH:
-            return row[column_index].strftime("%Y-%m")
+            if time_grain in (
+                TimeGrain.WEEK_STARTING_SUNDAY,
+                TimeGrain.WEEK_ENDING_SATURDAY,
+            ):
+                return value.strftime("%Y-W%U")
 
-        if time_grain == TimeGrain.QUARTER:
-            return row[column_index].strftime("%Y-Q") + str(row[column_index].quarter)
+            if time_grain in (
+                TimeGrain.WEEK,
+                TimeGrain.WEEK_STARTING_MONDAY,
+                TimeGrain.WEEK_ENDING_SUNDAY,
+            ):
+                return value.strftime("%Y-W%W")
 
-        return row[column_index].strftime("%Y")
+            if time_grain == TimeGrain.MONTH:
+                return value.strftime("%Y-%m")
 
-    def get_data(self, df: pd.DataFrame) -> str | list[dict[str, Any]]:
+            if time_grain == TimeGrain.QUARTER:
+                return value.strftime("%Y-Q") + str(value.quarter)
+
+            if time_grain == TimeGrain.YEAR:
+                return value.strftime("%Y")
+
+        return str(value)
+
+    def get_data(
+        self, df: pd.DataFrame, coltypes: list[GenericDataType]
+    ) -> str | list[dict[str, Any]]:
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -579,6 +708,7 @@ class QueryContextProcessor:
                     df, index=include_index, **config["CSV_EXPORT"]
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
+                excel.apply_column_types(df, coltypes)
                 result = excel.df_to_excel(df, **config["EXCEL_EXPORT"])
             return result or ""
 

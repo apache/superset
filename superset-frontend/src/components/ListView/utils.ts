@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, ReactNode } from 'react';
 import {
   useFilters,
   usePagination,
@@ -187,8 +187,8 @@ interface UseListViewConfig {
   initialFilters?: Filter[];
   bulkSelectColumnConfig?: {
     id: string;
-    Header: (conf: any) => React.ReactNode;
-    Cell: (conf: any) => React.ReactNode;
+    Header: (conf: any) => ReactNode;
+    Cell: (conf: any) => ReactNode;
   };
   renderCard?: boolean;
   defaultViewMode?: ViewModeType;

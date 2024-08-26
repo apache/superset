@@ -16,11 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-import { SuperChart } from '@superset-ui/core';
+import { render } from 'spec/helpers/testing-library';
 
 import ChartRenderer from 'src/components/Chart/ChartRenderer';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  SuperChart: ({ formData }) => (
+    <div data-test="mock-super-chart">{JSON.stringify(formData)}</div>
+  ),
+}));
+
+jest.mock(
+  'src/components/Chart/ChartContextMenu/ChartContextMenu',
+  () => () => <div data-test="mock-chart-context-menu" />,
+);
 
 const requiredProps = {
   chartId: 1,
@@ -32,18 +42,18 @@ const requiredProps = {
   vizType: 'table',
 };
 
-describe('ChartRenderer', () => {
-  it('should render SuperChart', () => {
-    const wrapper = shallow(
-      <ChartRenderer {...requiredProps} chartIsStale={false} />,
-    );
-    expect(wrapper.find(SuperChart)).toExist();
-  });
+test('should render SuperChart', () => {
+  const { getByTestId } = render(
+    <ChartRenderer {...requiredProps} chartIsStale={false} />,
+  );
+  expect(getByTestId('mock-super-chart')).toBeInTheDocument();
+});
 
-  it('should use latestQueryFormData instead of formData when chartIsStale is true', () => {
-    const wrapper = shallow(<ChartRenderer {...requiredProps} chartIsStale />);
-    expect(wrapper.find(SuperChart).prop('formData')).toEqual({
-      testControl: 'bar',
-    });
-  });
+test('should use latestQueryFormData instead of formData when chartIsStale is true', () => {
+  const { getByTestId } = render(
+    <ChartRenderer {...requiredProps} chartIsStale />,
+  );
+  expect(getByTestId('mock-super-chart')).toHaveTextContent(
+    JSON.stringify({ testControl: 'bar' }),
+  );
 });

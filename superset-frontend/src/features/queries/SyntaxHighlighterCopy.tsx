@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import { SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';

@@ -21,7 +21,6 @@ from unittest import mock
 
 import pytest
 from flask import g
-import json
 import prison
 
 from superset import db, security_manager, app  # noqa: F401
@@ -30,6 +29,7 @@ from superset.security.guest_token import (
     GuestTokenResourceType,
     GuestUser,
 )
+from superset.utils import json
 from flask_babel import lazy_gettext as _  # noqa: F401
 from flask_appbuilder.models.sqla import filters
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -215,8 +215,6 @@ class TestRowLevelSecurity(SupersetTestCase):
             },
         )
         self.assertEqual(rv.status_code, 422)
-        data = json.loads(rv.data.decode("utf-8"))
-        assert "Create failed" in data["message"]
 
     @pytest.mark.usefixtures("create_dataset")
     def test_model_view_rls_add_tables_required(self):
@@ -648,8 +646,15 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         return security_manager.get_guest_user_from_token(
             {
                 "user": {},
-                "resources": [{"type": GuestTokenResourceType.DASHBOARD.value}],
+                "resources": [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": "06383667-3e02-4e5e-843f-44e9c5896b6c",
+                    }
+                ],
                 "rls_rules": rules,
+                "iat": 10,
+                "exp": 20,
             }
         )
 

@@ -38,6 +38,7 @@ import {
   SET_FOCUSED_FILTER_FIELD,
   UNSET_FOCUSED_FILTER_FIELD,
   SET_ACTIVE_TAB,
+  SET_ACTIVE_TABS,
   SET_FULL_SIZE_CHART_ID,
   ON_FILTERS_REFRESH,
   ON_FILTERS_REFRESH_SUCCESS,
@@ -186,6 +187,12 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         activeTabs: Array.from(newActiveTabs),
+      };
+    },
+    [SET_ACTIVE_TABS]() {
+      return {
+        ...state,
+        activeTabs: action.activeTabs,
       };
     },
     [SET_OVERRIDE_CONFIRM]() {

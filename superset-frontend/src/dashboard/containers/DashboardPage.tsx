@@ -16,16 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useEffect, useMemo, useRef } from 'react';
+import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import {
-  CategoricalColorNamespace,
-  getSharedLabelColor,
-  SharedLabelColorSource,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
@@ -48,7 +42,7 @@ import {
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import { RootState } from '../types';
 import {
   chartContextMenuStyles,
@@ -61,9 +55,9 @@ import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
 
-export const DashboardPageIdContext = React.createContext('');
+export const DashboardPageIdContext = createContext('');
 
-const DashboardBuilder = React.lazy(
+const DashboardBuilder = lazy(
   () =>
     import(
       /* webpackChunkName: "DashboardContainer" */
@@ -82,7 +76,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const history = useHistory();
-  const dashboardPageId = useMemo(() => shortid.generate(), []);
+  const dashboardPageId = useMemo(() => nanoid(), []);
   const hasDashboardInfoInitiated = useSelector<RootState, Boolean>(
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,
@@ -101,7 +95,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
-  const { dashboard_title, css, metadata, id = 0 } = dashboard || {};
+  const { dashboard_title, css, id = 0 } = dashboard || {};
 
   useEffect(() => {
     // mark tab id as redundant when user closes browser tab - a new id will be
@@ -186,19 +180,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
     return () => {};
   }, [css]);
-
-  useEffect(() => {
-    const sharedLabelColor = getSharedLabelColor();
-    sharedLabelColor.source = SharedLabelColorSource.Dashboard;
-    return () => {
-      // clean up label color
-      const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-        metadata?.color_namespace,
-      );
-      categoricalNamespace.resetColors();
-      sharedLabelColor.clear();
-    };
-  }, [metadata?.color_namespace]);
 
   useEffect(() => {
     if (datasetsApiError) {

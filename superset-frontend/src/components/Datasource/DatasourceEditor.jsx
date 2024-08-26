@@ -17,13 +17,13 @@
  * under the License.
  */
 import rison from 'rison';
-import React, { useCallback } from 'react';
+import { PureComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Radio } from 'src/components/Radio';
 import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import {
   css,
   isFeatureEnabled,
@@ -94,7 +94,7 @@ const StyledTableTabs = styled(Tabs)`
 `;
 
 const StyledBadge = styled(Badge)`
-  .ant-badge-count {
+  .antd5-badge-count {
     line-height: ${({ theme }) => theme.gridUnit * 4}px;
     height: ${({ theme }) => theme.gridUnit * 4}px;
     margin-left: ${({ theme }) => theme.gridUnit}px;
@@ -576,7 +576,7 @@ function OwnersSelector({ datasource, onChange }) {
   );
 }
 
-class DatasourceEditor extends React.PureComponent {
+class DatasourceEditor extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -718,7 +718,7 @@ class DatasourceEditor extends React.PureComponent {
       if (!currentCol) {
         // new column
         finalColumns.push({
-          id: shortid.generate(),
+          id: nanoid(),
           column_name: col.column_name,
           type: col.type,
           groupby: true,
@@ -1086,7 +1086,7 @@ class DatasourceEditor extends React.PureComponent {
                   <Col xs={24} md={12}>
                     <Field
                       fieldKey="databaseSelector"
-                      label={t('virtual')}
+                      label={t('Virtual')}
                       control={
                         <div css={{ marginTop: 8 }}>
                           <DatabaseSelector

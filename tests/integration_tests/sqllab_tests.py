@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Sql Lab"""
 
-import json
 from datetime import datetime
 from textwrap import dedent
 
@@ -44,10 +43,9 @@ from superset.sql_lab import (
     apply_limit_if_exists,
 )
 from superset.sql_parse import CtasMethod
-from superset.utils.core import (
-    backend,
-    datetime_to_epoch,  # noqa: F401
-)
+from superset.utils.core import backend
+from superset.utils import json
+from superset.utils.json import datetime_to_epoch  # noqa: F401
 from superset.utils.database import get_example_database, get_main_database
 
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -73,10 +71,8 @@ QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
 
-    @pytest.mark.usefixtures("load_birth_names_data")
     def run_some_queries(self):
         db.session.query(Query).delete()
-        db.session.commit()
         self.run_sql(QUERY_1, client_id="client_id_1", username="admin")
         self.run_sql(QUERY_2, client_id="client_id_2", username="admin")
         self.run_sql(QUERY_3, client_id="client_id_3", username="gamma_sqllab")
@@ -421,6 +417,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def test_query_api_filter(self) -> None:
         """
         Test query api without can_only_access_owned_queries perm added to
@@ -440,6 +437,7 @@ class TestSqlLab(SupersetTestCase):
         assert admin.first_name in user_queries
         assert gamma_sqllab.first_name in user_queries
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def test_query_api_can_access_all_queries(self) -> None:
         """
         Test query api with can_access_all_queries perm added to
@@ -524,6 +522,7 @@ class TestSqlLab(SupersetTestCase):
             {r.get("sql") for r in self.get_json_resp(url)["result"]},
         )
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def test_query_admin_can_access_all_queries(self) -> None:
         """
         Test query api with all_query_access perm added to

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled, t } from '@superset-ui/core';
@@ -98,9 +98,6 @@ const ColumnStyles = styled.div`
         &:first-child {
           inset-block-start: 0;
         }
-        &:last-child {
-          inset-block-end: 0;
-        }
       }
       &:first-child:not(.droptarget-edge) {
         position: absolute;
@@ -122,7 +119,7 @@ const emptyColumnContentStyles = theme => css`
   color: ${theme.colors.text.label};
 `;
 
-class Column extends React.PureComponent {
+class Column extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -270,7 +267,7 @@ class Column extends React.PureComponent {
                   <div css={emptyColumnContentStyles}>{t('Empty column')}</div>
                 ) : (
                   columnItems.map((componentId, itemIndex) => (
-                    <React.Fragment key={componentId}>
+                    <Fragment key={componentId}>
                       <DashboardComponent
                         id={componentId}
                         parentId={columnComponent.id}
@@ -295,7 +292,7 @@ class Column extends React.PureComponent {
                           className={cx(
                             'empty-droptarget',
                             itemIndex === columnItems.length - 1 &&
-                              'droptarget-edge-last',
+                              'droptarget-edge',
                           )}
                           editMode
                         >
@@ -306,7 +303,7 @@ class Column extends React.PureComponent {
                           }
                         </Droppable>
                       )}
-                    </React.Fragment>
+                    </Fragment>
                   ))
                 )}
               </ColumnStyles>

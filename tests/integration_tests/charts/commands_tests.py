@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from unittest.mock import patch
 
 import pytest
@@ -36,6 +35,7 @@ from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -173,7 +173,8 @@ class TestExportChartsCommand(SupersetTestCase):
 class TestImportChartsCommand(SupersetTestCase):
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
-    def test_import_v1_chart(self, sm_g, utils_g) -> None:
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_chart(self, mock_add_permissions, sm_g, utils_g) -> None:
         """Test that we can import a chart"""
         admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
@@ -246,7 +247,8 @@ class TestImportChartsCommand(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.security.manager.g")
-    def test_import_v1_chart_multiple(self, sm_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_chart_multiple(self, mock_add_permissions, sm_g):
         """Test that a chart can be imported multiple times"""
         sm_g.user = security_manager.find_user("admin")
         contents = {
@@ -272,7 +274,8 @@ class TestImportChartsCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_chart_validation(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_chart_validation(self, mock_add_permissions):
         """Test different validations applied when importing a chart"""
         # metadata.yaml must be present
         contents = {

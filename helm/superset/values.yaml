@@ -247,7 +247,9 @@ hostAliases: []
 
 # Superset node configuration
 supersetNode:
-  replicaCount: 1
+  replicas:
+    enabled: true
+    replicaCount: 1
   autoscaling:
     enabled: false
     minReplicas: 1
@@ -364,7 +366,9 @@ supersetNode:
 
 # Superset Celery worker configuration
 supersetWorker:
-  replicaCount: 1
+  replicas:
+    enabled: true
+    replicaCount: 1
   autoscaling:
     enabled: false
     minReplicas: 1
@@ -446,6 +450,8 @@ supersetWorker:
   startupProbe: {}
   # -- No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic)
   readinessProbe: {}
+  # -- Set priorityClassName for supersetWorker pods
+  priorityClassName: ~
 
 # Superset beat configuration (to trigger scheduled jobs like reports)
 supersetCeleryBeat:
@@ -502,6 +508,8 @@ supersetCeleryBeat:
     #  memory: 128Mi
   podSecurityContext: {}
   containerSecurityContext: {}
+  # -- Set priorityClassName for CeleryBeat pods
+  priorityClassName: ~
 
 supersetCeleryFlower:
   # -- Enables a Celery flower deployment (management UI to monitor celery jobs)
@@ -593,6 +601,8 @@ supersetCeleryFlower:
     #  memory: 128Mi
   podSecurityContext: {}
   containerSecurityContext: {}
+  # -- Set priorityClassName for supersetCeleryFlower pods
+  priorityClassName: ~
 
 supersetWebsockets:
   # -- This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode
@@ -686,6 +696,8 @@ supersetWebsockets:
     failureThreshold: 3
     periodSeconds: 5
     successThreshold: 1
+  # -- Set priorityClassName for supersetWebsockets pods
+  priorityClassName: ~
 
 init:
   # Configure resources
@@ -770,6 +782,8 @@ init:
   affinity: {}
   # -- TopologySpreadConstrains to be added to init job
   topologySpreadConstraints: []
+  # -- Set priorityClassName for init job pods
+  priorityClassName: ~
 
 # -- Configuration values for the postgresql dependency.
 # ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql
@@ -874,3 +888,6 @@ affinity: {}
 
 # -- TopologySpreadConstrains to be added to all deployments
 topologySpreadConstraints: []
+
+# -- Set priorityClassName for superset pods
+priorityClassName: ~

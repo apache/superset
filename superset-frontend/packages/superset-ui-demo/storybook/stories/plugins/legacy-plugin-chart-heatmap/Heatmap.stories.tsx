@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { SuperChart } from '@superset-ui/core';
 import HeatmapChartPlugin from '@superset-ui/legacy-plugin-chart-heatmap';
 import ResizableChartDemo from '../../../shared/components/ResizableChartDemo';

@@ -18,22 +18,20 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from datetime import datetime, timedelta
-from typing import Any, TYPE_CHECKING
+from typing import Any
 from uuid import UUID
 
 import pytest
 from flask.ctx import AppContext
 from freezegun import freeze_time
 
+from superset.extensions.metastore_cache import SupersetMetastoreCache
 from superset.key_value.exceptions import KeyValueCodecEncodeException
 from superset.key_value.types import (
     JsonKeyValueCodec,
     KeyValueCodec,
     PickleKeyValueCodec,
 )
-
-if TYPE_CHECKING:
-    from superset.extensions.metastore_cache import SupersetMetastoreCache
 
 NAMESPACE = UUID("ee173d1b-ccf3-40aa-941c-985c15224496")
 
@@ -47,8 +45,6 @@ SECOND_VALUE = "qwerty"
 
 @pytest.fixture
 def cache() -> SupersetMetastoreCache:
-    from superset.extensions.metastore_cache import SupersetMetastoreCache
-
     return SupersetMetastoreCache(
         namespace=NAMESPACE,
         default_timeout=600,
@@ -60,6 +56,7 @@ def test_caching_flow(app_context: AppContext, cache: SupersetMetastoreCache) ->
     assert cache.has(FIRST_KEY) is False
     assert cache.add(FIRST_KEY, FIRST_KEY_INITIAL_VALUE) is True
     assert cache.has(FIRST_KEY) is True
+    assert cache.get(FIRST_KEY) == FIRST_KEY_INITIAL_VALUE
     cache.set(SECOND_KEY, SECOND_VALUE)
     assert cache.get(FIRST_KEY) == FIRST_KEY_INITIAL_VALUE
     assert cache.get(SECOND_KEY) == SECOND_VALUE
@@ -77,15 +74,28 @@ def test_caching_flow(app_context: AppContext, cache: SupersetMetastoreCache) ->
 def test_expiry(app_context: AppContext, cache: SupersetMetastoreCache) -> None:
     delta = timedelta(days=90)
     dttm = datetime(2022, 3, 18, 0, 0, 0)
+
+    # 1. initialize cached values, ensure they're found
     with freeze_time(dttm):
-        cache.set(FIRST_KEY, FIRST_KEY_INITIAL_VALUE, int(delta.total_seconds()))
+        assert (
+            cache.set(FIRST_KEY, FIRST_KEY_INITIAL_VALUE, int(delta.total_seconds()))
+            is True
+        )
         assert cache.get(FIRST_KEY) == FIRST_KEY_INITIAL_VALUE
+
+    # 2. ensure cached values are available a moment before expiration
     with freeze_time(dttm + delta - timedelta(seconds=1)):
-        assert cache.has(FIRST_KEY)
+        assert cache.has(FIRST_KEY) is True
         assert cache.get(FIRST_KEY) == FIRST_KEY_INITIAL_VALUE
+
+    # 3. ensure cached entries expire
     with freeze_time(dttm + delta + timedelta(seconds=1)):
         assert cache.has(FIRST_KEY) is False
         assert cache.get(FIRST_KEY) is None
+
+        # adding a value with the same key as an expired entry works
+        assert cache.add(FIRST_KEY, SECOND_VALUE, int(delta.total_seconds())) is True
+        assert cache.get(FIRST_KEY) == SECOND_VALUE
 
 
 @pytest.mark.parametrize(

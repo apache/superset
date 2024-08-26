@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
 import { FormLabel } from 'src/components/Form';
 import { Input } from 'src/components/Input';
 import Modal from 'src/components/Modal';
@@ -39,7 +39,7 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
   const [newDuplicateDatasetName, setNewDuplicateDatasetName] =
     useState<string>('');
 
-  const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onChange = (event: ChangeEvent<HTMLInputElement>) => {
     const targetValue = event.target.value ?? '';
     setNewDuplicateDatasetName(targetValue);
     setDisableSave(targetValue === '');

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject, useEffect, useRef } from 'react';
+import { RefObject, useEffect, useRef, KeyboardEvent } from 'react';
+
 import { useSelector } from 'react-redux';
 import { Global, css } from '@emotion/react';
 import { t } from '@superset-ui/core';
@@ -58,7 +59,7 @@ const DetailsPanelPopover = ({
   // Combined ref array for all filter indicator elements
   const indicatorRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     switch (event.key) {
       case 'Escape':
       case 'Enter':

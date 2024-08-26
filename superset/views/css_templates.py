@@ -59,4 +59,4 @@ class CssTemplateAsyncModelView(  # pylint: disable=too-many-ancestors
     @permission_name("list")
     @deprecated(eol_version="5.0.0")
     def api_read(self) -> FlaskResponse:
-        return self.api_read()
+        return super().api_read()

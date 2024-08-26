@@ -32,6 +32,7 @@ from superset.exceptions import (
 )
 from superset.sql_parse import (
     add_table_name,
+    check_sql_functions_exist,
     extract_table_references,
     extract_tables_from_jinja_sql,
     get_rls_for_table,
@@ -1215,6 +1216,31 @@ def test_strip_comments_from_sql() -> None:
     )
 
 
+def test_check_sql_functions_exist() -> None:
+    """
+    Test that comments are stripped out correctly.
+    """
+    assert not (
+        check_sql_functions_exist("select a, b from version", {"version"}, "postgresql")
+    )
+
+    assert check_sql_functions_exist("select version()", {"version"}, "postgresql")
+
+    assert check_sql_functions_exist(
+        "select version from version()", {"version"}, "postgresql"
+    )
+
+    assert check_sql_functions_exist(
+        "select 1, a.version from (select version from version()) as a",
+        {"version"},
+        "postgresql",
+    )
+
+    assert check_sql_functions_exist(
+        "select 1, a.version from (select version()) as a", {"version"}, "postgresql"
+    )
+
+
 def test_sanitize_clause_valid():
     # regular clauses
     assert sanitize_clause("col = 1") == "col = 1"
@@ -1525,7 +1551,7 @@ def test_insert_rls_as_subquery(
             "id=42",
             "SELECT * FROM other_table WHERE 1=1",
         ),
-        # If there's no pre-existing WHERE clause we create one.
+        # If there's no preexisting WHERE clause we create one.
         (
             "SELECT * FROM table",
             "table",

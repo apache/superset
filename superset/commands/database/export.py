@@ -16,7 +16,6 @@
 # under the License.
 # isort:skip_file
 import functools
-import json
 import logging
 from typing import Any, Callable
 from collections.abc import Iterator
@@ -30,6 +29,7 @@ from superset.models.core import Database
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils.ssh_tunnel import mask_password_info
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 def parse_extra(extra_payload: str) -> dict[str, Any]:
     try:
         extra = json.loads(extra_payload)
-    except json.decoder.JSONDecodeError:
+    except json.JSONDecodeError:
         logger.info("Unable to decode `extra` field: %s", extra_payload)
         return {}
 

@@ -39,6 +39,7 @@ export interface Filter {
   Header: ReactNode;
   key: string;
   id: string;
+  toolTipDescription?: string;
   urlDisplay?: string;
   operator?: FilterOperator;
   input?:
@@ -116,7 +117,10 @@ export enum FilterOperator {
   DatasetIsCertified = 'dataset_is_certified',
   DashboardHasCreatedBy = 'dashboard_has_created_by',
   ChartHasCreatedBy = 'chart_has_created_by',
-  DashboardTags = 'dashboard_tags',
-  ChartTags = 'chart_tags',
-  SavedQueryTags = 'saved_query_tags',
+  DashboardTagByName = 'dashboard_tags',
+  DashboardTagById = 'dashboard_tag_id',
+  ChartTagByName = 'chart_tags',
+  ChartTagById = 'chart_tag_id',
+  SavedQueryTagByName = 'saved_query_tags',
+  SavedQueryTagById = 'saved_query_tag_id',
 }

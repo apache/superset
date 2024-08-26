@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from typing import Any, TYPE_CHECKING, TypedDict, Union
 
@@ -33,6 +32,7 @@ from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.utils import json
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -434,8 +434,26 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         cls,
         database: Database,
     ) -> str | None:
-        with database.get_inspector() as inspector:
-            return inspector.bind.execute("SELECT current_catalog()").scalar()
+        """
+        Return the default catalog.
+
+        The default behavior for Databricks is confusing. When Unity Catalog is not
+        enabled we have (the DB engine spec hasn't been tested with it enabled):
+
+            > SHOW CATALOGS;
+            spark_catalog
+            > SELECT current_catalog();
+            hive_metastore
+
+        To handle permissions correctly we use the result of `SHOW CATALOGS` when a
+        single catalog is returned.
+        """
+        with database.get_sqla_engine() as engine:
+            catalogs = {catalog for (catalog,) in engine.execute("SHOW CATALOGS")}
+            if len(catalogs) == 1:
+                return catalogs.pop()
+
+            return engine.execute("SELECT current_catalog()").scalar()
 
     @classmethod
     def get_prequeries(

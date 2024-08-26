@@ -50,6 +50,7 @@ export default class EchartsBubbleChartPlugin extends ChartPlugin<
           t('Time'),
           t('Trend'),
           t('ECharts'),
+          t('Featured'),
         ],
         thumbnail,
       }),

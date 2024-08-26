@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PropsWithChildren } from 'react';
+import { PropsWithChildren } from 'react';
 import AntdAlert, { AlertProps as AntdAlertProps } from 'antd/lib/alert';
 import { useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
