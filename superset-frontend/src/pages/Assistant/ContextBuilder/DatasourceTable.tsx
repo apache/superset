@@ -194,7 +194,9 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                         onChange={this.handleDescriptionInput}
                     /> */}
                     {/* Replace Input with TextArea */}
-                    <div>
+                    <div style={{
+                        position: 'relative'
+                    }}>
                         {/* assistant logo in top right */}
                         {/* loading icon in top left */}
                         <img style={{

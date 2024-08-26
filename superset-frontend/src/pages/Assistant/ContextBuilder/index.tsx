@@ -5,7 +5,6 @@ import { DatasourceSelector, DatasourceSelectorProps } from './DatasourceSelecto
 export function AssistantContextBuilder(props: DatasourceSelectorProps) {
 
     const handleDatasourceChange = (data: DatasourceProps[]) => {
-        console.log("<<<<>>>> Datasource Change:", JSON.stringify(data));
         props.onChange(data);
     };
 

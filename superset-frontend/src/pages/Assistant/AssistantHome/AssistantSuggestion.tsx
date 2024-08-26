@@ -35,13 +35,13 @@ export function AssistantSuggestion(props: AssistantSuggestionProps | any) {
                 whiteSpace: 'normal',
                 wordWrap: 'break-word',
                 color: textColor,
-            }}>Suggestion 1</h5>
+            }}>{props.title}</h5>
             <p style={{
                 whiteSpace: 'normal',
                 wordWrap: 'break-word',
                 fontSize: '12px',
                 color: textColor
-            }}>Suggestion rational Lorem Ipsum Long text</p>
+            }}>{props.suggestion}</p>
         </div>
     );
 }

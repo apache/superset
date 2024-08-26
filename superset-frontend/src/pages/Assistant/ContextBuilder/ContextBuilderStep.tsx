@@ -3,6 +3,7 @@
 export interface ContextBuilderStepProp{
     step: string;
     description: string;
+    isDone: boolean;
 }
 
 export function ContextBuilderStep(props: ContextBuilderStepProp) {

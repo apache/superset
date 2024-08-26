@@ -25,6 +25,7 @@ function Assistant(props: AssistantProps) {
 
   return (
    <>
+   { console.log("Assistant Props", datasources)}
     <SubMenu
       name="Assistant"
     />
@@ -37,7 +38,10 @@ function Assistant(props: AssistantProps) {
           &nbsp;Assistant Chat&nbsp;
         </span>
       } key="1">
-        <AssistantHome {...props} />
+        <AssistantHome {...{
+          ...props,
+          data: datasources
+        }} />
       </Tabs.TabPane>
       <Tabs.TabPane tab={
         <span>

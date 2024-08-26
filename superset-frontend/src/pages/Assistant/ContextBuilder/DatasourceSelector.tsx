@@ -95,8 +95,8 @@ export class DatasourceSelector extends Component<DatasourceSelectorProps, Datas
                 <div
                     style={{
                         width: '100%',
-                        borderTopRightRadius: '16px',
-                        borderBottomRightRadius: '16px',
+                        // borderTopRightRadius: '16px',
+                        // borderBottomRightRadius: '16px',
                         padding: '0px',
                         background: '#f0f0f0',
                     }}

@@ -1,5 +1,7 @@
 import { AssistantSuggestionsGrid, AssistantSuggestionsGridProps } from './AssistantSuggestionsGrid';
 import { readableColor } from '../contextUtils';
+import React, { useEffect, useState } from 'react';
+import { AssistantSuggestionProps } from './AssistantSuggestion';
 
 /**
  * Component that Displays Assistants Suggestion Category and Suggestions
@@ -26,6 +28,12 @@ export function AssistantSuggestionCategory(props: AssistantSuggestionCategoryPr
     const bgGradientStart = props.backgroundGradientStart || '#FF9398';
     const bgGradientEnd = props.backgroundGradientEnd || '#FF4049';
     const textColor = readableColor(bgGradientStart)
+
+    const [suggestions, setSuggestions] = useState<AssistantSuggestionProps[]>(props.suggestions);
+
+    useEffect(() => {
+        setSuggestions(props.suggestions);
+    }, [props.suggestions]);
 
     return (
         <div style={{
@@ -60,7 +68,7 @@ export function AssistantSuggestionCategory(props: AssistantSuggestionCategoryPr
                     }} >{props.categoryDescription}</p>
                 </div>
             </div>
-            <AssistantSuggestionsGrid suggestions={props.suggestions} />
+            <AssistantSuggestionsGrid suggestions={suggestions} />
         </div>
     )
 

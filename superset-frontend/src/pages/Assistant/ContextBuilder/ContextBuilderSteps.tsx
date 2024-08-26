@@ -13,15 +13,18 @@ export const testProps: ContextBuilderProps = {
     steps: [
         {
             step: 'Step 1',
-            description: 'Step 1 Description'
+            description: 'Step 1 Description',
+            isDone: true
         },
         {
             step: 'Step 2',
-            description: 'Step 2 Description'
+            description: 'Step 2 Description',
+            isDone: false
         },
         {
             step: 'Step 3',
-            description: 'Step 3 Description'
+            description: 'Step 3 Description',
+            isDone: false
         }
     ]
 }
@@ -32,8 +35,8 @@ export function ContextBuilderSteps(props: any) {
         <>
             <div style={{
                 background: 'radial-gradient(circle, #103F91 0%, #0E3873 100%)',
-                borderTopLeftRadius: '16px',
-                borderBottomLeftRadius: '16px',
+                // borderTopLeftRadius: '16px',
+                // borderBottomLeftRadius: '16px',
                 width: 'fit-content',
                 minWidth: '300px',
                 height: 'fill-available',
@@ -52,7 +55,6 @@ export function ContextBuilderSteps(props: any) {
                         )
                     })}
                 </div>
-
                 <img style={{
                     position: 'relative',
                     bottom: '10px',
