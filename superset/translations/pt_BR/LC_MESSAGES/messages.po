@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"POT-Creation-Date: 2024-08-26 13:19-0600\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -1105,6 +1105,14 @@ msgstr "Tipo de dados avançado"
 
 msgid "Advanced-Analytics"
 msgstr "Análise avançada"
+
+#, fuzzy
+msgid "Affected Charts"
+msgstr "Gráficos Associados"
+
+#, fuzzy
+msgid "Affected Dashboards"
+msgstr "Selecione um painel"
 
 msgid "After"
 msgstr "Depois de"
@@ -3558,6 +3566,9 @@ msgstr "O painel [%s] acabou de ser criado e o gráfico [%s] foi adicionado a el
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "Painel [{}] acabou de ser criado e o gráfico [{}] foi adicionado a ele"
 
+msgid "Dashboard cannot be copied due to invalid parameters."
+msgstr ""
+
 msgid "Dashboard could not be deleted."
 msgstr "Não foi possível remover o painel."
 
@@ -4195,9 +4206,10 @@ msgstr "Excluído: %s"
 msgid "Deleted: %s"
 msgstr "Excluído: %s"
 
+#, fuzzy
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it and will deactivate any "
+"related alerts or reports. You may still reverse this action with the"
 msgstr ""
 "Excluindo uma guia irá remover todo o conteúdo dela. Você ainda pode "
 "reverter isso com o"
@@ -4770,6 +4782,10 @@ msgstr "Incorporar código"
 
 msgid "Embed dashboard"
 msgstr "Incorporar painel"
+
+#, fuzzy
+msgid "Embedded dashboard could not be deleted."
+msgstr "Não foi possível remover o painel."
 
 msgid "Embedding deactivated."
 msgstr "Incorporação desativada."
@@ -8636,6 +8652,10 @@ msgstr "Atualizar intervalo"
 msgid "Refresh interval saved"
 msgstr "Intervalo de atualização salvo"
 
+#, fuzzy
+msgid "Refresh table schema"
+msgstr "Ver esquema da tabela"
+
 msgid "Refresh the default values"
 msgstr "Atualizar os valores padrão"
 
@@ -9521,6 +9541,10 @@ msgstr "Selecione um esquema se o banco de dados for compatível com isso"
 msgid "Select a sheet name from the uploaded file"
 msgstr "Selecione um banco de dados para enviar o arquivo"
 
+#, fuzzy
+msgid "Select a tab"
+msgstr "Excluir banco de dados"
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -9676,6 +9700,10 @@ msgstr "Selecionar esquema"
 
 msgid "Select subject"
 msgstr "Selecionar assunto"
+
+#, fuzzy
+msgid "Select tab"
+msgstr "Desmarcar tudo"
 
 msgid "Select table or type to search tables"
 msgstr "Selecione a tabela ou digite para pesquisar tabelas"
@@ -10604,9 +10632,6 @@ msgstr ""
 msgid "TABLES"
 msgstr "TABELAS"
 
-msgid "TEMPORAL X-AXIS"
-msgstr "EIXO X TEMPORAL"
-
 msgid "TEMPORAL_RANGE"
 msgstr "INTERVALO TEMPORAL"
 
@@ -10756,6 +10781,10 @@ msgid ""
 msgstr ""
 "Link do modelo, é possível incluir {{ métrica }}  ou outros valores "
 "provenientes dos controles."
+
+#, fuzzy
+msgid "Temporal X-Axis"
+msgstr "EIXO X TEMPORAL"
 
 msgid ""
 "Terminate running queries when browser window closed or navigated to "
@@ -10938,15 +10967,9 @@ msgstr ""
 " por expressões. Na maioria dos casos, os usuários não devem precisar de "
 "alterar isto."
 
-#, fuzzy, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
-msgstr ""
-"O conjunto de dados %s é ligado aos %s gráficos que aparecerem em %s "
-"painéis. Tem certeza que você deseja continuar? A eliminação do conjunto "
-"de dados irá quebrar esses objetos."
+#, fuzzy
+msgid "The database"
+msgstr "Excluir banco de dados"
 
 msgid "The database columns that contains lines information"
 msgstr "As colunas do banco de dados que contêm informações sobre as linhas"
@@ -10980,15 +11003,9 @@ msgstr "O banco de dados foi excluído."
 msgid "The database was not found."
 msgstr "O banco de dados não foi encontrado."
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
-msgstr ""
-"O conjunto de dados %s é ligado aos %s gráficos que aparecerem em %s "
-"painéis. Tem certeza que você deseja continuar? A eliminação do conjunto "
-"de dados irá quebrar esses objetos."
+#, fuzzy
+msgid "The dataset"
+msgstr "Novo conjunto de dados"
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr "O conjunto de dados associado a este gráfico já não existe"
@@ -11689,6 +11706,10 @@ msgstr "Ocorreu um erro ao carregar os esquemas"
 
 msgid "There was an error loading the tables"
 msgstr "Ocorreu um erro ao carregar as tabelas"
+
+#, fuzzy
+msgid "There was an error retrieving dashboard tabs."
+msgstr "Houve um erro ao buscar o conjunto de dados"
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
@@ -14329,9 +14350,6 @@ msgstr "deckGL"
 msgid "default"
 msgstr "padrão"
 
-msgid "delete"
-msgstr "excluir"
-
 #, fuzzy
 msgid "descendant"
 msgstr "Ordenação decrescente"
@@ -14496,6 +14514,25 @@ msgstr "espera-se que seja um número"
 
 msgid "is expected to be an integer"
 msgstr "espera-se que seja um inteiro"
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+"O conjunto de dados %s é ligado aos %s gráficos que aparecerem em %s "
+"painéis. Tem certeza que você deseja continuar? A eliminação do conjunto "
+"de dados irá quebrar esses objetos."
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
+msgstr ""
+"O conjunto de dados %s é ligado aos %s gráficos que aparecerem em %s "
+"painéis. Tem certeza que você deseja continuar? A eliminação do conjunto "
+"de dados irá quebrar esses objetos."
 
 msgid "key a-z"
 msgstr "chave a-z"
@@ -14822,9 +14859,6 @@ msgstr "variação"
 
 msgid "view instructions"
 msgstr "exibir instruções"
-
-msgid "virtual"
-msgstr "virtual"
 
 msgid "viz type"
 msgstr "tipo de visualização"

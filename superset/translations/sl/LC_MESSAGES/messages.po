@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"POT-Creation-Date: 2024-08-26 13:19-0600\n"
 "PO-Revision-Date: 2024-01-01 23:56+0100\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -1086,6 +1086,14 @@ msgstr "Napredni podatkovni tip"
 
 msgid "Advanced-Analytics"
 msgstr "Napredna analitika"
+
+#, fuzzy
+msgid "Affected Charts"
+msgstr "Povezani grafikoni"
+
+#, fuzzy
+msgid "Affected Dashboards"
+msgstr "Izberite nadzorne plošče"
 
 msgid "After"
 msgstr "Potem"
@@ -3466,6 +3474,9 @@ msgstr "Nadzorna plošča [%s] je bila ravno ustvarjena in grafikon [%s] dodan n
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "Nadzorna plošča [{}] je bila ravno ustvarjena in grafikon [{}] dodan nanjo"
 
+msgid "Dashboard cannot be copied due to invalid parameters."
+msgstr ""
+
 msgid "Dashboard could not be deleted."
 msgstr "Nadzorne plošče ni mogoče izbrisati."
 
@@ -4104,9 +4115,10 @@ msgstr "Izbrisano %s"
 msgid "Deleted: %s"
 msgstr "Izbrisano: %s"
 
+#, fuzzy
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it and will deactivate any "
+"related alerts or reports. You may still reverse this action with the"
 msgstr ""
 "Izbris zavihka bo odstranil vso vsebino v njem. Še vedno boste lahko "
 "razveljavili dejanje z"
@@ -4671,6 +4683,10 @@ msgstr "Koda za vgradnjo"
 
 msgid "Embed dashboard"
 msgstr "Vgradi nadzorno ploščo"
+
+#, fuzzy
+msgid "Embedded dashboard could not be deleted."
+msgstr "Nadzorne plošče ni mogoče izbrisati."
 
 msgid "Embedding deactivated."
 msgstr "Vgrajevanje deaktivirano."
@@ -8457,6 +8473,10 @@ msgstr "Interval osveževanja"
 msgid "Refresh interval saved"
 msgstr "Interval osveževanja shranjen"
 
+#, fuzzy
+msgid "Refresh table schema"
+msgstr "Ogled sheme tabele"
+
 msgid "Refresh the default values"
 msgstr "Osveži privzete vrednosti"
 
@@ -9325,6 +9345,10 @@ msgstr "Izberite shemo (če vrsta podatkovne baze to podpira)"
 msgid "Select a sheet name from the uploaded file"
 msgstr "Izberite podatkovno bazo za nalaganje datoteke"
 
+#, fuzzy
+msgid "Select a tab"
+msgstr "Izbriši podatkovno bazo"
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -9479,6 +9503,10 @@ msgstr "Izberite shemo"
 
 msgid "Select subject"
 msgstr "Izberite zadevo"
+
+#, fuzzy
+msgid "Select tab"
+msgstr "Izberite oznake"
 
 msgid "Select table or type to search tables"
 msgstr "Izberite ali vnesite ime tabele"
@@ -10394,9 +10422,6 @@ msgstr ""
 msgid "TABLES"
 msgstr "TABELE"
 
-msgid "TEMPORAL X-AXIS"
-msgstr "ČASOVNA X-OS"
-
 msgid "TEMPORAL_RANGE"
 msgstr "ČASOVNI_OBSEG"
 
@@ -10540,6 +10565,10 @@ msgid ""
 msgstr ""
 "Vzorčna povezava, vključiti je mogoče {{ metric }} ali drugo vrednost iz "
 "kontrolnikov."
+
+#, fuzzy
+msgid "Temporal X-Axis"
+msgstr "ČASOVNA X-OS"
 
 msgid ""
 "Terminate running queries when browser window closed or navigated to "
@@ -10708,16 +10737,9 @@ msgstr ""
 "potrebno ročno vnesti tip za stolpce, ki temeljijo na izrazih. V večini "
 "primerov uporabniku tega ni potrebno spreminjati."
 
-#, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
-msgstr ""
-"Podatkovna baza %s je povezana z %s grafikoni, ki so prisotni na %s "
-"nadzornih ploščah. Uporabniki imajo odprtih %s zavihkov SQL-laboratorija "
-"s to podatkovno bazo. Ali želite nadaljevati? Izbris podatkovne baze bo "
-"pokvaril te objekte."
+#, fuzzy
+msgid "The database"
+msgstr "Izbriši podatkovno bazo"
 
 msgid "The database columns that contains lines information"
 msgstr "Stolpec v podatkovni bazi, ki vsebuje podatke črt"
@@ -10751,15 +10773,9 @@ msgstr "Podatkovna baza je bila izbrisana."
 msgid "The database was not found."
 msgstr "Podatkovna baza ni bila najdena."
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
-msgstr ""
-"Podatkovni set %s je povezan z grafikoni %s, ki so prisotni na nadzorni "
-"plošči %s. Ali želite nadaljevati? Izbris podatkovnega seta bo pokvaril "
-"te objekte."
+#, fuzzy
+msgid "The dataset"
+msgstr "Nov podatkovni set"
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr "Podatkovni set, povezan s tem grafikonom, ne obstaja več"
@@ -11436,6 +11452,10 @@ msgstr "Napaka pri nalaganju shem"
 
 msgid "There was an error loading the tables"
 msgstr "Napaka pri nalaganju tabel"
+
+#, fuzzy
+msgid "There was an error retrieving dashboard tabs."
+msgstr "Pri pridobivanju podatkovnega seta je prišlo do napake"
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
@@ -14004,9 +14024,6 @@ msgstr "deckGL"
 msgid "default"
 msgstr "privzeto"
 
-msgid "delete"
-msgstr "izbriši"
-
 msgid "descendant"
 msgstr "podrejeni"
 
@@ -14166,6 +14183,26 @@ msgstr "pričakovano je število"
 
 msgid "is expected to be an integer"
 msgstr "pričakovano je celo število"
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+"Podatkovna baza %s je povezana z %s grafikoni, ki so prisotni na %s "
+"nadzornih ploščah. Uporabniki imajo odprtih %s zavihkov SQL-laboratorija "
+"s to podatkovno bazo. Ali želite nadaljevati? Izbris podatkovne baze bo "
+"pokvaril te objekte."
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
+msgstr ""
+"Podatkovni set %s je povezan z grafikoni %s, ki so prisotni na nadzorni "
+"plošči %s. Ali želite nadaljevati? Izbris podatkovnega seta bo pokvaril "
+"te objekte."
 
 msgid "key a-z"
 msgstr "a - ž"
@@ -14485,9 +14522,6 @@ msgstr "varianca"
 
 msgid "view instructions"
 msgstr "ogled navodil"
-
-msgid "virtual"
-msgstr "virtualen"
 
 msgid "viz type"
 msgstr "tip vizualizacije"

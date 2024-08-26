@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"POT-Creation-Date: 2024-08-26 13:19-0600\n"
 "PO-Revision-Date: 2018-03-12 16:24+0000\n"
 "Last-Translator: Nuno Heli Beires <nuno.beires@douroeci.com>\n"
 "Language: pt\n"
@@ -1064,6 +1064,14 @@ msgstr "Dados carregados em cache"
 #, fuzzy
 msgid "Advanced-Analytics"
 msgstr "Análise Avançada"
+
+#, fuzzy
+msgid "Affected Charts"
+msgstr "Visualizações Associadas"
+
+#, fuzzy
+msgid "Affected Dashboards"
+msgstr "Por favor insira um nome para o dashboard"
 
 #, fuzzy
 msgid "After"
@@ -3482,6 +3490,9 @@ msgstr ""
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr ""
 
+msgid "Dashboard cannot be copied due to invalid parameters."
+msgstr ""
+
 msgid "Dashboard could not be deleted."
 msgstr "Não foi possível gravar a sua query"
 
@@ -4117,8 +4128,8 @@ msgid "Deleted: %s"
 msgstr "Eliminar"
 
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it and will deactivate any "
+"related alerts or reports. You may still reverse this action with the"
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -4676,6 +4687,10 @@ msgstr ""
 #, fuzzy
 msgid "Embed dashboard"
 msgstr "Dashboard"
+
+#, fuzzy
+msgid "Embedded dashboard could not be deleted."
+msgstr "Não foi possível gravar a sua query"
 
 msgid "Embedding deactivated."
 msgstr ""
@@ -8555,6 +8570,10 @@ msgstr "Intervalo de atualização"
 msgid "Refresh interval saved"
 msgstr "Intervalo de atualização"
 
+#, fuzzy
+msgid "Refresh table schema"
+msgstr "Selecione um esquema (%s)"
+
 msgid "Refresh the default values"
 msgstr ""
 
@@ -9461,6 +9480,10 @@ msgstr ""
 msgid "Select a sheet name from the uploaded file"
 msgstr ""
 
+#, fuzzy
+msgid "Select a tab"
+msgstr "Selecione uma base de dados"
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -9620,6 +9643,10 @@ msgstr "Selecione um esquema (%s)"
 
 msgid "Select subject"
 msgstr ""
+
+#, fuzzy
+msgid "Select tab"
+msgstr "Repor Estado"
 
 msgid "Select table or type to search tables"
 msgstr ""
@@ -10544,10 +10571,6 @@ msgid "TABLES"
 msgstr ""
 
 #, fuzzy
-msgid "TEMPORAL X-AXIS"
-msgstr "É temporal"
-
-#, fuzzy
 msgid "TEMPORAL_RANGE"
 msgstr "É temporal"
 
@@ -10702,6 +10725,10 @@ msgid ""
 msgstr ""
 "Ligação predefinida, é possível incluir {{ metric }} ou outros valores "
 "provenientes dos controlos."
+
+#, fuzzy
+msgid "Temporal X-Axis"
+msgstr "É temporal"
 
 msgid ""
 "Terminate running queries when browser window closed or navigated to "
@@ -10864,12 +10891,9 @@ msgstr ""
 "alguns casos. A maioria dos casos não requer alteração por parte do "
 "utilizador."
 
-#, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
-msgstr ""
+#, fuzzy
+msgid "The database"
+msgstr "Selecione uma base de dados"
 
 msgid "The database columns that contains lines information"
 msgstr ""
@@ -10904,12 +10928,9 @@ msgstr "Esta origem de dados parece ter sido excluída"
 msgid "The database was not found."
 msgstr "Visualização %(id)s não encontrada"
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
-msgstr ""
+#, fuzzy
+msgid "The dataset"
+msgstr "Base de dados"
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr ""
@@ -11516,6 +11537,10 @@ msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 
 msgid "There was an error loading the tables"
 msgstr ""
+
+#, fuzzy
+msgid "There was an error retrieving dashboard tabs."
+msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 
 #, fuzzy, python-format
 msgid "There was an error saving the favorite status: %s"
@@ -13981,9 +14006,6 @@ msgstr ""
 msgid "default"
 msgstr "Latitude padrão"
 
-msgid "delete"
-msgstr "Eliminar"
-
 msgid "descendant"
 msgstr ""
 
@@ -14147,6 +14169,19 @@ msgid "is expected to be a number"
 msgstr ""
 
 msgid "is expected to be an integer"
+msgstr ""
+
+#, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+
+#, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
 msgstr ""
 
 msgid "key a-z"
@@ -14491,9 +14526,6 @@ msgstr "Análise Avançada"
 #, fuzzy
 msgid "view instructions"
 msgstr "10 segundos"
-
-msgid "virtual"
-msgstr ""
 
 #, fuzzy
 msgid "viz type"

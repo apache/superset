@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"POT-Creation-Date: 2024-08-26 13:19-0600\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1087,6 +1087,14 @@ msgstr "Geavanceerd gegevenstype"
 
 msgid "Advanced-Analytics"
 msgstr "Geavanceerde Analytics"
+
+#, fuzzy
+msgid "Affected Charts"
+msgstr "Gerelateerde grafieken"
+
+#, fuzzy
+msgid "Affected Dashboards"
+msgstr "Selecteer dashboards"
 
 msgid "After"
 msgstr "Na"
@@ -3523,6 +3531,9 @@ msgstr "Dashboard [%s] is zojuist aangemaakt en grafiek [%s] is eraan toegevoegd
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "Dashboard [{}] is zojuist aangemaakt en grafiek [{}] is eraan toegevoegd"
 
+msgid "Dashboard cannot be copied due to invalid parameters."
+msgstr ""
+
 msgid "Dashboard could not be deleted."
 msgstr "Dashboard kon niet worden verwijderd."
 
@@ -4159,9 +4170,10 @@ msgstr "Verwijderd %s"
 msgid "Deleted: %s"
 msgstr "Verwijderd: %s"
 
+#, fuzzy
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it and will deactivate any "
+"related alerts or reports. You may still reverse this action with the"
 msgstr ""
 "Het verwijderen van een tabblad zal alle inhoud erin verwijderen. U kunt "
 "deze actie nog steeds ongedaan maken met de"
@@ -4729,6 +4741,10 @@ msgstr "Code embedden"
 
 msgid "Embed dashboard"
 msgstr "Dashboard embedden"
+
+#, fuzzy
+msgid "Embedded dashboard could not be deleted."
+msgstr "Dashboard kon niet worden verwijderd."
 
 msgid "Embedding deactivated."
 msgstr "Embedden gedeactiveerd."
@@ -8536,6 +8552,10 @@ msgstr "Interval vernieuwen"
 msgid "Refresh interval saved"
 msgstr "Vernieuwing interval opgeslagen"
 
+#, fuzzy
+msgid "Refresh table schema"
+msgstr "Zie tabel schema"
+
 msgid "Refresh the default values"
 msgstr "Ververs de standaard waarden"
 
@@ -9408,6 +9428,10 @@ msgstr "Selecteer een schema als de database dit ondersteunt"
 msgid "Select a sheet name from the uploaded file"
 msgstr "Selecteer een database om het bestand naar te uploaden"
 
+#, fuzzy
+msgid "Select a tab"
+msgstr "Verwijder database"
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -9565,6 +9589,10 @@ msgstr "Selecteer schema"
 
 msgid "Select subject"
 msgstr "Selecteer onderwerp"
+
+#, fuzzy
+msgid "Select tab"
+msgstr "Selecteer Tags"
 
 msgid "Select table or type to search tables"
 msgstr "Selecteer tabel of type om tabellen te zoeken"
@@ -10485,9 +10513,6 @@ msgstr "Syntaxfout: %(qualifier)s invoer \"%(input)s\" verwacht \"%(expected)s"
 msgid "TABLES"
 msgstr "TABLES"
 
-msgid "TEMPORAL X-AXIS"
-msgstr "TIJDELIJK X-AXIS"
-
 msgid "TEMPORAL_RANGE"
 msgstr "TIJDELIJK_BEREIK"
 
@@ -10631,6 +10656,10 @@ msgid ""
 msgstr ""
 "Sjabloonlink, het is mogelijk om {{ metric }} of andere waarden uit de "
 "bedieningselementen op te nemen."
+
+#, fuzzy
+msgid "Temporal X-Axis"
+msgstr "TIJDELIJK X-AXIS"
 
 msgid ""
 "Terminate running queries when browser window closed or navigated to "
@@ -10809,16 +10838,9 @@ msgstr ""
 "gedefinieerde kolommen. In de meeste gevallen zouden gebruikers dit niet "
 "hoeven te veranderen."
 
-#, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
-msgstr ""
-"De database %s is gekoppeld aan %s grafieken die verschijnen op %s "
-"dashboards en gebruikers hebben %s SQL Lab tabbladen met behulp van deze "
-"database. Weet u zeker dat u wilt doorgaan? Verwijderen van de database "
-"zal deze objecten breken."
+#, fuzzy
+msgid "The database"
+msgstr "Verwijder database"
 
 msgid "The database columns that contains lines information"
 msgstr "De database kolommen die regels met informatie bevatten"
@@ -10852,15 +10874,9 @@ msgstr "De database is verwijderd."
 msgid "The database was not found."
 msgstr "De database is niet gevonden."
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
-msgstr ""
-"De dataset %s is gekoppeld aan %s grafieken die verschijnen op %s "
-"dashboards. Weet u zeker dat u wilt doorgaan? Het verwijderen van de "
-"dataset zal deze objecten verbreken."
+#, fuzzy
+msgid "The dataset"
+msgstr "Nieuw dataset"
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr "De dataset die bij deze grafiek hoort bestaat niet meer"
@@ -11580,6 +11596,10 @@ msgstr "Er is een fout opgetreden bij het laden van de schema's"
 
 msgid "There was an error loading the tables"
 msgstr "Er is een fout opgetreden bij het laden van de tabellen"
+
+#, fuzzy
+msgid "There was an error retrieving dashboard tabs."
+msgstr "Er is een fout opgetreden bij het ophalen van dataset"
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
@@ -14220,9 +14240,6 @@ msgstr "deckGL"
 msgid "default"
 msgstr "standaard"
 
-msgid "delete"
-msgstr "verwijder"
-
 msgid "descendant"
 msgstr "afstammeling"
 
@@ -14382,6 +14399,26 @@ msgstr "wordt verwacht dat het een getal is"
 
 msgid "is expected to be an integer"
 msgstr "wordt verwacht een geheel getal te zijn"
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+"De database %s is gekoppeld aan %s grafieken die verschijnen op %s "
+"dashboards en gebruikers hebben %s SQL Lab tabbladen met behulp van deze "
+"database. Weet u zeker dat u wilt doorgaan? Verwijderen van de database "
+"zal deze objecten breken."
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
+msgstr ""
+"De dataset %s is gekoppeld aan %s grafieken die verschijnen op %s "
+"dashboards. Weet u zeker dat u wilt doorgaan? Het verwijderen van de "
+"dataset zal deze objecten verbreken."
 
 msgid "key a-z"
 msgstr "sleutel a-z"
@@ -14701,9 +14738,6 @@ msgstr "variantie"
 
 msgid "view instructions"
 msgstr "bekijk instructies"
-
-msgid "virtual"
-msgstr "virtueel"
 
 msgid "viz type"
 msgstr "viz type"

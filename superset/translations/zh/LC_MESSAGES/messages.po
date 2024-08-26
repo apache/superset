@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"POT-Creation-Date: 2024-08-26 13:19-0600\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen \n"
 "Language: zh\n"
@@ -1063,6 +1063,14 @@ msgstr "高级数据类型"
 
 msgid "Advanced-Analytics"
 msgstr "高级分析"
+
+#, fuzzy
+msgid "Affected Charts"
+msgstr "关联的图表"
+
+#, fuzzy
+msgid "Affected Dashboards"
+msgstr "选择看板"
 
 msgid "After"
 msgstr "之后"
@@ -3453,6 +3461,9 @@ msgstr "看板 [%s] 刚刚被创建，并且图表 [%s] 已被添加到其中"
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "看板 [{}] 刚刚被创建，并且图表 [{}] 已被添加到其中"
 
+msgid "Dashboard cannot be copied due to invalid parameters."
+msgstr ""
+
 msgid "Dashboard could not be deleted."
 msgstr "看板无法被删除。"
 
@@ -4050,9 +4061,10 @@ msgstr "已删除：%s"
 msgid "Deleted: %s"
 msgstr "已删除：%s"
 
+#, fuzzy
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it and will deactivate any "
+"related alerts or reports. You may still reverse this action with the"
 msgstr "删除一个标签页将会移除其中的所有内容。您仍然可以回退这个操作，点击"
 
 msgid "Delimited long & lat single column"
@@ -4601,6 +4613,10 @@ msgstr "嵌入代码"
 #, fuzzy
 msgid "Embed dashboard"
 msgstr "嵌入看板"
+
+#, fuzzy
+msgid "Embedded dashboard could not be deleted."
+msgstr "看板无法被删除。"
 
 msgid "Embedding deactivated."
 msgstr "解除嵌入。"
@@ -8434,6 +8450,10 @@ msgstr "刷新间隔"
 msgid "Refresh interval saved"
 msgstr "刷新间隔已保存"
 
+#, fuzzy
+msgid "Refresh table schema"
+msgstr "查看表结构"
+
 msgid "Refresh the default values"
 msgstr "刷新默认值"
 
@@ -9327,6 +9347,10 @@ msgstr "指定一个模式(需要数据库支持)"
 msgid "Select a sheet name from the uploaded file"
 msgstr "选择将要上传文件的数据库"
 
+#, fuzzy
+msgid "Select a tab"
+msgstr "删除数据库"
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -9483,6 +9507,10 @@ msgstr "选择方案"
 
 msgid "Select subject"
 msgstr "选择主题"
+
+#, fuzzy
+msgid "Select tab"
+msgstr "选择标签"
 
 #, fuzzy
 msgid "Select table or type to search tables"
@@ -10400,10 +10428,6 @@ msgid "TABLES"
 msgstr "表"
 
 #, fuzzy
-msgid "TEMPORAL X-AXIS"
-msgstr "时间X轴"
-
-#, fuzzy
 msgid "TEMPORAL_RANGE"
 msgstr "时间范围"
 
@@ -10550,6 +10574,10 @@ msgid ""
 "Templated link, it's possible to include {{ metric }} or other values "
 "coming from the controls."
 msgstr "模板链接，可以包含{{metric}}或来自控件的其他值。"
+
+#, fuzzy
+msgid "Temporal X-Axis"
+msgstr "时间X轴"
 
 msgid ""
 "Terminate running queries when browser window closed or navigated to "
@@ -10705,14 +10733,9 @@ msgid ""
 "most case users should not need to alter this."
 msgstr "由数据库推断的数据类型。在某些情况下，可能需要为表达式定义的列手工输入一个类型。在大多数情况下，用户不需要修改这个数据类型。"
 
-#, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
-msgstr ""
-"数据库 %s 已经关联了 %s 图表和 %s 看板，并且用户在该数据库上打开了 %s 个 SQL "
-"编辑器选项卡。确定要继续吗？删除数据库将破坏这些对象。"
+#, fuzzy
+msgid "The database"
+msgstr "删除数据库"
 
 #, fuzzy
 msgid "The database columns that contains lines information"
@@ -10746,12 +10769,9 @@ msgstr "数据库已删除。"
 msgid "The database was not found."
 msgstr "数据库没有找到"
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
-msgstr "数据集 %s 已经链接到 %s 图表和 %s 看板内。确定要继续吗？删除数据集将破坏这些对象。"
+#, fuzzy
+msgid "The dataset"
+msgstr "新数据集"
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr "这个图表所链接的数据集可能被删除了。"
@@ -11347,6 +11367,10 @@ msgstr "抱歉，这个看板在获取图表时发生错误："
 
 msgid "There was an error loading the tables"
 msgstr "您的请求有错误"
+
+#, fuzzy
+msgid "There was an error retrieving dashboard tabs."
+msgstr "抱歉，获取数据库信息时出错：%s"
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
@@ -13800,9 +13824,6 @@ msgstr "deckGL图表"
 msgid "default"
 msgstr "默认"
 
-msgid "delete"
-msgstr "删除"
-
 msgid "descendant"
 msgstr "降序"
 
@@ -13972,6 +13993,21 @@ msgstr "应该为数字"
 
 msgid "is expected to be an integer"
 msgstr "应该为整数"
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+"数据库 %s 已经关联了 %s 图表和 %s 看板，并且用户在该数据库上打开了 %s 个 SQL "
+"编辑器选项卡。确定要继续吗？删除数据库将破坏这些对象。"
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
+msgstr "数据集 %s 已经链接到 %s 图表和 %s 看板内。确定要继续吗？删除数据集将破坏这些对象。"
 
 msgid "key a-z"
 msgstr "a-z键"
@@ -14321,9 +14357,6 @@ msgstr "方差"
 #, fuzzy
 msgid "view instructions"
 msgstr "查看指引"
-
-msgid "virtual"
-msgstr "虚拟"
 
 #, fuzzy
 msgid "viz type"

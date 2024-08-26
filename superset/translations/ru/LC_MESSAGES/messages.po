@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"POT-Creation-Date: 2024-08-26 13:19-0600\n"
 "PO-Revision-Date: 2024-07-03 22:19+0400\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -1094,6 +1094,14 @@ msgstr "Расширенный тип данных"
 
 msgid "Advanced-Analytics"
 msgstr "Продвинутая аналитика"
+
+#, fuzzy
+msgid "Affected Charts"
+msgstr "Связанные диаграммы"
+
+#, fuzzy
+msgid "Affected Dashboards"
+msgstr "Выбрать дашборд"
 
 msgid "After"
 msgstr "После"
@@ -3469,6 +3477,9 @@ msgstr "Дашборд [%s] был создан и диаграмма [%s] до�
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "Дашборд [{}] был создан и диаграмма [{}] была добавлена на него"
 
+msgid "Dashboard cannot be copied due to invalid parameters."
+msgstr ""
+
 msgid "Dashboard could not be deleted."
 msgstr "Не удалось удалить дашборд"
 
@@ -4101,9 +4112,10 @@ msgstr "Удалено: %s"
 msgid "Deleted: %s"
 msgstr "Удалено: %s"
 
+#, fuzzy
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it and will deactivate any "
+"related alerts or reports. You may still reverse this action with the"
 msgstr ""
 "Удаление вкладки удалит все ее содержимое. Вы можете отменить это "
 "действие при помощи сочетания клавиш"
@@ -4668,6 +4680,10 @@ msgstr "Код для встраивания"
 
 msgid "Embed dashboard"
 msgstr "Встроить дашборд"
+
+#, fuzzy
+msgid "Embedded dashboard could not be deleted."
+msgstr "Не удалось удалить дашборд"
 
 msgid "Embedding deactivated."
 msgstr "Встраивание отключено"
@@ -8477,6 +8493,10 @@ msgstr "Интервал обновления"
 msgid "Refresh interval saved"
 msgstr "Интервал обновления сохранен"
 
+#, fuzzy
+msgid "Refresh table schema"
+msgstr "Таблица"
+
 msgid "Refresh the default values"
 msgstr "Обновить значения по умолчанию"
 
@@ -9342,6 +9362,10 @@ msgstr "Укажите схему, если она поддерживается 
 msgid "Select a sheet name from the uploaded file"
 msgstr "Выберите лист из загруженного файла"
 
+#, fuzzy
+msgid "Select a tab"
+msgstr "Выбрать базу данных"
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -9495,6 +9519,10 @@ msgstr "Выберите схему"
 
 msgid "Select subject"
 msgstr ""
+
+#, fuzzy
+msgid "Select tab"
+msgstr "Выбрать теги"
 
 #, fuzzy
 msgid "Select table or type to search tables"
@@ -10412,9 +10440,6 @@ msgstr ""
 msgid "TABLES"
 msgstr "ТАБЛИЦЫ"
 
-msgid "TEMPORAL X-AXIS"
-msgstr "Ось дат"
-
 #, fuzzy
 msgid "TEMPORAL_RANGE"
 msgstr "Содержит дату/время"
@@ -10560,6 +10585,10 @@ msgid ""
 msgstr ""
 "Шаблонная ссылка, можно включить {{ metric }} или другие значения, "
 "поступающие из элементов управления."
+
+#, fuzzy
+msgid "Temporal X-Axis"
+msgstr "Ось дат"
 
 msgid ""
 "Terminate running queries when browser window closed or navigated to "
@@ -10729,16 +10758,9 @@ msgstr ""
 "Типы были получены из базы данных. Возможно, в некоторых случаях "
 "потребуется вручную определить тип для столбцов, заданных выражениями."
 
-#, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
-msgstr ""
-"База данных %s привязана к %s диаграмме(ам) на %s дашборде(ах), и "
-"пользователи имеют %s открытую(ых) вкладку(ок) в SQL Lab. Вы уверены, что"
-" хотите продолжить? Удаление базы данных приведет к неработоспособности "
-"этих компонентов."
+#, fuzzy
+msgid "The database"
+msgstr "Удалить базу данных"
 
 msgid "The database columns that contains lines information"
 msgstr ""
@@ -10773,15 +10795,9 @@ msgstr "База данных была удалена"
 msgid "The database was not found."
 msgstr "Не удалось найти базу данных"
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
-msgstr ""
-"Датасет %s привязан к %s диаграмме(ам), на %s дашборде(ах). Вы уверены, "
-"что хотите продолжить? Удаление датасета приведет к неработоспособности "
-"этих объектов."
+#, fuzzy
+msgid "The dataset"
+msgstr "Новый датасет"
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr "Датасет, связанный с этой диаграммой, больше не существует"
@@ -11469,6 +11485,10 @@ msgstr "Произошла ошибка при загрузке схем"
 
 msgid "There was an error loading the tables"
 msgstr "Произошла ошибка при загрузке таблиц"
+
+#, fuzzy
+msgid "There was an error retrieving dashboard tabs."
+msgstr "Произошла ошибка при датасета: %s"
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
@@ -14025,9 +14045,6 @@ msgstr "карта deckGL"
 msgid "default"
 msgstr "по умолчанию"
 
-msgid "delete"
-msgstr "удалить"
-
 msgid "descendant"
 msgstr "потомок"
 
@@ -14189,6 +14206,26 @@ msgstr "ожидается число"
 
 msgid "is expected to be an integer"
 msgstr "ожидается целое число"
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+"База данных %s привязана к %s диаграмме(ам) на %s дашборде(ах), и "
+"пользователи имеют %s открытую(ых) вкладку(ок) в SQL Lab. Вы уверены, что"
+" хотите продолжить? Удаление базы данных приведет к неработоспособности "
+"этих компонентов."
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
+msgstr ""
+"Датасет %s привязан к %s диаграмме(ам), на %s дашборде(ах). Вы уверены, "
+"что хотите продолжить? Удаление датасета приведет к неработоспособности "
+"этих объектов."
 
 msgid "key a-z"
 msgstr "по алфавиту А-Я"
@@ -14519,9 +14556,6 @@ msgstr "дисперсия"
 
 msgid "view instructions"
 msgstr "посмотреть руководство"
-
-msgid "virtual"
-msgstr "виртуальный"
 
 msgid "viz type"
 msgstr "тип визуализации"
