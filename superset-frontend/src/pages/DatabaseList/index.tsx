@@ -27,7 +27,6 @@ import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
-
 import Loading from 'src/components/Loading';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
@@ -624,7 +623,7 @@ function DatabaseList({
                   <ul>
                     {databaseCurrentlyDeleting.dashboards.result.map(
                       (
-                        result: { id: Key | null | undefined; title: string },
+                        result: { id: number; title: string },
                         index: number,
                       ) => (
                         <li key={result.id}>
@@ -647,7 +646,7 @@ function DatabaseList({
                     {databaseCurrentlyDeleting.charts.result.map(
                       (
                         result: {
-                          id: Key | null | undefined;
+                          id: number;
                           slice_name: string;
                         },
                         index: number,
