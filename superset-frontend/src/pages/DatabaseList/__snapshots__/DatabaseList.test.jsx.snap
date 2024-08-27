@@ -13,5 +13,3 @@ exports[`Admin DatabaseList deletes 1`] = `
   </p>
 </React.Fragment>
 `;
-
-exports[`Admin DatabaseList filters: "http://localhost/api/v1/database/?q=(filters:!((col:database_name,opr:ct,value:fooo),(col:expose_in_sqllab,opr:eq,value:!t),(col:allow_run_async,opr:eq,value:!f)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)" 1`] = `"http://localhost/api/v1/database/?q=(filters:!((col:database_name,opr:ct,value:fooo),(col:expose_in_sqllab,opr:eq,value:!t),(col:allow_run_async,opr:eq,value:!f)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`;
