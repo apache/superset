@@ -26,7 +26,6 @@ import wtforms_json
 from deprecation import deprecated
 from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
-from flask_babel import gettext as __
 from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
