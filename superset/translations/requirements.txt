@@ -15,3 +15,4 @@
 # specific language governing permissions and limitations
 # under the License.
 Babel==2.9.1
+jinja2==3.1.4

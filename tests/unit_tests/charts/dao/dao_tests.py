@@ -48,7 +48,7 @@ def test_slice_find_by_id_skip_base_filter(session_with_data: Session) -> None:
     from superset.daos.chart import ChartDAO
     from superset.models.slice import Slice
 
-    result = ChartDAO.find_by_id(1, session=session_with_data, skip_base_filter=True)
+    result = ChartDAO.find_by_id(1, skip_base_filter=True)
 
     assert result
     assert 1 == result.id
@@ -57,20 +57,18 @@ def test_slice_find_by_id_skip_base_filter(session_with_data: Session) -> None:
 
 
 def test_datasource_find_by_id_skip_base_filter_not_found(
-    session_with_data: Session,
+    session: Session,
 ) -> None:
     from superset.daos.chart import ChartDAO
 
-    result = ChartDAO.find_by_id(
-        125326326, session=session_with_data, skip_base_filter=True
-    )
+    result = ChartDAO.find_by_id(125326326, skip_base_filter=True)
     assert result is None
 
 
-def test_add_favorite(session_with_data: Session) -> None:
+def test_add_favorite(session: Session) -> None:
     from superset.daos.chart import ChartDAO
 
-    chart = ChartDAO.find_by_id(1, session=session_with_data, skip_base_filter=True)
+    chart = ChartDAO.find_by_id(1, skip_base_filter=True)
     if not chart:
         return
     assert len(ChartDAO.favorited_ids([chart])) == 0
@@ -82,10 +80,10 @@ def test_add_favorite(session_with_data: Session) -> None:
     assert len(ChartDAO.favorited_ids([chart])) == 1
 
 
-def test_remove_favorite(session_with_data: Session) -> None:
+def test_remove_favorite(session: Session) -> None:
     from superset.daos.chart import ChartDAO
 
-    chart = ChartDAO.find_by_id(1, session=session_with_data, skip_base_filter=True)
+    chart = ChartDAO.find_by_id(1, skip_base_filter=True)
     if not chart:
         return
     assert len(ChartDAO.favorited_ids([chart])) == 0

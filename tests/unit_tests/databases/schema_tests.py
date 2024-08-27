@@ -21,11 +21,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 from marshmallow import fields, Schema, ValidationError
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 if TYPE_CHECKING:
     from superset.databases.schemas import DatabaseParametersSchemaMixin
-    from superset.db_engine_specs.base import BasicParametersMixin
 
 
 # pylint: disable=too-few-public-methods
@@ -49,7 +48,7 @@ def dummy_schema() -> "DatabaseParametersSchemaMixin":
 
 
 @pytest.fixture
-def dummy_engine(mocker: MockFixture) -> None:
+def dummy_engine(mocker: MockerFixture) -> None:
     """
     Fixture proving a dummy DB engine spec.
     """
@@ -225,3 +224,45 @@ def test_rename_encrypted_extra() -> None:
         "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         "masked_encrypted_extra": "{}",
     }
+
+
+def test_oauth2_schema_success() -> None:
+    """
+    Test a successful redirect.
+    """
+    from superset.databases.schemas import OAuth2ProviderResponseSchema
+
+    schema = OAuth2ProviderResponseSchema()
+
+    payload = schema.load({"code": "SECRET", "state": "12345"})
+    assert payload == {"code": "SECRET", "state": "12345"}
+
+
+def test_oauth2_schema_error() -> None:
+    """
+    Test a redirect with an error.
+    """
+    from superset.databases.schemas import OAuth2ProviderResponseSchema
+
+    schema = OAuth2ProviderResponseSchema()
+
+    payload = schema.load({"error": "access_denied"})
+    assert payload == {"error": "access_denied"}
+
+
+def test_oauth2_schema_extra() -> None:
+    """
+    Test a redirect with extra keys.
+    """
+    from superset.databases.schemas import OAuth2ProviderResponseSchema
+
+    schema = OAuth2ProviderResponseSchema()
+
+    payload = schema.load(
+        {
+            "code": "SECRET",
+            "state": "12345",
+            "optional": "NEW THING",
+        }
+    )
+    assert payload == {"code": "SECRET", "state": "12345"}

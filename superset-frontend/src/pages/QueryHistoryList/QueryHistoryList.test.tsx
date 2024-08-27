@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { MouseEvent } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
@@ -55,7 +55,7 @@ const mockQueries: QueryObject[] = [...new Array(3)].map((_, i) => ({
     { schema: 'foo', table: 'table' },
     { schema: 'bar', table: 'table_2' },
   ],
-  status: QueryState.SUCCESS,
+  status: QueryState.Success,
   tab_name: 'Main Tab',
   user: {
     first_name: 'cool',
@@ -130,7 +130,7 @@ describe('QueryList', () => {
         .find('[data-test="open-sql-preview-0"]')
         .first()
         .props();
-      if (props.onClick) props.onClick({} as React.MouseEvent);
+      if (props.onClick) props.onClick({} as MouseEvent);
     });
     wrapper.update();
 

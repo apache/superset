@@ -14,15 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 import uuid
 from typing import Any, Literal, Optional
 
 import jwt
 import redis
-from flask import Flask, request, Request, Response, session
+from flask import Flask, Request, request, Response, session
 
+from superset.utils import json
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -191,9 +191,14 @@ class AsyncQueryManager:
         force: Optional[bool] = False,
         user_id: Optional[int] = None,
     ) -> dict[str, Any]:
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+
         job_metadata = self.init_job(channel_id, user_id)
         self._load_explore_json_into_cache_job.delay(
-            job_metadata,
+            {**job_metadata, "guest_token": guest_user.guest_token}
+            if (guest_user := security_manager.get_current_guest_user_if_guest())
+            else job_metadata,
             form_data,
             response_type,
             force,
@@ -201,10 +206,25 @@ class AsyncQueryManager:
         return job_metadata
 
     def submit_chart_data_job(
-        self, channel_id: str, form_data: dict[str, Any], user_id: Optional[int]
+        self,
+        channel_id: str,
+        form_data: dict[str, Any],
+        user_id: Optional[int] = None,
     ) -> dict[str, Any]:
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+
+        # if it's guest user, we want to pass the guest token to the celery task
+        # chart data cache key is calculated based on the current user
+        # this way we can keep the cache key consistent between sync and async command
+        # so that it can be looked up consistently
         job_metadata = self.init_job(channel_id, user_id)
-        self._load_chart_data_into_cache_job.delay(job_metadata, form_data)
+        self._load_chart_data_into_cache_job.delay(
+            {**job_metadata, "guest_token": guest_user.guest_token}
+            if (guest_user := security_manager.get_current_guest_user_if_guest())
+            else job_metadata,
+            form_data,
+        )
         return job_metadata
 
     def read_events(

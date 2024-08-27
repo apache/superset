@@ -19,6 +19,6 @@
 import { ToastType } from 'src/components/MessageToasts/types';
 
 export default [
-  { id: 'info_id', toastType: ToastType.INFO, text: 'info toast' },
-  { id: 'danger_id', toastType: ToastType.DANGER, text: 'danger toast' },
+  { id: 'info_id', toastType: ToastType.Info, text: 'info toast' },
+  { id: 'danger_id', toastType: ToastType.Danger, text: 'danger toast' },
 ];

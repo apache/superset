@@ -14,20 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 import logging
 import re
 import time
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, TYPE_CHECKING
 
 from flask import current_app
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.orm import Session
 
+from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.models.sql_lab import Query
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 # Query 5543ffdf692b7d02:f78a944000000000: 3% Complete (17 out of 547)
@@ -57,8 +63,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.Date):
@@ -68,13 +74,12 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def get_schema_names(cls, inspector: Inspector) -> list[str]:
-        schemas = [
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
+        return {
             row[0]
             for row in inspector.engine.execute("SHOW SCHEMAS")
             if not row[0].startswith("_")
-        ]
-        return schemas
+        }
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:
@@ -93,15 +98,16 @@ class ImpalaEngineSpec(BaseEngineSpec):
         cls,
         cursor: Any,
         query: str,
+        database: Database,
         **kwargs: Any,
     ) -> None:
         try:
             cursor.execute_async(query)
         except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Stop query and updates progress information"""
 
         query_id = query.id
@@ -113,8 +119,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
         try:
             status = cursor.status()
             while status in unfinished_states:
-                session.refresh(query)
-                query = session.query(Query).filter_by(id=query_id).one()
+                db.session.refresh(query)
+                query = db.session.query(Query).filter_by(id=query_id).one()
                 # if query cancelation was requested prior to the handle_cursor call, but
                 # the query was still executed
                 # modified in stop_query in views / core.py is reflected  here.
@@ -145,7 +151,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                         needs_commit = True
 
                     if needs_commit:
-                        session.commit()
+                        db.session.commit()  # pylint: disable=consider-using-transaction
                 sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )

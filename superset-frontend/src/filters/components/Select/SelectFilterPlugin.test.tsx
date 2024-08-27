@@ -18,7 +18,6 @@
  */
 import userEvent from '@testing-library/user-event';
 import { AppSection } from '@superset-ui/core';
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
@@ -66,7 +65,7 @@ const selectMultipleProps = {
   width: 220,
   behaviors: ['NATIVE_FILTER'],
   isRefreshing: false,
-  appSection: AppSection.DASHBOARD,
+  appSection: AppSection.Dashboard,
 };
 
 describe('SelectFilterPlugin', () => {

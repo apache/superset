@@ -16,13 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
+import { render } from 'spec/helpers/testing-library';
 
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { Row, Col } from 'src/components';
 import TextControl from 'src/explore/components/controls/TextControl';
 import FormRow from 'src/components/FormRow';
+
+jest.mock('@superset-ui/chart-controls', () => ({
+  ...jest.requireActual('@superset-ui/chart-controls'),
+  InfoTooltipWithTrigger: () => <div data-test="mock-info-tooltip" />,
+}));
+jest.mock('src/components', () => ({
+  ...jest.requireActual('src/components'),
+  Row: ({ children }) => <div data-test="mock-row">{children}</div>,
+  Col: ({ children }) => <div data-test="mock-col">{children}</div>,
+}));
 
 const defaultProps = {
   label: 'Hello',
@@ -30,29 +37,23 @@ const defaultProps = {
   control: <TextControl label="test_cbox" />,
 };
 
-describe('FormRow', () => {
-  let wrapper;
-
-  const getWrapper = (overrideProps = {}) => {
-    const props = {
-      ...defaultProps,
-      ...overrideProps,
-    };
-    return shallow(<FormRow {...props} />);
+const setup = (overrideProps = {}) => {
+  const props = {
+    ...defaultProps,
+    ...overrideProps,
   };
+  return render(<FormRow {...props} />);
+};
 
-  beforeEach(() => {
-    wrapper = getWrapper();
-  });
+test('renders an InfoTooltipWithTrigger only if needed', () => {
+  const { getByTestId, queryByTestId, rerender } = setup();
+  expect(getByTestId('mock-info-tooltip')).toBeInTheDocument();
+  rerender(<FormRow {...defaultProps} tooltip={null} />);
+  expect(queryByTestId('mock-info-tooltip')).not.toBeInTheDocument();
+});
 
-  it('renders an InfoTooltipWithTrigger only if needed', () => {
-    expect(wrapper.find(InfoTooltipWithTrigger)).toExist();
-    wrapper = getWrapper({ tooltip: null });
-    expect(wrapper.find(InfoTooltipWithTrigger)).not.toExist();
-  });
-
-  it('renders a Row and 2 Cols', () => {
-    expect(wrapper.find(Row)).toExist();
-    expect(wrapper.find(Col)).toHaveLength(2);
-  });
+test('renders a Row and 2 Cols', () => {
+  const { getByTestId, getAllByTestId } = setup();
+  expect(getByTestId('mock-row')).toBeInTheDocument();
+  expect(getAllByTestId('mock-col')).toHaveLength(2);
 });

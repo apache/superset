@@ -1,40 +1,49 @@
 version: 2
 updates:
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+
   - package-ecosystem: "npm"
+    ignore:
+      # not until React >= 18.0.0
+      - dependency-name: "storybook"
+      - dependency-name: "@storybook*"
     directory: "/superset-frontend/"
     schedule:
-      interval: "daily"
+      interval: "monthly"
     labels:
       - npm
       - dependabot
+    open-pull-requests-limit: 30
     versioning-strategy: increase
 
-  - package-ecosystem: "pip"
-    directory: "/requirements/"
-    schedule:
-      interval: "daily"
-    labels:
-      - pip
-      - dependabot
+
+  # - package-ecosystem: "pip"
+  # NOTE: as dependabot isn't compatible with our python
+  # dependency setup (pip-compile-multi), we'll be using
+  # `supersetbot` instead
 
   - package-ecosystem: "npm"
     directory: ".github/actions"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 0
+      interval: "monthly"
+    open-pull-requests-limit: 10
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
     directory: "/docs/"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 0
+      interval: "monthly"
+    open-pull-requests-limit: 10
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
     directory: "/superset-websocket/"
     schedule:
-      interval: "daily"
+      interval: "monthly"
     labels:
       - npm
       - dependabot
@@ -43,8 +52,301 @@ updates:
   - package-ecosystem: "npm"
     directory: "/superset-websocket/utils/client-ws-app/"
     schedule:
-      interval: "daily"
+      interval: "monthly"
     labels:
       - npm
       - dependabot
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+
+  # Now for all of our plugins and packages!
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-calendar/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-histogram/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-partition/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-world-map/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/plugin-chart-pivot-table/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-chord/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-horizon/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-rose/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-preset-chart-deckgl/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/plugin-chart-table/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-country-map/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-map-box/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-sankey/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-preset-chart-nvd3/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/plugin-chart-word-cloud/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-event-flow/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-paired-t-test/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-sankey-loop/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/plugin-chart-echarts/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/preset-chart-xy/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-heatmap/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/legacy-plugin-chart-sunburst/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/plugins/plugin-chart-handlebars/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/packages/generator-superset/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/packages/superset-ui-chart-controls/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/packages/superset-ui-core/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/packages/superset-ui-demo/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+
+  - package-ecosystem: "npm"
+    directory: "/superset-frontend/packages/superset-ui-switchboard/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 5
     versioning-strategy: increase

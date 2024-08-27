@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-
 export function BottomRightResizeHandle() {
   return <div className="resize-handle resize-handle--bottom-right" />;
 }

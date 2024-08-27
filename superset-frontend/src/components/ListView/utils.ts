@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, ReactNode } from 'react';
 import {
   useFilters,
   usePagination,
@@ -35,7 +35,6 @@ import {
 
 import rison from 'rison';
 import { isEqual } from 'lodash';
-import { PartialStylesConfig } from 'src/components/DeprecatedSelect';
 import {
   FetchDataConfig,
   Filter,
@@ -188,8 +187,8 @@ interface UseListViewConfig {
   initialFilters?: Filter[];
   bulkSelectColumnConfig?: {
     id: string;
-    Header: (conf: any) => React.ReactNode;
-    Cell: (conf: any) => React.ReactNode;
+    Header: (conf: any) => ReactNode;
+    Cell: (conf: any) => ReactNode;
   };
   renderCard?: boolean;
   defaultViewMode?: ViewModeType;
@@ -221,7 +220,7 @@ export function useListViewState({
       query.sortColumn && query.sortOrder
         ? [{ id: query.sortColumn, desc: query.sortOrder === 'desc' }]
         : initialSort,
-    [query.sortColumn, query.sortOrder],
+    [initialSort, query.sortColumn, query.sortOrder],
   );
 
   const initialState = {
@@ -257,6 +256,7 @@ export function useListViewState({
     pageCount,
     gotoPage,
     setAllFilters,
+    setSortBy,
     selectedFlatRows,
     toggleAllRowsSelected,
     state: { pageIndex, pageSize, sortBy, filters },
@@ -374,6 +374,7 @@ export function useListViewState({
     rows,
     selectedFlatRows,
     setAllFilters,
+    setSortBy,
     state: { pageIndex, pageSize, sortBy, filters, internalFilters, viewMode },
     toggleAllRowsSelected,
     applyFilterValue,
@@ -381,21 +382,3 @@ export function useListViewState({
     query,
   };
 }
-
-export const filterSelectStyles: PartialStylesConfig = {
-  container: (provider, { getValue }) => ({
-    ...provider,
-    // dynamic width based on label string length
-    minWidth: `${Math.min(
-      12,
-      Math.max(5, 3 + getValue()[0].label.length / 2),
-    )}em`,
-  }),
-  control: provider => ({
-    ...provider,
-    borderWidth: 0,
-    boxShadow: 'none',
-    cursor: 'pointer',
-    backgroundColor: 'transparent',
-  }),
-};

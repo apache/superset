@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { FC, useCallback, useRef, useState } from 'react';
+import { FC, useCallback, useRef, useState } from 'react';
 import {
   NativeFilterScope,
   styled,
@@ -70,16 +70,15 @@ const FilterScope: FC<FilterScopeProps> = ({
   const lastSpecificScope = useRef(initialFilterScope);
   const [initialScopingType] = useState(
     isScopingAll(initialFilterScope, chartId)
-      ? ScopingType.all
-      : ScopingType.specific,
+      ? ScopingType.All
+      : ScopingType.Specific,
   );
-  const [hasScopeBeenModified, setHasScopeBeenModified] = useState(
-    !!filterScope,
-  );
+  const [hasScopeBeenModified, setHasScopeBeenModified] =
+    useState(!!filterScope);
 
   const onUpdateFormValues = useCallback(
     (formValues: any) => {
-      if (formScopingType === ScopingType.specific) {
+      if (formScopingType === ScopingType.Specific) {
         lastSpecificScope.current = formValues.scope;
       }
       updateFormValues(formValues);
@@ -97,8 +96,8 @@ const FilterScope: FC<FilterScopeProps> = ({
     updateFormValues({
       scope: newScope,
       scoping: isScopingAll(newScope, chartId)
-        ? ScopingType.all
-        : ScopingType.specific,
+        ? ScopingType.All
+        : ScopingType.Specific,
     });
   }, [
     chartId,
@@ -118,7 +117,7 @@ const FilterScope: FC<FilterScopeProps> = ({
         <Radio.Group
           onChange={({ target: { value } }) => {
             const scope =
-              value === ScopingType.all
+              value === ScopingType.All
                 ? getDefaultScopeValue(chartId)
                 : lastSpecificScope.current;
             updateFormValues({ scope });
@@ -126,18 +125,18 @@ const FilterScope: FC<FilterScopeProps> = ({
             forceUpdate();
           }}
         >
-          <Radio value={ScopingType.all}>{t('Apply to all panels')}</Radio>
-          <Radio value={ScopingType.specific}>
+          <Radio value={ScopingType.All}>{t('Apply to all panels')}</Radio>
+          <Radio value={ScopingType.Specific}>
             {t('Apply to specific panels')}
           </Radio>
         </Radio.Group>
       </CleanFormItem>
       <Typography.Text type="secondary">
-        {(formScopingType ?? initialScopingType) === ScopingType.specific
+        {(formScopingType ?? initialScopingType) === ScopingType.Specific
           ? t('Only selected panels will be affected by this filter')
           : t('All panels with this column will be affected by this filter')}
       </Typography.Text>
-      {(formScopingType ?? initialScopingType) === ScopingType.specific && (
+      {(formScopingType ?? initialScopingType) === ScopingType.Specific && (
         <ScopingTree
           updateFormValues={onUpdateFormValues}
           initialScope={initialFilterScope}

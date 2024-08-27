@@ -16,15 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import {
+  useCallback,
+  useEffect,
+  useState,
+  memo,
+  ChangeEvent,
+  MouseEvent,
+} from 'react';
+
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
+import { pick } from 'lodash';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import {
-  QueryResponse,
   QueryState,
   styled,
   t,
@@ -41,8 +49,7 @@ import {
   ISimpleColumn,
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
+import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
@@ -54,6 +61,7 @@ import FilterableTable from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import {
   addQueryEditor,
   clearQueryResults,
@@ -63,17 +71,24 @@ import {
   reRunQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import { URL_PARAMS } from 'src/constants';
+import useLogAction from 'src/logger/useLogAction';
+import {
+  LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD,
+  LOG_ACTIONS_SQLLAB_CREATE_CHART,
+  LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
+} from 'src/logger/LogUtils';
 import Icons from 'src/components/Icons';
+import { findPermission } from 'src/utils/findPermission';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
 
-enum LIMITING_FACTOR {
-  QUERY = 'QUERY',
-  QUERY_AND_DROPDOWN = 'QUERY_AND_DROPDOWN',
-  DROPDOWN = 'DROPDOWN',
-  NOT_LIMITED = 'NOT_LIMITED',
+enum LimitingFactor {
+  Query = 'QUERY',
+  QueryAndDropdown = 'QUERY_AND_DROPDOWN',
+  Dropdown = 'DROPDOWN',
+  NotLimited = 'NOT_LIMITED',
 }
 
 export interface ResultSetProps {
@@ -82,12 +97,11 @@ export interface ResultSetProps {
   database?: Record<string, any>;
   displayLimit: number;
   height: number;
-  query: QueryResponse;
+  queryId: string;
   search?: boolean;
   showSql?: boolean;
   showSqlInline?: boolean;
   visualize?: boolean;
-  user: UserWithPermissionsAndRoles;
   defaultQueryLimit: number;
 }
 
@@ -145,14 +159,45 @@ const ResultSet = ({
   database = {},
   displayLimit,
   height,
-  query,
+  queryId,
   search = true,
   showSql = false,
   showSqlInline = false,
   visualize = true,
-  user,
   defaultQueryLimit,
 }: ResultSetProps) => {
+  const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
+  const query = useSelector(
+    ({ sqlLab: { queries } }: SqlLabRootState) =>
+      pick(queries[queryId], [
+        'id',
+        'errorMessage',
+        'cached',
+        'results',
+        'resultsKey',
+        'dbId',
+        'tab',
+        'sql',
+        'sqlEditorId',
+        'templateParams',
+        'schema',
+        'rows',
+        'queryLimit',
+        'limitingFactor',
+        'trackingUrl',
+        'state',
+        'errors',
+        'link',
+        'ctas',
+        'ctas_method',
+        'tempSchema',
+        'tempTable',
+        'isDataPreview',
+        'progress',
+        'extra',
+      ]),
+    shallowEqual,
+  );
   const ResultTable =
     extensionsRegistry.get('sqleditor.extension.resultTable') ??
     FilterableTable;
@@ -164,6 +209,7 @@ const ResultSet = ({
 
   const history = useHistory();
   const dispatch = useDispatch();
+  const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
     if (
@@ -179,8 +225,8 @@ const ResultSet = ({
     reRunQueryIfSessionTimeoutErrorOnMount();
   }, [reRunQueryIfSessionTimeoutErrorOnMount]);
 
-  const fetchResults = (query: QueryResponse) => {
-    dispatch(fetchQueryResults(query, displayLimit));
+  const fetchResults = (q: typeof query) => {
+    dispatch(fetchQueryResults(q, displayLimit));
   };
 
   const prevQuery = usePrevious(query);
@@ -204,7 +250,7 @@ const ResultSet = ({
 
   const popSelectStar = (tempSchema: string | null, tempTable: string) => {
     const qe = {
-      id: shortid.generate(),
+      id: nanoid(11),
       name: tempTable,
       autorun: false,
       dbId: query.dbId,
@@ -213,15 +259,15 @@ const ResultSet = ({
     dispatch(addQueryEditor(qe));
   };
 
-  const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const changeSearch = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchText(event.target.value);
   };
 
-  const createExploreResultsOnClick = async (clickEvent: React.MouseEvent) => {
+  const createExploreResultsOnClick = async (clickEvent: MouseEvent) => {
     const { results } = query;
 
     const openInNewWindow = clickEvent.metaKey;
-
+    logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
     if (results?.query_id) {
       const key = await postFormData(results.query_id, 'query', {
         ...EXPLORE_CHART_DEFAULT,
@@ -264,6 +310,12 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
+      const canExportData = findPermission(
+        'can_export_csv',
+        'SQLLab',
+        user?.roles,
+      );
+
       return (
         <ResultSetControls>
           <SaveDatasetModal
@@ -283,22 +335,35 @@ const ResultSet = ({
                 onClick={createExploreResultsOnClick}
               />
             )}
-            {csv && (
-              <Button buttonSize="small" href={getExportCsvUrl(query.id)}>
+            {csv && canExportData && (
+              <Button
+                buttonSize="small"
+                href={getExportCsvUrl(query.id)}
+                data-test="export-csv-button"
+                onClick={() => logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {})}
+              >
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
 
-            <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data, columns)}
-              wrapped={false}
-              copyNode={
-                <Button buttonSize="small">
-                  <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
-                </Button>
-              }
-              hideTooltip
-            />
+            {canExportData && (
+              <CopyToClipboard
+                text={prepareCopyToClipboardTabularData(data, columns)}
+                wrapped={false}
+                copyNode={
+                  <Button
+                    buttonSize="small"
+                    data-test="copy-to-clipboard-button"
+                  >
+                    <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
+                  </Button>
+                }
+                hideTooltip
+                onCopyEnd={() =>
+                  logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
+                }
+              />
+            )}
           </ResultSetButtons>
           {search && (
             <input
@@ -338,23 +403,22 @@ const ResultSet = ({
       ),
     };
     const shouldUseDefaultDropdownAlert =
-      limit === defaultQueryLimit &&
-      limitingFactor === LIMITING_FACTOR.DROPDOWN;
+      limit === defaultQueryLimit && limitingFactor === LimitingFactor.Dropdown;
 
-    if (limitingFactor === LIMITING_FACTOR.QUERY && csv) {
+    if (limitingFactor === LimitingFactor.Query && csv) {
       limitMessage = t(
         'The number of rows displayed is limited to %(rows)d by the query',
         { rows },
       );
     } else if (
-      limitingFactor === LIMITING_FACTOR.DROPDOWN &&
+      limitingFactor === LimitingFactor.Dropdown &&
       !shouldUseDefaultDropdownAlert
     ) {
       limitMessage = t(
         'The number of rows displayed is limited to %(rows)d by the limit dropdown.',
         { rows },
       );
-    } else if (limitingFactor === LIMITING_FACTOR.QUERY_AND_DROPDOWN) {
+    } else if (limitingFactor === LimitingFactor.QueryAndDropdown) {
       limitMessage = t(
         'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
         { rows },
@@ -444,8 +508,8 @@ const ResultSet = ({
   let trackingUrl;
   if (
     query.trackingUrl &&
-    query.state !== QueryState.SUCCESS &&
-    query.state !== QueryState.FETCHING
+    query.state !== QueryState.Success &&
+    query.state !== QueryState.Fetching
   ) {
     trackingUrl = (
       <Button
@@ -454,7 +518,7 @@ const ResultSet = ({
         href={query.trackingUrl}
         target="_blank"
       >
-        {query.state === QueryState.RUNNING
+        {query.state === QueryState.Running
           ? t('Track job')
           : t('See query details')}
       </Button>
@@ -470,16 +534,16 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === QueryState.STOPPED) {
+  if (query.state === QueryState.Stopped) {
     return <Alert type="warning" message={t('Query was stopped')} />;
   }
 
-  if (query.state === QueryState.FAILED) {
+  if (query.state === QueryState.Failed) {
     return (
       <ResultlessStyles>
         <ErrorMessageWithStackTrace
           title={t('Database error')}
-          error={query?.errors?.[0]}
+          error={query?.extra?.errors?.[0] || query?.errors?.[0]}
           subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
           copyText={query.errorMessage || undefined}
           link={query.link}
@@ -490,10 +554,10 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === QueryState.SUCCESS && query.ctas) {
+  if (query.state === QueryState.Success && query.ctas) {
     const { tempSchema, tempTable } = query;
     let object = 'Table';
-    if (query.ctas_method === CtasEnum.VIEW) {
+    if (query.ctas_method === CtasEnum.View) {
       object = 'View';
     }
     return (
@@ -529,7 +593,7 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === QueryState.SUCCESS && query.results) {
+  if (query.state === QueryState.Success && query.results) {
     const { results } = query;
     // Accounts for offset needed for height of ResultSetRowsReturned component if !limitReached
     const rowMessageHeight = !limitReached ? 32 : 0;
@@ -552,6 +616,10 @@ const ResultSet = ({
       const expandedColumns = results.expanded_columns
         ? results.expanded_columns.map(col => col.column_name)
         : [];
+      const allowHTML = getItem(
+        LocalStorageKeys.SqllabIsRenderHtmlEnabled,
+        false,
+      );
       return (
         <ResultContainer>
           {renderControls()}
@@ -599,6 +667,7 @@ const ResultSet = ({
             height={rowsHeight}
             filterText={searchText}
             expandedColumns={expandedColumns}
+            allowHTML={allowHTML}
           />
         </ResultContainer>
       );
@@ -608,7 +677,7 @@ const ResultSet = ({
     }
   }
 
-  if (query.cached || (query.state === QueryState.SUCCESS && !query.results)) {
+  if (query.cached || (query.state === QueryState.Success && !query.results)) {
     if (query.isDataPreview) {
       return (
         <Button
@@ -662,4 +731,4 @@ const ResultSet = ({
   );
 };
 
-export default ResultSet;
+export default memo(ResultSet);

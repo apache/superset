@@ -25,7 +25,7 @@ import {
   ColumnMeta,
   defineSavedMetrics,
 } from '@superset-ui/chart-controls';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { getQueryMode, isAggMode, validateAggControlValues } from './shared';
 
 const percentMetrics: typeof sharedControls.metrics = {
@@ -64,9 +64,7 @@ const dndPercentMetrics = {
 export const percentMetricsControlSetItem: ControlSetItem = {
   name: 'percent_metrics',
   config: {
-    ...(isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-      ? dndPercentMetrics
-      : percentMetrics),
+    ...dndPercentMetrics,
   },
 };
 
@@ -104,7 +102,7 @@ export const showTotalsControlSetItem: ControlSetItem = {
   name: 'show_totals',
   config: {
     type: 'CheckboxControl',
-    label: t('Show totals'),
+    label: t('Show summary'),
     default: false,
     description: t(
       'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',

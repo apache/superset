@@ -34,11 +34,11 @@ import SpatialControl from './SpatialControl';
 import TextAreaControl from './TextAreaControl';
 import TextControl from './TextControl';
 import TimeSeriesColumnControl from './TimeSeriesColumnControl';
+import TimeOffsetControl from './TimeOffsetControl';
 import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricControl/MetricsControl';
 import AdhocFilterControl from './FilterControl/AdhocFilterControl';
-import FilterBoxItemControl from './FilterBoxItemControl';
 import ConditionalFormattingControl from './ConditionalFormattingControl';
 import ContourControl from './ContourControl';
 import DndColumnSelectControl, {
@@ -49,6 +49,7 @@ import DndColumnSelectControl, {
 import XAxisSortControl from './XAxisSortControl';
 import CurrencyControl from './CurrencyControl';
 import ColumnConfigControl from './ColumnConfigControl';
+import { ComparisonRangeLabel } from './ComparisonRangeLabel';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -78,10 +79,11 @@ const controlMap = {
   VizTypeControl,
   MetricsControl,
   AdhocFilterControl,
-  FilterBoxItemControl,
   ConditionalFormattingControl,
   XAxisSortControl,
   ContourControl,
+  ComparisonRangeLabel,
+  TimeOffsetControl,
   ...sharedControlComponents,
 };
 export default controlMap;

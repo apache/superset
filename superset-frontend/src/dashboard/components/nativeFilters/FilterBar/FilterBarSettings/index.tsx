@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   FeatureFlag,
@@ -67,7 +67,7 @@ const CROSS_FILTERS_MENU_KEY = 'cross-filters-menu-key';
 const CROSS_FILTERS_SCOPING_MENU_KEY = 'cross-filters-scoping-menu-key';
 
 const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
-  o === FilterBarOrientation.VERTICAL || o === FilterBarOrientation.HORIZONTAL;
+  o === FilterBarOrientation.Vertical || o === FilterBarOrientation.Horizontal;
 
 const FilterBarSettings = () => {
   const dispatch = useDispatch();
@@ -81,7 +81,7 @@ const FilterBarSettings = () => {
   const [selectedFilterBarOrientation, setSelectedFilterBarOrientation] =
     useState(filterBarOrientation);
   const isCrossFiltersFeatureEnabled = isFeatureEnabled(
-    FeatureFlag.DASHBOARD_CROSS_FILTERS,
+    FeatureFlag.DashboardCrossFilters,
   );
   const shouldEnableCrossFilters =
     isCrossFiltersEnabled && isCrossFiltersFeatureEnabled;
@@ -92,7 +92,7 @@ const FilterBarSettings = () => {
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
   const canSetHorizontalFilterBar =
-    canEdit && isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR);
+    canEdit && isFeatureEnabled(FeatureFlag.HorizontalFilterBar);
 
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal();
 
@@ -184,11 +184,11 @@ const FilterBarSettings = () => {
         label: t('Orientation of filter bar'),
         children: [
           {
-            key: FilterBarOrientation.VERTICAL,
+            key: FilterBarOrientation.Vertical,
             label: t('Vertical (Left)'),
           },
           {
-            key: FilterBarOrientation.HORIZONTAL,
+            key: FilterBarOrientation.Horizontal,
             label: t('Horizontal (Top)'),
           },
         ],

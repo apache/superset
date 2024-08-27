@@ -56,6 +56,7 @@ from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
 from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
+from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
 if TYPE_CHECKING:
@@ -118,7 +119,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # the global Flask app
         #
         # pylint: disable=import-outside-toplevel,too-many-locals,too-many-statements
-        from superset import security_manager
         from superset.advanced_data_type.api import AdvancedDataTypeRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
@@ -135,7 +135,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.css_templates.api import CssTemplateRestApi
         from superset.dashboards.api import DashboardRestApi
-        from superset.dashboards.filter_sets.api import FilterSetRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
         from superset.dashboards.permalink.api import DashboardPermalinkRestApi
         from superset.databases.api import DatabaseRestApi
@@ -158,7 +157,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.sqllab.api import SqlLabRestApi
         from superset.tags.api import TagRestApi
         from superset.views.alerts import AlertView, ReportView
-        from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
+        from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.chart.views import SliceAsync, SliceModelView
@@ -172,30 +171,25 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             DashboardModelView,
             DashboardModelViewAsync,
         )
-        from superset.views.database.views import (
-            ColumnarToDatabaseView,
-            CsvToDatabaseView,
-            DatabaseView,
-            ExcelToDatabaseView,
-        )
+        from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
+        from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
-        from superset.views.profile import ProfileView
-        from superset.views.redirects import R
         from superset.views.sql_lab.views import (
             SavedQueryView,
             SavedQueryViewApi,
-            SqlLab,
             TableSchemaView,
             TabStateView,
         )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
-        from superset.views.users.api import CurrentUserRestApi
+        from superset.views.users.api import CurrentUserRestApi, UserRestApi
+
+        set_app_error_handlers(self.superset_app)
 
         #
         # Setup API views
@@ -210,6 +204,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(CurrentUserRestApi)
+        appbuilder.add_api(UserRestApi)
         appbuilder.add_api(DashboardFilterStateRestApi)
         appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
@@ -222,7 +217,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ExploreRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
         appbuilder.add_api(ExplorePermalinkRestApi)
-        appbuilder.add_api(FilterSetRestApi)
         appbuilder.add_api(ImportExportRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
@@ -301,9 +295,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         appbuilder.add_view_no_menu(Api)
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
-        appbuilder.add_view_no_menu(CsvToDatabaseView)
-        appbuilder.add_view_no_menu(ExcelToDatabaseView)
-        appbuilder.add_view_no_menu(ColumnarToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
@@ -312,12 +303,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(ExploreView)
         appbuilder.add_view_no_menu(ExplorePermalinkView)
         appbuilder.add_view_no_menu(KV)
-        appbuilder.add_view_no_menu(R)
-        appbuilder.add_view_no_menu(ProfileView)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SavedQueryViewApi)
         appbuilder.add_view_no_menu(SliceAsync)
-        appbuilder.add_view_no_menu(SqlLab)
         appbuilder.add_view_no_menu(SqllabView)
         appbuilder.add_view_no_menu(SqlMetricInlineView)
         appbuilder.add_view_no_menu(Superset)
@@ -325,7 +313,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
-        appbuilder.add_view_no_menu(TaggedObjectView)
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
@@ -333,20 +320,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Add links
         #
-        appbuilder.add_link(
-            "Import Dashboards",
-            label=__("Import Dashboards"),
-            href="/superset/import_dashboards/",
-            icon="fa-cloud-upload",
-            category="Manage",
-            category_label=__("Manage"),
-            category_icon="fa-wrench",
-            cond=lambda: (
-                security_manager.can_access("can_import_dashboards", "Superset")
-                and not feature_flag_manager.is_feature_enabled("VERSIONED_EXPORT")
-            ),
-        )
-
         appbuilder.add_link(
             "SQL Editor",
             label=__("SQL Lab"),
@@ -463,7 +436,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "to override it.\n"
                 "Use a strong complex alphanumeric string and use a tool to help"
                 " you generate \n"
-                "a sufficiently random sequence, ex: openssl rand -base64 42"
+                "a sufficiently random sequence, ex: openssl rand -base64 42 \n"
+                "For more info, see: https://superset.apache.org/docs/"
+                "configuration/configuring-superset#specifying-a-secret_key"
             )
             logger.warning(bottom_banner)
 
@@ -544,6 +519,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def configure_feature_flags(self) -> None:
         feature_flag_manager.init_app(self.superset_app)
 
+    @transaction()
     def configure_fab(self) -> None:
         if self.config["SILENCE_FAB"]:
             logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
@@ -617,7 +593,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         talisman_enabled = self.config["TALISMAN_ENABLED"]
         talisman_config = (
             self.config["TALISMAN_DEV_CONFIG"]
-            if self.superset_app.debug
+            if self.superset_app.debug or self.config["DEBUG"]
             else self.config["TALISMAN_CONFIG"]
         )
         csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]

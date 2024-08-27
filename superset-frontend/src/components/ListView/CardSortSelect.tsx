@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import { SELECT_WIDTH } from './utils';
-import { CardSortSelectOption, FetchDataConfig, SortColumn } from './types';
+import { CardSortSelectOption, SortColumn } from './types';
 
 const SortContainer = styled.div`
   display: inline-flex;
@@ -32,22 +32,22 @@ const SortContainer = styled.div`
 `;
 
 interface CardViewSelectSortProps {
-  onChange: (conf: FetchDataConfig) => any;
+  onChange: (value: SortColumn[]) => void;
   options: Array<CardSortSelectOption>;
   initialSort?: SortColumn[];
-  pageIndex: number;
-  pageSize: number;
 }
 
 export const CardSortSelect = ({
   initialSort,
   onChange,
   options,
-  pageIndex,
-  pageSize,
 }: CardViewSelectSortProps) => {
   const defaultSort =
-    (initialSort && options.find(({ id }) => id === initialSort[0].id)) ||
+    (initialSort &&
+      options.find(
+        ({ id, desc }) =>
+          id === initialSort[0].id && desc === initialSort[0].desc,
+      )) ||
     options[0];
 
   const [value, setValue] = useState({
@@ -72,7 +72,7 @@ export const CardSortSelect = ({
           desc: originalOption.desc,
         },
       ];
-      onChange({ pageIndex, pageSize, sortBy, filters: [] });
+      onChange(sortBy);
     }
   };
 
@@ -82,7 +82,7 @@ export const CardSortSelect = ({
         ariaLabel={t('Sort')}
         header={<FormLabel>{t('Sort')}</FormLabel>}
         labelInValue
-        onChange={(value: CardSortSelectOption) => handleOnChange(value)}
+        onChange={handleOnChange}
         options={formattedOptions}
         showSearch
         value={value}

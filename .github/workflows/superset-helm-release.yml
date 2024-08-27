@@ -4,18 +4,19 @@ on:
   push:
     branches:
       - "master"
+      - "[0-9].[0-9]*"
     paths:
       - "helm/**"
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
 
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -27,7 +28,7 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Install Helm
-        uses: azure/setup-helm@v1
+        uses: azure/setup-helm@v4
         with:
           version: v3.5.4
 
@@ -35,9 +36,10 @@ jobs:
         run: helm repo add bitnami https://charts.bitnami.com/bitnami
 
       - name: Run chart-releaser
-        uses: ./.github/actions/chart-releaser-action
+        uses: helm/chart-releaser-action@v1.6.0
         with:
           charts_dir: helm
+          mark_as_latest: false
         env:
           CR_TOKEN: "${{ github.token }}"
           CR_RELEASE_NAME_TEMPLATE: "superset-helm-chart-{{ .Version }}"

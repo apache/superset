@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   css,
   DataMaskState,
@@ -109,7 +109,7 @@ const ActionButtons = ({
   dataMaskApplied,
   dataMaskSelected,
   isApplyDisabled,
-  filterBarOrientation = FilterBarOrientation.VERTICAL,
+  filterBarOrientation = FilterBarOrientation.Vertical,
 }: ActionButtonsProps) => {
   const isClearAllEnabled = useMemo(
     () =>
@@ -121,7 +121,7 @@ const ActionButtons = ({
       ),
     [dataMaskApplied, dataMaskSelected],
   );
-  const isVertical = filterBarOrientation === FilterBarOrientation.VERTICAL;
+  const isVertical = filterBarOrientation === FilterBarOrientation.Vertical;
 
   return (
     <div

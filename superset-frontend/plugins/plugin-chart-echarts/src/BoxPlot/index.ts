@@ -46,9 +46,9 @@ export default class EchartsBoxPlotChartPlugin extends EchartsChartPlugin<
       loadChart: () => import('./EchartsBoxPlot'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Distribution'),
         credits: ['https://echarts.apache.org'],
@@ -57,7 +57,7 @@ export default class EchartsBoxPlotChartPlugin extends EchartsChartPlugin<
         ),
         exampleGallery: [{ url: example }],
         name: t('Box Plot'),
-        tags: [t('ECharts'), t('Range'), t('Statistical')],
+        tags: [t('ECharts'), t('Range'), t('Statistical'), t('Featured')],
         thumbnail,
       },
       transformProps,

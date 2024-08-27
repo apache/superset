@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { PureComponent } from 'react';
 import cloudLayout, { Word } from 'd3-cloud';
 import {
   PlainObject,
@@ -66,6 +66,7 @@ export interface WordCloudProps extends WordCloudVisualProps {
   height: number;
   width: number;
   sliceId: number;
+  colorScheme: string;
 }
 
 export interface WordCloudState {
@@ -88,10 +89,7 @@ const MAX_SCALE_FACTOR = 3;
 // Needed to avoid clutter when shrinking a chart with many records.
 const TOP_RESULTS_PERCENTAGE = 0.1;
 
-class WordCloud extends React.PureComponent<
-  FullWordCloudProps,
-  WordCloudState
-> {
+class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
   static defaultProps = defaultProps;
 
   // Cannot name it isMounted because of conflict
@@ -115,7 +113,12 @@ class WordCloud extends React.PureComponent<
     },
   });
 
-  createEncoder = this.wordCloudEncoderFactory.createSelector();
+  createEncoder = (encoding?: Partial<WordCloudEncoding>) => {
+    const selector = this.wordCloudEncoderFactory.createSelector();
+
+    // @ts-ignore
+    return selector(encoding as any);
+  };
 
   constructor(props: FullWordCloudProps) {
     super(props);
@@ -158,7 +161,8 @@ class WordCloud extends React.PureComponent<
   update() {
     const { data, encoding } = this.props;
 
-    const encoder = this.createEncoder(encoding);
+    const encoder: Encoder<WordCloudEncodingConfig> =
+      this.createEncoder(encoding);
     encoder.setDomainFromDataset(data);
 
     const sortedData = [...data].sort(
@@ -218,9 +222,10 @@ class WordCloud extends React.PureComponent<
 
   render() {
     const { scaleFactor } = this.state;
-    const { width, height, encoding, sliceId } = this.props;
+    const { width, height, encoding, sliceId, colorScheme } = this.props;
     const { words } = this.state;
 
+    // @ts-ignore
     const encoder = this.createEncoder(encoding);
     encoder.channels.color.setDomainFromDataset(words);
 
@@ -245,7 +250,11 @@ class WordCloud extends React.PureComponent<
               fontSize={`${w.size}px`}
               fontWeight={w.weight}
               fontFamily={w.font}
-              fill={colorFn(getValueFromDatum(w) as string, sliceId)}
+              fill={colorFn(
+                getValueFromDatum(w) as string,
+                sliceId,
+                colorScheme,
+              )}
               textAnchor="middle"
               transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
             >

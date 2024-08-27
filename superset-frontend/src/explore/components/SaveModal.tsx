@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React from 'react';
+import { ChangeEvent, FormEvent, Component } from 'react';
 import { Dispatch } from 'redux';
 import rison from 'rison';
 import { connect } from 'react-redux';
@@ -26,8 +26,6 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   css,
   DatasourceType,
-  isFeatureEnabled,
-  FeatureFlag,
   isDefined,
   styled,
   SupersetClient,
@@ -70,7 +68,6 @@ type SaveModalState = {
   action: SaveActionType;
   isLoading: boolean;
   saveStatus?: string | null;
-  vizType?: string;
   dashboard?: { label: string; value: string | number };
 };
 
@@ -85,7 +82,7 @@ export const StyledModal = styled(Modal)`
   }
 `;
 
-class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
+class SaveModal extends Component<SaveModalProps, SaveModalState> {
   constructor(props: SaveModalProps) {
     super(props);
     this.state = {
@@ -93,7 +90,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       datasetName: props.datasource?.name,
       action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
       isLoading: false,
-      vizType: props.form_data?.viz_type,
       dashboard: undefined,
     };
     this.onDashboardChange = this.onDashboardChange.bind(this);
@@ -143,12 +139,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     }
   }
 
-  handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
+  handleDatasetNameChange = (e: FormEvent<HTMLInputElement>) => {
     // @ts-expect-error
     this.setState({ datasetName: e.target.value });
   };
 
-  onSliceNameChange(event: React.ChangeEvent<HTMLInputElement>) {
+  onSliceNameChange(event: ChangeEvent<HTMLInputElement>) {
     this.setState({ newSliceName: event.target.value });
   }
 
@@ -383,32 +379,27 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             />
           </FormItem>
         )}
-        {!(
-          isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-          this.state.vizType === 'filter_box'
-        ) && (
-          <FormItem
-            label={t('Add to dashboard')}
-            data-test="save-chart-modal-select-dashboard-form"
-          >
-            <AsyncSelect
-              allowClear
-              allowNewOptions
-              ariaLabel={t('Select a dashboard')}
-              options={this.loadDashboards}
-              onChange={this.onDashboardChange}
-              value={this.state.dashboard}
-              placeholder={
-                <div>
-                  <b>{t('Select')}</b>
-                  {t(' a dashboard OR ')}
-                  <b>{t('create')}</b>
-                  {t(' a new one')}
-                </div>
-              }
-            />
-          </FormItem>
-        )}
+        <FormItem
+          label={t('Add to dashboard')}
+          data-test="save-chart-modal-select-dashboard-form"
+        >
+          <AsyncSelect
+            allowClear
+            allowNewOptions
+            ariaLabel={t('Select a dashboard')}
+            options={this.loadDashboards}
+            onChange={this.onDashboardChange}
+            value={this.state.dashboard}
+            placeholder={
+              <div>
+                <b>{t('Select')}</b>
+                {t(' a dashboard OR ')}
+                <b>{t('create')}</b>
+                {t(' a new one')}
+              </div>
+            }
+          />
+        </FormItem>
         {info && <Alert type="info" message={info} closable={false} />}
         {this.props.alert && (
           <Alert
@@ -455,9 +446,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           !this.state.newSliceName ||
           !this.state.dashboard ||
           (this.props.datasource?.type !== DatasourceType.Table &&
-            !this.state.datasetName) ||
-          (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-            this.state.vizType === 'filter_box')
+            !this.state.datasetName)
         }
         onClick={() => this.saveOrOverwrite(true)}
       >

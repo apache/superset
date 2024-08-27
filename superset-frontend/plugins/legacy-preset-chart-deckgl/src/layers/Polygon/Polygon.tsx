@@ -21,7 +21,7 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   HandlerFunction,
   JsonObject,
@@ -62,27 +62,27 @@ function getElevation(
 
 function setTooltipContent(formData: PolygonFormData) {
   return (o: JsonObject) => {
-    const metricLabel = formData.metric.label || formData.metric;
+    const metricLabel = formData?.metric?.label || formData?.metric;
 
     return (
       <div className="deckgl-tooltip">
-        {o.object.name && (
+        {o.object?.name && (
           <TooltipRow
             // eslint-disable-next-line prefer-template
             label={t('name') + ': '}
             value={`${o.object.name}`}
           />
         )}
-        {o.object[formData.line_column] && (
+        {o.object?.[formData?.line_column] && (
           <TooltipRow
             label={`${formData.line_column}: `}
             value={`${o.object[formData.line_column]}`}
           />
         )}
-        {formData.metric && (
+        {formData?.metric && (
           <TooltipRow
             label={`${metricLabel}: `}
-            value={`${o.object[metricLabel]}`}
+            value={`${o.object?.[metricLabel]}`}
           />
         )}
       </div>

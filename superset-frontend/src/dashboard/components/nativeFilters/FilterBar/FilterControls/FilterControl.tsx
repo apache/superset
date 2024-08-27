@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useContext, useMemo, useState } from 'react';
+import { memo, useContext, useMemo, useState } from 'react';
 import {
   createHtmlPortalNode,
   InPortal,
@@ -153,7 +153,7 @@ const useFilterControlDisplay = (
   overflow: boolean,
 ) =>
   useMemo(() => {
-    if (orientation === FilterBarOrientation.HORIZONTAL) {
+    if (orientation === FilterBarOrientation.Horizontal) {
       if (overflow) {
         return {
           FilterControlContainer: HorizontalOverflowFilterControlContainer,
@@ -228,7 +228,7 @@ const FilterControl = ({
   inView,
   showOverflow,
   parentRef,
-  orientation = FilterBarOrientation.VERTICAL,
+  orientation = FilterBarOrientation.Vertical,
   overflow = false,
 }: FilterControlProps) => {
   const portalNode = useMemo(() => createHtmlPortalNode(), []);
@@ -275,7 +275,7 @@ const FilterControl = ({
 
   const isScrolling = useContext(FilterBarScrollContext);
   const filterCardPlacement = useMemo(() => {
-    if (orientation === FilterBarOrientation.HORIZONTAL) {
+    if (orientation === FilterBarOrientation.Horizontal) {
       if (overflow) {
         return FilterCardPlacement.Left;
       }
@@ -302,7 +302,7 @@ const FilterControl = ({
       </InPortal>
       <FilterControlContainer
         layout={
-          orientation === FilterBarOrientation.HORIZONTAL && !overflow
+          orientation === FilterBarOrientation.Horizontal && !overflow
             ? 'horizontal'
             : 'vertical'
         }
@@ -315,6 +315,7 @@ const FilterControl = ({
           <div>
             <FormItem
               label={label}
+              aria-label={name}
               required={filter?.controlValues?.enableEmptyFilter}
               validateStatus={validateStatus}
             >
@@ -327,4 +328,4 @@ const FilterControl = ({
   );
 };
 
-export default React.memo(FilterControl);
+export default memo(FilterControl);

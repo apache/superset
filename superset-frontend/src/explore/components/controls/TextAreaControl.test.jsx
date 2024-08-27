@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
-import React from 'react';
 import sinon from 'sinon';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { TextAreaEditor } from 'src/components/AsyncAceEditor';

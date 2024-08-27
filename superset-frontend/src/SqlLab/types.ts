@@ -16,11 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, QueryResponse } from '@superset-ui/core';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { QueryResponse } from '@superset-ui/core';
+import {
+  CommonBootstrapData,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
 import { DropdownButtonProps } from 'src/components/DropdownButton';
 import { ButtonProps } from 'src/components/Button';
+import type { TableMetaData } from 'src/hooks/apiResources';
 
 export type QueryButtonProps = DropdownButtonProps | ButtonProps;
 
@@ -30,10 +34,15 @@ export type QueryDictionary = {
 };
 
 export enum QueryEditorVersion {
-  v1 = 1,
+  V1 = 1,
 }
 
-export const LatestQueryEditorVersion = QueryEditorVersion.v1;
+export const LatestQueryEditorVersion = QueryEditorVersion.V1;
+
+export interface CursorPosition {
+  row: number;
+  column: number;
+}
 
 export interface QueryEditor {
   version: QueryEditorVersion;
@@ -41,6 +50,7 @@ export interface QueryEditor {
   dbId?: number;
   name: string;
   title?: string; // keep it optional for backward compatibility
+  catalog?: string | null;
   schema?: string;
   autorun: boolean;
   sql: string;
@@ -56,6 +66,7 @@ export interface QueryEditor {
   northPercent?: number;
   southPercent?: number;
   updatedAt?: number;
+  cursorPosition?: CursorPosition;
 }
 
 export type toastState = {
@@ -71,12 +82,15 @@ export type UnsavedQueryEditor = Partial<QueryEditor>;
 export interface Table {
   id: string;
   dbId: number;
+  catalog: string | null;
   schema: string;
   name: string;
   queryEditorId: QueryEditor['id'];
   dataPreviewQueryId: string | null;
-  expanded?: boolean;
+  expanded: boolean;
   initialized?: boolean;
+  inLocalStorage?: boolean;
+  persistData?: TableMetaData;
 }
 
 export type SqlLabRootState = {
@@ -86,7 +100,7 @@ export type SqlLabRootState = {
     databases: Record<string, any>;
     dbConnect: boolean;
     offline: boolean;
-    queries: Record<string, QueryResponse>;
+    queries: Record<string, QueryResponse & { inLocalStorage?: boolean }>;
     queryEditors: QueryEditor[];
     tabHistory: string[]; // default is activeTab ? [activeTab.id.toString()] : []
     tables: Table[];
@@ -95,19 +109,18 @@ export type SqlLabRootState = {
     unsavedQueryEditor: UnsavedQueryEditor;
     queryCostEstimates?: Record<string, QueryCostEstimate>;
     editorTabLastUpdatedAt: number;
+    lastUpdatedActiveTab: string;
+    destroyedQueryEditors: Record<string, number>;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];
   user: UserWithPermissionsAndRoles;
-  common: {
-    flash_messages: string[];
-    conf: JsonObject;
-  };
+  common: CommonBootstrapData;
 };
 
 export enum DatasetRadioState {
-  SAVE_NEW = 1,
-  OVERWRITE_DATASET = 2,
+  SaveNew = 1,
+  OverwriteDataset = 2,
 }
 
 export const EXPLORE_CHART_DEFAULT = {

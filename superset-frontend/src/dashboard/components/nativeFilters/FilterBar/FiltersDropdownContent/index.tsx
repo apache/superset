@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { css, Divider, Filter, SupersetTheme } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
@@ -30,7 +30,7 @@ export interface FiltersDropdownContentProps {
   renderer: (filter: Filter | Divider, index: number) => ReactNode;
   rendererCrossFilter: (
     crossFilter: CrossFilterIndicator,
-    orientation: FilterBarOrientation.VERTICAL,
+    orientation: FilterBarOrientation.Vertical,
     last: CrossFilterIndicator,
   ) => ReactNode;
   showCollapsePanel?: boolean;
@@ -55,7 +55,7 @@ export const FiltersDropdownContent = ({
     {overflowedCrossFilters.map(crossFilter =>
       rendererCrossFilter(
         crossFilter,
-        FilterBarOrientation.VERTICAL,
+        FilterBarOrientation.Vertical,
         overflowedCrossFilters.at(-1) as CrossFilterIndicator,
       ),
     )}

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import Button, { ButtonProps } from './index';
 
 type ButtonStyle = Pick<ButtonProps, 'buttonStyle'>;
@@ -95,31 +94,18 @@ export const ButtonGallery = () => (
   </>
 );
 
-ButtonGallery.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    controls: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+ButtonGallery.parameters = {
+  actions: {
+    disable: true,
+  },
+  controls: {
+    disable: true,
   },
 };
 
 export const InteractiveButton = (args: ButtonProps & { label: string }) => {
   const { label, ...btnArgs } = args;
   return <Button {...btnArgs}>{label}</Button>;
-};
-
-InteractiveButton.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
 };
 
 InteractiveButton.args = {
@@ -131,11 +117,13 @@ InteractiveButton.args = {
 InteractiveButton.argTypes = {
   target: {
     name: TARGETS.label,
-    control: { type: 'select', options: Object.values(TARGETS.options) },
+    control: { type: 'select' },
+    options: Object.values(TARGETS.options),
   },
   href: {
     name: HREFS.label,
-    control: { type: 'select', options: Object.values(HREFS.options) },
+    control: { type: 'select' },
+    options: Object.values(HREFS.options),
   },
   onClick: { action: 'clicked' },
 };

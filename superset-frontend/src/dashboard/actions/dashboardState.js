@@ -23,9 +23,11 @@ import {
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
-  getSharedLabelColor,
+  getLabelsColorMap,
   SupersetClient,
   t,
+  getClientErrorObject,
+  getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
 import {
   addChart,
@@ -34,7 +36,6 @@ import {
 } from 'src/components/Chart/chartAction';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_OVERWRITE_CONFIRMED,
@@ -61,13 +62,16 @@ import {
   SAVE_CHART_CONFIG_COMPLETE,
 } from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
-import {
-  addFilter,
-  removeFilter,
-  updateDirectPathToFilter,
-} from './dashboardFilters';
+import { updateDirectPathToFilter } from './dashboardFilters';
 import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
 import getOverwriteItems from '../util/getOverwriteItems';
+import {
+  applyColors,
+  isLabelsColorMapSynced,
+  getLabelsColorMapEntries,
+  getColorSchemeDomain,
+  getColorNamespace,
+} from '../../utils/colorScheme';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -259,13 +263,13 @@ export function saveDashboardRequest(data, id, saveType) {
       css: css || '',
       dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
       owners: ensureIsArray(owners).map(o => (hasId(o) ? o.id : o)),
-      roles: !isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
+      roles: !isFeatureEnabled(FeatureFlag.DashboardRbac)
         ? undefined
         : ensureIsArray(roles).map(r => (hasId(r) ? r.id : r)),
       slug: slug || null,
       metadata: {
         ...data.metadata,
-        color_namespace: data.metadata?.color_namespace || undefined,
+        color_namespace: getColorNamespace(data.metadata?.color_namespace),
         color_scheme: data.metadata?.color_scheme || '',
         color_scheme_domain: data.metadata?.color_scheme_domain || [],
         expanded_slices: data.metadata?.expanded_slices || {},
@@ -299,7 +303,7 @@ export function saveDashboardRequest(data, id, saveType) {
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
-      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+      if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
         const { chartConfiguration, globalChartConfiguration } =
           handleChartConfiguration();
         dispatch(
@@ -376,7 +380,7 @@ export function saveDashboardRequest(data, id, saveType) {
     ) {
       let chartConfiguration = {};
       let globalChartConfiguration = {};
-      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+      if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
         ({ chartConfiguration, globalChartConfiguration } =
           handleChartConfiguration());
       }
@@ -410,7 +414,7 @@ export function saveDashboardRequest(data, id, saveType) {
           .catch(response => onError(response));
       return new Promise((resolve, reject) => {
         if (
-          !isFeatureEnabled(FeatureFlag.CONFIRM_DASHBOARD_DIFF) ||
+          !isFeatureEnabled(FeatureFlag.ConfirmDashboardDiff) ||
           saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
         ) {
           // skip overwrite precheck
@@ -554,7 +558,7 @@ export function showBuilderPane() {
   return { type: SHOW_BUILDER_PANE };
 }
 
-export function addSliceToDashboard(id, component) {
+export function addSliceToDashboard(id) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
     const selectedSlice = sliceEntities.slices[id];
@@ -580,24 +584,15 @@ export function addSliceToDashboard(id, component) {
       dispatch(fetchDatasourceMetadata(form_data.datasource)),
     ]).then(() => {
       dispatch(addSlice(selectedSlice));
-
-      if (selectedSlice && selectedSlice.viz_type === 'filter_box') {
-        dispatch(addFilter(id, component, selectedSlice.form_data));
-      }
     });
   };
 }
 
 export function removeSliceFromDashboard(id) {
-  return (dispatch, getState) => {
-    const sliceEntity = getState().sliceEntities.slices[id];
-    if (sliceEntity && sliceEntity.viz_type === 'filter_box') {
-      dispatch(removeFilter(id));
-    }
-
+  return dispatch => {
     dispatch(removeSlice(id));
     dispatch(removeChart(id));
-    getSharedLabelColor().removeSlice(id);
+    getLabelsColorMap().removeSlice(id);
   };
 }
 
@@ -616,6 +611,8 @@ export function setActiveTab(tabId, prevTabId) {
   return { type: SET_ACTIVE_TAB, tabId, prevTabId };
 }
 
+// Even though SET_ACTIVE_TABS is not being called from Superset's codebase,
+// it is being used by Preset extensions.
 export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
 export function setActiveTabs(activeTabs) {
   return { type: SET_ACTIVE_TABS, activeTabs };
@@ -668,3 +665,69 @@ export function setDatasetsStatus(status) {
     status,
   };
 }
+
+const updateDashboardMetadata = async (id, metadata, dispatch) => {
+  await SupersetClient.put({
+    endpoint: `/api/v1/dashboard/${id}`,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ json_metadata: JSON.stringify(metadata) }),
+  });
+  dispatch(dashboardInfoChanged({ metadata }));
+};
+
+export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
+  const {
+    dashboardInfo: { id, metadata },
+  } = getState();
+  const categoricalSchemes = getCategoricalSchemeRegistry();
+  const colorScheme = metadata?.color_scheme;
+  const colorSchemeRegistry = categoricalSchemes.get(
+    metadata?.color_scheme,
+    true,
+  );
+  const defaultScheme = categoricalSchemes.defaultKey;
+  const fallbackScheme = defaultScheme?.toString() || 'supersetColors';
+  const colorSchemeDomain = metadata?.color_scheme_domain || [];
+
+  try {
+    const updatedMetadata = { ...metadata };
+    let updatedScheme = metadata?.color_scheme;
+
+    // Color scheme does not exist anymore, fallback to default
+    if (colorScheme && !colorSchemeRegistry) {
+      updatedScheme = fallbackScheme;
+      updatedMetadata.color_scheme = updatedScheme;
+      updatedMetadata.color_scheme_domain = getColorSchemeDomain(colorScheme);
+
+      dispatch(setColorScheme(updatedScheme));
+      // must re-apply colors from fresh labels color map
+      applyColors(updatedMetadata, true);
+    }
+
+    // stored labels color map and applied might differ
+    const isMapSynced = isLabelsColorMapSynced(metadata);
+    if (!isMapSynced) {
+      // re-apply a fresh labels color map
+      applyColors(updatedMetadata, true);
+      // pull and store the just applied labels color map
+      updatedMetadata.shared_label_colors = getLabelsColorMapEntries();
+    }
+
+    // the stored color domain registry and fresh might differ at this point
+    const freshColorSchemeDomain = getColorSchemeDomain(colorScheme);
+    const isRegistrySynced =
+      colorSchemeDomain.toString() !== freshColorSchemeDomain.toString();
+    if (colorScheme && !isRegistrySynced) {
+      updatedMetadata.color_scheme_domain = freshColorSchemeDomain;
+    }
+
+    if (
+      (colorScheme && (!colorSchemeRegistry || !isRegistrySynced)) ||
+      !isMapSynced
+    ) {
+      await updateDashboardMetadata(id, updatedMetadata, dispatch);
+    }
+  } catch (error) {
+    console.error('Failed to update dashboard color settings:', error);
+  }
+};

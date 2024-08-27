@@ -20,7 +20,7 @@
  */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ScreenGridLayer } from 'deck.gl/typed';
 import { JsonObject, JsonValue, QueryFormData, t } from '@superset-ui/core';
 import { noop } from 'lodash';
@@ -45,12 +45,12 @@ function setTooltipContent(o: JsonObject) {
       <TooltipRow
         // eslint-disable-next-line prefer-template
         label={t('Longitude and Latitude') + ': '}
-        value={`${o.coordinate[0]}, ${o.coordinate[1]}`}
+        value={`${o?.coordinate?.[0]}, ${o?.coordinate?.[1]}`}
       />
       <TooltipRow
         // eslint-disable-next-line prefer-template
         label={t('Weight') + ': '}
-        value={`${o.object.cellWeight}`}
+        value={`${o.object?.cellWeight}`}
       />
     </div>
   );

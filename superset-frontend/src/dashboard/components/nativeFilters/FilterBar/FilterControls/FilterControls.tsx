@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  memo,
+  Fragment,
   FC,
   useEffect,
   useCallback,
@@ -75,9 +77,9 @@ const FilterControls: FC<FilterControlsProps> = ({
 }) => {
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) =>
-      isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR)
+      isFeatureEnabled(FeatureFlag.HorizontalFilterBar)
         ? dashboardInfo.filterBarOrientation
-        : FilterBarOrientation.VERTICAL,
+        : FilterBarOrientation.Vertical,
   );
 
   const { outlinedFilterId, lastUpdated } = useFilterOutlined();
@@ -97,7 +99,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const verboseMaps = useChartsVerboseMaps();
 
   const isCrossFiltersEnabled = isFeatureEnabled(
-    FeatureFlag.DASHBOARD_CROSS_FILTERS,
+    FeatureFlag.DashboardCrossFilters,
   );
   const selectedCrossFilters = useMemo(
     () =>
@@ -143,10 +145,10 @@ const FilterControls: FC<FilterControlsProps> = ({
       return (
         // Empty text node is to ensure there's always an element preceding
         // the OutPortal, otherwise react-reverse-portal crashes
-        <React.Fragment key={key}>
+        <Fragment key={key}>
           {'' /* eslint-disable-line react/jsx-curly-brace-presence */}
           <OutPortal node={portalNodes[filterIndex]} inView />
-        </React.Fragment>
+        </Fragment>
       );
     },
     [filtersWithValues, portalNodes],
@@ -208,27 +210,24 @@ const FilterControls: FC<FilterControlsProps> = ({
       id: `${c.name}${c.emitterId}`,
       element: rendererCrossFilter(
         c,
-        FilterBarOrientation.HORIZONTAL,
+        FilterBarOrientation.Horizontal,
         selectedCrossFilters.at(-1),
       ),
     }));
-    if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
-      const nativeFiltersInScope = filtersInScope.map((filter, index) => ({
-        id: filter.id,
-        element: (
-          <div
-            className="filter-item-wrapper"
-            css={css`
-              flex-shrink: 0;
-            `}
-          >
-            {renderer(filter, index)}
-          </div>
-        ),
-      }));
-      return [...crossFilters, ...nativeFiltersInScope];
-    }
-    return [...crossFilters];
+    const nativeFiltersInScope = filtersInScope.map((filter, index) => ({
+      id: filter.id,
+      element: (
+        <div
+          className="filter-item-wrapper"
+          css={css`
+            flex-shrink: 0;
+          `}
+        >
+          {renderer(filter, index)}
+        </div>
+      ),
+    }));
+    return [...crossFilters, ...nativeFiltersInScope];
   }, [filtersInScope, renderer, rendererCrossFilter, selectedCrossFilters]);
 
   const renderHorizontalContent = () => (
@@ -329,12 +328,12 @@ const FilterControls: FC<FilterControlsProps> = ({
             )}
           </InPortal>
         ))}
-      {filterBarOrientation === FilterBarOrientation.VERTICAL &&
+      {filterBarOrientation === FilterBarOrientation.Vertical &&
         renderVerticalContent()}
-      {filterBarOrientation === FilterBarOrientation.HORIZONTAL &&
+      {filterBarOrientation === FilterBarOrientation.Horizontal &&
         renderHorizontalContent()}
     </>
   );
 };
 
-export default React.memo(FilterControls);
+export default memo(FilterControls);

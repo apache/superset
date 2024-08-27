@@ -18,17 +18,13 @@
  */
 /* eslint-disable camelcase */
 import {
-  ADD_FILTER,
-  REMOVE_FILTER,
   CHANGE_FILTER,
   UPDATE_DIRECT_PATH_TO_FILTER,
   UPDATE_LAYOUT_COMPONENTS,
   UPDATE_DASHBOARD_FILTERS_SCOPE,
 } from '../actions/dashboardFilters';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
-import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 import { DASHBOARD_ROOT_ID } from '../util/constants';
-import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
 import { buildActiveFilters } from '../util/activeDashboardFilters';
 import { getChartIdAndColumnFromFilterKey } from '../util/getDashboardFilterKey';
 
@@ -50,41 +46,10 @@ export const dashboardFilter = {
   scopes: {},
 };
 
-const CHANGE_FILTER_VALUE_ACTIONS = [ADD_FILTER, REMOVE_FILTER, CHANGE_FILTER];
+const CHANGE_FILTER_VALUE_ACTIONS = [CHANGE_FILTER];
 
 export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
   const actionHandlers = {
-    [ADD_FILTER]() {
-      const { chartId, component, form_data } = action;
-      const { columns, labels } = getFilterConfigsFromFormdata(form_data);
-      const scopes = Object.keys(columns).reduce(
-        (map, column) => ({
-          ...map,
-          [column]: DASHBOARD_FILTER_SCOPE_GLOBAL,
-        }),
-        {},
-      );
-      const directPathToFilter = component
-        ? (component.parents || []).slice().concat(component.id)
-        : [];
-
-      const newFilter = {
-        ...dashboardFilter,
-        chartId,
-        componentId: component.id,
-        datasourceId: form_data.datasource,
-        filterName: component.meta.sliceName,
-        directPathToFilter,
-        columns,
-        labels,
-        scopes,
-        isInstantFilter: !!form_data.instant_filtering,
-        isDateFilter: Object.keys(columns).includes(TIME_RANGE),
-      };
-
-      return newFilter;
-    },
-
     [CHANGE_FILTER](state) {
       const { newSelectedValues, merge } = action;
       const updatedColumns = Object.keys(newSelectedValues).reduce(
@@ -153,13 +118,6 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
     );
 
     buildActiveFilters({ dashboardFilters: updatedFilters });
-    return updatedFilters;
-  }
-  if (action.type === REMOVE_FILTER) {
-    const { chartId } = action;
-    const { [chartId]: deletedFilter, ...updatedFilters } = dashboardFilters;
-    buildActiveFilters({ dashboardFilters: updatedFilters });
-
     return updatedFilters;
   }
   if (action.type === HYDRATE_DASHBOARD) {

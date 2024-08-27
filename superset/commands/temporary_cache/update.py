@@ -16,13 +16,13 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
+from functools import partial
 from typing import Optional
-
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
 from superset.commands.temporary_cache.exceptions import TemporaryCacheUpdateFailedError
 from superset.commands.temporary_cache.parameters import CommandParameters
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -34,16 +34,12 @@ class UpdateTemporaryCacheCommand(BaseCommand, ABC):
     ):
         self._parameters = cmd_params
 
+    @transaction(on_error=partial(on_error, reraise=TemporaryCacheUpdateFailedError))
     def run(self) -> Optional[str]:
-        try:
-            return self.update(self._parameters)
-        except SQLAlchemyError as ex:
-            logger.exception("Error running update command")
-            raise TemporaryCacheUpdateFailedError() from ex
+        return self.update(self._parameters)
 
     def validate(self) -> None:
         pass
 
     @abstractmethod
-    def update(self, cmd_params: CommandParameters) -> Optional[str]:
-        ...
+    def update(self, cmd_params: CommandParameters) -> Optional[str]: ...

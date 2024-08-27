@@ -30,17 +30,16 @@ export enum LocalStorageKeys {
    * TODO: Update all local storage keys to follow the new pattern. This is a breaking change,
    * and therefore should be done in a major release.
    */
-  filter_box_transition_snoozed_at = 'filter_box_transition_snoozed_at',
-  db = 'db',
-  chart_split_sizes = 'chart_split_sizes',
-  controls_width = 'controls_width',
-  datasource_width = 'datasource_width',
-  is_datapanel_open = 'is_datapanel_open',
-  homepage_chart_filter = 'homepage_chart_filter',
-  homepage_dashboard_filter = 'homepage_dashboard_filter',
-  homepage_collapse_state = 'homepage_collapse_state',
-  homepage_activity_filter = 'homepage_activity_filter',
-  datasetname_set_successful = 'datasetname_set_successful',
+  Database = 'db',
+  ChartSplitSizes = 'chart_split_sizes',
+  ControlsWidth = 'controls_width',
+  DatasourceWidth = 'datasource_width',
+  IsDatapanelOpen = 'is_datapanel_open',
+  HomepageChartFilter = 'homepage_chart_filter',
+  HomepageDashboardFilter = 'homepage_dashboard_filter',
+  HomepageCollapseState = 'homepage_collapse_state',
+  HomepageActivityFilter = 'homepage_activity_filter',
+  DatasetnameSetSuccessful = 'datasetname_set_successful',
   /** END LEGACY LOCAL STORAGE KEYS */
 
   /**
@@ -50,16 +49,16 @@ export enum LocalStorageKeys {
    * Example:
    * sqllab__is_autocomplete_enabled
    */
-  sqllab__is_autocomplete_enabled = 'sqllab__is_autocomplete_enabled',
-  explore__data_table_original_formatted_time_columns = 'explore__data_table_original_formatted_time_columns',
-  dashboard__custom_filter_bar_widths = 'dashboard__custom_filter_bar_widths',
-  dashboard__explore_context = 'dashboard__explore_context',
-  dashboard__editor_show_only_my_charts = 'dashboard__editor_show_only_my_charts',
-  common__resizable_sidebar_widths = 'common__resizable_sidebar_widths',
+  SqllabIsAutocompleteEnabled = 'sqllab__is_autocomplete_enabled',
+  SqllabIsRenderHtmlEnabled = 'sqllab__is_render_html_enabled',
+  ExploreDataTableOriginalFormattedTimeColumns = 'explore__data_table_original_formatted_time_columns',
+  DashboardCustomFilterBarWidths = 'dashboard__custom_filter_bar_widths',
+  DashboardExploreContext = 'dashboard__explore_context',
+  DashboardEditorShowOnlyMyCharts = 'dashboard__editor_show_only_my_charts',
+  CommonResizableSidebarWidths = 'common__resizable_sidebar_widths',
 }
 
 export type LocalStorageValues = {
-  filter_box_transition_snoozed_at: Record<number, number>;
   db: object | null;
   chart_split_sizes: [number, number];
   controls_width: number;
@@ -71,6 +70,7 @@ export type LocalStorageValues = {
   datasetname_set_successful: boolean;
   homepage_activity_filter: TableTab | null;
   sqllab__is_autocomplete_enabled: boolean;
+  sqllab__is_render_html_enabled: boolean;
   explore__data_table_original_formatted_time_columns: Record<string, string[]>;
   dashboard__custom_filter_bar_widths: Record<string, number>;
   dashboard__explore_context: Record<string, DashboardContextForExplore>;

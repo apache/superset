@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
 
 import PopoverDropdown from 'src/components/PopoverDropdown';
 import EditableTitle from 'src/components/EditableTitle';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -114,7 +114,7 @@ const HeaderStyles = styled.div`
   `}
 `;
 
-class Header extends React.PureComponent {
+class Header extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -178,7 +178,7 @@ class Header extends React.PureComponent {
     );
 
     return (
-      <DragDroppable
+      <Draggable
         component={component}
         parentComponent={parentComponent}
         orientation="row"
@@ -188,7 +188,7 @@ class Header extends React.PureComponent {
         disableDragDrop={isFocused}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
+        {({ dragSourceRef }) => (
           <div ref={dragSourceRef}>
             {editMode &&
               depth <= 2 && ( // drag handle looks bad when nested
@@ -239,11 +239,9 @@ class Header extends React.PureComponent {
                 )}
               </HeaderStyles>
             </WithPopoverMenu>
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </div>
         )}
-      </DragDroppable>
+      </Draggable>
     );
   }
 }

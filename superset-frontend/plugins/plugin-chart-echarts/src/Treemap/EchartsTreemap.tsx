@@ -23,7 +23,7 @@ import {
   getColumnLabel,
   getNumberFormatter,
 } from '@superset-ui/core';
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import Echart from '../components/Echart';
 import { NULL_STRING } from '../constants';
 import { EventHandlers } from '../types';

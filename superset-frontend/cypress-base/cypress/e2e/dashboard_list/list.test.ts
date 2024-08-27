@@ -117,6 +117,13 @@ describe('Dashboards list', () => {
       orderAlphabetical();
       cy.getBySel('styled-card').first().contains('Supported Charts Dashboard');
     });
+
+    it('should preserve other filters when sorting', () => {
+      cy.getBySel('styled-card').should('have.length', 5);
+      setFilter('Status', 'Published');
+      setFilter('Sort', 'Least recently modified');
+      cy.getBySel('styled-card').should('have.length', 3);
+    });
   });
 
   describe('common actions', () => {
@@ -233,7 +240,8 @@ describe('Dashboards list', () => {
       // edits in list-view
       setGridMode('list');
       cy.getBySel('edit-alt').eq(0).click();
-      cy.getBySel('dashboard-title-input').clear().type('1 - Sample dashboard');
+      cy.getBySel('dashboard-title-input').clear();
+      cy.getBySel('dashboard-title-input').type('1 - Sample dashboard');
       cy.get('button:contains("Save")').click();
       cy.wait('@update');
       cy.getBySel('table-row').eq(0).contains('1 - Sample dashboard');

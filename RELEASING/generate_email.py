@@ -31,7 +31,7 @@ except ModuleNotFoundError:
 RECEIVER_EMAIL = "dev@superset.apache.org"
 PROJECT_NAME = "Superset"
 PROJECT_MODULE = "superset"
-PROJECT_DESCRIPTION = "Apache Superset is a modern, enterprise-ready business intelligence web application"
+PROJECT_DESCRIPTION = "Apache Superset is a modern, enterprise-ready business intelligence web application."
 
 
 def string_comma_to_list(message: str) -> list[str]:

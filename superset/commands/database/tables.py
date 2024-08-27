@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 import logging
 from typing import Any, cast
 
@@ -29,7 +32,6 @@ from superset.daos.database import DatabaseDAO
 from superset.exceptions import SupersetException
 from superset.extensions import db, security_manager
 from superset.models.core import Database
-from superset.utils.core import DatasourceName
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +39,15 @@ logger = logging.getLogger(__name__)
 class TablesDatabaseCommand(BaseCommand):
     _model: Database
 
-    def __init__(self, db_id: int, schema_name: str, force: bool):
+    def __init__(
+        self,
+        db_id: int,
+        catalog_name: str | None,
+        schema_name: str,
+        force: bool,
+    ):
         self._db_id = db_id
+        self._catalog_name = catalog_name
         self._schema_name = schema_name
         self._force = force
 
@@ -47,10 +56,11 @@ class TablesDatabaseCommand(BaseCommand):
         try:
             tables = security_manager.get_datasources_accessible_by_user(
                 database=self._model,
+                catalog=self._catalog_name,
                 schema=self._schema_name,
                 datasource_names=sorted(
-                    DatasourceName(*datasource_name)
-                    for datasource_name in self._model.get_all_table_names_in_schema(
+                    self._model.get_all_table_names_in_schema(
+                        catalog=self._catalog_name,
                         schema=self._schema_name,
                         force=self._force,
                         cache=self._model.table_cache_enabled,
@@ -61,10 +71,11 @@ class TablesDatabaseCommand(BaseCommand):
 
             views = security_manager.get_datasources_accessible_by_user(
                 database=self._model,
+                catalog=self._catalog_name,
                 schema=self._schema_name,
                 datasource_names=sorted(
-                    DatasourceName(*datasource_name)
-                    for datasource_name in self._model.get_all_view_names_in_schema(
+                    self._model.get_all_view_names_in_schema(
+                        catalog=self._catalog_name,
                         schema=self._schema_name,
                         force=self._force,
                         cache=self._model.table_cache_enabled,
@@ -79,11 +90,15 @@ class TablesDatabaseCommand(BaseCommand):
                     db.session.query(SqlaTable)
                     .filter(
                         SqlaTable.database_id == self._model.id,
+                        SqlaTable.catalog == self._catalog_name,
                         SqlaTable.schema == self._schema_name,
                     )
                     .options(
                         load_only(
-                            SqlaTable.schema, SqlaTable.table_name, SqlaTable.extra
+                            SqlaTable.catalog,
+                            SqlaTable.schema,
+                            SqlaTable.table_name,
+                            SqlaTable.extra,
                         ),
                         lazyload(SqlaTable.columns),
                         lazyload(SqlaTable.metrics),
@@ -112,8 +127,8 @@ class TablesDatabaseCommand(BaseCommand):
 
             payload = {"count": len(tables) + len(views), "result": options}
             return payload
-        except SupersetException as ex:
-            raise ex
+        except SupersetException:
+            raise
         except Exception as ex:
             raise DatabaseTablesUnexpectedError(ex) from ex
 

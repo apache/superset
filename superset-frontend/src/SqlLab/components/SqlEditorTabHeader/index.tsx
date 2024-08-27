@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo, FC } from 'react';
+
 import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { Dropdown } from 'src/components/Dropdown';
@@ -51,7 +52,7 @@ interface Props {
   queryEditor: QueryEditor;
 }
 
-const SqlEditorTabHeader: React.FC<Props> = ({ queryEditor }) => {
+const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   const qe = useSelector<SqlLabRootState, QueryEditor>(
     ({ sqlLab: { unsavedQueryEditor } }) => ({
       ...queryEditor,

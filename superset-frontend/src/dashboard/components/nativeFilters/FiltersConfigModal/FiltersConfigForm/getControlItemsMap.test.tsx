@@ -17,7 +17,6 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { Filter, NativeFilterType } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FormInstance } from 'src/components';
@@ -60,11 +59,12 @@ const filterMock: Filter = {
   filterType: '',
   targets: [{}],
   controlValues: {},
-  type: NativeFilterType.NATIVE_FILTER,
+  type: NativeFilterType.NativeFilter,
   description: '',
 };
 
 const createProps: () => ControlItemsProps = () => ({
+  expanded: false,
   datasetId: 1,
   disabled: false,
   forceUpdate: jest.fn(),

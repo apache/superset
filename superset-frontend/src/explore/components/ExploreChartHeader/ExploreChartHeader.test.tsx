@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import sinon from 'sinon';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -34,7 +33,7 @@ const chartEndpoint = 'glob:*api/v1/chart/*';
 fetchMock.get(chartEndpoint, { json: 'foo' });
 
 window.featureFlags = {
-  [FeatureFlag.EMBEDDABLE_CHARTS]: true,
+  [FeatureFlag.EmbeddableCharts]: true,
 };
 
 const createProps = (additionalProps = {}) => ({
@@ -360,9 +359,8 @@ describe('Additional actions tests', () => {
       expect(spy).toBeCalledTimes(0);
 
       userEvent.hover(screen.getByText('Download'));
-      const downloadAsImageElement = await screen.findByText(
-        'Download as image',
-      );
+      const downloadAsImageElement =
+        await screen.findByText('Download as image');
       userEvent.click(downloadAsImageElement);
 
       expect(spy).toBeCalledTimes(1);
@@ -396,8 +394,22 @@ describe('Additional actions tests', () => {
       spyExportChart.restore();
     });
 
-    test('Should export to JSON', async () => {
+    test('Should not export to JSON if canDownload=false', async () => {
       const props = createProps();
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportJsonElement = await screen.findByText('Export to .JSON');
+      userEvent.click(exportJsonElement);
+      expect(spyExportChart.callCount).toBe(0);
+      spyExportChart.restore();
+    });
+
+    test('Should export to JSON if canDownload=true', async () => {
+      const props = createProps();
+      props.canDownload = true;
       render(<ExploreHeader {...props} />, {
         useRedux: true,
       });
@@ -407,6 +419,22 @@ describe('Additional actions tests', () => {
       const exportJsonElement = await screen.findByText('Export to .JSON');
       userEvent.click(exportJsonElement);
       expect(spyExportChart.callCount).toBe(1);
+    });
+
+    test('Should not export to pivoted CSV if canDownloadCSV=false and viz_type=pivot_table_v2', async () => {
+      const props = createProps();
+      props.chart.latestQueryFormData.viz_type = 'pivot_table_v2';
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportCSVElement = await screen.findByText(
+        'Export to pivoted .CSV',
+      );
+      userEvent.click(exportCSVElement);
+      expect(spyExportChart.callCount).toBe(0);
     });
 
     test('Should export to pivoted CSV if canDownloadCSV=true and viz_type=pivot_table_v2', async () => {
@@ -423,6 +451,32 @@ describe('Additional actions tests', () => {
         'Export to pivoted .CSV',
       );
       userEvent.click(exportCSVElement);
+      expect(spyExportChart.callCount).toBe(1);
+    });
+
+    test('Should not export to Excel if canDownload=false', async () => {
+      const props = createProps();
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportExcelElement = await screen.findByText('Export to Excel');
+      userEvent.click(exportExcelElement);
+      expect(spyExportChart.callCount).toBe(0);
+      spyExportChart.restore();
+    });
+
+    test('Should export to Excel if canDownload=true', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportExcelElement = await screen.findByText('Export to Excel');
+      userEvent.click(exportExcelElement);
       expect(spyExportChart.callCount).toBe(1);
     });
   });

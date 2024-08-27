@@ -16,13 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useInView } from 'react-intersection-observer';
+import { omit } from 'lodash';
 import { EmptyStateMedium } from 'src/components/EmptyState';
-import { t, styled, QueryResponse } from '@superset-ui/core';
+import {
+  t,
+  styled,
+  css,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import QueryTable from 'src/SqlLab/components/QueryTable';
+import { SqlLabRootState } from 'src/SqlLab/types';
+import { useEditorQueriesQuery } from 'src/hooks/apiResources/queries';
+import { Skeleton } from 'src/components';
+import useEffectEvent from 'src/hooks/useEffectEvent';
 
 interface QueryHistoryProps {
-  queries: QueryResponse[];
+  queryEditorId: string | number;
   displayLimit: number;
   latestQueryId: string | undefined;
 }
@@ -38,27 +51,96 @@ const StyledEmptyStateWrapper = styled.div`
   }
 `;
 
+const getEditorQueries = (
+  queries: SqlLabRootState['sqlLab']['queries'],
+  queryEditorId: string | number,
+) =>
+  Object.values(queries).filter(
+    ({ sqlEditorId }) => String(sqlEditorId) === String(queryEditorId),
+  );
+
 const QueryHistory = ({
-  queries,
+  queryEditorId,
   displayLimit,
   latestQueryId,
-}: QueryHistoryProps) =>
-  queries.length > 0 ? (
-    <QueryTable
-      columns={[
-        'state',
-        'started',
-        'duration',
-        'progress',
-        'rows',
-        'sql',
-        'results',
-        'actions',
-      ]}
-      queries={queries}
-      displayLimit={displayLimit}
-      latestQueryId={latestQueryId}
-    />
+}: QueryHistoryProps) => {
+  const [ref, hasReachedBottom] = useInView({ threshold: 0 });
+  const [pageIndex, setPageIndex] = useState(0);
+  const queries = useSelector(
+    ({ sqlLab: { queries } }: SqlLabRootState) => queries,
+    shallowEqual,
+  );
+  const {
+    currentData: data,
+    isLoading,
+    isFetching,
+  } = useEditorQueriesQuery(
+    { editorId: `${queryEditorId}`, pageIndex },
+    {
+      skip: !isFeatureEnabled(FeatureFlag.SqllabBackendPersistence),
+    },
+  );
+  const editorQueries = useMemo(
+    () =>
+      data
+        ? getEditorQueries(
+            omit(
+              queries,
+              data.result.map(({ id }) => id),
+            ),
+            queryEditorId,
+          )
+            .concat(data.result)
+            .reverse()
+        : getEditorQueries(queries, queryEditorId),
+    [queries, data, queryEditorId],
+  );
+
+  const loadNext = useEffectEvent(() => {
+    setPageIndex(pageIndex + 1);
+  });
+
+  const loadedDataCount = data?.result.length || 0;
+  const totalCount = data?.count || 0;
+
+  useEffect(() => {
+    if (hasReachedBottom && loadedDataCount < totalCount) {
+      loadNext();
+    }
+  }, [hasReachedBottom, loadNext, loadedDataCount, totalCount]);
+
+  if (!editorQueries.length && isLoading) {
+    return <Skeleton active />;
+  }
+
+  return editorQueries.length > 0 ? (
+    <>
+      <QueryTable
+        columns={[
+          'state',
+          'started',
+          'duration',
+          'progress',
+          'rows',
+          'sql',
+          'results',
+          'actions',
+        ]}
+        queries={editorQueries}
+        displayLimit={displayLimit}
+        latestQueryId={latestQueryId}
+      />
+      {data && loadedDataCount < totalCount && (
+        <div
+          ref={ref}
+          css={css`
+            position: relative;
+            top: -150px;
+          `}
+        />
+      )}
+      {isFetching && <Skeleton active />}
+    </>
   ) : (
     <StyledEmptyStateWrapper>
       <EmptyStateMedium
@@ -67,5 +149,6 @@ const QueryHistory = ({
       />
     </StyledEmptyStateWrapper>
   );
+};
 
 export default QueryHistory;

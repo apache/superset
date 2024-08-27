@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as React from 'react';
 import userEvent from '@testing-library/user-event';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
@@ -56,7 +55,7 @@ describe('Email Report Modal', () => {
     isFeatureEnabledMock = jest
       .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
-        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.ALERT_REPORTS,
+        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.AlertReports,
       );
   });
 
@@ -65,8 +64,7 @@ describe('Email Report Modal', () => {
   });
 
   afterAll(() => {
-    // @ts-ignore
-    isFeatureEnabledMock.restore();
+    isFeatureEnabledMock.mockRestore();
   });
 
   it('inputs respond correctly', () => {
@@ -75,6 +73,7 @@ describe('Email Report Modal', () => {
     const reportNameTextbox = screen.getByTestId('report-name-test');
     expect(reportNameTextbox).toHaveDisplayValue('Weekly Report');
     // Type in the textbox and assert that it worked
+    userEvent.clear(reportNameTextbox);
     userEvent.type(reportNameTextbox, 'Report name text test');
     expect(reportNameTextbox).toHaveDisplayValue('Report name text test');
 

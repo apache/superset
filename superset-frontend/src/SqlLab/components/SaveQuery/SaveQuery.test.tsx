@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
@@ -42,6 +41,7 @@ const mockState = {
       {
         id: mockedProps.queryEditorId,
         dbId: 1,
+        catalog: null,
         schema: 'main',
         sql: 'SELECT * FROM t',
       },

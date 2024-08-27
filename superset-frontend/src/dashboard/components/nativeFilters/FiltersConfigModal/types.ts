@@ -45,12 +45,12 @@ export interface NativeFiltersFormItem {
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
   granularity_sqla?: string;
-  type: typeof NativeFilterType.NATIVE_FILTER;
+  type: typeof NativeFilterType.NativeFilter;
   description: string;
 }
 export interface NativeFilterDivider {
   id: string;
-  type: typeof NativeFilterType.DIVIDER;
+  type: typeof NativeFilterType.Divider;
   title: string;
   description: string;
 }

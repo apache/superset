@@ -355,7 +355,7 @@ describe('Horizontal FilterBar', () => {
     applyNativeFilterValueWithIndex(8, testItems.filterDefaultValue);
     cy.get(nativeFilters.applyFilter).click({ force: true });
     cy.wait('@chart');
-    cy.get('.ant-scroll-number.ant-badge-count').should(
+    cy.get('.antd5-scroll-number.antd5-badge-count').should(
       'have.attr',
       'title',
       '1',
@@ -414,7 +414,7 @@ describe('Native filters', () => {
       cy.createSampleDashboards([0]);
     });
 
-    it.only('Verify that default value is respected after revisit', () => {
+    it('Verify that default value is respected after revisit', () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);

@@ -9,14 +9,14 @@ on:
     types: [opened, edited, reopened, synchronize]
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
+  lint-check:
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive

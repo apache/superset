@@ -19,7 +19,7 @@
 
 import { css, styled, t } from '@superset-ui/core';
 import moment from 'moment';
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
 import { Tooltip } from 'src/components/Tooltip';
@@ -176,8 +176,8 @@ function ExecutionLog({
                 ? alertResource.type === 'Alert'
                   ? `${ALERT_TEXT}:`
                   : alertResource.type === 'Report'
-                  ? `${REPORT_TEXT}:`
-                  : null
+                    ? `${REPORT_TEXT}:`
+                    : null
                 : null}{' '}
               {alertResource?.name}
             </span>

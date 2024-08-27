@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   AdhocColumn,
   tn,
@@ -24,11 +24,7 @@ import {
   t,
   isAdhocColumn,
 } from '@superset-ui/core';
-import {
-  ColumnMeta,
-  isColumnMeta,
-  withDndFallback,
-} from '@superset-ui/chart-controls';
+import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
@@ -37,11 +33,11 @@ import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/t
 import { DndItemType } from 'src/explore/components/DndItemType';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
-import SelectControl from '../SelectControl';
 
 export type DndColumnSelectProps = DndControlProps<QueryFormColumn> & {
   options: ColumnMeta[];
   isTemporal?: boolean;
+  disabledTabs?: Set<string>;
 };
 
 function DndColumnSelect(props: DndColumnSelectProps) {
@@ -55,6 +51,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     name,
     label,
     isTemporal,
+    disabledTabs,
   } = props;
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
@@ -126,6 +123,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
             }}
             editedColumn={column}
             isTemporal={isTemporal}
+            disabledTabs={disabledTabs}
           >
             <OptionWrapper
               key={idx}
@@ -209,6 +207,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
         closePopover={closePopover}
         visible={newColumnPopoverVisible}
         isTemporal={isTemporal}
+        disabledTabs={disabledTabs}
       >
         <div />
       </ColumnSelectPopoverTrigger>
@@ -216,9 +215,4 @@ function DndColumnSelect(props: DndColumnSelectProps) {
   );
 }
 
-const DndColumnSelectWithFallback = withDndFallback(
-  DndColumnSelect,
-  SelectControl,
-);
-
-export { DndColumnSelectWithFallback as DndColumnSelect };
+export { DndColumnSelect };

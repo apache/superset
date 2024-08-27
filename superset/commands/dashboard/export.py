@@ -16,11 +16,10 @@
 # under the License.
 # isort:skip_file
 
-import json
 import logging
 import random
 import string
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 from collections.abc import Iterator
 
 import yaml
@@ -36,6 +35,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -106,14 +106,13 @@ class ExportDashboardsCommand(ExportModelsCommand):
     dao = DashboardDAO
     not_found = DashboardNotFoundError
 
-    # pylint: disable=too-many-locals
     @staticmethod
-    def _export(
-        model: Dashboard, export_related: bool = True
-    ) -> Iterator[tuple[str, str]]:
+    def _file_name(model: Dashboard) -> str:
         file_name = get_filename(model.dashboard_title, model.id)
-        file_path = f"dashboards/{file_name}.yaml"
+        return f"dashboards/{file_name}.yaml"
 
+    @staticmethod
+    def _file_content(model: Dashboard) -> str:
         payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,
@@ -127,23 +126,9 @@ class ExportDashboardsCommand(ExportModelsCommand):
             if value:
                 try:
                     payload[new_name] = json.loads(value)
-                except (TypeError, json.decoder.JSONDecodeError):
+                except (TypeError, json.JSONDecodeError):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
-
-        # Extract all native filter datasets and replace native
-        # filter dataset references with uuid
-        for native_filter in payload.get("metadata", {}).get(
-            "native_filter_configuration", []
-        ):
-            for target in native_filter.get("targets", []):
-                dataset_id = target.pop("datasetId", None)
-                if dataset_id is not None:
-                    dataset = DatasetDAO.find_by_id(dataset_id)
-                    if dataset:
-                        target["datasetUuid"] = str(dataset.uuid)
-                        if export_related:
-                            yield from ExportDatasetsCommand([dataset_id]).run()
 
         # the mapping between dashboard -> charts is inferred from the position
         # attribute, so if it's not present we need to add a default config
@@ -163,8 +148,48 @@ class ExportDashboardsCommand(ExportModelsCommand):
         payload["version"] = EXPORT_VERSION
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
-        yield file_path, file_content
+        return file_content
+
+    @staticmethod
+    def _export(
+        model: Dashboard, export_related: bool = True
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
+        yield (
+            ExportDashboardsCommand._file_name(model),
+            lambda: ExportDashboardsCommand._file_content(model),
+        )
 
         if export_related:
             chart_ids = [chart.id for chart in model.slices]
             yield from ExportChartsCommand(chart_ids).run()
+
+        payload = model.export_to_dict(
+            recursive=False,
+            include_parent_ref=False,
+            include_defaults=True,
+            export_uuids=True,
+        )
+        # TODO (betodealmeida): move this logic to export_to_dict once this
+        #  becomes the default export endpoint
+        for key, new_name in JSON_KEYS.items():
+            value: Optional[str] = payload.pop(key, None)
+            if value:
+                try:
+                    payload[new_name] = json.loads(value)
+                except (TypeError, json.JSONDecodeError):
+                    logger.info("Unable to decode `%s` field: %s", key, value)
+                    payload[new_name] = {}
+
+        # Extract all native filter datasets and replace native
+        # filter dataset references with uuid
+        for native_filter in payload.get("metadata", {}).get(
+            "native_filter_configuration", []
+        ):
+            for target in native_filter.get("targets", []):
+                dataset_id = target.pop("datasetId", None)
+                if dataset_id is not None:
+                    dataset = DatasetDAO.find_by_id(dataset_id)
+                    if dataset:
+                        target["datasetUuid"] = str(dataset.uuid)
+                        if export_related:
+                            yield from ExportDatasetsCommand([dataset_id]).run()

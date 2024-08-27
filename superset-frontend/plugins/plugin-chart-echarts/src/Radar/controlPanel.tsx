@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import {
   ChartDataResponseResult,
   GenericDataType,
@@ -31,7 +30,6 @@ import {
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
-  sections,
   sharedControls,
   ControlFormItemSpec,
   getStandardizedControls,
@@ -60,7 +58,6 @@ const radarMetricMaxValue: { name: string; config: ControlFormItemSpec } = {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -167,7 +164,7 @@ const config: ControlPanelConfig = {
               description: t('Further customize how to display each metric'),
               renderTrigger: true,
               configFormLayout: {
-                [GenericDataType.NUMERIC]: [[radarMetricMaxValue]],
+                [GenericDataType.Numeric]: [[radarMetricMaxValue]],
               },
               shouldMapStateToProps() {
                 return true;

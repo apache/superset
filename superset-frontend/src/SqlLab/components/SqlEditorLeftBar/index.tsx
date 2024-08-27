@@ -16,24 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useEffect,
-  useCallback,
-  useMemo,
-  useState,
-  Dispatch,
-  SetStateAction,
-} from 'react';
-import { useDispatch } from 'react-redux';
+import { useEffect, useCallback, useMemo, useState } from 'react';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import querystring from 'query-string';
 
-import { Table } from 'src/SqlLab/types';
+import { SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
   queryEditorSetDb,
   addTable,
   removeTables,
   collapseTable,
   expandTable,
+  queryEditorSetCatalog,
   queryEditorSetSchema,
   setDatabases,
   addDangerToast,
@@ -55,16 +49,10 @@ import {
 } from 'src/utils/localStorageHelpers';
 import TableElement from '../TableElement';
 
-export interface ExtendedTable extends Table {
-  expanded: boolean;
-}
-
-interface SqlEditorLeftBarProps {
+export interface SqlEditorLeftBarProps {
   queryEditorId: string;
   height?: number;
-  tables?: ExtendedTable[];
   database?: DatabaseObject;
-  setEmptyState: Dispatch<SetStateAction<boolean>>;
 }
 
 const StyledScrollbarContainer = styled.div`
@@ -111,40 +99,46 @@ const LeftBarStyles = styled.div`
 const SqlEditorLeftBar = ({
   database,
   queryEditorId,
-  tables = [],
   height = 500,
-  setEmptyState,
 }: SqlEditorLeftBarProps) => {
+  const tables = useSelector<SqlLabRootState, Table[]>(
+    ({ sqlLab }) =>
+      sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
+    shallowEqual,
+  );
   const dispatch = useDispatch();
-  const queryEditor = useQueryEditor(queryEditorId, ['dbId', 'schema']);
+  const queryEditor = useQueryEditor(queryEditorId, [
+    'dbId',
+    'catalog',
+    'schema',
+  ]);
 
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
   );
-  const { schema } = queryEditor;
+  const { catalog, schema } = queryEditor;
 
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
     const userSelected = getItem(
-      LocalStorageKeys.db,
+      LocalStorageKeys.Database,
       null,
     ) as DatabaseObject | null;
 
     if (bool && userSelected) {
       setUserSelected(userSelected);
-      setItem(LocalStorageKeys.db, null);
+      setItem(LocalStorageKeys.Database, null);
     } else if (database) {
       setUserSelected(database);
     }
   }, [database]);
 
-  const onEmptyResults = (searchText?: string) => {
+  const onEmptyResults = useCallback((searchText?: string) => {
     setEmptyResultsWithSearch(!!searchText);
-  };
+  }, []);
 
   const onDbChange = ({ id: dbId }: { id: number }) => {
-    setEmptyState(false);
     dispatch(queryEditorSetDb(queryEditor, dbId));
   };
 
@@ -153,7 +147,11 @@ const SqlEditorLeftBar = ({
     [tables],
   );
 
-  const onTablesChange = (tableNames: string[], schemaName: string) => {
+  const onTablesChange = (
+    tableNames: string[],
+    catalogName: string | null,
+    schemaName: string,
+  ) => {
     if (!schemaName) {
       return;
     }
@@ -170,14 +168,14 @@ const SqlEditorLeftBar = ({
     });
 
     tablesToAdd.forEach(tableName => {
-      dispatch(addTable(queryEditor, tableName, schemaName));
+      dispatch(addTable(queryEditor, tableName, catalogName, schemaName));
     });
 
     dispatch(removeTables(currentTables));
   };
 
   const onToggleTable = (updatedTables: string[]) => {
-    tables.forEach((table: ExtendedTable) => {
+    tables.forEach(table => {
       if (!updatedTables.includes(table.id.toString()) && table.expanded) {
         dispatch(collapseTable(table));
       } else if (
@@ -210,6 +208,15 @@ const SqlEditorLeftBar = ({
 
   const shouldShowReset = window.location.search === '?reset=1';
   const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
+
+  const handleCatalogChange = useCallback(
+    (catalog: string | null) => {
+      if (queryEditor) {
+        dispatch(queryEditorSetCatalog(queryEditor, catalog));
+      }
+    },
+    [dispatch, queryEditor],
+  );
 
   const handleSchemaChange = useCallback(
     (schema: string) => {
@@ -247,9 +254,11 @@ const SqlEditorLeftBar = ({
         getDbList={handleDbList}
         handleError={handleError}
         onDbChange={onDbChange}
+        onCatalogChange={handleCatalogChange}
+        catalog={catalog}
         onSchemaChange={handleSchemaChange}
-        onTableSelectChange={onTablesChange}
         schema={schema}
+        onTableSelectChange={onTablesChange}
         tableValue={selectedTableNames}
         sqlLabMode
       />

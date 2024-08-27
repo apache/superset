@@ -17,7 +17,6 @@
  * under the License.
  */
 import { ArcLayer } from 'deck.gl/typed';
-import React from 'react';
 import {
   HandlerFunction,
   JsonObject,
@@ -45,16 +44,16 @@ function setTooltipContent(formData: QueryFormData) {
     <div className="deckgl-tooltip">
       <TooltipRow
         label={t('Start (Longitude, Latitude): ')}
-        value={`${o.object.sourcePosition[0]}, ${o.object.sourcePosition[1]}`}
+        value={`${o.object?.sourcePosition?.[0]}, ${o.object?.sourcePosition?.[1]}`}
       />
       <TooltipRow
         label={t('End (Longitude, Latitude): ')}
-        value={`${o.object.targetPosition[0]}, ${o.object.targetPosition[1]}`}
+        value={`${o.object?.targetPosition?.[0]}, ${o.object?.targetPosition?.[1]}`}
       />
       {formData.dimension && (
         <TooltipRow
-          label={`${formData.dimension}: `}
-          value={`${o.object.cat_color}`}
+          label={`${formData?.dimension}: `}
+          value={`${o.object?.cat_color}`}
         />
       )}
     </div>

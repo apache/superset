@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { css, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { useSqlLabInitialState } from 'src/hooks/apiResources/sqlLab';
@@ -73,7 +73,7 @@ export default function SqlLab() {
       >
         <SqlLabGlobalStyles />
         <App />
-        {isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && (
+        {isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) && (
           <EditorAutoSync />
         )}
       </div>

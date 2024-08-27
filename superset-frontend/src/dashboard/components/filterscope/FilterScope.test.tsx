@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { supersetTheme } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -161,8 +160,8 @@ function getCheckboxState(name: string): CheckboxState {
   return fill === supersetTheme.colors.primary.base
     ? CHECKED
     : fill === supersetTheme.colors.grayscale.light1
-    ? INDETERMINATE
-    : UNCHECKED;
+      ? INDETERMINATE
+      : UNCHECKED;
 }
 
 function clickCheckbox(name: string) {

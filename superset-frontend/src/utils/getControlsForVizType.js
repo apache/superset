@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import memoize from 'lodash/memoize';
+import memoizeOne from 'memoize-one';
 import { isControlPanelSectionConfig } from '@superset-ui/chart-controls';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 import { controls } from '../explore/controls';
 
-const memoizedControls = memoize((vizType, controlPanel) => {
+const memoizedControls = memoizeOne((vizType, controlPanel) => {
   const controlsMap = {};
   (controlPanel?.controlPanelSections || [])
     .filter(isControlPanelSectionConfig)

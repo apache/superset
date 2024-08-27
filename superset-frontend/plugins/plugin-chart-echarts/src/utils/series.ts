@@ -34,8 +34,10 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { SortSeriesType } from '@superset-ui/chart-controls';
-import { format, LegendComponentOption, SeriesOption } from 'echarts';
-import { maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
+import { format } from 'echarts/core';
+import type { LegendComponentOption } from 'echarts/components';
+import type { SeriesOption } from 'echarts';
+import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
 import {
   NULL_STRING,
   StackControlsValue,
@@ -229,8 +231,10 @@ export function sortRows(
     }
 
     const value =
-      xAxisSortSeries === SortSeriesType.Name && typeof sortKey === 'string'
-        ? sortKey.toLowerCase()
+      xAxisSortSeries === SortSeriesType.Name
+        ? typeof sortKey === 'string'
+          ? sortKey.toLowerCase()
+          : sortKey
         : aggregate;
 
     return {
@@ -362,7 +366,7 @@ export function formatSeriesName(
   if (typeof name === 'boolean') {
     return name.toString();
   }
-  if (name instanceof Date || coltype === GenericDataType.TEMPORAL) {
+  if (name instanceof Date || coltype === GenericDataType.Temporal) {
     const normalizedName =
       typeof name === 'string' ? normalizeTimestamp(name) : name;
     const d =
@@ -464,6 +468,7 @@ export function getChartPadding(
   orientation: LegendOrientation,
   margin?: string | number | null,
   padding?: { top?: number; bottom?: number; left?: number; right?: number },
+  isHorizontal?: boolean,
 ): {
   bottom: number;
   left: number;
@@ -484,6 +489,19 @@ export function getChartPadding(
   }
 
   const { bottom = 0, left = 0, right = 0, top = 0 } = padding || {};
+
+  if (isHorizontal) {
+    return {
+      left:
+        left + (orientation === LegendOrientation.Bottom ? legendMargin : 0),
+      right:
+        right + (orientation === LegendOrientation.Right ? legendMargin : 0),
+      top: top + (orientation === LegendOrientation.Top ? legendMargin : 0),
+      bottom:
+        bottom + (orientation === LegendOrientation.Left ? legendMargin : 0),
+    };
+  }
+
   return {
     left: left + (orientation === LegendOrientation.Left ? legendMargin : 0),
     right: right + (orientation === LegendOrientation.Right ? legendMargin : 0),
@@ -515,15 +533,19 @@ export function sanitizeHtml(text: string): string {
 
 export function getAxisType(
   stack: StackType,
+  forceCategorical?: boolean,
   dataType?: GenericDataType,
 ): AxisType {
-  if (dataType === GenericDataType.TEMPORAL) {
-    return AxisType.time;
+  if (forceCategorical) {
+    return AxisType.Category;
   }
-  if (dataType === GenericDataType.NUMERIC && !stack) {
-    return AxisType.value;
+  if (dataType === GenericDataType.Temporal) {
+    return AxisType.Time;
   }
-  return AxisType.category;
+  if (dataType === GenericDataType.Numeric && !stack) {
+    return AxisType.Value;
+  }
+  return AxisType.Category;
 }
 
 export function getOverMaxHiddenFormatter(
@@ -565,7 +587,7 @@ export function getMinAndMaxFromBounds(
   max?: number,
   seriesType?: EchartsTimeseriesSeriesType,
 ): BoundsType | {} {
-  if (axisType === AxisType.value && truncateAxis) {
+  if (axisType === AxisType.Value && truncateAxis) {
     const ret: BoundsType = {};
     if (seriesType === EchartsTimeseriesSeriesType.Bar) {
       ret.scale = true;
@@ -583,4 +605,40 @@ export function getMinAndMaxFromBounds(
     return ret;
   }
   return {};
+}
+
+/**
+ * Returns the stackId used in stacked series.
+ * It will return the defaultId if the chart is not using time comparison.
+ * If time comparison is used, it will return the time comparison value as the stackId
+ * if the name includes the time comparison value.
+ *
+ * @param {string} defaultId The default stackId.
+ * @param {string[]} timeCompare The time comparison values.
+ * @param {string | number} name The name of the serie.
+ *
+ * @returns {string} The stackId.
+ */
+export function getTimeCompareStackId(
+  defaultId: string,
+  timeCompare: string[],
+  name?: string | number,
+): string {
+  if (isEmpty(timeCompare)) {
+    return defaultId;
+  }
+  // Each timeCompare is its own stack so it doesn't stack on top of original ones
+  return (
+    timeCompare.find(value => {
+      if (typeof name === 'string') {
+        // offset is represented as <offset>, group by list
+        return (
+          name.includes(`${value},`) ||
+          // offset is represented as <metric>__<offset>
+          name.includes(`__${value}`)
+        );
+      }
+      return name?.toString().includes(value);
+    }) || defaultId
+  );
 }

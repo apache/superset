@@ -17,7 +17,6 @@
  * under the License.
  */
 import { HeatmapLayer, Position, Color } from 'deck.gl/typed';
-import React from 'react';
 import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
@@ -30,7 +29,7 @@ function setTooltipContent(o: JsonObject) {
     <div className="deckgl-tooltip">
       <TooltipRow
         label={t('Centroid (Longitude and Latitude): ')}
-        value={`(${o.coordinate[0]}, ${o.coordinate[1]})`}
+        value={`(${o?.coordinate[0]}, ${o?.coordinate[1]})`}
       />
     </div>
   );

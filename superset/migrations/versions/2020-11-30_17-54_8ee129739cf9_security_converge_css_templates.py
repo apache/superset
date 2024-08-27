@@ -27,11 +27,11 @@ revision = "8ee129739cf9"
 down_revision = "e38177dbf641"
 
 
-from alembic import op
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from alembic import op  # noqa: E402
+from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
-from superset.migrations.shared.security_converge import (
+from superset.migrations.shared.security_converge import (  # noqa: E402
     add_pvms,
     get_reversed_new_pvms,
     get_reversed_pvm_map,

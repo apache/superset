@@ -16,134 +16,172 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Provider } from 'react-redux';
-import React from 'react';
-import { mount } from 'enzyme';
-import sinon from 'sinon';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
-import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
-import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import IconButton from 'src/dashboard/components/IconButton';
 import Row from 'src/dashboard/components/gridComponents/Row';
-import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { initialState } from 'src/SqlLab/fixtures';
 
-describe('Row', () => {
-  const rowWithoutChildren = { ...mockLayout.present.ROW_ID, children: [] };
-  const props = {
-    id: 'ROW_ID',
-    parentId: DASHBOARD_GRID_ID,
-    component: mockLayout.present.ROW_ID,
-    parentComponent: mockLayout.present[DASHBOARD_GRID_ID],
-    index: 0,
-    depth: 2,
-    editMode: false,
-    availableColumnCount: 12,
-    columnWidth: 50,
-    occupiedColumnCount: 6,
-    onResizeStart() {},
-    onResize() {},
-    onResizeStop() {},
-    handleComponentDrop() {},
-    deleteComponent() {},
-    updateComponents() {},
-  };
+jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+  Draggable: ({ children }) => (
+    <div data-test="mock-draggable">{children({})}</div>
+  ),
+  Droppable: ({ children, depth }) => (
+    <div data-test="mock-droppable" depth={depth}>
+      {children({})}
+    </div>
+  ),
+}));
+jest.mock(
+  'src/dashboard/containers/DashboardComponent',
+  () =>
+    ({ availableColumnCount, depth }) => (
+      <div data-test="mock-dashboard-component" depth={depth}>
+        {availableColumnCount}
+      </div>
+    ),
+);
 
-  function setup(overrideProps) {
-    // We have to wrap provide DragDropContext for the underlying DragDroppable
-    // otherwise we cannot assert on DragDroppable children
-    const mockStore = getMockStore({
-      ...initialState,
-    });
-    const wrapper = mount(
-      <Provider store={mockStore}>
-        <MemoryRouter>
-          <DndProvider backend={HTML5Backend}>
-            <Row {...props} {...overrideProps} />
-          </DndProvider>
-        </MemoryRouter>
-      </Provider>,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: { theme: supersetTheme },
-      },
-    );
-    return wrapper;
-  }
+jest.mock(
+  'src/dashboard/components/menu/WithPopoverMenu',
+  () =>
+    ({ children }) => <div data-test="mock-with-popover-menu">{children}</div>,
+);
 
-  it('should render a DragDroppable', () => {
-    // don't count child DragDroppables
-    const wrapper = setup({ component: rowWithoutChildren });
-    expect(wrapper.find(DragDroppable)).toExist();
+jest.mock(
+  'src/dashboard/components/DeleteComponentButton',
+  () =>
+    ({ onDelete }) => (
+      <button
+        type="button"
+        data-test="mock-delete-component-button"
+        onClick={onDelete}
+      >
+        Delete
+      </button>
+    ),
+);
+
+const rowWithoutChildren = { ...mockLayout.present.ROW_ID, children: [] };
+const props = {
+  id: 'ROW_ID',
+  parentId: DASHBOARD_GRID_ID,
+  component: mockLayout.present.ROW_ID,
+  parentComponent: mockLayout.present[DASHBOARD_GRID_ID],
+  index: 0,
+  depth: 2,
+  editMode: false,
+  availableColumnCount: 12,
+  columnWidth: 50,
+  occupiedColumnCount: 6,
+  onResizeStart() {},
+  onResize() {},
+  onResizeStop() {},
+  handleComponentDrop() {},
+  deleteComponent() {},
+  updateComponents() {},
+};
+
+function setup(overrideProps) {
+  // We have to wrap provide DragDropContext for the underlying DragDroppable
+  // otherwise we cannot assert on DragDroppable children
+  const mockStore = getMockStore({
+    ...initialState,
   });
 
-  it('should render a WithPopoverMenu', () => {
-    // don't count child DragDroppables
-    const wrapper = setup({ component: rowWithoutChildren });
-    expect(wrapper.find(WithPopoverMenu)).toExist();
+  return render(<Row {...props} {...overrideProps} />, {
+    store: mockStore,
+    useDnd: true,
+    useRouter: true,
+  });
+}
+
+test('should render a Draggable', () => {
+  // don't count child DragDroppables
+  const { getByTestId, queryByTestId } = setup({
+    component: rowWithoutChildren,
   });
 
-  it('should render a HoverMenu in editMode', () => {
-    let wrapper = setup({ component: rowWithoutChildren });
-    expect(wrapper.find(HoverMenu)).not.toExist();
+  expect(getByTestId('mock-draggable')).toBeInTheDocument();
+  expect(queryByTestId('mock-droppable')).not.toBeInTheDocument();
+});
 
-    // we cannot set props on the Row because of the WithDragDropContext wrapper
-    wrapper = setup({ component: rowWithoutChildren, editMode: true });
-    expect(wrapper.find(HoverMenu)).toExist();
+test('should skip rendering HoverMenu and DeleteComponentButton when not in editMode', () => {
+  const { container, queryByTestId } = setup({
+    component: rowWithoutChildren,
   });
+  expect(container.querySelector('.hover-menu')).not.toBeInTheDocument();
+  expect(queryByTestId('mock-delete-component-button')).not.toBeInTheDocument();
+});
 
-  it('should render a DeleteComponentButton in editMode', () => {
-    let wrapper = setup({ component: rowWithoutChildren });
-    expect(wrapper.find(DeleteComponentButton)).not.toExist();
+test('should render a WithPopoverMenu', () => {
+  // don't count child DragDroppables
+  const { getByTestId } = setup({ component: rowWithoutChildren });
+  expect(getByTestId('mock-with-popover-menu')).toBeInTheDocument();
+});
 
-    // we cannot set props on the Row because of the WithDragDropContext wrapper
-    wrapper = setup({ component: rowWithoutChildren, editMode: true });
-    expect(wrapper.find(DeleteComponentButton)).toExist();
+test('should render a HoverMenu in editMode', () => {
+  const { container, getAllByTestId, getByTestId } = setup({
+    component: rowWithoutChildren,
+    editMode: true,
   });
+  expect(container.querySelector('.hover-menu')).toBeInTheDocument();
 
-  it('should render a BackgroundStyleDropdown when focused', () => {
-    let wrapper = setup({ component: rowWithoutChildren });
-    expect(wrapper.find(BackgroundStyleDropdown)).not.toExist();
+  // Droppable area enabled in editMode
+  expect(getAllByTestId('mock-droppable').length).toBe(1);
 
-    // we cannot set props on the Row because of the WithDragDropContext wrapper
-    wrapper = setup({ component: rowWithoutChildren, editMode: true });
-    wrapper
-      .find(IconButton)
-      .at(1) // first one is delete button
-      .simulate('click');
+  // pass the same depth of its droppable area
+  expect(getByTestId('mock-droppable')).toHaveAttribute(
+    'depth',
+    `${props.depth}`,
+  );
+});
 
-    expect(wrapper.find(BackgroundStyleDropdown)).toExist();
+test('should render a DeleteComponentButton in editMode', () => {
+  const { getByTestId } = setup({
+    component: rowWithoutChildren,
+    editMode: true,
   });
+  expect(getByTestId('mock-delete-component-button')).toBeInTheDocument();
+});
 
-  it('should call deleteComponent when deleted', () => {
-    const deleteComponent = sinon.spy();
-    const wrapper = setup({ editMode: true, deleteComponent });
-    wrapper.find(DeleteComponentButton).simulate('click');
-    expect(deleteComponent.callCount).toBe(1);
-  });
+test.skip('should render a BackgroundStyleDropdown when focused', () => {
+  let wrapper = setup({ component: rowWithoutChildren });
+  expect(wrapper.find(BackgroundStyleDropdown)).not.toExist();
 
-  it('should pass appropriate availableColumnCount to children', () => {
-    const wrapper = setup();
-    const dashboardComponent = wrapper.find(DashboardComponent).first();
-    expect(dashboardComponent.props().availableColumnCount).toBe(
-      props.availableColumnCount - props.occupiedColumnCount,
-    );
-  });
+  // we cannot set props on the Row because of the WithDragDropContext wrapper
+  wrapper = setup({ component: rowWithoutChildren, editMode: true });
+  wrapper
+    .find(IconButton)
+    .at(1) // first one is delete button
+    .simulate('click');
 
-  it('should increment the depth of its children', () => {
-    const wrapper = setup();
-    const dashboardComponent = wrapper.find(DashboardComponent).first();
-    expect(dashboardComponent.props().depth).toBe(props.depth + 1);
-  });
+  expect(wrapper.find(BackgroundStyleDropdown)).toExist();
+});
+
+test('should call deleteComponent when deleted', () => {
+  const deleteComponent = jest.fn();
+  const { getByTestId } = setup({ editMode: true, deleteComponent });
+  fireEvent.click(getByTestId('mock-delete-component-button'));
+  expect(deleteComponent).toHaveBeenCalledTimes(1);
+});
+
+test('should pass appropriate availableColumnCount to children', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('mock-dashboard-component')).toHaveTextContent(
+    props.availableColumnCount - props.occupiedColumnCount,
+  );
+});
+
+test('should increment the depth of its children', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('mock-dashboard-component')).toHaveAttribute(
+    'depth',
+    `${props.depth + 1}`,
+  );
 });

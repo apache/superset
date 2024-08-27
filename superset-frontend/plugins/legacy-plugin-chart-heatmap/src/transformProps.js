@@ -55,13 +55,17 @@ export default function transformProps(chartProps) {
     currencyFormat,
   );
   const xAxisFormatter =
-    coltypes[0] === GenericDataType.TEMPORAL
+    coltypes[0] === GenericDataType.Temporal
       ? getTimeFormatter(timeFormat)
-      : String;
+      : coltypes[0] === GenericDataType.Numeric
+        ? Number
+        : String;
   const yAxisFormatter =
-    coltypes[1] === GenericDataType.TEMPORAL
+    coltypes[1] === GenericDataType.Temporal
       ? getTimeFormatter(timeFormat)
-      : String;
+      : coltypes[1] === GenericDataType.Numeric
+        ? Number
+        : String;
   return {
     width,
     height,

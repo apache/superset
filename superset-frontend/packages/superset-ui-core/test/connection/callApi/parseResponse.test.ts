@@ -139,8 +139,12 @@ describe('parseResponse()', () => {
 
   it('resolves to big number value if `parseMethod=json-bigint`', async () => {
     const mockBigIntUrl = '/mock/get/bigInt';
-    const mockGetBigIntPayload =
-      '{ "value": 9223372036854775807, "minus": { "value": -483729382918228373892, "str": "something" }, "number": 1234, "floatValue": { "plus": 0.3452211361231223, "minus": -0.3452211361231223 } }';
+    const mockGetBigIntPayload = `{
+      "value": 9223372036854775807, "minus": { "value": -483729382918228373892, "str": "something" },
+      "number": 1234, "floatValue": { "plus": 0.3452211361231223, "minus": -0.3452211361231223 },
+      "string.constructor": "data.constructor",
+      "constructor": "constructor"
+    }`;
     fetchMock.get(mockBigIntUrl, mockGetBigIntPayload);
     const responseBigNumber = await parseResponse(
       callApi({ url: mockBigIntUrl, method: 'GET' }),
@@ -167,6 +171,10 @@ describe('parseResponse()', () => {
     expect(Math.abs(responseBigNumber.json.floatValue.minus)).toEqual(
       responseBigNumber.json.floatValue.plus,
     );
+    expect(responseBigNumber.json['string.constructor']).toEqual(
+      'data.constructor',
+    );
+    expect(responseBigNumber.json.constructor).toEqual('constructor');
   });
 
   it('rejects if request.ok=false', async () => {

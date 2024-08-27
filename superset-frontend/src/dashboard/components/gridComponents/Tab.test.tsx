@@ -18,14 +18,18 @@
  */
 
 import userEvent from '@testing-library/user-event';
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import EditableTitle from 'src/components/EditableTitle';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import { setEditMode } from 'src/dashboard/actions/dashboardState';
 
 import Tab from './Tab';
+import Markdown from './Markdown';
 
 jest.mock('src/dashboard/containers/DashboardComponent', () =>
   jest.fn(() => <div data-test="DashboardComponent" />),
@@ -37,8 +41,9 @@ jest.mock('src/components/EditableTitle', () =>
     </button>
   )),
 );
-jest.mock('src/dashboard/components/dnd/DragDroppable', () =>
-  jest.fn(props => {
+jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+  ...jest.requireActual('src/dashboard/components/dnd/DragDroppable'),
+  Droppable: jest.fn(props => {
     const childProps = props.editMode
       ? {
           dragSourceRef: props.dragSourceRef,
@@ -47,14 +52,14 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () =>
       : {};
     return (
       <div>
-        <button type="button" data-test="DragDroppable" onClick={props.onDrop}>
+        <button type="button" data-test="MockDroppable" onClick={props.onDrop}>
           DragDroppable
         </button>
         {props.children(childProps)}
       </div>
     );
   }),
-);
+}));
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   setEditMode: jest.fn(() => ({
     type: 'SET_EDIT_MODE',
@@ -106,30 +111,115 @@ beforeEach(() => {
 test('Render tab (no content)', () => {
   const props = createProps();
   props.renderType = 'RENDER_TAB';
-  render(<Tab {...props} />, { useRedux: true, useDnd: true });
+  const { getByTestId } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
   expect(screen.getByText('🚀 Aspiring Developers')).toBeInTheDocument();
   expect(EditableTitle).toBeCalledTimes(1);
-  expect(DragDroppable).toBeCalledTimes(1);
+  expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
 });
 
 test('Render tab (no content) editMode:true', () => {
   const props = createProps();
   props.editMode = true;
   props.renderType = 'RENDER_TAB';
-  render(<Tab {...props} />, { useRedux: true, useDnd: true });
+  const { getByTestId } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
   expect(screen.getByText('🚀 Aspiring Developers')).toBeInTheDocument();
   expect(EditableTitle).toBeCalledTimes(1);
-  expect(DragDroppable).toBeCalledTimes(1);
+  expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
+});
+
+test('Drop on a tab', async () => {
+  const props = createProps();
+  const mockOnDropOnTab = jest.fn();
+  render(
+    <>
+      <Tab {...props} renderType="RENDER_TAB" editMode />
+      <Tab
+        {...props}
+        renderType="RENDER_TAB"
+        index={2}
+        component={{
+          ...props.component,
+          id: 'TAB-Next-',
+          meta: { text: 'Next Tab' } as any,
+        }}
+        handleComponentDrop={mockOnDropOnTab}
+        editMode
+      />
+      <Markdown
+        id="MARKDOWN-1"
+        parentId="GRID_ID"
+        parentComponent={{
+          id: 'GRID_ID',
+          type: 'GRID',
+          parents: ['ROOT_ID'],
+        }}
+        depth={0}
+        editMode
+        index={1}
+        availableColumnCount={12}
+        columnWidth={120}
+        component={{
+          ...props.component,
+          type: 'MARKDOWN',
+          id: 'MARKDOWN-1',
+          meta: { code: 'Dashboard Component' } as any,
+        }}
+        logEvent={jest.fn()}
+        deleteComponent={jest.fn()}
+        handleComponentDrop={jest.fn()}
+        onResizeStart={jest.fn()}
+        onResize={jest.fn()}
+        onResizeStop={jest.fn()}
+        updateComponents={jest.fn()}
+        addDangerToast={jest.fn()}
+      />
+    </>,
+    {
+      useRedux: true,
+      useDnd: true,
+    },
+  );
+
+  fireEvent.dragStart(screen.getByText('🚀 Aspiring Developers'));
+  fireEvent.drop(screen.getByText('Next Tab'));
+  await waitFor(() => expect(mockOnDropOnTab).toHaveBeenCalled());
+  expect(mockOnDropOnTab).toHaveBeenCalledWith(
+    expect.objectContaining({
+      destination: { id: props.parentComponent.id, index: 2, type: 'TABS' },
+    }),
+  );
+
+  fireEvent.dragStart(screen.getByText('Dashboard Component'));
+  fireEvent.drop(screen.getByText('Next Tab'));
+  await waitFor(() => expect(mockOnDropOnTab).toHaveBeenCalledTimes(2));
+  expect(mockOnDropOnTab).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      destination: {
+        id: 'TAB-Next-',
+        index: props.component.children.length,
+        type: 'TAB',
+      },
+    }),
+  );
 });
 
 test('Edit table title', () => {
   const props = createProps();
   props.editMode = true;
   props.renderType = 'RENDER_TAB';
-  render(<Tab {...props} />, { useRedux: true, useDnd: true });
+  const { getByTestId } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
 
   expect(EditableTitle).toBeCalledTimes(1);
-  expect(DragDroppable).toBeCalledTimes(1);
+  expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
 
   expect(props.updateComponents).not.toBeCalled();
   userEvent.click(screen.getByText('🚀 Aspiring Developers'));
@@ -139,7 +229,10 @@ test('Edit table title', () => {
 test('Render tab (with content)', () => {
   const props = createProps();
   props.isFocused = true;
-  render(<Tab {...props} />, { useRedux: true, useDnd: true });
+  const { queryByTestId } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
   expect(DashboardComponent).toBeCalledTimes(2);
   expect(DashboardComponent).toHaveBeenNthCalledWith(
     1,
@@ -177,7 +270,7 @@ test('Render tab (with content)', () => {
     }),
     {},
   );
-  expect(DragDroppable).toBeCalledTimes(0);
+  expect(queryByTestId('dragdroppable-object')).not.toBeInTheDocument();
 });
 
 test('Render tab content with no children', () => {
@@ -215,7 +308,10 @@ test('Render tab (with content) editMode:true', () => {
   const props = createProps();
   props.isFocused = true;
   props.editMode = true;
-  render(<Tab {...props} />, { useRedux: true, useDnd: true });
+  const { getAllByTestId } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
   expect(DashboardComponent).toBeCalledTimes(2);
   expect(DashboardComponent).toHaveBeenNthCalledWith(
     1,
@@ -253,20 +349,28 @@ test('Render tab (with content) editMode:true', () => {
     }),
     {},
   );
-  expect(DragDroppable).toBeCalledTimes(2);
+  // 3 droppable area exists for two child components
+  expect(getAllByTestId('MockDroppable')).toHaveLength(3);
 });
 
 test('Should call "handleDrop" and "handleTopDropTargetDrop"', () => {
   const props = createProps();
   props.isFocused = true;
   props.editMode = true;
-  render(<Tab {...props} />, { useRedux: true, useDnd: true });
+  const { getAllByTestId, rerender } = render(
+    <Tab {...props} component={{ ...props.component, children: [] }} />,
+    {
+      useRedux: true,
+      useDnd: true,
+    },
+  );
 
   expect(props.handleComponentDrop).not.toBeCalled();
-  userEvent.click(screen.getAllByRole('button')[0]);
+  userEvent.click(getAllByTestId('MockDroppable')[0]);
   expect(props.handleComponentDrop).toBeCalledTimes(1);
   expect(props.onDropOnTab).not.toBeCalled();
-  userEvent.click(screen.getAllByRole('button')[1]);
+  rerender(<Tab {...props} />);
+  userEvent.click(getAllByTestId('MockDroppable')[1]);
   expect(props.onDropOnTab).toBeCalledTimes(1);
   expect(props.handleComponentDrop).toBeCalledTimes(2);
 });

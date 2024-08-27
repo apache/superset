@@ -16,7 +16,6 @@
     specific language governing permissions and limitations
     under the License.
 -->
-
 # CODE OF CONDUCT
 
 *The following is copied for your convenience from <https://www.apache.org/foundation/policies/conduct.html>. If there's a discrepancy between the two, let us know or submit a PR to fix it.*
@@ -95,9 +94,9 @@ This statement thanks the following, on which it draws for content and inspirati
 
 * [CouchDB Project Code of conduct](http://couchdb.apache.org/conduct.html)
 * [Fedora Project Code of Conduct](http://fedoraproject.org/code-of-conduct)
-* [Speak Up! Code of Conduct](http://speakup.io/coc.html)
+* [Speak Up! Code of Conduct](http://web.archive.org/web/20141109123859/http://speakup.io/coc.html)
 * [Django Code of Conduct](https://www.djangoproject.com/conduct/)
-* [Debian Code of Conduct](http://www.debian.org/vote/2014/vote_002)
+* [Debian Code of Conduct](https://www.debian.org/vote/2014/vote_002)
 * [Twitter Open Source Code of Conduct](https://github.com/twitter/code-of-conduct/blob/master/code-of-conduct.md)
 * [Mozilla Code of Conduct/Draft](https://wiki.mozilla.org/Code_of_Conduct/Draft#Conflicts_of_Interest)
 * [Python Diversity Appendix](https://www.python.org/community/diversity/)
@@ -119,11 +118,13 @@ If you decide to join the [Community Slack](http://bit.ly/join-superset-slack), 
 
 **3. Ask thoughtful questions.**
 
-- We’re all here to help each other out. The best way to get help is by investing effort into your questions. First check and see if your question is answered in [the Superset documentation](https://superset.apache.org/faq.html) or on [Stack Overflow](https://stackoverflow.com/search?q=apache+superset). You can also check [GitHub issues](https://github.com/apache/superset/issues) to see if your question or feature request has been submitted before. Then, use Slack search to see if your question has already been asked and answered in the past. If you still feel the need to ask a question, make sure you include:
+- We’re all here to help each other out. The best way to get help is by investing effort into your questions. First check and see if your question is answered in the [Superset documentation](https://superset.apache.org/faq.html) or on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset). You can also check GitHub trackers to see if your inquiry has been submitted before: [GitHub discussions](https://github.com/apache/superset/discussions) for questions and feature requests and [GitHub issues](https://github.com/apache/superset/issues) for bug reports. Then, use Slack search to see if your question has already been asked and answered in the past.
 
-- The steps you’ve already taken
-- Relevant details presented cleanly (text stacktraces, formatted markdown, or screenshots. Please don’t paste large blocks of code unformatted or post photos of your screen from your phone)
-- The specific question you have or the specific type of help you're seeking
+If you still feel the need to ask a question, make sure you include:
+
+- The steps you’ve already taken.
+- Relevant details presented cleanly: text stacktraces, formatted markdown, or screenshots. Please don’t paste large blocks of code unformatted or post photos of your screen from your phone.
+- The specific question you have or the specific type of help you're seeking.
 
 **4. Avoid double posting**
 

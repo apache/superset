@@ -17,7 +17,6 @@
  * under the License.
  */
 import { ModalFuncProps } from 'antd/lib/modal';
-import React from 'react';
 import Modal, { ModalProps } from '.';
 import Button from '../Button';
 
@@ -43,14 +42,6 @@ InteractiveModal.args = {
 InteractiveModal.argTypes = {
   onHandledPrimaryAction: { action: 'onHandledPrimaryAction' },
   onHide: { action: 'onHide' },
-};
-
-InteractiveModal.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
 };
 
 export const ModalFunctions = (props: ModalFuncProps) => (

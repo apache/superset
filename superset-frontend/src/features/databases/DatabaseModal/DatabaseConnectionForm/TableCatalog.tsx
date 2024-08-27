@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { css, SupersetTheme, t } from '@superset-ui/core';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
-import { FieldPropTypes } from '.';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
-import { CatalogObject } from '../../types';
+import { CatalogObject, FieldPropTypes } from '../../types';
 
 export const TableCatalog = ({
   required,

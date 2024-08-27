@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { SuperChart } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
@@ -53,9 +52,7 @@ export const stackedWithYAxisBounds = () => (
   />
 );
 
-stackedWithYAxisBounds.story = {
-  name: 'Stacked with yAxisBounds',
-};
+stackedWithYAxisBounds.storyName = 'Stacked with yAxisBounds';
 
 export const stackedWithYAxisBoundsMinOnly = () => (
   <SuperChart
@@ -88,6 +85,4 @@ export const stackedWithYAxisBoundsMinOnly = () => (
   />
 );
 
-stackedWithYAxisBoundsMinOnly.story = {
-  name: 'Stacked with yAxisBounds min only',
-};
+stackedWithYAxisBoundsMinOnly.storyName = 'Stacked with yAxisBounds min only';

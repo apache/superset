@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { Route } from 'react-router-dom';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
@@ -198,7 +197,7 @@ test('Click on Swap dataset option', async () => {
 test('Click on Edit dataset', async () => {
   const props = createProps();
   SupersetClientGet.mockImplementationOnce(
-    async () => ({ json: { result: [] } } as any),
+    async () => ({ json: { result: [] } }) as any,
   );
   render(<DatasourceControl {...props} />, {
     useRedux: true,
@@ -223,7 +222,7 @@ test('Edit dataset should be disabled when user is not admin', async () => {
   props.user.roles = {};
   props.datasource.owners = [];
   SupersetClientGet.mockImplementationOnce(
-    async () => ({ json: { result: [] } } as any),
+    async () => ({ json: { result: [] } }) as any,
   );
 
   render(<DatasourceControl {...props} />, {

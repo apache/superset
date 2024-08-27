@@ -18,7 +18,7 @@
 from collections.abc import Iterator
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 
@@ -31,19 +31,19 @@ def session_with_data(session: Session) -> Iterator[Session]:
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
-    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],
-        database=db,
+        database=database,
     )
     ssh_tunnel = SSHTunnel(
-        database_id=db.id,
-        database=db,
+        database_id=database.id,
+        database=database,
     )
 
-    session.add(db)
+    session.add(database)
     session.add(sqla_table)
     session.add(ssh_tunnel)
     session.flush()
@@ -52,7 +52,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
 
 
 def test_delete_ssh_tunnel_command(
-    mocker: MockFixture, session_with_data: Session
+    mocker: MockerFixture, session_with_data: Session
 ) -> None:
     from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
     from superset.daos.database import DatabaseDAO

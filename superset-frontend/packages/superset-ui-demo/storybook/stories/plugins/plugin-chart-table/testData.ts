@@ -45,10 +45,10 @@ export const basicFormData: TableChartFormData = {
 export const basicData: Partial<ChartDataResponseResult> = {
   colnames: ['name', 'sum__num', 'MAX(ds)', 'Abc.com'],
   coltypes: [
-    GenericDataType.STRING,
-    GenericDataType.NUMERIC,
-    GenericDataType.TEMPORAL,
-    GenericDataType.STRING,
+    GenericDataType.String,
+    GenericDataType.Numeric,
+    GenericDataType.Temporal,
+    GenericDataType.String,
   ],
   data: [
     {

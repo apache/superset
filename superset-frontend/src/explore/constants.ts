@@ -29,22 +29,22 @@ export const AGGREGATES = {
 export const AGGREGATES_OPTIONS = Object.values(AGGREGATES);
 
 export enum Operators {
-  EQUALS = 'EQUALS',
-  NOT_EQUALS = 'NOT_EQUALS',
-  LESS_THAN = 'LESS_THAN',
-  LESS_THAN_OR_EQUAL = 'LESS_THAN_OR_EQUAL',
-  GREATER_THAN = 'GREATER_THAN',
-  GREATER_THAN_OR_EQUAL = 'GREATER_THAN_OR_EQUAL',
-  IN = 'IN',
-  NOT_IN = 'NOT_IN',
-  LIKE = 'LIKE',
-  ILIKE = 'ILIKE',
-  IS_NOT_NULL = 'IS_NOT_NULL',
-  IS_NULL = 'IS_NULL',
-  LATEST_PARTITION = 'LATEST_PARTITION',
-  IS_TRUE = 'IS_TRUE',
-  IS_FALSE = 'IS_FALSE',
-  TEMPORAL_RANGE = 'TEMPORAL_RANGE',
+  Equals = 'EQUALS',
+  NotEquals = 'NOT_EQUALS',
+  LessThan = 'LESS_THAN',
+  LessThanOrEqual = 'LESS_THAN_OR_EQUAL',
+  GreaterThan = 'GREATER_THAN',
+  GreaterThanOrEqual = 'GREATER_THAN_OR_EQUAL',
+  In = 'IN',
+  NotIn = 'NOT_IN',
+  Like = 'LIKE',
+  CaseInsensitiveLike = 'ILIKE',
+  IsNotNull = 'IS_NOT_NULL',
+  IsNull = 'IS_NULL',
+  LatestPartition = 'LATEST_PARTITION',
+  IsTrue = 'IS_TRUE',
+  IsFalse = 'IS_FALSE',
+  TemporalRange = 'TEMPORAL_RANGE',
 }
 
 export interface OperatorType {
@@ -55,37 +55,37 @@ export interface OperatorType {
 export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
   [key in Operators]: OperatorType;
 } = {
-  [Operators.EQUALS]: { display: t('Equal to (=)'), operation: '==' },
-  [Operators.NOT_EQUALS]: { display: t('Not equal to (≠)'), operation: '!=' },
-  [Operators.LESS_THAN]: { display: t('Less than (<)'), operation: '<' },
-  [Operators.LESS_THAN_OR_EQUAL]: {
+  [Operators.Equals]: { display: t('Equal to (=)'), operation: '==' },
+  [Operators.NotEquals]: { display: t('Not equal to (≠)'), operation: '!=' },
+  [Operators.LessThan]: { display: t('Less than (<)'), operation: '<' },
+  [Operators.LessThanOrEqual]: {
     display: t('Less or equal (<=)'),
     operation: '<=',
   },
-  [Operators.GREATER_THAN]: { display: t('Greater than (>)'), operation: '>' },
-  [Operators.GREATER_THAN_OR_EQUAL]: {
+  [Operators.GreaterThan]: { display: t('Greater than (>)'), operation: '>' },
+  [Operators.GreaterThanOrEqual]: {
     display: t('Greater or equal (>=)'),
     operation: '>=',
   },
-  [Operators.IN]: { display: t('In'), operation: 'IN' },
-  [Operators.NOT_IN]: { display: t('Not in'), operation: 'NOT IN' },
-  [Operators.LIKE]: { display: t('Like'), operation: 'LIKE' },
-  [Operators.ILIKE]: {
+  [Operators.In]: { display: t('In'), operation: 'IN' },
+  [Operators.NotIn]: { display: t('Not in'), operation: 'NOT IN' },
+  [Operators.Like]: { display: t('Like'), operation: 'LIKE' },
+  [Operators.CaseInsensitiveLike]: {
     display: t('Like (case insensitive)'),
     operation: 'ILIKE',
   },
-  [Operators.IS_NOT_NULL]: {
+  [Operators.IsNotNull]: {
     display: t('Is not null'),
     operation: 'IS NOT NULL',
   },
-  [Operators.IS_NULL]: { display: t('Is null'), operation: 'IS NULL' },
-  [Operators.LATEST_PARTITION]: {
+  [Operators.IsNull]: { display: t('Is null'), operation: 'IS NULL' },
+  [Operators.LatestPartition]: {
     display: t('use latest_partition template'),
     operation: 'LATEST PARTITION',
   },
-  [Operators.IS_TRUE]: { display: t('Is true'), operation: '==' },
-  [Operators.IS_FALSE]: { display: t('Is false'), operation: '==' },
-  [Operators.TEMPORAL_RANGE]: {
+  [Operators.IsTrue]: { display: t('Is true'), operation: '==' },
+  [Operators.IsFalse]: { display: t('Is false'), operation: '==' },
+  [Operators.TemporalRange]: {
     display: t('TEMPORAL_RANGE'),
     operation: 'TEMPORAL_RANGE',
   },
@@ -93,30 +93,33 @@ export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
 
 export const OPERATORS_OPTIONS = Object.values(Operators) as Operators[];
 
-export const TABLE_ONLY_OPERATORS = [Operators.LIKE, Operators.ILIKE];
-export const HAVING_OPERATORS = [
-  Operators.EQUALS,
-  Operators.NOT_EQUALS,
-  Operators.LESS_THAN,
-  Operators.LESS_THAN_OR_EQUAL,
-  Operators.GREATER_THAN,
-  Operators.GREATER_THAN_OR_EQUAL,
+export const TABLE_ONLY_OPERATORS = [
+  Operators.Like,
+  Operators.CaseInsensitiveLike,
 ];
-export const MULTI_OPERATORS = new Set([Operators.IN, Operators.NOT_IN]);
+export const HAVING_OPERATORS = [
+  Operators.Equals,
+  Operators.NotEquals,
+  Operators.LessThan,
+  Operators.LessThanOrEqual,
+  Operators.GreaterThan,
+  Operators.GreaterThanOrEqual,
+];
+export const MULTI_OPERATORS = new Set([Operators.In, Operators.NotIn]);
 // CUSTOM_OPERATORS will show operator in simple mode,
 // but will generate customized sqlExpression
 export const CUSTOM_OPERATORS = new Set([
-  Operators.LATEST_PARTITION,
-  Operators.TEMPORAL_RANGE,
+  Operators.LatestPartition,
+  Operators.TemporalRange,
 ]);
 // DISABLE_INPUT_OPERATORS will disable filter value input
 // in adhocFilter control
 export const DISABLE_INPUT_OPERATORS = [
-  Operators.IS_NOT_NULL,
-  Operators.IS_NULL,
-  Operators.LATEST_PARTITION,
-  Operators.IS_TRUE,
-  Operators.IS_FALSE,
+  Operators.IsNotNull,
+  Operators.IsNull,
+  Operators.LatestPartition,
+  Operators.IsTrue,
+  Operators.IsFalse,
 ];
 
 export const sqlaAutoGeneratedMetricNameRegex =
@@ -155,3 +158,11 @@ export const TIME_FILTER_MAP = {
 export const POPOVER_INITIAL_HEIGHT = 240;
 export const POPOVER_INITIAL_WIDTH = 320;
 export const UNSAVED_CHART_ID = 0;
+
+export const QUERY_MODE_REQUISITES = new Set([
+  'all_columns',
+  'groupby',
+  'metrics',
+  'percent_metrics',
+  'order_by_cols',
+]);

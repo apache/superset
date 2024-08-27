@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   ChangeEventHandler,
   FocusEvent,
   KeyboardEvent,
   useCallback,
   useState,
+  FC,
 } from 'react';
+
 import { t, styled } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Tooltip } from 'src/components/Tooltip';
@@ -47,81 +49,84 @@ export interface AdhocMetricEditPopoverTitleProps {
   onChange: ChangeEventHandler<HTMLInputElement>;
 }
 
-const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
-  ({ title, isEditDisabled, onChange }) => {
-    const [isHovered, setIsHovered] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(false);
+const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
+  title,
+  isEditDisabled,
+  onChange,
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
-    const defaultLabel = t('My metric');
+  const defaultLabel = t('My metric');
 
-    const handleMouseOver = useCallback(() => setIsHovered(true), []);
-    const handleMouseOut = useCallback(() => setIsHovered(false), []);
-    const handleClick = useCallback(() => setIsEditMode(true), []);
-    const handleBlur = useCallback(() => setIsEditMode(false), []);
+  const handleMouseOver = useCallback(() => setIsHovered(true), []);
+  const handleMouseOut = useCallback(() => setIsHovered(false), []);
+  const handleClick = useCallback(() => setIsEditMode(true), []);
+  const handleBlur = useCallback(() => setIsEditMode(false), []);
 
-    const handleKeyPress = useCallback(
-      (ev: KeyboardEvent<HTMLInputElement>) => {
-        if (ev.key === 'Enter') {
-          ev.preventDefault();
-          handleBlur();
-        }
-      },
-      [handleBlur],
-    );
-
-    const handleInputBlur = useCallback(
-      (e: FocusEvent<HTMLInputElement>) => {
-        if (e.target.value === '') {
-          onChange(e);
-        }
-
+  const handleKeyPress = useCallback(
+    (ev: KeyboardEvent<HTMLInputElement>) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
         handleBlur();
-      },
-      [onChange, handleBlur],
-    );
+      }
+    },
+    [handleBlur],
+  );
 
-    if (isEditDisabled) {
-      return (
-        <span data-test="AdhocMetricTitle">{title?.label || defaultLabel}</span>
-      );
-    }
+  const handleInputBlur = useCallback(
+    (e: FocusEvent<HTMLInputElement>) => {
+      if (e.target.value === '') {
+        onChange(e);
+      }
 
-    if (isEditMode) {
-      return (
-        <StyledInput
-          type="text"
-          placeholder={title?.label}
-          value={title?.hasCustomLabel ? title.label : ''}
-          autoFocus
-          onChange={onChange}
-          onBlur={handleInputBlur}
-          onKeyPress={handleKeyPress}
-          data-test="AdhocMetricEditTitle#input"
-        />
-      );
-    }
+      handleBlur();
+    },
+    [onChange, handleBlur],
+  );
 
+  if (isEditDisabled) {
     return (
-      <Tooltip placement="top" title={t('Click to edit label')}>
-        <span
-          className="AdhocMetricEditPopoverTitle inline-editable"
-          data-test="AdhocMetricEditTitle#trigger"
-          onMouseOver={handleMouseOver}
-          onMouseOut={handleMouseOut}
-          onClick={handleClick}
-          onBlur={handleBlur}
-          role="button"
-          tabIndex={0}
-        >
-          <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
-          &nbsp;
-          <i
-            className="fa fa-pencil"
-            style={{ color: isHovered ? 'black' : 'grey' }}
-          />
-        </span>
-      </Tooltip>
+      <span data-test="AdhocMetricTitle">{title?.label || defaultLabel}</span>
     );
-  };
+  }
+
+  if (isEditMode) {
+    return (
+      <StyledInput
+        type="text"
+        placeholder={title?.label}
+        value={title?.hasCustomLabel ? title.label : ''}
+        autoFocus
+        onChange={onChange}
+        onBlur={handleInputBlur}
+        onKeyPress={handleKeyPress}
+        data-test="AdhocMetricEditTitle#input"
+      />
+    );
+  }
+
+  return (
+    <Tooltip placement="top" title={t('Click to edit label')}>
+      <span
+        className="AdhocMetricEditPopoverTitle inline-editable"
+        data-test="AdhocMetricEditTitle#trigger"
+        onMouseOver={handleMouseOver}
+        onMouseOut={handleMouseOut}
+        onClick={handleClick}
+        onBlur={handleBlur}
+        role="button"
+        tabIndex={0}
+      >
+        <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
+        &nbsp;
+        <i
+          className="fa fa-pencil"
+          style={{ color: isHovered ? 'black' : 'grey' }}
+        />
+      </span>
+    </Tooltip>
+  );
+};
 
 export default AdhocMetricEditPopoverTitle;

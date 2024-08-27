@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { filter } from 'lodash';
 import {
@@ -72,7 +72,7 @@ function ChartTable({
 }: ChartTableProps) {
   const history = useHistory();
   const initialTab = getItem(
-    LocalStorageKeys.homepage_chart_filter,
+    LocalStorageKeys.HomepageChartFilter,
     TableTab.Other,
   );
 
@@ -145,7 +145,7 @@ function ChartTable({
       label: t('Favorite'),
       onClick: () => {
         setActiveTab(TableTab.Favorite);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Favorite);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Favorite);
       },
     },
     {
@@ -153,7 +153,7 @@ function ChartTable({
       label: t('Mine'),
       onClick: () => {
         setActiveTab(TableTab.Mine);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Mine);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Mine);
       },
     },
   ];
@@ -163,7 +163,7 @@ function ChartTable({
       label: otherTabTitle,
       onClick: () => {
         setActiveTab(TableTab.Other);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Other);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Other);
       },
     });
   }
@@ -171,15 +171,12 @@ function ChartTable({
   if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
     <ErrorBoundary>
-      {sliceCurrentlyEditing && (
-        <PropertiesModal
-          onHide={closeChartEditModal}
-          onSave={handleChartUpdated}
-          show
-          slice={sliceCurrentlyEditing}
-        />
-      )}
-
+      <PropertiesModal
+        onHide={closeChartEditModal}
+        onSave={handleChartUpdated}
+        show={sliceCurrentlyEditing}
+        slice={sliceCurrentlyEditing}
+      />
       <SubMenu
         activeChild={activeTab}
         tabs={menuTabs}

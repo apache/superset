@@ -27,6 +27,7 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
+
 import inspect
 import logging
 import pkgutil
@@ -153,7 +154,7 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
         try:
             dialect = ep.load()
         except Exception as ex:  # pylint: disable=broad-except
-            logger.warning("Unable to load SQLAlchemy dialect %s: %s", dialect, ex)
+            logger.warning("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
         else:
             backend = dialect.name
             if isinstance(backend, bytes):

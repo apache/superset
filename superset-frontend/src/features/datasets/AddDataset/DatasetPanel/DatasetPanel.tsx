@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t, styled, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Alert from 'src/components/Alert';
@@ -290,7 +289,7 @@ const DatasetPanel = ({
               <TableScrollContainer>
                 <Table
                   loading={loading}
-                  size={TableSize.SMALL}
+                  size={TableSize.Small}
                   columns={tableColumnDefinition}
                   data={columnList}
                   pageSizeOptions={pageSizeOptions}
@@ -303,7 +302,7 @@ const DatasetPanel = ({
               <TableScrollContainer>
                 <Table
                   loading={loading}
-                  size={TableSize.SMALL}
+                  size={TableSize.Small}
                   columns={tableColumnDefinition}
                   data={columnList}
                   pageSizeOptions={pageSizeOptions}

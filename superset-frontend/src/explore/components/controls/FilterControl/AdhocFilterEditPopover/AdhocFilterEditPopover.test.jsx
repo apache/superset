@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
-import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import Button from 'src/components/Button';
@@ -30,20 +28,20 @@ import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/contr
 import AdhocFilterEditPopoverSqlTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilterEditPopover from '.';
-import { CLAUSES, EXPRESSION_TYPES } from '../types';
+import { Clauses, ExpressionTypes } from '../types';
 
 const simpleAdhocFilter = new AdhocFilter({
-  expressionType: EXPRESSION_TYPES.SIMPLE,
+  expressionType: ExpressionTypes.Simple,
   subject: 'value',
   operator: '>',
   comparator: '10',
-  clause: CLAUSES.WHERE,
+  clause: Clauses.Where,
 });
 
 const sqlAdhocFilter = new AdhocFilter({
-  expressionType: EXPRESSION_TYPES.SQL,
+  expressionType: ExpressionTypes.Sql,
   sqlExpression: 'value > 10',
-  clause: CLAUSES.WHERE,
+  clause: Clauses.Where,
 });
 
 const faultyAdhocFilter = new AdhocFilter({
@@ -51,11 +49,11 @@ const faultyAdhocFilter = new AdhocFilter({
   subject: null,
   operator: '>',
   comparator: '10',
-  clause: CLAUSES.WHERE,
+  clause: Clauses.Where,
 });
 
 const sumValueAdhocMetric = new AdhocMetric({
-  expressionType: EXPRESSION_TYPES.SIMPLE,
+  expressionType: ExpressionTypes.Simple,
   column: { type: 'VARCHAR(255)', column_name: 'source' },
   aggregate: AGGREGATES.SUM,
 });

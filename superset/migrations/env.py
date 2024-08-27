@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import time
 import urllib.parse
 from logging.config import fileConfig
 
@@ -53,6 +54,13 @@ target_metadata = Base.metadata  # pylint: disable=no-member
 # ... etc.
 
 
+def print_duration(start_time: float) -> None:
+    logger.info(
+        "Migration scripts completed. Duration: %s",
+        time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time)),
+    )
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
@@ -65,11 +73,15 @@ def run_migrations_offline() -> None:
     script output.
 
     """
+    start_time = time.time()
+    logger.info("Starting the migration scripts.")
+
     url = config.get_main_option("sqlalchemy.url")
     context.configure(url=url)
 
     with context.begin_transaction():
         context.run_migrations()
+    print_duration(start_time)
 
 
 def run_migrations_online() -> None:
@@ -79,6 +91,9 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+
+    start_time = time.time()
+    logger.info("Starting the migration scripts.")
 
     # this callback is used to prevent an auto-migration from being generated
     # when there are no changes to the schema
@@ -116,6 +131,7 @@ def run_migrations_online() -> None:
     try:
         with context.begin_transaction():
             context.run_migrations()
+        print_duration(start_time)
     finally:
         connection.close()
 

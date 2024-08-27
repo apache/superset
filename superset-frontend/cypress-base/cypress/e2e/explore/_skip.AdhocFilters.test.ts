@@ -35,8 +35,10 @@ describe.skip('AdhocFilters', () => {
     });
 
     cy.get('[data-test=adhoc_filters]').within(() => {
-      cy.get('.Select__control').scrollIntoView().click();
-      cy.get('input[type=text]').focus().type('name{enter}');
+      cy.get('.Select__control').scrollIntoView();
+      cy.get('.Select__control').click();
+      cy.get('input[type=text]').focus();
+      cy.focused().type('name{enter}');
       cy.get("div[role='button']").first().click();
     });
 
@@ -54,9 +56,8 @@ describe.skip('AdhocFilters', () => {
 
   it('Set simple adhoc filter', () => {
     cy.get('[aria-label="Comparator option"] .Select__control').click();
-    cy.get('[data-test=adhoc-filter-simple-value] input[type=text]')
-      .focus()
-      .type('Jack{enter}', { delay: 20 });
+    cy.get('[data-test=adhoc-filter-simple-value] input[type=text]').focus();
+    cy.focused().type('Jack{enter}', { delay: 20 });
 
     cy.get('[data-test="adhoc-filter-edit-popover-save-button"]').click();
 
@@ -75,18 +76,15 @@ describe.skip('AdhocFilters', () => {
     const filterType = 'name';
     const filterContent = "'Amy' OR name = 'Donald'";
 
-    cy.get('[data-test=adhoc_filters] .Select__control')
-      .scrollIntoView()
-      .click();
+    cy.get('[data-test=adhoc_filters] .Select__control').scrollIntoView();
+    cy.get('[data-test=adhoc_filters] .Select__control').click();
 
     // remove previous input
-    cy.get('[data-test=adhoc_filters] input[type=text]')
-      .focus()
-      .type('{backspace}');
+    cy.get('[data-test=adhoc_filters] input[type=text]').focus();
+    cy.focused().type('{backspace}');
 
-    cy.get('[data-test=adhoc_filters] input[type=text]')
-      .focus()
-      .type(`${filterType}{enter}`);
+    cy.get('[data-test=adhoc_filters] input[type=text]').focus();
+    cy.focused().type(`${filterType}{enter}`);
 
     cy.wait('@filterValues');
 

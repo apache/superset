@@ -41,7 +41,7 @@ describe('Charts filters', () => {
   });
 
   it('should allow filtering by "Type" correctly', () => {
-    setFilter('Type', 'Area Chart (legacy)');
+    setFilter('Type', 'Area Chart');
     setFilter('Type', 'Bubble Chart');
   });
 

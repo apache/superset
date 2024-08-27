@@ -18,7 +18,6 @@
  */
 /* eslint-disable react/jsx-key */
 
-import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,

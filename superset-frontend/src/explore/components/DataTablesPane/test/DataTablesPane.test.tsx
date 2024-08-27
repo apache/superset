@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { FeatureFlag } from '@superset-ui/core';
@@ -93,6 +92,8 @@ describe('DataTablesPane', () => {
             data: [{ __timestamp: 1230768000000, genre: 'Action' }],
             colnames: ['__timestamp', 'genre'],
             coltypes: [2, 1],
+            rowcount: 1,
+            sql_rowcount: 1,
           },
         ],
       },
@@ -113,6 +114,34 @@ describe('DataTablesPane', () => {
     fetchMock.restore();
   });
 
+  test('Should not allow copy data table content when canDownload=false', async () => {
+    fetchMock.post(
+      'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
+      {
+        result: [
+          {
+            data: [{ __timestamp: 1230768000000, genre: 'Action' }],
+            colnames: ['__timestamp', 'genre'],
+            coltypes: [2, 1],
+            rowcount: 1,
+            sql_rowcount: 1,
+          },
+        ],
+      },
+    );
+    const props = {
+      ...createDataTablesPaneProps(456),
+      canDownload: false,
+    };
+    render(<DataTablesPane {...props} />, {
+      useRedux: true,
+    });
+    userEvent.click(screen.getByText('Results'));
+    expect(await screen.findByText('1 row')).toBeVisible();
+    expect(screen.queryByLabelText('Copy')).not.toBeInTheDocument();
+    fetchMock.restore();
+  });
+
   test('Search table', async () => {
     fetchMock.post(
       'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A789%7D',
@@ -125,6 +154,8 @@ describe('DataTablesPane', () => {
             ],
             colnames: ['__timestamp', 'genre'],
             coltypes: [2, 1],
+            rowcount: 2,
+            sql_rowcount: 2,
           },
         ],
       },
@@ -135,6 +166,7 @@ describe('DataTablesPane', () => {
     });
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('2 rows')).toBeVisible();
+
     expect(screen.getByText('Action')).toBeVisible();
     expect(screen.getByText('Horror')).toBeVisible();
 
@@ -149,10 +181,10 @@ describe('DataTablesPane', () => {
   test('Displaying the data pane is under featureflag', () => {
     // @ts-ignore
     global.featureFlags = {
-      [FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT]: true,
+      [FeatureFlag.DatapanelClosedByDefault]: true,
     };
     const props = createDataTablesPaneProps(0);
-    setItem(LocalStorageKeys.is_datapanel_open, true);
+    setItem(LocalStorageKeys.IsDatapanelOpen, true);
     render(<DataTablesPane {...props} />, {
       useRedux: true,
     });

@@ -84,6 +84,20 @@ class TestPinotDbEngineSpec(TestDbEngineSpec):
             expected,
         )
 
+    def test_pinot_time_expression_millisec_one_1m_grain(self):
+        col = column("tstamp")
+        expr = PinotEngineSpec.get_timestamp_expr(col, "epoch_ms", "P1M")
+        result = str(expr.compile())
+        expected = (
+            "CAST(DATE_TRUNC('month', CAST("
+            + "DATETIMECONVERT(tstamp, '1:MILLISECONDS:EPOCH', "
+            + "'1:MILLISECONDS:EPOCH', '1:MILLISECONDS') AS TIMESTAMP)) AS TIMESTAMP)"
+        )
+        self.assertEqual(
+            result,
+            expected,
+        )
+
     def test_invalid_get_time_expression_arguments(self):
         with self.assertRaises(NotImplementedError):
             PinotEngineSpec.get_timestamp_expr(column("tstamp"), None, "P0.25Y")

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { MouseEvent } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 
@@ -47,7 +47,7 @@ const mockQueries: QueryObject[] = [...new Array(3)].map((_, i) => ({
     { schema: 'foo', table: 'table' },
     { schema: 'bar', table: 'table_2' },
   ],
-  status: QueryState.SUCCESS,
+  status: QueryState.Success,
   tab_name: 'Main Tab',
   user: {
     first_name: 'cool',
@@ -98,7 +98,7 @@ describe('QueryPreviewModal', () => {
         .props();
 
       if (typeof props.onClick === 'function') {
-        props.onClick({} as React.MouseEvent);
+        props.onClick({} as MouseEvent);
       }
     });
 
@@ -130,7 +130,7 @@ describe('QueryPreviewModal', () => {
           .first()
           .props();
         if (typeof props.onClick === 'function') {
-          props.onClick({} as React.MouseEvent);
+          props.onClick({} as MouseEvent);
         }
       });
 
@@ -143,7 +143,7 @@ describe('QueryPreviewModal', () => {
       act(() => {
         const props = wrapper.find('[data-test="next-query"]').first().props();
         if (typeof props.onClick === 'function') {
-          props.onClick({} as React.MouseEvent);
+          props.onClick({} as MouseEvent);
         }
       });
 
@@ -173,7 +173,7 @@ describe('QueryPreviewModal', () => {
         .props();
 
       if (typeof props.onClick === 'function') {
-        props.onClick({} as React.MouseEvent);
+        props.onClick({} as MouseEvent);
       }
 
       expect(mockedProps.openInSqlLab).toHaveBeenCalled();

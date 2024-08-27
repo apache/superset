@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useCallback, useRef, FocusEvent } from 'react';
+import { useState, useCallback, useRef, FocusEvent, FC } from 'react';
+
 import { t, useTheme } from '@superset-ui/core';
 
-import { AntdInput, RadioChangeEvent } from 'src/components';
+import { AntdInput, Select } from 'src/components';
 import { Input } from 'src/components/Input';
-import { Radio } from 'src/components/Radio';
 import { CronPicker, CronError } from 'src/components/CronPicker';
 import { StyledInputContainer } from '../AlertReportModal';
 
@@ -30,76 +30,101 @@ export interface AlertReportCronSchedulerProps {
   onChange: (change: string) => any;
 }
 
-export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
-  ({ value, onChange }) => {
-    const theme = useTheme();
-    const inputRef = useRef<AntdInput>(null);
-    const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
-      'picker',
-    );
+enum ScheduleType {
+  Picker = 'picker',
+  Input = 'input',
+}
 
-    const handleRadioButtonChange = useCallback(
-      (e: RadioChangeEvent) => setScheduleFormat(e.target.value),
-      [],
-    );
+const SCHEDULE_TYPE_OPTIONS = [
+  {
+    label: t('Recurring (every)'),
+    value: ScheduleType.Picker,
+  },
+  {
+    label: t('CRON Schedule'),
+    value: ScheduleType.Input,
+  },
+];
 
-    const customSetValue = useCallback(
-      (newValue: string) => {
-        onChange(newValue);
-        inputRef.current?.setValue(newValue);
-      },
-      [inputRef, onChange],
-    );
+export const AlertReportCronScheduler: FC<AlertReportCronSchedulerProps> = ({
+  value,
+  onChange,
+}) => {
+  const theme = useTheme();
+  const inputRef = useRef<AntdInput>(null);
+  const [scheduleFormat, setScheduleFormat] = useState<ScheduleType>(
+    ScheduleType.Picker,
+  );
 
-    const handleBlur = useCallback(
-      (event: FocusEvent<HTMLInputElement>) => {
-        onChange(event.target.value);
-      },
-      [onChange],
-    );
+  const customSetValue = useCallback(
+    (newValue: string) => {
+      onChange(newValue);
+      inputRef.current?.setValue(newValue);
+    },
+    [inputRef, onChange],
+  );
 
-    const handlePressEnter = useCallback(() => {
-      onChange(inputRef.current?.input.value || '');
-    }, [onChange]);
+  const handleBlur = useCallback(
+    (event: FocusEvent<HTMLInputElement>) => {
+      onChange(event.target.value);
+    },
+    [onChange],
+  );
 
-    const [error, onError] = useState<CronError>();
+  const handlePressEnter = useCallback(() => {
+    onChange(inputRef.current?.input.value || '');
+  }, [onChange]);
 
-    return (
-      <>
-        <Radio.Group onChange={handleRadioButtonChange} value={scheduleFormat}>
-          <div className="inline-container add-margin">
-            <Radio data-test="picker" value="picker" />
-            <CronPicker
-              clearButton={false}
-              value={value}
-              setValue={customSetValue}
-              disabled={scheduleFormat !== 'picker'}
-              displayError={scheduleFormat === 'picker'}
-              onError={onError}
-            />
-          </div>
-          <div className="inline-container add-margin">
-            <Radio data-test="input" value="input" />
-            <span className="input-label">{t('CRON Schedule')}</span>
-            <StyledInputContainer
-              data-test="input-content"
-              className="styled-input"
-            >
-              <div className="input-container">
-                <Input
-                  type="text"
-                  name="crontab"
-                  ref={inputRef}
-                  style={error ? { borderColor: theme.colors.error.base } : {}}
-                  placeholder={t('CRON expression')}
-                  disabled={scheduleFormat !== 'input'}
-                  onBlur={handleBlur}
-                  onPressEnter={handlePressEnter}
-                />
-              </div>
-            </StyledInputContainer>
-          </div>
-        </Radio.Group>
-      </>
-    );
-  };
+  const [error, onError] = useState<CronError>();
+
+  return (
+    <>
+      <StyledInputContainer>
+        <div className="control-label">
+          {t('Schedule type')}
+          <span className="required">*</span>
+        </div>
+        <div className="input-container">
+          <Select
+            ariaLabel={t('Schedule type')}
+            placeholder={t('Schedule type')}
+            onChange={(e: ScheduleType) => {
+              setScheduleFormat(e);
+            }}
+            value={scheduleFormat}
+            options={SCHEDULE_TYPE_OPTIONS}
+          />
+        </div>
+      </StyledInputContainer>
+
+      <StyledInputContainer data-test="input-content" className="styled-input">
+        <div className="control-label">
+          {t('Schedule')}
+          <span className="required">*</span>
+        </div>
+        {scheduleFormat === ScheduleType.Input && (
+          <Input
+            type="text"
+            name="crontab"
+            ref={inputRef}
+            style={error ? { borderColor: theme.colors.error.base } : {}}
+            placeholder={t('CRON expression')}
+            value={value}
+            onBlur={handleBlur}
+            onChange={e => customSetValue(e.target.value)}
+            onPressEnter={handlePressEnter}
+          />
+        )}
+        {scheduleFormat === ScheduleType.Picker && (
+          <CronPicker
+            clearButton={false}
+            value={value}
+            setValue={customSetValue}
+            displayError={scheduleFormat === ScheduleType.Picker}
+            onError={onError}
+          />
+        )}
+      </StyledInputContainer>
+    </>
+  );
+};

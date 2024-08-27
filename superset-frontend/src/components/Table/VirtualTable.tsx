@@ -23,7 +23,7 @@ import AntTable, {
 } from 'antd/lib/table';
 import classNames from 'classnames';
 import { useResizeDetector } from 'react-resize-detector';
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, CSSProperties } from 'react';
 import { VariableSizeGrid as Grid } from 'react-window';
 import { useTheme, styled, safeHtmlSpan } from '@superset-ui/core';
 
@@ -178,7 +178,7 @@ const VirtualTable = <RecordType extends object>(
       {},
       {},
       {
-        action: ETableAction.PAGINATE,
+        action: ETableAction.Paginate,
         currentDataSource: [],
       },
     );
@@ -187,7 +187,7 @@ const VirtualTable = <RecordType extends object>(
   const renderVirtualList = (rawData: object[], { ref, onScroll }: any) => {
     // eslint-disable-next-line no-param-reassign
     ref.current = connectObject;
-    const cellSize = size === TableSize.MIDDLE ? MIDDLE : SMALL;
+    const cellSize = size === TableSize.Middle ? MIDDLE : SMALL;
     return (
       <Grid
         ref={gridRef}
@@ -212,7 +212,7 @@ const VirtualTable = <RecordType extends object>(
         }: {
           columnIndex: number;
           rowIndex: number;
-          style: React.CSSProperties;
+          style: CSSProperties;
         }) => {
           const data: any = rawData?.[rowIndex];
           // Set default content

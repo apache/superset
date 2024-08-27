@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useTheme } from '@superset-ui/core';
 import Collapse, { CollapseProps } from '.';
 
@@ -59,13 +58,8 @@ InteractiveCollapse.argTypes = {
   },
 };
 
-InteractiveCollapse.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+InteractiveCollapse.parameters = {
+  actions: {
+    disable: true,
   },
 };

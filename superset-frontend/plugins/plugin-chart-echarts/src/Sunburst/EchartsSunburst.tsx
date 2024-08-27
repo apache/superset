@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import {
   BinaryQueryObjectFilterClause,
   getColumnLabel,

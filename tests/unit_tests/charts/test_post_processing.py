@@ -19,7 +19,6 @@
 import pandas as pd
 import pytest
 from flask_babel import lazy_gettext as _
-from numpy import True_
 from sqlalchemy.orm.session import Session
 
 from superset.charts.post_processing import apply_post_process, pivot_df, table
@@ -1391,7 +1390,7 @@ def test_apply_post_process_without_result_format():
     with pytest.raises(Exception) as ex:
         apply_post_process(result, form_data)
 
-    assert ex.match("Result format foo not supported") == True
+    assert ex.match("Result format foo not supported") is True  # noqa: E712
 
 
 def test_apply_post_process_json_format():
@@ -1965,12 +1964,13 @@ def test_apply_post_process_json_format_data_is_none():
 
 
 def test_apply_post_process_verbose_map(session: Session):
+    from superset import db
     from superset.connectors.sqla.models import SqlaTable, SqlMetric
     from superset.models.core import Database
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
-    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
         columns=[],
@@ -1982,7 +1982,7 @@ def test_apply_post_process_verbose_map(session: Session):
                 expression="COUNT(*)",
             )
         ],
-        database=db,
+        database=database,
     )
 
     result = {

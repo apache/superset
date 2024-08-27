@@ -29,7 +29,9 @@ from superset.utils.core import DatasourceType
 from superset.utils.database import get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.fixtures.tags import with_tagging_system_feature
+from tests.integration_tests.fixtures.tags import (
+    with_tagging_system_feature,  # noqa: F401
+)
 
 
 class TestTagging(SupersetTestCase):

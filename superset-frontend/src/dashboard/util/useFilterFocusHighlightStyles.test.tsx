@@ -17,16 +17,12 @@
  * under the License.
  */
 
-import React from 'react';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import mockState from 'spec/fixtures/mockState';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { screen, render } from 'spec/helpers/testing-library';
 import { initialState } from 'src/SqlLab/fixtures';
-import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
-import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
-import { buildActiveFilters } from './activeDashboardFilters';
 import useFilterFocusHighlightStyles from './useFilterFocusHighlightStyles';
 
 const TestComponent = ({ chartId }: { chartId: number }) => {
@@ -174,66 +170,6 @@ describe('useFilterFocusHighlightStyles', () => {
         [chartId]: {
           scopes: {
             otherColumn: {},
-          },
-        },
-      },
-    });
-    renderWrapper(chartId, store);
-
-    const container = screen.getByTestId('test-component');
-
-    const styles = getComputedStyle(container);
-    expect(parseFloat(styles.opacity)).toBe(1);
-  });
-
-  it('should return unfocused styles if chart is not inside filter box scope', async () => {
-    buildActiveFilters({
-      dashboardFilters,
-      components: dashboardWithFilter,
-    });
-
-    const chartId = 18;
-    const store = createMockStore({
-      dashboardState: {
-        focusedFilterField: {
-          chartId,
-          column: 'test',
-        },
-      },
-      dashboardFilters: {
-        [chartId]: {
-          scopes: {
-            column: {},
-          },
-        },
-      },
-    });
-    renderWrapper(20, store);
-
-    const container = screen.getByTestId('test-component');
-
-    const styles = getComputedStyle(container);
-    expect(parseFloat(styles.opacity)).toBe(0.3);
-  });
-
-  it('should return focused styles if chart is inside filter box scope', async () => {
-    buildActiveFilters({
-      dashboardFilters,
-      components: dashboardWithFilter,
-    });
-
-    const chartId = 18;
-    const store = createMockStore({
-      dashboardState: {
-        focusedFilterField: {
-          chartId,
-          column: 'test',
-        },
-      },
-      dashboardFilters: {
-        [chartId]: {
-          scopes: {
-            column: {},
           },
         },
       },

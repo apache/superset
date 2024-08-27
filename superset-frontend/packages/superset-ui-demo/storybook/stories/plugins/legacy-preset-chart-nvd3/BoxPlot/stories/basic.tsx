@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { SuperChart } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
@@ -25,8 +24,8 @@ import data from '../data';
 export const basic = () => (
   <SuperChart
     chartType="box-plot"
-    width={400}
-    height={400}
+    width={800}
+    height={600}
     datasource={dummyDatasource}
     queriesData={[{ data }]}
     formData={{

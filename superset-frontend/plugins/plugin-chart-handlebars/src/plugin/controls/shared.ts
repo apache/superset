@@ -29,14 +29,14 @@ import {
 
 export function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
-  if (mode === QueryMode.aggregate || mode === QueryMode.raw) {
+  if (mode === QueryMode.Aggregate || mode === QueryMode.Raw) {
     return mode as QueryMode;
   }
   const rawColumns = controls?.all_columns?.value as
     | QueryFormColumn[]
     | undefined;
   const hasRawColumns = rawColumns && rawColumns.length > 0;
-  return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
+  return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
 /**
@@ -47,8 +47,8 @@ export function isQueryMode(mode: QueryMode) {
     getQueryMode(controls) === mode;
 }
 
-export const isAggMode = isQueryMode(QueryMode.aggregate);
-export const isRawMode = isQueryMode(QueryMode.raw);
+export const isAggMode = isQueryMode(QueryMode.Aggregate);
+export const isRawMode = isQueryMode(QueryMode.Raw);
 
 export const validateAggControlValues = (
   controls: ControlStateMapping,

@@ -21,7 +21,11 @@ from sqlalchemy_utils import EncryptedType
 from sqlalchemy_utils.types.encrypted.encrypted_type import StringEncryptedType
 
 from superset.extensions import encrypted_field_factory
-from superset.utils.encrypt import AbstractEncryptedFieldAdapter, SQLAlchemyUtilsAdapter
+from superset.utils.encrypt import (
+    AbstractEncryptedFieldAdapter,
+    SecretsMigrator,
+    SQLAlchemyUtilsAdapter,
+)
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -30,7 +34,7 @@ class CustomEncFieldAdapter(AbstractEncryptedFieldAdapter):
         self,
         app_config: Optional[dict[str, Any]],
         *args: list[Any],
-        **kwargs: Optional[dict[str, Any]]
+        **kwargs: Optional[dict[str, Any]],
     ) -> TypeDecorator:
         if app_config:
             return StringEncryptedType(*args, app_config["SECRET_KEY"], **kwargs)
@@ -40,9 +44,9 @@ class CustomEncFieldAdapter(AbstractEncryptedFieldAdapter):
 
 class EncryptedFieldTest(SupersetTestCase):
     def setUp(self) -> None:
-        self.app.config[
-            "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
-        ] = SQLAlchemyUtilsAdapter
+        self.app.config["SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"] = (
+            SQLAlchemyUtilsAdapter
+        )
         encrypted_field_factory.init_app(self.app)
 
         super().setUp()
@@ -53,11 +57,32 @@ class EncryptedFieldTest(SupersetTestCase):
         self.assertEqual(self.app.config["SECRET_KEY"], field.key)
 
     def test_custom_adapter(self):
-        self.app.config[
-            "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
-        ] = CustomEncFieldAdapter
+        self.app.config["SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"] = (
+            CustomEncFieldAdapter
+        )
         encrypted_field_factory.init_app(self.app)
         field = encrypted_field_factory.create(String(1024))
         self.assertTrue(isinstance(field, StringEncryptedType))
         self.assertFalse(isinstance(field, EncryptedType))
+        self.assertTrue(getattr(field, "__created_by_enc_field_adapter__"))
         self.assertEqual(self.app.config["SECRET_KEY"], field.key)
+
+    def test_ensure_encrypted_field_factory_is_used(self):
+        """
+        Ensure that the EncryptedFieldFactory is used everywhere
+        that an encrypted field is needed.
+        :return:
+        """
+        from superset.extensions import encrypted_field_factory
+
+        migrator = SecretsMigrator("")
+        encrypted_fields = migrator.discover_encrypted_fields()
+        for table_name, cols in encrypted_fields.items():
+            for col_name, field in cols.items():
+                if not encrypted_field_factory.created_by_enc_field_factory(field):
+                    self.fail(
+                        f"The encrypted column [{col_name}]"
+                        f" in the table [{table_name}]"
+                        " was not created using the"
+                        " encrypted_field_factory"
+                    )

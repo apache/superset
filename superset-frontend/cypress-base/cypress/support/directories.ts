@@ -48,7 +48,7 @@ export const profile = {
   favoritesSpace: '#rc-tabs-0-panel-2',
 };
 export const securityAccess = {
-  rolesBubble: '.ant-badge-count',
+  rolesBubble: '.antd5-badge-count',
 };
 export const homePage = {
   homeSection: {
@@ -657,7 +657,7 @@ export const dashboardView = {
   treeMapChartModal: {
     selectItem: '.Select_control',
     selectItemInput: '.Select__control input[type=text]',
-    applyButton: '.filter_box button:not(:disabled)',
+    applyButton: '.filter button:not(:disabled)',
     clearItemIcon: '.Select__clear-indicator',
   },
   sliceThreeDots: '[aria-label="More Options"]',

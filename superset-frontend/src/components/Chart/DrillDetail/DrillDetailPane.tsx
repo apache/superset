@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  cloneElement,
   ReactElement,
   useCallback,
   useEffect,
@@ -63,7 +64,7 @@ function Resizable({ children }: { children: ReactElement }) {
   const { ref, height } = useResizeDetector();
   return (
     <div ref={ref} css={{ flex: 1 }}>
-      {React.cloneElement(children, { height })}
+      {cloneElement(children, { height })}
     </div>
   );
 }
@@ -122,7 +123,7 @@ export default function DrillDetailPane({
         key: column,
         dataIndex: column,
         title:
-          resultsPage?.colTypes[index] === GenericDataType.TEMPORAL ? (
+          resultsPage?.colTypes[index] === GenericDataType.Temporal ? (
             <HeaderWithRadioGroup
               headerTitle={column}
               groupTitle={t('Formatting')}
@@ -153,7 +154,7 @@ export default function DrillDetailPane({
             return <NullCell />;
           }
           if (
-            resultsPage?.colTypes[index] === GenericDataType.TEMPORAL &&
+            resultsPage?.colTypes[index] === GenericDataType.Temporal &&
             timeFormatting[column] !== TimeFormatting.Original &&
             (typeof value === 'number' || value instanceof Date)
           ) {
@@ -262,7 +263,9 @@ export default function DrillDetailPane({
 
   const bootstrapping =
     (!responseError && !resultsPages.size) ||
-    metadataBarStatus === ResourceStatus.LOADING;
+    metadataBarStatus === ResourceStatus.Loading;
+
+  const allowHTML = formData.allow_render_html ?? true;
 
   let tableContent = null;
   if (responseError) {
@@ -290,7 +293,7 @@ export default function DrillDetailPane({
         <Table
           data={data}
           columns={mappedColumns}
-          size={TableSize.SMALL}
+          size={TableSize.Small}
           defaultPageSize={PAGE_SIZE}
           recordCount={resultsPage?.total}
           usePagination
@@ -300,7 +303,7 @@ export default function DrillDetailPane({
           }
           resizable
           virtualize
-          allowHTML
+          allowHTML={allowHTML}
         />
       </Resizable>
     );

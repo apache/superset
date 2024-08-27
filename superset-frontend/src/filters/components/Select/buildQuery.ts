@@ -40,8 +40,8 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
       columns.filter(isPhysicalColumn).forEach(column => {
         const label = getColumnLabel(column);
         if (
-          coltypeMap[label] === GenericDataType.STRING ||
-          (coltypeMap[label] === GenericDataType.NUMERIC &&
+          coltypeMap[label] === GenericDataType.String ||
+          (coltypeMap[label] === GenericDataType.Numeric &&
             !Number.isNaN(Number(search)))
         ) {
           extraFilters.push({

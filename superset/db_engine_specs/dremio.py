@@ -37,6 +37,13 @@ FIXED_ALIAS_IN_SELECT_VERSION = Version("24.1.0")
 class DremioEngineSpec(BaseEngineSpec):
     engine = "dremio"
     engine_name = "Dremio"
+    engine_aliases = {"dremio+flight"}
+    sqlalchemy_uri_placeholder = (
+        "dremio+flight://data.dremio.cloud:443/?"
+        "Token=<TOKEN>&"
+        "UseEncryption=true&"
+        "disableCertificateVerification=true"
+    )
 
     _time_grain_expressions = {
         None: "{col}",
