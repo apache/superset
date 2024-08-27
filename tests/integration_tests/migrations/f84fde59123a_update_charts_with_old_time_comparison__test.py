@@ -83,7 +83,7 @@ base_params: dict[str, Any] = {
 }
 
 # Specific parameter objects overriding only the differing properties
-params_v1_with_custom = {
+params_v1_with_custom: dict[str, Any] = {
     **base_params,
     "metric": {
         **base_params["metric"],
@@ -113,7 +113,7 @@ params_v1_with_custom = {
     ],
 }
 
-params_v1_other_than_custom = {
+params_v1_other_than_custom: dict[str, Any] = {
     **base_params,
     "metric": {
         **base_params["metric"],
@@ -132,12 +132,12 @@ params_v1_other_than_custom = {
     ],
 }
 
-params_v1_other_than_custom_false = {
+params_v1_other_than_custom_false: dict[str, Any] = {
     **params_v1_other_than_custom,
     "enable_time_comparison": False,
 }
 
-params_v2_with_custom = {
+params_v2_with_custom: dict[str, Any] = {
     **base_params,
     "metric": {
         **base_params["metric"],
@@ -155,7 +155,7 @@ params_v2_with_custom = {
     "start_date_offset": "1981-01-01",
 }
 
-params_v2_other_than_custom = {
+params_v2_other_than_custom: dict[str, Any] = {
     **base_params,
     "metric": {
         **base_params["metric"],
@@ -165,7 +165,7 @@ params_v2_other_than_custom = {
     "comparison_type": "values",
 }
 
-params_v2_other_than_custom_false = {
+params_v2_other_than_custom_false: dict[str, Any] = {
     **params_v2_other_than_custom,
     "time_compare": [],
 }
