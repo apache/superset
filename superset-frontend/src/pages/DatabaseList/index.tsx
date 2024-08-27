@@ -608,8 +608,8 @@ function DatabaseList({
           description={
             <>
               <p>
-                {t('The database')}
-                <b> {databaseCurrentlyDeleting.database_name} </b>
+                {t('The database')}{' '}
+                <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
                 {t(
                   'is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
                   databaseCurrentlyDeleting.charts.count,
