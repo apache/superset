@@ -47,12 +47,13 @@ repos:
     hooks:
       - id: check-docstring-first
       - id: check-added-large-files
-        exclude: ^.*\.(geojson|snap)$|^docs/static/img/screenshots/.*
+        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*
       - id: check-yaml
         exclude: ^helm/superset/templates/
       - id: debug-statements
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        exclude: ^.*\.(snap)
         args: ["--markdown-linebreak-ext=md"]
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0 # Use the sha or tag you want to point at
