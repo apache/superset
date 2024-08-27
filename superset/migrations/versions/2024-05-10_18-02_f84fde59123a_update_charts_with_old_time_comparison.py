@@ -69,9 +69,9 @@ def upgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
     if "time_comparison" in params:
         time_comp = params.pop("time_comparison")
         params["time_compare"] = (
-            time_map.get(time_comp, "inherit")
+            [time_map.get(time_comp, "inherit")]
             if "enable_time_comparison" in params and params["enable_time_comparison"]
-            else ""
+            else []
         )
 
     if "enable_time_comparison" in params:
@@ -129,6 +129,8 @@ def downgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
     # Revert time_compare to time_comparison
     if "time_compare" in params:
         time_comp = params.pop("time_compare")
+        # Max one element in the time_compare list
+        time_comp = time_comp[0] if time_comp else ""
         params["time_comparison"] = reverse_time_map.get(time_comp, "r")
         # If the chart was using any time compare, enable time comparison
         if time_comp:

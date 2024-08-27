@@ -277,7 +277,7 @@ params_v2_with_custom: dict[str, Any] = {
     "comparison_color_scheme": "Green",
     "extra_form_data": {},
     "dashboards": [],
-    "time_compare": "custom",
+    "time_compare": ["custom"],
     "comparison_type": "values",
     "start_date_offset": "1981-01-01",
 }
@@ -333,7 +333,7 @@ params_v2_other_than_custom: dict[str, Any] = {
     "comparison_color_scheme": "Green",
     "extra_form_data": {},
     "dashboards": [],
-    "time_compare": "inherit",
+    "time_compare": ["inherit"],
     "comparison_type": "values",
 }
 params_v2_other_than_custom_false: dict[str, Any] = {
@@ -388,7 +388,7 @@ params_v2_other_than_custom_false: dict[str, Any] = {
     "comparison_color_scheme": "Green",
     "extra_form_data": {},
     "dashboards": [],
-    "time_compare": "",
+    "time_compare": [],
     "comparison_type": "values",
 }
 
