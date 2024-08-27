@@ -286,12 +286,14 @@ const FilterValue: FC<FilterControlProps> = ({
     ],
   );
 
+  const cascadeParentIdsLength = filter.cascadeParentIds.length;
+  const defaultToFirstItem = formData.defaultToFirstItem;
   const filterState = useMemo(() => {
-    const filterStateData = filter.dataMask?.filterState || {};
 
-    if (formData?.defaultValue?.length > 0) {
+    if (state?.length <= 0) {
       return {
-        ...filterStateData,
+        label: undefined,
+        value: undefined,
         validateStatus,
         validateMessage: '',
       };
@@ -299,7 +301,7 @@ const FilterValue: FC<FilterControlProps> = ({
 
     if (filter?.dataMask?.filterState?.selected) {
       return {
-        ...filterStateData,
+        ...filter.dataMask?.filterState,
         validateStatus,
         validateMessage: '',
       };
@@ -307,7 +309,7 @@ const FilterValue: FC<FilterControlProps> = ({
 
     if (filter.cascadeParentIds.length <= 0 || !formData.defaultToFirstItem) {
       return {
-        ...filterStateData,
+        ...filter.dataMask?.filterState,
         validateStatus,
         validateMessage: '',
         selected: false,
@@ -318,15 +320,17 @@ const FilterValue: FC<FilterControlProps> = ({
       if (formData.multiSelect) {
         const labels = state[0]?.data.map(item => Object.values(item)[0]);
         return {
-          label: labels.join(', '), // Joining multiple labels as a single string
-          value: labels, // Keeping values as an array of strings
+          label: labels[0],
+          value: [labels[0]],
           validateStatus,
+          selected: false,
+          validateMessage: '',
         };
       }
 
-      const firstStateData = state[0]?.data[0];
-      const label = Object.values(firstStateData || {})[0];
-      const value = Object.values(firstStateData || {});
+      const [firstStateData] = state[0]?.data || [{}];
+      const [label] = Object.values(firstStateData);
+      const value = Object.values(firstStateData);
 
       return {
         label,
@@ -338,12 +342,21 @@ const FilterValue: FC<FilterControlProps> = ({
     }
 
     return {
-      ...filterStateData,
+      ...filter.dataMask?.filterState,
       validateStatus,
       selected: false,
       validateMessage: '',
     };
-  }, [dependencies, formData, state, validateStatus, filter.dataMask?.filterState])
+  }, [
+    dependencies,
+    formData?.defaultValue,
+    state?.length,
+    validateStatus,
+    filter?.dataMask?.filterState?.selected,
+    cascadeParentIdsLength,
+    defaultToFirstItem,
+    formData.multiSelect,
+  ]);
 
   const displaySettings = useMemo(
     () => ({

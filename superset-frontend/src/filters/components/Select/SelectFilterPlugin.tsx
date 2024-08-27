@@ -256,25 +256,20 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   useEffect(() => {
     if (defaultToFirstItem && filterState.value === undefined) {
-      // Initialize to first value if set to default to first item
+      // initialize to first value if set to default to first item
       const firstItem: SelectValue = data[0]
         ? (groupby.map(col => data[0][col]) as string[])
         : null;
 
-      // Handle the case when groupby changed but new data is still not fetched
+      // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
+      // TODO: still need repopulate default value in config modal when column changed
       if (firstItem?.[0] !== undefined) {
         updateDataMask(firstItem);
       }
-      return;
-    }
-
-    if (isDisabled) {
-      // Empty selection if filter is disabled
+    } else if (isDisabled) {
+      // empty selection if filter is disabled
       updateDataMask(null);
-      return;
-    }
-
-    if (!filterState.selected) {
+    } else if (!filterState.selected) {
       updateDataMask(filterState.value);
     }
   }, [

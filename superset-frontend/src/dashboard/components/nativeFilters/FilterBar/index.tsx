@@ -172,18 +172,22 @@ const FilterBar: FC<FiltersBarProps> = ({
         const isValueRequired =
           dataMask.filterState?.value !== undefined &&
           dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
-          undefined &&
+            undefined &&
           filter.requiredFirst;
 
         const isValidationError =
           filter?.dataMask?.filterState?.validateMessage ===
-          'Value is required' ||
-          filter?.dataMask?.filterState?.validateMessage === false ||
+            'Value is required' ||
+          Object.keys(filter?.dataMask?.extraFormData || {}).length === 0 ||
           Object.keys(filter?.dataMask?.filterState || {}).length === 0;
-
-        if (isValueRequired || isValidationError) {
+       
+        if (
+          (isValueRequired || isValidationError) &&
+          filter?.controlValues?.enableEmptyFilter
+        ) {
           dispatch(updateDataMask(filter.id, dataMask));
         }
+
 
         setState(filter);
 
@@ -204,16 +208,28 @@ const FilterBar: FC<FiltersBarProps> = ({
       );
 
       if (hasSelectedFilters) {
+        const result1: any = findFilterIdByCascadeParent(
+          filterValues,
+          state.id,
+        );
         const updatedDataMaskSelected1 = Object.keys(dataMaskSelected).map(
           filterId => {
             const filter = dataMaskSelected[filterId];
-
+            const filter1 = dataMaskSelected[result1?.id];
             if (
               state.id !== filterId &&
-              filter?.filterState &&
-              (filter.filterState.selected || filter?.filterState?.second === 1)
+              (result1 || filter1) &&
+              (filter?.filterState?.selected ||
+                filter?.filterState?.second === 1)
             ) {
               return {
+                [result1.id]: {
+                  ...filter1,
+                  filterState: {
+                    ...filter1.filterState,
+                    selected: false,
+                  },
+                },
                 [filterId]: {
                   ...filter,
                   filterState: {
@@ -222,11 +238,11 @@ const FilterBar: FC<FiltersBarProps> = ({
                   },
                 },
               };
+            } else {
+              return {
+                [filterId]: filter,
+              };
             }
-
-            return {
-              [filterId]: filter,
-            };
           },
           {},
         );
