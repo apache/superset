@@ -29,7 +29,8 @@ upgrade_comparison_params = (
     migrate_time_comparison_to_new_format.upgrade_comparison_params
 )
 
-params_v1_with_custom: dict[str, Any] = {
+# Base object containing common properties
+base_params: dict[str, Any] = {
     "datasource": "2__table",
     "viz_type": "pop_kpi",
     "metric": {
@@ -57,20 +58,18 @@ params_v1_with_custom: dict[str, Any] = {
         "datasourceWarning": False,
         "hasCustomLabel": False,
         "label": "SUM(num_boys)",
-        "optionName": "metric_o6rj1h6jty_3t6mrruogfv",
     },
     "adhoc_filters": [
         {
             "expressionType": "SIMPLE",
             "subject": "ds",
             "operator": "TEMPORAL_RANGE",
-            "comparator": "1984 : 1986",
+            "comparator": "1984 : 2000",
             "clause": "WHERE",
             "sqlExpression": None,
             "isExtra": False,
             "isNew": False,
             "datasourceWarning": False,
-            "filterOptionName": "filter_p50i4xw50d_8x8e4ypwjs8",
         }
     ],
     "row_limit": 10000,
@@ -81,6 +80,22 @@ params_v1_with_custom: dict[str, Any] = {
     "comparison_color_scheme": "Green",
     "extra_form_data": {},
     "dashboards": [],
+}
+
+# Specific parameter objects overriding only the differing properties
+params_v1_with_custom = {
+    **base_params,
+    "metric": {
+        **base_params["metric"],
+        "optionName": "metric_o6rj1h6jty_3t6mrruogfv",
+    },
+    "adhoc_filters": [
+        {
+            **base_params["adhoc_filters"][0],
+            "comparator": "1984 : 1986",
+            "filterOptionName": "filter_p50i4xw50d_8x8e4ypwjs8",
+        }
+    ],
     "time_comparison": "c",
     "enable_time_comparison": True,
     "adhoc_custom": [
@@ -97,58 +112,13 @@ params_v1_with_custom: dict[str, Any] = {
         }
     ],
 }
-params_v1_other_than_custom: dict[str, Any] = {
-    "datasource": "2__table",
-    "viz_type": "pop_kpi",
+
+params_v1_other_than_custom = {
+    **base_params,
     "metric": {
-        "expressionType": "SIMPLE",
-        "column": {
-            "advanced_data_type": None,
-            "certification_details": None,
-            "certified_by": None,
-            "column_name": "num_boys",
-            "description": None,
-            "expression": None,
-            "filterable": True,
-            "groupby": True,
-            "id": 334,
-            "is_certified": False,
-            "is_dttm": False,
-            "python_date_format": None,
-            "type": "BIGINT",
-            "type_generic": 0,
-            "verbose_name": None,
-            "warning_markdown": None,
-        },
-        "aggregate": "SUM",
-        "sqlExpression": None,
-        "datasourceWarning": False,
-        "hasCustomLabel": False,
-        "label": "SUM(num_boys)",
+        **base_params["metric"],
         "optionName": "metric_96s7b8iypsr_4wrlgm0i7il",
     },
-    "adhoc_filters": [
-        {
-            "expressionType": "SIMPLE",
-            "subject": "ds",
-            "operator": "TEMPORAL_RANGE",
-            "comparator": "1984 : 2000",
-            "clause": "WHERE",
-            "sqlExpression": None,
-            "isExtra": False,
-            "isNew": False,
-            "datasourceWarning": False,
-            "filterOptionName": "filter_2sefqq1rwb7_lhqvw7ukc6",
-        }
-    ],
-    "row_limit": 10000,
-    "y_axis_format": "SMART_NUMBER",
-    "percentDifferenceFormat": "SMART_NUMBER",
-    "header_font_size": 0.2,
-    "subheader_font_size": 0.125,
-    "comparison_color_scheme": "Green",
-    "extra_form_data": {},
-    "dashboards": [],
     "time_comparison": "r",
     "enable_time_comparison": True,
     "adhoc_custom": [
@@ -161,235 +131,43 @@ params_v1_other_than_custom: dict[str, Any] = {
         }
     ],
 }
-params_v1_other_than_custom_false: dict[str, Any] = {
-    "datasource": "2__table",
-    "viz_type": "pop_kpi",
-    "metric": {
-        "expressionType": "SIMPLE",
-        "column": {
-            "advanced_data_type": None,
-            "certification_details": None,
-            "certified_by": None,
-            "column_name": "num_boys",
-            "description": None,
-            "expression": None,
-            "filterable": True,
-            "groupby": True,
-            "id": 334,
-            "is_certified": False,
-            "is_dttm": False,
-            "python_date_format": None,
-            "type": "BIGINT",
-            "type_generic": 0,
-            "verbose_name": None,
-            "warning_markdown": None,
-        },
-        "aggregate": "SUM",
-        "sqlExpression": None,
-        "datasourceWarning": False,
-        "hasCustomLabel": False,
-        "label": "SUM(num_boys)",
-        "optionName": "metric_96s7b8iypsr_4wrlgm0i7il",
-    },
-    "adhoc_filters": [
-        {
-            "expressionType": "SIMPLE",
-            "subject": "ds",
-            "operator": "TEMPORAL_RANGE",
-            "comparator": "1984 : 2000",
-            "clause": "WHERE",
-            "sqlExpression": None,
-            "isExtra": False,
-            "isNew": False,
-            "datasourceWarning": False,
-            "filterOptionName": "filter_2sefqq1rwb7_lhqvw7ukc6",
-        }
-    ],
-    "row_limit": 10000,
-    "y_axis_format": "SMART_NUMBER",
-    "percentDifferenceFormat": "SMART_NUMBER",
-    "header_font_size": 0.2,
-    "subheader_font_size": 0.125,
-    "comparison_color_scheme": "Green",
-    "extra_form_data": {},
-    "dashboards": [],
-    "time_comparison": "r",
+
+params_v1_other_than_custom_false = {
+    **params_v1_other_than_custom,
     "enable_time_comparison": False,
-    "adhoc_custom": [
-        {
-            "clause": "WHERE",
-            "subject": "ds",
-            "operator": "TEMPORAL_RANGE",
-            "comparator": "No filter",
-            "expressionType": "SIMPLE",
-        }
-    ],
 }
-params_v2_with_custom: dict[str, Any] = {
-    "datasource": "2__table",
-    "viz_type": "pop_kpi",
+
+params_v2_with_custom = {
+    **base_params,
     "metric": {
-        "expressionType": "SIMPLE",
-        "column": {
-            "advanced_data_type": None,
-            "certification_details": None,
-            "certified_by": None,
-            "column_name": "num_boys",
-            "description": None,
-            "expression": None,
-            "filterable": True,
-            "groupby": True,
-            "id": 334,
-            "is_certified": False,
-            "is_dttm": False,
-            "python_date_format": None,
-            "type": "BIGINT",
-            "type_generic": 0,
-            "verbose_name": None,
-            "warning_markdown": None,
-        },
-        "aggregate": "SUM",
-        "sqlExpression": None,
-        "datasourceWarning": False,
-        "hasCustomLabel": False,
-        "label": "SUM(num_boys)",
+        **base_params["metric"],
         "optionName": "metric_o6rj1h6jty_3t6mrruogfv",
     },
     "adhoc_filters": [
         {
-            "expressionType": "SIMPLE",
-            "subject": "ds",
-            "operator": "TEMPORAL_RANGE",
+            **base_params["adhoc_filters"][0],
             "comparator": "1984 : 1986",
-            "clause": "WHERE",
-            "sqlExpression": None,
-            "isExtra": False,
-            "isNew": False,
-            "datasourceWarning": False,
             "filterOptionName": "filter_p50i4xw50d_8x8e4ypwjs8",
         }
     ],
-    "row_limit": 10000,
-    "y_axis_format": "SMART_NUMBER",
-    "percentDifferenceFormat": "SMART_NUMBER",
-    "header_font_size": 0.2,
-    "subheader_font_size": 0.125,
-    "comparison_color_scheme": "Green",
-    "extra_form_data": {},
-    "dashboards": [],
     "time_compare": ["custom"],
     "comparison_type": "values",
     "start_date_offset": "1981-01-01",
 }
-params_v2_other_than_custom: dict[str, Any] = {
-    "datasource": "2__table",
-    "viz_type": "pop_kpi",
+
+params_v2_other_than_custom = {
+    **base_params,
     "metric": {
-        "expressionType": "SIMPLE",
-        "column": {
-            "advanced_data_type": None,
-            "certification_details": None,
-            "certified_by": None,
-            "column_name": "num_boys",
-            "description": None,
-            "expression": None,
-            "filterable": True,
-            "groupby": True,
-            "id": 334,
-            "is_certified": False,
-            "is_dttm": False,
-            "python_date_format": None,
-            "type": "BIGINT",
-            "type_generic": 0,
-            "verbose_name": None,
-            "warning_markdown": None,
-        },
-        "aggregate": "SUM",
-        "sqlExpression": None,
-        "datasourceWarning": False,
-        "hasCustomLabel": False,
-        "label": "SUM(num_boys)",
+        **base_params["metric"],
         "optionName": "metric_96s7b8iypsr_4wrlgm0i7il",
     },
-    "adhoc_filters": [
-        {
-            "expressionType": "SIMPLE",
-            "subject": "ds",
-            "operator": "TEMPORAL_RANGE",
-            "comparator": "1984 : 2000",
-            "clause": "WHERE",
-            "sqlExpression": None,
-            "isExtra": False,
-            "isNew": False,
-            "datasourceWarning": False,
-            "filterOptionName": "filter_2sefqq1rwb7_lhqvw7ukc6",
-        }
-    ],
-    "row_limit": 10000,
-    "y_axis_format": "SMART_NUMBER",
-    "percentDifferenceFormat": "SMART_NUMBER",
-    "header_font_size": 0.2,
-    "subheader_font_size": 0.125,
-    "comparison_color_scheme": "Green",
-    "extra_form_data": {},
-    "dashboards": [],
     "time_compare": ["inherit"],
     "comparison_type": "values",
 }
-params_v2_other_than_custom_false: dict[str, Any] = {
-    "datasource": "2__table",
-    "viz_type": "pop_kpi",
-    "metric": {
-        "expressionType": "SIMPLE",
-        "column": {
-            "advanced_data_type": None,
-            "certification_details": None,
-            "certified_by": None,
-            "column_name": "num_boys",
-            "description": None,
-            "expression": None,
-            "filterable": True,
-            "groupby": True,
-            "id": 334,
-            "is_certified": False,
-            "is_dttm": False,
-            "python_date_format": None,
-            "type": "BIGINT",
-            "type_generic": 0,
-            "verbose_name": None,
-            "warning_markdown": None,
-        },
-        "aggregate": "SUM",
-        "sqlExpression": None,
-        "datasourceWarning": False,
-        "hasCustomLabel": False,
-        "label": "SUM(num_boys)",
-        "optionName": "metric_96s7b8iypsr_4wrlgm0i7il",
-    },
-    "adhoc_filters": [
-        {
-            "expressionType": "SIMPLE",
-            "subject": "ds",
-            "operator": "TEMPORAL_RANGE",
-            "comparator": "1984 : 2000",
-            "clause": "WHERE",
-            "sqlExpression": None,
-            "isExtra": False,
-            "isNew": False,
-            "datasourceWarning": False,
-            "filterOptionName": "filter_2sefqq1rwb7_lhqvw7ukc6",
-        }
-    ],
-    "row_limit": 10000,
-    "y_axis_format": "SMART_NUMBER",
-    "percentDifferenceFormat": "SMART_NUMBER",
-    "header_font_size": 0.2,
-    "subheader_font_size": 0.125,
-    "comparison_color_scheme": "Green",
-    "extra_form_data": {},
-    "dashboards": [],
+
+params_v2_other_than_custom_false = {
+    **params_v2_other_than_custom,
     "time_compare": [],
-    "comparison_type": "values",
 }
 
 
