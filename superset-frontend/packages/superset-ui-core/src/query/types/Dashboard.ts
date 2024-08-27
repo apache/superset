@@ -57,6 +57,7 @@ export type DataMaskStateWithId = { [filterId: string]: DataMaskWithId };
 export type Filter = {
   cascadeParentIds: string[];
   defaultDataMask: DataMask;
+  dataMask: DataMask;
   id: string; // randomly generated at filter creation
   name: string;
   scope: NativeFilterScope;
