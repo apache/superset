@@ -52,9 +52,9 @@ Add to superset_config.py the entire `TALISMAN_CONFIG` section from `config.py` 
 ```python
 TALISMAN_ENABLED = True
 TALISMAN_CONFIG = {
-    "content_security_policy": {
-	    ...
-		"frame-ancestors": ["*.my-domain.com", "*.another-domain.com"],
+	"content_security_policy": {
+		...
+			"frame-ancestors": ["*.my-domain.com", "*.another-domain.com"],
 		...
 ```
 ****This becomes active after fully restarting Superset. For Docker this means recreating the container.****
