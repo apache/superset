@@ -26,6 +26,7 @@ import sqlalchemy as sa
 from alembic import op
 
 from superset.migrations.shared.constraints import drop_fks_for_table
+from superset.migrations.shared.utils import has_table
 
 # revision identifiers, used by Alembic.
 revision = "007a1abffe7e"
@@ -33,15 +34,11 @@ down_revision = "a6b32d2d07b1"
 
 
 def upgrade():
-    connection = op.get_bind()
+    table_name = "sl_tables"
 
-    try:
-        if connection.dialect.name != "sqlite":
-            drop_fks_for_table("sl_tables")
-        op.drop_table("sl_tables")
-    except sa.exc.NoSuchTableError:
-        # Table doesn't exist, so we can safely ignore this error
-        pass
+    if has_table(table_name):
+        drop_fks_for_table(table_name)
+        op.drop_table(table_name)
 
 
 def downgrade():
