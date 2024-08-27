@@ -161,6 +161,70 @@ params_v1_other_than_custom: dict[str, Any] = {
         }
     ],
 }
+params_v1_other_than_custom_false: dict[str, Any] = {
+    "datasource": "2__table",
+    "viz_type": "pop_kpi",
+    "metric": {
+        "expressionType": "SIMPLE",
+        "column": {
+            "advanced_data_type": None,
+            "certification_details": None,
+            "certified_by": None,
+            "column_name": "num_boys",
+            "description": None,
+            "expression": None,
+            "filterable": True,
+            "groupby": True,
+            "id": 334,
+            "is_certified": False,
+            "is_dttm": False,
+            "python_date_format": None,
+            "type": "BIGINT",
+            "type_generic": 0,
+            "verbose_name": None,
+            "warning_markdown": None,
+        },
+        "aggregate": "SUM",
+        "sqlExpression": None,
+        "datasourceWarning": False,
+        "hasCustomLabel": False,
+        "label": "SUM(num_boys)",
+        "optionName": "metric_96s7b8iypsr_4wrlgm0i7il",
+    },
+    "adhoc_filters": [
+        {
+            "expressionType": "SIMPLE",
+            "subject": "ds",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "1984 : 2000",
+            "clause": "WHERE",
+            "sqlExpression": None,
+            "isExtra": False,
+            "isNew": False,
+            "datasourceWarning": False,
+            "filterOptionName": "filter_2sefqq1rwb7_lhqvw7ukc6",
+        }
+    ],
+    "row_limit": 10000,
+    "y_axis_format": "SMART_NUMBER",
+    "percentDifferenceFormat": "SMART_NUMBER",
+    "header_font_size": 0.2,
+    "subheader_font_size": 0.125,
+    "comparison_color_scheme": "Green",
+    "extra_form_data": {},
+    "dashboards": [],
+    "time_comparison": "r",
+    "enable_time_comparison": False,
+    "adhoc_custom": [
+        {
+            "clause": "WHERE",
+            "subject": "ds",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "No filter",
+            "expressionType": "SIMPLE",
+        }
+    ],
+}
 params_v2_with_custom: dict[str, Any] = {
     "datasource": "2__table",
     "viz_type": "pop_kpi",
@@ -272,6 +336,61 @@ params_v2_other_than_custom: dict[str, Any] = {
     "time_compare": "inherit",
     "comparison_type": "values",
 }
+params_v2_other_than_custom_false: dict[str, Any] = {
+    "datasource": "2__table",
+    "viz_type": "pop_kpi",
+    "metric": {
+        "expressionType": "SIMPLE",
+        "column": {
+            "advanced_data_type": None,
+            "certification_details": None,
+            "certified_by": None,
+            "column_name": "num_boys",
+            "description": None,
+            "expression": None,
+            "filterable": True,
+            "groupby": True,
+            "id": 334,
+            "is_certified": False,
+            "is_dttm": False,
+            "python_date_format": None,
+            "type": "BIGINT",
+            "type_generic": 0,
+            "verbose_name": None,
+            "warning_markdown": None,
+        },
+        "aggregate": "SUM",
+        "sqlExpression": None,
+        "datasourceWarning": False,
+        "hasCustomLabel": False,
+        "label": "SUM(num_boys)",
+        "optionName": "metric_96s7b8iypsr_4wrlgm0i7il",
+    },
+    "adhoc_filters": [
+        {
+            "expressionType": "SIMPLE",
+            "subject": "ds",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "1984 : 2000",
+            "clause": "WHERE",
+            "sqlExpression": None,
+            "isExtra": False,
+            "isNew": False,
+            "datasourceWarning": False,
+            "filterOptionName": "filter_2sefqq1rwb7_lhqvw7ukc6",
+        }
+    ],
+    "row_limit": 10000,
+    "y_axis_format": "SMART_NUMBER",
+    "percentDifferenceFormat": "SMART_NUMBER",
+    "header_font_size": 0.2,
+    "subheader_font_size": 0.125,
+    "comparison_color_scheme": "Green",
+    "extra_form_data": {},
+    "dashboards": [],
+    "time_compare": "",
+    "comparison_type": "values",
+}
 
 
 def test_upgrade_chart_params_with_custom():
@@ -313,3 +432,22 @@ def test_downgrade_chart_params_other_than_custom():
     original_params = deepcopy(params_v2_other_than_custom)
     downgraded_params = downgrade_comparison_params(original_params)
     assert downgraded_params == params_v1_other_than_custom
+
+
+def test_upgrade_chart_params_other_than_custom_false():
+    """
+    ensure that the new time comparison params are added
+    """
+    original_params = deepcopy(params_v1_other_than_custom_false)
+    upgraded_params = upgrade_comparison_params(original_params)
+    assert upgraded_params == params_v2_other_than_custom_false
+
+
+def test_downgrade_chart_params_other_than_custom_false():
+    """
+    ensure that the params downgrade operation produces an almost identical dict
+    as the original value
+    """
+    original_params = deepcopy(params_v2_other_than_custom_false)
+    downgraded_params = downgrade_comparison_params(original_params)
+    assert downgraded_params == params_v1_other_than_custom_false
