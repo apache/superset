@@ -292,7 +292,6 @@ const FilterValue: FC<FilterControlProps> = ({
   const cascadeParentIdsLength = cascadeParentIds.length;
 
   const filterState = useMemo(() => {
-
     if (state?.length <= 0) {
       return {
         label: undefined,
