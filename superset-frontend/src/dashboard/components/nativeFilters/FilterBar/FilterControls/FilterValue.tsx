@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import {
   FC,
   memo,
@@ -286,8 +287,10 @@ const FilterValue: FC<FilterControlProps> = ({
     ],
   );
 
-  const cascadeParentIdsLength = filter.cascadeParentIds.length;
-  const defaultToFirstItem = formData.defaultToFirstItem;
+  const { cascadeParentIds } = filter;
+  const { defaultToFirstItem, multiSelect, defaultValue } = formData;
+  const cascadeParentIdsLength = cascadeParentIds.length;
+
   const filterState = useMemo(() => {
 
     if (state?.length <= 0) {
@@ -307,7 +310,7 @@ const FilterValue: FC<FilterControlProps> = ({
       };
     }
 
-    if (filter.cascadeParentIds.length <= 0 || !formData.defaultToFirstItem) {
+    if (cascadeParentIds.length <= 0 || !defaultToFirstItem) {
       return {
         ...filter.dataMask?.filterState,
         validateStatus,
@@ -316,8 +319,8 @@ const FilterValue: FC<FilterControlProps> = ({
       };
     }
 
-    if (state?.length > 0 && formData.defaultToFirstItem) {
-      if (formData.multiSelect) {
+    if (state?.length > 0 && defaultToFirstItem) {
+      if (multiSelect) {
         const labels = state[0]?.data.map(item => Object.values(item)[0]);
         return {
           label: labels[0],
@@ -349,13 +352,13 @@ const FilterValue: FC<FilterControlProps> = ({
     };
   }, [
     dependencies,
-    formData?.defaultValue,
+    defaultValue,
     state?.length,
     validateStatus,
     filter?.dataMask?.filterState?.selected,
     cascadeParentIdsLength,
     defaultToFirstItem,
-    formData.multiSelect,
+    multiSelect,
   ]);
 
   const displaySettings = useMemo(

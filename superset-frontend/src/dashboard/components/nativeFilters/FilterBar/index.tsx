@@ -219,8 +219,7 @@ const FilterBar: FC<FiltersBarProps> = ({
             if (
               state.id !== filterId &&
               (result1 || filter1) &&
-              (filter?.filterState?.selected ||
-                filter?.filterState?.second === 1)
+              (filter?.filterState?.selected || filter?.filterState?.second === 1)
             ) {
               return {
                 [result1.id]: {
@@ -238,11 +237,11 @@ const FilterBar: FC<FiltersBarProps> = ({
                   },
                 },
               };
-            } else {
-              return {
-                [filterId]: filter,
-              };
             }
+
+            return {
+              [filterId]: filter,
+            };
           },
           {},
         );
