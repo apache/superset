@@ -62,6 +62,7 @@ class ReportScheduleValidatorType(StrEnum):
 class ReportRecipientType(StrEnum):
     EMAIL = "Email"
     SLACK = "Slack"
+    WEBHOOK = "Webhook"
     SLACKV2 = "SlackV2"
 
 

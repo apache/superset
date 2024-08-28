@@ -45,6 +45,7 @@ export enum NotificationMethodOption {
   Email = 'Email',
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
+  Webhook = 'Webhook',
 }
 
 export type SelectValue = {
@@ -161,6 +162,7 @@ export enum AlertState {
 export enum RecipientIconName {
   Email = 'Email',
   Slack = 'Slack',
+  Webhook = 'Webhook',
   SlackV2 = 'SlackV2',
 }
 export interface AlertsReportsConfig {
