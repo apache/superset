@@ -180,14 +180,13 @@ const FilterBar: FC<FiltersBarProps> = ({
             'Value is required' ||
           Object.keys(filter?.dataMask?.extraFormData || {}).length === 0 ||
           Object.keys(filter?.dataMask?.filterState || {}).length === 0;
-       
+
         if (
           (isValueRequired || isValidationError) &&
           filter?.controlValues?.enableEmptyFilter
         ) {
           dispatch(updateDataMask(filter.id, dataMask));
         }
-
 
         setState(filter);
 
@@ -238,11 +237,11 @@ const FilterBar: FC<FiltersBarProps> = ({
                   },
                 },
               };
-            } else {
-              return {
-                [filterId]: filter,
-              };
             }
+
+            return {
+              [filterId]: filter,
+            };
           },
           {},
         );

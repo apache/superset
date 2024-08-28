@@ -44,10 +44,10 @@ import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
   | {
-    type: 'filterState';
-    extraFormData: ExtraFormData;
-    filterState: { value: SelectValue; label?: string, selected?: boolean };
-  };
+      type: 'filterState';
+      extraFormData: ExtraFormData;
+      filterState: { value: SelectValue; label?: string; selected?: boolean };
+    };
 
 function reducer(draft: DataMask, action: DataMaskAction) {
   switch (action.type) {
@@ -143,8 +143,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           ...filterState,
           label: values?.length
             ? `${(values || [])
-              .map(value => labelFormatter(value, datatype))
-              .join(', ')}${suffix}`
+                .map(value => labelFormatter(value, datatype))
+                .join(', ')}${suffix}`
             : undefined,
           value:
             appSection === AppSection.FilterConfigModal && defaultToFirstItem
@@ -205,7 +205,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     },
     [updateDataMask],
   );
-
 
   const placeholderText =
     data.length === 0
@@ -305,7 +304,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             showOverflow
               ? () => (parentRef?.current as HTMLElement) || document.body
               : (trigger: HTMLElement) =>
-                (trigger?.parentNode as HTMLElement) || document.body
+                  (trigger?.parentNode as HTMLElement) || document.body
           }
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}
