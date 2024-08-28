@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import uuid
-from typing import Any, Dict, Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import jwt
 import redis
@@ -74,7 +76,7 @@ def increment_id(entry_id: str) -> str:
 
 
 def get_cache_backend(
-    config: Dict[str, Any],
+    config: dict[str, Any],
 ) -> Union[RedisCacheBackend, RedisSentinelCacheBackend, redis.Redis]:  # type: ignore
     cache_config = config.get("GLOBAL_ASYNC_QUERIES_CACHE_BACKEND", {})
     cache_type = cache_config.get("CACHE_TYPE")
