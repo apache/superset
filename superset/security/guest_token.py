@@ -14,19 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import sys
-from enum import Enum
 from typing import Optional, TypedDict, Union
 
 from flask_appbuilder.security.sqla.models import Role
 from flask_login import AnonymousUserMixin
 
-if sys.version_info >= (3, 11):
-    from enum import StrEnum
-else:
-    # Define StrEnum for Python 3.10 and earlier
-    class StrEnum(str, Enum):
-        pass
+from superset.utils.backports import StrEnum
 
 
 class GuestTokenUser(TypedDict, total=False):
