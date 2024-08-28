@@ -130,7 +130,6 @@ class TestAsyncQueries(SupersetTestCase):
         errors = [{"message": "Error: foo"}]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
-
     @mock.patch.object(ChartDataCommand, "run")
     @mock.patch.object(async_query_manager, "update_job")
     @pytest.mark.parametrize(
@@ -169,7 +168,6 @@ class TestAsyncQueries(SupersetTestCase):
                 set_form_data.side_effect = SoftTimeLimitExceeded()
                 load_chart_data_into_cache(job_metadata, form_data)
             set_form_data.assert_called_once_with(form_data, "error", errors=errors)
-
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
