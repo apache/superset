@@ -20,7 +20,6 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import shortid from 'shortid';
 import { waitFor } from '@testing-library/react';
 import * as uiCore from '@superset-ui/core';
 import * as actions from 'src/SqlLab/actions/sqlLab';
@@ -34,6 +33,14 @@ import {
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
+
+jest.mock('nanoid', () => ({
+  nanoid: () => 'abcd',
+}));
+
+afterAll(() => {
+  jest.resetAllMocks();
+});
 
 describe('getUpToDateQuery', () => {
   test('should return the up to date query editor state', () => {
@@ -347,14 +354,6 @@ describe('async actions', () => {
   });
 
   describe('reRunQuery', () => {
-    let stub;
-    beforeEach(() => {
-      stub = sinon.stub(shortid, 'generate').returns('abcd');
-    });
-    afterEach(() => {
-      stub.restore();
-    });
-
     it('creates new query with a new id', () => {
       const id = 'id';
       const state = {
@@ -412,14 +411,6 @@ describe('async actions', () => {
   });
 
   describe('cloneQueryToNewTab', () => {
-    let stub;
-    beforeEach(() => {
-      stub = sinon.stub(shortid, 'generate').returns('abcd');
-    });
-    afterEach(() => {
-      stub.restore();
-    });
-
     it('creates new query editor', () => {
       expect.assertions(1);
 
@@ -462,14 +453,6 @@ describe('async actions', () => {
   });
 
   describe('addQueryEditor', () => {
-    let stub;
-    beforeEach(() => {
-      stub = sinon.stub(shortid, 'generate').returns('abcd');
-    });
-    afterEach(() => {
-      stub.restore();
-    });
-
     it('creates new query editor', () => {
       expect.assertions(1);
 
@@ -577,14 +560,6 @@ describe('async actions', () => {
     afterEach(fetchMock.resetHistory);
 
     describe('addQueryEditor', () => {
-      let stub;
-      beforeEach(() => {
-        stub = sinon.stub(shortid, 'generate').returns('abcd');
-      });
-      afterEach(() => {
-        stub.restore();
-      });
-
       it('creates the tab state in the local storage', () => {
         expect.assertions(2);
 

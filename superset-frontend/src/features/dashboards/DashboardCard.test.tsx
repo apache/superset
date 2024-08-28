@@ -18,7 +18,7 @@
  */
 
 import { MemoryRouter } from 'react-router-dom';
-import { FeatureFlag, SupersetClient } from '@superset-ui/core';
+import { FeatureFlag, JsonResponse, SupersetClient } from '@superset-ui/core';
 import * as uiCore from '@superset-ui/core';
 
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
@@ -101,11 +101,9 @@ it('Renders the modified date', () => {
 
 it('should fetch thumbnail when dashboard has no thumbnail URL and feature flag is enabled', async () => {
   const mockGet = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
-    response: new Response(
-      JSON.stringify({ thumbnail_url: '/new-thumbnail.png' }),
-    ),
-    json: () => Promise.resolve({ thumbnail_url: '/new-thumbnail.png' }),
-  });
+    json: { result: { thumbnail_url: '/new-thumbnail.png' } },
+  } as unknown as JsonResponse);
+
   const { rerender } = render(
     <DashboardCard
       dashboard={{

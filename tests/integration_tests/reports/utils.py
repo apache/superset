@@ -22,6 +22,7 @@ from uuid import uuid4
 from flask_appbuilder.security.sqla.models import User
 
 from superset import db, security_manager
+from superset.key_value.models import KeyValueEntry
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -116,6 +117,8 @@ def create_report_notification(
     extra: Optional[dict[str, Any]] = None,
     force_screenshot: bool = False,
     owners: Optional[list[User]] = None,
+    ccTarget: Optional[str] = None,
+    bccTarget: Optional[str] = None,
 ) -> ReportSchedule:
     if not owners:
         owners = [
@@ -138,7 +141,9 @@ def create_report_notification(
     else:
         recipient = ReportRecipients(
             type=ReportRecipientType.EMAIL,
-            recipient_config_json=json.dumps({"target": email_target}),
+            recipient_config_json=json.dumps(
+                {"target": email_target, "ccTarget": ccTarget, "bccTarget": bccTarget}
+            ),
         )
 
     if name is None:
@@ -165,15 +170,19 @@ def create_report_notification(
     return report_schedule
 
 
-def cleanup_report_schedule(report_schedule: ReportSchedule) -> None:
-    db.session.query(ReportExecutionLog).filter(
-        ReportExecutionLog.report_schedule == report_schedule
-    ).delete()
-    db.session.query(ReportRecipients).filter(
-        ReportRecipients.report_schedule == report_schedule
-    ).delete()
-
-    db.session.delete(report_schedule)
+def cleanup_report_schedule(report_schedule: Optional[ReportSchedule] = None) -> None:
+    if report_schedule:
+        db.session.query(ReportExecutionLog).filter(
+            ReportExecutionLog.report_schedule == report_schedule
+        ).delete()
+        db.session.query(ReportRecipients).filter(
+            ReportRecipients.report_schedule == report_schedule
+        ).delete()
+        db.session.delete(report_schedule)
+    else:
+        db.session.query(ReportExecutionLog).delete()
+        db.session.query(ReportRecipients).delete()
+        db.session.query(ReportSchedule).delete()
     db.session.commit()
 
 
@@ -199,3 +208,8 @@ def create_dashboard_report(dashboard, extra, **kwargs):
 
     if error:
         raise error
+
+
+def reset_key_values() -> None:
+    db.session.query(KeyValueEntry).delete()
+    db.session.commit()

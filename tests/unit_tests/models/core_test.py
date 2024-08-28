@@ -461,3 +461,23 @@ def test_raw_connection_oauth(mocker: MockerFixture) -> None:
         with database.get_raw_connection() as conn:
             conn.cursor()
     assert str(excinfo.value) == "You don't have permission to access the data."
+
+
+def test_get_schema_access_for_file_upload() -> None:
+    """
+    Test the `get_schema_access_for_file_upload` method.
+    """
+    database = Database(
+        database_name="first-database",
+        sqlalchemy_uri="gsheets://",
+        extra=json.dumps(
+            {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": '["public"]',
+            }
+        ),
+    )
+
+    assert database.get_schema_access_for_file_upload() == {"public"}

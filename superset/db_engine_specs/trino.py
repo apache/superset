@@ -27,7 +27,7 @@ from typing import Any, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-from flask import current_app, Flask, g
+from flask import ctx, current_app, Flask, g
 from sqlalchemy import text
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -36,7 +36,7 @@ from sqlalchemy.exc import NoSuchTableError
 from superset import db
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
     SupersetDBAPIDatabaseError,
@@ -227,12 +227,22 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         execute_event = threading.Event()
 
         def _execute(
-            results: dict[str, Any], event: threading.Event, app: Flask
+            results: dict[str, Any],
+            event: threading.Event,
+            app: Flask,
+            g_copy: ctx._AppCtxGlobals,
         ) -> None:
             logger.debug("Query %d: Running query: %s", query_id, sql)
 
             try:
+                # Flask contexts are local to the thread that handles the request.
+                # When you spawn a new thread, it does not inherit the contexts
+                # from the parent thread,
+                # meaning the g object and other context-bound variables are not
+                # accessible
                 with app.app_context():
+                    for key, value in g_copy.__dict__.items():
+                        setattr(g, key, value)
                     cls.execute(cursor, sql, query.database)
             except Exception as ex:  # pylint: disable=broad-except
                 results["error"] = ex
@@ -241,7 +251,12 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         execute_thread = threading.Thread(
             target=_execute,
-            args=(execute_result, execute_event, current_app._get_current_object()),  # pylint: disable=protected-access
+            args=(
+                execute_result,
+                execute_event,
+                current_app._get_current_object(),  # pylint: disable=protected-access
+                g._get_current_object(),  # pylint: disable=protected-access
+            ),
         )
         execute_thread.start()
 
@@ -433,7 +448,17 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         "schema_options", expand the schema definition out to show all
         subfields of nested ROWs as their appropriate dotted paths.
         """
-        base_cols = super().get_columns(inspector, table, options)
+        # The Trino dialect raises `NoSuchTableError` on the inspection methods when the
+        # table is empty. We can work around this by running a `SHOW COLUMNS FROM` query
+        # when that happens, using the method from the Presto base engine spec.
+        try:
+            # `SELECT * FROM information_schema.columns WHERE ...`
+            sqla_columns = inspector.get_columns(table.table, table.schema)
+            base_cols = convert_inspector_columns(sqla_columns)
+        except NoSuchTableError:
+            # `SHOW COLUMNS FROM ...`
+            base_cols = super().get_columns(inspector, table, options)
+
         if not (options or {}).get("expand_rows"):
             return base_cols
 
@@ -483,9 +508,6 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param to_sql_kwargs: The `pandas.DataFrame.to_sql` keyword arguments
         :see: superset.db_engine_specs.HiveEngineSpec.df_to_sql
         """
-
-        # pylint: disable=import-outside-toplevel
-
         if to_sql_kwargs["if_exists"] == "append":
             raise SupersetException("Append operation not currently supported")
 

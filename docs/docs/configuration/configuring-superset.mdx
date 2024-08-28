@@ -15,9 +15,9 @@ variables and objects exposed act as a public interface of the bulk of what you 
 to configure, alter and interface with. In this python module, you'll find all these
 parameters, sensible defaults, as well as rich documentation in the form of comments
 
-To configure your application, you need to create you own configuration module, which
+To configure your application, you need to create your own configuration module, which
 will allow you to override few or many of these parameters. Instead of altering the core module,
-You'll want to define your own module (typically a file named `superset_config.py`.
+you'll want to define your own module (typically a file named `superset_config.py`).
 Add this file to your `PYTHONPATH` or create an environment variable
 `SUPERSET_CONFIG_PATH` specifying the full path of the `superset_config.py`.
 
@@ -28,7 +28,7 @@ For example, if deploying on Superset directly on a Linux-based system where you
 export SUPERSET_CONFIG_PATH=/app/superset_config.py
 ```
 
-If you are using your own custom Dockerfile with official Superset image as base image,
+If you are using your own custom Dockerfile with the official Superset image as base image,
 then you can add your overrides as shown below:
 
 ```bash
@@ -36,7 +36,7 @@ COPY --chown=superset superset_config.py /app/
 ENV SUPERSET_CONFIG_PATH /app/superset_config.py
 ```
 
-Docker compose deployments handle application configuration differently using specific conventions..
+Docker compose deployments handle application configuration differently using specific conventions.
 Refer to the [docker-compose tips & configuration](/docs/installation/docker-compose#docker-compose-tips--configuration)
 for details.
 
@@ -87,7 +87,7 @@ can be altered in your local `superset_config.py`. Administrators will want to r
 to understand what can be configured locally as well as the default values in place.
 
 Since `superset_config.py` acts as a Flask configuration module, it can be used to alter the
-settings Flask itself, as well as Flask extensions that Superset bundles like
+settings of Flask itself, as well as Flask extensions that Superset bundles like
 `flask-wtf`, `flask-caching`, `flask-migrate`,
 and `flask-appbuilder`. Each one of these extensions offers intricate configurability.
 Flask App Builder, the web framework used by Superset, also offers many
@@ -95,15 +95,7 @@ configuration settings. Please consult the
 [Flask App Builder Documentation](https://flask-appbuilder.readthedocs.org/en/latest/config.html)
 for more information on how to configure it.
 
-You'll want to change:
-
-- `SECRET_KEY`: to a long random string
-- `SQLALCHEMY_DATABASE_URI`: that by default points to sqlite database located at
-  ~/.superset/superset.db
-
-```
-WTF_CSRF_EXEMPT_LIST = [‘’]
-```
+At the very least, you'll want to change `SECRET_KEY` and `SQLALCHEMY_DATABASE_URI`. Continue reading for more about each of these.
 
 ## Specifying a SECRET_KEY
 

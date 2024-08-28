@@ -40,7 +40,6 @@ export const GlobalStyles = () => (
         border-radius: ${theme.borderRadius}px;
         background: ${theme.colors.primary.base};
         border: none;
-        text-transform: uppercase;
         color: ${theme.colors.grayscale.light5};
         line-height: 1.5715;
         font-size: ${theme.typography.sizes.s}px;
@@ -53,7 +52,6 @@ export const GlobalStyles = () => (
         border-radius: ${theme.borderRadius}px;
         background: ${theme.colors.primary.light4};
         border: none;
-        text-transform: uppercase;
         color: ${theme.colors.primary.dark1};
         line-height: 1.5715;
         font-size: ${theme.typography.sizes.s}px;

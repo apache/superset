@@ -71,3 +71,17 @@ def redefine(
             ondelete=on_delete,
             onupdate=on_update,
         )
+
+
+def drop_fks_for_table(table_name: str) -> None:
+    """
+    Drop all foreign key constraints for a table.
+
+    :param table_name: The table name to drop foreign key constraints for
+    """
+    connection = op.get_bind()
+    inspector = Inspector.from_engine(connection)
+    foreign_keys = inspector.get_foreign_keys(table_name)
+
+    for fk in foreign_keys:
+        op.drop_constraint(fk["name"], table_name, type_="foreignkey")

@@ -45,7 +45,7 @@ These features are **finished** but currently being tested. They are usable, but
 - CACHE_IMPERSONATION
 - CONFIRM_DASHBOARD_DIFF
 - DRILL_TO_DETAIL
-- DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/configuration/running-on-kubernetes)
+- DYNAMIC_PLUGINS
 - ENABLE_SUPERSET_META_DB: [(docs)](https://superset.apache.org/docs/configuration/databases/#querying-across-databases)
 - ESTIMATE_QUERY_COST
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
@@ -70,7 +70,7 @@ These features flags are **safe for production**. They have been tested and will
 ### Flags retained for runtime configuration
 - ALERTS_ATTACH_REPORTS
 - ALLOW_ADHOC_SUBQUERY
-- DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/using-superset/first-dashboard#manage-access-to-dashboards)
+- DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/using-superset/creating-your-first-dashboard#manage-access-to-dashboards)
 - DATAPANEL_CLOSED_BY_DEFAULT
 - DRUID_JOINS
 - EMBEDDABLE_CHARTS

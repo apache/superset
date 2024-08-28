@@ -53,6 +53,9 @@ function test_init() {
   echo Superset init
   echo --------------------
   superset init
+  echo Load test users
+  echo --------------------
+  superset load-test-users
 }
 
 #

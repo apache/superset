@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import logging
 import re
 from re import Pattern
@@ -37,7 +36,6 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL
 
 from superset import db, security_manager
-from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -92,6 +90,10 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     parameters_schema = GSheetsParametersSchema()
     default_driver = "apsw"
     sqlalchemy_uri_placeholder = "gsheets://"
+
+    # when editing the database, mask this field in `encrypted_extra`
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields = {"$.service_account_info.private_key"}
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         SYNTAX_ERROR_REGEX: (
@@ -157,11 +159,11 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         return {"metadata": metadata["extra"]}
 
     @classmethod
+    # pylint: disable=unused-argument
     def build_sqlalchemy_uri(
         cls,
         _: GSheetsParametersType,
-        encrypted_extra: None  # pylint: disable=unused-argument
-        | (dict[str, Any]) = None,
+        encrypted_extra: None | (dict[str, Any]) = None,
     ) -> str:
         return "gsheets://"
 
@@ -176,47 +178,6 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             return {**encrypted_extra}
 
         raise ValidationError("Invalid service credentials")
-
-    @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
-        if encrypted_extra is None:
-            return encrypted_extra
-
-        try:
-            config = json.loads(encrypted_extra)
-        except (TypeError, json.JSONDecodeError):
-            return encrypted_extra
-
-        with contextlib.suppress(KeyError):
-            config["service_account_info"]["private_key"] = PASSWORD_MASK
-        return json.dumps(config)
-
-    @classmethod
-    def unmask_encrypted_extra(cls, old: str | None, new: str | None) -> str | None:
-        """
-        Reuse ``private_key`` if available and unchanged.
-        """
-        if old is None or new is None:
-            return new
-
-        try:
-            old_config = json.loads(old)
-            new_config = json.loads(new)
-        except (TypeError, json.JSONDecodeError):
-            return new
-
-        if "service_account_info" not in new_config:
-            return new
-
-        if "private_key" not in new_config["service_account_info"]:
-            return new
-
-        if new_config["service_account_info"]["private_key"] == PASSWORD_MASK:
-            new_config["service_account_info"]["private_key"] = old_config[
-                "service_account_info"
-            ]["private_key"]
-
-        return json.dumps(new_config)
 
     @classmethod
     def parameters_json_schema(cls) -> Any:

@@ -215,7 +215,7 @@ export class Tabs extends PureComponent {
       content: (
         <span>
           {t(
-            'Deleting a tab will remove all content within it. You may still ' +
+            'Deleting a tab will remove all content within it and will deactivate any related alerts or reports. You may still ' +
               'reverse this action with the',
           )}{' '}
           <b>{t('undo')}</b>{' '}

@@ -228,3 +228,28 @@ test('Should render a submenu extension component if one is supplied', async () 
 
   expect(screen.getByText('submenu extension')).toBeInTheDocument();
 });
+
+test('Should not make data fetch calls if `welcome.main.replacement` is defined', async () => {
+  const extensionsRegistry = getExtensionsRegistry();
+
+  // Clean up
+  extensionsRegistry.set('welcome.banner', () => null);
+
+  // Set up
+  extensionsRegistry.set('welcome.main.replacement', () => (
+    <>welcome.main.replacement extension component</>
+  ));
+
+  setupExtensions();
+
+  await renderWelcome();
+
+  expect(
+    screen.getByText('welcome.main.replacement extension component'),
+  ).toBeInTheDocument();
+
+  expect(fetchMock.calls(chartsEndpoint)).toHaveLength(0);
+  expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(0);
+  expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(0);
+  expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(0);
+});

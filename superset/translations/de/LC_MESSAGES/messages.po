@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-03 14:07-0700\n"
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -368,6 +368,21 @@ msgstr "(keine Beschreibung, klicken Sie hier, um Fehlermeldung zu sehen)"
 msgid "), and they become available in your SQL (example:"
 msgstr "), und sie werden in Ihrem SQL verfügbar (Beispiel:"
 
+#, fuzzy, python-format
+msgid ""
+"*%(name)s*\n"
+"\n"
+"    %(description)s\n"
+"\n"
+"    Error: %(text)s\n"
+"    "
+msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"Fehler: %(text)s\n"
+
 #, python-format
 msgid ""
 "*%(name)s*\n"
@@ -384,20 +399,6 @@ msgstr ""
 "\n"
 "<%(url)s|In Superset erkunden>\n"
 "%(table)s\n"
-
-#, python-format
-msgid ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Error: %(text)s\n"
-msgstr ""
-"*%(name)s*\n"
-"\n"
-"%(description)s\n"
-"\n"
-"Fehler: %(text)s\n"
 
 #, python-format
 msgid "+ %s more"
@@ -838,6 +839,14 @@ msgstr "Hinzufügen"
 
 msgid "Add Alert"
 msgstr "Alarm hinzufügen"
+
+#, fuzzy
+msgid "Add BCC Recipients"
+msgstr "Kürzlich"
+
+#, fuzzy
+msgid "Add CC Recipients"
+msgstr "Kürzlich"
 
 msgid "Add CSS template"
 msgstr "CSS Vorlagen"
@@ -1885,6 +1894,10 @@ msgstr "Achse aufsteigend"
 msgid "Axis descending"
 msgstr "Achse absteigend"
 
+#, fuzzy
+msgid "BCC recipients"
+msgstr "Kürzlich"
+
 msgid "BOOLEAN"
 msgstr "WAHRHEITSWERT"
 
@@ -2139,6 +2152,10 @@ msgstr "Nach Wert: Metrikwerte als Sortierschlüssel verwenden"
 
 msgid "CANCEL"
 msgstr "ABBRECHEN"
+
+#, fuzzy
+msgid "CC recipients"
+msgstr "Kürzlich"
 
 msgid "CREATE DATASET"
 msgstr "DATASET ERSTELLEN"
@@ -2631,6 +2648,12 @@ msgid "Choose notification method and recipients."
 msgstr "Benachrichtigungsmethode hinzufügen"
 
 msgid "Choose one of the available databases from the panel on the left."
+msgstr ""
+"Wählen Sie einen der verfügbaren Datensätze aus dem Bereich auf der "
+"linken Seite."
+
+#, fuzzy
+msgid "Choose one of the available databases on the left panel."
 msgstr ""
 "Wählen Sie einen der verfügbaren Datensätze aus dem Bereich auf der "
 "linken Seite."
@@ -7927,10 +7950,6 @@ msgstr ""
 "Besitzende ist eine Liste von Benutzer*innen, die das Dashboard ändern "
 "können. Durchsuchbar nach Name oder Benutzer*innenname."
 
-#, fuzzy
-msgid "PDF download failed, please refresh and try again."
-msgstr "Bilddownload fehlgeschlagen, bitte aktualisieren und erneut versuchen."
-
 msgid "Page length"
 msgstr "Seitenlänge"
 
@@ -8403,6 +8422,9 @@ msgstr "Primäres y-Achsenformat"
 
 msgid "Primary y-axis format"
 msgstr "Primäres y-Achsenformat"
+
+msgid "Private Channels (Bot in channel)"
+msgstr ""
 
 msgid "Private Key"
 msgstr "Privater Schlüssel"
@@ -9586,6 +9608,10 @@ msgid "Select catalog or type to search catalogs"
 msgstr "Tabelle auswählen oder tippen, um Tabellen zu suchen"
 
 #, fuzzy
+msgid "Select channels"
+msgstr "Diagramme auswählen"
+
+#, fuzzy
 msgid "Select chart"
 msgstr "Diagramme auswählen"
 
@@ -9864,6 +9890,10 @@ msgstr "Blattname"
 
 msgid "Shift + Click to sort by multiple columns"
 msgstr "UMSCHALT+Klicken um nach mehreren Spalten zu sortieren"
+
+#, fuzzy
+msgid "Shift start date"
+msgstr "Startdatum"
 
 msgid "Short description must be unique for this layer"
 msgstr "Kurzbeschreibung muss für diese Ebene eindeutig sein"
@@ -10194,6 +10224,11 @@ msgstr "Durchgezogen"
 
 msgid "Some roles do not exist"
 msgstr "Einige Rollen sind nicht vorhanden"
+
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
+msgstr ""
 
 msgid "Something went wrong."
 msgstr "Etwas ist schief gelaufen."
@@ -10995,6 +11030,10 @@ msgstr ""
 msgid "The database returned an unexpected error."
 msgstr "Die Datenbank hat einen unerwarteten Fehler zurückgegeben."
 
+#, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "Datenbank nicht gefunden."
+
 msgid "The database was deleted."
 msgstr "Die Datenbank wurde gelöscht."
 
@@ -11514,6 +11553,15 @@ msgstr ""
 msgid "The schema was deleted or renamed in the database."
 msgstr "Das Schema wurde in der Datenbank gelöscht oder umbenannt."
 
+msgid "The screenshot could not be downloaded. Please, try again later."
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+
 #, fuzzy
 msgid "The size of each cell in meters"
 msgstr "Die Größe der quadratischen Zelle in Pixel"
@@ -11710,8 +11758,9 @@ msgstr "Fehler beim Abrufen der zugehörigen Objekte des Datensatzes"
 msgid "There was an error fetching the favorite status: %s"
 msgstr "Beim Abrufen des Favoritenstatus ist ein Problem aufgetreten: %s"
 
-msgid "There was an error fetching your recent activity:"
-msgstr "Beim Abrufen der letzten Aktivität ist ein Fehler aufgetreten:"
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "Beim Abrufen des Favoritenstatus ist ein Problem aufgetreten: %s"
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -12101,6 +12150,11 @@ msgstr ""
 "kompatibel."
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
 msgstr ""
 
 msgid ""
@@ -12681,6 +12735,10 @@ msgstr "Unbekannter MySQL-Server-Host \"%(hostname)s\"."
 
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
+msgstr "Unbekannter MySQL-Server-Host \"%(hostname)s\"."
+
+#, fuzzy, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
 msgstr "Unbekannter MySQL-Server-Host \"%(hostname)s\"."
 
 msgid "Unknown Presto Error"
@@ -14566,6 +14624,10 @@ msgstr "in"
 
 msgid "in modal"
 msgstr " "
+
+#, fuzzy
+msgid "invalid email"
+msgstr "Ungültiger Permalink-Schlüssel"
 
 #, fuzzy
 msgid "is expected to be a Mapbox URL"

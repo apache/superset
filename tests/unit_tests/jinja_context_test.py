@@ -418,10 +418,6 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
         "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
         return_value=[],
     )
-    mocker.patch(
-        "superset.models.helpers.security_manager.get_rls_filters",
-        return_value=[],
-    )
 
     columns = [
         TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
@@ -468,10 +464,6 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
     DatasetDAO.find_by_id.return_value = dataset
     mocker.patch(
         "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
-        return_value=[],
-    )
-    mocker.patch(
-        "superset.models.helpers.security_manager.get_guest_rls_filters",
         return_value=[],
     )
 

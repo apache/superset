@@ -171,6 +171,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "allow_dml",
         "allow_file_upload",
         "extra",
+        "impersonate_user",
     ]
     extra_import_fields = [
         "password",
@@ -490,7 +491,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 g.user.id,
                 self.db_engine_spec,
             )
-            if hasattr(g, "user") and hasattr(g.user, "id") and oauth2_config
+            if oauth2_config and hasattr(g, "user") and hasattr(g.user, "id")
             else None
         )
         # If using MySQL or Presto for example, will set url.username
@@ -982,7 +983,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
     def get_schema_access_for_file_upload(  # pylint: disable=invalid-name
         self,
-    ) -> list[str]:
+    ) -> set[str]:
         allowed_databases = self.get_extra().get("schemas_allowed_for_file_upload", [])
 
         if isinstance(allowed_databases, str):
@@ -993,7 +994,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 self, g.user
             )
             allowed_databases += extra_allowed_databases
-        return sorted(set(allowed_databases))
+        return set(allowed_databases)
 
     @property
     def sqlalchemy_uri_decrypted(self) -> str:

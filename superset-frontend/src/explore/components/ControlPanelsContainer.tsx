@@ -448,13 +448,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const renderControl = ({ name, config }: CustomControlItem) => {
     const { controls, chart, exploreState } = props;
-    const { visibility } = config;
+    const { visibility, hidden, ...restConfig } = config;
 
     // If the control item is not an object, we have to look up the control data from
     // the centralized controls file.
     // When it is an object we read control data straight from `config` instead
     const controlData = {
-      ...config,
+      ...restConfig,
       ...controls[name],
       ...(shouldRecalculateControlState({ name, config })
         ? config?.mapStateToProps?.(exploreState, controls[name], chart)
@@ -475,6 +475,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     const isVisible = visibility
       ? visibility.call(config, props, controlData)
       : undefined;
+
+    const isHidden =
+      typeof hidden === 'function'
+        ? hidden.call(config, props, controlData)
+        : hidden;
 
     const label =
       typeof baseLabel === 'function'
@@ -536,6 +541,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           validationErrors={validationErrors}
           actions={props.actions}
           isVisible={isVisible}
+          hidden={isHidden}
           {...restProps}
         />
       </StashFormDataContainer>

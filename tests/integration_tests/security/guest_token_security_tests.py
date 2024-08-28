@@ -113,15 +113,29 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         self.authorized_guest = security_manager.get_guest_user_from_token(
             {
                 "user": {},
-                "resources": [{"type": "dashboard", "id": str(self.embedded.uuid)}],
+                "resources": [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(self.embedded.uuid),
+                    }
+                ],
+                "iat": 10,
+                "exp": 20,
+                "rls_rules": [],
             }
         )
         self.unauthorized_guest = security_manager.get_guest_user_from_token(
             {
                 "user": {},
                 "resources": [
-                    {"type": "dashboard", "id": "06383667-3e02-4e5e-843f-44e9c5896b6c"}
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": "06383667-3e02-4e5e-843f-44e9c5896b6c",
+                    }
                 ],
+                "iat": 10,
+                "exp": 20,
+                "rls_rules": [],
             }
         )
 
@@ -247,15 +261,29 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
         self.authorized_guest = security_manager.get_guest_user_from_token(
             {
                 "user": {},
-                "resources": [{"type": "dashboard", "id": str(self.embedded.uuid)}],
+                "resources": [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(self.embedded.uuid),
+                    }
+                ],
+                "iat": 10,
+                "exp": 20,
+                "rls_rules": [],
             }
         )
         self.unauthorized_guest = security_manager.get_guest_user_from_token(
             {
                 "user": {},
                 "resources": [
-                    {"type": "dashboard", "id": "06383667-3e02-4e5e-843f-44e9c5896b6c"}
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": "06383667-3e02-4e5e-843f-44e9c5896b6c",
+                    }
                 ],
+                "iat": 10,
+                "exp": 20,
+                "rls_rules": [],
             }
         )
         self.chart = self.get_slice("Girls")

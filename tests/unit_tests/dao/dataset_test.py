@@ -53,7 +53,7 @@ def test_validate_update_uniqueness(session: Session) -> None:
 
     assert (
         DatasetDAO.validate_update_uniqueness(
-            database_id=database.id,
+            database=database,
             table=Table(dataset1.table_name, dataset1.schema),
             dataset_id=dataset1.id,
         )
@@ -62,7 +62,7 @@ def test_validate_update_uniqueness(session: Session) -> None:
 
     assert (
         DatasetDAO.validate_update_uniqueness(
-            database_id=database.id,
+            database=database,
             table=Table(dataset1.table_name, dataset2.schema),
             dataset_id=dataset1.id,
         )
@@ -71,7 +71,7 @@ def test_validate_update_uniqueness(session: Session) -> None:
 
     assert (
         DatasetDAO.validate_update_uniqueness(
-            database_id=database.id,
+            database=database,
             table=Table(dataset1.table_name),
             dataset_id=dataset1.id,
         )

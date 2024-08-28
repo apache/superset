@@ -48,6 +48,6 @@ def upgrade():
 
 
 def downgrade():
+    downgrade_catalog_perms(engines={"postgresql"})
     op.drop_column("slices", "catalog_perm")
     op.drop_column("tables", "catalog_perm")
-    downgrade_catalog_perms(engines={"postgresql"})

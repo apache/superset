@@ -178,7 +178,12 @@ def test_rename_with_catalog(
     DatabaseDAO.find_by_id.return_value = original_database
     database_with_catalog.database_name = "my_other_db"
     DatabaseDAO.update.return_value = database_with_catalog
-    DatabaseDAO.get_datasets.return_value = []
+
+    dataset = mocker.MagicMock()
+    chart = mocker.MagicMock()
+    DatabaseDAO.get_datasets.return_value = [dataset]
+    DatasetDAO = mocker.patch("superset.commands.database.update.DatasetDAO")
+    DatasetDAO.get_related_objects.return_value = {"charts": [chart]}
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -217,6 +222,11 @@ def test_rename_with_catalog(
 
     assert catalog2_pvm.view_menu.name == "[my_other_db].[catalog2]"
     assert catalog2_schema3_pvm.view_menu.name == "[my_other_db].[catalog2].[schema3]"
+
+    assert dataset.catalog_perm == "[my_other_db].[catalog2]"
+    assert dataset.schema_perm == "[my_other_db].[catalog2].[schema4]"
+    assert chart.catalog_perm == "[my_other_db].[catalog2]"
+    assert chart.schema_perm == "[my_other_db].[catalog2].[schema4]"
 
 
 def test_rename_without_catalog(

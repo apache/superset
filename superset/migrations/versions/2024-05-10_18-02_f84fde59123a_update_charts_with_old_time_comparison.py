@@ -65,16 +65,17 @@ time_map = {
 def upgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
     params = deepcopy(slice_params)
 
-    if "enable_time_comparison" in params:
-        # Remove enable_time_comparison
-        del params["enable_time_comparison"]
-
     # Update time_comparison to time_compare
     if "time_comparison" in params:
         time_comp = params.pop("time_comparison")
-        params["time_compare"] = time_map.get(
-            time_comp, "inherit"
-        )  # Default to 'inherit' if not found
+        params["time_compare"] = (
+            [time_map.get(time_comp, "inherit")]
+            if "enable_time_comparison" in params and params["enable_time_comparison"]
+            else []
+        )
+
+    if "enable_time_comparison" in params:
+        del params["enable_time_comparison"]
 
     # Add comparison_type
     params["comparison_type"] = "values"
@@ -119,20 +120,21 @@ def upgrade():
 
 def downgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
     params = deepcopy(slice_params)
+    params["enable_time_comparison"] = False
 
     reverse_time_map = {
         v: k for k, v in time_map.items()
     }  # Reverse the map from the upgrade function
 
-    # Add enable_time_comparison
-    params["enable_time_comparison"] = True
-
     # Revert time_compare to time_comparison
     if "time_compare" in params:
         time_comp = params.pop("time_compare")
-        params["time_comparison"] = reverse_time_map.get(
-            time_comp, "r"
-        )  # Default to 'r' if not found
+        # Max one element in the time_compare list
+        time_comp = time_comp[0] if time_comp else ""
+        params["time_comparison"] = reverse_time_map.get(time_comp, "r")
+        # If the chart was using any time compare, enable time comparison
+        if time_comp:
+            params["enable_time_comparison"] = True
 
     # Remove comparison_type
     if "comparison_type" in params:

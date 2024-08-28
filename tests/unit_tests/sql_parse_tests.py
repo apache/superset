@@ -1551,7 +1551,7 @@ def test_insert_rls_as_subquery(
             "id=42",
             "SELECT * FROM other_table WHERE 1=1",
         ),
-        # If there's no pre-existing WHERE clause we create one.
+        # If there's no preexisting WHERE clause we create one.
         (
             "SELECT * FROM table",
             "table",
