@@ -51,8 +51,26 @@ EXAMPLES_HOST = os.getenv("EXAMPLES_HOST")
 EXAMPLES_PORT = os.getenv("EXAMPLES_PORT")
 EXAMPLES_DB = os.getenv("EXAMPLES_DB")
 
+
+# Read the environment variable
+oauth2_providers = os.getenv('OAUTH2_PROVIDERS')
+
+# Split the string into an array
+if oauth2_providers:
+    oauth2_provider_array = oauth2_providers.split(',')
+else:
+    oauth2_provider_array = []
+
+# Google credentials
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+
+# Azure credentials
+AZURE_ENTRA_CLIENT_ID = os.getenv("AZURE_ENTRA_CLIENT_ID")
+AZURE_ENTRA_CLIENT_SECRET = os.getenv("AZURE_ENTRA_CLIENT_SECRET")
+AZURE_ENTRA_TENANT_ID = os.getenv("AZURE_ENTRA_TENANT_ID")
+
+
 CORS_FRONTEND_ORIGIN = os.getenv("CORS_FRONTEND_ORIGIN")
 
 
@@ -166,9 +184,8 @@ AUTH_ROLES_MAPPING = {
 "superset_admins": ["Admin"],
 }
 
-# Working Example Google
-OAUTH_PROVIDERS = [
-{
+
+GOOGLE_PROVIDER = {
     'name': 'google',
     #'whitelist': ['@company.com'],
     'icon': 'fa-google',
@@ -184,7 +201,38 @@ OAUTH_PROVIDERS = [
         'client_id': GOOGLE_CLIENT_ID,
         'client_secret': GOOGLE_CLIENT_SECRET
     }
-}]
+}
+
+AZURE_PROVIDER =     {
+        'name': 'azure',
+        'icon': 'fa-windows',
+        'token_key': 'access_token',
+        'remote_app': {
+            'client_id': AZURE_ENTRA_CLIENT_ID,
+            'client_secret': AZURE_ENTRA_CLIENT_SECRET,
+            'api_base_url': f'https://login.microsoftonline.com/{AZURE_ENTRA_TENANT_ID}/oauth2',
+            'client_kwargs': {
+                'scope': 'openid email profile',
+                'resource': AZURE_ENTRA_CLIENT_ID,
+            },
+            'request_token_url': None,
+            'access_token_url': f'https://login.microsoftonline.com/{AZURE_ENTRA_TENANT_ID}/oauth2/token',
+            'authorize_url': f'https://login.microsoftonline.com/{AZURE_ENTRA_TENANT_ID}/oauth2/authorize',
+            'jwks_uri': f'https://login.microsoftonline.com/{AZURE_ENTRA_TENANT_ID}/discovery/v2.0/keys',
+        }
+    }
+
+PROVIDERS = {
+    'google': GOOGLE_PROVIDER,
+    'azure': AZURE_PROVIDER
+}
+
+# Add configured providers
+OAUTH_PROVIDERS = []
+for key in oauth2_provider_array:
+    if key in PROVIDERS:
+        OAUTH_PROVIDERS.append(PROVIDERS[key])
+
 
 # Enable CORS 
 ENABLE_CORS = True
