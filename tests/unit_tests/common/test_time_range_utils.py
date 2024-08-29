@@ -26,6 +26,7 @@ from superset.common.utils.time_range_utils import (
 
 
 def test__get_since_until_from_time_range():
+    assert get_since_until_from_time_range(time_range=None) == (None, None)
     assert get_since_until_from_time_range(time_range="2001 : 2002") == (
         datetime(2001, 1, 1),
         datetime(2002, 1, 1),
