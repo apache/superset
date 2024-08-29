@@ -1,0 +1,831 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Default values for superset.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# A README is automatically generated from this file to document it, using helm-docs (see https://github.com/norwoodj/helm-docs)
+# To update it, install helm-docs and run helm-docs from the root of this chart
+
+# -- Provide a name to override the name of the chart
+nameOverride: ~
+# -- Provide a name to override the full names of resources
+fullnameOverride: ~
+
+# -- User ID directive. This user must have enough permissions to run the bootstrap script
+# Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
+runAsUser: 0
+
+# -- Specify service account name to be used
+serviceAccountName: ~
+serviceAccount:
+  # -- Create custom service account for Superset. If create: true and serviceAccountName is not provided, `superset.fullname` will be used.
+  create: false
+  annotations: {}
+
+# -- Install additional packages and do any other bootstrap configuration in this script
+# For production clusters it's recommended to build own image with this step done in CI
+# @default -- see `values.yaml`
+bootstrapScript: |
+  #!/bin/bash
+  if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
+
+# -- The name of the secret which we will use to generate a superset_config.py file
+# Note: this secret must have the key superset_config.py in it and can include other files as well
+configFromSecret: '{{ template "superset.fullname" . }}-config'
+
+# -- The name of the secret which we will use to populate env vars in deployed pods
+# This can be useful for secret keys, etc.
+envFromSecret: '{{ template "superset.fullname" . }}-env'
+# -- This can be a list of templated strings
+envFromSecrets: []
+
+# -- Extra environment variables that will be passed into pods
+extraEnv: {}
+  # Different gunicorn settings, refer to the gunicorn documentation
+  # https://docs.gunicorn.org/en/stable/settings.html#
+  # These variables are used as Flags at the gunicorn startup
+  # https://github.com/apache/superset/blob/master/docker/run-server.sh#L22
+  # Extend timeout to allow long running queries.
+  # GUNICORN_TIMEOUT: 300
+  # Increase the gunicorn worker amount, can improve performance drastically
+  # See: https://docs.gunicorn.org/en/stable/design.html#how-many-workers
+  # SERVER_WORKER_AMOUNT: 4
+  # WORKER_MAX_REQUESTS: 0
+  # WORKER_MAX_REQUESTS_JITTER: 0
+  # SERVER_THREADS_AMOUNT: 20
+  # GUNICORN_KEEPALIVE: 2
+  # SERVER_LIMIT_REQUEST_LINE: 0
+  # SERVER_LIMIT_REQUEST_FIELD_SIZE: 0
+
+  # OAUTH_HOME_DOMAIN: ..
+  # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
+  # #   this includes any random Gmail address if your OAuth2 Web App is set to External.
+  # OAUTH_WHITELIST_REGEX: ...
+
+# -- Extra environment variables in RAW format that will be passed into pods
+extraEnvRaw: []
+  # Load DB password from other secret (e.g. for zalando operator)
+  # - name: DB_PASS
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: superset.superset-postgres.credentials.postgresql.acid.zalan.do
+  #       key: password
+
+# -- Extra environment variables to pass as secrets
+extraSecretEnv: {}
+  # MAPBOX_API_KEY: ...
+  # # Google API Keys: https://console.cloud.google.com/apis/credentials
+  # GOOGLE_KEY: ...
+  # GOOGLE_SECRET: ...
+  #   # Generate your own secret key for encryption. Use openssl rand -base64 42 to generate a good key
+  #  SUPERSET_SECRET_KEY: 'CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET'
+
+# -- Extra files to mount on `/app/pythonpath`
+extraConfigs: {}
+  # import_datasources.yaml: |
+  #     databases:
+  #     - allow_file_upload: true
+  #       allow_ctas: true
+  #       allow_cvas: true
+  #       database_name: example-db
+  #       extra: "{\r\n    \"metadata_params\": {},\r\n    \"engine_params\": {},\r\n    \"\
+  #         metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_file_upload\": []\r\n\
+  #         }"
+  #       sqlalchemy_uri: example://example-db.local
+  #       tables: []
+
+# -- Extra files to mount on `/app/pythonpath` as secrets
+extraSecrets: {}
+
+extraVolumes: []
+  # - name: customConfig
+  #   configMap:
+  #     name: '{{ template "superset.fullname" . }}-custom-config'
+  # - name: additionalSecret
+  #   secret:
+  #     secretName: my-secret
+  #     defaultMode: 0600
+
+extraVolumeMounts: []
+  # - name: customConfig
+  #   mountPath: /mnt/config
+  #   readOnly: true
+  # - name: additionalSecret:
+  #   mountPath: /mnt/secret
+
+# -- A dictionary of overrides to append at the end of superset_config.py - the name does not matter
+# WARNING: the order is not guaranteed
+# Files can be passed as helm --set-file configOverrides.my-override=my-file.py
+configOverrides: {}
+  # extend_timeout: |
+  #    # Extend timeout to allow long running queries.
+  #    SUPERSET_WEBSERVER_TIMEOUT = ...
+  # enable_oauth: |
+  #   from flask_appbuilder.security.manager import (AUTH_DB, AUTH_OAUTH)
+  #   AUTH_TYPE = AUTH_OAUTH
+  #   OAUTH_PROVIDERS = [
+  #       {
+  #           "name": "google",
+  #           "whitelist": [ os.getenv("OAUTH_WHITELIST_REGEX", "") ],
+  #           "icon": "fa-google",
+  #           "token_key": "access_token",
+  #           "remote_app": {
+  #               "client_id": os.environ.get("GOOGLE_KEY"),
+  #               "client_secret": os.environ.get("GOOGLE_SECRET"),
+  #               "api_base_url": "https://www.googleapis.com/oauth2/v2/",
+  #               "client_kwargs": {"scope": "email profile"},
+  #               "request_token_url": None,
+  #               "access_token_url": "https://accounts.google.com/o/oauth2/token",
+  #               "authorize_url": "https://accounts.google.com/o/oauth2/auth",
+  #               "authorize_params": {"hd": os.getenv("OAUTH_HOME_DOMAIN", "")}
+  #           }
+  #       }
+  #   ]
+  #   # Map Authlib roles to superset roles
+  #   AUTH_ROLE_ADMIN = 'Admin'
+  #   AUTH_ROLE_PUBLIC = 'Public'
+  #   # Will allow user self registration, allowing to create Flask users from Authorized User
+  #   AUTH_USER_REGISTRATION = True
+  #   # The default user self registration role
+  #   AUTH_USER_REGISTRATION_ROLE = "Admin"
+  # secret: |
+  #   # Generate your own secret key for encryption. Use `openssl rand -base64 42` to generate a good key
+  #   SECRET_KEY = 'CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET'
+
+# -- Same as above but the values are files
+configOverridesFiles: {}
+  # extend_timeout: extend_timeout.py
+  # enable_oauth: enable_oauth.py
+
+configMountPath: "/app/pythonpath"
+
+extraConfigMountPath: "/app/configs"
+
+image:
+  repository: apachesuperset.docker.scarf.sh/apache/superset
+  tag: ~
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+initImage:
+  repository: apache/superset
+  tag: dockerize
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8088
+  annotations: {}
+    # cloud.google.com/load-balancer-type: "Internal"
+  loadBalancerIP: ~
+  nodePort:
+    # -- (int)
+    http: nil
+
+ingress:
+  enabled: false
+  ingressClassName: ~
+  annotations: {}
+    # kubernetes.io/tls-acme: "true"
+    ## Extend timeout to allow long running queries.
+    # nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  path: /
+  pathType: ImplementationSpecific
+  hosts:
+    - chart-example.local
+  tls: []
+  extraHostsRaw: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # The limits below will apply to all Superset components. To set individual resource limitations refer to the pod specific values below.
+  # The pod specific values will overwrite anything that is set here.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# -- Custom hostAliases for all superset pods
+## https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
+hostAliases: []
+# - hostnames:
+#   - nodns.my.lan
+#   ip: 18.27.36.45
+
+# Superset node configuration
+supersetNode:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
+  # -- Startup command
+  # @default -- See `values.yaml`
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/run-server.sh"
+  connections:
+    # -- Change in case of bringing your own redis and then also set redis.enabled:false
+    redis_host: '{{ .Release.Name }}-redis-headless'
+    redis_port: "6379"
+    redis_user: ""
+    # redis_password: superset
+    redis_cache_db: "1"
+    redis_celery_db: "0"
+    # Or SSL port is usually 6380
+    # Update following for using Redis with SSL
+    redis_ssl:
+      enabled: false
+      ssl_cert_reqs: CERT_NONE
+    # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
+    db_host: '{{ .Release.Name }}-postgresql'
+    db_port: "5432"
+    db_user: superset
+    db_pass: superset
+    db_name: superset
+  env: {}
+  # -- If true, forces deployment to reload on each upgrade
+  forceReload: false
+  # -- Init containers
+  # @default -- a container waiting for postgres
+  initContainers:
+    - name: wait-for-postgres
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
+      envFrom:
+        - secretRef:
+            name: "{{ tpl .Values.envFromSecret . }}"
+      command:
+        - /bin/sh
+        - -c
+        - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -timeout 120s
+
+  # -- Launch additional containers into supersetNode pod
+  extraContainers: []
+  # -- Annotations to be added to supersetNode deployment
+  deploymentAnnotations: {}
+  # -- Labels to be added to supersetNode deployment
+  deploymentLabels: {}
+  # -- Affinity to be added to supersetNode deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetNode deployments
+  topologySpreadConstraints: []
+  # -- Annotations to be added to supersetNode pods
+  podAnnotations: {}
+  # -- Labels to be added to supersetNode pods
+  podLabels: {}
+  startupProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 15
+    timeoutSeconds: 1
+    failureThreshold: 60
+    periodSeconds: 5
+    successThreshold: 1
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 15
+    timeoutSeconds: 1
+    failureThreshold: 3
+    periodSeconds: 15
+    successThreshold: 1
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 15
+    timeoutSeconds: 1
+    failureThreshold: 3
+    periodSeconds: 15
+    successThreshold: 1
+  # -- Resource settings for the supersetNode pods - these settings overwrite might existing values from the global resources object defined above.
+  resources: {}
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  strategy: {}
+    # type: RollingUpdate
+    # rollingUpdate:
+    #   maxSurge: 25%
+    #   maxUnavailable: 25%
+
+# Superset Celery worker configuration
+supersetWorker:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
+  # -- Worker startup command
+  # @default -- a `celery worker` command
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker"
+  # -- If true, forces deployment to reload on each upgrade
+  forceReload: false
+  # -- Init container
+  # @default -- a container waiting for postgres and redis
+  initContainers:
+    - name: wait-for-postgres-redis
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
+      envFrom:
+        - secretRef:
+            name: "{{ tpl .Values.envFromSecret . }}"
+      command:
+        - /bin/sh
+        - -c
+        - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+  # -- Launch additional containers into supersetWorker pod
+  extraContainers: []
+  # -- Annotations to be added to supersetWorker deployment
+  deploymentAnnotations: {}
+  # -- Labels to be added to supersetWorker deployment
+  deploymentLabels: {}
+  # -- Affinity to be added to supersetWorker deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetWorker deployments
+  topologySpreadConstraints: []
+  # -- Annotations to be added to supersetWorker pods
+  podAnnotations: {}
+  # -- Labels to be added to supersetWorker pods
+  podLabels: {}
+  # -- Resource settings for the supersetWorker pods - these settings overwrite might existing values from the global resources object defined above.
+  resources: {}
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  strategy: {}
+    # type: RollingUpdate
+    # rollingUpdate:
+    #   maxSurge: 25%
+    #   maxUnavailable: 25%
+  livenessProbe:
+    exec:
+      # -- Liveness probe command
+      # @default -- a `celery inspect ping` command
+      command:
+        - sh
+        - -c
+        - celery -A superset.tasks.celery_app:app inspect ping -d celery@$HOSTNAME
+    initialDelaySeconds: 120
+    timeoutSeconds: 60
+    failureThreshold: 3
+    periodSeconds: 60
+    successThreshold: 1
+  # -- No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic)
+  startupProbe: {}
+  # -- No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic)
+  readinessProbe: {}
+
+# Superset beat configuration (to trigger scheduled jobs like reports)
+supersetCeleryBeat:
+  # -- This is only required if you intend to use alerts and reports
+  enabled: false
+  # -- Command
+  # @default -- a `celery beat` command
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
+  # -- If true, forces deployment to reload on each upgrade
+  forceReload: false
+  # -- List of init containers
+  # @default -- a container waiting for postgres
+  initContainers:
+    - name: wait-for-postgres-redis
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
+      envFrom:
+        - secretRef:
+            name: "{{ tpl .Values.envFromSecret . }}"
+      command:
+        - /bin/sh
+        - -c
+        - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+  # -- Launch additional containers into supersetCeleryBeat pods
+  extraContainers: []
+  # -- Annotations to be added to supersetCeleryBeat deployment
+  deploymentAnnotations: {}
+  # -- Affinity to be added to supersetCeleryBeat deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetCeleryBeat deployments
+  topologySpreadConstraints: []
+  # -- Annotations to be added to supersetCeleryBeat pods
+  podAnnotations: {}
+  # -- Labels to be added to supersetCeleryBeat pods
+  podLabels: {}
+  # -- Resource settings for the CeleryBeat pods - these settings overwrite might existing values from the global resources object defined above.
+  resources: {}
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
+  podSecurityContext: {}
+  containerSecurityContext: {}
+
+supersetCeleryFlower:
+  # -- Enables a Celery flower deployment (management UI to monitor celery jobs)
+  # WARNING: on superset 1.x, this requires a Superset image that has `flower<1.0.0` installed (which is NOT the case of the default images)
+  # flower>=1.0.0 requires Celery 5+ which Superset 1.5 does not support
+  enabled: false
+  replicaCount: 1
+  # -- Command
+  # @default -- a `celery flower` command
+  command:
+    - "/bin/sh"
+    - "-c"
+    - "celery --app=superset.tasks.celery_app:app flower"
+  service:
+    type: ClusterIP
+    annotations: {}
+    loadBalancerIP: ~
+    port: 5555
+    nodePort:
+      # -- (int)
+      http: nil
+  startupProbe:
+    httpGet:
+      path: /api/workers
+      port: flower
+    initialDelaySeconds: 5
+    timeoutSeconds: 1
+    failureThreshold: 60
+    periodSeconds: 5
+    successThreshold: 1
+  livenessProbe:
+    httpGet:
+      path: /api/workers
+      port: flower
+    initialDelaySeconds: 5
+    timeoutSeconds: 1
+    failureThreshold: 3
+    periodSeconds: 5
+    successThreshold: 1
+  readinessProbe:
+    httpGet:
+      path: /api/workers
+      port: flower
+    initialDelaySeconds: 5
+    timeoutSeconds: 1
+    failureThreshold: 3
+    periodSeconds: 5
+    successThreshold: 1
+  # -- List of init containers
+  # @default -- a container waiting for postgres and redis
+  initContainers:
+    - name: wait-for-postgres-redis
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
+      envFrom:
+        - secretRef:
+            name: "{{ tpl .Values.envFromSecret . }}"
+      command:
+        - /bin/sh
+        - -c
+        - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+  # -- Launch additional containers into supersetCeleryFlower pods
+  extraContainers: []
+  # -- Annotations to be added to supersetCeleryFlower deployment
+  deploymentAnnotations: {}
+  # -- Affinity to be added to supersetCeleryFlower deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetCeleryFlower deployments
+  topologySpreadConstraints: []
+  # -- Annotations to be added to supersetCeleryFlower pods
+  podAnnotations: {}
+  # -- Labels to be added to supersetCeleryFlower pods
+  podLabels: {}
+  # -- Resource settings for the CeleryBeat pods - these settings overwrite might existing values from the global resources object defined above.
+  resources: {}
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
+  podSecurityContext: {}
+  containerSecurityContext: {}
+
+supersetWebsockets:
+  # -- This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode
+  # see https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
+  enabled: false
+  replicaCount: 1
+  ingress:
+    path: /ws
+    pathType: Prefix
+  image:
+    # -- There is no official image (yet), this one is community-supported
+    repository: oneacrefund/superset-websocket
+    tag: latest
+    pullPolicy: IfNotPresent
+  # -- The config.json to pass to the server, see https://github.com/apache/superset/tree/master/superset-websocket
+  # Note that the configuration can also read from environment variables (which will have priority), see https://github.com/apache/superset/blob/master/superset-websocket/src/config.ts for a list of supported variables
+  # @default -- see `values.yaml`
+  config:
+    {
+      "port": 8080,
+      "logLevel": "debug",
+      "logToFile": false,
+      "logFilename": "app.log",
+      "statsd": { "host": "127.0.0.1", "port": 8125, "globalTags": [] },
+      "redis":
+        {
+          "port": 6379,
+          "host": "127.0.0.1",
+          "password": "",
+          "db": 0,
+          "ssl": false,
+        },
+      "redisStreamPrefix": "async-events-",
+      "jwtSecret": "CHANGE-ME",
+      "jwtCookieName": "async-token",
+    }
+  service:
+    type: ClusterIP
+    annotations: {}
+    loadBalancerIP: ~
+    port: 8080
+    nodePort:
+      # -- (int)
+      http: nil
+  command: []
+  resources: {}
+  # -- Launch additional containers into supersetWebsockets pods
+  extraContainers: []
+  deploymentAnnotations: {}
+  # -- Affinity to be added to supersetWebsockets deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetWebsockets deployments
+  topologySpreadConstraints: []
+  podAnnotations: {}
+  podLabels: {}
+  strategy: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  startupProbe:
+    httpGet:
+      path: /health
+      port: ws
+    initialDelaySeconds: 5
+    timeoutSeconds: 1
+    failureThreshold: 60
+    periodSeconds: 5
+    successThreshold: 1
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: ws
+    initialDelaySeconds: 5
+    timeoutSeconds: 1
+    failureThreshold: 3
+    periodSeconds: 5
+    successThreshold: 1
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: ws
+    initialDelaySeconds: 5
+    timeoutSeconds: 1
+    failureThreshold: 3
+    periodSeconds: 5
+    successThreshold: 1
+
+init:
+  # Configure resources
+  # Warning: fab command consumes a lot of ram and can
+  # cause the process to be killed due to OOM if it exceeds limit
+  # Make sure you are giving a strong password for the admin user creation( else make sure you are changing after setup)
+  # Also change the admin email to your own custom email.
+  resources: {}
+    # limits:
+    #   cpu:
+    #   memory:
+    # requests:
+    #   cpu:
+    #   memory:
+  # -- Command
+  # @default -- a `superset_init.sh` command
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
+  enabled: true
+  jobAnnotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": "before-hook-creation"
+  loadExamples: false
+  createAdmin: true
+  adminUser:
+    username: admin
+    firstname: Superset
+    lastname: Admin
+    email: admin@superset.com
+    password: admin
+  # -- List of initContainers
+  # @default -- a container waiting for postgres
+  initContainers:
+    - name: wait-for-postgres
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
+      envFrom:
+        - secretRef:
+            name: "{{ tpl .Values.envFromSecret . }}"
+      command:
+        - /bin/sh
+        - -c
+        - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -timeout 120s
+  # -- A Superset init script
+  # @default -- a script to create admin user and initialize roles
+  initscript: |-
+    #!/bin/sh
+    set -eu
+    echo "Upgrading DB schema..."
+    superset db upgrade
+    echo "Initializing roles..."
+    superset init
+    {{ if .Values.init.createAdmin }}
+    echo "Creating admin user..."
+    superset fab create-admin \
+                    --username {{ .Values.init.adminUser.username }} \
+                    --firstname {{ .Values.init.adminUser.firstname }} \
+                    --lastname {{ .Values.init.adminUser.lastname }} \
+                    --email {{ .Values.init.adminUser.email }} \
+                    --password {{ .Values.init.adminUser.password }} \
+                    || true
+    {{- end }}
+    {{ if .Values.init.loadExamples }}
+    echo "Loading examples..."
+    superset load_examples
+    {{- end }}
+    if [ -f "{{ .Values.extraConfigMountPath }}/import_datasources.yaml" ]; then
+      echo "Importing database connections.... "
+      superset import_datasources -p {{ .Values.extraConfigMountPath }}/import_datasources.yaml
+    fi
+  # -- Launch additional containers into init job pod
+  extraContainers: []
+  ## Annotations to be added to init job pods
+  podAnnotations: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  ## Tolerations to be added to init job pods
+  tolerations: []
+  ## Affinity to be added to init job pods
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to init job
+  topologySpreadConstraints: []
+
+# -- Configuration values for the postgresql dependency.
+# ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql
+# @default -- see `values.yaml`
+postgresql:
+  ##
+  ## Use the PostgreSQL chart dependency.
+  ## Set to false if bringing your own PostgreSQL.
+  enabled: true
+
+  ## Authentication parameters
+  auth:
+    ## The name of an existing secret that contains the postgres password.
+    existingSecret:
+    ## PostgreSQL name for a custom user to create
+    username: superset
+    ## PostgreSQL password for the custom user to create. Ignored if `auth.existingSecret` with key `password` is provided
+    password: superset
+    ## PostgreSQL name for a custom database to create
+    database: superset
+
+  image:
+    tag: "14.6.0-debian-11-r13"
+
+  ## PostgreSQL Primary parameters
+  primary:
+    ##
+    ## Persistent Volume Storage configuration.
+    ## ref: https://kubernetes.io/docs/user-guide/persistent-volumes
+    persistence:
+      ##
+      ## Enable PostgreSQL persistence using Persistent Volume Claims.
+      enabled: true
+      ##
+      ## Persistent class
+      # storageClass: classname
+      ##
+      ## Access modes:
+      accessModes:
+        - ReadWriteOnce
+    ## PostgreSQL port
+    service:
+      ports:
+        postgresql: "5432"
+
+# -- Configuration values for the Redis dependency.
+# ref: https://github.com/bitnami/charts/blob/master/bitnami/redis
+# More documentation can be found here: https://artifacthub.io/packages/helm/bitnami/redis
+# @default -- see `values.yaml`
+redis:
+  ##
+  ## Use the redis chart dependency.
+  ##
+  ## If you are bringing your own redis, you can set the host in supersetNode.connections.redis_host
+  ##
+  ## Set to false if bringing your own redis.
+  enabled: true
+  ##
+  ## Set architecture to standalone/replication
+  architecture: standalone
+  ##
+  ## Auth configuration:
+  ##
+  auth:
+    ## Enable password authentication
+    enabled: false
+    ## The name of an existing secret that contains the redis password.
+    existingSecret: ""
+    ## Name of the key containing the secret.
+    existingSecretKey: ""
+    ## Redis password
+    password: superset
+  ##
+  ## Master configuration
+  ##
+  master:
+    ##
+    ## Image configuration
+    # image:
+    ##
+    ## docker registry secret names (list)
+    # pullSecrets: nil
+    ##
+    ## Configure persistance
+    persistence:
+      ##
+      ## Use a PVC to persist data.
+      enabled: false
+      ##
+      ## Persistent class
+      # storageClass: classname
+      ##
+      ## Access mode:
+      accessModes:
+        - ReadWriteOnce
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# -- TopologySpreadConstrains to be added to all deployments
+topologySpreadConstraints: []
