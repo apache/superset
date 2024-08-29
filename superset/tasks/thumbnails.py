@@ -24,6 +24,7 @@ from flask import current_app
 
 from superset import security_manager, thumbnail_cache
 from superset.extensions import celery_app
+from superset.tasks.types import ExecutorType
 from superset.tasks.utils import get_executor
 from superset.utils.core import override_user
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
@@ -40,6 +41,7 @@ def cache_chart_thumbnail(
     force: bool = False,
     window_size: Optional[WindowSize] = None,
     thumb_size: Optional[WindowSize] = None,
+    force_current_user: Optional[bool] = False,
 ) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.models.slice import Slice
@@ -54,7 +56,9 @@ def cache_chart_thumbnail(
     url = get_url_path("Superset.slice", slice_id=chart.id)
     logger.info("Caching chart: %s", url)
     _, username = get_executor(
-        executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+        executor_types=[ExecutorType.CURRENT_USER]
+        if force_current_user
+        else current_app.config["THUMBNAIL_EXECUTE_AS"],
         model=chart,
         current_user=current_user,
     )
@@ -78,6 +82,7 @@ def cache_dashboard_thumbnail(
     force: bool = False,
     thumb_size: Optional[WindowSize] = None,
     window_size: Optional[WindowSize] = None,
+    force_current_user: Optional[bool] = False,
 ) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
@@ -90,7 +95,9 @@ def cache_dashboard_thumbnail(
 
     logger.info("Caching dashboard: %s", url)
     _, username = get_executor(
-        executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+        executor_types=[ExecutorType.CURRENT_USER]
+        if force_current_user
+        else current_app.config["THUMBNAIL_EXECUTE_AS"],
         model=dashboard,
         current_user=current_user,
     )
@@ -112,9 +119,11 @@ def cache_dashboard_screenshot(
     current_user: Optional[str],
     dashboard_id: int,
     dashboard_url: str,
-    force: bool = True,
+    cache_key: Optional[str] = None,
     thumb_size: Optional[WindowSize] = None,
     window_size: Optional[WindowSize] = None,
+    force_current_user: Optional[bool] = False,
+    force: bool = True,
 ) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
@@ -126,18 +135,23 @@ def cache_dashboard_screenshot(
     dashboard = Dashboard.get(dashboard_id)
 
     logger.info("Caching dashboard: %s", dashboard_url)
+
     _, username = get_executor(
-        executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+        executor_types=[ExecutorType.CURRENT_USER]
+        if force_current_user
+        else current_app.config["THUMBNAIL_EXECUTE_AS"],
         model=dashboard,
         current_user=current_user,
     )
+
     user = security_manager.find_user(username)
     with override_user(user):
         screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
         screenshot.compute_and_cache(
             user=user,
             cache=thumbnail_cache,
-            force=force,
+            cache_key=cache_key,
             window_size=window_size,
             thumb_size=thumb_size,
+            force=force,
         )

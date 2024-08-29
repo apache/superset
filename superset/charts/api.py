@@ -599,9 +599,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             cache_chart_thumbnail.delay(
                 current_user=get_current_user(),
                 chart_id=chart.id,
-                force=True,
                 window_size=window_size,
                 thumb_size=thumb_size,
+                force_current_user=True,
+                force=True,
             )
             return self.response(
                 202, cache_key=cache_key, chart_url=chart_url, image_url=image_url
@@ -718,6 +719,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             cache_chart_thumbnail.delay(
                 current_user=current_user,
                 chart_id=chart.id,
+                force_current_user=True,
                 force=True,
             )
             return self.response(202, message="OK Async")
@@ -734,6 +736,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             cache_chart_thumbnail.delay(
                 current_user=current_user,
                 chart_id=chart.id,
+                force_current_user=True,
                 force=True,
             )
             return self.response(202, message="OK Async")

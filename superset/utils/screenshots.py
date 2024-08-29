@@ -16,14 +16,17 @@
 # under the License.
 from __future__ import annotations
 
+import base64
+import json
 import logging
+import zlib
 from io import BytesIO
 from typing import TYPE_CHECKING
 
 from flask import current_app
 
 from superset import feature_flag_manager
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
     ChartStandaloneMode,
@@ -84,6 +87,7 @@ class BaseScreenshot:
             "window_size": window_size,
             "thumb_size": thumb_size,
         }
+
         return md5_sha_from_dict(args)
 
     def get_screenshot(
@@ -144,6 +148,7 @@ class BaseScreenshot:
         thumb_size: WindowSize | None = None,
         cache: Cache = None,
         force: bool = True,
+        cache_key: str | None = None,
     ) -> bytes | None:
         """
         Fetches the screenshot, computes the thumbnail and caches the result
@@ -155,7 +160,7 @@ class BaseScreenshot:
         :param force: Will force the computation even if it's already cached
         :return: Image payload
         """
-        cache_key = self.cache_key(window_size, thumb_size)
+        cache_key = cache_key or self.cache_key(window_size, thumb_size)
         window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
         if not force and cache and cache.get(cache_key):
@@ -251,3 +256,33 @@ class DashboardScreenshot(BaseScreenshot):
         super().__init__(url, digest)
         self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
         self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE
+
+    def cache_key(
+        self,
+        window_size: bool | WindowSize | None = None,
+        thumb_size: bool | WindowSize | None = None,
+        current_user=str,
+    ) -> str:
+        window_size = window_size or self.window_size
+        thumb_size = thumb_size or self.thumb_size
+        args = {
+            "digest": md5_sha_from_str(self.digest),
+            "thumbnail_type": "screenshot",
+            "target": self.thumbnail_type,
+            "window_size": window_size,
+            "thumb_size": thumb_size,
+            "current_user": current_user,
+        }
+        return self.compress_key(args)
+
+    def compress_key(self, obj: dict) -> str:
+        json_data = json.dumps(obj, separators=(",", ":"))
+        compressed_data = zlib.compress(json_data.encode("utf-8"), level=9)
+        compressed_key = base64.urlsafe_b64encode(compressed_data).decode("utf-8")
+        return compressed_key
+
+    @staticmethod
+    def decompress_key(encoded_data: str) -> dict:
+        compressed_data = base64.urlsafe_b64decode(encoded_data.encode("utf-8"))
+        json_data = zlib.decompress(compressed_data).decode("utf-8")
+        return json.loads(json_data)

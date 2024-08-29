@@ -932,6 +932,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             cache_dashboard_thumbnail.delay(
                 current_user=current_user,
                 dashboard_id=dashboard.id,
+                force_current_user=True,
                 force=True,
             )
             return self.response(202, message="OK Async")
@@ -945,6 +946,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             cache_dashboard_thumbnail.delay(
                 current_user=current_user,
                 dashboard_id=dashboard.id,
+                force_current_user=True,
                 force=True,
             )
             return self.response(202, message="OK Async")
@@ -1032,8 +1034,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ).run()
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
+        current_user = get_current_user()
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
-        cache_key = screenshot_obj.cache_key(window_size, thumb_size)
+        cache_key = screenshot_obj.cache_key(window_size, thumb_size, current_user)
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
@@ -1044,9 +1047,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 current_user=get_current_user(),
                 dashboard_id=dashboard.id,
                 dashboard_url=dashboard_url,
-                force=True,
+                cache_key=cache_key,
                 thumb_size=thumb_size,
                 window_size=window_size,
+                force_current_user=True,
+                force=True,
             )
             return self.response(
                 202,
@@ -1102,10 +1107,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         if not dashboard:
             return self.response_404()
 
+        decompressed_key = DashboardScreenshot.decompress_key(digest)
+        if (
+            not decompressed_key
+            or decompressed_key.get("current_user") != get_current_user()
+        ):
+            return self.response_403
+
         download_format = request.args.get("download_format", "png")
 
         # fetch the dashboard screenshot using the current user and cache if set
-
         if img := DashboardScreenshot.get_from_cache_key(thumbnail_cache, digest):
             if download_format == "pdf":
                 pdf_img = img.getvalue()
