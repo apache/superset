@@ -22,6 +22,7 @@ from uuid import uuid4
 import pytest
 import redis
 from celery.exceptions import SoftTimeLimitExceeded
+from parameterized import parameterized
 
 from superset.async_events.cache_backend import (
     RedisCacheBackend,
@@ -50,22 +51,21 @@ cache_backends = {
 }
 
 
+@pytest.mark.usefixtures(
+    "load_birth_names_data", "load_birth_names_dashboard_with_slices"
+)
 class TestAsyncQueries(SupersetTestCase):
-    @pytest.mark.usefixtures(
-        "load_birth_names_data", "load_birth_names_dashboard_with_slices"
-    )
-    @mock.patch.object(async_query_manager, "update_job")
-    @mock.patch("superset.tasks.async_queries.set_form_data")
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
+    @mock.patch("superset.tasks.async_queries.set_form_data")
+    @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache(
-        self, mock_set_form_data, mock_update_job, cache_type, cache_backend
+        self, cache_type, cache_backend, mock_update_job, mock_set_form_data
     ):
         from superset.tasks.async_queries import load_chart_data_into_cache
 
@@ -87,25 +87,23 @@ class TestAsyncQueries(SupersetTestCase):
         load_chart_data_into_cache(job_metadata, query_context)
 
         mock_set_form_data.assert_called_once_with(query_context)
-
         mock_update_job.assert_called_once_with(
             job_metadata, "done", result_url=mock.ANY
         )
 
-    @mock.patch.object(
-        ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
-    )
-    @mock.patch.object(async_query_manager, "update_job")
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
+    @mock.patch.object(
+        ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
+    )
+    @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache_error(
-        self, mock_update_job, mock_run_command, cache_type, cache_backend
+        self, cache_type, cache_backend, mock_update_job, mock_run_command
     ):
         from superset.tasks.async_queries import load_chart_data_into_cache
 
@@ -130,18 +128,17 @@ class TestAsyncQueries(SupersetTestCase):
         errors = [{"message": "Error: foo"}]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
-    @mock.patch.object(ChartDataCommand, "run")
-    @mock.patch.object(async_query_manager, "update_job")
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
+    @mock.patch.object(ChartDataCommand, "run")
+    @mock.patch.object(async_query_manager, "update_job")
     def test_soft_timeout_load_chart_data_into_cache(
-        self, mock_update_job, mock_run_command, cache_type, cache_backend
+        self, cache_type, cache_backend, mock_update_job, mock_run_command
     ):
         from superset.tasks.async_queries import load_chart_data_into_cache
 
@@ -169,18 +166,17 @@ class TestAsyncQueries(SupersetTestCase):
                 load_chart_data_into_cache(job_metadata, form_data)
             set_form_data.assert_called_once_with(form_data, "error", errors=errors)
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch.object(async_query_manager, "update_job")
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(
-        self, mock_update_job, cache_type, cache_backend
+        self, cache_type, cache_backend, mock_update_job
     ):
         from superset.tasks.async_queries import load_explore_json_into_cache
 
@@ -215,18 +211,17 @@ class TestAsyncQueries(SupersetTestCase):
             job_metadata, "done", result_url=mock.ANY
         )
 
-    @mock.patch.object(async_query_manager, "update_job")
-    @mock.patch("superset.tasks.async_queries.set_form_data")
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
+    @mock.patch.object(async_query_manager, "update_job")
+    @mock.patch("superset.tasks.async_queries.set_form_data")
     def test_load_explore_json_into_cache_error(
-        self, mock_set_form_data, mock_update_job, cache_type, cache_backend
+        self, cache_type, cache_backend, mock_set_form_data, mock_update_job
     ):
         from superset.tasks.async_queries import load_explore_json_into_cache
 
@@ -252,18 +247,17 @@ class TestAsyncQueries(SupersetTestCase):
         errors = ["The dataset associated with this chart no longer exists"]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
-    @mock.patch.object(ChartDataCommand, "run")
-    @mock.patch.object(async_query_manager, "update_job")
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
+    @mock.patch.object(ChartDataCommand, "run")
+    @mock.patch.object(async_query_manager, "update_job")
     def test_soft_timeout_load_explore_json_into_cache(
-        self, mock_update_job, mock_run_command, cache_type, cache_backend
+        self, cache_type, cache_backend, mock_update_job, mock_run_command
     ):
         from superset.tasks.async_queries import load_explore_json_into_cache
 
@@ -281,7 +275,7 @@ class TestAsyncQueries(SupersetTestCase):
             "status": "pending",
             "errors": [],
         }
-        errors = ["A timeout occurred while loading explore json, error"]
+        errors = ["A timeout occurred while loading explore JSON data"]
 
         with pytest.raises(SoftTimeLimitExceeded):
             with mock.patch(
