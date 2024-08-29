@@ -16,6 +16,7 @@
 # under the License.
 from typing import Callable
 
+from deprecation import deprecated
 from flask import abort, current_app, request
 from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, login_user
@@ -23,6 +24,7 @@ from flask_wtf.csrf import same_origin
 
 from superset import event_logger, is_feature_enabled
 from superset.daos.dashboard import EmbeddedDashboardDAO
+from superset.daos.chart import EmbeddedChartDAO
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.views.base import BaseSupersetView, common_bootstrap_payload
@@ -33,23 +35,12 @@ class EmbeddedView(BaseSupersetView):
 
     route_base = "/embedded"
 
-    @expose("/<uuid>")
-    @event_logger.log_this_with_extra_payload
-    def embedded(
-        self,
-        uuid: str,
-        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
-    ) -> FlaskResponse:
-        """
-        Server side rendering for the embedded dashboard page
-        :param uuid: identifier for embedded dashboard
-        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
-            default value to appease pylint
-        """
+    @staticmethod
+    def _embed(uuid: str, dao: EmbeddedDashboardDAO | EmbeddedChartDAO):
         if not is_feature_enabled("EMBEDDED_SUPERSET"):
             abort(404)
 
-        embedded = EmbeddedDashboardDAO.find_by_id(uuid)
+        embedded = dao.find_by_id(uuid)
 
         if not embedded:
             abort(404)
@@ -71,6 +62,15 @@ class EmbeddedView(BaseSupersetView):
         # and building the page fails if g.user and/or ctx.user aren't present.
         login_user(AnonymousUserMixin(), force=True)
 
+        return embedded
+
+    def _embedded_dashboard(
+        self,
+        uuid: str,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> dict:
+        embedded = self._embed(uuid, EmbeddedDashboardDAO())
+
         add_extra_log_payload(
             embedded_dashboard_id=uuid,
             dashboard_version="v2",
@@ -83,6 +83,82 @@ class EmbeddedView(BaseSupersetView):
             "common": common_bootstrap_payload(),
             "embedded": {
                 "dashboard_id": embedded.dashboard_id,
+            },
+        }
+        return bootstrap_data
+
+    @deprecated(deprecated_in="4.0")
+    @expose("/<uuid>")
+    @event_logger.log_this_with_extra_payload
+    def embedded(
+        self,
+        uuid: str,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> FlaskResponse:
+        """
+        Server side rendering for the embedded dashboard page
+        :param uuid: identifier for embedded dashboard
+        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
+            default value to appease pylint
+        """
+        bootstrap_data = self._embedded_dashboard(uuid, add_extra_log_payload)
+        return self.render_template(
+            "superset/spa.html",
+            entry="embedded",
+            bootstrap_data=json.dumps(
+                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+        )
+
+    @expose("/dashboard/<uuid>")
+    @event_logger.log_this_with_extra_payload
+    def embedded_dashboard(
+        self,
+        uuid: str,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> FlaskResponse:
+        """
+        Server side rendering for the embedded dashboard page
+        :param uuid: identifier for embedded dashboard
+        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
+            default value to appease pylint
+        """
+        bootstrap_data = self._embedded_dashboard(uuid, add_extra_log_payload)
+        return self.render_template(
+            "superset/spa.html",
+            entry="embedded",
+            bootstrap_data=json.dumps(
+                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+        )
+
+    @expose("/chart/<uuid>")
+    @event_logger.log_this_with_extra_payload
+    def embedded_chart(
+        self,
+        uuid: str,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> FlaskResponse:
+        """
+        Server side rendering for the embedded dashboard page
+        :param uuid: identifier for embedded dashboard
+        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
+            default value to appease pylint
+        """
+
+        embedded = self._embed(uuid, EmbeddedChartDAO())
+
+        add_extra_log_payload(
+            embedded_chart_id=uuid,
+        )
+
+        bootstrap_data = {
+            "config": {
+                "GUEST_TOKEN_HEADER_NAME": current_app.config["GUEST_TOKEN_HEADER_NAME"]
+            },
+            "common": common_bootstrap_payload(),
+            "embedded": {
+                "chart_id": embedded.chart_id,
             },
         }
 

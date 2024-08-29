@@ -92,7 +92,7 @@ from superset.dashboards.schemas import (
 )
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
-from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.models.embedded import EmbeddedDashboard
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
     cache_dashboard_thumbnail,

@@ -51,22 +51,39 @@ const LazyDashboardPage = lazy(
     ),
 );
 
-const EmbeddedRoute = () => (
-  <Suspense fallback={<Loading />}>
-    <RootContextProviders>
-      <ErrorBoundary>
-        <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />
-      </ErrorBoundary>
-      <ToastContainer position="top" />
-    </RootContextProviders>
-  </Suspense>
+const LazyChartPage = lazy(
+  () => import(/* webpackChunkName: "Chart" */ 'src/pages/Chart'),
 );
+
+const EmbeddedRoute = () =>
+  bootstrapData.embedded!.dashboard_id ? (
+    <Suspense fallback={<Loading />}>
+      <RootContextProviders>
+        <ErrorBoundary>
+          {(bootstrapData.embedded!.dashboard_id && (
+            <LazyDashboardPage
+              idOrSlug={bootstrapData.embedded!.dashboard_id}
+            />
+          )) ||
+            (bootstrapData.embedded!.chart_id && <LazyChartPage />)}
+        </ErrorBoundary>
+        <ToastContainer position="top" />
+      </RootContextProviders>
+    </Suspense>
+  ) : (
+    <Suspense fallback={<Loading />} />
+  );
 
 const EmbeddedApp = () => (
   <Router>
-    {/* todo (embedded) remove this line after uuids are deployed */}
-    <Route path="/dashboard/:idOrSlug/embedded/" component={EmbeddedRoute} />
-    <Route path="/embedded/:uuid/" component={EmbeddedRoute} />
+    <Route
+      path={[
+        '/embedded/:uuid/',
+        '/embedded/dashboard/:uuid/',
+        '/embedded/chart/:uuid/',
+      ]}
+      component={EmbeddedRoute}
+    />
   </Router>
 );
 

@@ -18,12 +18,13 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from superset.charts.filters import ChartFilter
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
+from superset.models.embedded import EmbeddedChart
 from superset.models.slice import Slice
 from superset.utils.core import get_user_id
 
@@ -76,3 +77,35 @@ class ChartDAO(BaseDAO[Slice]):
         )
         if fav:
             db.session.delete(fav)
+
+
+class EmbeddedChartDAO(BaseDAO[EmbeddedChart]):
+    # There isn't really a regular scenario where we would rather get Embedded by id
+    id_column_name = "uuid"
+
+    @staticmethod
+    def upsert(chart: Slice, allowed_domains: list[str]) -> EmbeddedChart:
+        """
+        Sets up a dashboard to be embeddable.
+        Upsert is used to preserve the embedded_chart uuid across updates.
+        """
+        embedded: EmbeddedChart = (
+            chart.embedded[0] if chart.embedded else EmbeddedChart()
+        )
+        embedded.allow_domain_list = ",".join(allowed_domains)
+        chart.embedded = [embedded]
+        db.session.commit()
+        return embedded
+
+    @classmethod
+    def create(
+        cls,
+        item: EmbeddedChartDAO | None = None,
+        attributes: dict[str, Any] | None = None,
+        commit: bool = True,
+    ) -> Any:
+        """
+        Use EmbeddedChartDAO.upsert() instead.
+        At least, until we are ok with more than one embedded item per chart.
+        """
+        raise NotImplementedError("Use EmbeddedChartDAO.upsert() instead.")

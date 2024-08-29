@@ -24,11 +24,25 @@ from sqlalchemy_utils import UUIDType
 from superset.models.helpers import AuditMixinNullable
 
 
-class EmbeddedDashboard(Model, AuditMixinNullable):
+class EmbeddedMixin(object):
     """
-    A configuration of embedding for a dashboard.
-    Currently, the only embeddable resource is the Dashboard.
-    If we add new embeddable resource types, this model should probably be renamed.
+    A mixin for embedding a dashboard or a chart.
+    """
+    allow_domain_list = Column(Text)  # reference the `allowed_domains` property instead
+    uuid = Column(UUIDType(binary=True), default=uuid.uuid4, primary_key=True)
+
+    @property
+    def allowed_domains(self) -> list[str]:
+        """
+        A list of domains which are allowed to embed the dashboard or the chart.
+        An empty list means any domain can embed.
+        """
+        return self.allow_domain_list.split(",") if self.allow_domain_list else []
+
+
+class EmbeddedDashboard(Model, AuditMixinNullable, EmbeddedMixin):
+    """
+    A configuration of embedding a dashboard.
 
     References the dashboard, and contains a config for embedding that dashboard.
 
@@ -38,8 +52,6 @@ class EmbeddedDashboard(Model, AuditMixinNullable):
 
     __tablename__ = "embedded_dashboards"
 
-    uuid = Column(UUIDType(binary=True), default=uuid.uuid4, primary_key=True)
-    allow_domain_list = Column(Text)  # reference the `allowed_domains` property instead
     dashboard_id = Column(
         Integer,
         ForeignKey("dashboards.id", ondelete="CASCADE"),
@@ -51,10 +63,26 @@ class EmbeddedDashboard(Model, AuditMixinNullable):
         foreign_keys=[dashboard_id],
     )
 
-    @property
-    def allowed_domains(self) -> list[str]:
-        """
-        A list of domains which are allowed to embed the dashboard.
-        An empty list means any domain can embed.
-        """
-        return self.allow_domain_list.split(",") if self.allow_domain_list else []
+
+class EmbeddedChart(Model, AuditMixinNullable, EmbeddedMixin):
+    """
+    A configuration of embedding a chart.
+
+    References the chart, and contains a config for embedding that chart.
+
+    This data model allows multiple configurations for a given chart,
+    but at this time the API only allows setting one.
+    """
+
+    __tablename__ = "embedded_charts"
+
+    chart_id = Column(
+        Integer,
+        ForeignKey("slices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    chart = relationship(
+        "Slice",
+        back_populates="embedded",
+        foreign_keys=[chart_id],
+    )

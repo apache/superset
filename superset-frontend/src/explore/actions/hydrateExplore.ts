@@ -151,7 +151,9 @@ export const hydrateExplore =
       form_data: initialFormData,
       slice: initialSlice,
       controlsTransferred: explore.controlsTransferred,
-      standalone: getUrlParam(URL_PARAMS.standalone),
+      // TODO is there a better way?
+      standalone:
+        getUrlParam(URL_PARAMS.standalone) ?? getUrlParam(URL_PARAMS.uiConfig),
       force: getUrlParam(URL_PARAMS.force),
       metadata,
       saveAction,

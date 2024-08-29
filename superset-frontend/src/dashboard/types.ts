@@ -220,6 +220,12 @@ export type EmbeddedDashboard = {
   allowed_domains: string[];
 };
 
+export type EmbeddedChart = {
+  uuid: string;
+  chart_id: string;
+  allowed_domains: string[];
+};
+
 export type Slice = {
   slice_id: number;
   slice_name: string;

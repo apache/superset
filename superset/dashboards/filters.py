@@ -26,7 +26,7 @@ from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard, is_uuid
-from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.models.embedded import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter

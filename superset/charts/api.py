@@ -47,6 +47,8 @@ from superset.charts.schemas import (
     ChartCacheWarmUpRequestSchema,
     ChartPostSchema,
     ChartPutSchema,
+    EmbeddedChartResponseSchema,
+    EmbeddedChartConfigSchema,
     get_delete_ids_schema,
     get_export_ids_schema,
     get_fav_star_ids_schema,
@@ -76,9 +78,10 @@ from superset.commands.importers.exceptions import (
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.chart import ChartDAO
+from superset.daos.chart import ChartDAO, EmbeddedChartDAO
 from superset.extensions import event_logger
 from superset.models.slice import Slice
+from superset.models.embedded import EmbeddedChart
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
@@ -122,6 +125,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "screenshot",
         "cache_screenshot",
         "warm_up_cache",
+        "get_embedded",
+        "set_embedded",
+        "delete_embedded",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -247,6 +253,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     add_model_schema = ChartPostSchema()
     edit_model_schema = ChartPutSchema()
+    embedded_response_schema = EmbeddedChartResponseSchema()
+    embedded_config_schema = EmbeddedChartConfigSchema()
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
@@ -1124,4 +1132,161 @@ class ChartRestApi(BaseSupersetModelRestApi):
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
         )
         command.run()
+        return self.response(200, message="OK")
+
+    @expose("/<pk>/embedded", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_embedded",
+        log_to_statsd=False,
+    )
+    def get_embedded(self, pk: int) -> Response:
+        """Get the chart's embedded configuration.
+        ---
+        get:
+          summary: Get the chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: int
+            name: pk
+            description: The chart id
+          responses:
+            200:
+              description: Result contains the embedded chart config
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedChartResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        chart = ChartDAO.find_by_id(pk)
+        if not chart.embedded:
+            return self.response_404()
+        embedded: EmbeddedChart = chart.embedded[0]
+        result = self.embedded_response_schema.dump(embedded)
+        return self.response(200, result=result)
+
+    @expose("/<pk>/embedded", methods=["POST", "PUT"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.set_embedded",
+        log_to_statsd=False,
+    )
+    def set_embedded(self, pk: int) -> Response:
+        """Set a chart's embedded configuration.
+        ---
+        post:
+          summary: Set a chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: int
+            name: pk
+            description: The chart id
+          requestBody:
+            description: The embedded configuration to set
+            required: true
+            content:
+              application/json:
+                schema: EmbeddedChartConfigSchema
+          responses:
+            200:
+              description: Successfully set the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedChartResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        put:
+          description: >-
+            Sets a chart's embedded configuration.
+          parameters:
+          - in: path
+            schema:
+              type: int
+            name: pk
+            description: The chart id
+          requestBody:
+            description: The embedded configuration to set
+            required: true
+            content:
+              application/json:
+                schema: EmbeddedChartConfigSchema
+          responses:
+            200:
+              description: Successfully set the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedChartResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body = self.embedded_config_schema.load(request.json)
+            chart = ChartDAO.find_by_id(pk)
+            embedded = EmbeddedChartDAO.upsert(chart, body["allowed_domains"])
+            result = self.embedded_response_schema.dump(embedded)
+            return self.response(200, result=result)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+    @expose("/<pk>/embedded", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        log_to_statsd=False,
+    )
+    def delete_embedded(self, pk: int) -> Response:
+        """Delete a chart's embedded configuration.
+        ---
+        delete:
+          summary: Delete a chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: int
+            name: pk
+            description: The chart id
+          responses:
+            200:
+              description: Successfully removed the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        chart = ChartDAO.find_by_id(pk)
+        EmbeddedChartDAO.delete(chart.embedded)
         return self.response(200, message="OK")

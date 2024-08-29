@@ -29,6 +29,7 @@ class GuestTokenUser(TypedDict, total=False):
 
 class GuestTokenResourceType(Enum):
     DASHBOARD = "dashboard"
+    CHART = "chart"
 
 
 class GuestTokenResource(TypedDict):

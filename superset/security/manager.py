@@ -2540,20 +2540,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def validate_guest_token_resources(resources: GuestTokenResources) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset.commands.dashboard.embedded.exceptions import (
+        from superset.embedded.exceptions import (
             EmbeddedDashboardNotFoundError,
+            EmbeddedChartNotFoundError,
         )
         from superset.daos.dashboard import EmbeddedDashboardDAO
-        from superset.models.dashboard import Dashboard
+        from superset.daos.chart import EmbeddedChartDAO
 
         for resource in resources:
             if resource["type"] == GuestTokenResourceType.DASHBOARD.value:
-                # TODO (embedded): remove this check once uuids are rolled out
-                dashboard = Dashboard.get(str(resource["id"]))
-                if not dashboard:
-                    embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
-                    if not embedded:
-                        raise EmbeddedDashboardNotFoundError()
+                embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
+                if not embedded:
+                    raise EmbeddedDashboardNotFoundError()
+            elif resource["type"] == GuestTokenResourceType.CHART.value:
+                embedded = EmbeddedChartDAO.find_by_id(str(resource["id"]))
+                if not embedded:
+                    raise EmbeddedChartNotFoundError()
 
     def create_guest_access_token(
         self,

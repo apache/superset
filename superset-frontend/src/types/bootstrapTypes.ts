@@ -161,7 +161,8 @@ export interface BootstrapData {
   common: CommonBootstrapData;
   config?: any;
   embedded?: {
-    dashboard_id: string;
+    dashboard_id?: string;
+    chart_id?: string;
   };
   requested_query?: JsonObject;
 }

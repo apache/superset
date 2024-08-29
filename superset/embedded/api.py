@@ -23,14 +23,14 @@ from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import is_feature_enabled
-from superset.commands.dashboard.embedded.exceptions import (
+from superset.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.dashboards.schemas import EmbeddedDashboardResponseSchema
 from superset.extensions import event_logger
-from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.models.embedded import EmbeddedDashboard
 from superset.reports.logs.schemas import openapi_spec_methods_override
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 

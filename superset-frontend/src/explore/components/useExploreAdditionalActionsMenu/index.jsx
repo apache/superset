@@ -47,6 +47,7 @@ import {
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import DashboardsSubMenu from './DashboardsSubMenu';
+import ChartEmbedControls from '../ChartEmbedControls';
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
@@ -383,9 +384,9 @@ export const useExploreAdditionalActionsMenu = (
             <Menu.Item key={MENU_KEYS.EMBED_CODE}>
               <ModalTrigger
                 triggerNode={
-                  <span data-test="embed-code-button">{t('Embed code')}</span>
+                  <span data-test="embed-code-button">{t('Embed iframe')}</span>
                 }
-                modalTitle={t('Embed code')}
+                modalTitle={t('Embed using iframe code')}
                 modalBody={
                   <EmbedCodeContent
                     formData={latestQueryFormData}
@@ -395,6 +396,22 @@ export const useExploreAdditionalActionsMenu = (
                 maxWidth={`${theme.gridUnit * 100}px`}
                 destroyOnClose
                 responsive
+              />
+            </Menu.Item>
+          ) : null}
+          {isFeatureEnabled(FeatureFlag.EmbeddedSuperset) ? (
+            <Menu.Item key={MENU_KEYS.EMBED_CODE}>
+              <ModalTrigger
+                triggerNode={
+                  <span data-test="embed-chart-button">{t('Embed chart')}</span>
+                }
+                modalTitle={t('Embed chart using guest token')}
+                modalBody={<ChartEmbedControls chart={chart} />}
+                maxWidth={`${theme.gridUnit * 100}px`}
+                destroyOnClose
+                responsive
+                draggable
+                resizable
               />
             </Menu.Item>
           ) : null}

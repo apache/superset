@@ -1588,6 +1588,25 @@ class ChartCacheWarmUpResponseSchema(Schema):
     )
 
 
+class UserSchema(Schema):
+    id = fields.Int()
+    username = fields.String()
+    first_name = fields.String()
+    last_name = fields.String()
+
+
+class EmbeddedChartConfigSchema(Schema):
+    allowed_domains = fields.List(fields.String())
+
+
+class EmbeddedChartResponseSchema(Schema):
+    uuid = fields.String()
+    allowed_domains = fields.List(fields.String())
+    chart_id = fields.Integer()
+    changed_on = fields.DateTime()
+    changed_by = fields.Nested(UserSchema)
+
+
 CHART_SCHEMAS = (
     ChartCacheWarmUpRequestSchema,
     ChartCacheWarmUpResponseSchema,
