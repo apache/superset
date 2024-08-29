@@ -16,7 +16,10 @@
 # under the License.
 """Defines the templating context for SQL Lab"""
 
+from __future__ import annotations
+
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache, partial
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Union
@@ -31,13 +34,16 @@ from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
 from superset.commands.dataset.exceptions import DatasetNotFoundError
-from superset.constants import LRU_CACHE_MAX_SIZE
+from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
 from superset.sql_parse import Table
 from superset.utils import json
 from superset.utils.core import (
+    AdhocFilterClause,
     convert_legacy_filters_into_adhoc,
+    FilterOperator,
     get_user_email,
     get_user_id,
     get_username,
@@ -62,6 +68,7 @@ ALLOWED_TYPES = (
     "dict",
     "tuple",
     "set",
+    "TimeFilter",
 )
 COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
@@ -75,6 +82,16 @@ class Filter(TypedDict):
     op: str  # pylint: disable=C0103
     col: str
     val: Union[None, Any, list[Any]]
+
+
+@dataclass
+class TimeFilter:
+    """
+    Container for temporal filter.
+    """
+    from_dttm: str | None
+    to_dttm: str | None
+    time_range: str | None
 
 
 class ExtraCache:
@@ -95,17 +112,23 @@ class ExtraCache:
         r").*\}\}"
     )
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         extra_cache_keys: Optional[list[Any]] = None,
         applied_filters: Optional[list[str]] = None,
         removed_filters: Optional[list[str]] = None,
+        database: Optional[Database] = None,
         dialect: Optional[Dialect] = None,
+        time_range: Optional[str] = None,
+        table: Optional[SqlaTable] = None,
     ):
         self.extra_cache_keys = extra_cache_keys
         self.applied_filters = applied_filters if applied_filters is not None else []
         self.removed_filters = removed_filters if removed_filters is not None else []
+        self.database = database
         self.dialect = dialect
+        self.time_range = time_range or NO_TIME_RANGE
+        self.table = table
 
     def current_user_id(self, add_to_cache_keys: bool = True) -> Optional[int]:
         """
@@ -319,7 +342,6 @@ class ExtraCache:
         :return: returns a list of filters
         """
         # pylint: disable=import-outside-toplevel
-        from superset.utils.core import FilterOperator
         from superset.views.utils import get_form_data
 
         form_data, _ = get_form_data()
@@ -353,6 +375,79 @@ class ExtraCache:
                 filters.append({"op": op, "col": column, "val": val})
 
         return filters
+
+    def get_time_filter(
+        self,
+        column: str | None = None,
+        target_type: str | None = None,
+        remove_filter: bool = False,
+    ) -> TimeFilter:
+        """Get the applied time filter with appropriate formatting,
+        either for a specific column, or whichever time filter is being emitted
+        from a dashboard.
+
+        This is useful if  you want to handle time filters inside the virtual dataset,
+        as by default the time filter is placed on the outer query. This can have
+        significant performance implications on certain query engines, like Druid.
+
+        Usage example::
+
+        :param column: Name of the temporal column. Leave undefined to reference the
+            time range from a Dashboard Native Time Range filter (when present).
+        :param target_type: The target temporal type. If `column` is defined, will
+            default to the type of the column. This is used to produce the format
+            of the `from_dttm` and `to_dttm` properties of the returned `TimeFilter`
+            object.
+        :param remove_filter: When set to true, mark the filter as processed,
+            removing it from the outer query. Useful when a filter should
+            only apply to the inner query
+        :return: The corresponding time filter.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.views.utils import get_form_data
+
+        form_data, _ = get_form_data()
+        convert_legacy_filters_into_adhoc(form_data)
+        merge_extra_filters(form_data)
+        if column:
+            flt: AdhocFilterClause | None = next(
+                (
+                    flt
+                    for flt in form_data.get("adhoc_filters", [])
+                    if flt["operator"] == FilterOperator.TEMPORAL_RANGE
+                    and flt["subject"] == column
+                ),
+                None,
+            )
+            if flt:
+                if remove_filter:
+                    if column not in self.removed_filters:
+                        self.removed_filters.append(column)
+                if column not in self.applied_filters:
+                    self.applied_filters.append(column)
+
+                time_range = cast(str, flt["comparator"])
+                if not target_type and self.table:
+                    target_type = self.table.columns_types.get(column)
+            else:
+                time_range = self.time_range
+        else:
+            time_range = self.time_range
+
+        from_dttm, to_dttm = get_since_until_from_time_range(time_range)
+
+        def _format_dttm(dttm: datetime | None) -> str | None:
+            return (
+                self.database.db_engine_spec.convert_dttm(target_type or "", dttm)
+                if self.database and dttm
+                else None
+            )
+
+        return TimeFilter(
+            from_dttm=_format_dttm(from_dttm),
+            to_dttm=_format_dttm(to_dttm),
+            time_range=time_range,
+        )
 
 
 def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
@@ -477,6 +572,7 @@ class BaseTemplateProcessor:
             self._schema = query.schema
         elif table:
             self._schema = table.schema
+        self._table = table
         self._extra_cache_keys = extra_cache_keys
         self._applied_filters = applied_filters
         self._removed_filters = removed_filters
@@ -525,7 +621,10 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             extra_cache_keys=self._extra_cache_keys,
             applied_filters=self._applied_filters,
             removed_filters=self._removed_filters,
+            database=self._database,
             dialect=self._database.get_dialect(),
+            table=self._table,
+            time_range=self._context.get("time_range"),
         )
 
         from_dttm = (
@@ -544,6 +643,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             from_dttm=from_dttm,
             to_dttm=to_dttm,
         )
+
         self._context.update(
             {
                 "url_param": partial(safe_proxy, extra_cache.url_param),
@@ -557,6 +657,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
                 "dataset": partial(safe_proxy, dataset_macro_with_context),
                 "metric": partial(safe_proxy, metric_macro),
+                "get_time_filter": partial(safe_proxy, extra_cache.get_time_filter),
             }
         )
 
