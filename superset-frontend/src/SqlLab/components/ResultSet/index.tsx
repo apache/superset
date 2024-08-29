@@ -269,6 +269,15 @@ const ResultSet = ({
     const openInNewWindow = clickEvent.metaKey;
     logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
     if (results?.query_id) {
+
+      console.log('ResultSet create chart:', {
+        ...EXPLORE_CHART_DEFAULT,
+        datasource: `${results.query_id}__query`,
+        ...{
+          all_columns: results.columns.map(column => column.column_name),
+        },
+      });
+
       const key = await postFormData(results.query_id, 'query', {
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,

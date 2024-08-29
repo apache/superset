@@ -41,6 +41,7 @@ import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
+import { getChartControlValues } from '../Assistant/assistantUtils';
 
 const isValidResult = (rv: JsonObject): boolean =>
   rv?.result?.form_data && isDefined(rv?.result?.dataset?.id);
@@ -51,6 +52,7 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
       method: 'GET',
       endpoint: 'api/v1/explore/',
     })(exploreUrlParams);
+    console.log('Chart fetchExploreData rv:', rv);
     if (isValidResult(rv)) {
       return rv;
     }
@@ -65,8 +67,8 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
     const clientError = await getClientErrorObject(err);
     throw new Error(
       clientError.message ||
-        clientError.error ||
-        t('Failed to load chart data.'),
+      clientError.error ||
+      t('Failed to load chart data.'),
     );
   }
 };
@@ -114,6 +116,7 @@ const getDashboardContextFormData = () => {
 
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [assistantEnabled, setAssistantEnabled] = useState(false);
   const isExploreInitialized = useRef(false);
   const dispatch = useDispatch();
   const location = useLocation();
@@ -127,13 +130,26 @@ export default function ExplorePage() {
     if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
+
           const formData =
             !isExploreInitialized.current && dashboardContextFormData
               ? getFormDataWithDashboardContext(
-                  result.form_data,
-                  dashboardContextFormData,
-                )
+                result.form_data,
+                dashboardContextFormData,
+              )
               : result.form_data;
+
+          // Get assistants suggestion from here then apply them to formData befor dispatching hydrateExplore
+
+          if (formData.assistant_data) {
+            console.log('Chart: ExplorePage() => useEffect=> fetchExploreData result:', result.dataset);
+            getChartControlValues(formData.assistant_data, formData.viz_type, result.dataset)
+
+            // hydrateExplore({})
+
+          }
+
+
           dispatch(
             hydrateExplore({
               ...result,
@@ -157,5 +173,6 @@ export default function ExplorePage() {
   if (!isLoaded) {
     return <Loading />;
   }
-  return <ExploreViewContainer />;
+  return <ExploreViewContainer />
+
 }

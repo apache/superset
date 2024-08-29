@@ -41,10 +41,7 @@ export function AssistantSuggestionsGrid(props: AssistantSuggestionsGridProps) {
                     if (index < 8) {
                         return (
                             <AssistantSuggestion
-                                key={index}
-                                title={suggestion.title}
-                                suggestion={suggestion.suggestion}
-                                backgroundColor={suggestion.backgroundColor}
+                                {...suggestion}
                             />
                         );
                     } else {

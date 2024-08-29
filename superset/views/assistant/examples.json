@@ -1,0 +1,999 @@
+{
+    "pie": {
+        "examples": [
+            {
+                
+                "groupby": [
+                    "AIRLINE"
+                ],
+                "metric": {
+                    "expressionType": "SQL",
+                    "sqlExpression": "SUM(count)",
+                    "column": null,
+                    "aggregate": null,
+                    "datasourceWarning": false,
+                    "hasCustomLabel": false,
+                    "label": "Total",
+                    "optionName": "metric_g2la9emuwgf_29ugovas4v"
+                },
+                "adhoc_filters": [],
+                "row_limit": 1000,
+                "sort_by_metric": true,
+                "color_scheme": "supersetColors",
+                "show_labels_threshold": 5,
+                "show_legend": true,
+                "legendType": "scroll",
+                "legendOrientation": "top",
+                "label_type": "key",
+                "number_format": "SMART_NUMBER",
+                "date_format": "smart_date",
+                "show_labels": true,
+                "labels_outside": true,
+                "outerRadius": 70,
+                "innerRadius": 30,
+                "extra_form_data": {}
+            }
+        ],
+        "controls": {
+            "datasource": {
+                "type": "DatasourceControl",
+                "label": "Datasource",
+                "default": null,
+                "description": null,
+                "value": "433__query",
+                "datasource": {
+                    "catalog": null,
+                    "columns": [
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "AIRLINE",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "STRING",
+                            "type_generic": 1,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "count",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "LONGINTEGER",
+                            "type_generic": 0,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        }
+                    ],
+                    "database": {
+                        "backend": "postgresql",
+                        "id": 2,
+                        "parameters": {}
+                    },
+                    "filter_select": true,
+                    "id": 433,
+                    "metrics": [],
+                    "name": "Assistant Query Lab",
+                    "order_by_choices": [
+                        [
+                            "[\"AIRLINE\", true]",
+                            "AIRLINE [asc]"
+                        ],
+                        [
+                            "[\"AIRLINE\", false]",
+                            "AIRLINE [desc]"
+                        ],
+                        [
+                            "[\"count\", true]",
+                            "count [asc]"
+                        ],
+                        [
+                            "[\"count\", false]",
+                            "count [desc]"
+                        ]
+                    ],
+                    "owners": [],
+                    "schema": "public",
+                    "sql": "SELECT \"AIRLINE\", COUNT(*) AS \"count\" FROM \"flights\" GROUP BY \"AIRLINE\"",
+                    "time_grain_sqla": [
+                        [
+                            "PT1S",
+                            "Second"
+                        ],
+                        [
+                            "PT1M",
+                            "Minute"
+                        ],
+                        [
+                            "PT1H",
+                            "Hour"
+                        ],
+                        [
+                            "P1D",
+                            "Day"
+                        ],
+                        [
+                            "P1W",
+                            "Week"
+                        ],
+                        [
+                            "P1M",
+                            "Month"
+                        ],
+                        [
+                            "P3M",
+                            "Quarter"
+                        ],
+                        [
+                            "P1Y",
+                            "Year"
+                        ]
+                    ],
+                    "type": "query",
+                    "verbose_map": {}
+                },
+                "form_data": {
+                    "adhoc_filters": [],
+                    "all_columns": [
+                        "AIRLINE",
+                        "count"
+                    ],
+                    "applied_time_extras": {},
+                    "assistant_data": "A pie chart visualizing the distribution of flights across different airlines, using the \"AIRLINE\" column from the \"flights\" table.",
+                    "datasource": "433__query",
+                    "groupby": [],
+                    "metrics": [],
+                    "row_limit": 1000,
+                    "time_range": "No filter",
+                    "url_params": {
+                        "datasource_id": "433",
+                        "datasource_type": "query",
+                        "form_data_key": "qu0Emp4nO8Up6Rr01GJPt1YC62gOUzAl245zsQYyWr6rqU9ZySeJdiVXPXpZpDqe"
+                    },
+                    "viz_type": "pie"
+                },
+                "validationErrors": []
+            },
+            "viz_type": {
+                "type": "VizTypeControl",
+                "label": "Visualization Type",
+                "default": "table",
+                "description": "The type of visualization to display",
+                "value": "pie",
+                "validationErrors": []
+            },
+            "slice_id": {
+                "type": "HiddenControl",
+                "label": "Chart ID",
+                "hidden": true,
+                "description": "The id of the active chart",
+                "validationErrors": []
+            },
+            "cache_timeout": {
+                "type": "HiddenControl",
+                "label": "Cache Timeout (seconds)",
+                "hidden": true,
+                "description": "The number of seconds before expiring the cache",
+                "validationErrors": []
+            },
+            "url_params": {
+                "type": "HiddenControl",
+                "label": "URL parameters",
+                "hidden": true,
+                "description": "Extra parameters for use in jinja templated queries",
+                "value": {
+                    "datasource_id": "433",
+                    "datasource_type": "query",
+                    "form_data_key": "qu0Emp4nO8Up6Rr01GJPt1YC62gOUzAl245zsQYyWr6rqU9ZySeJdiVXPXpZpDqe"
+                },
+                "validationErrors": []
+            },
+            "groupby": {
+                "type": "DndColumnSelect",
+                "label": "Dimensions",
+                "multi": true,
+                "freeForm": true,
+                "clearable": true,
+                "default": [],
+                "includeTime": false,
+                "description": "Dimensions contain qualitative values such as names, dates, or geographical data. Use dimensions to categorize, segment, and reveal the details in your data. Dimensions affect the level of detail in the view.",
+                "valueKey": "column_name",
+                "allowAll": true,
+                "commaChoosesOption": false,
+                "value": [
+                    "AIRLINE"
+                ],
+                "options": [
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "AIRLINE",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "STRING",
+                        "type_generic": 1,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "count",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "LONGINTEGER",
+                        "type_generic": 0,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    }
+                ],
+                "savedMetrics": [],
+                "validationErrors": []
+            },
+            "metric": {
+                "type": "DndMetricSelect",
+                "multi": false,
+                "label": "Metric",
+                "validators": [
+                    null
+                ],
+                "description": "Select a metric to display. You can use an aggregation function on a column or write custom SQL to create a metric.",
+                "value": {
+                    "expressionType": "SQL",
+                    "sqlExpression": "SUM(count) + AVG(count)",
+                    "column": null,
+                    "aggregate": null,
+                    "datasourceWarning": false,
+                    "hasCustomLabel": false,
+                    "label": "SUM(count) + AVG(count)",
+                    "optionName": "metric_g2la9emuwgf_29ugovas4v"
+                },
+                "columns": [
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "AIRLINE",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "STRING",
+                        "type_generic": 1,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "count",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "LONGINTEGER",
+                        "type_generic": 0,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    }
+                ],
+                "savedMetrics": [],
+                "datasource": {
+                    "catalog": null,
+                    "columns": [
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "AIRLINE",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "STRING",
+                            "type_generic": 1,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "count",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "LONGINTEGER",
+                            "type_generic": 0,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        }
+                    ],
+                    "database": {
+                        "backend": "postgresql",
+                        "id": 2,
+                        "parameters": {}
+                    },
+                    "filter_select": true,
+                    "id": 433,
+                    "metrics": [],
+                    "name": "Assistant Query Lab",
+                    "order_by_choices": [
+                        [
+                            "[\"AIRLINE\", true]",
+                            "AIRLINE [asc]"
+                        ],
+                        [
+                            "[\"AIRLINE\", false]",
+                            "AIRLINE [desc]"
+                        ],
+                        [
+                            "[\"count\", true]",
+                            "count [asc]"
+                        ],
+                        [
+                            "[\"count\", false]",
+                            "count [desc]"
+                        ]
+                    ],
+                    "owners": [],
+                    "schema": "public",
+                    "sql": "SELECT \"AIRLINE\", COUNT(*) AS \"count\" FROM \"flights\" GROUP BY \"AIRLINE\"",
+                    "time_grain_sqla": [
+                        [
+                            "PT1S",
+                            "Second"
+                        ],
+                        [
+                            "PT1M",
+                            "Minute"
+                        ],
+                        [
+                            "PT1H",
+                            "Hour"
+                        ],
+                        [
+                            "P1D",
+                            "Day"
+                        ],
+                        [
+                            "P1W",
+                            "Week"
+                        ],
+                        [
+                            "P1M",
+                            "Month"
+                        ],
+                        [
+                            "P3M",
+                            "Quarter"
+                        ],
+                        [
+                            "P1Y",
+                            "Year"
+                        ]
+                    ],
+                    "type": "query",
+                    "verbose_map": {}
+                },
+                "datasourceType": "query",
+                "validationErrors": []
+            },
+            "adhoc_filters": {
+                "type": "DndFilterSelect",
+                "label": "Filters",
+                "default": [],
+                "description": "",
+                "provideFormDataToProps": true,
+                "value": [],
+                "columns": [
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "AIRLINE",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "STRING",
+                        "type_generic": 1,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "count",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "LONGINTEGER",
+                        "type_generic": 0,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    }
+                ],
+                "savedMetrics": [],
+                "selectedMetrics": [],
+                "datasource": {
+                    "catalog": null,
+                    "columns": [
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "AIRLINE",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "STRING",
+                            "type_generic": 1,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "count",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "LONGINTEGER",
+                            "type_generic": 0,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        }
+                    ],
+                    "database": {
+                        "backend": "postgresql",
+                        "id": 2,
+                        "parameters": {}
+                    },
+                    "filter_select": true,
+                    "id": 433,
+                    "metrics": [],
+                    "name": "Assistant Query Lab",
+                    "order_by_choices": [
+                        [
+                            "[\"AIRLINE\", true]",
+                            "AIRLINE [asc]"
+                        ],
+                        [
+                            "[\"AIRLINE\", false]",
+                            "AIRLINE [desc]"
+                        ],
+                        [
+                            "[\"count\", true]",
+                            "count [asc]"
+                        ],
+                        [
+                            "[\"count\", false]",
+                            "count [desc]"
+                        ]
+                    ],
+                    "owners": [],
+                    "schema": "public",
+                    "sql": "SELECT \"AIRLINE\", COUNT(*) AS \"count\" FROM \"flights\" GROUP BY \"AIRLINE\"",
+                    "time_grain_sqla": [
+                        [
+                            "PT1S",
+                            "Second"
+                        ],
+                        [
+                            "PT1M",
+                            "Minute"
+                        ],
+                        [
+                            "PT1H",
+                            "Hour"
+                        ],
+                        [
+                            "P1D",
+                            "Day"
+                        ],
+                        [
+                            "P1W",
+                            "Week"
+                        ],
+                        [
+                            "P1M",
+                            "Month"
+                        ],
+                        [
+                            "P3M",
+                            "Quarter"
+                        ],
+                        [
+                            "P1Y",
+                            "Year"
+                        ]
+                    ],
+                    "type": "query",
+                    "verbose_map": {}
+                },
+                "validationErrors": []
+            },
+            "row_limit": {
+                "type": "SelectControl",
+                "freeForm": true,
+                "label": "Row limit",
+                "clearable": false,
+                "validators": [
+                    null,
+                    null
+                ],
+                "default": 100,
+                "choices": [
+                    [
+                        10,
+                        "10"
+                    ],
+                    [
+                        50,
+                        "50"
+                    ],
+                    [
+                        100,
+                        "100"
+                    ],
+                    [
+                        250,
+                        "250"
+                    ],
+                    [
+                        500,
+                        "500"
+                    ],
+                    [
+                        1000,
+                        "1000"
+                    ],
+                    [
+                        5000,
+                        "5000"
+                    ],
+                    [
+                        10000,
+                        "10000"
+                    ],
+                    [
+                        50000,
+                        "50000"
+                    ]
+                ],
+                "description": "Limits the number of the rows that are computed in the query that is the source of the data used for this chart.",
+                "value": 1000,
+                "maxValue": 100000,
+                "validationErrors": []
+            },
+            "sort_by_metric": {
+                "type": "CheckboxControl",
+                "label": "Sort by metric",
+                "description": "Whether to sort results by the selected metric in descending order.",
+                "default": true,
+                "value": true,
+                "validationErrors": []
+            },
+            "color_scheme": {
+                "type": "ColorSchemeControl",
+                "label": "Color Scheme",
+                "default": "supersetColors",
+                "renderTrigger": true,
+                "description": "The color scheme for rendering chart",
+                "value": "supersetColors",
+                "validationErrors": []
+            },
+            "show_labels_threshold": {
+                "type": "TextControl",
+                "label": "Percentage threshold",
+                "renderTrigger": true,
+                "isFloat": true,
+                "default": 5,
+                "description": "Minimum threshold in percentage points for showing labels.",
+                "value": 5,
+                "validationErrors": []
+            },
+            "roseType": {
+                "type": "SelectControl",
+                "label": "Rose Type",
+                "default": null,
+                "renderTrigger": true,
+                "choices": [
+                    [
+                        "area",
+                        "Area"
+                    ],
+                    [
+                        "radius",
+                        "Radius"
+                    ],
+                    [
+                        null,
+                        "None"
+                    ]
+                ],
+                "description": "Whether to show as Nightingale chart.",
+                "validationErrors": []
+            },
+            "show_legend": {
+                "type": "CheckboxControl",
+                "label": "Show legend",
+                "renderTrigger": true,
+                "default": true,
+                "description": "Whether to display a legend for the chart",
+                "value": true,
+                "validationErrors": []
+            },
+            "legendType": {
+                "type": "SelectControl",
+                "freeForm": false,
+                "label": "Type",
+                "choices": [
+                    [
+                        "scroll",
+                        "Scroll"
+                    ],
+                    [
+                        "plain",
+                        "Plain"
+                    ]
+                ],
+                "default": "scroll",
+                "renderTrigger": true,
+                "description": "Legend type",
+                "value": "scroll",
+                "validationErrors": []
+            },
+            "legendOrientation": {
+                "type": "SelectControl",
+                "freeForm": false,
+                "label": "Orientation",
+                "choices": [
+                    [
+                        "top",
+                        "Top"
+                    ],
+                    [
+                        "bottom",
+                        "Bottom"
+                    ],
+                    [
+                        "left",
+                        "Left"
+                    ],
+                    [
+                        "right",
+                        "Right"
+                    ]
+                ],
+                "default": "top",
+                "renderTrigger": true,
+                "description": "Legend Orientation",
+                "value": "top",
+                "validationErrors": []
+            },
+            "legendMargin": {
+                "type": "TextControl",
+                "label": "Margin",
+                "renderTrigger": true,
+                "isInt": true,
+                "default": null,
+                "description": "Additional padding for legend.",
+                "validationErrors": []
+            },
+            "label_type": {
+                "type": "SelectControl",
+                "label": "Label Type",
+                "default": "key",
+                "renderTrigger": true,
+                "choices": [
+                    [
+                        "key",
+                        "Category Name"
+                    ],
+                    [
+                        "value",
+                        "Value"
+                    ],
+                    [
+                        "percent",
+                        "Percentage"
+                    ],
+                    [
+                        "key_value",
+                        "Category and Value"
+                    ],
+                    [
+                        "key_percent",
+                        "Category and Percentage"
+                    ],
+                    [
+                        "key_value_percent",
+                        "Category, Value and Percentage"
+                    ],
+                    [
+                        "value_percent",
+                        "Value and Percentage"
+                    ],
+                    [
+                        "template",
+                        "Template"
+                    ]
+                ],
+                "description": "What should be shown on the label?",
+                "value": "key",
+                "validationErrors": []
+            },
+            "label_template": {
+                "type": "TextControl",
+                "label": "Label Template",
+                "renderTrigger": true,
+                "description": "Format data labels. Use variables: {name}, {value}, {percent}. \\n represents a new line. ECharts compatibility:\n{a} (series), {b} (name), {c} (value), {d} (percentage)",
+                "validationErrors": []
+            },
+            "number_format": {
+                "type": "SelectControl",
+                "freeForm": true,
+                "label": "Number format",
+                "renderTrigger": true,
+                "default": "SMART_NUMBER",
+                "choices": [
+                    [
+                        "SMART_NUMBER",
+                        "Adaptive formatting"
+                    ],
+                    [
+                        "~g",
+                        "Original value"
+                    ],
+                    [
+                        ",d",
+                        ",d (12345.432 => 12,345)"
+                    ],
+                    [
+                        ".1s",
+                        ".1s (12345.432 => 10k)"
+                    ],
+                    [
+                        ".3s",
+                        ".3s (12345.432 => 12.3k)"
+                    ],
+                    [
+                        ",.1%",
+                        ",.1% (12345.432 => 1,234,543.2%)"
+                    ],
+                    [
+                        ".2%",
+                        ".2% (12345.432 => 1234543.20%)"
+                    ],
+                    [
+                        ".3%",
+                        ".3% (12345.432 => 1234543.200%)"
+                    ],
+                    [
+                        ".4r",
+                        ".4r (12345.432 => 12350)"
+                    ],
+                    [
+                        ",.1f",
+                        ",.1f (12345.432 => 12,345.4)"
+                    ],
+                    [
+                        ",.2f",
+                        ",.2f (12345.432 => 12,345.43)"
+                    ],
+                    [
+                        ",.3f",
+                        ",.3f (12345.432 => 12,345.432)"
+                    ],
+                    [
+                        "+,",
+                        "+, (12345.432 => +12,345)"
+                    ],
+                    [
+                        "$,.2f",
+                        "$,.2f (12345.432 => $12,345.43)"
+                    ],
+                    [
+                        "DURATION",
+                        "Duration in ms (66000 => 1m 6s)"
+                    ],
+                    [
+                        "DURATION_SUB",
+                        "Duration in ms (1.40008 => 1ms 400\u00b5s 80ns)"
+                    ]
+                ],
+                "description": "D3 format syntax: https://github.com/d3/d3-format Only applies when \"Label Type\" is set to show values.",
+                "tokenSeparators": [
+                    "\n",
+                    "\t",
+                    ";"
+                ],
+                "value": "SMART_NUMBER",
+                "validationErrors": []
+            },
+            "currency_format": {
+                "type": "CurrencyControl",
+                "label": "Currency format",
+                "renderTrigger": true,
+                "validationErrors": []
+            },
+            "date_format": {
+                "type": "SelectControl",
+                "freeForm": true,
+                "label": "Date format",
+                "renderTrigger": true,
+                "choices": [
+                    [
+                        "smart_date",
+                        "Adaptive formatting"
+                    ],
+                    [
+                        "%d/%m/%Y",
+                        "%d/%m/%Y | 14/01/2019"
+                    ],
+                    [
+                        "%m/%d/%Y",
+                        "%m/%d/%Y | 01/14/2019"
+                    ],
+                    [
+                        "%Y-%m-%d",
+                        "%Y-%m-%d | 2019-01-14"
+                    ],
+                    [
+                        "%Y-%m-%d %H:%M:%S",
+                        "%Y-%m-%d %H:%M:%S | 2019-01-14 01:32:10"
+                    ],
+                    [
+                        "%d-%m-%Y %H:%M:%S",
+                        "%d-%m-%Y %H:%M:%S | 14-01-2019 01:32:10"
+                    ],
+                    [
+                        "%H:%M:%S",
+                        "%H:%M:%S | 01:32:10"
+                    ]
+                ],
+                "default": "smart_date",
+                "description": "D3 format syntax: https://github.com/d3/d3-format",
+                "value": "smart_date",
+                "validationErrors": []
+            },
+            "show_labels": {
+                "type": "CheckboxControl",
+                "label": "Show Labels",
+                "renderTrigger": true,
+                "default": true,
+                "description": "Whether to display the labels.",
+                "value": true,
+                "validationErrors": []
+            },
+            "labels_outside": {
+                "type": "CheckboxControl",
+                "label": "Put labels outside",
+                "default": true,
+                "renderTrigger": true,
+                "description": "Put the labels outside of the pie?",
+                "value": true,
+                "validationErrors": []
+            },
+            "label_line": {
+                "type": "CheckboxControl",
+                "label": "Label Line",
+                "default": false,
+                "renderTrigger": true,
+                "description": "Draw line from Pie to label when labels outside?",
+                "validationErrors": []
+            },
+            "show_total": {
+                "type": "CheckboxControl",
+                "label": "Show Total",
+                "default": false,
+                "renderTrigger": true,
+                "description": "Whether to display the aggregate count",
+                "validationErrors": []
+            },
+            "outerRadius": {
+                "type": "SliderControl",
+                "label": "Outer Radius",
+                "renderTrigger": true,
+                "min": 10,
+                "max": 100,
+                "step": 1,
+                "default": 70,
+                "description": "Outer edge of Pie chart",
+                "value": 70,
+                "validationErrors": []
+            },
+            "donut": {
+                "type": "CheckboxControl",
+                "label": "Donut",
+                "default": false,
+                "renderTrigger": true,
+                "description": "Do you want a donut or a pie?",
+                "validationErrors": []
+            },
+            "innerRadius": {
+                "type": "SliderControl",
+                "label": "Inner Radius",
+                "renderTrigger": true,
+                "min": 0,
+                "max": 100,
+                "step": 1,
+                "default": 30,
+                "description": "Inner radius of donut hole",
+                "value": 30,
+                "validationErrors": []
+            }
+        }
+    }
+}

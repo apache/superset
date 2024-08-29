@@ -12,31 +12,6 @@ import { AssistantSuggestionProps } from './AssistantSuggestion';
 
 const sampleSuggestions: AssistantSuggestionsGridProps = {
   suggestions: [
-    {
-      title: 'Suggestion 1',
-      suggestion: 'Suggestion rational Lorem Ipsum Long text',
-      backgroundColor: '#FFD0EC',
-    },
-    {
-      title: 'Suggestion 2',
-      suggestion: 'Suggestion rational Lorem Ipsum Long text',
-      backgroundColor: '#FBD0FF',
-    },
-    {
-      title: 'Suggestion 3',
-      suggestion: 'Suggestion rational Lorem Ipsum Long text',
-      backgroundColor: '#D0E0FF',
-    },
-    {
-      title: 'Suggestion 4',
-      suggestion: 'Suggestion rational Lorem Ipsum Long text',
-      backgroundColor: '#D0F9FF',
-    },
-    {
-      title: 'Suggestion 5',
-      suggestion: 'Suggestion rational Lorem Ipsum Long text',
-      backgroundColor: '#FFD0EC',
-    }
   ],
 };
 

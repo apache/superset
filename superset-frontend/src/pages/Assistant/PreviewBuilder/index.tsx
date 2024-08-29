@@ -1012,9 +1012,10 @@ export function QueryResultTable() {
     const props: QueryResultTableProps = testProps;
     console.log("Query Result Table Props", props);
     return (
-        <QueryStateLabel
-            query={props.query}
-        />
+        <>
+        
+        
+        </>
     );
 
 }
