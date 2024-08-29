@@ -27,6 +27,7 @@ import {
   LabelsColorMapSource,
   t,
   getClientErrorObject,
+  QueryFormData,
 } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -37,7 +38,7 @@ import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilter
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
 import ExploreViewContainer from 'src/explore/components/ExploreViewContainer';
-import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
+import { ExplorePageInitialData, ExploreResponsePayload, SaveActionType } from 'src/explore/types';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
@@ -129,8 +130,7 @@ export default function ExplorePage() {
     const dashboardContextFormData = getDashboardContextFormData();
     if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
-        .then(({ result }) => {
-
+        .then(({result}) => {
           const formData =
             !isExploreInitialized.current && dashboardContextFormData
               ? getFormDataWithDashboardContext(
@@ -138,16 +138,6 @@ export default function ExplorePage() {
                 dashboardContextFormData,
               )
               : result.form_data;
-
-          // Get assistants suggestion from here then apply them to formData befor dispatching hydrateExplore
-
-          if (formData.assistant_data) {
-            console.log('Chart: ExplorePage() => useEffect=> fetchExploreData result:', result.dataset);
-            getChartControlValues(formData.assistant_data, formData.viz_type, result.dataset)
-
-            // hydrateExplore({})
-
-          }
 
 
           dispatch(

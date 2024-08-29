@@ -86,7 +86,6 @@ export function getChartControlValues(prompt: string, viz_type: string, datasour
       viz_type: viz_type,
       datasource: datasource
   };
-  SupersetClient.post({ endpoint: endpoint, body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }).then((response) => {
-      console.log("contextUtils getChartControlValues Response:", JSON.parse(response.json));
-  });
+  return SupersetClient.post({ endpoint: endpoint, body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } })
+            .then((response) => JSON.parse(response.json));
 }
