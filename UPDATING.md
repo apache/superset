@@ -32,9 +32,9 @@ assists people when migrating to a new version.
   `requirements/` folder. If you use these files for your builds you may want to double
   check that your builds are not affected. `base.txt` should be the same as before, though
   `development.txt` becomes a bigger set, incorporating the now defunct local,testing,integration, and docker
-- [27434](https://github.com/apache/superset/pull/27434/files): DO NOT USE our docker-compose.\*
+- [27434](https://github.com/apache/superset/pull/27434/files): DO NOT USE our docker compose.\*
   files for production use cases! While we never really supported
-  or should have tried to support docker-compose for production use cases, we now actively
+  or should have tried to support docker compose for production use cases, we now actively
   have taken a stance against supporting it. See the PR for details.
 - [24112](https://github.com/apache/superset/pull/24112): Python 3.10 is now the recommended python version to use, 3.9 still
   supported but getting deprecated in the nearish future. CI/CD runs on py310 so you probably want to align. If you
