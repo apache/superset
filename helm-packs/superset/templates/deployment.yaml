@@ -34,16 +34,15 @@ metadata:
   annotations: {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
   {{- end }}
 spec:
-  {{- if not .Values.supersetNode.autoscaling.enabled }}
-  replicas: {{ .Values.supersetNode.replicaCount }}
+  {{- if and (not .Values.supersetNode.autoscaling.enabled) .Values.supersetNode.replicas.enabled }}
+  replicas: {{ .Values.supersetNode.replicas.replicaCount }}
   {{- end }}
   {{- if .Values.supersetNode.strategy }}
   strategy: {{- toYaml .Values.supersetNode.strategy | nindent 4 }}
   {{- end }}
   selector:
     matchLabels:
-      app: {{ template "superset.name" . }}
-      release: {{ .Release.Name }}
+    {{- include "supersetNode.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
@@ -159,6 +158,9 @@ spec:
         {{- with .Values.supersetNode.affinity }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
       {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.supersetNode.topologySpreadConstraints }}
       topologySpreadConstraints:
