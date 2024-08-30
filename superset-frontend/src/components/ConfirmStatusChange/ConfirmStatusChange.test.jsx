@@ -58,7 +58,7 @@ test('calls the function on confirm', async () => {
   const confirmInput = getByTestId('delete-modal-input');
   fireEvent.change(confirmInput, { target: { value: 'DELETE' } });
 
-  const confirmButton = getByRole('button', { name: 'delete' });
+  const confirmButton = getByRole('button', { name: 'Delete' });
   fireEvent.click(confirmButton);
 
   await waitFor(() => expect(mockedProps.onConfirm).toHaveBeenCalledTimes(1));

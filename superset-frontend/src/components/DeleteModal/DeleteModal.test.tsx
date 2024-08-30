@@ -77,12 +77,12 @@ test('Calling "onConfirm" only after typing "delete" in the input', () => {
   expect(props.onConfirm).toBeCalledTimes(0);
 
   // do not execute "onConfirm" if you have not typed "delete"
-  userEvent.click(screen.getByText('delete'));
+  userEvent.click(screen.getByText('Delete'));
   expect(props.onConfirm).toBeCalledTimes(0);
 
   // execute "onConfirm" if you have typed "delete"
   userEvent.type(screen.getByTestId('delete-modal-input'), 'delete');
-  userEvent.click(screen.getByText('delete'));
+  userEvent.click(screen.getByText('Delete'));
   expect(props.onConfirm).toBeCalledTimes(1);
 
   // confirm input has been cleared
