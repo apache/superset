@@ -280,3 +280,36 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
             }
         ],
     }
+
+
+def test_get_query_backoff_handler(mocker: MockerFixture) -> None:
+    """
+    Test for `get_query_backoff_handler`.
+    """
+    from superset.sql_lab import get_query_backoff_handler
+
+    # Mock logger and stats_logger
+    mock_logger = mocker.patch("superset.sql_lab.logger")
+    mock_stats_logger = mocker.patch("superset.sql_lab.stats_logger")
+
+    # Create a sample details dictionary
+    details = {"args": [333, "SELECT 1"], "tries": 3}
+
+    # Call the handler
+    get_query_backoff_handler(details)
+
+    # Check that the logger.error was called twice
+    assert mock_logger.error.call_count == 2
+
+    # Verify the first logger.error call
+    first_call = mock_logger.error.call_args_list[0]
+    assert first_call[0][0] == "Query with id `%s` could not be retrieved"
+    assert first_call[0][1] == "333"
+
+    # Verify the second logger.error call
+    second_call = mock_logger.error.call_args_list[1]
+    assert second_call[0][0] == "Query %s: Sleeping for a sec before retrying..."
+    assert second_call[0][1] == "333"
+
+    # Check that the stats_logger.incr was called with the correct argument
+    mock_stats_logger.incr.assert_called_once_with("error_attempting_orm_query_2")
