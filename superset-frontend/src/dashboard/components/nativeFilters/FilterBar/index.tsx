@@ -200,7 +200,14 @@ const FilterBar: FC<FiltersBarProps> = ({
 
     [dispatch, setDataMaskSelected],
   );
-
+  function findFilterIdByCascadeParent(filterData: any, targetId: string) {
+    for (const filter of filterData) {
+      if (filter.cascadeParentIds?.includes(targetId)) {
+        return filter;
+      }
+    }
+    return null; // Return null if not found
+  } 
   useEffect(() => {
     if (state) {
       const hasSelectedFilters = Object.values(dataMaskSelected).some(
