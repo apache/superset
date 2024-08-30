@@ -87,5 +87,8 @@ export function getChartControlValues(prompt: string, viz_type: string, datasour
       datasource: datasource
   };
   return SupersetClient.post({ endpoint: endpoint, body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } })
-            .then((response) => JSON.parse(response.json));
+            .then((response) => {
+                console.log("assistantUtils getChartControlValues Response:", response);
+                return JSON.parse(response.json)
+            });
 }

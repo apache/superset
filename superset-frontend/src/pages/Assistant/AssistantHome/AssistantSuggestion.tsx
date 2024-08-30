@@ -72,6 +72,7 @@ export function AssistantSuggestion(props: AssistantSuggestionProps | any) {
                 all_columns: queryResult.results.selected_columns.map((c)=> c.column_name)
             }
         });
+        console.log('AssistantSuggestion formDataKey response:', formDataKey)
         const url = mountExploreUrl(null, {
             [URL_PARAMS.formDataKey.name]: formDataKey,
             [URL_PARAMS.datasourceId.name]: queryResult.results.query_id,

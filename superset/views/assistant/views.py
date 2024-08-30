@@ -43,6 +43,7 @@ class AssistantView(BaseSupersetView):
             ],
             "category": "Part of a Whole",
         }
+
     }
     logger = logging.getLogger(__name__)
     datamodel = SQLAInterface(Database)
@@ -120,7 +121,7 @@ class AssistantView(BaseSupersetView):
                 },
             ]
         )
-        inputPrompt =   """
+        inputPrompt =   f"""
                         Prompt = Please give a reasonable description of the data contained in the table named {target}.
                     """
 
@@ -143,50 +144,58 @@ class AssistantView(BaseSupersetView):
         purpose = body["purpose"]
         chat_session = self.model.start_chat(
             history=[
-                {
-                    "role": "user",
-                    "parts": [
-                        f"""
-                        The following is a json schema containing data about a database Schema = {data}
-                        The data contains information collected by by an organisation for the purpose of {purpose}
-                        Using the Data provided by the Schema provide suggestions for visualizations that can be created from the data.
-                        Avaliable visualizations are:{self.available_charts}
-                        Order the suggestions according to importance and relevance to the organisation's purpose.
-                        Response should be in the following format.
-                        Avoid referencing the organisation or its purpose in the response.
-                        Do not use data whose "selected" key is false.
-                        Do not use tables whose "data" key is not present or is an empty list or dictionary.
-                        Do not suggest a viz_type if the query needed to generate the vizualization can not provide the data needed for the visualization.
-                        Do not suggest a viz_type not available in the Avaliable visualizations.
-                        Only suggest a maximum of 5 visualizations.
-                        Only use data from above to generate the response.
-                        Format =
-                        [
-                            {{
-                                "viz_type": "viz_type",
-                                "description": "short on sentence description of the visualization in a way that a human can understand",
-                                "reasoning": "reasoning behind the suggestion",
-                                "llm_optimized": "descibe the visualization in a way that an llm can understand, include references to the data",
-                                "viz_datasources": [
-                                    "List of SQL queries that will be used as data sources for the visualization.
-                                    The number of viz_datasource MUST be equal to the viz_type datasourceCount.
-                                    The queries must be consistent with the data provided in the schema. For example, if the schema contains a table named 'bart_lines', the query should be 'SELECT * FROM bart_lines'.
-                                    The queries should select only the columns that are relevant to the visualization and columns that are selected. For example, if the visualization is a bar chart that shows the number of passengers per line, the query should be 'SELECT line_name, passengers FROM bart_lines'
-                                    The queries should filter out nulls for the columns selected.
-                                    The queries should ensure that castings are done only when necessary. and filteres added to support valid casting.
-                                    The query must always with a least one column that will be used for grouping.
-                                    All column names and must be enclosed in double quotes.
-                                    The query MUST be a valid SQL query.
-                                    "
-                                ],
-                                "databaseId": "The id of the datasource that the visualization will be created from. This id should be consistent with the databaseId in the schema."
-                                "schemaName: "The name of the schema that the visualization will be created from. This name should be consistent with the schemaName in the schema."
-                            }}
-                        ]
-                        The response should be a valid json format.
-                        """,
-                        ],
-                }
+            {
+                "role": "user",
+                "parts": [
+                f"""
+                The following is a json schema containing data about a database Schema = {data}
+                The data contains information collected by an organization for the purpose of {purpose}.
+                Using the Data provided by the Schema, provide suggestions for visualizations that can be created from the data.
+                Available visualizations are: {self.available_charts}.
+                Order the suggestions according to importance and relevance to the organization's purpose.
+                The response should be in the following format:
+                - Avoid referencing the organization or its purpose in the response.
+                - Do not use data whose "selected" key is false.
+                - Do not use tables whose "data" key is not present or is an empty list or dictionary.
+                - Do not suggest a viz_type if the query needed to generate the visualization cannot provide the data needed for the visualization.
+                - Do not suggest a viz_type that is not available in the Available visualizations.
+                - Only suggest a maximum of 5 visualizations.
+                - Only use data from above to generate the response.
+                
+                Format:
+                [
+                    {{
+                    "viz_type": "viz_type",
+                    "description": "short one-sentence description of the visualization in a way that a human can understand",
+                    "reasoning": "reasoning behind the suggestion",
+                    "llm_optimized": "describe instructions for creating the visualization in a way that an llm can understand",
+                    "viz_datasources": [
+                        "List of SQL queries that will be used as data sources for the visualization.",
+                        "The number of viz_datasource MUST be equal to the viz_type datasourceCount.",
+                        "The queries must be consistent with the data provided in the schema.",
+                        "For example, if the schema contains a table named 'bart_lines', the query should be 'SELECT `column` FROM `schemaname`."bart_lines".",
+                        "The queries should select only the columns that are relevant to the visualization and columns that are selected.",
+                        "For example, if the visualization is a bar chart that shows the number of passengers per line, the query should be 'SELECT `line_name`, `passengers` FROM `schemaname`."bart_lines";",
+                        "The queries should filter out nulls for the columns selected.",
+                        "The queries should ensure that castings are done only when necessary and filters added to support valid casting.",
+                        "The queries should not include any grouping as the grouping will be done by the visualization based on the llm_optimized description.",
+                        "The queries should not include any ordering as the ordering will be done by the visualization based on the llm_optimized description.",
+                        "The queries should not include any limit as the limit will be done by the visualization based on the llm_optimized description.",
+                        "The queries should try to standardize the data.",
+                        "For example, if the data is in different units, the queries should convert the data to a single unit.",
+                        "If the data is a mix of upper and lower case, the queries should convert the data to a single case.",
+                        "All column names must be enclosed in quotes i.e `column_name`",
+                        "The query MUST be a valid SQL query."
+                    ],
+                    "databaseId": "The id of the datasource that the visualization will be created from. This id should be consistent with the databaseId in the schema.",
+                    "schemaName": "The name of the schema that the visualization will be created from. This name should be consistent with the schemaName in the schema."
+                    }}
+                ]
+                
+                The response should be in a valid JSON format.
+                """,
+                ],
+            }
             ]
         )
         response = chat_session.send_message("Please provide suggestions for visualizations that can be created from the data.")
@@ -194,13 +203,6 @@ class AssistantView(BaseSupersetView):
         return self.json_response(response.text)
 
 
-    # Function takes viz-suggestion { type and controls } and data { sql query , data and sample control value return example }
-    # and tries to return relevant values for the controls based on
-    # 1. the type of visualization
-    # 2. the data available
-    # 3. the controls available for the visualization
-    # 4. The users intent
-    # 5. The users previous interactions with the assistant
 
     @expose("/gemini/save-control-values", methods=["POST"])
     @safe
@@ -254,8 +256,6 @@ class AssistantView(BaseSupersetView):
                         {viz_suggestion}_Controls = {viz_example_controls} using the following datasource
                         {viz_suggestion}_Datasource = {viz_example_datasource}
                         {viz_suggestion}_Control_Values = {viz_examples}
-
-
                         Using the new {viz_suggestion}_Datasource below,
                         New_{viz_suggestion}_Datasource = {datasource},
                         Create a new {viz_suggestion}_Control_Values that will best answer the prompt below.
@@ -263,8 +263,15 @@ class AssistantView(BaseSupersetView):
                         Response should be a single json object with structure similar to the objects in {viz_suggestion}_Control_Values list
                         Do not use the {viz_suggestion}_Control_Values values in the response.
                         Do not add any new keys not present in the {viz_suggestion}_Control.
-                        Do not use '*' in any sql expressions. Use specific column_name specified in the New_{viz_suggestion}_Datasource.
-                        Response should be a valid json format.
+                         
+                        Use specific column_name specified in the New_{viz_suggestion}_Datasource.
+                        Do not use any column_name not implied in the New_{viz_suggestion}_Datasource.
+                        Do not use any aggregate functions not supported by SQL.
+                        sql expressions should not nest aggregate functions. and should always take the form {{FUNCTION_NAME}}(column_name) E.G SUM(column_name), AVG(column_name), COUNT(column_name), MAX(column_name), MIN(column_name)
+                        Response should be a valid json format i.e use correct boolean, integer and string values.
+                        Boolean values should be true or false. not True or False. i.e lowercase.
+                        Column names placed in lists NOT should be enclosed in quotes. ie ["column_name"] not ["\"column_name\""] E.G. "some_key": ["column_name", "column_name_2", "column_name_3"]
+                        do not return keys with null or undefined values.
                         """
                     ],
                 }
