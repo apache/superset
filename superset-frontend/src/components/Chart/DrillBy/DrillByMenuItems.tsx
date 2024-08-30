@@ -138,7 +138,7 @@ export const DrillByMenuItems = ({
 
   useEffect(() => {
     if (open) {
-      ref.current?.input.focus();
+      ref.current?.input.focus({ preventScroll: true });
     } else {
       // Reset search input when menu is closed
       ref.current?.setValue('');
