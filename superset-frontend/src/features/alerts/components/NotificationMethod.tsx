@@ -427,7 +427,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     <StyledNotificationMethod>
       <div className="inline-container">
         <StyledInputContainer>
-          <div className="control-label">{t('Notification Methods')}</div>
+          <div className="control-label">{t('Notification Method')}</div>
           <div className="input-container">
             <Select
               ariaLabel={t('Delivery method')}
