@@ -36,7 +36,8 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-    {{- include "supersetCeleryBeat.selectorLabels" . | nindent 6 }}
+      app: {{ template "superset.name" . }}-celerybeat
+      release: {{ .Release.Name }}
   template:
     metadata:
       annotations:
@@ -133,9 +134,6 @@ spec:
         {{- with .Values.supersetCeleryBeat.affinity }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- end }}
-      {{- if .Values.supersetCeleryBeat.priorityClassName }}
-      priorityClassName: {{ .Values.supersetCeleryBeat.priorityClassName }}
       {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.supersetCeleryBeat.topologySpreadConstraints }}
       topologySpreadConstraints:
