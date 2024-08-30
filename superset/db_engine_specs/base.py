@@ -429,8 +429,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
     oauth2_scope = ""
-    oauth2_authorization_request_uri = ""  # pylint: disable=invalid-name
-    oauth2_token_request_uri = ""
+    oauth2_authorization_request_uri: str | None = None  # pylint: disable=invalid-name
+    oauth2_token_request_uri: str | None = None
 
     # Driver-specific exception that should be mapped to OAuth2RedirectError
     oauth2_exception = OAuth2RedirectError
