@@ -22,6 +22,7 @@ from uuid import uuid4
 import pytest
 import redis
 from celery.exceptions import SoftTimeLimitExceeded
+from parameterized import parameterized
 
 from superset.async_events.cache_backend import (
     RedisCacheBackend,
@@ -47,13 +48,12 @@ from tests.integration_tests.test_app import app
     "load_birth_names_data", "load_birth_names_dashboard_with_slices"
 )
 class TestAsyncQueries(SupersetTestCase):
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
     @mock.patch("superset.tasks.async_queries.set_form_data")
     @mock.patch.object(async_query_manager, "update_job")
@@ -84,13 +84,12 @@ class TestAsyncQueries(SupersetTestCase):
             job_metadata, "done", result_url=mock.ANY
         )
 
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
     @mock.patch.object(
         ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
@@ -122,13 +121,12 @@ class TestAsyncQueries(SupersetTestCase):
         errors = [{"message": "Error: foo"}]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
     @mock.patch.object(ChartDataCommand, "run")
     @mock.patch.object(async_query_manager, "update_job")
@@ -161,13 +159,12 @@ class TestAsyncQueries(SupersetTestCase):
                 load_chart_data_into_cache(job_metadata, form_data)
             set_form_data.assert_called_once_with(form_data, "error", errors=errors)
 
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
@@ -207,13 +204,12 @@ class TestAsyncQueries(SupersetTestCase):
             job_metadata, "done", result_url=mock.ANY
         )
 
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
     @mock.patch.object(async_query_manager, "update_job")
     @mock.patch("superset.tasks.async_queries.set_form_data")
@@ -244,13 +240,12 @@ class TestAsyncQueries(SupersetTestCase):
         errors = ["The dataset associated with this chart no longer exists"]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
-    @pytest.mark.parametrize(
-        "cache_type, cache_backend",
+    @parameterized.expand(
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
             ("redis.Redis", mock.Mock(spec=redis.Redis)),
-        ],
+        ]
     )
     @mock.patch.object(ChartDataCommand, "run")
     @mock.patch.object(async_query_manager, "update_job")
