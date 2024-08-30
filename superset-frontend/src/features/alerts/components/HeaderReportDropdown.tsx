@@ -112,7 +112,7 @@ export interface HeaderReportProps {
 // Same instance to be used in useEffects
 const EMPTY_OBJECT = {};
 
-export default function HeaderReportDropDown({
+export default function HeaderReportDropdown({
   dashboardId,
   chart,
   useTextMenu = false,
