@@ -35,13 +35,6 @@ from superset.async_events.cache_backend import (
 JWT_TOKEN_SECRET = "some_secret"
 JWT_TOKEN_COOKIE_NAME = "superset_async_jwt"
 
-# Define the cache backends once as mocks
-# cache_backends = {
-#    "RedisCacheBackend": mock.Mock(spec=RedisCacheBackend),
-#    "RedisSentinelCacheBackend": mock.Mock(spec=RedisSentinelCacheBackend),
-#    "redis.Redis": mock.Mock(spec=redis.Redis),
-# }
-
 
 @fixture
 def async_query_manager():
