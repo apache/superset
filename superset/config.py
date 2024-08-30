@@ -1690,6 +1690,28 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
 )
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
+# Global async queries cache backend configuration options:
+# - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend.
+# - Set 'CACHE_TYPE' to 'RedisSentinelCache' for RedisSentinelCacheBackend.
+# - Set 'CACHE_TYPE' to 'None' to fall back on 'GLOBAL_ASYNC_QUERIES_REDIS_CONFIG'.
+GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "localhost",
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_USER": "",
+    "CACHE_REDIS_PASSWORD": "",
+    "CACHE_REDIS_DB": 0,
+    "CACHE_DEFAULT_TIMEOUT": 300,
+    "CACHE_REDIS_SENTINELS": [("localhost", 26379)],
+    "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+    "CACHE_REDIS_SENTINEL_PASSWORD": None,
+    "CACHE_REDIS_SSL": False,  # True or False
+    "CACHE_REDIS_SSL_CERTFILE": None,
+    "CACHE_REDIS_SSL_KEYFILE": None,
+    "CACHE_REDIS_SSL_CERT_REQS": "required",
+    "CACHE_REDIS_SSL_CA_CERTS": None,
+}
+
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
 GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"
