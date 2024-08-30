@@ -30,7 +30,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   addReport,
   editReport,
-} from 'src/features/reports/ReportModal/actions';
+} from 'src/features/alerts/actions';
 import Alert from 'src/components/Alert';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
@@ -47,7 +47,7 @@ import {
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
 import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
-import { CreationMethod } from './HeaderReportDropdown';
+import { CreationMethod } from '../types';
 import {
   antDErrorAlertStyles,
   CustomWidthHeaderStyle,
@@ -65,7 +65,7 @@ import {
   StyledMessageContentTitle,
   StyledRadio,
   StyledRadioGroup,
-} from './styles';
+} from '../reports/styles';
 
 interface ReportProps {
   onHide: () => {};

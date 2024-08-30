@@ -191,3 +191,9 @@ export enum ContentType {
   Dashboard = 'dashboard',
   Chart = 'chart',
 }
+
+export enum CreationMethod {
+  Charts = "charts",
+  Dashboards = "dashboards",
+  AlertsReports = "alerts_reports",
+}

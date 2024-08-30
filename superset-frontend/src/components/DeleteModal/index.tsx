@@ -50,7 +50,7 @@ export default function DeleteModal({
   open,
   title,
 }: DeleteModalProps) {
-  const [disableChange, setDisableChange] = useState(true);
+const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
 
   const hide = () => {
@@ -80,7 +80,7 @@ export default function DeleteModal({
       disablePrimaryButton={disableChange}
       onHide={hide}
       onHandledPrimaryAction={confirm}
-      primaryButtonName={t('delete')}
+      primaryButtonName={t('Delete')}
       primaryButtonType="danger"
       show={open}
       title={title}

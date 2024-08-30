@@ -35,7 +35,7 @@ import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
-import HeaderReportDropDown from 'src/features/reports/ReportModal/HeaderReportDropdown';
+import HeaderReportDropDown from 'src/features/alerts/components/HeaderReportDropdown'; 
 import { logEvent } from 'src/logger/actions';
 import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,

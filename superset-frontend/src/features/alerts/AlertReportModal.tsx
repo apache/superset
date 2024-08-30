@@ -67,6 +67,7 @@ import {
   TabNode,
   SelectValue,
   ContentType,
+  CreationMethod,
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -89,6 +90,9 @@ export interface AlertReportModalProps {
   addDangerToast: (msg: string) => void;
   alert?: AlertObject | null;
   isReport?: boolean;
+  creationMethod: CreationMethod;
+  chartId?: number;
+  dashboardId?: number;
   onAdd?: (alert?: AlertObject) => void;
   onHide: () => void;
   show: boolean;
