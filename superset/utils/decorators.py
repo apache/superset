@@ -238,6 +238,7 @@ def on_error(
 
 def transaction(  # pylint: disable=redefined-outer-name
     on_error: Callable[..., Any] | None = on_error,
+    allowed: tuple[type[Exception], ...] = (),
 ) -> Callable[..., Any]:
     """
     Perform a "unit of work".
@@ -246,7 +247,12 @@ def transaction(  # pylint: disable=redefined-outer-name
     proved rather complicated, likely due to many architectural facets, and thus has
     been left for a follow up exercise.
 
+    In certain cases it might be desirable to commit even though an exception was
+    raised. For OAuth2, for example, we use exceptions as a way to signal the client to
+    redirect to the login page. In this case, we re-raise the exception and commit.
+
     :param on_error: Callback invoked when an exception is caught
+    :param allowed: Exception types to re-raise after committing
     :see: https://github.com/apache/superset/issues/25108
     """
 
@@ -259,6 +265,9 @@ def transaction(  # pylint: disable=redefined-outer-name
                 result = func(*args, **kwargs)
                 db.session.commit()  # pylint: disable=consider-using-transaction
                 return result
+            except allowed:
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                raise
             except Exception as ex:
                 db.session.rollback()  # pylint: disable=consider-using-transaction
 

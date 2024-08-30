@@ -24,6 +24,7 @@ from typing import Any, Optional
 from unittest.mock import call, Mock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset import app
 from superset.utils import decorators
@@ -294,3 +295,74 @@ def test_suppress_logging() -> None:
     decorated = decorators.suppress_logging("test-logger", logging.CRITICAL + 1)(func)
     decorated()
     assert len(handler.log_records) == 0
+
+
+def test_transaction_no_error(mocker: MockerFixture) -> None:
+    """
+    Test the `transaction` decorator when the function works as expected.
+    """
+    db = mocker.patch("superset.db")
+
+    @decorators.transaction()
+    def f() -> int:
+        return 42
+
+    assert f() == 42
+    db.session.commit.assert_called_once()
+    db.session.rollback.assert_not_called()
+
+
+def test_transaction_with_on_error(mocker: MockerFixture) -> None:
+    """
+    Test the `transaction` decorator when the function captures an exception.
+    """
+    db = mocker.patch("superset.db")
+
+    def on_error(ex: Exception) -> Exception:
+        return ex
+
+    ex = ValueError("error")
+
+    @decorators.transaction(on_error)
+    def f() -> None:
+        raise ex
+
+    assert f() == ex
+    db.session.commit.assert_not_called()
+    db.session.rollback.assert_called_once()
+
+
+def test_transaction_without_on_error(mocker: MockerFixture) -> None:
+    """
+    Test the `transaction` decorator when the function raises an exception.
+    """
+    db = mocker.patch("superset.db")
+
+    @decorators.transaction()
+    def f() -> None:
+        raise ValueError("error")
+
+    with pytest.raises(ValueError) as excinfo:
+        f()
+    assert str(excinfo.value) == "error"
+    db.session.commit.assert_not_called()
+    db.session.rollback.assert_called_once()
+
+
+def test_transaction_with_allowed(mocker: MockerFixture) -> None:
+    """
+    Test the `transaction` decorator with allowed exceptions.
+
+    In this case the decorator will commit before re-raising the exception.
+    """
+    db = mocker.patch("superset.db")
+
+    @decorators.transaction(allowed=(ValueError,))
+    def f() -> None:
+        raise ValueError("error")
+
+    with pytest.raises(ValueError) as excinfo:
+        f()
+    assert str(excinfo.value) == "error"
+    db.session.commit.assert_called_once()
+    db.session.rollback.assert_not_called()
