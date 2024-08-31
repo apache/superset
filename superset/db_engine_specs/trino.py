@@ -27,6 +27,7 @@ from typing import Any, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import requests
 from flask import copy_current_request_context, ctx, current_app, Flask, g
 from sqlalchemy import text
 from sqlalchemy.engine.reflection import Inspector
@@ -157,6 +158,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         # Set principal_username=$effective_username
         if backend_name == "trino" and username is not None:
             connect_args["user"] = username
+            if access_token is not None:
+                http_session = requests.Session()
+                http_session.headers.update({"Authorization": f"Bearer {access_token}"})
+                connect_args["http_session"] = http_session
 
     @classmethod
     def get_url_for_impersonation(
