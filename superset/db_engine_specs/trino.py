@@ -27,7 +27,7 @@ from typing import Any, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-from flask import ctx, current_app, Flask, g
+from flask import copy_current_request_context, ctx, current_app, Flask, g
 from sqlalchemy import text
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -243,6 +243,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         execute_result: dict[str, Any] = {}
         execute_event = threading.Event()
 
+        @copy_current_request_context
         def _execute(
             results: dict[str, Any],
             event: threading.Event,
