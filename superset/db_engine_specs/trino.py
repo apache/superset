@@ -78,6 +78,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine_name = "Trino"
     allows_alias_to_source_column = False
 
+    # OAuth 2.0
+    supports_oauth2 = True
+    oauth2_exception = TrinoAuthError
+
     @classmethod
     def get_extra_table_metadata(
         cls,
