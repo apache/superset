@@ -45,7 +45,12 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIProgrammingError,
 )
 from superset.sql_parse import Table
-from superset.superset_typing import ResultSetColumnType, SQLAColumnType, SQLType
+from superset.superset_typing import (
+    OAuth2ClientConfig,
+    ResultSetColumnType,
+    SQLAColumnType,
+    SQLType,
+)
 from superset.utils import json
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -787,4 +792,58 @@ def test_where_latest_partition(
             )
         )
         == f"""SELECT * FROM table \nWHERE partition_key = {expected_value}"""
+    )
+
+
+@pytest.fixture
+def oauth2_config() -> OAuth2ClientConfig:
+    """
+    Config for Trino OAuth2.
+    """
+    return {
+        "id": "trino",
+        "secret": "very-secret",
+        "scope": "",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://trino.auth.server.example/realms/master/protocol/openid-connect/auth",
+        "token_request_uri": "https://trino.auth.server.example/master/protocol/openid-connect/token",
+        "request_content_type": "data",
+    }
+
+
+def test_get_oauth2_token(
+    mocker: MockerFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
+    """
+    Test `get_oauth2_token`.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+
+    assert TrinoEngineSpec.get_oauth2_token(oauth2_config, "code") == {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+    requests.post.assert_called_with(
+        "https://trino.auth.server.example/master/protocol/openid-connect/token",
+        data={
+            "code": "code",
+            "client_id": "trino",
+            "client_secret": "very-secret",
+            "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+            "grant_type": "authorization_code",
+        },
+        timeout=30.0,
     )

@@ -149,6 +149,10 @@ class OAuth2ClientConfig(TypedDict):
     # expired access token.
     token_request_uri: str
 
+    # Not all identity providers expect json. Keycloak expects a form encoded request,
+    # which in the `requests` package context means using the `data` param, not `json`.
+    request_content_type: str
+
 
 class OAuth2TokenResponse(TypedDict, total=False):
     """
