@@ -136,7 +136,9 @@ builtin_time_grains: dict[str | None, str] = {
 }
 
 
-class TimestampExpression(ColumnClause):  # pylint: disable=abstract-method, too-many-ancestors
+class TimestampExpression(
+    ColumnClause
+):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be used to render native column elements respecting
         engine-specific quoting rules as part of a string-based expression.
@@ -394,9 +396,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     max_column_name_length: int | None = None
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
-    custom_errors: dict[
-        Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
-    ] = {}
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = (
+        {}
+    )
 
     # Whether the engine supports file uploads
     # if True, database will be listed as option in the upload file form
@@ -2196,6 +2198,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_file_upload": cls.supports_file_upload,
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
+            "supports_oauth2": cls.supports_oauth2,
         }
 
     @classmethod

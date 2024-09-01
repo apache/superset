@@ -1898,9 +1898,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.columnar_upload",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.columnar_upload",
         log_to_statsd=False,
     )
     @requires_form_data
@@ -2073,7 +2071,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "sqlalchemy_uri_placeholder": engine_spec.sqlalchemy_uri_placeholder,
                 "preferred": engine_spec.engine_name in preferred_databases,
                 "engine_information": engine_spec.get_public_information(),
-                "supports_oauth2": engine_spec.supports_oauth2,
             }
 
             if engine_spec.default_driver:

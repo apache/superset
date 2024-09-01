@@ -41,6 +41,7 @@ import {
 } from './CommonParameters';
 import { validatedInputField } from './ValidatedInputField';
 import { EncryptedField } from './EncryptedField';
+import { OAuth2ClientField } from './OAuth2ClientField';
 import { TableCatalog } from './TableCatalog';
 import { formScrollableStyles, validatedFormStyles } from '../styles';
 import { DatabaseForm, DatabaseObject } from '../../types';
@@ -67,6 +68,7 @@ export const FormFieldOrder = [
   'warehouse',
   'role',
   'ssh',
+  'oauth2_client',
 ];
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -84,6 +86,7 @@ const FORM_FIELD_MAP = {
   default_schema: defaultSchemaField,
   username: usernameField,
   password: passwordField,
+  oauth2_client: OAuth2ClientField,
   access_token: accessTokenField,
   database_name: displayField,
   query: queryField,
@@ -118,6 +121,9 @@ interface DatabaseConnectionFormProps {
   onExtraInputChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
+  onEncryptedExtraInputChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
   onAddTableCatalog: () => void;
   onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;
@@ -136,6 +142,7 @@ const DatabaseConnectionForm = ({
   onAddTableCatalog,
   onChange,
   onExtraInputChange,
+  onEncryptedExtraInputChange,
   onParametersChange,
   onParametersUploadFileChange,
   onQueryChange,
@@ -171,6 +178,7 @@ const DatabaseConnectionForm = ({
                 onAddTableCatalog,
                 onRemoveTableCatalog,
                 onExtraInputChange,
+                onEncryptedExtraInputChange,
               },
               validationErrors,
               getValidation,

@@ -73,6 +73,11 @@ class SnowflakeParametersSchema(Schema):
         allow_none=True,
         metadata={"description": "Password"},
     )
+    oauth2_client = fields.Str(
+        required=False,
+        allow_none=True,
+        metadata={"description": "OAuth2 client information"},
+    )
     account = fields.Str(required=True, metadata={"description": "Account name"})
     database = fields.Str(required=True, metadata={"description": "Database name"})
     role = fields.Str(
