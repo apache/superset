@@ -27,6 +27,8 @@ from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
+from superset.config import GUEST_TOKEN_VALIDATOR_HOOK
+from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import event_logger
 from superset.security.guest_token import GuestTokenResourceType
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
@@ -148,7 +150,15 @@ class SecurityRestApi(BaseSupersetApi):
         try:
             body = guest_token_create_schema.load(request.json)
             self.appbuilder.sm.validate_guest_token_resources(body["resources"])
-
+            # Run validator to ensure the token parameters are OK.
+            if GUEST_TOKEN_VALIDATOR_HOOK is not None:
+                if callable(GUEST_TOKEN_VALIDATOR_HOOK):
+                    if not GUEST_TOKEN_VALIDATOR_HOOK(body):
+                        raise ValidationError(message="Guest token validation failed")
+                else:
+                    raise SupersetGenericErrorException(
+                        message="Guest token validator hook not callable"
+                    )
             # todo validate stuff:
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
