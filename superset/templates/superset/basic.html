@@ -29,39 +29,34 @@
       favicon.href.startswith("http") else assets_prefix }}{{favicon.href}}" > {%
       endfor %}
       <link
-        rel="stylesheet"
+        rel="preload"
         type="text/css"
         href="{{ assets_prefix }}/static/appbuilder/css/flags/flags16.css"
-        media="print"
-        onload="this.media='all'"
+        as="style"
       />
       <link
-        rel="stylesheet"
+        rel="preload"
         type="text/css"
         href="{{ assets_prefix }}/static/appbuilder/css/fontawesome/fontawesome.min.css"
-        media="print"
-        onload="this.media='all'"
+        as="style"
       />
       <link
-        rel="stylesheet"
+        rel="preload"
         type="text/css"
         href="{{ assets_prefix }}/static/appbuilder/css/fontawesome/solid.min.css"
-        media="print"
-        onload="this.media='all'"
+        as="style"
       />
       <link
-        rel="stylesheet"
+        rel="preload"
         type="text/css"
         href="{{ assets_prefix }}/static/appbuilder/css/fontawesome/brands.min.css"
-        media="print"
-        onload="this.media='all'"
+        as="style"
       />
       <link
-        rel="stylesheet"
+        rel="preload"
         type="text/css"
         href="{{ assets_prefix }}/static/appbuilder/css/select2/select2.min.css"
-        media="print"
-        onload="this.media='all'"
+        as="style"
       />
 
       {{ css_bundle("theme") }} {% if entry %} {{ css_bundle(entry) }} {% endif %}
@@ -126,5 +121,19 @@
       {% block tail_js %} {% if not standalone_mode %} {{ js_bundle('menu') }} {%
       endif %} {% if entry %} {{ js_bundle(entry) }} {% endif %} {% include
       "tail_js_custom_extra.html" %} {% endblock %}
+
+      <!-- Handle deferred stylesheets -->
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          var preloadLinks = document.querySelectorAll('link[rel="preload"][as="style"]');
+
+          preloadLinks.forEach(function(link) {
+            link.addEventListener('load', function() {
+              link.rel = 'stylesheet';
+              link.onload = null;
+            });
+          });
+        });
+      </script>
     </body>
   </html>
