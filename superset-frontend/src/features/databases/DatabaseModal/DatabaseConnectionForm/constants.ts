@@ -32,6 +32,7 @@ import {
   queryField,
   usernameField,
 } from './CommonParameters';
+import { OAuth2ClientField } from './OAuth2ClientField';
 import { validatedInputField } from './ValidatedInputField';
 import { EncryptedField } from './EncryptedField';
 import { TableCatalog } from './TableCatalog';
@@ -58,6 +59,7 @@ export const FormFieldOrder = [
   'warehouse',
   'role',
   'ssh',
+  'oauth2_client',
 ];
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -75,6 +77,7 @@ export const FORM_FIELD_MAP = {
   default_schema: defaultSchemaField,
   username: usernameField,
   password: passwordField,
+  oauth2_client: OAuth2ClientField,
   access_token: accessTokenField,
   database_name: displayField,
   query: queryField,

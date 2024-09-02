@@ -113,6 +113,7 @@ export type DatabaseObject = {
     supports_file_upload?: boolean;
     disable_ssh_tunneling?: boolean;
     supports_dynamic_catalog?: boolean;
+    supports_oauth2?: boolean;
   };
 
   // SSH Tunnel information
@@ -301,6 +302,7 @@ export interface FieldPropTypes {
     onRemoveTableCatalog: (idx: number) => void;
   } & {
     onExtraInputChange: (value: any) => void;
+    onEncryptedExtraInputChange: (value: any) => void;
     onSSHTunnelParametersChange: CustomEventHandlerType;
   };
   validationErrors: JsonObject | null;
@@ -350,6 +352,9 @@ export interface DatabaseConnectionFormProps {
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onExtraInputChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onEncryptedExtraInputChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onAddTableCatalog: () => void;
