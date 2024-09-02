@@ -137,6 +137,149 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
 
         self.assert400(response)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_config({"GUEST_TOKEN_VALIDATOR_HOOK": None})
+    def test_guest_token_validator_hook_unconfigured(self):
+        """
+        Security API: Test the API works normally with GUEST_TOKEN_VALIDATOR_HOOK
+        configured to None.
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert200(response)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_config({"GUEST_TOKEN_VALIDATOR_HOOK": lambda x: False})
+    def test_guest_token_validator_hook_negative(self):
+        """
+        Security API: Test the API returns a 400 with a hook that returns False.
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert400(response)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_config({"GUEST_TOKEN_VALIDATOR_HOOK": lambda x: True})
+    def test_guest_token_validator_hook_positive(self):
+        """
+        Security API: Test the API returns a 400 with a hook that returns False.
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert200(response)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_config({"GUEST_TOKEN_VALIDATOR_HOOK": 123})
+    def test_guest_token_validator_not_callable(self):
+        """
+        Security API: Test the API blows up if hook not configured with a callable
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert500(response)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_config({"GUEST_TOKEN_VALIDATOR_HOOK": lambda x: [][0]})
+    def test_guest_token_validator_raises_exception(self):
+        """
+        Security API: Test the API blows up if validator blows up.
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert500(response)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_config(
+        {
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
+            and "tenant_id=" in x["rls"][0]["clause"]
+        }
+    )
+    def test_guest_token_validator_real_world(self):
+        """
+        Security API: Test the API with a real world example
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert400(response)
+
+        rls_rule = {"dataset": 1, "clause": "tenant_id=1234"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert200(response)
+
+        params = {"user": user, "resources": [resource], "rls": []}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert400(response)
+
 
 class TestSecurityRolesApi(SupersetTestCase):
     uri = "api/v1/security/roles/"  # noqa: F541

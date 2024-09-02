@@ -1723,9 +1723,9 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 
 # A callable that can be supplied to do extra validation of guest token configuration
 # for example certain RLS parameters:
-# lambda x: len(x['rls']) == 1 and "tenent_id=" in x['rls'][0]['clause']
+# lambda x: len(x['rls']) == 1 and "tenant_id=" in x['rls'][0]['clause']
 #
-# Takes the GuestTokenUser dict as a n argument
+# Takes the GuestTokenUser dict as an argument
 # Return False from the callable to return a HTTP 400 to the user.
 
 GUEST_TOKEN_VALIDATOR_HOOK = None

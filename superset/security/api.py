@@ -17,7 +17,7 @@
 import logging
 from typing import Any
 
-from flask import request, Response
+from flask import current_app, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import safe
 from flask_appbuilder.security.decorators import permission_name, protect
@@ -27,7 +27,6 @@ from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
-from superset.config import GUEST_TOKEN_VALIDATOR_HOOK
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import event_logger
 from superset.security.guest_token import GuestTokenResourceType
@@ -150,10 +149,13 @@ class SecurityRestApi(BaseSupersetApi):
         try:
             body = guest_token_create_schema.load(request.json)
             self.appbuilder.sm.validate_guest_token_resources(body["resources"])
+            guest_token_validator_hook = current_app.config.get(
+                "GUEST_TOKEN_VALIDATOR_HOOK"
+            )
             # Run validator to ensure the token parameters are OK.
-            if GUEST_TOKEN_VALIDATOR_HOOK is not None:
-                if callable(GUEST_TOKEN_VALIDATOR_HOOK):
-                    if not GUEST_TOKEN_VALIDATOR_HOOK(body):
+            if guest_token_validator_hook is not None:
+                if callable(guest_token_validator_hook):
+                    if not guest_token_validator_hook(body):
                         raise ValidationError(message="Guest token validation failed")
                 else:
                     raise SupersetGenericErrorException(
