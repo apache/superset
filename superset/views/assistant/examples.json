@@ -23,8 +23,37 @@
                 "show_labels": true,
                 "labels_outside": true,
                 "outerRadius": 70,
-                "innerRadius": 30,
-                "extra_form_data": {}
+                "innerRadius": 30
+            },
+            {
+                
+                "groupby": [
+                    "name"
+                ],
+                "metric": {
+                    "expressionType": "SQL",
+                    "sqlExpression": "SUM(name)",
+                    "column": null,
+                    "aggregate": null,
+                    "datasourceWarning": false,
+                    "hasCustomLabel": false,
+                    "label": "SUM(name)",
+                    "optionName": "metric_93g1zz1e68_eneo4ojr48"
+                },
+                "row_limit": 1000,
+                "sort_by_metric": true,
+                "color_scheme": "supersetColors",
+                "show_labels_threshold": 5,
+                "show_legend": true,
+                "legendType": "scroll",
+                "legendOrientation": "top",
+                "label_type": "key",
+                "number_format": "SMART_NUMBER",
+                "date_format": "smart_date",
+                "show_labels": true,
+                "labels_outside": true,
+                "outerRadius": 70,
+                "innerRadius": 30
             }
         ],
         "controls": {
@@ -33,7 +62,7 @@
                 "label": "Datasource",
                 "default": null,
                 "description": null,
-                "value": "433__query",
+                "value": "710__query",
                 "datasource": {
                     "catalog": null,
                     "columns": [
@@ -41,7 +70,7 @@
                             "advanced_data_type": null,
                             "certification_details": null,
                             "certified_by": null,
-                            "column_name": "AIRLINE",
+                            "column_name": "name",
                             "description": null,
                             "expression": null,
                             "filterable": true,
@@ -50,8 +79,8 @@
                             "is_certified": false,
                             "is_dttm": false,
                             "python_date_format": null,
-                            "type": "STRING",
-                            "type_generic": 1,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
                             "verbose_name": null,
                             "warning_markdown": null
                         },
@@ -59,7 +88,7 @@
                             "advanced_data_type": null,
                             "certification_details": null,
                             "certified_by": null,
-                            "column_name": "count",
+                            "column_name": "active",
                             "description": null,
                             "expression": null,
                             "filterable": true,
@@ -68,42 +97,42 @@
                             "is_certified": false,
                             "is_dttm": false,
                             "python_date_format": null,
-                            "type": "LONGINTEGER",
-                            "type_generic": 0,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
                             "verbose_name": null,
                             "warning_markdown": null
                         }
                     ],
                     "database": {
-                        "backend": "postgresql",
-                        "id": 2,
+                        "backend": "mysql",
+                        "id": 4,
                         "parameters": {}
                     },
                     "filter_select": true,
-                    "id": 433,
+                    "id": 710,
                     "metrics": [],
                     "name": "Assistant Query Lab",
                     "order_by_choices": [
                         [
-                            "[\"AIRLINE\", true]",
-                            "AIRLINE [asc]"
+                            "[\"name\", true]",
+                            "name [asc]"
                         ],
                         [
-                            "[\"AIRLINE\", false]",
-                            "AIRLINE [desc]"
+                            "[\"name\", false]",
+                            "name [desc]"
                         ],
                         [
-                            "[\"count\", true]",
-                            "count [asc]"
+                            "[\"active\", true]",
+                            "active [asc]"
                         ],
                         [
-                            "[\"count\", false]",
-                            "count [desc]"
+                            "[\"active\", false]",
+                            "active [desc]"
                         ]
                     ],
                     "owners": [],
-                    "schema": "public",
-                    "sql": "SELECT \"AIRLINE\", COUNT(*) AS \"count\" FROM \"flights\" GROUP BY \"AIRLINE\"",
+                    "schema": "repo2",
+                    "sql": "SELECT `name`, `active` FROM `repo2`.`items`",
                     "time_grain_sqla": [
                         [
                             "PT1S",
@@ -136,6 +165,10 @@
                         [
                             "P1Y",
                             "Year"
+                        ],
+                        [
+                            "1969-12-29T00:00:00Z/P1W",
+                            "Week starting Monday"
                         ]
                     ],
                     "type": "query",
@@ -144,20 +177,40 @@
                 "form_data": {
                     "adhoc_filters": [],
                     "all_columns": [
-                        "AIRLINE",
-                        "count"
+                        "name",
+                        "active"
                     ],
                     "applied_time_extras": {},
-                    "assistant_data": "A pie chart visualizing the distribution of flights across different airlines, using the \"AIRLINE\" column from the \"flights\" table.",
-                    "datasource": "433__query",
-                    "groupby": [],
+                    "assistant_data": "Create a pie chart with the 'name' column as the 'group' and the 'active' column as the 'value'.",
+                    "color_scheme": "supersetColors",
+                    "datasource": "710__query",
+                    "date_format": "smart_date",
+                    "groupby": [
+                        "name"
+                    ],
+                    "innerRadius": 30,
+                    "label_type": "key",
+                    "labels_outside": true,
+                    "legendOrientation": "top",
+                    "legendType": "scroll",
+                    "metric": {
+                        "expressionType": "SQL",
+                        "label": "Total",
+                        "sqlExpression": "SUM(active)"
+                    },
                     "metrics": [],
+                    "number_format": "SMART_NUMBER",
+                    "outerRadius": 70,
                     "row_limit": 1000,
+                    "show_labels": true,
+                    "show_labels_threshold": 5,
+                    "show_legend": true,
+                    "sort_by_metric": true,
                     "time_range": "No filter",
                     "url_params": {
-                        "datasource_id": "433",
+                        "datasource_id": "710",
                         "datasource_type": "query",
-                        "form_data_key": "qu0Emp4nO8Up6Rr01GJPt1YC62gOUzAl245zsQYyWr6rqU9ZySeJdiVXPXpZpDqe"
+                        "form_data_key": "FUVnh2M4zaL0Oqt20X2KEeFQybzCGDnSTNcvXvJIiMtrQwlcmtS4KRqyM6tIBDXs"
                     },
                     "viz_type": "pie"
                 },
@@ -191,9 +244,9 @@
                 "hidden": true,
                 "description": "Extra parameters for use in jinja templated queries",
                 "value": {
-                    "datasource_id": "433",
+                    "datasource_id": "710",
                     "datasource_type": "query",
-                    "form_data_key": "qu0Emp4nO8Up6Rr01GJPt1YC62gOUzAl245zsQYyWr6rqU9ZySeJdiVXPXpZpDqe"
+                    "form_data_key": "FUVnh2M4zaL0Oqt20X2KEeFQybzCGDnSTNcvXvJIiMtrQwlcmtS4KRqyM6tIBDXs"
                 },
                 "validationErrors": []
             },
@@ -210,14 +263,14 @@
                 "allowAll": true,
                 "commaChoosesOption": false,
                 "value": [
-                    "AIRLINE"
+                    "name"
                 ],
                 "options": [
                     {
                         "advanced_data_type": null,
                         "certification_details": null,
                         "certified_by": null,
-                        "column_name": "AIRLINE",
+                        "column_name": "name",
                         "description": null,
                         "expression": null,
                         "filterable": true,
@@ -226,8 +279,8 @@
                         "is_certified": false,
                         "is_dttm": false,
                         "python_date_format": null,
-                        "type": "STRING",
-                        "type_generic": 1,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
                         "verbose_name": null,
                         "warning_markdown": null
                     },
@@ -235,7 +288,7 @@
                         "advanced_data_type": null,
                         "certification_details": null,
                         "certified_by": null,
-                        "column_name": "count",
+                        "column_name": "active",
                         "description": null,
                         "expression": null,
                         "filterable": true,
@@ -244,8 +297,8 @@
                         "is_certified": false,
                         "is_dttm": false,
                         "python_date_format": null,
-                        "type": "LONGINTEGER",
-                        "type_generic": 0,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
                         "verbose_name": null,
                         "warning_markdown": null
                     }
@@ -263,20 +316,20 @@
                 "description": "Select a metric to display. You can use an aggregation function on a column or write custom SQL to create a metric.",
                 "value": {
                     "expressionType": "SQL",
-                    "sqlExpression": "SUM(count) + AVG(count)",
+                    "sqlExpression": "SUM(name)",
                     "column": null,
                     "aggregate": null,
                     "datasourceWarning": false,
                     "hasCustomLabel": false,
-                    "label": "SUM(count) + AVG(count)",
-                    "optionName": "metric_g2la9emuwgf_29ugovas4v"
+                    "label": "SUM(name)",
+                    "optionName": "metric_93g1zz1e68_eneo4ojr48"
                 },
                 "columns": [
                     {
                         "advanced_data_type": null,
                         "certification_details": null,
                         "certified_by": null,
-                        "column_name": "AIRLINE",
+                        "column_name": "name",
                         "description": null,
                         "expression": null,
                         "filterable": true,
@@ -285,8 +338,8 @@
                         "is_certified": false,
                         "is_dttm": false,
                         "python_date_format": null,
-                        "type": "STRING",
-                        "type_generic": 1,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
                         "verbose_name": null,
                         "warning_markdown": null
                     },
@@ -294,7 +347,7 @@
                         "advanced_data_type": null,
                         "certification_details": null,
                         "certified_by": null,
-                        "column_name": "count",
+                        "column_name": "active",
                         "description": null,
                         "expression": null,
                         "filterable": true,
@@ -303,8 +356,8 @@
                         "is_certified": false,
                         "is_dttm": false,
                         "python_date_format": null,
-                        "type": "LONGINTEGER",
-                        "type_generic": 0,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
                         "verbose_name": null,
                         "warning_markdown": null
                     }
@@ -317,7 +370,7 @@
                             "advanced_data_type": null,
                             "certification_details": null,
                             "certified_by": null,
-                            "column_name": "AIRLINE",
+                            "column_name": "name",
                             "description": null,
                             "expression": null,
                             "filterable": true,
@@ -326,8 +379,8 @@
                             "is_certified": false,
                             "is_dttm": false,
                             "python_date_format": null,
-                            "type": "STRING",
-                            "type_generic": 1,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
                             "verbose_name": null,
                             "warning_markdown": null
                         },
@@ -335,7 +388,7 @@
                             "advanced_data_type": null,
                             "certification_details": null,
                             "certified_by": null,
-                            "column_name": "count",
+                            "column_name": "active",
                             "description": null,
                             "expression": null,
                             "filterable": true,
@@ -344,42 +397,42 @@
                             "is_certified": false,
                             "is_dttm": false,
                             "python_date_format": null,
-                            "type": "LONGINTEGER",
-                            "type_generic": 0,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
                             "verbose_name": null,
                             "warning_markdown": null
                         }
                     ],
                     "database": {
-                        "backend": "postgresql",
-                        "id": 2,
+                        "backend": "mysql",
+                        "id": 4,
                         "parameters": {}
                     },
                     "filter_select": true,
-                    "id": 433,
+                    "id": 710,
                     "metrics": [],
                     "name": "Assistant Query Lab",
                     "order_by_choices": [
                         [
-                            "[\"AIRLINE\", true]",
-                            "AIRLINE [asc]"
+                            "[\"name\", true]",
+                            "name [asc]"
                         ],
                         [
-                            "[\"AIRLINE\", false]",
-                            "AIRLINE [desc]"
+                            "[\"name\", false]",
+                            "name [desc]"
                         ],
                         [
-                            "[\"count\", true]",
-                            "count [asc]"
+                            "[\"active\", true]",
+                            "active [asc]"
                         ],
                         [
-                            "[\"count\", false]",
-                            "count [desc]"
+                            "[\"active\", false]",
+                            "active [desc]"
                         ]
                     ],
                     "owners": [],
-                    "schema": "public",
-                    "sql": "SELECT \"AIRLINE\", COUNT(*) AS \"count\" FROM \"flights\" GROUP BY \"AIRLINE\"",
+                    "schema": "repo2",
+                    "sql": "SELECT `name`, `active` FROM `repo2`.`items`",
                     "time_grain_sqla": [
                         [
                             "PT1S",
@@ -412,6 +465,10 @@
                         [
                             "P1Y",
                             "Year"
+                        ],
+                        [
+                            "1969-12-29T00:00:00Z/P1W",
+                            "Week starting Monday"
                         ]
                     ],
                     "type": "query",
@@ -432,7 +489,7 @@
                         "advanced_data_type": null,
                         "certification_details": null,
                         "certified_by": null,
-                        "column_name": "AIRLINE",
+                        "column_name": "name",
                         "description": null,
                         "expression": null,
                         "filterable": true,
@@ -441,8 +498,8 @@
                         "is_certified": false,
                         "is_dttm": false,
                         "python_date_format": null,
-                        "type": "STRING",
-                        "type_generic": 1,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
                         "verbose_name": null,
                         "warning_markdown": null
                     },
@@ -450,7 +507,7 @@
                         "advanced_data_type": null,
                         "certification_details": null,
                         "certified_by": null,
-                        "column_name": "count",
+                        "column_name": "active",
                         "description": null,
                         "expression": null,
                         "filterable": true,
@@ -459,8 +516,8 @@
                         "is_certified": false,
                         "is_dttm": false,
                         "python_date_format": null,
-                        "type": "LONGINTEGER",
-                        "type_generic": 0,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
                         "verbose_name": null,
                         "warning_markdown": null
                     }
@@ -474,7 +531,7 @@
                             "advanced_data_type": null,
                             "certification_details": null,
                             "certified_by": null,
-                            "column_name": "AIRLINE",
+                            "column_name": "name",
                             "description": null,
                             "expression": null,
                             "filterable": true,
@@ -483,8 +540,8 @@
                             "is_certified": false,
                             "is_dttm": false,
                             "python_date_format": null,
-                            "type": "STRING",
-                            "type_generic": 1,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
                             "verbose_name": null,
                             "warning_markdown": null
                         },
@@ -492,7 +549,7 @@
                             "advanced_data_type": null,
                             "certification_details": null,
                             "certified_by": null,
-                            "column_name": "count",
+                            "column_name": "active",
                             "description": null,
                             "expression": null,
                             "filterable": true,
@@ -501,42 +558,42 @@
                             "is_certified": false,
                             "is_dttm": false,
                             "python_date_format": null,
-                            "type": "LONGINTEGER",
-                            "type_generic": 0,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
                             "verbose_name": null,
                             "warning_markdown": null
                         }
                     ],
                     "database": {
-                        "backend": "postgresql",
-                        "id": 2,
+                        "backend": "mysql",
+                        "id": 4,
                         "parameters": {}
                     },
                     "filter_select": true,
-                    "id": 433,
+                    "id": 710,
                     "metrics": [],
                     "name": "Assistant Query Lab",
                     "order_by_choices": [
                         [
-                            "[\"AIRLINE\", true]",
-                            "AIRLINE [asc]"
+                            "[\"name\", true]",
+                            "name [asc]"
                         ],
                         [
-                            "[\"AIRLINE\", false]",
-                            "AIRLINE [desc]"
+                            "[\"name\", false]",
+                            "name [desc]"
                         ],
                         [
-                            "[\"count\", true]",
-                            "count [asc]"
+                            "[\"active\", true]",
+                            "active [asc]"
                         ],
                         [
-                            "[\"count\", false]",
-                            "count [desc]"
+                            "[\"active\", false]",
+                            "active [desc]"
                         ]
                     ],
                     "owners": [],
-                    "schema": "public",
-                    "sql": "SELECT \"AIRLINE\", COUNT(*) AS \"count\" FROM \"flights\" GROUP BY \"AIRLINE\"",
+                    "schema": "repo2",
+                    "sql": "SELECT `name`, `active` FROM `repo2`.`items`",
                     "time_grain_sqla": [
                         [
                             "PT1S",
@@ -569,6 +626,10 @@
                         [
                             "P1Y",
                             "Year"
+                        ],
+                        [
+                            "1969-12-29T00:00:00Z/P1W",
+                            "Week starting Monday"
                         ]
                     ],
                     "type": "query",
@@ -990,9 +1051,7 @@
         }
     },
     "echarts_timeseries_line": {
-        "examples": [
-           
-        ],
+        "examples": [],
         "controls": {
             "datasource": {
                 "type": "DatasourceControl",
@@ -8067,6 +8126,1408 @@
                     null,
                     null
                 ],
+                "validationErrors": []
+            }
+        }
+    },
+    "world_map": {
+        "examples": [
+            {
+                "datasource": "27__table",
+                "viz_type": "world_map",
+                "url_params": {
+                    "form_data_key": "pPplFvL9SxDIk7gJzcIoCLL9_ekNL3kPwO3LR2s9dT2joY15cjEFweHIA-yV0hn8"
+                },
+                "entity": "country",
+                "country_fieldtype": "name",
+                "metric": {
+                    "expressionType": "SQL",
+                    "sqlExpression": "COUNT(org_code)",
+                    "label": "Total"
+                },
+                "adhoc_filters": [],
+                "row_limit": 1000,
+                "max_bubble_size": "25",
+                "color_picker": {
+                    "a": 1,
+                    "b": 135,
+                    "g": 122,
+                    "r": 0
+                },
+                "color_by": "metric",
+                "linear_color_scheme": "superset_seq_1",
+                "y_axis_format": "SMART_NUMBER",
+                "extra_form_data": {}
+            }
+        ],
+        "controls": {
+            "datasource": {
+                "type": "DatasourceControl",
+                "label": "Datasource",
+                "default": null,
+                "description": null,
+                "value": "703__query",
+                "datasource": {
+                    "catalog": null,
+                    "columns": [
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "org_name",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "org_code",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "country",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "country_code",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        }
+                    ],
+                    "database": {
+                        "backend": "mysql",
+                        "id": 4,
+                        "parameters": {}
+                    },
+                    "filter_select": true,
+                    "id": 703,
+                    "metrics": [],
+                    "name": "Untitled Query 1",
+                    "order_by_choices": [
+                        [
+                            "[\"org_name\", true]",
+                            "org_name [asc]"
+                        ],
+                        [
+                            "[\"org_name\", false]",
+                            "org_name [desc]"
+                        ],
+                        [
+                            "[\"org_code\", true]",
+                            "org_code [asc]"
+                        ],
+                        [
+                            "[\"org_code\", false]",
+                            "org_code [desc]"
+                        ],
+                        [
+                            "[\"country\", true]",
+                            "country [asc]"
+                        ],
+                        [
+                            "[\"country\", false]",
+                            "country [desc]"
+                        ],
+                        [
+                            "[\"country_code\", true]",
+                            "country_code [asc]"
+                        ],
+                        [
+                            "[\"country_code\", false]",
+                            "country_code [desc]"
+                        ]
+                    ],
+                    "owners": [],
+                    "schema": "repo",
+                    "sql": "SELECT `org_name`, `org_code`, `country`, `country_code` FROM `repo`.`organization`;",
+                    "time_grain_sqla": [
+                        [
+                            "PT1S",
+                            "Second"
+                        ],
+                        [
+                            "PT1M",
+                            "Minute"
+                        ],
+                        [
+                            "PT1H",
+                            "Hour"
+                        ],
+                        [
+                            "P1D",
+                            "Day"
+                        ],
+                        [
+                            "P1W",
+                            "Week"
+                        ],
+                        [
+                            "P1M",
+                            "Month"
+                        ],
+                        [
+                            "P3M",
+                            "Quarter"
+                        ],
+                        [
+                            "P1Y",
+                            "Year"
+                        ],
+                        [
+                            "1969-12-29T00:00:00Z/P1W",
+                            "Week starting Monday"
+                        ]
+                    ],
+                    "type": "query",
+                    "verbose_map": {}
+                },
+                "form_data": {
+                    "datasource": "703__query",
+                    "viz_type": "country_map",
+                    "url_params": {
+                        "datasource_id": "703",
+                        "datasource_type": "query",
+                        "form_data_key": "0lPsLdKf55scbDJ97PKtTUlam53OeMPZhWJP7lfgCvbestcuWfqnsC7uPxcg3X4x"
+                    },
+                    "adhoc_filters": [],
+                    "number_format": "SMART_NUMBER",
+                    "linear_color_scheme": "superset_seq_1",
+                    "standardizedFormData": {
+                        "controls": {
+                            "metrics": [],
+                            "columns": []
+                        },
+                        "memorizedFormData": [
+                            [
+                                "table",
+                                {
+                                    "adhoc_filters": [],
+                                    "all_columns": [
+                                        "org_name",
+                                        "org_code",
+                                        "country",
+                                        "country_code"
+                                    ],
+                                    "applied_time_extras": {},
+                                    "datasource": "703__query",
+                                    "row_limit": 1000,
+                                    "time_range": "No filter",
+                                    "url_params": {
+                                        "datasource_id": "703",
+                                        "datasource_type": "query",
+                                        "form_data_key": "0lPsLdKf55scbDJ97PKtTUlam53OeMPZhWJP7lfgCvbestcuWfqnsC7uPxcg3X4x"
+                                    },
+                                    "viz_type": "table"
+                                }
+                            ]
+                        ]
+                    }
+                },
+                "validationErrors": []
+            },
+            "viz_type": {
+                "type": "VizTypeControl",
+                "label": "Visualization Type",
+                "default": "table",
+                "description": "The type of visualization to display",
+                "value": "world_map",
+                "validationErrors": []
+            },
+            "slice_id": {
+                "type": "HiddenControl",
+                "label": "Chart ID",
+                "hidden": true,
+                "description": "The id of the active chart",
+                "validationErrors": []
+            },
+            "cache_timeout": {
+                "type": "HiddenControl",
+                "label": "Cache Timeout (seconds)",
+                "hidden": true,
+                "description": "The number of seconds before expiring the cache",
+                "validationErrors": []
+            },
+            "url_params": {
+                "type": "HiddenControl",
+                "label": "URL parameters",
+                "hidden": true,
+                "description": "Extra parameters for use in jinja templated queries",
+                "value": {
+                    "datasource_id": "703",
+                    "datasource_type": "query",
+                    "form_data_key": "0lPsLdKf55scbDJ97PKtTUlam53OeMPZhWJP7lfgCvbestcuWfqnsC7uPxcg3X4x"
+                },
+                "validationErrors": []
+            },
+            "entity": {
+                "type": "DndColumnSelect",
+                "label": "Country Column",
+                "multi": false,
+                "freeForm": true,
+                "clearable": true,
+                "default": null,
+                "includeTime": false,
+                "description": "3 letter code of the country",
+                "valueKey": "column_name",
+                "allowAll": true,
+                "commaChoosesOption": false,
+                "validators": [
+                    null
+                ],
+                "value": "country",
+                "options": [
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "org_name",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "org_code",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "country",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "country_code",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    }
+                ],
+                "savedMetrics": [],
+                "validationErrors": []
+            },
+            "country_fieldtype": {
+                "type": "SelectControl",
+                "label": "Country Field Type",
+                "default": "cca2",
+                "choices": [
+                    [
+                        "name",
+                        "Full name"
+                    ],
+                    [
+                        "cioc",
+                        "code International Olympic Committee (cioc)"
+                    ],
+                    [
+                        "cca2",
+                        "code ISO 3166-1 alpha-2 (cca2)"
+                    ],
+                    [
+                        "cca3",
+                        "code ISO 3166-1 alpha-3 (cca3)"
+                    ]
+                ],
+                "description": "The country code standard that Superset should expect to find in the [country] column",
+                "value": "name",
+                "validationErrors": []
+            },
+            "metric": {
+                "type": "DndMetricSelect",
+                "multi": false,
+                "label": "Metric",
+                "validators": [
+                    null
+                ],
+                "description": "Select a metric to display. You can use an aggregation function on a column or write custom SQL to create a metric.",
+                "value": {
+                    "expressionType": "SQL",
+                    "sqlExpression": "cOUNT(*)",
+                    "column": null,
+                    "aggregate": null,
+                    "datasourceWarning": false,
+                    "hasCustomLabel": false,
+                    "label": "cOUNT(*)",
+                    "optionName": "metric_o2bkrmcodhk_rtdbzr1fnir"
+                },
+                "columns": [
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "org_name",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "org_code",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "country",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "country_code",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    }
+                ],
+                "savedMetrics": [],
+                "datasource": {
+                    "catalog": null,
+                    "columns": [
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "org_name",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "org_code",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "country",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "country_code",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        }
+                    ],
+                    "database": {
+                        "backend": "mysql",
+                        "id": 4,
+                        "parameters": {}
+                    },
+                    "filter_select": true,
+                    "id": 703,
+                    "metrics": [],
+                    "name": "Untitled Query 1",
+                    "order_by_choices": [
+                        [
+                            "[\"org_name\", true]",
+                            "org_name [asc]"
+                        ],
+                        [
+                            "[\"org_name\", false]",
+                            "org_name [desc]"
+                        ],
+                        [
+                            "[\"org_code\", true]",
+                            "org_code [asc]"
+                        ],
+                        [
+                            "[\"org_code\", false]",
+                            "org_code [desc]"
+                        ],
+                        [
+                            "[\"country\", true]",
+                            "country [asc]"
+                        ],
+                        [
+                            "[\"country\", false]",
+                            "country [desc]"
+                        ],
+                        [
+                            "[\"country_code\", true]",
+                            "country_code [asc]"
+                        ],
+                        [
+                            "[\"country_code\", false]",
+                            "country_code [desc]"
+                        ]
+                    ],
+                    "owners": [],
+                    "schema": "repo",
+                    "sql": "SELECT `org_name`, `org_code`, `country`, `country_code` FROM `repo`.`organization`;",
+                    "time_grain_sqla": [
+                        [
+                            "PT1S",
+                            "Second"
+                        ],
+                        [
+                            "PT1M",
+                            "Minute"
+                        ],
+                        [
+                            "PT1H",
+                            "Hour"
+                        ],
+                        [
+                            "P1D",
+                            "Day"
+                        ],
+                        [
+                            "P1W",
+                            "Week"
+                        ],
+                        [
+                            "P1M",
+                            "Month"
+                        ],
+                        [
+                            "P3M",
+                            "Quarter"
+                        ],
+                        [
+                            "P1Y",
+                            "Year"
+                        ],
+                        [
+                            "1969-12-29T00:00:00Z/P1W",
+                            "Week starting Monday"
+                        ]
+                    ],
+                    "type": "query",
+                    "verbose_map": {}
+                },
+                "datasourceType": "query",
+                "validationErrors": []
+            },
+            "adhoc_filters": {
+                "type": "DndFilterSelect",
+                "label": "Filters",
+                "default": [],
+                "description": "",
+                "provideFormDataToProps": true,
+                "value": [],
+                "columns": [
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "org_name",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "org_code",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "country",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "country_code",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    }
+                ],
+                "savedMetrics": [],
+                "selectedMetrics": [],
+                "datasource": {
+                    "catalog": null,
+                    "columns": [
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "org_name",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "org_code",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "country",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "country_code",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        }
+                    ],
+                    "database": {
+                        "backend": "mysql",
+                        "id": 4,
+                        "parameters": {}
+                    },
+                    "filter_select": true,
+                    "id": 703,
+                    "metrics": [],
+                    "name": "Untitled Query 1",
+                    "order_by_choices": [
+                        [
+                            "[\"org_name\", true]",
+                            "org_name [asc]"
+                        ],
+                        [
+                            "[\"org_name\", false]",
+                            "org_name [desc]"
+                        ],
+                        [
+                            "[\"org_code\", true]",
+                            "org_code [asc]"
+                        ],
+                        [
+                            "[\"org_code\", false]",
+                            "org_code [desc]"
+                        ],
+                        [
+                            "[\"country\", true]",
+                            "country [asc]"
+                        ],
+                        [
+                            "[\"country\", false]",
+                            "country [desc]"
+                        ],
+                        [
+                            "[\"country_code\", true]",
+                            "country_code [asc]"
+                        ],
+                        [
+                            "[\"country_code\", false]",
+                            "country_code [desc]"
+                        ]
+                    ],
+                    "owners": [],
+                    "schema": "repo",
+                    "sql": "SELECT `org_name`, `org_code`, `country`, `country_code` FROM `repo`.`organization`;",
+                    "time_grain_sqla": [
+                        [
+                            "PT1S",
+                            "Second"
+                        ],
+                        [
+                            "PT1M",
+                            "Minute"
+                        ],
+                        [
+                            "PT1H",
+                            "Hour"
+                        ],
+                        [
+                            "P1D",
+                            "Day"
+                        ],
+                        [
+                            "P1W",
+                            "Week"
+                        ],
+                        [
+                            "P1M",
+                            "Month"
+                        ],
+                        [
+                            "P3M",
+                            "Quarter"
+                        ],
+                        [
+                            "P1Y",
+                            "Year"
+                        ],
+                        [
+                            "1969-12-29T00:00:00Z/P1W",
+                            "Week starting Monday"
+                        ]
+                    ],
+                    "type": "query",
+                    "verbose_map": {}
+                },
+                "validationErrors": []
+            },
+            "row_limit": {
+                "type": "SelectControl",
+                "freeForm": true,
+                "label": "Row limit",
+                "clearable": false,
+                "validators": [
+                    null,
+                    null
+                ],
+                "default": 10000,
+                "choices": [
+                    [
+                        10,
+                        "10"
+                    ],
+                    [
+                        50,
+                        "50"
+                    ],
+                    [
+                        100,
+                        "100"
+                    ],
+                    [
+                        250,
+                        "250"
+                    ],
+                    [
+                        500,
+                        "500"
+                    ],
+                    [
+                        1000,
+                        "1000"
+                    ],
+                    [
+                        5000,
+                        "5000"
+                    ],
+                    [
+                        10000,
+                        "10000"
+                    ],
+                    [
+                        50000,
+                        "50000"
+                    ]
+                ],
+                "description": "Limits the number of the rows that are computed in the query that is the source of the data used for this chart.",
+                "value": 10000,
+                "maxValue": 100000,
+                "validationErrors": []
+            },
+            "sort_by_metric": {
+                "type": "CheckboxControl",
+                "label": "Sort by metric",
+                "description": "Whether to sort results by the selected metric in descending order.",
+                "validationErrors": []
+            },
+            "show_bubbles": {
+                "type": "CheckboxControl",
+                "label": "Show Bubbles",
+                "default": false,
+                "renderTrigger": true,
+                "description": "Whether to display bubbles on top of countries",
+                "validationErrors": []
+            },
+            "secondary_metric": {
+                "type": "DndMetricSelect",
+                "multi": false,
+                "label": "Bubble Size",
+                "validators": [],
+                "description": "Metric that defines the size of the bubble",
+                "default": null,
+                "columns": [
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "org_name",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "org_code",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "country",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    },
+                    {
+                        "advanced_data_type": null,
+                        "certification_details": null,
+                        "certified_by": null,
+                        "column_name": "country_code",
+                        "description": null,
+                        "expression": null,
+                        "filterable": true,
+                        "groupby": true,
+                        "id": null,
+                        "is_certified": false,
+                        "is_dttm": false,
+                        "python_date_format": null,
+                        "type": "VAR_STRING",
+                        "type_generic": null,
+                        "verbose_name": null,
+                        "warning_markdown": null
+                    }
+                ],
+                "savedMetrics": [],
+                "datasource": {
+                    "catalog": null,
+                    "columns": [
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "org_name",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "org_code",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "country",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        },
+                        {
+                            "advanced_data_type": null,
+                            "certification_details": null,
+                            "certified_by": null,
+                            "column_name": "country_code",
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": null,
+                            "is_certified": false,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "type": "VAR_STRING",
+                            "type_generic": null,
+                            "verbose_name": null,
+                            "warning_markdown": null
+                        }
+                    ],
+                    "database": {
+                        "backend": "mysql",
+                        "id": 4,
+                        "parameters": {}
+                    },
+                    "filter_select": true,
+                    "id": 703,
+                    "metrics": [],
+                    "name": "Untitled Query 1",
+                    "order_by_choices": [
+                        [
+                            "[\"org_name\", true]",
+                            "org_name [asc]"
+                        ],
+                        [
+                            "[\"org_name\", false]",
+                            "org_name [desc]"
+                        ],
+                        [
+                            "[\"org_code\", true]",
+                            "org_code [asc]"
+                        ],
+                        [
+                            "[\"org_code\", false]",
+                            "org_code [desc]"
+                        ],
+                        [
+                            "[\"country\", true]",
+                            "country [asc]"
+                        ],
+                        [
+                            "[\"country\", false]",
+                            "country [desc]"
+                        ],
+                        [
+                            "[\"country_code\", true]",
+                            "country_code [asc]"
+                        ],
+                        [
+                            "[\"country_code\", false]",
+                            "country_code [desc]"
+                        ]
+                    ],
+                    "owners": [],
+                    "schema": "repo",
+                    "sql": "SELECT `org_name`, `org_code`, `country`, `country_code` FROM `repo`.`organization`;",
+                    "time_grain_sqla": [
+                        [
+                            "PT1S",
+                            "Second"
+                        ],
+                        [
+                            "PT1M",
+                            "Minute"
+                        ],
+                        [
+                            "PT1H",
+                            "Hour"
+                        ],
+                        [
+                            "P1D",
+                            "Day"
+                        ],
+                        [
+                            "P1W",
+                            "Week"
+                        ],
+                        [
+                            "P1M",
+                            "Month"
+                        ],
+                        [
+                            "P3M",
+                            "Quarter"
+                        ],
+                        [
+                            "P1Y",
+                            "Year"
+                        ],
+                        [
+                            "1969-12-29T00:00:00Z/P1W",
+                            "Week starting Monday"
+                        ]
+                    ],
+                    "type": "query",
+                    "verbose_map": {}
+                },
+                "datasourceType": "query",
+                "validationErrors": []
+            },
+            "max_bubble_size": {
+                "type": "SelectControl",
+                "freeForm": true,
+                "label": "Max Bubble Size",
+                "default": "25",
+                "choices": [
+                    [
+                        "5",
+                        "5"
+                    ],
+                    [
+                        "10",
+                        "10"
+                    ],
+                    [
+                        "15",
+                        "15"
+                    ],
+                    [
+                        "25",
+                        "25"
+                    ],
+                    [
+                        "50",
+                        "50"
+                    ],
+                    [
+                        "75",
+                        "75"
+                    ],
+                    [
+                        "100",
+                        "100"
+                    ]
+                ],
+                "value": "25",
+                "validationErrors": []
+            },
+            "color_picker": {
+                "type": "ColorPickerControl",
+                "label": "Bubble Color",
+                "description": "Use this to define a static color for all circles",
+                "default": {
+                    "r": 0,
+                    "g": 122,
+                    "b": 135,
+                    "a": 1
+                },
+                "renderTrigger": true,
+                "value": {
+                    "r": 0,
+                    "g": 122,
+                    "b": 135,
+                    "a": 1
+                },
+                "validationErrors": []
+            },
+            "color_by": {
+                "label": "Color by",
+                "default": "metric",
+                "options": [
+                    [
+                        "metric",
+                        "Metric"
+                    ],
+                    [
+                        "country",
+                        "Country"
+                    ]
+                ],
+                "description": "Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette",
+                "value": "metric",
+                "validationErrors": []
+            },
+            "linear_color_scheme": {
+                "type": "ColorSchemeControl",
+                "label": "Country Color Scheme",
+                "default": "superset_seq_1",
+                "clearable": false,
+                "description": "",
+                "renderTrigger": true,
+                "isLinear": true,
+                "value": "superset_seq_1",
+                "validationErrors": []
+            },
+            "color_scheme": {
+                "type": "ColorSchemeControl",
+                "label": "Country Color Scheme",
+                "default": "supersetColors",
+                "renderTrigger": true,
+                "description": "The color scheme for rendering chart",
+                "value": "supersetColors",
+                "validationErrors": []
+            },
+            "y_axis_format": {
+                "type": "SelectControl",
+                "freeForm": true,
+                "label": "Y Axis Format",
+                "renderTrigger": true,
+                "default": "SMART_NUMBER",
+                "choices": [
+                    [
+                        "SMART_NUMBER",
+                        "Adaptive formatting"
+                    ],
+                    [
+                        "~g",
+                        "Original value"
+                    ],
+                    [
+                        ",d",
+                        ",d (12345.432 => 12,345)"
+                    ],
+                    [
+                        ".1s",
+                        ".1s (12345.432 => 10k)"
+                    ],
+                    [
+                        ".3s",
+                        ".3s (12345.432 => 12.3k)"
+                    ],
+                    [
+                        ",.1%",
+                        ",.1% (12345.432 => 1,234,543.2%)"
+                    ],
+                    [
+                        ".2%",
+                        ".2% (12345.432 => 1234543.20%)"
+                    ],
+                    [
+                        ".3%",
+                        ".3% (12345.432 => 1234543.200%)"
+                    ],
+                    [
+                        ".4r",
+                        ".4r (12345.432 => 12350)"
+                    ],
+                    [
+                        ",.1f",
+                        ",.1f (12345.432 => 12,345.4)"
+                    ],
+                    [
+                        ",.2f",
+                        ",.2f (12345.432 => 12,345.43)"
+                    ],
+                    [
+                        ",.3f",
+                        ",.3f (12345.432 => 12,345.432)"
+                    ],
+                    [
+                        "+,",
+                        "+, (12345.432 => +12,345)"
+                    ],
+                    [
+                        "$,.2f",
+                        "$,.2f (12345.432 => $12,345.43)"
+                    ],
+                    [
+                        "DURATION",
+                        "Duration in ms (66000 => 1m 6s)"
+                    ],
+                    [
+                        "DURATION_SUB",
+                        "Duration in ms (1.40008 => 1ms 400\u00b5s 80ns)"
+                    ]
+                ],
+                "description": "D3 format syntax: https://github.com/d3/d3-format",
+                "tokenSeparators": [
+                    "\n",
+                    "\t",
+                    ";"
+                ],
+                "value": "SMART_NUMBER",
+                "validationErrors": []
+            },
+            "currency_format": {
+                "type": "CurrencyControl",
+                "label": "Currency format",
+                "renderTrigger": true,
                 "validationErrors": []
             }
         }

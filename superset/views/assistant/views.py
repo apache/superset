@@ -42,6 +42,40 @@ class AssistantView(BaseSupersetView):
                 "Nightingale"
             ],
             "category": "Part of a Whole",
+            "additionalConsiderations": [
+                "Consider using a bar chart instead if clarity of relative proportion is important."
+                "Do not use Distict on columns that will be grouped by."
+            ]
+        },
+        "world_map": {
+            "name": "World Map",
+            "credits": [
+                "http://datamaps.github.io/"
+            ],
+            "description": "A map of the world, that can indicate values in different countries. Can only be used with data that contains country names or codes.",
+            "supportedAnnotationTypes": [],
+            "behaviors": [
+                "INTERACTIVE_CHART",
+                "DRILL_TO_DETAIL",
+                "DRILL_BY"
+            ],
+            "datasourceCount": 1,
+            "enableNoResults": True,
+            "tags": [
+                "2D",
+                "Comparison",
+                "Intensity",
+                "Legacy",
+                "Multi-Dimensions",
+                "Multi-Layers",
+                "Multi-Variables",
+                "Scatter",
+                "Featured"
+            ],
+            "category": "Map",
+            "additionalConsiderations": [
+                "Data must contain country names or codes."
+            ]
         }
 
     }
@@ -103,7 +137,7 @@ class AssistantView(BaseSupersetView):
                         Format =
                             {{ 
                             "human_understandable: "The response should be assertive, The response should be a single line only and include column descriptions as well".
-                            "llm_optimized":"The response should contain all relevant information that may be used by an llm to probe for more information. include data types and formats as well."
+                            "llm_optimized":"The response should contain all relevant information that may be used by an llm to probe for more information. include data types and formats as well. Include potential relationships with other selected tables"
                             }}
                         """,
                     ],
@@ -185,7 +219,10 @@ class AssistantView(BaseSupersetView):
                         "For example, if the data is in different units, the queries should convert the data to a single unit.",
                         "If the data is a mix of upper and lower case, the queries should convert the data to a single case.",
                         "All column names must be enclosed in quotes i.e `column_name`",
-                        "The query MUST be a valid SQL query."
+                        "The query MUST be a valid SQL query.",
+                        "Join queries are allowed accross schemas in the same database.",
+                        "The queries should try and make vizualizations labels are human readable. E.G for queries returning ids, the queries should join with tables that have human readable names. ONLY if the human readable names are available AND selected in the schema.",
+                        "Make no assumptions about the data in the database.",
                     ],
                     "databaseId": "The id of the datasource that the visualization will be created from. This id should be consistent with the databaseId in the schema.",
                     "schemaName": "The name of the schema that the visualization will be created from. This name should be consistent with the schemaName in the schema."
@@ -258,7 +295,7 @@ class AssistantView(BaseSupersetView):
                         {viz_suggestion}_Control_Values = {viz_examples}
                         Using the new {viz_suggestion}_Datasource below,
                         New_{viz_suggestion}_Datasource = {datasource},
-                        Create a new {viz_suggestion}_Control_Values that will best answer the prompt below.
+                        Create a new {viz_suggestion}_Control_Values that will best FIT THE INSTRUCTIONS in the prompt below.
                         Prompt = {prompt}
                         Response should be a single json object with structure similar to the objects in {viz_suggestion}_Control_Values list
                         Do not use the {viz_suggestion}_Control_Values values in the response.
@@ -278,7 +315,10 @@ class AssistantView(BaseSupersetView):
             ]
         )
         
-        response = chat_session.send_message(prompt)
+        response = chat_session.send_message(f"""
+            Using the instruction in the prompt below, create a new {viz_suggestion}_Control_Values that will best FIT THE INSTRUCTIONS in the prompt below.
+            Prompt = {prompt}
+        """)
         self.logger.info(f"Response: {response.text}")
         return self.json_response(response.text)
     
