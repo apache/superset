@@ -128,10 +128,7 @@
           var preloadLinks = document.querySelectorAll('link[rel="preload"][as="style"]');
 
           preloadLinks.forEach(function(link) {
-            link.addEventListener('load', function() {
-              link.rel = 'stylesheet';
-              link.onload = null;
-            });
+            link.rel = 'stylesheet';
           });
         });
       </script>
