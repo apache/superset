@@ -57,9 +57,9 @@ describe('Dashboard tabs', () => {
   it('should switch tabs', () => {
     topLevelTabs();
 
+    cy.get('@top-level-tabs').first().click();
     cy.get('@top-level-tabs')
       .first()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
     cy.get('@top-level-tabs')
       .last()
@@ -68,9 +68,9 @@ describe('Dashboard tabs', () => {
     cy.getBySel('grid-container').find('.box_plot').should('not.exist');
     cy.getBySel('grid-container').find('.line').should('not.exist');
 
+    cy.get('@top-level-tabs').last().click();
     cy.get('@top-level-tabs')
       .last()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
     cy.get('@top-level-tabs')
       .first()
@@ -99,7 +99,8 @@ describe('Dashboard tabs', () => {
     getChartAliasBySpec(TREEMAP).then(treemapAlias => {
       // apply filter
       cy.get('.Select__control').first().should('be.visible').click();
-      cy.get('.Select__control input[type=text]').first().focus().type('South');
+      cy.get('.Select__control input[type=text]').first().focus();
+      cy.focused().type('South');
       cy.get('.Select__option').contains('South Asia').click();
       cy.get('.filter button:not(:disabled)').contains('Apply').click();
 
@@ -166,18 +167,18 @@ describe('Dashboard tabs', () => {
   });
 
   it('should update size when switch tab', () => {
+    cy.get('@top-level-tabs').last().click();
     cy.get('@top-level-tabs')
       .last()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
 
     expandFilterOnLeftPanel();
 
     cy.wait(1000);
 
+    cy.get('@top-level-tabs').first().click();
     cy.get('@top-level-tabs')
       .first()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
 
     cy.wait(1000);

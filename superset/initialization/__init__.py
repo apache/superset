@@ -436,7 +436,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "to override it.\n"
                 "Use a strong complex alphanumeric string and use a tool to help"
                 " you generate \n"
-                "a sufficiently random sequence, ex: openssl rand -base64 42"
+                "a sufficiently random sequence, ex: openssl rand -base64 42 \n"
+                "For more info, see: https://superset.apache.org/docs/"
+                "configuration/configuring-superset#specifying-a-secret_key"
             )
             logger.warning(bottom_banner)
 

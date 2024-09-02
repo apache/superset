@@ -238,6 +238,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "SQL Lab",
         "User Registrations",
         "User's Statistics",
+        # Guarding all AB_ADD_SECURITY_API = True REST APIs
+        "Role",
+        "Permission",
+        "PermissionViewMenu",
+        "ViewMenu",
+        "User",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
@@ -2646,9 +2652,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         dashboards = [
-            r
-            for r in user.resources
-            if r["type"] == GuestTokenResourceType.DASHBOARD.value
+            r for r in user.resources if r["type"] == GuestTokenResourceType.DASHBOARD
         ]
 
         # TODO (embedded): remove this check once uuids are rolled out

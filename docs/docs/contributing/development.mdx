@@ -6,13 +6,13 @@ version: 1
 # Setting up a Development Environment
 
 The documentation in this section is a bit of a patchwork of knowledge representing the
-multitude of ways that exist to run Superset (`docker-compose`, just "docker", on "metal", using
+multitude of ways that exist to run Superset (`docker compose`, just "docker", on "metal", using
 a Makefile).
 
 :::note
-Now we have evolved to recommend and support `docker-compose` more actively as the main way
+Now we have evolved to recommend and support `docker compose` more actively as the main way
 to run Superset for development and preserve your sanity. **Most people should stick to
-the first few sections - ("Fork & Clone", "docker-compose" and "Installing Dev Tools")**
+the first few sections - ("Fork & Clone", "docker compose" and "Installing Dev Tools")**
 :::
 
 ## Fork and Clone
@@ -27,12 +27,12 @@ git clone git@github.com:your-username/superset.git
 cd superset
 ```
 
-## docker-compose (recommended!)
+## docker compose (recommended!)
 
 Setting things up to squeeze an "hello world" into any part of Superset should be as simple as
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 Note that:
@@ -54,9 +54,9 @@ Note that:
 - You can login with admin/admin
 
 :::caution
-Since `docker-compose` is primarily designed to run a set of containers on **a single host**
+Since `docker compose` is primarily designed to run a set of containers on **a single host**
 and can't credibly support **high availability** as a result, we do not support nor recommend
-using our `docker-compose` constructs to support production-type use-cases. For single host
+using our `docker compose` constructs to support production-type use-cases. For single host
 environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
 our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
 documentation.
@@ -66,10 +66,10 @@ configured to be secure.
 ## Installing Development Tools
 
 :::note
-While docker-compose simplifies a lot of the setup, there are still
+While `docker compose` simplifies a lot of the setup, there are still
 many things you'll want to set up locally to power your IDE, and things like
 **commit hooks**, **linters**, and **test-runners**. Note that you can do these
-things inside docker images with commands like `docker-compose exec superset_app bash` for
+things inside docker images with commands like `docker compose exec superset_app bash` for
 instance, but many people like to run that tooling from their host.
 :::
 
@@ -92,13 +92,56 @@ To install run the following:
 pre-commit install
 ```
 
-A series of checks will now run when you make a git commit.
+This will install the hooks in your local repository. From now on, a series of checks will
+automatically run whenever you make a Git commit.
 
-## Alternatives to docker-compose
+#### Running Pre-commit Manually
+
+You can also run the pre-commit checks manually in various ways:
+
+- **Run pre-commit on all files (same as CI):**
+
+  To run the pre-commit checks across all files in your repository, use the following command:
+
+  ```bash
+  pre-commit run --all-files
+  ```
+
+  This is the same set of checks that will run during CI, ensuring your changes meet the project's standards.
+
+- **Run pre-commit on a specific file:**
+
+  If you want to check or fix a specific file, you can do so by specifying the file path:
+
+  ```bash
+  pre-commit run --files path/to/your/file.py
+  ```
+
+  This will only run the checks on the file(s) you specify.
+
+- **Run a specific pre-commit check:**
+
+  To run a specific check (hook) across all files or a particular file, use the following command:
+
+  ```bash
+  pre-commit run <hook_id> --all-files
+  ```
+
+  Or for a specific file:
+
+  ```bash
+  pre-commit run <hook_id> --files path/to/your/file.py
+  ```
+
+  Replace `<hook_id>` with the ID of the specific hook you want to run. You can find the list
+  of available hooks in the `.pre-commit-config.yaml` file.
+
+
+## Alternatives to `docker compose`
 
 :::caution
 This part of the documentation is a patchwork of information related to setting up
-development environments without `docker-compose` and are documented/supported to varying
+development environments without `docker compose` and are documented/supported to varying
 degrees. It's been difficult to maintain this wide array of methods and insure they're
 functioning across environments.
 :::
@@ -225,7 +268,7 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 First, be sure you are using the following versions of Node.js and npm:
 
-- `Node.js`: Version 18
+- `Node.js`: Version 20
 - `npm`: Version 10
 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
@@ -609,7 +652,7 @@ For debugging locally using VSCode, you can configure a launch configuration fil
 }
 ```
 
-#### Raw Docker (without docker-compose)
+#### Raw Docker (without `docker compose`)
 
 Follow these instructions to debug the Flask app running inside a docker container. Note that
 this will run a barebones Superset web server,
@@ -728,7 +771,7 @@ See (set capabilities for a container)[https://kubernetes.io/docs/tasks/configur
 
 Once the pod is running as root and has the SYS_PTRACE capability it will be able to debug the Flask app.
 
-You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
+You can follow the same instructions as in `docker compose`. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
 
 Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 

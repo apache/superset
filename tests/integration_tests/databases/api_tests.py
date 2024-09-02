@@ -2185,17 +2185,17 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test test connection failed due to invalid hostname
         """
-        msg = 'psql: error: could not translate host name "locahost" to address: nodename nor servname provided, or not known'
+        msg = 'psql: error: could not translate host name "localhost_" to address: nodename nor servname provided, or not known'
         mock_build_db.return_value.set_sqlalchemy_uri.side_effect = DBAPIError(
             msg, None, None
         )
         mock_build_db.return_value.db_engine_spec.__name__ = "Some name"
         superset_error = SupersetError(
-            message='Unable to resolve hostname "locahost".',
+            message='Unable to resolve hostname "localhost_".',
             error_type="CONNECTION_INVALID_HOSTNAME_ERROR",
             level="error",
             extra={
-                "hostname": "locahost",
+                "hostname": "localhost_",
                 "issue_codes": [
                     {
                         "code": 1007,
@@ -2212,7 +2212,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         data = {
-            "sqlalchemy_uri": "postgres://username:password@locahost:12345/db",
+            "sqlalchemy_uri": "postgres://username:password@localhost_:12345/db",
             "database_name": "examples",
             "impersonate_user": False,
             "server_cert": None,
@@ -3840,7 +3840,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: validate SQL with errors
         """
         request_payload = {
-            "sql": "SELECT col1 froma table1",
+            "sql": "SELECT col1 from_ table1",
             "schema": None,
             "template_params": None,
         }

@@ -44,9 +44,19 @@ export default function DownloadScreenshot({
   logEvent?: Function;
   format: string;
 }) {
-  const anchor = useSelector(
-    (state: RootState) => last(state.dashboardState.activeTabs) || undefined,
+  const activeTabs = useSelector(
+    (state: RootState) => state.dashboardState.activeTabs || undefined,
   );
+
+  const anchor = useSelector(
+    (state: RootState) =>
+      last(state.dashboardState.directPathToChild) || undefined,
+  );
+
+  const dataMask = useSelector(
+    (state: RootState) => state.dataMask || undefined,
+  );
+
   const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
 
   const onDownloadScreenshot = () => {
@@ -106,6 +116,8 @@ export default function DownloadScreenshot({
       endpoint: `/api/v1/dashboard/${dashboardId}/cache_dashboard_screenshot`,
       jsonPayload: {
         anchor,
+        activeTabs,
+        dataMask,
       },
     })
       .then(({ json }) => {

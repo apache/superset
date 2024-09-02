@@ -152,11 +152,6 @@ describe('ChartList', () => {
     expect(wrapper.find(ChartList)).toExist();
   });
 
-  it('renders, but PropertiesModal initially hidden', () => {
-    expect(wrapper.find(PropertiesModal).exists()).toBe(true);
-    expect(wrapper.find(PropertiesModal).prop('show')).toBe(false);
-  });
-
   it('renders a ListView', () => {
     expect(wrapper.find(ListView)).toExist();
   });
@@ -186,10 +181,10 @@ describe('ChartList', () => {
   });
 
   it('edits', async () => {
-    expect(wrapper.find(PropertiesModal).prop('show')).toBe(false);
+    expect(wrapper.find(PropertiesModal)).not.toExist();
     wrapper.find('[data-test="edit-alt"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(PropertiesModal).prop('show')).toBe(true);
+    expect(wrapper.find(PropertiesModal)).toExist();
   });
 
   it('delete', async () => {

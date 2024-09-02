@@ -22,7 +22,7 @@ ARG PY_VER=3.10-slim-bookworm
 
 # if BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
-FROM --platform=${BUILDPLATFORM} node:18-bullseye-slim AS superset-node
+FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 
@@ -31,7 +31,8 @@ RUN apt-get update -qq \
     && apt-get install \
         -yqq --no-install-recommends \
         build-essential \
-        python3
+        python3 \
+        zstd
 
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true

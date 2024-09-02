@@ -21,13 +21,10 @@ import {
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
-  getTimeOffset,
   isPhysicalColumn,
-  parseDttmToDate,
   QueryMode,
   QueryObject,
   removeDuplicates,
-  SimpleAdhocFilter,
 } from '@superset-ui/core';
 import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
 import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
@@ -87,43 +84,35 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
-    const TimeRangeFilters =
-      formData.adhoc_filters?.filter(
-        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-      ) || [];
+    const nonCustomNorInheritShifts = ensureIsArray(
+      formData.time_compare,
+    ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
+    const customOrInheritShifts = ensureIsArray(formData.time_compare).filter(
+      (shift: string) => shift === 'custom' || shift === 'inherit',
+    );
 
-    // In case the viz is using all version of controls, we try to load them
-    const previousCustomTimeRangeFilters: any =
-      formData.adhoc_custom?.filter(
-        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-      ) || [];
+    let timeOffsets: string[] = [];
 
-    let previousCustomStartDate = '';
+    // Shifts for non-custom or non inherit time comparison
     if (
-      !isEmpty(previousCustomTimeRangeFilters) &&
-      previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
+      isTimeComparison(formData, baseQueryObject) &&
+      !isEmpty(nonCustomNorInheritShifts)
     ) {
-      previousCustomStartDate =
-        previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
+      timeOffsets = nonCustomNorInheritShifts;
     }
 
-    const timeOffsets = ensureIsArray(
-      isTimeComparison(formData, baseQueryObject)
-        ? getTimeOffset({
-            timeRangeFilter: {
-              ...TimeRangeFilters[0],
-              comparator:
-                baseQueryObject?.time_range ??
-                (TimeRangeFilters[0] as any)?.comparator,
-            },
-            shifts: formData.time_compare,
-            startDate:
-              previousCustomStartDate && !formData.start_date_offset
-                ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
-                : formData.start_date_offset,
-          })
-        : [],
-    );
+    // Shifts for custom or inherit time comparison
+    if (
+      isTimeComparison(formData, baseQueryObject) &&
+      !isEmpty(customOrInheritShifts)
+    ) {
+      if (customOrInheritShifts.includes('custom')) {
+        timeOffsets = timeOffsets.concat([formData.start_date_offset]);
+      }
+      if (customOrInheritShifts.includes('inherit')) {
+        timeOffsets = timeOffsets.concat(['inherit']);
+      }
+    }
 
     let temporalColumAdded = false;
     let temporalColum = null;
