@@ -6,6 +6,7 @@ import { EXPLORE_CHART_DEFAULT } from '../../../SqlLab/types';
 import { useHistory } from 'react-router-dom';
 import { URL_PARAMS } from 'src/constants';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { prop } from 'lodash/fp';
 
 /**
  * Component that displays the single suggestion for the assistant
@@ -24,12 +25,16 @@ export interface AssistantSuggestionProps {
     viz_datasources: string[];
     viz_type: string;
     llm_optimized: string;
+    actions: any;
 }
 
 /**
  * AssistantSuggestion Component
  */
 export function AssistantSuggestion(props: AssistantSuggestionProps | any) {
+
+
+    console.log("Assistant Suggestion Props", props)
 
     // bg color ensure at most 50% opacity
     const bg = adjustOpacity(props.backgroundColor || '#FFFFFF', .8)
@@ -41,6 +46,7 @@ export function AssistantSuggestion(props: AssistantSuggestionProps | any) {
     // click/tap handler
     const handleClick = async () => {
         console.log("Assistant Suggestion Props", props)
+        props.actions.selectAssistantSuggestion({...props});
         // execute query
         const queryResult: QueryResults|null = await executeQuery(props.databaseId, props.schemaName, props.viz_datasources[0]);
         // postFormData

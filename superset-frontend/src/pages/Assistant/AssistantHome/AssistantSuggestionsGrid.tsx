@@ -10,6 +10,7 @@ import React, { useEffect, useState } from "react";
  */
 export interface AssistantSuggestionsGridProps {
     suggestions: AssistantSuggestionProps[];
+    actions: any;
 }
 
 /**
@@ -41,7 +42,10 @@ export function AssistantSuggestionsGrid(props: AssistantSuggestionsGridProps) {
                     if (index < 8) {
                         return (
                             <AssistantSuggestion
-                                {...suggestion}
+                                {...{
+                                    ...suggestion,
+                                    actions: props.actions
+                                }}
                             />
                         );
                     } else {

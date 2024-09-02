@@ -7,6 +7,7 @@ import { AssistantPrompt } from './AssistantPrompt';
 import { DatasourceProps } from '../ContextBuilder/Datasource';
 import { getVizSuggestions } from '../assistantUtils';
 import { AssistantSuggestionProps } from './AssistantSuggestion';
+import { act } from 'react-dom/test-utils';
 
 
 
@@ -35,6 +36,7 @@ export interface AssistantProps {
     lastName: string;
   };
   data: DatasourceProps[];
+  actions: any;
 }
 
 /**
@@ -96,14 +98,21 @@ export class AssistantHome extends Component<AssistantProps> {
 
 
   render() {
-    const { user } = this.props;
+    const { user, actions } = this.props;
     const { categories } = this.state;
     console.log("Assistant Home Props render", categories);
 
     return (
       <>
         <AssistantWelcomeMessage userFirsrName={user.firstName} />
-        <AssistantSuggestionCategories {...categories} />
+        <AssistantSuggestionCategories {
+         ...{
+          ...categories, 
+          actions: {
+            ...actions,
+          },
+         }
+          } />
         <AssistantPrompt />
       </>
     );

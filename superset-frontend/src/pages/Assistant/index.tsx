@@ -6,6 +6,9 @@ import { DatasourceProps } from './ContextBuilder/Datasource';
 import { AssistantContextBuilder } from './ContextBuilder';
 import { Tabs } from 'antd';
 import { QueryResultTable } from './PreviewBuilder';
+import * as actions from './actions';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
 
 /**
  * title: string;
@@ -64,4 +67,17 @@ function Assistant(props: AssistantProps) {
   );
 }
 
-export default withToasts(Assistant);
+function mapStateToProps() {
+  return {};
+}
+
+function mapDispatchToProps(dispatch: any) {
+  
+  return {
+    actions: bindActionCreators(actions, dispatch)
+  };
+}
+
+export default connect(
+  null,mapDispatchToProps
+)(withToasts(Assistant));

@@ -18,6 +18,7 @@ export interface AssistantSuggestionCategoryProps extends AssistantSuggestionsGr
     categoryDescription: string;
     backgroundGradientStart?: string;
     backgroundGradientEnd?: string;
+    actions: any;
 }
 
 /**
@@ -68,7 +69,7 @@ export function AssistantSuggestionCategory(props: AssistantSuggestionCategoryPr
                     }} >{props.categoryDescription}</p>
                 </div>
             </div>
-            <AssistantSuggestionsGrid suggestions={suggestions} />
+            <AssistantSuggestionsGrid suggestions={suggestions} actions={props.actions} />
         </div>
     )
 

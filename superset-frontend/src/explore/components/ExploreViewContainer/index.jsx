@@ -70,8 +70,7 @@ import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
-
-import { saveChartExample } from '../../../pages/Assistant/assistantUtils';
+import ChartControlsPeek from 'src/pages/Assistant/ChartControlsPeek';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
@@ -247,6 +246,7 @@ function setSidebarWidths(key, dimension) {
 }
 
 function ExploreViewContainer(props) {
+  console.log('ExploreViewContainer', props)
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
   const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.mounting;
@@ -559,22 +559,7 @@ function ExploreViewContainer(props) {
     return renderChartContainer();
   }
 
-  /**
-   * Function that takes 
-   * 1. Chart Controls
-   * 2. Chart Data
-   * and send them to /api/v1/assistant/ to get the recommendations
-   * */
-  const handleSaveExample = () => {
-    console.log('ExploreViewContainer => handleSaveExample => To be removed')
-    const { controls, form_data } = props;
-    // Clean remove any nested object with key 'user'
-    const cleaned_controls = {
-      ...controls
-    }
-    delete cleaned_controls.datasource.user
-    saveChartExample(form_data.viz_type, cleaned_controls, form_data)
-  };
+ 
 
 
   return (
@@ -732,14 +717,7 @@ function ExploreViewContainer(props) {
       )}
     </ExploreContainer>
     {/* button in bottom left corner */}
-      <div style={{
-        position: 'fixed',
-        bottom: '20px',
-        left: '20px',
-        zIndex: 9999
-      }}>
-        <button onClick={handleSaveExample} >Save Example</button>
-      </div>
+     <ChartControlsPeek {...props} />
     </div>
   );
 }
@@ -752,6 +730,7 @@ const retainQueryModeRequirements = hiddenFormData =>
   );
 
 function mapStateToProps(state) {
+  console.log('ExploreViewContainer mapStateToProps state:', state)
   const {
     explore,
     charts,
@@ -781,9 +760,6 @@ function mapStateToProps(state) {
   if (Number.isNaN(dashboardId)) {
     dashboardId = undefined;
   }
-
-  console.log('ExploreViewContainer controls', explore.controls)
-
 
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
