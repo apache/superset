@@ -182,7 +182,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
     @with_config({"GUEST_TOKEN_VALIDATOR_HOOK": lambda x: True})
     def test_guest_token_validator_hook_positive(self):
         """
-        Security API: Test the API returns a 400 with a hook that returns False.
+        Security API: Test the API returns a 200 with a hook that returns True.
         """
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
