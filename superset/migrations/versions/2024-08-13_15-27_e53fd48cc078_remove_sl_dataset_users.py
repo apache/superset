@@ -32,10 +32,10 @@ from superset.migrations.shared.utils import has_table
 revision = "e53fd48cc078"
 down_revision = "38f4144e8558"
 
+table_name = "sl_dataset_users"
+
 
 def upgrade():
-    table_name = "sl_dataset_users"
-
     if has_table(table_name):
         drop_fks_for_table(table_name)
         op.drop_table(table_name)
@@ -43,7 +43,7 @@ def upgrade():
 
 def downgrade():
     op.create_table(
-        "sl_dataset_users",
+        table_name,
         sa.Column("dataset_id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(

@@ -32,10 +32,10 @@ from superset.migrations.shared.utils import has_table
 revision = "a6b32d2d07b1"
 down_revision = "e53fd48cc078"
 
+table_name = "sl_columns"
+
 
 def upgrade():
-    table_name = "sl_columns"
-
     if has_table(table_name):
         drop_fks_for_table(table_name)
         op.drop_table(table_name)
@@ -43,7 +43,7 @@ def upgrade():
 
 def downgrade():
     op.create_table(
-        "sl_columns",
+        table_name,
         sa.Column("uuid", sa.Numeric(precision=16), nullable=True),
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),

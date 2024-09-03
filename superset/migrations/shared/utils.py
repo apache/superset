@@ -181,5 +181,4 @@ def has_table(table_name: str) -> bool:
     insp = inspect(op.get_context().bind)
     table_exists = insp.has_table(table_name)
 
-    print(f"Table {table_name} exist: {table_exists}")
     return table_exists
