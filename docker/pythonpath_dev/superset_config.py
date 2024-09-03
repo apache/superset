@@ -29,6 +29,29 @@ from flask_caching.backends.filesystemcache import FileSystemCache
 
 logger = logging.getLogger()
 
+
+# If BASE_PATH is set we are assumed to be proxyed at this prefix location.
+base_path = os.getenv("BASE_PATH", "")
+if base_path:
+    ENABLE_PROXY_FIX = True
+    # Change x_port to 1 if the we are on the same port as the proxy server
+    PROXY_FIX_CONFIG = {
+        "x_for": 1,
+        "x_proto": 1,
+        "x_host": 1,
+        "x_port": 0,
+        "x_prefix": 1,
+    }
+    logger.debug(f"Non-empty base path detected '{base_path}'. Enabled proxy fix.")
+# If ASSET_BASE_URL is an empty string but BASE_PATH is set we should pick up BASE_PATH
+asset_base = (
+    os.getenv("ASSET_BASE_URL") if os.getenv("ASSET_BASE_URL", "") else base_path
+)
+if asset_base:
+    STATIC_ASSETS_PREFIX = asset_base
+    APP_ICON = f"{STATIC_ASSETS_PREFIX}/static/assets/images/superset-logo-horiz.png"
+    logger.debug(f"Non-empty asset base detected '{STATIC_ASSETS_PREFIX}'")
+
 DATABASE_DIALECT = os.getenv("DATABASE_DIALECT")
 DATABASE_USER = os.getenv("DATABASE_USER")
 DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")

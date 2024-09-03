@@ -29,13 +29,18 @@ x-superset-volumes: &superset-volumes
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
-
+x-environ-base-path: &superset-base-path
+# Set the following variables if you are running superset under a prefixed path.
+# Also set the value in the nginx.conf file
+  ASSET_BASE_URL: ''
+  BASE_PATH: ''
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
   cache_from:
     - apache/superset-cache:3.10-slim-bookworm
   args:
+    <<: *superset-base-path
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
     INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
@@ -52,6 +57,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
   redis:
     image: redis:7
     container_name: superset_cache
@@ -99,6 +105,7 @@ services:
         condition: service_completed_successfully
     volumes: *superset-volumes
     environment:
+      <<: *superset-base-path
       CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
       SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
@@ -153,6 +160,7 @@ services:
     user: *superset-user
     volumes: *superset-volumes
     environment:
+      <<: *superset-base-path
       CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
       SUPERSET_LOAD_EXAMPLES: "${SUPERSET_LOAD_EXAMPLES:-yes}"
       SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
@@ -170,6 +178,7 @@ services:
         DEV_MODE: "true"
         BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
     environment:
+      <<: *superset-base-path
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
       BUILD_SUPERSET_FRONTEND_IN_DOCKER: true
@@ -199,6 +208,7 @@ services:
       - path: docker/.env-local # optional override
         required: false
     environment:
+      <<: *superset-base-path
       CELERYD_CONCURRENCY: 2
       CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
       SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
