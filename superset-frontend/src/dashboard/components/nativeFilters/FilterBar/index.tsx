@@ -207,7 +207,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       }
     }
     return null; // Return null if not found
-  } 
+  };
   useEffect(() => {
     if (state) {
       const hasSelectedFilters = Object.values(dataMaskSelected).some(
