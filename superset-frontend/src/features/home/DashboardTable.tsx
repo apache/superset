@@ -28,6 +28,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
+import { ensureBasePath } from 'src/utils/pathUtils';
 import { LoadingCards } from 'src/pages/Home';
 import {
   CardContainer,
@@ -196,19 +197,20 @@ function DashboardTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign('/dashboard/new');
+              window.location.assign(ensureBasePath('/dashboard/new'));
             },
           },
           {
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              const target =
+              const target = ensureBasePath(
                 activeTab === TableTab.Favorite
                   ? `/dashboard/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
-                  : '/dashboard/list/';
+                  : '/dashboard/list/',
+              );
               history.push(target);
             },
           },

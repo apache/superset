@@ -24,6 +24,15 @@ import {
 
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 
+// Injected by webpack. See webpack.config.js
+declare let INJECTED_BASE_PATH: string;
+declare let INJECTED_ASSET_BASE_URL: string;
+
+export const BASE_PATH =
+  typeof INJECTED_BASE_PATH === 'undefined' ? '' : INJECTED_BASE_PATH;
+export const ASSET_BASE_URL =
+  typeof INJECTED_ASSET_BASE_URL === 'undefined' ? '' : INJECTED_ASSET_BASE_URL;
+
 export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
 export const TIME_WITH_MS = 'HH:mm:ss.SSS';
 

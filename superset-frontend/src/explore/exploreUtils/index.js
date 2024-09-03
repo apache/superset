@@ -30,6 +30,7 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
+import { ensureBasePath } from 'src/utils/pathUtils';
 import { URL_PARAMS } from 'src/constants';
 import {
   MULTI_OPERATORS,
@@ -68,7 +69,7 @@ export function getAnnotationJsonUrl(slice_id, force) {
 
   const uri = URI(window.location.search);
   return uri
-    .pathname('/api/v1/chart/data')
+    .pathname(ensureBasePath('/api/v1/chart/data'))
     .search({
       form_data: safeStringify({ slice_id }),
       force,
@@ -83,9 +84,9 @@ export function getURIDirectory(endpointType = 'base') {
       endpointType,
     )
   ) {
-    return '/superset/explore_json/';
+    return ensureBasePath('/superset/explore_json/');
   }
-  return '/explore/';
+  return ensureBasePath('/explore/');
 }
 
 export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
@@ -112,7 +113,7 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
     protocol: window.location.protocol.slice(0, -1),
     hostname: getHostName(allowDomainSharding),
     port: window.location.port ? window.location.port : '',
-    path,
+    path: ensureBasePath(path),
   });
   if (qs) {
     uri = uri.search(qs);
@@ -142,7 +143,7 @@ export function getExploreUrl({
   // eslint-disable-next-line no-param-reassign
   delete formData.label_colors;
 
-  let uri = getChartDataUri({ path: '/', allowDomainSharding });
+  let uri = getChartDataUri({ path: ensureBasePath('/'), allowDomainSharding });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }

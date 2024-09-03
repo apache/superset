@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,26 +17,13 @@
  * under the License.
  */
 
-import { FetchRetryOptions } from './types';
+import { ASSET_BASE_URL } from 'src/constants';
 
-export const DEFAULT_BASE_URL = 'http://localhost';
-export const DEFAULT_BASE_PATH = '';
-
-// HTTP status codes
-export const HTTP_STATUS_OK = 200;
-export const HTTP_STATUS_NOT_MODIFIED = 304;
-
-// Namespace for Cache API
-export const CACHE_AVAILABLE = 'caches' in window;
-export const CACHE_KEY = '@SUPERSET-UI/CONNECTION';
-
-export const DEFAULT_FETCH_RETRY_OPTIONS: FetchRetryOptions = {
-  retries: 3,
-  retryDelay: 1000,
-  retryOn: [503],
-};
-
-export const COMMON_ERR_MESSAGES = {
-  SESSION_TIMED_OUT:
-    'Your session timed out, please refresh your page and try again.',
-};
+/**
+ * Takes a string path to a static assetand prefixes it with any ASSET_BASE_URL that is
+ * defined in the webpack configuration.
+ * @param path A string path to a resource
+ */
+export function assetUrl(path: string) {
+  return `${ASSET_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}

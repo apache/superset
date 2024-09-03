@@ -31,7 +31,8 @@ describe('SupersetClientClass', () => {
   describe('new SupersetClientClass()', () => {
     it('fallback protocol to https when setting only host', () => {
       const client = new SupersetClientClass({ host: 'TEST-HOST' });
-      expect(client.baseUrl).toEqual('https://test-host');
+      expect(client.host).toEqual('https://test-host');
+      expect(client.basePath).toEqual('');
     });
   });
 

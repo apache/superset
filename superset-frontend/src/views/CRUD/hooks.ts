@@ -39,6 +39,7 @@ import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
+import { ensureBasePath } from 'src/utils/pathUtils';
 import SupersetText from 'src/utils/textUtils';
 import { DatabaseObject } from 'src/features/databases/types';
 import { FavoriteStatus, ImportResourceName } from './types';
@@ -682,7 +683,9 @@ export const copyQueryLink = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   copyTextToClipboard(() =>
-    Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
+    Promise.resolve(
+      `${window.location.origin}${ensureBasePath(`/sqllab?savedQueryId=${id}`)}`,
+    ),
   )
     .then(() => {
       addSuccessToast(t('Link Copied!'));

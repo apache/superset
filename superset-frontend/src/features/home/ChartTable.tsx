@@ -43,6 +43,7 @@ import { LoadingCards } from 'src/pages/Home';
 import ChartCard from 'src/features/charts/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
+import { ensureBasePath } from 'src/utils/pathUtils';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import EmptyState from './EmptyState';
@@ -193,7 +194,7 @@ function ChartTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign('/chart/add');
+              window.location.assign(ensureBasePath('/chart/add'));
             },
           },
           {
