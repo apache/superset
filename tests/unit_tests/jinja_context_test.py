@@ -19,6 +19,7 @@
 from typing import Any
 
 import pytest
+from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
@@ -32,6 +33,7 @@ from superset.jinja_context import (
     ExtraCache,
     metric_macro,
     safe_proxy,
+    TimeFilter,
     WhereInMacro,
 )
 from superset.models.core import Database
@@ -836,3 +838,144 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
     )
     mock_get_form_data.assert_called_once()
     DatasetDAO.find_by_id.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "args,kwargs,sqlalchemy_uri,queries,time_filter,removed_filters,applied_filters",
+    [
+        (
+            [],
+            {"target_type": "TIMESTAMP"},
+            "postgresql://",
+            [{}],
+            TimeFilter(
+                since=None,
+                until=None,
+                time_range="No filter",
+            ),
+            [],
+            [],
+        ),
+        (
+            [],
+            {"target_type": "TIMESTAMP"},
+            "postgresql://",
+            [{"time_range": "Last week"}],
+            TimeFilter(
+                since="TO_TIMESTAMP('2024-08-26 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                until="TO_TIMESTAMP('2024-09-02 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                time_range="Last week",
+            ),
+            [],
+            [],
+        ),
+        (
+            ["dttm"],
+            {},
+            "postgresql://",
+            [
+                {
+                    "filters": [
+                        {
+                            "col": "dttm",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "Last week",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                since="TO_TIMESTAMP('2024-08-26 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                until="TO_TIMESTAMP('2024-09-02 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                time_range="Last week",
+            ),
+            [],
+            ["dttm"],
+        ),
+        (
+            ["dt"],
+            {"remove_filter": True},
+            "postgresql://",
+            [
+                {
+                    "filters": [
+                        {
+                            "col": "dt",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "Last week",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                since="TO_DATE('2024-08-26', 'YYYY-MM-DD')",
+                until="TO_DATE('2024-09-02', 'YYYY-MM-DD')",
+                time_range="Last week",
+            ),
+            ["dt"],
+            ["dt"],
+        ),
+        (
+            ["dttm"],
+            {"target_type": "DATE", "remove_filter": True},
+            "trino://",
+            [
+                {
+                    "filters": [
+                        {
+                            "col": "dttm",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "Last month",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                since="DATE '2024-08-02'",
+                until="DATE '2024-09-02'",
+                time_range="Last month",
+            ),
+            ["dttm"],
+            ["dttm"],
+        ),
+    ],
+)
+def test_get_time_filter(
+    args: list[Any],
+    kwargs: dict[str, Any],
+    sqlalchemy_uri: str,
+    queries: list[Any] | None,
+    time_filter: TimeFilter,
+    removed_filters: list[str],
+    applied_filters: list[str],
+) -> None:
+    """
+    Test the ``get_time_filter`` macro.
+    """
+    columns = [
+        TableColumn(column_name="dt", is_dttm=1, type="DATE"),
+        TableColumn(column_name="dttm", is_dttm=1, type="TIMESTAMP"),
+    ]
+
+    database = Database(database_name="my_database", sqlalchemy_uri=sqlalchemy_uri)
+    table = SqlaTable(
+        table_name="my_datast",
+        columns=columns,
+        main_dttm_col="dt",
+        database=database,
+    )
+
+    with (
+        freeze_time("2024-09-03"),
+        app.test_request_context(
+            json={"queries": queries},
+        ),
+    ):
+        cache = ExtraCache(
+            database=database,
+            table=table,
+        )
+
+        assert cache.get_time_filter(*args, **kwargs) == time_filter
+        assert cache.removed_filters == removed_filters
+        assert cache.applied_filters == applied_filters

@@ -89,8 +89,9 @@ class TimeFilter:
     """
     Container for temporal filter.
     """
-    from_dttm: str | None
-    to_dttm: str | None
+
+    since: str | None
+    until: str | None
     time_range: str | None
 
 
@@ -119,7 +120,6 @@ class ExtraCache:
         removed_filters: Optional[list[str]] = None,
         database: Optional[Database] = None,
         dialect: Optional[Dialect] = None,
-        time_range: Optional[str] = None,
         table: Optional[SqlaTable] = None,
     ):
         self.extra_cache_keys = extra_cache_keys
@@ -127,7 +127,6 @@ class ExtraCache:
         self.removed_filters = removed_filters if removed_filters is not None else []
         self.database = database
         self.dialect = dialect
-        self.time_range = time_range or NO_TIME_RANGE
         self.table = table
 
     def current_user_id(self, add_to_cache_keys: bool = True) -> Optional[int]:
@@ -382,25 +381,44 @@ class ExtraCache:
         target_type: str | None = None,
         remove_filter: bool = False,
     ) -> TimeFilter:
-        """Get the applied time filter with appropriate formatting,
-        either for a specific column, or whichever time filter is being emitted
+        """Get the time filter with appropriate formatting,
+        either for a specific column, or whichever time range is being emitted
         from a dashboard.
 
         This is useful if  you want to handle time filters inside the virtual dataset,
         as by default the time filter is placed on the outer query. This can have
-        significant performance implications on certain query engines, like Druid.
+        considerable performance implications, as many databases and query engines
+        are able to optimize the query better if the temporal filter is placed on the
+        inner query, as opposded to the outer query.
 
         Usage example::
 
+            {% set time_filter = get_time_filter("dttm", remove_filter=True) %}
+            {% set since = time_filter.since %}
+            {% set until = time_filter.until %}
+            {% set time_range = time_filter.time_range %}
+            select *,
+            {% if time_range %}'{{ time_range }}'{% else %}''{% endif %} as time_range
+            from logs
+            {% if since or until %}where 1 = 1
+            {% if since %}and dttm >= {{ since }}{% endif %}
+            {% if until %}and dttm < {{ until }}{% endif %}
+            {% endif %}
+
+        This will render the time filter inside the virtual dataset subquery with the
+        appropriate formatting, and remove it from the outer query.
+
         :param column: Name of the temporal column. Leave undefined to reference the
             time range from a Dashboard Native Time Range filter (when present).
-        :param target_type: The target temporal type. If `column` is defined, will
-            default to the type of the column. This is used to produce the format
-            of the `from_dttm` and `to_dttm` properties of the returned `TimeFilter`
-            object.
+        :param target_type: The target temporal type as recognized by the target
+            database (e.g. `TIMESTAMP`, `DATE` or `DATETIME`). If `column` is defined,
+            the format will default to the type of the column. This is used to produce
+            the format of the `since` and `until` properties of the returned
+            `TimeFilter` object. Note, that omitting `column` and `target_type` will
+            render format the temporal values as ISO format.
         :param remove_filter: When set to true, mark the filter as processed,
             removing it from the outer query. Useful when a filter should
-            only apply to the inner query
+            only apply to the inner query.
         :return: The corresponding time filter.
         """
         # pylint: disable=import-outside-toplevel
@@ -409,6 +427,7 @@ class ExtraCache:
         form_data, _ = get_form_data()
         convert_legacy_filters_into_adhoc(form_data)
         merge_extra_filters(form_data)
+        time_range = form_data.get("time_range")
         if column:
             flt: AdhocFilterClause | None = next(
                 (
@@ -429,14 +448,13 @@ class ExtraCache:
                 time_range = cast(str, flt["comparator"])
                 if not target_type and self.table:
                     target_type = self.table.columns_types.get(column)
-            else:
-                time_range = self.time_range
-        else:
-            time_range = self.time_range
 
-        from_dttm, to_dttm = get_since_until_from_time_range(time_range)
+        time_range = time_range or NO_TIME_RANGE
+        since, until = get_since_until_from_time_range(time_range)
 
         def _format_dttm(dttm: datetime | None) -> str | None:
+            if target_type is None and dttm:
+                return dttm.isoformat()
             return (
                 self.database.db_engine_spec.convert_dttm(target_type or "", dttm)
                 if self.database and dttm
@@ -444,8 +462,8 @@ class ExtraCache:
             )
 
         return TimeFilter(
-            from_dttm=_format_dttm(from_dttm),
-            to_dttm=_format_dttm(to_dttm),
+            since=_format_dttm(since),
+            until=_format_dttm(until),
             time_range=time_range,
         )
 
@@ -624,7 +642,6 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             database=self._database,
             dialect=self._database.get_dialect(),
             table=self._table,
-            time_range=self._context.get("time_range"),
         )
 
         from_dttm = (
