@@ -844,6 +844,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             ) as inspector:
                 return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
+            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+                self.start_oauth2_dance()
+
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
@@ -865,6 +868,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             with self.get_inspector(ssh_tunnel=ssh_tunnel) as inspector:
                 return self.db_engine_spec.get_catalog_names(self, inspector)
         except Exception as ex:
+            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+                self.start_oauth2_dance()
+
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @property
@@ -1095,6 +1101,16 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             return cast(OAuth2ClientConfig, client_config)
 
         return self.db_engine_spec.get_oauth2_config()
+
+    def start_oauth2_dance(self) -> None:
+        """
+        Start the OAuth2 dance.
+
+        This method is called when an OAuth2 error is encountered, and the database is
+        configured to use OAuth2 for authentication. It raises an exception that will
+        trigger the OAuth2 dance in the frontend.
+        """
+        return self.db_engine_spec.start_oauth2_dance(self)
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)

@@ -38,7 +38,7 @@ from superset.commands.database.uploaders.csv_reader import CSVReader
 from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
 from superset.sql_parse import Table
 from superset.utils import json
 from tests.unit_tests.fixtures.common import (
@@ -2112,6 +2112,47 @@ def test_catalogs(
     )
 
 
+def test_catalogs_with_oauth2(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `catalogs` endpoint when OAuth2 is needed.
+    """
+    database = mocker.MagicMock()
+    database.get_all_catalog_names.side_effect = OAuth2RedirectError(
+        "url",
+        "tab_id",
+        "redirect_uri",
+    )
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")
+    DatabaseDAO.find_by_id.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_catalogs_accessible_by_user.return_value = {"db2"}
+
+    response = client.get("/api/v1/database/1/catalogs/")
+    assert response.status_code == 500
+    assert response.json == {
+        "errors": [
+            {
+                "message": "You don't have permission to access the data.",
+                "error_type": "OAUTH2_REDIRECT",
+                "level": "warning",
+                "extra": {
+                    "url": "url",
+                    "tab_id": "tab_id",
+                    "redirect_uri": "redirect_uri",
+                },
+            }
+        ]
+    }
+
+
 def test_schemas(
     mocker: MockerFixture,
     client: Any,
@@ -2168,3 +2209,46 @@ def test_schemas(
         "catalog2",
         {"schema1", "schema2"},
     )
+
+
+def test_schemas_with_oauth2(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `schemas` endpoint when OAuth2 is needed.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.side_effect = OAuth2RedirectError(
+        "url",
+        "tab_id",
+        "redirect_uri",
+    )
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_schemas_accessible_by_user.return_value = {"schema2"}
+
+    response = client.get("/api/v1/database/1/schemas/")
+    assert response.status_code == 500
+    assert response.json == {
+        "errors": [
+            {
+                "message": "You don't have permission to access the data.",
+                "error_type": "OAUTH2_REDIRECT",
+                "level": "warning",
+                "extra": {
+                    "url": "url",
+                    "tab_id": "tab_id",
+                    "redirect_uri": "redirect_uri",
+                },
+            }
+        ]
+    }

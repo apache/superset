@@ -42,6 +42,7 @@ from superset.daos.database import DatabaseDAO
 from superset.daos.dataset import DatasetDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.db_engine_specs.base import GenericDBException
+from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
 from superset.utils.decorators import on_error, transaction
 
@@ -80,7 +81,10 @@ class UpdateDatabaseCommand(BaseCommand):
         database = DatabaseDAO.update(self._model, self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         ssh_tunnel = self._handle_ssh_tunnel(database)
-        self._refresh_catalogs(database, original_database_name, ssh_tunnel)
+        try:
+            self._refresh_catalogs(database, original_database_name, ssh_tunnel)
+        except OAuth2RedirectError:
+            pass
 
         return database
 
@@ -123,6 +127,9 @@ class UpdateDatabaseCommand(BaseCommand):
                 force=True,
                 ssh_tunnel=ssh_tunnel,
             )
+        except OAuth2RedirectError:
+            # raise OAuth2 exceptions as-is
+            raise
         except GenericDBException as ex:
             raise DatabaseConnectionFailedError() from ex
 
@@ -141,6 +148,9 @@ class UpdateDatabaseCommand(BaseCommand):
                 catalog=catalog,
                 ssh_tunnel=ssh_tunnel,
             )
+        except OAuth2RedirectError:
+            # raise OAuth2 exceptions as-is
+            raise
         except GenericDBException as ex:
             raise DatabaseConnectionFailedError() from ex
 

@@ -3255,6 +3255,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": False,
                     },
+                    "supports_oauth2": False,
                 },
                 {
                     "available_drivers": ["bigquery"],
@@ -3279,6 +3280,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": True,
                     },
+                    "supports_oauth2": False,
                 },
                 {
                     "available_drivers": ["psycopg2"],
@@ -3335,6 +3337,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                     },
+                    "supports_oauth2": False,
                 },
                 {
                     "available_drivers": ["apsw"],
@@ -3359,6 +3362,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": True,
                     },
+                    "supports_oauth2": True,
                 },
                 {
                     "available_drivers": ["mysqlconnector", "mysqldb"],
@@ -3415,6 +3419,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                     },
+                    "supports_oauth2": False,
                 },
                 {
                     "available_drivers": [""],
@@ -3427,6 +3432,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                     },
+                    "supports_oauth2": False,
                 },
             ]
         }
@@ -3460,6 +3466,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                     },
+                    "supports_oauth2": False,
                 },
                 {
                     "available_drivers": [""],
@@ -3472,6 +3479,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                     },
+                    "supports_oauth2": False,
                 },
             ]
         }
