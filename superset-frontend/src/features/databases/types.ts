@@ -330,3 +330,32 @@ export type SwitchProps = {
   changeMethods: SwitchPropsChangeMethodsType;
   clearValidationErrors: () => void;
 };
+
+export interface DatabaseConnectionFormProps {
+  isEditMode?: boolean;
+  sslForced: boolean;
+  editNewDb?: boolean;
+  dbModel: DatabaseForm;
+  db: Partial<DatabaseObject> | null;
+  onParametersChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onQueryChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onParametersUploadFileChange?: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onExtraInputChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onAddTableCatalog: () => void;
+  onRemoveTableCatalog: (idx: number) => void;
+  validationErrors: JsonObject | null;
+  getValidation: () => void;
+  clearValidationErrors: () => void;
+  getPlaceholder?: (field: string) => string | undefined;
+}
