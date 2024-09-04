@@ -203,6 +203,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         )
         self.assert400(response)
 
+        # Revert/Test that the default configuration has no side effects - 200
         current_app.config["GUEST_TOKEN_VALIDATOR_HOOK"] = None
 
         response = self.client.post(
