@@ -1,5 +1,4 @@
 import { readableColor, adjustOpacity, executeQuery } from '../contextUtils';
-import { getChartControlValues } from '../assistantUtils';
 import { postFormData } from '../../../explore/exploreUtils/formData';
 import { QueryResults } from '@superset-ui/core';
 import { EXPLORE_CHART_DEFAULT } from '../../../SqlLab/types';
@@ -24,12 +23,16 @@ export interface AssistantSuggestionProps {
     viz_datasources: string[];
     viz_type: string;
     llm_optimized: string;
+    actions: any;
 }
 
 /**
  * AssistantSuggestion Component
  */
 export function AssistantSuggestion(props: AssistantSuggestionProps | any) {
+
+
+    console.log("Assistant Suggestion Props", props)
 
     // bg color ensure at most 50% opacity
     const bg = adjustOpacity(props.backgroundColor || '#FFFFFF', .8)
@@ -41,6 +44,7 @@ export function AssistantSuggestion(props: AssistantSuggestionProps | any) {
     // click/tap handler
     const handleClick = async () => {
         console.log("Assistant Suggestion Props", props)
+        props.actions.selectAssistantSuggestion({...props});
         // execute query
         const queryResult: QueryResults|null = await executeQuery(props.databaseId, props.schemaName, props.viz_datasources[0]);
         // postFormData
@@ -48,11 +52,7 @@ export function AssistantSuggestion(props: AssistantSuggestionProps | any) {
             return;
         }
 
-        const formData = await getChartControlValues( props.llm_optimized, props.viz_type, {
-            sql: props.viz_datasources[0]
-        });
-
-        console.log('AssistantSuggestion formData:', formData)
+        
 
         /**
          * {
@@ -65,7 +65,6 @@ export function AssistantSuggestion(props: AssistantSuggestionProps | any) {
         console.log('AssistantSuggestion queryResult:', queryResult)
         const formDataKey = await postFormData(queryResult.results.query_id!, 'query',{
             ...EXPLORE_CHART_DEFAULT,
-            ...formData,
             assistant_data: props.llm_optimized,
             viz_type: props.viz_type,
             ...{

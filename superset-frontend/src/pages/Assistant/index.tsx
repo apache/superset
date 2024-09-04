@@ -6,6 +6,10 @@ import { DatasourceProps } from './ContextBuilder/Datasource';
 import { AssistantContextBuilder } from './ContextBuilder';
 import { Tabs } from 'antd';
 import { QueryResultTable } from './PreviewBuilder';
+import * as actions from './actions';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
+import { prop } from 'lodash/fp';
 
 /**
  * title: string;
@@ -18,7 +22,12 @@ import { QueryResultTable } from './PreviewBuilder';
 function Assistant(props: AssistantProps) {
 
   // data selection state
-  const [datasources, setDatasources] = useState<DatasourceProps[]>([]);
+  const [datasources, setDatasources] = useState<DatasourceProps[]>(props.data || []);
+
+  const handleDataChange = (data: DatasourceProps[]) => {
+    console.log("Data Changed", data);
+    setDatasources(data);
+  };
 
   // This Component Serves as the Assistant's Home Page
   // Header Dispays the Users Name and Databases they have access to
@@ -49,7 +58,7 @@ function Assistant(props: AssistantProps) {
           </span>
         } key="2">
           <AssistantContextBuilder {...props} onChange={(data) => {
-            setDatasources(data);
+            handleDataChange(data);
           }} />
         </Tabs.TabPane>
         <Tabs.TabPane tab={ 
@@ -64,4 +73,20 @@ function Assistant(props: AssistantProps) {
   );
 }
 
-export default withToasts(Assistant);
+function mapStateToProps(state: any) {
+  const { assistant } = state;
+  return {
+    ...assistant
+  };
+}
+
+function mapDispatchToProps(dispatch: any) {
+  
+  return {
+    actions: bindActionCreators(actions, dispatch)
+  };
+}
+
+export default connect(
+  mapStateToProps,mapDispatchToProps
+)(withToasts(Assistant));

@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
 import { AssistantSuggestionCategory, AssistantSuggestionCategoryProps } from './AssistantSuggestionCategory';
 
 export interface AssistantCategoriesProps {
     categories: AssistantSuggestionCategoryProps[];
+    actions: any;
 }
 
 export function AssistantSuggestionCategories(props: AssistantCategoriesProps) {
@@ -20,7 +20,10 @@ export function AssistantSuggestionCategories(props: AssistantCategoriesProps) {
             }}
         >
             {props.categories.map((category, index) => (
-                <AssistantSuggestionCategory key={index} {...category} />
+                <AssistantSuggestionCategory key={index} {...{
+                    ...category,
+                    actions: props.actions
+                }} />
             ))}
         </div>
     );

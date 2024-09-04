@@ -42,8 +42,71 @@ class AssistantView(BaseSupersetView):
                 "Nightingale"
             ],
             "category": "Part of a Whole",
+            "additionalConsiderations": [
+                "Consider using a bar chart instead if clarity of relative proportion is important."
+                "Do not use Distict on columns that will be grouped by."
+            ]
+        },
+        # "world_map": {
+        #     "name": "World Map",
+        #     "credits": [
+        #         "http://datamaps.github.io/"
+        #     ],
+        #     "description": "A map of the world, that can indicate values in different countries. Can only be used with data that contains country names or codes.",
+        #     "supportedAnnotationTypes": [],
+        #     "behaviors": [
+        #         "INTERACTIVE_CHART",
+        #         "DRILL_TO_DETAIL",
+        #         "DRILL_BY"
+        #     ],
+        #     "datasourceCount": 1,
+        #     "enableNoResults": True,
+        #     "tags": [
+        #         "2D",
+        #         "Comparison",
+        #         "Intensity",
+        #         "Legacy",
+        #         "Multi-Dimensions",
+        #         "Multi-Layers",
+        #         "Multi-Variables",
+        #         "Scatter",
+        #         "Featured"
+        #     ],
+        #     "category": "Map",
+        #     "additionalConsiderations": [
+        #         "Data must contain country names or codes."
+        #     ]
+        # },
+        "echarts_timeseries_line": {
+            "name": "Line Chart",
+            "canBeAnnotationTypes": [],
+            "canBeAnnotationTypesLookup": {},
+            "credits": [
+                "https://echarts.apache.org"
+            ],
+            "description": "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.",
+            "supportedAnnotationTypes": [
+                "EVENT",
+                "FORMULA",
+                "INTERVAL",
+                "TIME_SERIES"
+            ],
+            "behaviors": [
+                "INTERACTIVE_CHART",
+                "DRILL_TO_DETAIL",
+                "DRILL_BY"
+            ],
+            "datasourceCount": 1,
+            "enableNoResults": True,
+            "tags": [
+                "ECharts",
+                "Predictive",
+                "Advanced-Analytics",
+                "Line",
+                "Featured"
+            ],
+            "category": "Evolution",
         }
-
     }
     logger = logging.getLogger(__name__)
     datamodel = SQLAInterface(Database)
@@ -103,7 +166,7 @@ class AssistantView(BaseSupersetView):
                         Format =
                             {{ 
                             "human_understandable: "The response should be assertive, The response should be a single line only and include column descriptions as well".
-                            "llm_optimized":"The response should contain all relevant information that may be used by an llm to probe for more information. include data types and formats as well."
+                            "llm_optimized":"The response should contain all relevant information that may be used by an llm to probe for more information. include data types and formats as well. Include potential relationships with other selected tables"
                             }}
                         """,
                     ],
@@ -150,7 +213,7 @@ class AssistantView(BaseSupersetView):
                 f"""
                 The following is a json schema containing data about a database Schema = {data}
                 The data contains information collected by an organization for the purpose of {purpose}.
-                Using the Data provided by the Schema, provide suggestions for visualizations that can be created from the data.
+                Using the Data provided by the Schema, provide suggestions for visualizations that can be created from the data that may be useful to the organization.
                 Available visualizations are: {self.available_charts}.
                 Order the suggestions according to importance and relevance to the organization's purpose.
                 The response should be in the following format:
@@ -168,7 +231,6 @@ class AssistantView(BaseSupersetView):
                     "viz_type": "viz_type",
                     "description": "short one-sentence description of the visualization in a way that a human can understand",
                     "reasoning": "reasoning behind the suggestion",
-                    "llm_optimized": "describe instructions for creating the visualization in a way that an llm can understand",
                     "viz_datasources": [
                         "List of SQL queries that will be used as data sources for the visualization.",
                         "The number of viz_datasource MUST be equal to the viz_type datasourceCount.",
@@ -185,8 +247,12 @@ class AssistantView(BaseSupersetView):
                         "For example, if the data is in different units, the queries should convert the data to a single unit.",
                         "If the data is a mix of upper and lower case, the queries should convert the data to a single case.",
                         "All column names must be enclosed in quotes i.e `column_name`",
-                        "The query MUST be a valid SQL query."
+                        "The query MUST be a valid SQL query.",
+                        "Join queries are allowed accross schemas in the same database.",
+                        "The queries should try and make vizualizations labels are human readable. E.G for queries returning ids, the queries should join with tables that have human readable names. ONLY if the human readable names are available AND selected in the schema.",
+                        "Make no assumptions about the data in the database.",
                     ],
+                    "llm_optimized": "detailed description of the vizualization, explain how viz_datasources should be used to create the visualization, explain how the data from viz_datasources can be modified using sql expressions to create the visualization. do not reference columns that are not provided by the viz_datasources",
                     "databaseId": "The id of the datasource that the visualization will be created from. This id should be consistent with the databaseId in the schema.",
                     "schemaName": "The name of the schema that the visualization will be created from. This name should be consistent with the schemaName in the schema."
                     }}
@@ -258,27 +324,31 @@ class AssistantView(BaseSupersetView):
                         {viz_suggestion}_Control_Values = {viz_examples}
                         Using the new {viz_suggestion}_Datasource below,
                         New_{viz_suggestion}_Datasource = {datasource},
-                        Create a new {viz_suggestion}_Control_Values that will best answer the prompt below.
+                        Create a new {viz_suggestion}_Control_Values that will best FIT THE INSTRUCTIONS in the prompt below.
                         Prompt = {prompt}
                         Response should be a single json object with structure similar to the objects in {viz_suggestion}_Control_Values list
                         Do not use the {viz_suggestion}_Control_Values values in the response.
                         Do not add any new keys not present in the {viz_suggestion}_Control.
                          
                         Use specific column_name specified in the New_{viz_suggestion}_Datasource.
-                        Do not use any column_name not implied in the New_{viz_suggestion}_Datasource.
+                        Do not use any column_name not listed in the New_{viz_suggestion}_Datasource.
                         Do not use any aggregate functions not supported by SQL.
-                        sql expressions should not nest aggregate functions. and should always take the form {{FUNCTION_NAME}}(column_name) E.G SUM(column_name), AVG(column_name), COUNT(column_name), MAX(column_name), MIN(column_name)
+                        
                         Response should be a valid json format i.e use correct boolean, integer and string values.
                         Boolean values should be true or false. not True or False. i.e lowercase.
                         Column names placed in lists NOT should be enclosed in quotes. ie ["column_name"] not ["\"column_name\""] E.G. "some_key": ["column_name", "column_name_2", "column_name_3"]
                         do not return keys with null or undefined values.
+                        Response should be a single valid json object.
                         """
                     ],
                 }
             ]
         )
         
-        response = chat_session.send_message(prompt)
+        response = chat_session.send_message(f"""
+            Using the instruction in the prompt below, create a new {viz_suggestion}_Control_Values that will best FIT THE INSTRUCTIONS in the prompt below.
+            Prompt = {prompt}
+        """)
         self.logger.info(f"Response: {response.text}")
         return self.json_response(response.text)
     

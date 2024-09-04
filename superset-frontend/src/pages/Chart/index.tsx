@@ -163,6 +163,7 @@ export default function ExplorePage() {
   if (!isLoaded) {
     return <Loading />;
   }
+  
   return <ExploreViewContainer />
 
 }
