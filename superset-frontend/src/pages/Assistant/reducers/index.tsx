@@ -1,17 +1,31 @@
+import { data } from 'jquery';
 import { 
     AssistantActions,
-    SelectAssistantSuggestionAction 
+    SelectAssistantSuggestionAction,
+    AssistantDataChangedAction
 } from '../actions';
 import * as ActionTypes from '../actions/types';
 
 export default function AssistantReducer(
-    state = {}, action: AssistantActions
+    state = {
+        enabled: false,
+    }, 
+    action: AssistantActions
 ){
     switch(action.type){
         case ActionTypes.SELECT_SUGGESTION:
             return {
                 ...state,
-                ...(action as SelectAssistantSuggestionAction).payload
+                selected: {
+                    ...(action as SelectAssistantSuggestionAction).payload
+                },
+                enabled: true
+            }
+
+        case ActionTypes.ASSISTANT_DATA_CHANGED:
+            return {
+                ...state,
+                data: (action as AssistantDataChangedAction).payload
             }
         default:
             return state;

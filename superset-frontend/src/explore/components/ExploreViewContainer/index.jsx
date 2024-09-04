@@ -71,6 +71,7 @@ import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
 import ChartControlsPeek from 'src/pages/Assistant/ChartControlsPeek';
+import { actions } from 'react-table';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
@@ -717,7 +718,13 @@ function ExploreViewContainer(props) {
       )}
     </ExploreContainer>
     {/* button in bottom left corner */}
-     <ChartControlsPeek {...props} />
+     <ChartControlsPeek {...{
+      ...props,
+      actions: {
+        ...props.actions,
+        onQuery:onQuery
+      }
+     }} />
     </div>
   );
 }
@@ -740,6 +747,7 @@ function mapStateToProps(state) {
     reports,
     user,
     saveModal,
+    assistant
   } = state;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
   const hasQueryMode = !!controls.query_mode?.value;
@@ -762,6 +770,9 @@ function mapStateToProps(state) {
   }
 
   return {
+    assistant:assistant || {
+      enabled: false,
+    },
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource,
     datasource_type: datasource.type,

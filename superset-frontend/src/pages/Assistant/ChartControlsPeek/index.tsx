@@ -1,9 +1,9 @@
-import { Modal } from "antd";
-import { saveChartExample } from "../assistantUtils";
+import { Button, Modal } from "antd";
+import { getChartControlValues, saveChartExample } from "../assistantUtils";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { QueryFormData } from "@superset-ui/core";
-import { set } from "lodash";
+import { on } from "process";
 
 
 function ChartControlsPeek(props: any) {
@@ -22,12 +22,15 @@ function ChartControlsPeek(props: any) {
             ...controls
         }
         delete cleaned_controls.datasource.user
+        saveChartExample(formDataLcl.viz_type, cleaned_controls, formDataLcl);
     };
 
     const handleUpdateData = () => {
-        const { setExploreControls } = props.actions
-        console.log('ChartControlsPeek => handleUpdateData => props:', setExploreControls)
+        const { setExploreControls, onQuery } = props.actions
+        console.log('ChartControlsPeek => handleUpdateData => setExploreControls:', setExploreControls)
+        console.log('ChartControlsPeek => handleUpdateData => onQuery:', onQuery)
         setExploreControls(formDataLcl);
+        onQuery();
     };
 
     const handleClose = () => {
@@ -50,6 +53,26 @@ function ChartControlsPeek(props: any) {
         }
     };
 
+    const handleApplyAssistant = async () => {
+        console.log('ChartControlsPeek => handleApplyAssistant: STARTED', props)
+        const { assistant, controls } = props;
+        if (!assistant || !assistant.enabled || !assistant.selected) {
+            return;
+        }
+        const { selected } = assistant;
+        console.log('ChartControlsPeek => handleApplyAssistant: selected', selected)
+        console.log('ChartControlsPeek => handleApplyAssistant: datasource', controls.datasource.datasource)
+        
+        const formData = await getChartControlValues( selected.llm_optimized, selected.viz_type, controls.datasource.datasource);
+        // Update current form data with the assistant form data .. new data may not have all the keys
+        const newFormData:QueryFormData  = {
+            ...formDataLcl,
+            ...formData
+        };
+        setFormDataLcl(newFormData);
+
+    };
+
     return (
         <div style={{
             position: 'fixed',
@@ -61,11 +84,14 @@ function ChartControlsPeek(props: any) {
             <Modal
                 title="Form Data Values"
                 visible={isOpen}
-                onOk={handleUpdateData}
-                okText="Update Data"
                 onCancel={handleClose}
-                cancelText="Close"
                 width="80%"
+                footer={[
+                    <Button key="back" onClick={handleClose}> Close </Button>,
+                    <Button key="save" onClick={handleUpdateData}> Update Form Data </Button>,
+                    <Button key="apply-assist" onClick={handleApplyAssistant}> Apply Assistant </Button>,
+                    <Button key="save-example" onClick={handleSaveExample}> Save Example </Button>
+                ]}
             >
                 <textarea
                     value={JSON.stringify(formDataLcl, null, 2)}
