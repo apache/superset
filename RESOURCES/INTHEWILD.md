@@ -112,7 +112,7 @@ Join our growing community!
 - [Showmax](https://showmax.com) [@bobek]
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
-- [Tentacle](https://tentaclecmi.com) [@jdclarke5]
+- [Tentacle](https://www.linkedin.com/company/tentacle-cmi/) [@jdclarke5]
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
 - [Tobii](http://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]

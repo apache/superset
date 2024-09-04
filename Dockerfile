@@ -26,6 +26,14 @@ FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 
+# Used by docker-compose to skip the frontend build,
+# in dev we mount the repo and build the frontend inside docker
+ARG DEV_MODE="false"
+
+# Include headless browsers? Allows for alerts, reports & thumbnails, but bloats the images
+ARG INCLUDE_CHROMIUM="true"
+ARG INCLUDE_FIREFOX="false"
+
 # Somehow we need python3 + build-essential on this side of the house to install node-gyp
 RUN apt-get update -qq \
     && apt-get install \
@@ -42,19 +50,33 @@ RUN --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.
     /frontend-mem-nag.sh
 
 WORKDIR /app/superset-frontend
+# Creating empty folders to avoid errors when running COPY later on
+RUN mkdir -p /app/superset/static/assets && mkdir -p /app/superset/translations
 RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json \
     --mount=type=bind,target=./package-lock.json,src=./superset-frontend/package-lock.json \
-    npm ci
+    if [ "$DEV_MODE" = "false" ]; then \
+        npm ci; \
+    else \
+        echo "Skipping 'npm ci' in dev mode"; \
+    fi
 
 # Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
-RUN npm run ${BUILD_CMD}
+RUN if [ "$DEV_MODE" = "false" ]; then \
+        npm run ${BUILD_CMD}; \
+    else \
+        echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
+    fi
 
 # This copies the .po files needed for translation
 RUN mkdir -p /app/superset/translations
 COPY superset/translations /app/superset/translations
 # Compiles .json files from the .po files, then deletes the .po files
-RUN npm run build-translation
+RUN if [ "$DEV_MODE" = "false" ]; then \
+        npm run build-translation; \
+    else \
+        echo "Skipping translations in dev mode"; \
+    fi
 RUN rm /app/superset/translations/*/LC_MESSAGES/*.po
 RUN rm /app/superset/translations/messages.pot
 
@@ -146,21 +168,27 @@ RUN apt-get update -qq \
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install playwright
 RUN playwright install-deps
-RUN playwright install chromium
+
+RUN if [ "$INCLUDE_CHROMIUM" = "true" ]; then \
+        playwright install chromium; \
+    else \
+        echo "Skipping translations in dev mode"; \
+    fi
 
 # Install GeckoDriver WebDriver
 ARG GECKODRIVER_VERSION=v0.34.0 \
     FIREFOX_VERSION=125.0.3
 
-RUN apt-get update -qq \
-    && apt-get install -yqq --no-install-recommends wget bzip2 \
-    && wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O - | tar xfz - -C /usr/local/bin \
-    # Install Firefox
-    && wget -q https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O - | tar xfj - -C /opt \
-    && ln -s /opt/firefox/firefox /usr/local/bin/firefox \
-    && apt-get autoremove -yqq --purge wget bzip2 && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/*
-# Cache everything for dev purposes...
+RUN if [ "$INCLUDE_FIREFOX" = "true" ]; then \
+        apt-get update -qq \
+        && apt-get install -yqq --no-install-recommends wget bzip2 \
+        && wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O - | tar xfz - -C /usr/local/bin \
+        && wget -q https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O - | tar xfj - -C /opt \
+        && ln -s /opt/firefox/firefox /usr/local/bin/firefox \
+        && apt-get autoremove -yqq --purge wget bzip2 && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/*; \
+    fi
 
+# Cache everything for dev purposes...
 COPY --chown=superset:superset requirements/development.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/pip \
     apt-get update -qq && apt-get install -yqq --no-install-recommends \

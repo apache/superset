@@ -52,10 +52,24 @@ without a build_preset are lean builds, e.g., `latest`.
   this specific SHA, which could be from a `master` merge, or release.
 - `websocket-latest`: The WebSocket image for use in a Superset cluster.
 
+
+
 For insights or modifications to the build matrix and tagging conventions,
 check the [build_docker.py](https://github.com/apache/superset/blob/master/scripts/build_docker.py)
 script and the [docker.yml](https://github.com/apache/superset/blob/master/.github/workflows/docker.yml)
 GitHub action.
+
+## Key ARGs in Dockerfile
+- `DEV_MODE`: whether to skip the frontend build, this is used by our `docker-compose` dev setup
+  where we mount the local volume and build using `webpack` in `--watch` mode, meaning as you
+  alter the code in the local file system, webpack, from within a docker image used for this
+  purpose, will constantly rebuild the frontend as you go. This ARG enables the initial
+  `docker-compose` build to take much less time and resources
+- `INCLUDE_CHROMIUM`: whether to include chromium in the backend build so that it can be
+  used as a headless browser for workloads related to "Alerts & Reports" and thumbnail generation
+- `INCLUDE_FIREFOX`: same as above, but for firefox
+- `PY_VER`: specifying the base image for the python backend, we don't recommend altering
+  this setting if you're not working on forwards or backwards compatibility
 
 ## Caching
 
