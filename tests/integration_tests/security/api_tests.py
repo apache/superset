@@ -141,8 +141,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_guest_token_validator_hook(self):
         """
-        Security API: Test the API works normally with GUEST_TOKEN_VALIDATOR_HOOK
-        configured to None.
+        Security API: Test various scenarios for the GUEST_TOKEN_VALIDATOR_HOOK
         """
 
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
