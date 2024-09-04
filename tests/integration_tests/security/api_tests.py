@@ -161,7 +161,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
 
         self.assert400(response)
 
-        # Test False case from validator - should be 200
+        # Test True case from validator - should be 200
         current_app.config["GUEST_TOKEN_VALIDATOR_HOOK"] = lambda x: True
         response = self.client.post(
             self.uri, data=json.dumps(params), content_type="application/json"
