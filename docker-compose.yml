@@ -16,7 +16,7 @@
 #
 
 # -----------------------------------------------------------------------
-# We don't support docker-compose for production environments.
+# We don't support docker compose for production environments.
 # If you choose to use this type of deployment make sure to
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
@@ -120,7 +120,7 @@ services:
       - /home/superset-websocket/dist
 
       # Mounting a config file that contains a dummy secret required to boot up.
-      # do not use this docker-compose in production
+      # do not use this docker compose in production
       - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
     environment:
       - PORT=8080

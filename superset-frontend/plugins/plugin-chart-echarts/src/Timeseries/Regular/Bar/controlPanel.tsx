@@ -213,8 +213,6 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         },
       },
     ],
-    [truncateXAxis],
-    [xAxisBounds],
     [
       {
         name: 'truncateYAxis',
@@ -314,6 +312,8 @@ const config: ControlPanelConfig = {
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('x'),
+        [truncateXAxis],
+        [xAxisBounds],
         ...richTooltipSection,
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('y'),

@@ -34,6 +34,7 @@ from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
+from superset.sql_parse import Table
 from superset.utils import json
 from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
@@ -619,7 +620,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
 
         table_name, schema = self._schema_table(table_name, self._schema)
         return cast(PrestoEngineSpec, self._database.db_engine_spec).latest_partition(
-            table_name, schema, self._database
+            database=self._database, table=Table(table_name, schema)
         )[1]
 
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
@@ -631,7 +632,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         return cast(
             PrestoEngineSpec, self._database.db_engine_spec
         ).latest_sub_partition(
-            table_name=table_name, schema=schema, database=self._database, **kwargs
+            database=self._database, table=Table(table_name, schema), **kwargs
         )
 
     latest_partition = first_latest_partition

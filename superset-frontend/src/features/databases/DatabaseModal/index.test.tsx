@@ -1723,6 +1723,20 @@ describe('dbReducer', () => {
     });
   });
 
+  test('it will set state to payload from encrypted extra input change', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.EncryptedExtraInputChange,
+      payload: { name: 'foo', value: 'bar' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"foo":"bar"}',
+    });
+  });
+
   test('it will set state to payload from extra input change when checkbox', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
