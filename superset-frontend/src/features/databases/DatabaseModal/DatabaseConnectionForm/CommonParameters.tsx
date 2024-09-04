@@ -161,23 +161,20 @@ export const httpPathField = ({
   getValidation,
   validationErrors,
   db,
-}: FieldPropTypes) => {
-  console.error(db);
-  return (
-    <ValidatedInput
-      id="http_path_field"
-      name="http_path_field"
-      required={required}
-      value={db?.parameters?.http_path_field}
-      validationMethods={{ onBlur: getValidation }}
-      errorMessage={validationErrors?.http_path}
-      placeholder={t('e.g. sql/protocolv1/o/12345')}
-      label="HTTP Path"
-      onChange={changeMethods.onParametersChange}
-      helpText={t('Copy the name of the HTTP Path of your cluster.')}
-    />
-  );
-};
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="http_path_field"
+    name="http_path_field"
+    required={required}
+    value={db?.parameters?.http_path_field}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.http_path}
+    placeholder={t('e.g. sql/protocolv1/o/12345')}
+    label="HTTP Path"
+    onChange={changeMethods.onParametersChange}
+    helpText={t('Copy the name of the HTTP Path of your cluster.')}
+  />
+);
 export const usernameField = ({
   required,
   changeMethods,
