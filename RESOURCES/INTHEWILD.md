@@ -45,7 +45,7 @@ Join our growing community!
 - [Taveo](https://www.taveo.com) [@codek]
 - [Unit](https://www.unit.co/about-us) [@amitmiran137]
 - [Wise](https://wise.com) [@koszti]
-- [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
+- [Xendit](https://xendit.co/) [@LieAlbertTriAdrian]
 
 ### Gaming
 - [Popoko VM Games Studio](https://popoko.live)
