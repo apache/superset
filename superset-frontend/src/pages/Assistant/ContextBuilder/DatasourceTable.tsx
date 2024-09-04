@@ -157,7 +157,6 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
             { title: 'Column', dataIndex: 'columnName', key: 'columnName' },
             { title: 'Type', dataIndex: 'columnType', key: 'columnType' },
         ];
-        console.log("DatasourceTable data", columns);
 
         return (
 

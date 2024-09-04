@@ -33,6 +33,7 @@ export class DatasourceSelector extends Component<DatasourceSelectorProps, Datas
                 id: database.database_id,
                 selected: false,
                 datasourceName: database.database_name,
+                backend: database.backend,
                 schema: [],
             }));
             this.setState({ datasources });

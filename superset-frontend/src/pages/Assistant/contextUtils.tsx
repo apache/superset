@@ -10,6 +10,7 @@ export interface DatabaseData {
     database_id: number;
     database_name: string;
     schemas: DatabaseScemaData[];
+    backend: string;
 }
 
 export interface DatabaseScemaData {
@@ -53,14 +54,16 @@ export const emptyDatabaseContext: DatabaseContext = {
 export const fetchDatabaseData = async () => {
     try {
         const response = await SupersetClient.get({ endpoint: '/api/v1/database/' });
+        console.log("Response:", response.json);
         const databases = await response.json.result.map((database: any) => {
             const databaseId = database.id;
             const database_name = database.database_name;
+            const backend = database.backend;
             // const schemas = await fetchSchemaData(databaseId);
             return {
                 database_id: databaseId,
                 database_name: database_name,
-                // tables: schemas
+                backend: backend
             };
         });
         return databases;

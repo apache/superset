@@ -211,7 +211,7 @@ class AssistantView(BaseSupersetView):
                 "role": "user",
                 "parts": [
                 f"""
-                The following is a json schema containing data about a database Schema = {data}
+                The following is a json schema containing data about database Schemas = {data}
                 The data contains information collected by an organization for the purpose of {purpose}.
                 Using the Data provided by the Schema, provide suggestions for visualizations that can be created from the data that may be useful to the organization.
                 Available visualizations are: {self.available_charts}.
@@ -239,6 +239,7 @@ class AssistantView(BaseSupersetView):
                         "The queries should select only the columns that are relevant to the visualization and columns that are selected.",
                         "For example, if the visualization is a bar chart that shows the number of passengers per line, the query should be 'SELECT `line_name`, `passengers` FROM `schemaname`."bart_lines";",
                         "The queries should filter out nulls for the columns selected.",
+                        "Use enclosures compatible with the database backend being used. i.e `column_name` for MySQL, \"column_name\" for PostgreSQL.",
                         "The queries should ensure that castings are done only when necessary and filters added to support valid casting.",
                         "The queries should not include any grouping as the grouping will be done by the visualization based on the llm_optimized description.",
                         "The queries should not include any ordering as the ordering will be done by the visualization based on the llm_optimized description.",
@@ -247,7 +248,7 @@ class AssistantView(BaseSupersetView):
                         "For example, if the data is in different units, the queries should convert the data to a single unit.",
                         "If the data is a mix of upper and lower case, the queries should convert the data to a single case.",
                         "All column names must be enclosed in quotes i.e `column_name`",
-                        "The query MUST be a valid SQL query.",
+                        "The query MUST be a valid SQL query. For the database backend ",
                         "Join queries are allowed accross schemas in the same database.",
                         "The queries should try and make vizualizations labels are human readable. E.G for queries returning ids, the queries should join with tables that have human readable names. ONLY if the human readable names are available AND selected in the schema.",
                         "Make no assumptions about the data in the database.",
@@ -255,6 +256,7 @@ class AssistantView(BaseSupersetView):
                     "llm_optimized": "detailed description of the vizualization, explain how viz_datasources should be used to create the visualization, explain how the data from viz_datasources can be modified using sql expressions to create the visualization. do not reference columns that are not provided by the viz_datasources",
                     "databaseId": "The id of the datasource that the visualization will be created from. This id should be consistent with the databaseId in the schema.",
                     "schemaName": "The name of the schema that the visualization will be created from. This name should be consistent with the schemaName in the schema."
+                    "backend": "Database backend for based on the databaseId",
                     }}
                 ]
                 
