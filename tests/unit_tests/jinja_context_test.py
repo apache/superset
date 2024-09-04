@@ -846,7 +846,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
         (
             [],
             {"target_type": "TIMESTAMP"},
-            "postgresql://",
+            "postgresql://mydb",
             [{}],
             TimeFilter(
                 from_expr=None,
@@ -859,7 +859,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
         (
             [],
             {"target_type": "TIMESTAMP"},
-            "postgresql://",
+            "postgresql://mydb",
             [{"time_range": "Last week"}],
             TimeFilter(
                 from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
@@ -872,7 +872,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
         (
             ["dttm"],
             {},
-            "postgresql://",
+            "postgresql://mydb",
             [
                 {
                     "filters": [
@@ -895,7 +895,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
         (
             ["dt"],
             {"remove_filter": True},
-            "postgresql://",
+            "postgresql://mydb",
             [
                 {
                     "filters": [
@@ -918,7 +918,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
         (
             ["dttm"],
             {"target_type": "DATE", "remove_filter": True},
-            "trino://",
+            "trino://mydb",
             [
                 {
                     "filters": [
