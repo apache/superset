@@ -70,6 +70,8 @@ import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
+import ChartControlsPeek from 'src/pages/Assistant/ChartControlsPeek';
+import { actions } from 'react-table';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
@@ -245,6 +247,7 @@ function setSidebarWidths(key, dimension) {
 }
 
 function ExploreViewContainer(props) {
+  console.log('ExploreViewContainer', props)
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
   const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.mounting;
@@ -543,7 +546,6 @@ function ExploreViewContainer(props) {
 
   function renderChartContainer() {
     const logProps = {...props}
-    console.log('ExploreViewContainer renderChartContainer props', logProps)
     return (
       <ExploreChartPanel
         {...props}
@@ -558,8 +560,15 @@ function ExploreViewContainer(props) {
     return renderChartContainer();
   }
 
+ 
+
+
   return (
-    <ExploreContainer>
+    <div style={{
+      height: '100%',
+      minHeight: '0'
+    }} >
+      <ExploreContainer>
       <ConnectedExploreChartHeader
         actions={props.actions}
         canOverwrite={props.can_overwrite}
@@ -708,6 +717,15 @@ function ExploreViewContainer(props) {
         />
       )}
     </ExploreContainer>
+    {/* button in bottom left corner */}
+     <ChartControlsPeek {...{
+      ...props,
+      actions: {
+        ...props.actions,
+        onQuery:onQuery
+      }
+     }} />
+    </div>
   );
 }
 
@@ -719,6 +737,7 @@ const retainQueryModeRequirements = hiddenFormData =>
   );
 
 function mapStateToProps(state) {
+  console.log('ExploreViewContainer mapStateToProps state:', state)
   const {
     explore,
     charts,
@@ -728,6 +747,7 @@ function mapStateToProps(state) {
     reports,
     user,
     saveModal,
+    assistant
   } = state;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
   const hasQueryMode = !!controls.query_mode?.value;
@@ -750,6 +770,9 @@ function mapStateToProps(state) {
   }
 
   return {
+    assistant:assistant || {
+      enabled: false,
+    },
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource,
     datasource_type: datasource.type,

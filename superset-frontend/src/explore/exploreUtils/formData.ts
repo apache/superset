@@ -56,6 +56,7 @@ const assemblePayload = (
   if (chartId) {
     payload.chart_id = chartId;
   }
+  console.log('Form Data assemblePayload:', payload);
   return payload;
 };
 
@@ -74,7 +75,7 @@ export const postFormData = (
       formData,
       chartId,
     ),
-  }).then(r => r.json.key);
+  }).then(r => r.json.key)
 
 export const putFormData = (
   datasourceId: number,

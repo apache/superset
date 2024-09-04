@@ -27,6 +27,7 @@ import {
   LabelsColorMapSource,
   t,
   getClientErrorObject,
+  QueryFormData,
 } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -37,10 +38,11 @@ import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilter
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
 import ExploreViewContainer from 'src/explore/components/ExploreViewContainer';
-import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
+import { ExplorePageInitialData, ExploreResponsePayload, SaveActionType } from 'src/explore/types';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
+import { getChartControlValues } from '../Assistant/assistantUtils';
 
 const isValidResult = (rv: JsonObject): boolean =>
   rv?.result?.form_data && isDefined(rv?.result?.dataset?.id);
@@ -51,6 +53,7 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
       method: 'GET',
       endpoint: 'api/v1/explore/',
     })(exploreUrlParams);
+    console.log('Chart fetchExploreData rv:', rv);
     if (isValidResult(rv)) {
       return rv;
     }
@@ -65,8 +68,8 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
     const clientError = await getClientErrorObject(err);
     throw new Error(
       clientError.message ||
-        clientError.error ||
-        t('Failed to load chart data.'),
+      clientError.error ||
+      t('Failed to load chart data.'),
     );
   }
 };
@@ -114,6 +117,7 @@ const getDashboardContextFormData = () => {
 
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [assistantEnabled, setAssistantEnabled] = useState(false);
   const isExploreInitialized = useRef(false);
   const dispatch = useDispatch();
   const location = useLocation();
@@ -126,14 +130,16 @@ export default function ExplorePage() {
     const dashboardContextFormData = getDashboardContextFormData();
     if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
-        .then(({ result }) => {
+        .then(({result}) => {
           const formData =
             !isExploreInitialized.current && dashboardContextFormData
               ? getFormDataWithDashboardContext(
-                  result.form_data,
-                  dashboardContextFormData,
-                )
+                result.form_data,
+                dashboardContextFormData,
+              )
               : result.form_data;
+
+
           dispatch(
             hydrateExplore({
               ...result,
@@ -157,5 +163,7 @@ export default function ExplorePage() {
   if (!isLoaded) {
     return <Loading />;
   }
-  return <ExploreViewContainer />;
+  
+  return <ExploreViewContainer />
+
 }

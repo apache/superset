@@ -54,7 +54,7 @@ export const getVizSuggestions = async (data: any, purpose: string) => {
         ...r,
         title: r["viz_type"],
         suggestion: r["description"],
-        backgroundColor: suggestionColors[Math.floor(Math.random() * suggestionColors.length)]
+        backgroundColor: suggestionColors[Math.floor(Math.random() * suggestionColors.length)],
       };
       return suggestion;
     });
@@ -65,3 +65,30 @@ export const getVizSuggestions = async (data: any, purpose: string) => {
     return [];
   }
 };
+
+export function saveChartExample(viz_type: string, controls: any, formData: any) {
+  const endpoint = 'assistant/gemini/save-control-values';
+  const data = {
+      viz_type: viz_type,
+      controls: controls,
+      form_data: formData,
+  };
+  SupersetClient.post({ endpoint: endpoint, body: JSON.stringify(data) , headers: { 'Content-Type': 'application/json' } }).then((response) => {
+      console.log("contextUtils saveChartExample Response:", response);
+  });
+}
+
+
+export function getChartControlValues(prompt: string, viz_type: string, datasource: any){
+  const endpoint = 'assistant/gemini/get-control-values';
+  const data = {
+      prompt: prompt,
+      viz_type: viz_type,
+      datasource: datasource
+  };
+  return SupersetClient.post({ endpoint: endpoint, body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } })
+            .then((response) => {
+                console.log("assistantUtils getChartControlValues Response:", response);
+                return JSON.parse(response.json)
+            });
+}

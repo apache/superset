@@ -7,36 +7,12 @@ import { AssistantPrompt } from './AssistantPrompt';
 import { DatasourceProps } from '../ContextBuilder/Datasource';
 import { getVizSuggestions } from '../assistantUtils';
 import { AssistantSuggestionProps } from './AssistantSuggestion';
+import { act } from 'react-dom/test-utils';
 
 
 
 const sampleSuggestions: AssistantSuggestionsGridProps = {
   suggestions: [
-    {
-      title: 'Suggestion 1',
-      suggestion: 'Suggestion rational Lorem Ipsum Long text',
-      backgroundColor: '#FFD0EC',
-    },
-    {
-      title: 'Suggestion 2',
-      suggestion: 'Suggestion rational Lorem Ipsum Long text',
-      backgroundColor: '#FBD0FF',
-    },
-    {
-      title: 'Suggestion 3',
-      suggestion: 'Suggestion rational Lorem Ipsum Long text',
-      backgroundColor: '#D0E0FF',
-    },
-    {
-      title: 'Suggestion 4',
-      suggestion: 'Suggestion rational Lorem Ipsum Long text',
-      backgroundColor: '#D0F9FF',
-    },
-    {
-      title: 'Suggestion 5',
-      suggestion: 'Suggestion rational Lorem Ipsum Long text',
-      backgroundColor: '#FFD0EC',
-    }
   ],
 };
 
@@ -60,6 +36,7 @@ export interface AssistantProps {
     lastName: string;
   };
   data: DatasourceProps[];
+  actions: any;
 }
 
 /**
@@ -121,14 +98,21 @@ export class AssistantHome extends Component<AssistantProps> {
 
 
   render() {
-    const { user } = this.props;
+    const { user, actions } = this.props;
     const { categories } = this.state;
     console.log("Assistant Home Props render", categories);
 
     return (
       <>
         <AssistantWelcomeMessage userFirsrName={user.firstName} />
-        <AssistantSuggestionCategories {...categories} />
+        <AssistantSuggestionCategories {
+         ...{
+          ...categories, 
+          actions: {
+            ...actions,
+          },
+         }
+          } />
         <AssistantPrompt />
       </>
     );
