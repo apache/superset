@@ -430,8 +430,6 @@ class ExtraCache:
         from_expr, to_expr = get_since_until_from_time_range(time_range)
 
         def _format_dttm(dttm: datetime | None) -> str | None:
-            if target_type is None and dttm:
-                return dttm.isoformat()
             return (
                 self.database.db_engine_spec.convert_dttm(target_type or "", dttm)
                 if self.database and dttm
