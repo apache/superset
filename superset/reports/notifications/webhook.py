@@ -15,23 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import requests
-import logging
-import json
 import hmac
+import logging
 from typing import Dict, Optional
 
+import requests
+
+from superset import app
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
+from superset.utils import json
 from superset.utils.decorators import statsd_gauge
-
-from superset import app
 
 logger = logging.getLogger(__name__)
 
 
-class WebhookNotification(BaseNotification):
+class WebhookNotification(BaseNotification):  # pylint: disable=too-few-public-methods
     """
     Sends webhook notification to client host.
     """
@@ -52,19 +52,23 @@ class WebhookNotification(BaseNotification):
         """
         return json.loads(self._recipient.recipient_config_json)["target"]
 
-    def _generate_signature(self, data: dict) -> str:
+    def _generate_signature(
+        self, data: Dict[str, Optional[str | None | int]]
+    ) -> str | None:
         """
         Generates an HMAC SHA256 signature for the given data.
         """
-        secret = self._get_secret_token()
-        if secret:
+        if secret := self._get_secret_token():
             return hmac.new(
                 secret.encode("utf-8"),
                 json.dumps(data).encode("utf-8"),
                 digestmod="sha256",
             ).hexdigest()
+        return None
 
-    def _get_header(self, data: dict) -> Dict[str, str]:
+    def _get_header(
+        self, data: Dict[str, Optional[str | None | int]]
+    ) -> Dict[str, Optional[str]]:
         """
         Constructs the header with the generated HMAC signature.
         """
@@ -79,23 +83,25 @@ class WebhookNotification(BaseNotification):
         """
         if self._content.csv:
             return {"csv": self._content.csv}
-        elif self._content.pdf:
+        if self._content.pdf:
             return {"pdf": self._content.pdf}
-        elif self._content.screenshots:
+        if self._content.screenshots:
             return {
-                "png_%s" % index: file
+                f"png_{index}": file
                 for index, file in enumerate(self._content.screenshots)
             }
         return None
 
-    def _construct_payload(self) -> Dict[str, str]:
+    def _construct_payload(self) -> Dict[str, Optional[str] | Optional[int]]:
         """
         Constructs the payload for the webhook notification.
         """
-        content_name, content_id = self._content.name.split(":")
+        notification_name, content_name = self._content.name.split(":")
         return {
-            "name": content_name,
-            "id": content_id.strip(),
+            "notification_name": notification_name,
+            "notification_id": self._content.id,
+            "notification_type": self._content.header_data.get("notification_type"),
+            "content_name": content_name.strip(),
             "content_type": self._content.header_data.get("notification_source"),
             "content_id": (
                 self._content.header_data.get("chart_id")
@@ -103,6 +109,9 @@ class WebhookNotification(BaseNotification):
                 else self._content.header_data.get("dashboard_id")
             ),
             "content_format": self._content.header_data.get("notification_format"),
+            "metadata": json.loads(self._recipient.recipient_config_json).get(
+                "JSONData"
+            ),
         }
 
     @statsd_gauge("reports.webhook.send")
@@ -124,7 +133,7 @@ class WebhookNotification(BaseNotification):
                 timeout=10,
             )
             response.raise_for_status()
-            logger.info(f"Report webhook has been successfully sent to {host}")
+            logger.info("Report webhook has been successfully sent to {host}")
 
-        except requests.RequestException as e:
-            raise NotificationError(str(e)) from e
+        except requests.RequestException as ex:
+            raise NotificationError(str(ex)) from ex
