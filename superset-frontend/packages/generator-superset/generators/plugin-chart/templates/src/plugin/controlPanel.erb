@@ -19,6 +19,7 @@
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 
