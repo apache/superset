@@ -28,7 +28,7 @@ Join our growing community!
 
 ### Sharing Economy
 - [Airbnb](https://github.com/airbnb)
-- [Faasos](http://faasos.com/) [@shashanksingh]
+- [Faasos](https://faasos.com/) [@shashanksingh]
 - [Hostnfly](https://www.hostnfly.com/) [@alexisrosuel]
 - [Lime](https://www.li.me/) [@cxmcc]
 - [Lyft](https://www.lyft.com/)
@@ -39,8 +39,8 @@ Join our growing community!
 - [American Express](https://www.americanexpress.com) [@TheLastSultan]
 - [bumper](https://www.bumper.co/) [@vasu-ram, @JamiePercival]
 - [Cape Crypto](https://capecrypto.com)
-- [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
-- [Clark.de](http://clark.de/)
+- [Capital Service S.A.](https://capitalservice.pl) [@pkonarzewski]
+- [Clark.de](https://clark.de/)
 - [KarrotPay](https://www.daangnpay.com/)
 - [Taveo](https://www.taveo.com) [@codek]
 - [Unit](https://www.unit.co/about-us) [@amitmiran137]
@@ -56,16 +56,16 @@ Join our growing community!
 - [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
 - [Dropit Shopping](https://www.dropit.shop/) [@dropit-dev]
 - [Fanatics](https://www.fanatics.com/) [@coderfender]
-- [Fordeal](http://www.fordeal.com) [@Renkai]
+- [Fordeal](https://www.fordeal.com) [@Renkai]
 - [GFG - Global Fashion Group](https://global-fashion-group.com) [@ksaagariconic]
-- [HuiShouBao](http://www.huishoubao.com/) [@Yukinoshita-Yukino]
+- [HuiShouBao](https://www.huishoubao.com/) [@Yukinoshita-Yukino]
 - [Now](https://www.now.vn/) [@davidkohcw]
 - [Qunar](https://www.qunar.com/) [@flametest]
 - [Rakuten Viki](https://www.viki.com)
 - [Shopee](https://shopee.sg) [@xiaohanyu]
 - [Shopkick](https://www.shopkick.com) [@LAlbertalli]
 - [Tails.com](https://tails.com/gb/) [@alanmcruickshank]
-- [THE ICONIC](http://theiconic.com.au/) [@ksaagariconic]
+- [THE ICONIC](https://theiconic.com.au/) [@ksaagariconic]
 - [Utair](https://www.utair.ru) [@utair-digital]
 - [VkusVill](https://vkusvill.ru/) [@ETselikov]
 - [Zalando](https://www.zalando.com) [@dmigo]
@@ -87,18 +87,18 @@ Join our growing community!
 - [Dremio](https://dremio.com) [@narendrans]
 - [Elestio](https://elest.io/) [@kaiwalyakoparkar]
 - [ELMO Cloud HR & Payroll](https://elmosoftware.com.au/)
-- [Endress+Hauser](http://www.endress.com/) [@rumbin]
-- [FBK - ICT center](http://ict.fbk.eu)
+- [Endress+Hauser](https://www.endress.com/) [@rumbin]
+- [FBK - ICT center](https://ict.fbk.eu)
 - [Gavagai](https://gavagai.io) [@gavagai-corp]
 - [GfK Data Lab](https://www.gfk.com/home) [@mherr]
 - [Hydrolix](https://www.hydrolix.io/)
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)
-- [Konfío](http://konfio.mx) [@uis-rodriguez]
+- [Konfío](https://konfio.mx) [@uis-rodriguez]
 - [Mainstrat](https://mainstrat.com/)
 - [mishmash io](https://mishmash.io/)[@mishmash-io]
-- [Myra Labs](http://www.myralabs.com/) [@viksit]
-- [Nielsen](http://www.nielsen.com/) [@amitNielsen]
+- [Myra Labs](https://www.myralabs.com/) [@viksit]
+- [Nielsen](https://www.nielsen.com/) [@amitNielsen]
 - [Ona](https://ona.io) [@pld]
 - [Orange](https://www.orange.com) [@icsu]
 - [Oslandia](https://oslandia.com)
@@ -114,10 +114,10 @@ Join our growing community!
 - [Tenable](https://www.tenable.com) [@dflionis]
 - [Tentacle](https://www.linkedin.com/company/tentacle-cmi/) [@jdclarke5]
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
-- [Tobii](http://www.tobii.com/) [@dwa]
+- [Tobii](https://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
 - [Unvired](https://unvired.com)[@srinisubramanian]
-- [Whale](http://whale.im)
+- [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
 
@@ -131,7 +131,7 @@ Join our growing community!
 - [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
 - [TME QQMUSIC/WESING](https://www.tencentmusic.com/)[@shenyuanli,@marklaw]
 - [Xite](https://xite.com/) [@shashankkoppar]
-- [Zaihang](http://www.zaih.com/)
+- [Zaihang](https://www.zaih.com/)
 
 ### Education
 - [Aveti Learning](https://avetilearning.com/) [@TheShubhendra]
@@ -156,7 +156,7 @@ Join our growing community!
 - [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
-- [QPID Health](http://www.qpidhealth.com/)
+- [QPID Health](https://www.qpidhealth.com/)
 - [REDCap Cloud](https://www.redcapcloud.com/)
 - [TrustMedis](https://trustmedis.com/) [@famasya]
 - [WeSure](https://www.wesure.cn/)
