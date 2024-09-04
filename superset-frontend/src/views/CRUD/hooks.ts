@@ -350,7 +350,7 @@ export function useSingleViewResource<D extends object = any>(
               resource: { ...json.result, id: json.id },
               error: null,
             });
-            return json.result;
+            return { id: json.id, ...json.result };
           },
           createErrorHandler(errMsg => {
             if (!hideToast) {

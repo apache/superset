@@ -26,6 +26,10 @@ import {
 import { isEmpty } from 'lodash';
 
 export const SET_REPORT = 'SET_REPORT';
+export const ADD_REPORT = 'ADD_REPORT';
+export const EDIT_REPORT = 'EDIT_REPORT';
+export const DELETE_REPORT = 'DELETE_REPORT';
+
 export function setReport(report, resourceId, creationMethod, filterField) {
   return { type: SET_REPORT, report, resourceId, creationMethod, filterField };
 }
@@ -65,9 +69,7 @@ export function fetchUISpecificReport({
       .catch(() =>
         dispatch(
           addDangerToast(
-            t(
-              'There was an issue fetching reports attached to this dashboard.',
-            ),
+            t('There was an issue fetching reports attached to this resource.'),
           ),
         ),
       );
@@ -99,27 +101,13 @@ const structureFetchAction = (dispatch, getState) => {
   }
 };
 
-export const ADD_REPORT = 'ADD_REPORT';
+export const addReport = report => dispatch => {
+  dispatch({ type: ADD_REPORT, report });
+};
 
-export const addReport = report => dispatch =>
-  SupersetClient.post({
-    endpoint: `/api/v1/report/`,
-    jsonPayload: report,
-  }).then(({ json }) => {
-    dispatch({ type: ADD_REPORT, json });
-    dispatch(addSuccessToast(t('The report has been created')));
-  });
-
-export const EDIT_REPORT = 'EDIT_REPORT';
-
-export const editReport = (id, report) => dispatch =>
-  SupersetClient.put({
-    endpoint: `/api/v1/report/${id}`,
-    jsonPayload: report,
-  }).then(({ json }) => {
-    dispatch({ type: EDIT_REPORT, json });
-    dispatch(addSuccessToast(t('Report updated')));
-  });
+export const editReport = report => dispatch => {
+  dispatch({ type: EDIT_REPORT, report });
+};
 
 export function toggleActive(report, isActive) {
   return function toggleActiveThunk(dispatch) {
@@ -133,7 +121,7 @@ export function toggleActive(report, isActive) {
       .catch(() => {
         dispatch(
           addDangerToast(
-            t('We were unable to active or deactivate this report.'),
+            t('There was an issue changing the acitve status of this report.'),
           ),
         );
       })
@@ -142,8 +130,6 @@ export function toggleActive(report, isActive) {
       });
   };
 }
-
-export const DELETE_REPORT = 'DELETE_REPORT';
 
 export function deleteActiveReport(report) {
   return function deleteActiveReportThunk(dispatch) {

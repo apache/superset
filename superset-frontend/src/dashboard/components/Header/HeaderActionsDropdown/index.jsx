@@ -199,7 +199,6 @@ export class HeaderActionsDropdown extends PureComponent {
       dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
 
     const dashboardComponentId = [...(directPathToChild || [])].pop();
-
     return (
       <Menu selectable={false} data-test="header-actions-menu" {...rest}>
         {!editMode && (
@@ -311,9 +310,13 @@ export class HeaderActionsDropdown extends PureComponent {
         {!editMode ? (
           this.state.showReportSubMenu ? (
             <>
-              <Menu.SubMenu title={t('Manage email report')}>
+              <Menu.SubMenu title={t('Manage report')}>
                 <HeaderReportDropdown
-                  dashboardId={dashboardInfo.id}
+                  dashboard={{
+                    id: dashboardInfo.id,
+                    value: dashboardInfo.id,
+                    label: dashboardTitle,
+                  }}
                   setShowReportSubMenu={this.setShowReportSubMenu}
                   showReportSubMenu={this.state.showReportSubMenu}
                   setIsDropdownVisible={setIsDropdownVisible}
@@ -326,7 +329,11 @@ export class HeaderActionsDropdown extends PureComponent {
           ) : (
             <Menu>
               <HeaderReportDropdown
-                dashboardId={dashboardInfo.id}
+                dashboard={{
+                  id: dashboardInfo.id,
+                  value: dashboardInfo.id,
+                  label: dashboardTitle,
+                }}
                 setShowReportSubMenu={this.setShowReportSubMenu}
                 setIsDropdownVisible={setIsDropdownVisible}
                 isDropdownVisible={isDropdownVisible}

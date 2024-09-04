@@ -37,7 +37,6 @@ import {
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-
 import { InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
@@ -91,9 +90,10 @@ export interface AlertReportModalProps {
   alert?: AlertObject | null;
   isReport?: boolean;
   creationMethod: CreationMethod;
-  chartId?: number;
-  dashboardId?: number;
-  onAdd?: (alert?: AlertObject) => void;
+  chartObject?: MetaObject;
+  dashboardObject?: MetaObject;
+  onCreate?: (response?: Response) => void;
+  onUpdate?: (response?: Response) => void;
   onHide: () => void;
   show: boolean;
 }
@@ -418,9 +418,13 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
 
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addDangerToast,
-  onAdd,
+  onCreate,
+  onUpdate,
   onHide,
   show,
+  creationMethod,
+  dashboardObject,
+  chartObject,
   alert = null,
   isReport = false,
   addSuccessToast,
@@ -438,7 +442,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [currentAlert, setCurrentAlert] =
     useState<Partial<AlertObject> | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
-  const [contentType, setContentType] = useState<string>('dashboard');
+  const [contentType, setContentType] = useState<string>(
+    creationMethod === CreationMethod.Charts
+      ? ContentType.Chart
+      : ContentType.Dashboard,
+  );
   const [reportFormat, setReportFormat] = useState<string>(
     DEFAULT_NOTIFICATION_FORMAT,
   );
@@ -561,7 +569,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const defaultAlert = {
     active: true,
-    creation_method: 'alerts_reports',
+    creation_method: creationMethod,
     crontab: ALERT_REPORTS_DEFAULT_CRON_VALUE,
     extra: DEFAULT_EXTRA_DASHBOARD_OPTIONS,
     log_retention: ALERT_REPORTS_DEFAULT_RETENTION,
@@ -642,9 +650,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     clearError();
     setIsHidden(true);
     onHide();
-    setNotificationSettings([]);
-    setCurrentAlert({ ...defaultAlert });
-    setNotificationAddState('active');
+    if (creationMethod === CreationMethod.AlertsReports) {
+      setNotificationSettings([]);
+      setCurrentAlert({ ...defaultAlert });
+      setNotificationAddState('active');
+    }
   };
 
   const onSave = () => {
@@ -714,8 +724,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
           addSuccessToast(t('%s updated', data.type));
 
-          if (onAdd) {
-            onAdd();
+          if (onUpdate) {
+            onUpdate(response);
           }
 
           hide();
@@ -728,10 +738,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           return;
         }
 
-        addSuccessToast(t('%s updated', data.type));
+        addSuccessToast(t('%s created', data.type));
 
-        if (onAdd) {
-          onAdd(response);
+        if (onCreate) {
+          onCreate(response);
         }
 
         hide();
@@ -817,7 +827,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     [],
   );
 
-  const dashboard = currentAlert?.dashboard;
+  const dashboard = currentAlert?.dashboard || dashboardObject?.id;
   useEffect(() => {
     if (!tabsEnabled) return;
 
@@ -1232,7 +1242,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     if (
       isEditMode &&
-      (!currentAlert?.id || alert?.id !== currentAlert.id || (isHidden && show))
+      (!currentAlert?.id ||
+        alert?.id !== currentAlert.id ||
+        alert.active !== currentAlert?.active ||
+        (isHidden && show))
     ) {
       if (alert?.id !== null && !loading && !fetchError) {
         const id = alert.id || 0;
@@ -1252,6 +1265,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               },
             ]
           : [],
+        dashboard: dashboardObject,
+        chart: chartObject,
       });
       setNotificationSettings([
         {
@@ -1273,7 +1288,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         const config =
           typeof setting.recipient_config_json === 'string'
             ? JSON.parse(setting.recipient_config_json)
-            : {};
+            : setting.recipient_config_json;
         return {
           method: setting.type,
           // @ts-ignore: Type not assignable
@@ -1636,67 +1651,71 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           }
           key="contents"
         >
-          <StyledInputContainer>
-            <div className="control-label">
-              {t('Content type')}
-              <span className="required">*</span>
-            </div>
-            <Select
-              ariaLabel={t('Select content type')}
-              onChange={onContentTypeChange}
-              value={contentType}
-              options={CONTENT_TYPE_OPTIONS}
-              placeholder={t('Select content type')}
-            />
-          </StyledInputContainer>
-          <StyledInputContainer>
-            {contentType === ContentType.Chart ? (
-              <>
+          {creationMethod === CreationMethod.AlertsReports && (
+            <>
+              <StyledInputContainer>
                 <div className="control-label">
-                  {t('Select chart')}
+                  {t('Content type')}
                   <span className="required">*</span>
                 </div>
-                <AsyncSelect
-                  ariaLabel={t('Chart')}
-                  name="chart"
-                  value={
-                    currentAlert?.chart?.label && currentAlert?.chart?.value
-                      ? {
-                          value: currentAlert.chart.value,
-                          label: currentAlert.chart.label,
-                        }
-                      : undefined
-                  }
-                  options={loadChartOptions}
-                  onChange={onChartChange}
-                  placeholder={t('Select chart to use')}
+                <Select
+                  ariaLabel={t('Select content type')}
+                  onChange={onContentTypeChange}
+                  value={contentType}
+                  options={CONTENT_TYPE_OPTIONS}
+                  placeholder={t('Select content type')}
                 />
-              </>
-            ) : (
-              <>
-                <div className="control-label">
-                  {t('Select dashboard')}
-                  <span className="required">*</span>
-                </div>
-                <AsyncSelect
-                  ariaLabel={t('Dashboard')}
-                  name="dashboard"
-                  value={
-                    currentAlert?.dashboard?.label &&
-                    currentAlert?.dashboard?.value
-                      ? {
-                          value: currentAlert.dashboard.value,
-                          label: currentAlert.dashboard.label,
-                        }
-                      : undefined
-                  }
-                  options={loadDashboardOptions}
-                  onChange={onDashboardChange}
-                  placeholder={t('Select dashboard to use')}
-                />
-              </>
-            )}
-          </StyledInputContainer>
+              </StyledInputContainer>
+              <StyledInputContainer>
+                {contentType === ContentType.Chart ? (
+                  <>
+                    <div className="control-label">
+                      {t('Select chart')}
+                      <span className="required">*</span>
+                    </div>
+                    <AsyncSelect
+                      ariaLabel={t('Chart')}
+                      name="chart"
+                      value={
+                        currentAlert?.chart?.label && currentAlert?.chart?.value
+                          ? {
+                              value: currentAlert.chart.value,
+                              label: currentAlert.chart.label,
+                            }
+                          : undefined
+                      }
+                      options={loadChartOptions}
+                      onChange={onChartChange}
+                      placeholder={t('Select chart to use')}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div className="control-label">
+                      {t('Select dashboard')}
+                      <span className="required">*</span>
+                    </div>
+                    <AsyncSelect
+                      ariaLabel={t('Dashboard')}
+                      name="dashboard"
+                      value={
+                        currentAlert?.dashboard?.label &&
+                        currentAlert?.dashboard?.value
+                          ? {
+                              value: currentAlert.dashboard.value,
+                              label: currentAlert.dashboard.label,
+                            }
+                          : undefined
+                      }
+                      options={loadDashboardOptions}
+                      onChange={onDashboardChange}
+                      placeholder={t('Select dashboard to use')}
+                    />
+                  </>
+                )}
+              </StyledInputContainer>
+            </>
+          )}
           <StyledInputContainer
             css={
               ['PDF', 'TEXT', 'CSV'].includes(reportFormat) && noMarginBottom
@@ -1875,7 +1894,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
                 onInputChange={onInputChange}
-                email_subject={currentAlert?.email_subject || ''}
+                emailSubject={currentAlert?.email_subject || ''}
                 defaultSubject={emailSubject || ''}
                 setErrorSubject={handleErrorUpdate}
               />
