@@ -348,35 +348,38 @@ Here's a concrete example:
 
 **Time Filter for a Specific Column**
 
-The `{{ get_time_filter() }}` macro returns the time filter applied to a specific column. The macro takes the following
-parameters:
+The `{{ get_time_filter() }}` macro returns the time filter applied to a specific column. This is useful if you want
+to handle time filters inside the virtual dataset, as by default the time filter is placed on the outer query. This can
+have considerable performance implications, as many databases and query engines are able to optimize the query better
+if the temporal filter is placed on the inner query, as opposed to the outer query.
+
+The macro takes the following parameters:
 - `column`: Name of the temporal column. Leave undefined to reference the time range from a Dashboard Native Time Range
   filter (when present).
 - `target_type`: The target temporal type as recognized by the target  database (e.g. `TIMESTAMP`, `DATE` or
   `DATETIME`). If `column` is defined, the format will default to the type of the column. This is used to produce
-  the format of the `from_dttm` and `to_dttm` properties of the returned `TimeFilter` object. Note, that omitting
-  `column` and `target_type` will render format the temporal values as ISO format.
+  the format of the `from_expr` and `to_expr` properties of the returned `TimeFilter` object.
 
 The return type has the following properties:
-- `since`: the start of the time filter (if any)
-- `until`: the end of the time filter (if any)
+- `from_expr`: the start of the time filter (if any)
+- `to_expr`: the end of the time filter (if any)
 - `time_range`: The time range as defined on the
 
 Here's a concrete example using the `logs` table from the Superset metastore:
 
 ```
 {% set time_filter = get_time_filter("dttm", remove_filter=True) %}
-{% set since = time_filter.since %}
-{% set until = time_filter.until %}
+{% set from_expr = time_filter.from_expr %}
+{% set to_expr = time_filter.to_expr %}
 {% set time_range = time_filter.time_range %}
 
 SELECT
   *,
   {% if time_range %}'{{ time_range }}'{% else %}''{% endif %} as time_range
 FROM logs
-{% if since or until %}WHERE 1 = 1
-{% if since %}AND dttm >= {{ since }}{% endif %}
-{% if until %}AND dttm < {{ until }}{% endif %}
+{% if from_expr or to_expr %}WHERE 1 = 1
+{% if from_expr %}AND dttm >= {{ from_expr }}{% endif %}
+{% if to_expr %}AND dttm < {{ to_expr }}{% endif %}
 {% endif %}
 ```
 

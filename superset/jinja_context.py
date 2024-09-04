@@ -90,8 +90,8 @@ class TimeFilter:
     Container for temporal filter.
     """
 
-    since: str | None
-    until: str | None
+    from_expr: str | None
+    to_expr: str | None
     time_range: str | None
 
 
@@ -394,15 +394,15 @@ class ExtraCache:
         Usage example::
 
             {% set time_filter = get_time_filter("dttm", remove_filter=True) %}
-            {% set since = time_filter.since %}
-            {% set until = time_filter.until %}
+            {% set from_expr = time_filter.from_expr %}
+            {% set to_expr = time_filter.to_expr %}
             {% set time_range = time_filter.time_range %}
             select *,
             {% if time_range %}'{{ time_range }}'{% else %}''{% endif %} as time_range
             from logs
-            {% if since or until %}where 1 = 1
-            {% if since %}and dttm >= {{ since }}{% endif %}
-            {% if until %}and dttm < {{ until }}{% endif %}
+            {% if from_expr or to_expr %}where 1 = 1
+            {% if from_expr %}and dttm >= {{ from_expr }}{% endif %}
+            {% if to_expr %}and dttm < {{ to_expr }}{% endif %}
             {% endif %}
 
         This will render the time filter inside the virtual dataset subquery with the
@@ -413,7 +413,7 @@ class ExtraCache:
         :param target_type: The target temporal type as recognized by the target
             database (e.g. `TIMESTAMP`, `DATE` or `DATETIME`). If `column` is defined,
             the format will default to the type of the column. This is used to produce
-            the format of the `since` and `until` properties of the returned
+            the format of the `from_expr` and `to_expr` properties of the returned
             `TimeFilter` object. Note, that omitting `column` and `target_type` will
             render format the temporal values as ISO format.
         :param remove_filter: When set to true, mark the filter as processed,
@@ -450,7 +450,7 @@ class ExtraCache:
                     target_type = self.table.columns_types.get(column)
 
         time_range = time_range or NO_TIME_RANGE
-        since, until = get_since_until_from_time_range(time_range)
+        from_expr, to_expr = get_since_until_from_time_range(time_range)
 
         def _format_dttm(dttm: datetime | None) -> str | None:
             if target_type is None and dttm:
@@ -462,8 +462,8 @@ class ExtraCache:
             )
 
         return TimeFilter(
-            since=_format_dttm(since),
-            until=_format_dttm(until),
+            from_expr=_format_dttm(from_expr),
+            to_expr=_format_dttm(to_expr),
             time_range=time_range,
         )
 

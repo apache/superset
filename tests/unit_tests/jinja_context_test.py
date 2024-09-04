@@ -849,8 +849,8 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
             "postgresql://",
             [{}],
             TimeFilter(
-                since=None,
-                until=None,
+                from_expr=None,
+                to_expr=None,
                 time_range="No filter",
             ),
             [],
@@ -862,8 +862,8 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
             "postgresql://",
             [{"time_range": "Last week"}],
             TimeFilter(
-                since="TO_TIMESTAMP('2024-08-26 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
-                until="TO_TIMESTAMP('2024-09-02 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                from_expr="TO_TIMESTAMP('2024-08-26 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                to_expr="TO_TIMESTAMP('2024-09-02 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
                 time_range="Last week",
             ),
             [],
@@ -885,8 +885,8 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
                 }
             ],
             TimeFilter(
-                since="TO_TIMESTAMP('2024-08-26 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
-                until="TO_TIMESTAMP('2024-09-02 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                from_expr="TO_TIMESTAMP('2024-08-26 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                to_expr="TO_TIMESTAMP('2024-09-02 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
                 time_range="Last week",
             ),
             [],
@@ -908,8 +908,8 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
                 }
             ],
             TimeFilter(
-                since="TO_DATE('2024-08-26', 'YYYY-MM-DD')",
-                until="TO_DATE('2024-09-02', 'YYYY-MM-DD')",
+                from_expr="TO_DATE('2024-08-26', 'YYYY-MM-DD')",
+                to_expr="TO_DATE('2024-09-02', 'YYYY-MM-DD')",
                 time_range="Last week",
             ),
             ["dt"],
@@ -931,8 +931,8 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
                 }
             ],
             TimeFilter(
-                since="DATE '2024-08-02'",
-                until="DATE '2024-09-02'",
+                from_expr="DATE '2024-08-02'",
+                to_expr="DATE '2024-09-02'",
                 time_range="Last month",
             ),
             ["dttm"],
@@ -966,7 +966,7 @@ def test_get_time_filter(
     )
 
     with (
-        freeze_time("2024-09-03"),
+        freeze_time("2024-09-03T00:00:00Z"),
         app.test_request_context(
             json={"queries": queries},
         ),
