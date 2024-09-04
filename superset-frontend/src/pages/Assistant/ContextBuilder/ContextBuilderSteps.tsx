@@ -13,17 +13,17 @@ export const testProps: ContextBuilderProps = {
     steps: [
         {
             step: 'Step 1',
-            description: 'Step 1 Description',
+            description: 'Describe primary directive ',
             isDone: true
         },
         {
             step: 'Step 2',
-            description: 'Step 2 Description',
+            description: 'Data selectiion',
             isDone: false
         },
         {
             step: 'Step 3',
-            description: 'Step 3 Description',
+            description: 'Finish & proceed',
             isDone: false
         }
     ]
