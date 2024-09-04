@@ -24,10 +24,13 @@ import { VALIDATION_DEBOUNCE_MS } from 'src/SqlLab/constants';
 import {
   FetchValidationQueryParams,
   useQueryValidationsQuery,
+  ValidationResult,
 } from 'src/hooks/apiResources';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { t } from '@superset-ui/core';
+
+const EMPTY = [] as ValidationResult[];
 
 export function useAnnotations(params: FetchValidationQueryParams) {
   const { sql, dbId, schema, templateParams } = params;
@@ -75,7 +78,7 @@ export function useAnnotations(params: FetchValidationQueryParams) {
                       text: `The server failed to validate your query.\n${message}`,
                     },
                   ]
-                : [],
+                : EMPTY,
         };
       },
     },
