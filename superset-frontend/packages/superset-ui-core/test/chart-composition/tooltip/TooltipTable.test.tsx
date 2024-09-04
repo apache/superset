@@ -17,23 +17,24 @@
  * under the License.
  */
 
-import { shallow } from 'enzyme';
+import '@testing-library/jest-dom';
+import { screen, render } from '@testing-library/react';
 import { TooltipTable } from '@superset-ui/core';
 
 describe('TooltipTable', () => {
   it('sets className', () => {
-    const wrapper = shallow(<TooltipTable className="test-class" />);
-    expect(wrapper.render().hasClass('test-class')).toEqual(true);
+    const { container } = render(<TooltipTable className="test-class" />);
+    expect(container.querySelector('[class="test-class"]')).toBeInTheDocument();
   });
 
   it('renders empty table', () => {
-    const wrapper = shallow(<TooltipTable />);
-    expect(wrapper.find('tbody')).toHaveLength(1);
-    expect(wrapper.find('tr')).toHaveLength(0);
+    const { container } = render(<TooltipTable />);
+    expect(container.querySelector('tbody')).toBeInTheDocument();
+    expect(container.querySelector('tr')).not.toBeInTheDocument();
   });
 
-  it('renders table with content', () => {
-    const wrapper = shallow(
+  it('renders table with content', async () => {
+    render(
       <TooltipTable
         data={[
           {
@@ -58,8 +59,31 @@ describe('TooltipTable', () => {
         ]}
       />,
     );
-    expect(wrapper.find('tbody')).toHaveLength(1);
-    expect(wrapper.find('tr')).toHaveLength(3);
-    expect(wrapper.find('tr > td').first().text()).toEqual('Cersei');
+    let keyCell;
+    let valueCell;
+
+    keyCell = await screen.findByText('Cersei');
+    valueCell = keyCell?.nextSibling as HTMLElement;
+    expect(keyCell).toBeInTheDocument();
+    expect(valueCell?.textContent).toEqual('2');
+    expect(valueCell?.getAttribute('style')).toEqual(
+      'padding-left: 8px; text-align: right;',
+    );
+
+    keyCell = await screen.findByText('Jaime');
+    valueCell = keyCell?.nextSibling as HTMLElement;
+    expect(keyCell).toBeInTheDocument();
+    expect(valueCell?.textContent).toEqual('1');
+    expect(valueCell?.getAttribute('style')).toEqual(
+      'padding-left: 8px; text-align: right;',
+    );
+
+    keyCell = await screen.findByText('Tyrion');
+    valueCell = keyCell?.nextSibling as HTMLElement;
+    expect(keyCell).toBeInTheDocument();
+    expect(valueCell?.textContent).toEqual('2');
+    expect(valueCell?.getAttribute('style')).toEqual(
+      'padding-left: 8px; text-align: right;',
+    );
   });
 });
