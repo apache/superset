@@ -103,7 +103,7 @@ export class AssistantHome extends Component<AssistantProps> {
         categories: {
           categories: [
             {
-              categoryTitle: 'Gemini Visualization Suggestions',
+              categoryTitle: 'Visualization Suggestions',
               categoryDescription: 'Suggested Alerts based on available data sources and data sets',
               backgroundGradientStart: '#FF9398',
               backgroundGradientEnd: '#FF4049',

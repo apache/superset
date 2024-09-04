@@ -20,7 +20,7 @@ export function AssistantWelcomeMessage(props: AssistantWelcomeMessageProps) {
             padding: '10px',
         }} >
             <img src="/static/assets/images/assistant_logo_1.svg" />
-            <h3>Welcome to the Assistant, {upperCaseName}!</h3>
+            <h3>Welcome to the Moesha AI Assistant, {upperCaseName}!</h3>
             <p>Here are some suggestions to get you started:</p>
         </div>
     )
