@@ -385,29 +385,6 @@ class ExtraCache:
         either for a specific column, or whichever time range is being emitted
         from a dashboard.
 
-        This is useful if  you want to handle time filters inside the virtual dataset,
-        as by default the time filter is placed on the outer query. This can have
-        considerable performance implications, as many databases and query engines
-        are able to optimize the query better if the temporal filter is placed on the
-        inner query, as opposded to the outer query.
-
-        Usage example::
-
-            {% set time_filter = get_time_filter("dttm", remove_filter=True) %}
-            {% set from_expr = time_filter.from_expr %}
-            {% set to_expr = time_filter.to_expr %}
-            {% set time_range = time_filter.time_range %}
-            select *,
-            {% if time_range %}'{{ time_range }}'{% else %}''{% endif %} as time_range
-            from logs
-            {% if from_expr or to_expr %}where 1 = 1
-            {% if from_expr %}and dttm >= {{ from_expr }}{% endif %}
-            {% if to_expr %}and dttm < {{ to_expr }}{% endif %}
-            {% endif %}
-
-        This will render the time filter inside the virtual dataset subquery with the
-        appropriate formatting, and remove it from the outer query.
-
         :param column: Name of the temporal column. Leave undefined to reference the
             time range from a Dashboard Native Time Range filter (when present).
         :param target_type: The target temporal type as recognized by the target
