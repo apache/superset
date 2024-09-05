@@ -842,9 +842,10 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
 
 
 @pytest.mark.parametrize(
-    "args,kwargs,sqlalchemy_uri,queries,time_filter,removed_filters,applied_filters",
+    "description,args,kwargs,sqlalchemy_uri,queries,time_filter,removed_filters,applied_filters",
     [
         (
+            "Missing time_range and filter will return a No filter result",
             [],
             {"target_type": "TIMESTAMP"},
             "postgresql://mydb",
@@ -858,8 +859,23 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
             [],
         ),
         (
+            "Missing time range and filter with default value will return a result with the defaults",
             [],
-            {"target_type": "TIMESTAMP"},
+            {"default": "Last week", "target_type": "TIMESTAMP"},
+            "postgresql://mydb",
+            [{}],
+            TimeFilter(
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                time_range="Last week",
+            ),
+            [],
+            [],
+        ),
+        (
+            "Time range is extracted with the expected format, and default is ignored",
+            [],
+            {"default": "Last month", "target_type": "TIMESTAMP"},
             "postgresql://mydb",
             [{"time_range": "Last week"}],
             TimeFilter(
@@ -871,6 +887,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
             [],
         ),
         (
+            "Filter is extracted with the native format of the column (TIMESTAMP)",
             ["dttm"],
             {},
             "postgresql://mydb",
@@ -894,6 +911,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
             ["dttm"],
         ),
         (
+            "Filter is extracted with the native format of the column (DATE)",
             ["dt"],
             {"remove_filter": True},
             "postgresql://mydb",
@@ -917,6 +935,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
             ["dt"],
         ),
         (
+            "Filter is extracted with the overridden format (TIMESTAMP to DATE)",
             ["dttm"],
             {"target_type": "DATE", "remove_filter": True},
             "trino://mydb",
@@ -942,6 +961,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
     ],
 )
 def test_get_time_filter(
+    description: str,
     args: list[Any],
     kwargs: dict[str, Any],
     sqlalchemy_uri: str,
@@ -977,6 +997,6 @@ def test_get_time_filter(
             table=table,
         )
 
-        assert cache.get_time_filter(*args, **kwargs) == time_filter
+        assert cache.get_time_filter(*args, **kwargs) == time_filter, description
         assert cache.removed_filters == removed_filters
         assert cache.applied_filters == applied_filters

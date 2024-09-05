@@ -378,6 +378,7 @@ class ExtraCache:
     def get_time_filter(
         self,
         column: str | None = None,
+        default: str | None = None,
         target_type: str | None = None,
         remove_filter: bool = False,
     ) -> TimeFilter:
@@ -387,6 +388,8 @@ class ExtraCache:
 
         :param column: Name of the temporal column. Leave undefined to reference the
             time range from a Dashboard Native Time Range filter (when present).
+        :param default: The default value to fall back to if the time filter is
+            not present, or has the value `No filter`
         :param target_type: The target temporal type as recognized by the target
             database (e.g. `TIMESTAMP`, `DATE` or `DATETIME`). If `column` is defined,
             the format will default to the type of the column. This is used to produce
@@ -427,6 +430,8 @@ class ExtraCache:
                     target_type = self.table.columns_types.get(column)
 
         time_range = time_range or NO_TIME_RANGE
+        if time_range == NO_TIME_RANGE and default:
+            time_range = default
         from_expr, to_expr = get_since_until_from_time_range(time_range)
 
         def _format_dttm(dttm: datetime | None) -> str | None:
