@@ -80,11 +80,12 @@ Join our growing community!
 - [Caizin](https://caizin.com/) [@tejaskatariya]
 - [Careem](https://www.careem.com/) [@SamraHanifCareem]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
-- [CnOvit](http://www.cnovit.com/) [@xieshaohu]
+- [CnOvit](https://www.cnovit.com/) [@xieshaohu]
 - [Cyberhaven](https://www.cyberhaven.com/) [@toliver-ch]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
 - [Dial Once](https://www.dial-once.com/)
 - [Dremio](https://dremio.com) [@narendrans]
+- [Elestio](https://elest.io/) [@kaiwalyakoparkar]
 - [ELMO Cloud HR & Payroll](https://elmosoftware.com.au/)
 - [Endress+Hauser](http://www.endress.com/) [@rumbin]
 - [FBK - ICT center](http://ict.fbk.eu)

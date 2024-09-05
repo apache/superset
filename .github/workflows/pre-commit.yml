@@ -40,8 +40,11 @@ jobs:
           brew install norwoodj/tap/helm-docs
       - name: pre-commit
         run: |
-          if ! pre-commit run --all-files; then
-            git status
-            git diff
+          set +e  # Don't exit immediately on failure
+          pre-commit run --all-files
+          if [ $? -ne 0 ] || ! git diff --quiet --exit-code; then
+            echo "❌ Pre-commit check failed."
+            echo "🚒 To prevent/address this CI issue, please install/use pre-commit locally."
+            echo "📖 More details here: https://superset.apache.org/docs/contributing/development#git-hooks"
             exit 1
           fi

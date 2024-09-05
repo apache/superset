@@ -25,6 +25,7 @@ from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
+from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.fixtures.certificates import ssl_certificate
@@ -89,7 +90,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
             "(timestamp 'epoch' + lower_case * interval '1 second'))",
         )
 
-    def test_time_exp_mixd_case_col_1y(self):
+    def test_time_exp_mixed_case_col_1y(self):
         """
         DB Eng Specs (postgres): Test grain expr mixed case 1 YEAR
         """
@@ -240,14 +241,14 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         ]
 
         msg = (
-            'psql: error: could not translate host name "locahost" to address: '
+            'psql: error: could not translate host name "localhost_" to address: '
             "nodename nor servname provided, or not known"
         )
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
                 error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
-                message='The hostname "locahost" cannot be resolved.',
+                message='The hostname "localhost_" cannot be resolved.',
                 level=ErrorLevel.ERROR,
                 extra={
                     "engine_name": "PostgreSQL",
@@ -420,11 +421,11 @@ psql: error: could not connect to server: Operation timed out
             )
         ]
 
-        msg = 'syntax error at or near "fromm"'
+        msg = 'syntax error at or near "from_"'
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='Please check your query for syntax errors at or near "fromm". Then, try running your query again.',
+                message='Please check your query for syntax errors at or near "from_". Then, try running your query again.',
                 error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -525,11 +526,10 @@ def test_get_catalog_names(app_context: AppContext) -> None:
     """
     Test the ``get_catalog_names`` method.
     """
-    database = get_example_database()
-
-    if database.backend != "postgresql":
+    if backend() != "postgresql":
         return
 
+    database = get_example_database()
     with database.get_inspector() as inspector:
         assert PostgresEngineSpec.get_catalog_names(database, inspector) == {
             "postgres",

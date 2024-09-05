@@ -968,7 +968,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         result = PrestoEngineSpec._extract_error_message(exception)
         assert result == "name at location: msg"
 
-    def test_extract_error_message_db_errr(self):
+    def test_extract_error_message_db_error(self):
         from pyhive.exc import DatabaseError
 
         exception = DatabaseError({"message": "Err message"})

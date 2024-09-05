@@ -290,6 +290,7 @@ const FilterValue: FC<FilterControlProps> = ({
   const { cascadeParentIds } = filter;
   const { defaultToFirstItem, multiSelect } = formData;
 
+ 
   const filterState = useMemo(() => {
     if (formData?.defaultValue?.length > 0) {
       return {
@@ -299,6 +300,7 @@ const FilterValue: FC<FilterControlProps> = ({
         selected: false,
       };
     }
+    
     if (state?.length <= 0) {
       return {
         label: undefined,

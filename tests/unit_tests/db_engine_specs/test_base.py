@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import json
 from textwrap import dedent
 from typing import Any
 
@@ -333,4 +334,61 @@ def test_quote_table() -> None:
     assert (
         BaseEngineSpec.quote_table(Table("ta ble", "sche.ma", 'cata"log'), dialect)
         == '"cata""log"."sche.ma"."ta ble"'
+    )
+
+
+def test_mask_encrypted_extra() -> None:
+    """
+    Test that the private key is masked when the database is edited.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    config = json.dumps(
+        {
+            "foo": "bar",
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+
+    assert BaseEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "foo": "XXXXXXXXXX",
+            "service_account_info": "XXXXXXXXXX",
+        }
+    )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Test that the private key can be reused from the previous `encrypted_extra`.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    old = json.dumps(
+        {
+            "foo": "bar",
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "foo": "XXXXXXXXXX",
+            "service_account_info": "XXXXXXXXXX",
+        }
+    )
+
+    assert BaseEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "foo": "bar",
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
     )

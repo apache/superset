@@ -24,11 +24,11 @@ class TestGsheetsDbEngineSpec(TestDbEngineSpec):
         """
         Test that custom error messages are extracted correctly.
         """
-        msg = 'SQLError: near "fromm": syntax error'
+        msg = 'SQLError: near "from_": syntax error'
         result = GSheetsEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='Please check your query for syntax errors near "fromm". Then, try running your query again.',
+                message='Please check your query for syntax errors near "from_". Then, try running your query again.',
                 error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={

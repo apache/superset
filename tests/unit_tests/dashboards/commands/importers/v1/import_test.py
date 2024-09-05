@@ -65,7 +65,9 @@ def test_import_dashboard(mocker: MockerFixture, session_with_schema: Session) -
     """
     Test importing a dashboard.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
 
     dashboard = import_dashboard(dashboard_config)
     assert dashboard.dashboard_title == "Test dash"
@@ -73,7 +75,7 @@ def test_import_dashboard(mocker: MockerFixture, session_with_schema: Session) -
     assert dashboard.is_managed_externally is False
     assert dashboard.external_url is None
     # Assert that the can write to dashboard was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Dashboard")
+    mock_can_access.assert_called_once_with("can_write", "Dashboard")
 
 
 def test_import_dashboard_managed_externally(
@@ -83,7 +85,9 @@ def test_import_dashboard_managed_externally(
     """
     Test importing a dashboard that is managed externally.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
 
     config = copy.deepcopy(dashboard_config)
     config["is_managed_externally"] = True
@@ -93,7 +97,7 @@ def test_import_dashboard_managed_externally(
     assert dashboard.external_url == "https://example.org/my_dashboard"
 
     # Assert that the can write to dashboard was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Dashboard")
+    mock_can_access.assert_called_once_with("can_write", "Dashboard")
 
 
 def test_import_dashboard_without_permission(
@@ -103,7 +107,9 @@ def test_import_dashboard_without_permission(
     """
     Test importing a dashboard when a user doesn't have permissions to create.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=False)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=False
+    )
 
     with pytest.raises(ImportFailedError) as excinfo:
         import_dashboard(dashboard_config)
@@ -113,7 +119,7 @@ def test_import_dashboard_without_permission(
     )
 
     # Assert that the can write to dashboard was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Dashboard")
+    mock_can_access.assert_called_once_with("can_write", "Dashboard")
 
 
 def test_import_existing_dashboard_without_permission(
@@ -123,8 +129,12 @@ def test_import_existing_dashboard_without_permission(
     """
     Test importing a dashboard when a user doesn't have permissions to create.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(security_manager, "can_access_dashboard", return_value=False)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+    mock_can_access_dashboard = mocker.patch.object(
+        security_manager, "can_access_dashboard", return_value=False
+    )
 
     dashboard = (
         session_with_data.query(Dashboard)
@@ -141,8 +151,8 @@ def test_import_existing_dashboard_without_permission(
         )
 
     # Assert that the can write to dashboard was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Dashboard")
-    security_manager.can_access_dashboard.assert_called_once_with(dashboard)
+    mock_can_access.assert_called_once_with("can_write", "Dashboard")
+    mock_can_access_dashboard.assert_called_once_with(dashboard)
 
 
 def test_import_existing_dashboard_with_permission(
@@ -152,8 +162,12 @@ def test_import_existing_dashboard_with_permission(
     """
     Test importing a dashboard that exists when a user has access permission to that dashboard.
     """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+    mock_can_access_dashboard = mocker.patch.object(
+        security_manager, "can_access_dashboard", return_value=True
+    )
 
     admin = User(
         first_name="Alice",
@@ -173,5 +187,5 @@ def test_import_existing_dashboard_with_permission(
         import_dashboard(dashboard_config, overwrite=True)
 
     # Assert that the can write to dashboard was checked
-    security_manager.can_access.assert_called_once_with("can_write", "Dashboard")
-    security_manager.can_access_dashboard.assert_called_once_with(dashboard)
+    mock_can_access.assert_called_once_with("can_write", "Dashboard")
+    mock_can_access_dashboard.assert_called_once_with(dashboard)

@@ -24,10 +24,7 @@ import {
   getNumberFormatter,
   SimpleAdhocFilter,
   ensureIsArray,
-  getTimeOffset,
-  parseDttmToDate,
 } from '@superset-ui/core';
-import { isEmpty } from 'lodash';
 import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
 export const parseMetricValue = (metricValue: number | string | null) => {
@@ -99,37 +96,16 @@ export default function transformProps(chartProps: ChartProps) {
     (adhoc_filter: SimpleAdhocFilter) =>
       adhoc_filter.operator === 'TEMPORAL_RANGE',
   )?.[0];
-  // In case the viz is using all version of controls, we try to load them
-  const previousCustomTimeRangeFilters: any =
-    chartProps.rawFormData?.adhoc_custom?.filter(
-      (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-    ) || [];
 
-  let previousCustomStartDate = '';
-  if (
-    !isEmpty(previousCustomTimeRangeFilters) &&
-    previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
-  ) {
-    previousCustomStartDate =
-      previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
-  }
   const isCustomOrInherit =
     timeComparison === 'custom' || timeComparison === 'inherit';
   let dataOffset: string[] = [];
   if (isCustomOrInherit) {
-    dataOffset = getTimeOffset({
-      timeRangeFilter: {
-        ...currentTimeRangeFilter,
-        comparator:
-          formData?.extraFormData?.time_range ??
-          (currentTimeRangeFilter as any)?.comparator,
-      },
-      shifts: ensureIsArray(timeComparison),
-      startDate:
-        previousCustomStartDate && !startDateOffset
-          ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
-          : startDateOffset,
-    });
+    if (timeComparison && timeComparison === 'custom') {
+      dataOffset = [startDateOffset];
+    } else {
+      dataOffset = ensureIsArray(timeComparison) || [];
+    }
   }
 
   const { value1, value2 } = data.reduce(

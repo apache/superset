@@ -166,7 +166,7 @@ def import_dataset(
 
     try:
         table_exists = dataset.database.has_table(
-            Table(dataset.table_name, dataset.schema),
+            Table(dataset.table_name, dataset.schema, dataset.catalog),
         )
     except Exception:  # pylint: disable=broad-except
         # MySQL doesn't play nice with GSheets table names
