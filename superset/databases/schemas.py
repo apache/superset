@@ -985,6 +985,9 @@ class EngineInformationSchema(Schema):
             "description": "The database supports multiple catalogs in a single connection"
         }
     )
+    supports_oauth2 = fields.Boolean(
+        metadata={"description": "The database supports OAuth2"}
+    )
 
 
 class DatabaseConnectionSchema(Schema):

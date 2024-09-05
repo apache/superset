@@ -383,9 +383,6 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
-        cellProps: {
-          style: { padding: '0px' },
-        },
         size: 'xl',
       },
       {

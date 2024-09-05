@@ -154,6 +154,7 @@ export enum ActionType {
   EditorChange,
   ExtraEditorChange,
   ExtraInputChange,
+  EncryptedExtraInputChange,
   Fetched,
   InputChange,
   ParametersChange,
@@ -185,6 +186,7 @@ export type DBReducerActionType =
       type:
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
+        | ActionType.EncryptedExtraInputChange
         | ActionType.TextChange
         | ActionType.QueryChange
         | ActionType.InputChange
@@ -267,6 +269,14 @@ export function dbReducer(
         extra: JSON.stringify({
           ...extraJson,
           [action.payload.name]: actionPayloadJson,
+        }),
+      };
+    case ActionType.EncryptedExtraInputChange:
+      return {
+        ...trimmedState,
+        masked_encrypted_extra: JSON.stringify({
+          ...JSON.parse(trimmedState.masked_encrypted_extra || '{}'),
+          [action.payload.name]: action.payload.value,
         }),
       };
     case ActionType.ExtraInputChange:
@@ -1652,6 +1662,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
         onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
           onChange(ActionType.ExtraInputChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
+        onEncryptedExtraInputChange={({
+          target,
+        }: {
+          target: HTMLInputElement;
+        }) =>
+          onChange(ActionType.EncryptedExtraInputChange, {
             name: target.name,
             value: target.value,
           })
