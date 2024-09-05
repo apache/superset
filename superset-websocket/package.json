@@ -23,7 +23,7 @@
     "ioredis": "^4.28.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
-    "uuid": "^9.0.1",
+    "uuid": "^10.0.0",
     "winston": "^3.13.0",
     "ws": "^8.17.1"
   },
@@ -34,7 +34,7 @@
     "@types/jest": "^29.5.12",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^22.0.2",
-    "@types/uuid": "^9.0.8",
+    "@types/uuid": "^10.0.0",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
