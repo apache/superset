@@ -327,19 +327,22 @@ export class HeaderActionsDropdown extends PureComponent {
               <Menu.Divider />
             </>
           ) : (
-            <Menu>
-              <HeaderReportDropdown
-                dashboard={{
-                  id: dashboardInfo.id,
-                  value: dashboardInfo.id,
-                  label: dashboardTitle,
-                }}
-                setShowReportSubMenu={this.setShowReportSubMenu}
-                setIsDropdownVisible={setIsDropdownVisible}
-                isDropdownVisible={isDropdownVisible}
-                useTextMenu
-              />
-            </Menu>
+            <>
+              <Menu>
+                <HeaderReportDropdown
+                  dashboard={{
+                    id: dashboardInfo.id,
+                    value: dashboardInfo.id,
+                    label: dashboardTitle,
+                  }}
+                  setShowReportSubMenu={this.setShowReportSubMenu}
+                  setIsDropdownVisible={setIsDropdownVisible}
+                  isDropdownVisible={isDropdownVisible}
+                  useTextMenu
+                />
+              </Menu>
+              <Menu.Divider />
+            </>
           )
         ) : null}
         {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (
