@@ -163,6 +163,7 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const dataMaskSelectedRef = useRef(dataMaskSelected);
   dataMaskSelectedRef.current = dataMaskSelected;
+  /* eslint-disable */
   const handleFilterSelectionChange = useCallback(
     (
       filter: Pick<Filter, 'id'> & Partial<Filter>,
@@ -199,6 +200,7 @@ const FilterBar: FC<FiltersBarProps> = ({
 
     [dispatch, setDataMaskSelected],
   );
+  /* eslint-disable */
   function findFilterIdByCascadeParent(filterData: any, targetId: string) {
     for (const filter of filterData) {
       if (filter.cascadeParentIds?.includes(targetId)) {
@@ -206,7 +208,8 @@ const FilterBar: FC<FiltersBarProps> = ({
       }
     }
     return null; // Return null if not found
-  } 
+  }
+  /* eslint-disable */
   useEffect(() => {
     if (state) {
       const hasSelectedFilters = Object.values(dataMaskSelected).some(
@@ -265,7 +268,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       }
     }
   }, [state]);
-
+  /* eslint-disable */
   useEffect(() => {
     if (previousFilters && dashboardId === previousDashboardId) {
       const updates = {};

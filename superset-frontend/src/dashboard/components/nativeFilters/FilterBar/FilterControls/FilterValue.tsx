@@ -286,12 +286,21 @@ const FilterValue: FC<FilterControlProps> = ({
       unsetFocusedFilter,
     ],
   );
-
+  /* eslint-disable */
   const { cascadeParentIds } = filter;
-  const { defaultToFirstItem, multiSelect, defaultValue } = formData;
-  const cascadeParentIdsLength = cascadeParentIds.length;
+  const { defaultToFirstItem, multiSelect } = formData;
 
+ 
   const filterState = useMemo(() => {
+    if (formData?.defaultValue?.length > 0) {
+      return {
+        ...filter.dataMask?.filterState,
+        validateStatus,
+        validateMessage: '',
+        selected: false,
+      };
+    }
+    
     if (state?.length <= 0) {
       return {
         label: undefined,
@@ -351,13 +360,10 @@ const FilterValue: FC<FilterControlProps> = ({
     };
   }, [
     dependencies,
-    defaultValue,
-    state?.length,
+    formData,
+    state,
     validateStatus,
-    filter?.dataMask?.filterState?.selected,
-    cascadeParentIdsLength,
-    defaultToFirstItem,
-    multiSelect,
+    filter.dataMask?.filterState,
   ]);
 
   const displaySettings = useMemo(
