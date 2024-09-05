@@ -42,7 +42,7 @@ dependencies = [
     "colorama",
     "croniter>=0.3.28",
     "cron-descriptor",
-    "cryptography>=42.0.4, <43.0.0",
+    "cryptography>=42.0.4, <44.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <3.0.0",
     "flask-appbuilder>=4.5.0, <5.0.0",
