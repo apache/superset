@@ -26,7 +26,7 @@ from superset import event_logger, is_feature_enabled
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.daos.chart import EmbeddedChartDAO
 from superset.superset_typing import FlaskResponse
-from superset.utils import json
+from superset.utils import json, core as utils
 from superset.views.base import BaseSupersetView, common_bootstrap_payload
 
 
