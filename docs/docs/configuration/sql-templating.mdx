@@ -17,8 +17,8 @@ made available in the Jinja context:
 
 - `columns`: columns which to group by in the query
 - `filter`: filters applied in the query
-- `from_dttm`: start `datetime` value from the selected time range (`None` if undefined) (deprecated, use `get_time_filter` instead)
-- `to_dttm`: end `datetime` value from the selected time range (`None` if undefined). (deprecated, use `get_time_filter` instead)
+- `from_dttm`: start `datetime` value from the selected time range (`None` if undefined) (deprecated beginning in version 5.0, use `get_time_filter` instead)
+- `to_dttm`: end `datetime` value from the selected time range (`None` if undefined). (deprecated beginning in version 5.0, use `get_time_filter` instead)
 - `groupby`: columns which to group by in the query (deprecated)
 - `metrics`: aggregate expressions in the query
 - `row_limit`: row limit of the query
@@ -350,7 +350,7 @@ Here's a concrete example:
 
 The `{{ get_time_filter() }}` macro returns the time filter applied to a specific column. This is useful if you want
 to handle time filters inside the virtual dataset, as by default the time filter is placed on the outer query. This can
-have considerable performance implications, as many databases and query engines are able to optimize the query better
+considerably improve performance, as many databases and query engines are able to optimize the query better
 if the temporal filter is placed on the inner query, as opposed to the outer query.
 
 The macro takes the following parameters:
@@ -366,7 +366,7 @@ The macro takes the following parameters:
 The return type has the following properties:
 - `from_expr`: the start of the time filter (if any)
 - `to_expr`: the end of the time filter (if any)
-- `time_range`: The time range as defined on the
+- `time_range`: The applied time range
 
 Here's a concrete example using the `logs` table from the Superset metastore:
 
@@ -387,7 +387,7 @@ FROM logs
 
 Assuming we are creating a table chart with a simple `COUNT(*)` as the metric with a time filter `Last week` on the
 `dttm` column, this would render the following query on Postgres (note the formatting of the temporal filters, and
-the missing filters on the outer query):
+the absence of time filters on the outer query):
 
 ```
 SELECT COUNT(*) AS count

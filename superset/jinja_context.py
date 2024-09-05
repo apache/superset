@@ -394,8 +394,7 @@ class ExtraCache:
             database (e.g. `TIMESTAMP`, `DATE` or `DATETIME`). If `column` is defined,
             the format will default to the type of the column. This is used to produce
             the format of the `from_expr` and `to_expr` properties of the returned
-            `TimeFilter` object. Note, that omitting `column` and `target_type` will
-            render format the temporal values as ISO format.
+            `TimeFilter` object.
         :param remove_filter: When set to true, mark the filter as processed,
             removing it from the outer query. Useful when a filter should
             only apply to the inner query.
