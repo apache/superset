@@ -413,7 +413,6 @@ FROM logs
 WHERE
   dttm >= {{ time_filter.from_expr }}
   AND dttm < {{ time_filter.to_expr }}
-{% endif %}
 ```
 
 **Datasets**

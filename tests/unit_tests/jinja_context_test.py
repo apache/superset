@@ -980,7 +980,7 @@ def test_get_time_filter(
 
     database = Database(database_name="my_database", sqlalchemy_uri=sqlalchemy_uri)
     table = SqlaTable(
-        table_name="my_datast",
+        table_name="my_dataset",
         columns=columns,
         main_dttm_col="dt",
         database=database,
