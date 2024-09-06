@@ -32,6 +32,7 @@ from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
     APP_DIR,
@@ -495,11 +496,25 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # SQLALCHEMY_ENGINE_OPTIONS
         eng_options = self.config["SQLALCHEMY_ENGINE_OPTIONS"] or {}
         isolation_level = eng_options.get("isolation_level")
-        if not isolation_level and self.config["SQLALCHEMY_DATABASE_URI"].startswith(
-            "mysql"
-        ):
+        set_isolation_level_to = None
+
+        if not isolation_level:
+            backend = make_url_safe(
+                self.config["SQLALCHEMY_DATABASE_URI"]
+            ).get_backend_name()
+            if backend == "mysql":
+                set_isolation_level_to = "READ COMMITTED"
+            elif backend == "postgresql":
+                set_isolation_level_to = "READ COMMITTED"
+
+        if set_isolation_level_to:
+            logger.info(
+                "Setting isolation level to %s for engine %s",
+                set_isolation_level_to,
+                db.engine,
+            )
             with self.superset_app.app_context():
-                db.engine.execution_options(isolation_level="READ COMMITTED")
+                db.engine.execution_options(isolation_level=set_isolation_level_to)
 
     def configure_auth_provider(self) -> None:
         machine_auth_provider_factory.init_app(self.superset_app)
