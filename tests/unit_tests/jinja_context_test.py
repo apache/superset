@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=invalid-name, unused-argument
+from __future__ import annotations
 
 from typing import Any
 
 import pytest
+from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
@@ -32,6 +34,7 @@ from superset.jinja_context import (
     ExtraCache,
     metric_macro,
     safe_proxy,
+    TimeFilter,
     WhereInMacro,
 )
 from superset.models.core import Database
@@ -836,3 +839,164 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
     )
     mock_get_form_data.assert_called_once()
     DatasetDAO.find_by_id.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "description,args,kwargs,sqlalchemy_uri,queries,time_filter,removed_filters,applied_filters",
+    [
+        (
+            "Missing time_range and filter will return a No filter result",
+            [],
+            {"target_type": "TIMESTAMP"},
+            "postgresql://mydb",
+            [{}],
+            TimeFilter(
+                from_expr=None,
+                to_expr=None,
+                time_range="No filter",
+            ),
+            [],
+            [],
+        ),
+        (
+            "Missing time range and filter with default value will return a result with the defaults",
+            [],
+            {"default": "Last week", "target_type": "TIMESTAMP"},
+            "postgresql://mydb",
+            [{}],
+            TimeFilter(
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                time_range="Last week",
+            ),
+            [],
+            [],
+        ),
+        (
+            "Time range is extracted with the expected format, and default is ignored",
+            [],
+            {"default": "Last month", "target_type": "TIMESTAMP"},
+            "postgresql://mydb",
+            [{"time_range": "Last week"}],
+            TimeFilter(
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                time_range="Last week",
+            ),
+            [],
+            [],
+        ),
+        (
+            "Filter is extracted with the native format of the column (TIMESTAMP)",
+            ["dttm"],
+            {},
+            "postgresql://mydb",
+            [
+                {
+                    "filters": [
+                        {
+                            "col": "dttm",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "Last week",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                time_range="Last week",
+            ),
+            [],
+            ["dttm"],
+        ),
+        (
+            "Filter is extracted with the native format of the column (DATE)",
+            ["dt"],
+            {"remove_filter": True},
+            "postgresql://mydb",
+            [
+                {
+                    "filters": [
+                        {
+                            "col": "dt",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "Last week",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="TO_DATE('2024-08-27', 'YYYY-MM-DD')",
+                to_expr="TO_DATE('2024-09-03', 'YYYY-MM-DD')",
+                time_range="Last week",
+            ),
+            ["dt"],
+            ["dt"],
+        ),
+        (
+            "Filter is extracted with the overridden format (TIMESTAMP to DATE)",
+            ["dttm"],
+            {"target_type": "DATE", "remove_filter": True},
+            "trino://mydb",
+            [
+                {
+                    "filters": [
+                        {
+                            "col": "dttm",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "Last month",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="DATE '2024-08-03'",
+                to_expr="DATE '2024-09-03'",
+                time_range="Last month",
+            ),
+            ["dttm"],
+            ["dttm"],
+        ),
+    ],
+)
+def test_get_time_filter(
+    description: str,
+    args: list[Any],
+    kwargs: dict[str, Any],
+    sqlalchemy_uri: str,
+    queries: list[Any] | None,
+    time_filter: TimeFilter,
+    removed_filters: list[str],
+    applied_filters: list[str],
+) -> None:
+    """
+    Test the ``get_time_filter`` macro.
+    """
+    columns = [
+        TableColumn(column_name="dt", is_dttm=1, type="DATE"),
+        TableColumn(column_name="dttm", is_dttm=1, type="TIMESTAMP"),
+    ]
+
+    database = Database(database_name="my_database", sqlalchemy_uri=sqlalchemy_uri)
+    table = SqlaTable(
+        table_name="my_dataset",
+        columns=columns,
+        main_dttm_col="dt",
+        database=database,
+    )
+
+    with (
+        freeze_time("2024-09-03"),
+        app.test_request_context(
+            json={"queries": queries},
+        ),
+    ):
+        cache = ExtraCache(
+            database=database,
+            table=table,
+        )
+
+        assert cache.get_time_filter(*args, **kwargs) == time_filter, description
+        assert cache.removed_filters == removed_filters
+        assert cache.applied_filters == applied_filters
