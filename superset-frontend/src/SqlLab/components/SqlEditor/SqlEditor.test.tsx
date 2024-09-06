@@ -189,6 +189,18 @@ describe('SqlEditor', () => {
     expect(await findByTestId('react-ace')).toBeInTheDocument();
   });
 
+  it('skip rendering an AceEditorWrapper when the current tab is inactive', async () => {
+    const { findByTestId, queryByTestId } = setup(
+      {
+        ...mockedProps,
+        queryEditor: initialState.sqlLab.queryEditors[1],
+      },
+      store,
+    );
+    expect(await findByTestId('mock-sql-editor-left-bar')).toBeInTheDocument();
+    expect(queryByTestId('react-ace')).not.toBeInTheDocument();
+  });
+
   it('avoids rerendering EditorLeftBar and ResultSet while typing', async () => {
     const { findByTestId } = setup(mockedProps, store);
     const editor = await findByTestId('react-ace');

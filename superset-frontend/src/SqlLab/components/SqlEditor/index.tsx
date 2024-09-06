@@ -862,15 +862,17 @@ const SqlEditor: React.FC<Props> = ({
               startQuery={startQuery}
             />
           )}
-          <AceEditorWrapper
-            autocomplete={autocompleteEnabled}
-            onBlur={onSqlChanged}
-            onChange={onSqlChanged}
-            queryEditorId={queryEditor.id}
-            onCursorPositionChange={handleCursorPositionChange}
-            height={`${aceEditorHeight}px`}
-            hotkeys={hotkeys}
-          />
+          {isActive && (
+            <AceEditorWrapper
+              autocomplete={autocompleteEnabled}
+              onBlur={onSqlChanged}
+              onChange={onSqlChanged}
+              queryEditorId={queryEditor.id}
+              onCursorPositionChange={handleCursorPositionChange}
+              height={`${aceEditorHeight}px`}
+              hotkeys={hotkeys}
+            />
+          )}
           {renderEditorBottomBar(showEmptyState)}
         </div>
         <SouthPane
