@@ -231,11 +231,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Setup regular views
         #
 
-        appbuilder.add_view(
-            AssistantView,
+        appbuilder.add_link(
             "Assistant",
             label=__("Assistant"),
+            href="/assistant/",
         )
+
+        appbuilder.add_view_no_menu(AssistantView)
 
         appbuilder.add_view(
             DatabaseView,

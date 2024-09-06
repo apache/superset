@@ -247,7 +247,6 @@ class AssistantView(BaseSupersetView):
                         "The queries should try to standardize the data.",
                         "For example, if the data is in different units, the queries should convert the data to a single unit.",
                         "If the data is a mix of upper and lower case, the queries should convert the data to a single case.",
-                        "All column names must be enclosed in quotes i.e `column_name`",
                         "The query MUST be a valid SQL query. For the database backend ",
                         "Join queries are allowed accross schemas in the same database.",
                         "The queries should try and make vizualizations labels are human readable. E.G for queries returning ids, the queries should join with tables that have human readable names. ONLY if the human readable names are available AND selected in the schema.",
@@ -335,6 +334,8 @@ class AssistantView(BaseSupersetView):
                         Use specific column_name specified in the New_{viz_suggestion}_Datasource.
                         Do not use any column_name not listed in the New_{viz_suggestion}_Datasource.
                         Do not use any aggregate functions not supported by SQL.
+                        
+                        Please make sure all columns and metrics have a unique label.
                         
                         Response should be a valid json format i.e use correct boolean, integer and string values.
                         Boolean values should be true or false. not True or False. i.e lowercase.

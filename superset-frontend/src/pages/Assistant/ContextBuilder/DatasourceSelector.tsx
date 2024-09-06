@@ -2,45 +2,62 @@ import React, { Component } from 'react';
 import { Datasource } from './Datasource';
 import { ContextSelection, ContextSelectionProps } from './ContextSelection';
 import { DatasourceProps } from './Datasource';
-import { fetchDatabaseData, DatabaseData } from '../contextUtils';
 import { Spin } from 'antd';
+import { AssistantActionsType } from '../actions';
+import { fetchDatabaseData, DatabaseData } from '../contextUtils';
+
 
 /**
  * Props
  */
 export interface DatasourceSelectorProps {
+    datasources: DatasourceProps[];
     onChange: (data: DatasourceProps[]) => void;
+    actions: AssistantActionsType;
 }
 
-export interface DatasourceSelectorState {
-    datasources: DatasourceProps[];
+export interface DatasourceSelectorState extends  DatasourceSelectorProps {
     loading: boolean;
+    onChange: (data: DatasourceProps[]) => void
 }
 
 export class DatasourceSelector extends Component<DatasourceSelectorProps, DatasourceSelectorState> {
     constructor(props: DatasourceSelectorProps) {
         super(props);
         this.state = {
-            datasources: [],
-            loading: true,
+           ...props,
+           loading: false
         };
+        console.log("DatasourceSelector Props", props);
+        console.log("DatasourceSelector State", this.state);
     }
 
     async componentDidMount() {
-        try {
-            const data: DatabaseData[] = await fetchDatabaseData();
-            const datasources = data.map((database: DatabaseData) => ({
-                id: database.database_id,
-                selected: false,
-                datasourceName: database.database_name,
-                backend: database.backend,
-                schema: [],
-            }));
-            this.setState({ datasources });
-        } catch (error) {
-            console.error("<<<<>>>> Error fetching database data:", error);
-        } finally {
-            this.setState({ loading: false });
+        if (this.state.datasources.length === 0) {
+            try {
+                this.setState({ loading: true });
+                const resp: DatabaseData[] = await fetchDatabaseData();
+                const data: DatasourceProps[] = resp.map((database: DatabaseData) => ({
+                    id: database.database_id,
+                    selected: false,
+                    datasourceName: database.database_name,
+                    backend: database.backend,
+                    schema: [],
+                    action: this.props.actions,
+                }));
+                this.props.actions.loadDataSourceProps(data);
+            } catch (error) {
+                console.error('Failed to fetch database data', error);
+            } finally {
+                this.setState({ loading: false });
+            }
+        }
+    }
+
+    componentDidUpdate(prevProps: Readonly<DatasourceSelectorProps>, prevState: Readonly<DatasourceSelectorState>, snapshot?: any): void {
+        console.log("DatasourceSelector Props componentDidUpdate", prevState);
+        if (prevProps.datasources !== this.props.datasources) {
+            this.setState({ datasources: this.props.datasources });
         }
     }
 

@@ -2,7 +2,6 @@ import { AssistantSuggestionCategory, AssistantSuggestionCategoryProps } from '.
 
 export interface AssistantCategoriesProps {
     categories: AssistantSuggestionCategoryProps[];
-    actions: any;
 }
 
 export function AssistantSuggestionCategories(props: AssistantCategoriesProps) {
@@ -20,10 +19,7 @@ export function AssistantSuggestionCategories(props: AssistantCategoriesProps) {
             }}
         >
             {props.categories.map((category, index) => (
-                <AssistantSuggestionCategory key={index} {...{
-                    ...category,
-                    actions: props.actions
-                }} />
+                <AssistantSuggestionCategory key={index} {...category} />
             ))}
         </div>
     );

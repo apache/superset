@@ -1,33 +1,12 @@
 import React, { Component } from 'react';
-import { AssistantSuggestionsGridProps } from './AssistantSuggestionsGrid';
-import { AssistantSuggestionCategoryProps} from './AssistantSuggestionCategory';
 import { AssistantCategoriesProps, AssistantSuggestionCategories } from './AssistantSuggestionCategories';
 import { AssistantWelcomeMessage } from './AssistantWelcomeMessage';
 import { AssistantPrompt } from './AssistantPrompt';
 import { DatasourceProps } from '../ContextBuilder/Datasource';
 import { getVizSuggestions } from '../assistantUtils';
 import { AssistantSuggestionProps } from './AssistantSuggestion';
-import { act } from 'react-dom/test-utils';
+import { AssistantActionsType } from '../actions';
 
-
-
-const sampleSuggestions: AssistantSuggestionsGridProps = {
-  suggestions: [
-  ],
-};
-
-
-const sampleCategory: AssistantSuggestionCategoryProps = {
-  categoryTitle: 'Visualization Suggestions',
-  categoryDescription: 'Suggested Alerts based on available data sources and data sets',
-  backgroundGradientStart: '#FF9398',
-  backgroundGradientEnd: '#FF4049',
-  suggestions: sampleSuggestions.suggestions,
-};
-
-const testcategories: AssistantCategoriesProps = {
-  categories: [sampleCategory],
-};
 
 export interface AssistantProps {
   user: {
@@ -36,13 +15,17 @@ export interface AssistantProps {
     lastName: string;
   };
   data: DatasourceProps[];
-  actions: any;
+  actions: AssistantActionsType;
+}
+
+export interface AssistantState extends AssistantProps {
+  categories: AssistantCategoriesProps;
 }
 
 /**
  * This is the main page for the Assistant: Superset. This page will be the first page that the user sees when they open the Assistant.
  */
-export class AssistantHome extends Component<AssistantProps> {
+export class AssistantHome extends Component<AssistantProps,AssistantState> {
   
 
   // constructor
@@ -85,6 +68,7 @@ export class AssistantHome extends Component<AssistantProps> {
               backgroundGradientStart: '#FF9398',
               backgroundGradientEnd: '#FF4049',
               suggestions: suggestions,
+              actions: this.props.actions,
             },
           ],
         },
@@ -98,21 +82,14 @@ export class AssistantHome extends Component<AssistantProps> {
 
 
   render() {
-    const { user, actions } = this.props;
+    const { user } = this.props;
     const { categories } = this.state;
     console.log("Assistant Home Props render", categories);
 
     return (
       <>
         <AssistantWelcomeMessage userFirsrName={user.firstName} />
-        <AssistantSuggestionCategories {
-         ...{
-          ...categories, 
-          actions: {
-            ...actions,
-          },
-         }
-          } />
+        <AssistantSuggestionCategories {...categories} />
         <AssistantPrompt />
       </>
     );

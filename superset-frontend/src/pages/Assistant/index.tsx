@@ -1,4 +1,3 @@
-import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu from 'src/features/home/SubMenu';
 import { AssistantHome, AssistantProps } from './AssistantHome';
 import { useState } from 'react';
@@ -6,10 +5,10 @@ import { DatasourceProps } from './ContextBuilder/Datasource';
 import { AssistantContextBuilder } from './ContextBuilder';
 import { Tabs } from 'antd';
 import { QueryResultTable } from './PreviewBuilder';
-import * as actions from './actions';
+import { actions } from './actions';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { prop } from 'lodash/fp';
+
 
 /**
  * title: string;
@@ -20,6 +19,8 @@ import { prop } from 'lodash/fp';
 
 
 function Assistant(props: AssistantProps) {
+
+  console.log("Assistant Props", props);
 
   // data selection state
   const [datasources, setDatasources] = useState<DatasourceProps[]>(props.data || []);
@@ -34,7 +35,6 @@ function Assistant(props: AssistantProps) {
 
   return (
     <>
-      {console.log("Assistant Props", datasources)}
       <SubMenu
         name="Assistant"
       />
@@ -57,7 +57,10 @@ function Assistant(props: AssistantProps) {
             &nbsp;Context Builder&nbsp;
           </span>
         } key="2">
-          <AssistantContextBuilder {...props} onChange={(data) => {
+          <AssistantContextBuilder 
+            datasources={props.data || []}
+            actions={props.actions}
+            onChange={(data) => {
             handleDataChange(data);
           }} />
         </Tabs.TabPane>
@@ -74,6 +77,7 @@ function Assistant(props: AssistantProps) {
 }
 
 function mapStateToProps(state: any) {
+  console.log("Assistant State", state);
   const { assistant } = state;
   return {
     ...assistant
@@ -89,4 +93,4 @@ function mapDispatchToProps(dispatch: any) {
 
 export default connect(
   mapStateToProps,mapDispatchToProps
-)(withToasts(Assistant));
+)(Assistant)

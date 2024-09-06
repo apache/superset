@@ -3,7 +3,6 @@ import { getChartControlValues, saveChartExample } from "../assistantUtils";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { QueryFormData } from "@superset-ui/core";
-import { on } from "process";
 
 
 function ChartControlsPeek(props: any) {

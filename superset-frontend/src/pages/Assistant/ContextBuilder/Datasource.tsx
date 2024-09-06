@@ -2,6 +2,7 @@ import { Collapse, Spin } from "antd";
 import { DatasourceSchemaProps, DatasourceSchema } from "./DatasourceSchema";
 import React from "react";
 import { fetchSchemaData, DatabaseScemaData } from "../contextUtils";
+import { AssistantActionsType } from '../actions';
 
 /**
  * Props
@@ -13,6 +14,7 @@ export interface DatasourceProps {
     schema: DatasourceSchemaProps[];
     onChange?: (data: DatasourceProps) => void;
     loading?: boolean;
+    action: AssistantActionsType;
 }
 
 /**
@@ -26,7 +28,7 @@ export class Datasource extends React.Component<DatasourceProps> {
         this.state = {
             ...this.props,
             selected: this.props.selected || false,
-            loading: true,
+            loading: false,
         };
     }
 
@@ -37,21 +39,30 @@ export class Datasource extends React.Component<DatasourceProps> {
     };
 
     async componentDidMount() {
-        const { id , datasourceName} = this.props;
-        const schema = await fetchSchemaData(id);
-        const schemaData:DatasourceSchemaProps[]  = schema.map((schema: DatabaseScemaData) => {
-            return {
-                datasourceName: datasourceName,
-                databaseId: id,
-                selected: false,
-                schemaName: schema.schema_name,
-                description: schema.description,
-            };
-        });
-        this.setState((prevState: DatasourceProps) => ({
-            schema: schemaData,
-            loading: false,
-        }));
+        console.log("Datasource Props componentDidMount", this.props);
+        const { id , datasourceName, schema} = this.props;
+        if (schema.length === 0) {
+            const schema = await fetchSchemaData(id);
+            const schemaData:DatasourceSchemaProps[]  = schema.map((schema: DatabaseScemaData) => {
+                return {
+                    datasourceName: datasourceName,
+                    databaseId: id,
+                    selected: false,
+                    schemaName: schema.schema_name,
+                    description: schema.description,
+                    actions: this.props.action,
+                    tables: [],
+                };
+            });
+            this.props.action.loadDatabaseSchemaProps(schemaData);
+        }
+    }
+
+    componentDidUpdate(prevProps: Readonly<DatasourceProps>, prevState: Readonly<{}>, snapshot?: any): void {
+        console.log("Datasource Props componentDidUpdate", prevState);
+        if (prevProps.schema !== this.props.schema) {
+            this.setState({ schema: this.props.schema });
+        }
     }
 
     handleOnChange = (data: DatasourceSchemaProps) => {

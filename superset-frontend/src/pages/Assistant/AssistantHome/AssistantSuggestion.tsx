@@ -5,6 +5,7 @@ import { EXPLORE_CHART_DEFAULT } from '../../../SqlLab/types';
 import { useHistory } from 'react-router-dom';
 import { URL_PARAMS } from 'src/constants';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
+import * as actions from '../actions';
 
 /**
  * Component that displays the single suggestion for the assistant
@@ -18,18 +19,18 @@ export interface AssistantSuggestionProps {
     title: string;
     suggestion: string;
     backgroundColor?: string; // default color: white with .5 opacity
-    databaseId?: string;
-    schemaName?: string;
+    databaseId: string;
+    schemaName: string;
     viz_datasources: string[];
     viz_type: string;
     llm_optimized: string;
-    actions: any;
+    actions: typeof actions;
 }
 
 /**
  * AssistantSuggestion Component
  */
-export function AssistantSuggestion(props: AssistantSuggestionProps | any) {
+export function AssistantSuggestion(props: AssistantSuggestionProps) {
 
 
     console.log("Assistant Suggestion Props", props)
@@ -46,7 +47,7 @@ export function AssistantSuggestion(props: AssistantSuggestionProps | any) {
         console.log("Assistant Suggestion Props", props)
         props.actions.selectAssistantSuggestion({...props});
         // execute query
-        const queryResult: QueryResults|null = await executeQuery(props.databaseId, props.schemaName, props.viz_datasources[0]);
+        const queryResult: QueryResults|null = await executeQuery(Number(props.databaseId), props.schemaName, props.viz_datasources[0]);
         // postFormData
         if (!queryResult || !queryResult.results || !queryResult.results.query_id) {
             return;

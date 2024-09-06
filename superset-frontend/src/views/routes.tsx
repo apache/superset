@@ -137,7 +137,7 @@ type Routes = {
 
 export const routes: Routes = [
   {
-    path: '/assistant',
+    path: '/assistant/',
     Component: Assistant,
   },
   {

@@ -3,6 +3,7 @@ import { DatasourceTableProps } from "./DatasourceTable";
 import { DatasourceTable } from "./DatasourceTable";
 import React, { Component } from "react";
 import { fetchTableData, DatabaseSchemaTableData } from "../contextUtils";
+import { AssistantActionsType } from '../actions';
 
 /**
  * Props
@@ -13,27 +14,27 @@ export interface DatasourceSchemaProps {
     selected?: boolean;
     schemaName: string;
     description?: string;
-    tables?: DatasourceTableProps[];
+    tables: DatasourceTableProps[];
     onChange?: (data: DatasourceSchemaProps) => void;
     loading?: boolean;
     descriptionFocused?: boolean;
     isDescriptionLoading?: boolean;
     tablesToShow?: number;
+    actions : AssistantActionsType;
 }
 
 /**
  * DatasourceSchema Component
  */
-export class DatasourceSchema extends Component<DatasourceSchemaProps> {
+export class DatasourceSchema extends Component<DatasourceSchemaProps, DatasourceSchemaProps> {
 
     state: DatasourceSchemaProps = {
+        ...this.props,
         selected: this.props.selected || false,
-        tables: this.props.tables || [],
-        loading: true,
+        loading: false,
         descriptionFocused: false,
         isDescriptionLoading: false,
         tablesToShow: 15,
-        ...this.props
     };
 
     handleSelect = () => {
@@ -43,22 +44,31 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
     };
 
     async componentDidMount() {
-        const { databaseId, schemaName, datasourceName } = this.props;
-        const tables = await fetchTableData(databaseId, schemaName);
-        const tableData: DatasourceTableProps[] = tables.map((table: DatabaseSchemaTableData) => {
-            return {
-                databaseId: databaseId,
-                datasourceName:datasourceName,
-                schemaName: schemaName,
-                selected: false,
-                tableName: table.table_name,
-                columns: []
-            };
-        });
-        this.setState((prevState: DatasourceSchemaProps) => ({
-            tables: tableData,
-            loading: false
-        }));
+        const { databaseId, schemaName, datasourceName, tables } = this.props;
+        console.log("DatasourceSchema Props", this.props);
+        if (tables?.length === 0) {
+            this.setState({loading: true});
+            const tableData: DatasourceTableProps[] = (await fetchTableData(databaseId, schemaName)).map((table: DatabaseSchemaTableData) => {
+                return {
+                    databaseId: databaseId,
+                    datasourceName:datasourceName,
+                    schemaName: schemaName,
+                    selected: false,
+                    tableName: table.table_name,
+                    columns: [],
+                    actions: this.props.actions
+                };
+            });
+            this.props.actions.loadDatabaseSchemaTables(tableData);
+            this.setState({loading: false});
+        }
+    }
+
+    componentDidUpdate(prevProps: Readonly<DatasourceSchemaProps>, prevState: Readonly<DatasourceSchemaProps>, snapshot?: any): void {
+        console.log("DatasourceSchema Props componentDidUpdate", prevState);
+        if (prevProps.tables !== this.props.tables) {
+            this.setState({ tables: this.props.tables });
+        }
     }
 
     handleOnChange = (data: DatasourceTableProps) => {
@@ -110,7 +120,7 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps> {
     loadMoreTables = () => {
         this.setState((prevState) => {
             return {
-                tablesToShow: prevState.tablesToShow + 15
+                tablesToShow: (prevState.tablesToShow || 15) + 15
             };
         });
     };

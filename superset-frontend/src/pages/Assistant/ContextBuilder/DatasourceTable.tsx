@@ -1,9 +1,9 @@
 import React, { Component } from "react";
-import { Collapse, Table, Spin, Input } from "antd";
+import { Collapse, Table, Spin, Input, Modal } from "antd";
 import { fetchColumnData, ColumnData, getSelectStarQuery, executeQuery } from "../contextUtils";
 import { getTableDescription } from "../assistantUtils";
 import FilterableTable from "src/components/FilterableTable";
-import { data } from "jquery";
+import { AssistantActionsType } from '../actions';
 
 const { TextArea } = Input;
 
@@ -19,11 +19,17 @@ export interface DatasourceTableProps {
     loading?: boolean;
     description?: string;
     descriptionExtra?: string;
-    descriptionFocused?: boolean;
-    isDescriptionLoading?: boolean;
     selectStarQuery?: string;
     data?: Record<string, unknown>[];
     query?: any;
+    actions: AssistantActionsType;
+}
+
+export interface DatasourceTableState extends DatasourceTableProps {
+    loading: boolean;
+    isOpen: boolean;
+    descriptionFocused?: boolean;
+    isDescriptionLoading?: boolean;
 }
 
 export interface DatasourceTableColumnProps {
@@ -35,16 +41,17 @@ export interface DatasourceTableColumnProps {
     columnSuggestions?: string[];
 }
 
-export class DatasourceTable extends Component<DatasourceTableProps, DatasourceTableProps> {
+export class DatasourceTable extends Component<DatasourceTableProps, DatasourceTableState> {
     constructor(props: DatasourceTableProps) {
         super(props);
         this.state = {
+            ...props,
             selected: props.selected || false,
-            selectedColumns: [],
-            loading: true,
+            selectedColumns: props.selectedColumns || [],
+            loading: false,
             descriptionFocused: false,
             isDescriptionLoading: false,
-            ...props,
+            isOpen: false,
         };
     }
 
@@ -94,7 +101,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
             this.setState({
                 loading: false,
                 data: data
-            }, () => { this.state.onChange?.call(this, this.state); });
+            }, () => { this.props.actions.updateDatabaseSchemaTable(this.state) });
             return;
         }
         const selectStarQuery = await getSelectStarQuery(databaseId, tableName, schemaName);
@@ -104,24 +111,33 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
             selectStarQuery: selectStarQuery,
             data: tableData?.results?.data || [],
             query: tableData?.results?.query,
-        }, () => { this.state.onChange?.call(this, this.state); })
+        }, () => { this.props.actions.updateDatabaseSchemaTable(this.state) })
     };
 
 
 
     async componentDidMount() {
-        const { databaseId, schemaName, tableName } = this.props;
-        const columns = await fetchColumnData(databaseId, schemaName, tableName);
-        const columnData = columns.map((column: ColumnData) => ({
-            selected: false,
-            key: column.column_name,
-            columnName: column.column_name,
-            columnType: column.data_type,
-        }));
+        console.log("DatasourceTable Props componentDidMount", this.props);
+        const { databaseId, schemaName, tableName, columns } = this.props;
+        if (columns.length === 0) {
+            this.setState({ loading: true });
+            const columnData = (await fetchColumnData(databaseId, schemaName, tableName)).map((column: ColumnData) => ({
+                selected: false,
+                key: column.column_name,
+                columnName: column.column_name,
+                columnType: column.data_type,
+            }));
+            this.props.actions.loadDatabaseSchemaTableColumns(this.props, columnData);
+            this.setState({ loading: false });
+        }
 
+    }
 
-
-        this.setState({ columns: columnData, loading: false });
+    componentDidUpdate(prevProps: Readonly<DatasourceTableProps>, prevState: Readonly<DatasourceTableProps>, snapshot?: any): void {
+        console.log("DatasourceTable Props componentDidUpdate", this.props);
+        if (prevProps.columns !== this.props.columns) {
+            this.setState({ columns: this.props.columns });
+        }
     }
 
     handleDescriptionFocus = (isFocused: boolean) => {
@@ -133,71 +149,81 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
     handleGenerateDescription = async () => {
         this.setState({
             isDescriptionLoading: true
-        }, () => { this.state.onChange?.call(this, this.state) });
+        });
         await this.loadTableData();
         const descriptions = await getTableDescription(this.state, this.state.tableName);
         this.setState({
             description: descriptions.human_understandable,
             descriptionExtra: descriptions.llm_optimized,
             isDescriptionLoading: false
-        }, () => { this.state.onChange?.call(this, this.state) });
-        console.log("Generated Descriptions", descriptions);
+        }, () => { this.props.actions.updateDatabaseSchemaTable(this.state) });
+
     };
 
     handleDescriptionInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         console.log("Description Input", e.target.value);
         this.setState({
             description: e.target.value
-        }, () => { this.state.onChange?.call(this, this.state) });
+        }, () => { this.props.actions.updateDatabaseSchemaTable(this.state) });
+    };
+
+
+    handleOpen = () => {
+        console.log("Opening Modal");
+        this.setState({
+            isOpen: true
+        })
+    };
+
+    handleClose = () => {
+        this.setState({
+            isOpen: false
+        })
     };
 
     render() {
-        const { databaseId, selected, columns, selectedColumns, loading, description, descriptionFocused, isDescriptionLoading,data, query } = this.state;
+        const { selected, columns, selectedColumns, loading, description, descriptionFocused, isDescriptionLoading, data, query, isOpen } = this.state;
         const tableColumns = [
             { title: 'Column', dataIndex: 'columnName', key: 'columnName' },
             { title: 'Type', dataIndex: 'columnType', key: 'columnType' },
         ];
 
         return (
+            <div>
 
-            <Collapse>
-                <Collapse.Panel
-                    header={
-                        <div style={{ display: 'flex', flexDirection: 'row' }}>
+            <div style={{ 
+                display: 'flex', 
+                flexDirection: 'row', 
+                padding: '10px',
+                border: '1px solid #d9d9d9',
+                borderRadius: '5px',
+                marginRight: '10px',
+                marginBottom: '10px',
+                }} onClick={this.handleOpen} >
+                <span style={{ width: '10px' }}></span>
+                <input type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading || columns.length === 0} />
+                <span style={{ width: '10px' }}></span>
+                <span>{this.props.tableName}</span>
+                <span style={{ width: '10px' }}></span>
+                <span>
+                    {description ? ' ✅ ' : ' ? '}
+                </span>
+                {loading && <Spin size="small" />}
+                
+            </div>
+            <Modal
+                    title={
+                        <div>
                             <input type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading || columns.length === 0} />
-                            <span style={{ width: '10px' }}></span>
-                            <span>{this.props.tableName}</span>
-                            <span style={{ width: '10px' }}></span>
-                            <span>
-                                {description ? ' ✅ ' : ' ? '}
-                            </span>
-                            {loading && <Spin size="small" />}
-                        </div>
+                            <p>{this.props.tableName}</p>
+                        </div>                        
                     }
-                    key={databaseId}>
+                    visible={isOpen}
+                    onCancel={this.handleClose}
+                    onOk={this.handleClose}
+                    width="80%"
+                >
 
-                    {/* <Input
-                        prefix={
-                            <img height={'20px'} width={'20px'} src="/static/assets/images/assistant_logo_b_w.svg" onClick={this.handleGenerateDescription} />
-                        }
-                        suffix={
-                            isDescriptionLoading ? <Spin size="small" /> : null
-                        }
-                        placeholder={description || 'What data does this database schema contain?'}
-                        value={description}
-                        onFocus={() => { this.handleDescriptionFocus(true) }}
-                        onBlur={() => { this.handleDescriptionFocus(false) }}
-                        style={{
-                            height: 'auto',
-                            width: '100%',
-                            padding: '10px',
-                            margin: '10px 0px',
-                            borderRadius: '5px',
-                            border: descriptionFocused ? '1px solid #1890ff' : '0px solid #d9d9d9',
-                        }}
-                        onChange={this.handleDescriptionInput}
-                    /> */}
-                    {/* Replace Input with TextArea */}
                     <div style={{
                         position: 'relative'
                     }}>
@@ -248,20 +274,21 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                         overflow: 'scroll',
                     }}>
 
-                    { (query && data && columns.length > 0) && <FilterableTable {...{
-                        orderedColumnKeys: columns.map((column) => column.columnName).sort(),
-                        data: data,
-                        height: 200,
-                        filterText: '',
-                        expandedColumns: [],
-                        allowHTML: true
-                    }} /> }
+                        
                     </div>
-                    
-                   
 
-                </Collapse.Panel>
-            </Collapse>
+                    {(query && data && columns.length > 0) && <FilterableTable {...{
+                            orderedColumnKeys: columns.map((column) => column.columnName).sort(),
+                            data: data,
+                            height: 200,
+                            filterText: '',
+                            expandedColumns: [],
+                            allowHTML: true
+                        }} />}
+
+                </Modal>
+            </div>
+            
         );
     }
 }
