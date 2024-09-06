@@ -458,6 +458,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     @classmethod
     def get_prequeries(
         cls,
+        database: Database,
         catalog: str | None = None,
         schema: str | None = None,
     ) -> list[str]:

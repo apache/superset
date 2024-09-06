@@ -560,6 +560,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     # pre-session queries are used to set the selected schema and, in the
                     # future, the selected catalog
                     for prequery in self.db_engine_spec.get_prequeries(
+                        database=self,
                         catalog=catalog,
                         schema=schema,
                     ):
