@@ -498,7 +498,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if not isolation_level and self.config["SQLALCHEMY_DATABASE_URI"].startswith(
             "mysql"
         ):
-            db.engine.execution_options(isolation_level="READ COMMITTED")
+            with self.superset_app.app_context():
+                db.engine.execution_options(isolation_level="READ COMMITTED")
 
     def configure_auth_provider(self) -> None:
         machine_auth_provider_factory.init_app(self.superset_app)
