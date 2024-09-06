@@ -196,6 +196,15 @@ SQLALCHEMY_DATABASE_URI = (
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
+# This config is exposed through flask-sqlalchemy, and can be used to set your metadata
+# database connection settings. You can use this to set arbitrary connection settings
+# that may be specific to the database engine you are using.
+# Note that you can use this to set the isolation level of your database, as in
+# `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}`
+# Also note that we recommend READ COMMITTED for regular operation.
+# Find out more here https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/
+SQLALCHEMY_ENGINE_OPTIONS = {}
+
 # In order to hook up a custom password store for all SQLALCHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
 # returns a password and set SQLALCHEMY_CUSTOM_PASSWORD_STORE.
