@@ -502,9 +502,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             backend = make_url_safe(
                 self.config["SQLALCHEMY_DATABASE_URI"]
             ).get_backend_name()
-            if backend == "mysql":
-                set_isolation_level_to = "READ COMMITTED"
-            elif backend == "postgresql":
+            if backend in ("mysql", "postgresql"):
                 set_isolation_level_to = "READ COMMITTED"
 
         if set_isolation_level_to:
