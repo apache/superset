@@ -1,7 +1,7 @@
 {
   "npmClient": "npm",
   "packages": ["packages/*", "plugins/*", "src/setup/*"],
-  "version": "0.18.27",
+  "version": "0.18.28",
   "ignoreChanges": [
     "**/*.md",
     "**/*.spec.tsx?",
