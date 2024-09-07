@@ -507,9 +507,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         if set_isolation_level_to:
             logger.info(
-                "Setting isolation level to %s for engine %s",
+                "Setting database isolation level to %s",
                 set_isolation_level_to,
-                db.engine,
             )
             with self.superset_app.app_context():
                 db.engine.execution_options(isolation_level=set_isolation_level_to)
