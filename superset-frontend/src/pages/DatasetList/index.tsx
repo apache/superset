@@ -758,20 +758,31 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 <>
                   <h4>{t('Affected Dashboards')}</h4>
                   <ul>
-                    {datasetCurrentlyDeleting.dashboards.result.map(
-                      (
-                        result: { id: Key | null | undefined; title: string },
-                        index: number,
-                      ) => (
-                        <li key={result.id}>
-                          <a
-                            href={`/superset/dashboard/${result.id}`}
-                            target="_atRiskItem"
-                          >
-                            {result.title}
-                          </a>
-                        </li>
-                      ),
+                    {datasetCurrentlyDeleting.dashboards.result
+                      .slice(0, 10)
+                      .map(
+                        (
+                          result: { id: Key | null | undefined; title: string },
+                          index: number,
+                        ) => (
+                          <li key={result.id}>
+                            <a
+                              href={`/superset/dashboard/${result.id}`}
+                              target="_atRiskItem"
+                            >
+                              {result.title}
+                            </a>
+                          </li>
+                        ),
+                      )}
+                    {datasetCurrentlyDeleting.dashboards.result.length > 10 && (
+                      <li>
+                        {t(
+                          '... and %s others',
+                          datasetCurrentlyDeleting.dashboards.result.length -
+                            10,
+                        )}
+                      </li>
                     )}
                   </ul>
                 </>
@@ -780,7 +791,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 <>
                   <h4>{t('Affected Charts')}</h4>
                   <ul>
-                    {datasetCurrentlyDeleting.charts.result.map(
+                    {datasetCurrentlyDeleting.charts.result.slice(0, 10).map(
                       (
                         result: {
                           id: Key | null | undefined;
@@ -797,6 +808,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           </a>
                         </li>
                       ),
+                    )}
+                    {datasetCurrentlyDeleting.charts.result.length > 10 && (
+                      <li>
+                        {t(
+                          '... and %s others',
+                          datasetCurrentlyDeleting.charts.result.length - 10,
+                        )}
+                      </li>
                     )}
                   </ul>
                 </>
