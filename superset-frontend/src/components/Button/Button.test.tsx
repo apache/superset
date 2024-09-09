@@ -38,7 +38,6 @@ test('does not handle onClicks when disabled', () => {
   expect(mockAction).toHaveBeenCalledTimes(0);
 });
 
-
 // test stories from the storybook!
 test('All the sorybook gallery variants mount', () => {
   const { getAllByRole } = render(<ButtonGallery />);
