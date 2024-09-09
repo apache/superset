@@ -58,6 +58,7 @@ const propTypes = {
   directPathLastUpdated: PropTypes.number,
   dashboardId: PropTypes.number.isRequired,
   isComponentVisible: PropTypes.bool,
+  canExportData: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -80,6 +81,7 @@ function mapStateToProps(
     dashboardId: dashboardInfo.id,
     dashboardInfo,
     fullSizeChartId: dashboardState.fullSizeChartId,
+    canExportData: dashboardState.canExportData,
   };
 
   // rows and columns need more data about their child dimensions

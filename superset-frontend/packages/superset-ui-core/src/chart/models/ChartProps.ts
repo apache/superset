@@ -105,8 +105,8 @@ export interface ChartPropsConfig {
   inputRef?: RefObject<any>;
   /** Theme object */
   theme: SupersetTheme;
-  /** Set chart data selectable by user */
-  dataSelectionMode?: string;
+  /** User able to export data */
+  canExportData?: string;
 }
 
 const DEFAULT_WIDTH = 800;
@@ -157,7 +157,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   theme: SupersetTheme;
 
-  dataSelectionMode?: string;
+  canExportData?: string;
 
   constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
     const {
@@ -180,7 +180,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       inContextMenu = false,
       emitCrossFilters = false,
       theme,
-      dataSelectionMode,
+      canExportData,
     } = config;
     this.width = width;
     this.height = height;
@@ -203,7 +203,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.inContextMenu = inContextMenu;
     this.emitCrossFilters = emitCrossFilters;
     this.theme = theme;
-    this.dataSelectionMode = dataSelectionMode;
+    this.canExportData = canExportData;
   }
 }
 
@@ -229,7 +229,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.inContextMenu,
     input => input.emitCrossFilters,
     input => input.theme,
-    input => input.dataSelectionMode,
+    input => input.canExportData,
     (
       annotationData,
       datasource,
@@ -250,7 +250,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       inContextMenu,
       emitCrossFilters,
       theme,
-      dataSelectionMode,
+      canExportData,
     ) =>
       new ChartProps({
         annotationData,
@@ -272,7 +272,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         inContextMenu,
         emitCrossFilters,
         theme,
-        dataSelectionMode,
+        canExportData,
       }),
   );
 };

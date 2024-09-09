@@ -158,11 +158,6 @@ class Chart extends PureComponent {
     super(props);
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
-    this.canExportData = findPermission(
-      'can_csv',
-      'Superset',
-      this.props.user?.roles,
-    );
   }
 
   componentDidMount() {
@@ -278,7 +273,7 @@ class Chart extends PureComponent {
             {...this.props}
             source={this.props.dashboardId ? 'dashboard' : 'explore'}
             data-test={this.props.vizType}
-            dataSelectionMode={this.canExportData ? 'auto' : 'none'}
+            canExportData={this.props.canExportData}
           />
         ) : (
           <Loading />
