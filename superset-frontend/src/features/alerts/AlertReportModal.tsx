@@ -683,7 +683,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
-      extra: contentType === ContentType.Dashboard ? currentAlert?.extra : null,
+      extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
     };
 
     if (data.recipients && !data.recipients.length) {

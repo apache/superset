@@ -329,6 +329,8 @@ class OAuth2RedirectError(SupersetErrorException):
 
     See the `OAuth2RedirectMessage.tsx` component for more details of how this
     information is handled.
+
+    TODO (betodealmeida): change status to 403.
     """
 
     def __init__(self, url: str, tab_id: str, redirect_uri: str):

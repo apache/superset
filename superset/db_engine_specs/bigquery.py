@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import re
 import urllib
 from datetime import datetime
@@ -38,7 +37,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import sqltypes
 
 from superset import sql_parse
-from superset.constants import PASSWORD_MASK, TimeGrain
+from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
@@ -128,6 +127,10 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     allows_hidden_cc_in_orderby = True
 
     supports_catalog = supports_dynamic_catalog = True
+
+    # when editing the database, mask this field in `encrypted_extra`
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields = {"$.credentials_info.private_key"}
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -593,47 +596,6 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             return {**encrypted_extra, "query": dict(value.query)}
 
         raise ValidationError("Invalid service credentials")
-
-    @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
-        if encrypted_extra is None:
-            return encrypted_extra
-
-        try:
-            config = json.loads(encrypted_extra)
-        except (json.JSONDecodeError, TypeError):
-            return encrypted_extra
-
-        with contextlib.suppress(KeyError):
-            config["credentials_info"]["private_key"] = PASSWORD_MASK
-        return json.dumps(config)
-
-    @classmethod
-    def unmask_encrypted_extra(cls, old: str | None, new: str | None) -> str | None:
-        """
-        Reuse ``private_key`` if available and unchanged.
-        """
-        if old is None or new is None:
-            return new
-
-        try:
-            old_config = json.loads(old)
-            new_config = json.loads(new)
-        except (TypeError, json.JSONDecodeError):
-            return new
-
-        if "credentials_info" not in new_config:
-            return new
-
-        if "private_key" not in new_config["credentials_info"]:
-            return new
-
-        if new_config["credentials_info"]["private_key"] == PASSWORD_MASK:
-            new_config["credentials_info"]["private_key"] = old_config[
-                "credentials_info"
-            ]["private_key"]
-
-        return json.dumps(new_config)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:

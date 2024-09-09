@@ -26,6 +26,7 @@ import {
   css,
   customTimeRangeDecode,
   computeCustomDateTime,
+  fetchTimeRange,
 } from '@superset-ui/core';
 import { DatePicker } from 'antd';
 import { RangePickerProps } from 'antd/lib/date-picker';
@@ -33,6 +34,7 @@ import { useSelector } from 'react-redux';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
+import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
 
 export interface TimeOffsetControlsProps {
   label?: ReactNode;
@@ -130,9 +132,15 @@ export default function TimeOffsetControls({
 
   useEffect(() => {
     if (!isEmpty(currentTimeRangeFilters)) {
-      customTimeRange(currentTimeRangeFilters[0]?.comparator ?? '');
-      const date = currentTimeRangeFilters[0]?.comparator.split(' : ')[0];
-      setFormatedFilterDate(moment(parseDttmToDate(date)));
+      fetchTimeRange(
+        currentTimeRangeFilters[0]?.comparator,
+        currentTimeRangeFilters[0]?.subject,
+      ).then(res => {
+        const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
+        const [startDate, endDate] = dates ?? [];
+        customTimeRange(`${startDate} : ${endDate}` ?? '');
+        setFormatedFilterDate(moment(parseDttmToDate(startDate)));
+      });
     } else {
       setCustomStartDateInFilter(undefined);
       setFormatedFilterDate(moment(parseDttmToDate('')));

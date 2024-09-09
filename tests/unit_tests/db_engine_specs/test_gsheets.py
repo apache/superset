@@ -247,9 +247,34 @@ def test_validate_parameters_catalog_and_credentials(
     )
 
 
+def test_mask_encrypted_extra() -> None:
+    """
+    Test that the private key is masked when the database is edited.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    config = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+
+    assert GSheetsEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
 def test_unmask_encrypted_extra() -> None:
     """
-    Test that the private key can be reused from the previous ``encrypted_extra``.
+    Test that the private key can be reused from the previous `encrypted_extra`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -270,17 +295,52 @@ def test_unmask_encrypted_extra() -> None:
         }
     )
 
-    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
-        "service_account_info": {
-            "project_id": "yellow-unicorn-314419",
-            "private_key": "SECRET",
-        },
-    }
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+
+
+def test_unmask_encrypted_extra_field_changeed() -> None:
+    """
+    Test that the private key is not reused when the field has changed.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "NEW-SECRET",
+            },
+        }
+    )
+
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "NEW-SECRET",
+            },
+        }
+    )
 
 
 def test_unmask_encrypted_extra_when_old_is_none() -> None:
     """
-    Test that a None value works for ``encrypted_extra``.
+    Test that a `None` value for the old field works for `encrypted_extra`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -294,17 +354,19 @@ def test_unmask_encrypted_extra_when_old_is_none() -> None:
         }
     )
 
-    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
-        "service_account_info": {
-            "project_id": "yellow-unicorn-314419",
-            "private_key": "XXXXXXXXXX",
-        },
-    }
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
 
 
 def test_unmask_encrypted_extra_when_new_is_none() -> None:
     """
-    Test that a None value works for ``encrypted_extra``.
+    Test that a `None` value for the new field works for `encrypted_extra`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 

@@ -35,6 +35,7 @@ import ControlHeader, {
   ControlHeaderProps,
 } from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
+import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
 
 const MOMENT_FORMAT = 'YYYY-MM-DD';
 
@@ -108,19 +109,59 @@ export const ComparisonRangeLabel = ({
         );
       }
       const promises = currentTimeRangeFilters.map(filter => {
-        const newShifts = getTimeOffset({
-          timeRangeFilter: filter,
-          shifts: shiftsArray,
-          startDate: useStartDate,
-          includeFutureOffsets: false, // So we don't trigger requests for future dates
-        });
+        const nonCustomNorInheritShifts =
+          shiftsArray.filter(
+            (shift: string) => shift !== 'custom' && shift !== 'inherit',
+          ) || [];
+        const customOrInheritShifts =
+          shiftsArray.filter(
+            (shift: string) => shift === 'custom' || shift === 'inherit',
+          ) || [];
 
-        if (!isEmpty(newShifts)) {
+        // There's no custom or inherit to compute, so we can just fetch the time range
+        if (isEmpty(customOrInheritShifts)) {
           return fetchTimeRange(
             filter.comparator,
             filter.subject,
-            ensureIsArray(newShifts),
+            ensureIsArray(nonCustomNorInheritShifts),
           );
+        }
+        // Need to compute custom or inherit shifts first and then mix with the non custom or inherit shifts
+        if (
+          (ensureIsArray(customOrInheritShifts).includes('custom') &&
+            startDate) ||
+          ensureIsArray(customOrInheritShifts).includes('inherit')
+        ) {
+          return fetchTimeRange(filter.comparator, filter.subject).then(res => {
+            const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
+            const [parsedStartDate, parsedEndDate] = dates ?? [];
+            if (parsedStartDate) {
+              const parsedDateMoment = moment(parseDttmToDate(parsedStartDate));
+              const startDateMoment = moment(parseDttmToDate(startDate));
+              if (
+                startDateMoment.isSameOrBefore(parsedDateMoment) ||
+                !startDate
+              ) {
+                const postProcessedShifts = getTimeOffset({
+                  timeRangeFilter: {
+                    ...filter,
+                    comparator: `${parsedStartDate} : ${parsedEndDate}`,
+                  },
+                  shifts: customOrInheritShifts,
+                  startDate: useStartDate,
+                  includeFutureOffsets: false, // So we don't trigger requests for future dates
+                });
+                return fetchTimeRange(
+                  filter.comparator,
+                  filter.subject,
+                  ensureIsArray(
+                    postProcessedShifts.concat(nonCustomNorInheritShifts),
+                  ),
+                );
+              }
+            }
+            return Promise.resolve({ value: '' });
+          });
         }
         return Promise.resolve({ value: '' });
       });

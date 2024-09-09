@@ -170,15 +170,19 @@ def create_report_notification(
     return report_schedule
 
 
-def cleanup_report_schedule(report_schedule: ReportSchedule) -> None:
-    db.session.query(ReportExecutionLog).filter(
-        ReportExecutionLog.report_schedule == report_schedule
-    ).delete()
-    db.session.query(ReportRecipients).filter(
-        ReportRecipients.report_schedule == report_schedule
-    ).delete()
-
-    db.session.delete(report_schedule)
+def cleanup_report_schedule(report_schedule: Optional[ReportSchedule] = None) -> None:
+    if report_schedule:
+        db.session.query(ReportExecutionLog).filter(
+            ReportExecutionLog.report_schedule == report_schedule
+        ).delete()
+        db.session.query(ReportRecipients).filter(
+            ReportRecipients.report_schedule == report_schedule
+        ).delete()
+        db.session.delete(report_schedule)
+    else:
+        db.session.query(ReportExecutionLog).delete()
+        db.session.query(ReportRecipients).delete()
+        db.session.query(ReportSchedule).delete()
     db.session.commit()
 
 

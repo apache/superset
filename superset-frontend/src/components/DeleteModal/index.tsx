@@ -80,7 +80,7 @@ export default function DeleteModal({
       disablePrimaryButton={disableChange}
       onHide={hide}
       onHandledPrimaryAction={confirm}
-      primaryButtonName={t('delete')}
+      primaryButtonName={t('Delete')}
       primaryButtonType="danger"
       show={open}
       title={title}
