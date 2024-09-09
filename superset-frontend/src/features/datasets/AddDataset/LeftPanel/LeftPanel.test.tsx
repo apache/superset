@@ -35,7 +35,7 @@ beforeEach(() => {
       allow_file_upload: 'Allow Csv Upload',
       allow_ctas: 'Allow Ctas',
       allow_cvas: 'Allow Cvas',
-      allow_dml: 'Allow Dml',
+      allow_dml: 'Allow DDL and DML',
       allow_multi_schema_metadata_fetch: 'Allow Multi Schema Metadata Fetch',
       allow_run_async: 'Allow Run Async',
       allows_cost_estimate: 'Allows Cost Estimate',

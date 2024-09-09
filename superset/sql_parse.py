@@ -452,6 +452,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def is_mutating(self) -> bool:
+        """
+        Check if the statement mutates data (DDL/DML).
+
+        :return: True if the statement mutates data.
+        """
+        raise NotImplementedError()
+
     def __str__(self) -> str:
         return self.format()
 
@@ -521,6 +529,43 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         dialect = SQLGLOT_DIALECTS.get(engine)
         return extract_tables_from_statement(parsed, dialect)
+
+    def is_mutating(self) -> bool:
+        """
+        Check if the statement mutates data (DDL/DML).
+
+        :return: True if the statement mutates data.
+        """
+        for node in self._parsed.walk():
+            if isinstance(
+                node,
+                (
+                    exp.Insert,
+                    exp.Update,
+                    exp.Delete,
+                    exp.Merge,
+                    exp.Create,
+                    exp.Drop,
+                    exp.TruncateTable,
+                ),
+            ):
+                return True
+
+            if isinstance(node, exp.Command) and node.name == "ALTER":
+                return True
+
+        # Postgres runs DMLs prefixed by `EXPLAIN ANALYZE`, see
+        # https://www.postgresql.org/docs/current/sql-explain.html
+        if (
+            self._dialect == Dialects.POSTGRES
+            and isinstance(self._parsed, exp.Command)
+            and self._parsed.name == "EXPLAIN"
+            and self._parsed.expression.name.upper().startswith("ANALYZE ")
+        ):
+            analyzed_sql = self._parsed.expression.name[len("ANALYZE ") :]
+            return SQLStatement(analyzed_sql, self.engine).is_mutating()
+
+        return False
 
     def format(self, comments: bool = True) -> str:
         """
@@ -688,6 +733,14 @@ class KustoKQLStatement(BaseSQLStatement[str]):
 
         return {}
 
+    def is_mutating(self) -> bool:
+        """
+        Check if the statement mutates data (DDL/DML).
+
+        :return: True if the statement mutates data.
+        """
+        return self._parsed.startswith(".") and not self._parsed.startswith(".show")
+
 
 class SQLScript:
     """
@@ -729,6 +782,14 @@ class SQLScript:
             settings.update(statement.get_settings())
 
         return settings
+
+    def has_mutation(self) -> bool:
+        """
+        Check if the script contains mutating statements.
+
+        :return: True if the script contains mutating statements
+        """
+        return any(statement.is_mutating() for statement in self.statements)
 
 
 class ParsedQuery:
