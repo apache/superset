@@ -43,7 +43,7 @@ export class DatasourceSelector extends Component<DatasourceSelectorProps, Datas
                     datasourceName: database.database_name,
                     backend: database.backend,
                     schema: [],
-                    action: this.props.actions,
+                    actions: this.props.actions,
                 }));
                 this.props.actions.loadDataSourceProps(data);
             } catch (error) {
@@ -145,7 +145,7 @@ export class DatasourceSelector extends Component<DatasourceSelectorProps, Datas
                     {datasources.map((datasource) => (
                         <Datasource
                             key={'d_source' + datasource.id}
-                            {...datasource}
+                            {...datasource} actions={this.props.actions}
                             onChange={this.handleSelectEvent}
                         />
                     ))}

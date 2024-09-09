@@ -11,7 +11,8 @@ const assistantPersistConfig = {
         slicer: (paths: string[]) => (state: any) => {
             console.log("persistAssistantStateEnhancer slicer paths", paths);
             console.log("persistAssistantStateEnhancer slicer state", state);
-            return state[paths[0]];
+            const assistantState = state['assistant'];
+            return assistantState;
         },
         merge: (initialState: any, persistedState: any) => {
             console.log("persistAssistantStateEnhancer merge initialState", initialState);

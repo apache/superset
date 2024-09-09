@@ -14,7 +14,7 @@ export interface DatasourceProps {
     schema: DatasourceSchemaProps[];
     onChange?: (data: DatasourceProps) => void;
     loading?: boolean;
-    action: AssistantActionsType;
+    actions: AssistantActionsType;
 }
 
 /**
@@ -50,11 +50,11 @@ export class Datasource extends React.Component<DatasourceProps> {
                     selected: false,
                     schemaName: schema.schema_name,
                     description: schema.description,
-                    actions: this.props.action,
+                    actions: this.props.actions,
                     tables: [],
                 };
             });
-            this.props.action.loadDatabaseSchemaProps(schemaData);
+            this.props.actions.loadDatabaseSchemaProps(schemaData);
         }
     }
 
@@ -116,7 +116,7 @@ export class Datasource extends React.Component<DatasourceProps> {
                         gap: "10px",
                     }} >
                         {schema.map((schema) => (
-                            <DatasourceSchema key={'d_schema'+schema.schemaName} {...schema} onChange={this.handleOnChange} />
+                            <DatasourceSchema key={'d_schema'+schema.schemaName} {...schema} actions={this.props.actions} onChange={this.handleOnChange} />
                         ))}
                     </div>
                 </Collapse.Panel>

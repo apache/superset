@@ -5,7 +5,9 @@ import {
     LoadDatabaseSchemaPropsAction,
     LoadDatabaseSchemaTablesAction,
     LoadDatabaseSchemaTableColumnsAction,
-    UpdateDatabaseSchemaTableAction
+    UpdateDatabaseSchemaTableAction,
+    ClearDatabaseSchemaTablePropsAction,
+    ClearDatabaseSchemaTableColumnsAction
 } from '../actions';
 import * as ActionTypes from '../actions/types';
 import { DatasourceProps } from '../ContextBuilder/Datasource';
@@ -70,6 +72,23 @@ export default function AssistantReducer(
                     return datasource;
                 })
             }
+        
+        case ActionTypes.CLEAR_DATABASE_SCHEMA_TABLE_PROPS:
+            let schemaToClearTables = (action as ClearDatabaseSchemaTablePropsAction).payload.data;
+            // update state.data.schema.tables to empty array
+            return {
+                ...state,
+                data: state.data.map((datasource: DatasourceProps) => {
+                    datasource.schema = datasource.schema.map((schema: DatasourceSchemaProps) => {
+                        if (datasource.id === schemaToClearTables.databaseId && schema.schemaName === schemaToClearTables.schemaName) {
+                            schema.tables = [];
+                        }
+                        return schema;
+                    });
+                    return datasource;
+                })
+            }
+
         case ActionTypes.LOAD_DATABASE_SCHEMA_TABLE_COLUMNS_PROPS:
             let columnActionData = (action as LoadDatabaseSchemaTableColumnsAction).payload.data;
             let tableToUpdate = (action as LoadDatabaseSchemaTableColumnsAction).payload.table;
@@ -85,6 +104,32 @@ export default function AssistantReducer(
                                 table.tableName === tableToUpdate.tableName
                             ){
                                 table.columns = columnActionData;
+                            }
+                            return table;
+                        });
+                        return schema;
+                    });
+                    return datasource;
+                })
+            }
+
+        case ActionTypes.CLEAR_DATABASE_SCHEMA_TABLE_COLUMNS_PROPS:
+            let tableToClearColumns = (action as ClearDatabaseSchemaTableColumnsAction).payload.table;
+            // update state.data.schema.tables.columns to empty array
+            return {
+                ...state,
+                data: state.data.map((datasource: DatasourceProps) => {
+                    datasource.schema = datasource.schema.map((schema: DatasourceSchemaProps) => {
+                        schema.tables = schema.tables.map((table: DatasourceTableProps) => {
+                            if (
+                                datasource.id === tableToClearColumns.databaseId &&
+                                schema.schemaName === tableToClearColumns.schemaName &&
+                                table.tableName === tableToClearColumns.tableName
+                            ){
+                                table.columns = [];
+                                table.selectedColumns = [];
+                                table.selected = false;
+                                table.data = [];
                             }
                             return table;
                         });

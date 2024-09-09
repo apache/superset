@@ -75,6 +75,22 @@ const loadDatabaseSchemaProps = (data: DatasourceSchemaProps[]) => {
     return action;
 };
 
+export interface ClearDatabaseSchemaTablePropsAction extends AssistantActions {
+    payload: {
+        data: DatasourceSchemaProps;
+    }
+}
+
+const clearDatabaseSchemaTableProps = (data: DatasourceSchemaProps) => {
+    console.log("CLEAR_DATABASE_SCHEMA_TABLE_PROPS Clearing database schema table data");
+    const action: ClearDatabaseSchemaTablePropsAction = {
+        type: ActionTypes.CLEAR_DATABASE_SCHEMA_TABLE_PROPS,
+        payload: {
+            data
+        }
+    };
+    return action;
+};
 
 // Datasource Schema Tables
 export interface LoadDatabaseSchemaTablesAction extends AssistantActions {
@@ -115,6 +131,24 @@ const loadDatabaseSchemaTableColumns = (table: DatasourceTableProps ,data: Datas
 };
 
 
+export interface ClearDatabaseSchemaTableColumnsAction extends AssistantActions {
+    payload: {
+        table: DatasourceTableProps;
+    }
+};
+
+const clearDatabaseSchemaTableColumns = (table: DatasourceTableProps) => {
+    console.log("CLEAR_DATABASE_SCHEMA_TABLE_COLUMNS Clearing database schema table columns data");
+    const action: ClearDatabaseSchemaTableColumnsAction = {
+        type: ActionTypes.CLEAR_DATABASE_SCHEMA_TABLE_COLUMNS_PROPS,
+        payload: {
+            table
+        }
+    };
+    return action;
+};
+
+
 export interface UpdateDatabaseSchemaTableAction extends AssistantActions {
     payload: {
         data: DatasourceTableProps;
@@ -137,8 +171,10 @@ export const actions = {
     loadDataSourceProps,
     loadDatabaseSchemaProps,
     loadDatabaseSchemaTables,
+    clearDatabaseSchemaTableProps,
     loadDatabaseSchemaTableColumns,
-    updateDatabaseSchemaTable
+    updateDatabaseSchemaTable,
+    clearDatabaseSchemaTableColumns
 };
 
 export type AssistantActionsType = typeof actions;

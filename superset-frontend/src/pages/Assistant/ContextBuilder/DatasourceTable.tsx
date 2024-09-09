@@ -28,6 +28,7 @@ export interface DatasourceTableProps {
 export interface DatasourceTableState extends DatasourceTableProps {
     loading: boolean;
     isOpen: boolean;
+    confirmRefreshModalVisible: boolean;
     descriptionFocused?: boolean;
     isDescriptionLoading?: boolean;
 }
@@ -52,6 +53,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
             descriptionFocused: false,
             isDescriptionLoading: false,
             isOpen: false,
+            confirmRefreshModalVisible: false,
         };
     }
 
@@ -93,15 +95,18 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
     };
 
     loadTableData = async () => {
+        console.log("Loading Table Data");
         this.setState({
             loading: true
         });
         const { databaseId, tableName, schemaName, data } = this.state;
-        if (data) {
+        if (data && data.length > 0) {
+            console.log("Data already loaded", data);
             this.setState({
                 loading: false,
                 data: data
             }, () => { this.props.actions.updateDatabaseSchemaTable(this.state) });
+
             return;
         }
         const selectStarQuery = await getSelectStarQuery(databaseId, tableName, schemaName);
@@ -115,29 +120,54 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
     };
 
 
+    async getDatasourceTableColumnProps(){
+        const { databaseId, schemaName, tableName } = this.props;
+        const columnData = (await fetchColumnData(databaseId, schemaName, tableName)).map((column: ColumnData) => ({
+            selected: false,
+            key: column.column_name,
+            columnName: column.column_name,
+            columnType: column.data_type,
+        }));
+        this.props.actions.loadDatabaseSchemaTableColumns(this.props, columnData);
+    }
 
     async componentDidMount() {
         console.log("DatasourceTable Props componentDidMount", this.props);
-        const { databaseId, schemaName, tableName, columns } = this.props;
+        const { columns } = this.props;
         if (columns.length === 0) {
             this.setState({ loading: true });
-            const columnData = (await fetchColumnData(databaseId, schemaName, tableName)).map((column: ColumnData) => ({
-                selected: false,
-                key: column.column_name,
-                columnName: column.column_name,
-                columnType: column.data_type,
-            }));
-            this.props.actions.loadDatabaseSchemaTableColumns(this.props, columnData);
+            await this.getDatasourceTableColumnProps();
             this.setState({ loading: false });
         }
 
     }
 
     componentDidUpdate(prevProps: Readonly<DatasourceTableProps>, prevState: Readonly<DatasourceTableProps>, snapshot?: any): void {
+        console.log("DatasourceTable Props componentDidUpdate prevProps", prevProps);
         console.log("DatasourceTable Props componentDidUpdate", this.props);
+        // update the state if the props have changed
         if (prevProps.columns !== this.props.columns) {
             this.setState({ columns: this.props.columns });
         }
+        if (prevProps.selectedColumns !== this.props.selectedColumns) {
+            this.setState({ selectedColumns: this.props.selectedColumns });
+        }
+        if (prevProps.data !== this.props.data) {
+            this.setState({ data: this.props.data });
+        }
+        if (prevProps.query !== this.props.query) {
+            this.setState({ query: this.props.query });
+        }
+        if (prevProps.description !== this.props.description) {
+            this.setState({ description: this.props.description });
+        }
+        if (prevProps.descriptionExtra !== this.props.descriptionExtra) {
+            this.setState({ descriptionExtra: this.props.descriptionExtra });
+        }
+        if (prevProps.selected !== this.props.selected) {
+            this.setState({ selected: this.props.selected });
+        }
+        
     }
 
     handleDescriptionFocus = (isFocused: boolean) => {
@@ -181,47 +211,79 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
         })
     };
 
+    refreshModalOpen = () => {
+        this.setState({
+            confirmRefreshModalVisible: true
+        });
+    };
+
+    refreshModalClose = () => {
+        this.setState({
+            confirmRefreshModalVisible: false
+        });
+    };
+
+    handleRefresh = async () => {
+        this.setState({
+            confirmRefreshModalVisible: false
+        });
+        this.props.actions.clearDatabaseSchemaTableColumns(this.props);
+        await this.getDatasourceTableColumnProps();
+    };
+
     render() {
-        const { selected, columns, selectedColumns, loading, description, descriptionFocused, isDescriptionLoading, data, query, isOpen } = this.state;
+        const { selected, columns, selectedColumns, loading, description, descriptionFocused, isDescriptionLoading, data, query, isOpen, confirmRefreshModalVisible } = this.state;
         const tableColumns = [
             { title: 'Column', dataIndex: 'columnName', key: 'columnName' },
             { title: 'Type', dataIndex: 'columnType', key: 'columnType' },
         ];
 
+        console.log("DatasourceTable render", data);
+
         return (
             <div>
 
-            <div style={{ 
-                display: 'flex', 
-                flexDirection: 'row', 
-                padding: '10px',
-                border: '1px solid #d9d9d9',
-                borderRadius: '5px',
-                marginRight: '10px',
-                marginBottom: '10px',
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    padding: '10px',
+                    border: '1px solid #d9d9d9',
+                    borderRadius: '5px',
+                    marginRight: '10px',
+                    marginBottom: '10px',
                 }} onClick={this.handleOpen} >
-                <span style={{ width: '10px' }}></span>
-                <input type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading || columns.length === 0} />
-                <span style={{ width: '10px' }}></span>
-                <span>{this.props.tableName}</span>
-                <span style={{ width: '10px' }}></span>
-                <span>
-                    {description ? ' ✅ ' : ' ? '}
-                </span>
-                {loading && <Spin size="small" />}
-                
-            </div>
-            <Modal
+                    <span style={{ width: '10px' }}></span>
+                    <input type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading || columns.length === 0} />
+                    <span style={{ width: '10px' }}></span>
+                    <span>{this.props.tableName}</span>
+                    <span style={{ width: '10px' }}></span>
+                    <span>
+                        {description ? ' ✅ ' : ' ? '}
+                    </span>
+                    {loading && <Spin size="small" />}
+
+                </div>
+                <Modal
                     title={
-                        <div>
-                            <input type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading || columns.length === 0} />
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                        }} >
+                            <input
+                                style={{
+                                    marginRight: '10px'
+                                }}
+                                type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading || columns.length === 0} />
                             <p>{this.props.tableName}</p>
-                        </div>                        
+                        </div>
                     }
                     visible={isOpen}
-                    onCancel={this.handleClose}
+                    cancelText="Clear Selection and Refresh"
+                    onCancel={this.refreshModalOpen}
                     onOk={this.handleClose}
+                    closable={false}
                     width="80%"
+                    centered
                 >
 
                     <div style={{
@@ -274,21 +336,30 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                         overflow: 'scroll',
                     }}>
 
-                        
+
                     </div>
 
-                    {(query && data && columns.length > 0) && <FilterableTable {...{
-                            orderedColumnKeys: columns.map((column) => column.columnName).sort(),
-                            data: data,
-                            height: 200,
-                            filterText: '',
-                            expandedColumns: [],
-                            allowHTML: true
-                        }} />}
+                    {(data && data.length > 0 && columns.length > 0) && <FilterableTable {...{
+                        orderedColumnKeys: columns.map((column) => column.columnName).sort(),
+                        data: data,
+                        height: 200,
+                        filterText: '',
+                        expandedColumns: [],
+                        allowHTML: true
+                    }} />}
+
+                    <Modal
+                        title="Clear Selection and Refresh"
+                        visible={confirmRefreshModalVisible}
+                        onOk={this.handleRefresh}
+                        onCancel={this.refreshModalClose}
+                        centered>
+                        <p>Are you sure you want to clear the selection and refresh the columns?</p>
+                    </Modal>
 
                 </Modal>
             </div>
-            
+
         );
     }
 }
