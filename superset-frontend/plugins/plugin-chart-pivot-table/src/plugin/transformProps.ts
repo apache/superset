@@ -81,7 +81,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     filterState,
     datasource: { verboseMap = {}, columnFormats = {}, currencyFormats = {} },
     emitCrossFilters,
-    dataSelectionMode,
+    canExportData,
   } = chartProps;
   const { data, colnames, coltypes } = queriesData[0];
   const {
@@ -175,6 +175,6 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     dateFormatters,
     onContextMenu,
     timeGrainSqla,
-    dataSelectionMode,
+    dataSelectionMode: canExportData ? 'auto' : 'none',
   };
 }

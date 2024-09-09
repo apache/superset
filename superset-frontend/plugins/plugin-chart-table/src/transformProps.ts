@@ -384,7 +384,7 @@ const transformProps = (
       onContextMenu,
     },
     emitCrossFilters,
-    dataSelectionMode,
+    canExportData,
   } = chartProps;
 
   const {
@@ -644,7 +644,7 @@ const transformProps = (
     basicColorFormatters,
     startDateOffset,
     basicColorColumnFormatters,
-    dataSelectionMode: dataSelectionMode ?? 'auto',
+    dataSelectionMode: canExportData ? 'auto' : 'none',
   };
 };
 
