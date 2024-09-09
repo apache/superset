@@ -67,6 +67,10 @@ script and the [docker.yml](https://github.com/apache/superset/blob/master/.gith
 GitHub action.
 
 ## Key ARGs in Dockerfile
+- `BUILD_TRANSLATIONS`: whether to build the translations into the image. For the
+  frontend build this tells webpack to strip out all locales other than `en` from
+  the `moment-timezone` library. For the backendthis skips compiling the
+  `*.po` translation files
 - `DEV_MODE`: whether to skip the frontend build, this is used by our `docker-compose` dev setup
   where we mount the local volume and build using `webpack` in `--watch` mode, meaning as you
   alter the code in the local file system, webpack, from within a docker image used for this
