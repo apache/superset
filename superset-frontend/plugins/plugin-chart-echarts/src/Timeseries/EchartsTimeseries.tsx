@@ -70,6 +70,8 @@ export default function EchartsTimeseries({
     setExtraControlHeight(updatedHeight);
   }, [formData.showExtraControls]);
 
+  const hasDimensions = ensureIsArray(groupby).length > 0;
+
   const getModelInfo = (target: ViewRootGroup, globalModel: GlobalModel) => {
     let el = target;
     let model: ComponentModel | null = null;
@@ -139,6 +141,9 @@ export default function EchartsTimeseries({
 
   const eventHandlers: EventHandlers = {
     click: props => {
+      if (!hasDimensions) {
+        return;
+      }
       if (clickTimer.current) {
         clearTimeout(clickTimer.current);
       }
@@ -215,8 +220,10 @@ export default function EchartsTimeseries({
 
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
-          crossFilter: getCrossFilterDataMask(seriesName),
           drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
+          crossFilter: hasDimensions
+            ? getCrossFilterDataMask(seriesName)
+            : undefined,
         });
       }
     },
