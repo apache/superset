@@ -45,7 +45,7 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const TRANSLATIONS_DIR = path.resolve(__dirname, '../superset/translations');
 
 const getAvailableTranslationCodes = () => {
-  if (process.env.BUILD_TRANSLATIONS == 'true') {
+  if (process.env.BUILD_TRANSLATIONS === 'true') {
     const LOCALE_CODE_MAPPING = {
       zh: 'zh-cn',
     };
@@ -58,10 +58,8 @@ const getAvailableTranslationCodes = () => {
       .map(dirName => dirName.replace('_', '-'))
       .map(dirName => LOCALE_CODE_MAPPING[dirName] || dirName);
   }
-  else {
-    // Indicates to the MomentLocalesPlugin that we only want to keep 'en'.
-    return []
-  }
+  // Indicates to the MomentLocalesPlugin that we only want to keep 'en'.
+  return [];
 };
 
 const {
