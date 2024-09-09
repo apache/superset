@@ -26,6 +26,10 @@ FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 
+# Include translations in the final build. The default supports en only to
+# reduce complexity and weight for those only using en
+ARG BUILD_TRANSLATIONS="false"
+
 # Used by docker-compose to skip the frontend build,
 # in dev we mount the repo and build the frontend inside docker
 ARG DEV_MODE="false"
@@ -51,7 +55,7 @@ RUN --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.
 
 WORKDIR /app/superset-frontend
 # Creating empty folders to avoid errors when running COPY later on
-RUN mkdir -p /app/superset/static/assets && mkdir -p /app/superset/translations
+RUN mkdir -p /app/superset/static/assets
 RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json \
     --mount=type=bind,target=./package-lock.json,src=./superset-frontend/package-lock.json \
     if [ "$DEV_MODE" = "false" ]; then \
@@ -66,17 +70,17 @@ COPY superset-frontend /app/superset-frontend
 RUN mkdir -p /app/superset/translations
 COPY superset/translations /app/superset/translations
 RUN if [ "$DEV_MODE" = "false" ]; then \
-        npm run ${BUILD_CMD}; \
+        BUILD_TRANSLATIONS=$BUILD_TRANSLATIONS npm run ${BUILD_CMD}; \
     else \
         echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
     fi
 
 
 # Compiles .json files from the .po files, then deletes the .po files
-RUN if [ "$DEV_MODE" = "false" ]; then \
+RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
         npm run build-translation; \
     else \
-        echo "Skipping translations in dev mode"; \
+        echo "Skipping translations as requested by build flag"; \
     fi
 RUN rm /app/superset/translations/*/LC_MESSAGES/*.po
 RUN rm /app/superset/translations/messages.pot
