@@ -20,8 +20,6 @@ import { isValidElement } from 'react';
 import FilterableTable from 'src/components/FilterableTable';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
 
 describe('FilterableTable', () => {
   const mockedProps = {
@@ -33,18 +31,12 @@ describe('FilterableTable', () => {
     ],
     height: 500,
   };
-  const initialState = { state: { user : {role : 'test'}} };
-  const mockStore = configureStore();
-  let store;
   it('is valid element', () => {
     expect(isValidElement(<FilterableTable {...mockedProps} />)).toBe(true);
   });
   it('renders a grid with 3 Table rows', () => {
-    store = mockStore(initialState);
     const { getByRole, getByText } = render(
-      <Provider store={store}>
       <FilterableTable {...mockedProps} />
-      </Provider>,
     );
     expect(getByRole('table')).toBeInTheDocument();
     mockedProps.data.forEach(({ b: columnBContent }) => {
@@ -56,11 +48,8 @@ describe('FilterableTable', () => {
       ...mockedProps,
       filterText: 'b1',
     };
-    store = mockStore(initialState);
     const { getByText, queryByText } = render(
-      <Provider store={store}>
       <FilterableTable {...props} />
-      </Provider>,
     );
     expect(getByText(props.filterText)).toBeInTheDocument();
     expect(queryByText('b2')).toBeFalsy();
@@ -71,11 +60,8 @@ describe('FilterableTable', () => {
       ...mockedProps,
       filterText: '100',
     };
-    store = mockStore(initialState);
     const { getByText, queryByText } = render(
-      <Provider store={store}>
       <FilterableTable {...props} />
-      </Provider>,
     );
     expect(getByText('b2')).toBeInTheDocument();
     expect(queryByText('b1')).toBeFalsy();
@@ -85,8 +71,6 @@ describe('FilterableTable', () => {
 
 describe('FilterableTable sorting - RTL', () => {
   const initialState = { state: { user : {role : 'test'}} };
-  const mockStore = configureStore();
-  let store;
   it('sorts strings correctly', () => {
     const stringProps = {
       orderedColumnKeys: ['columnA'],
@@ -97,11 +81,8 @@ describe('FilterableTable sorting - RTL', () => {
       ],
       height: 500,
     };
-    store = mockStore(initialState);
     render(
-      <Provider store={store}>
       <FilterableTable {...stringProps} />
-      </Provider>,
     );
 
     const stringColumn = within(screen.getByRole('table'))
@@ -148,11 +129,8 @@ describe('FilterableTable sorting - RTL', () => {
       data: [{ columnB: 21 }, { columnB: 0 }, { columnB: 623 }],
       height: 500,
     };
-    store = mockStore(initialState);
     render(
-      <Provider store={store}>
       <FilterableTable {...integerProps} />
-      </Provider>,
     );
 
     const integerColumn = within(screen.getByRole('table'))
@@ -188,12 +166,8 @@ describe('FilterableTable sorting - RTL', () => {
       data: [{ columnC: 45.67 }, { columnC: 1.23 }, { columnC: 89.0000001 }],
       height: 500,
     };
-    mockStore(initialState);
-    store = mockStore(initialState);
     render(
-      <Provider store={store}>
       <FilterableTable {...floatProps} />
-      </Provider>,
     );
 
     const floatColumn = within(screen.getByRole('table'))
@@ -249,11 +223,8 @@ describe('FilterableTable sorting - RTL', () => {
       ],
       height: 500,
     };
-    store = mockStore(initialState);
     render(
-      <Provider store={store}>
       <FilterableTable {...mixedFloatProps} />
-      </Provider>,
     );
 
     const mixedFloatColumn = within(screen.getByRole('table'))
@@ -352,11 +323,8 @@ describe('FilterableTable sorting - RTL', () => {
       ],
       height: 500,
     };
-    store = mockStore(initialState);
     render(
-      <Provider store={store}>
       <FilterableTable {...dsProps} />
-      </Provider>,
     );
 
     const dsColumn = within(screen.getByRole('table'))
