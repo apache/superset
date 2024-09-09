@@ -36,7 +36,6 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { isCurrentUserBot } from 'src/utils/isBot';
 import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import { findPermission } from 'src/utils/findPermission';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
