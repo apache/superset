@@ -138,78 +138,78 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
 
         self.assert400(response)
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_guest_token_validator_hook(self):
-        """
-        Security API: Test various scenarios for the GUEST_TOKEN_VALIDATOR_HOOK
-        """
 
-        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", scope="class")
+class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
+    uri = "api/v1/security/guest_token/"  # noqa: F541
+
+    def _get_guest_token_with_rls(self, rls_rule):
+        dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(dash, [])
         self.login(ADMIN_USERNAME)
         user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
         resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
-        rls_rule = {"dataset": 1, "clause": "tenant_id=123"}
         params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+        return self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
 
-        # Test False case from validator - should raise 400
+    def test_guest_token_validator_hook_denied(self):
+        """
+        Security API: Test False case from validator - should be 400
+        """
         current_app.config["GUEST_TOKEN_VALIDATOR_HOOK"] = lambda x: False
-        response = self.client.post(
-            self.uri, data=json.dumps(params), content_type="application/json"
-        )
+        rls_rule = {"dataset": 1, "clause": "tenant_id=123"}
+        self.assert400(self._get_guest_token_with_rls(rls_rule))
 
-        self.assert400(response)
-
-        # Test True case from validator - should be 200
+    def test_guest_token_validator_hook_denied_allowed(self):
+        """
+        Security API: Test True case from validator - should be 200
+        """
         current_app.config["GUEST_TOKEN_VALIDATOR_HOOK"] = lambda x: True
-        response = self.client.post(
-            self.uri, data=json.dumps(params), content_type="application/json"
-        )
+        rls_rule = {"dataset": 1, "clause": "tenant_id=123"}
+        self.assert200(self._get_guest_token_with_rls(rls_rule))
 
-        self.assert200(response)
-
-        # Test validator is not callable - should be 500
+    def test_guest_validator_hook_not_callable(self):
+        """
+        Security API: Test validator throws exception when function throws
+         should be 500
+        """
+        rls_rule = {"dataset": 1, "clause": "tenant_id=123"}
         current_app.config["GUEST_TOKEN_VALIDATOR_HOOK"] = 123
+        self.assert500(self._get_guest_token_with_rls(rls_rule))
 
-        response = self.client.post(
-            self.uri, data=json.dumps(params), content_type="application/json"
-        )
-        self.assert500(response)
-
-        # Test validator throws exception - should be 500
+    def test_guest_validator_hook_throws_exception(self):
+        """
+        Security API: Test validator throws exception - should be 500
+        """
+        rls_rule = {"dataset": 1, "clause": "tenant_id=123"}
         current_app.config["GUEST_TOKEN_VALIDATOR_HOOK"] = lambda x: [][0]
+        self.assert500(self._get_guest_token_with_rls(rls_rule))
 
-        response = self.client.post(
-            self.uri, data=json.dumps(params), content_type="application/json"
-        )
-        self.assert500(response)
-
+    def test_guest_validator_hook_real_world_example_positive(self):
+        """
+        Security API:Test validator real world example, check tenant_id is in clause
+            Positive case
+        """
         # Test validator real world example, check tenant_id is in clause
         # Should be 200.
         current_app.config["GUEST_TOKEN_VALIDATOR_HOOK"] = (
             lambda x: len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
         )
+        rls_rule = {"dataset": 1, "clause": "tenant_id=123"}
+        self.assert200(self._get_guest_token_with_rls(rls_rule))
 
-        response = self.client.post(
-            self.uri, data=json.dumps(params), content_type="application/json"
+    def test_guest_validator_hook_real_world_example_negative(self):
+        """
+        Security API:Test validator real world example, check tenant_id is in clause
+            Negative case
+        """
+        current_app.config["GUEST_TOKEN_VALIDATOR_HOOK"] = (
+            lambda x: len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
         )
-        self.assert200(response)
-
-        # Test validator real world example, check tenant_id is in clause
-        # Should be 400 as there is no RLS clause
-        params["rls"] = []
-        response = self.client.post(
-            self.uri, data=json.dumps(params), content_type="application/json"
-        )
-        self.assert400(response)
-
-        # Revert/Test that the default configuration has no side effects - 200
-        current_app.config["GUEST_TOKEN_VALIDATOR_HOOK"] = None
-
-        response = self.client.post(
-            self.uri, data=json.dumps(params), content_type="application/json"
-        )
-        self.assert200(response)
+        rls_rule = {}
+        self.assert400(self._get_guest_token_with_rls(rls_rule))
 
 
 class TestSecurityRolesApi(SupersetTestCase):
