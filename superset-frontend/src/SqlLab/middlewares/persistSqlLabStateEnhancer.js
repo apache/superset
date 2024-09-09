@@ -39,6 +39,8 @@ const sqlLabPersistStateConfig = {
   paths: ['sqlLab'],
   config: {
     slicer: paths => state => {
+      console.log('persistSqlLabStateEnhancer slicer paths', paths);
+      console.log('persistSqlLabStateEnhancer slicer state', state);
       const subset = {};
       paths.forEach(path => {
         if (isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)) {
@@ -110,10 +112,12 @@ const sqlLabPersistStateConfig = {
       if (state.localStorageUsageInKilobytes !== currentSize) {
         state.localStorageUsageInKilobytes = currentSize; // eslint-disable-line no-param-reassign
       }
-
+      console.log('persistSqlLabStateEnhancer slicer subset', subset);
       return subset;
     },
     merge: (initialState, persistedState = {}) => {
+      console.log('persistSqlLabStateEnhancer persistedState', persistedState);
+      console.log('persistSqlLabStateEnhancer initialState', initialState);
       const result = {
         ...initialState,
         ...persistedState,

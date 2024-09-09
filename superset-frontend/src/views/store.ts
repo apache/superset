@@ -40,6 +40,8 @@ import explore from 'src/explore/reducers/exploreReducer';
 import exploreDatasources from 'src/explore/reducers/datasourcesReducer';
 
 import { persistSqlLabStateEnhancer } from 'src/SqlLab/middlewares/persistSqlLabStateEnhancer';
+import { persistAssistantStateEnhancer } from 'src/pages/Assistant/middleware/persistAssistantStateEnhancer';
+
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import getInitialState from 'src/SqlLab/reducers/getInitialState';
 import { DatasourcesState } from 'src/dashboard/types';
@@ -168,7 +170,7 @@ export function setupStore({
     },
     middleware: getMiddleware,
     devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
-    enhancers: [persistSqlLabStateEnhancer as StoreEnhancer],
+    enhancers: [persistSqlLabStateEnhancer as StoreEnhancer, persistAssistantStateEnhancer as StoreEnhancer],
     ...overrides,
   });
 }
