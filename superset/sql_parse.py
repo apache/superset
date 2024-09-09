@@ -452,11 +452,11 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
-    def is_dml(self) -> bool:
+    def is_mutating(self) -> bool:
         """
-        Check if the statement is DML.
+        Check if the statement mutates data (DDL/DML).
 
-        :return: True if the statement is DML
+        :return: True if the statement mutates data.
         """
         raise NotImplementedError()
 
@@ -530,11 +530,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         dialect = SQLGLOT_DIALECTS.get(engine)
         return extract_tables_from_statement(parsed, dialect)
 
-    def is_dml(self) -> bool:
+    def is_mutating(self) -> bool:
         """
-        Check if the statement is DML.
+        Check if the statement mutates data (DDL/DML).
 
-        :return: True if the statement is DML
+        :return: True if the statement mutates data.
         """
         for node in self._parsed.walk():
             if isinstance(
@@ -563,7 +563,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             and self._parsed.expression.name.upper().startswith("ANALYZE ")
         ):
             analyzed_sql = self._parsed.expression.name[len("ANALYZE ") :]
-            return SQLStatement(analyzed_sql, self.engine).is_dml()
+            return SQLStatement(analyzed_sql, self.engine).is_mutating()
 
         return False
 
@@ -733,11 +733,11 @@ class KustoKQLStatement(BaseSQLStatement[str]):
 
         return {}
 
-    def is_dml(self) -> bool:
+    def is_mutating(self) -> bool:
         """
-        Check if the statement is DML.
+        Check if the statement mutates data (DDL/DML).
 
-        :return: True if the statement is DML
+        :return: True if the statement mutates data.
         """
         return self._parsed.startswith(".") and not self._parsed.startswith(".show")
 
@@ -783,13 +783,13 @@ class SQLScript:
 
         return settings
 
-    def has_dml(self) -> bool:
+    def has_mutation(self) -> bool:
         """
-        Check if the script contains DML statements.
+        Check if the script contains mutating statements.
 
-        :return: True if the script contains DML statements
+        :return: True if the script contains mutating statements
         """
-        return any(statement.is_dml() for statement in self.statements)
+        return any(statement.is_mutating() for statement in self.statements)
 
 
 class ParsedQuery:

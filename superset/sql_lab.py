@@ -238,7 +238,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
     increased_limit = None if query.limit is None else query.limit + 1
 
     parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
-    if parsed_statement.is_dml() and not database.allow_dml:
+    if parsed_statement.is_mutating() and not database.allow_dml:
         raise SupersetErrorException(
             SupersetError(
                 message=__("Only SELECT statements are allowed against this database."),

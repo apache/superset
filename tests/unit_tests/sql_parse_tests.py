@@ -2110,8 +2110,8 @@ on $left.Day1 == $right.Day
         ("kustokql", ".set-or-append table foo <| bar", True),
     ],
 )
-def test_has_dml(engine: str, sql: str, expected: bool) -> None:
+def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
     """
-    Test the `has_dml` method.
+    Test the `has_mutation` method.
     """
-    assert SQLScript(sql, engine).has_dml() == expected
+    assert SQLScript(sql, engine).has_mutation() == expected

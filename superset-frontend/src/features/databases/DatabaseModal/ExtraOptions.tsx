@@ -172,11 +172,11 @@ const ExtraOptions = ({
                   indeterminate={false}
                   checked={!!db?.allow_dml}
                   onChange={onInputChange}
-                  labelText={t('Allow DML')}
+                  labelText={t('Allow DDL and DML')}
                 />
                 <InfoTooltip
                   tooltip={t(
-                    'Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.',
+                    'Allow the execution of DDL (Data Definition Language: CREATE, DROP, TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, DELETE, etc)',
                   )}
                 />
               </div>

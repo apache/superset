@@ -700,9 +700,9 @@ describe('DatabaseModal', () => {
         /force all tables and views to be created in this schema when clicking ctas or cvas in sql lab\./i,
       );
       const allowDMLCheckbox = screen.getByRole('checkbox', {
-        name: /allow dml/i,
+        name: /allow ddl and dml/i,
       });
-      const allowDMLText = screen.getByText(/allow dml/i);
+      const allowDMLText = screen.getByText(/allow ddl and dml/i);
       const enableQueryCostEstimationCheckbox = screen.getByRole('checkbox', {
         name: /enable query cost estimation/i,
       });
