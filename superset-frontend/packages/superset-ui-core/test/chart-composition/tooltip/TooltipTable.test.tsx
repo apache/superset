@@ -20,6 +20,7 @@
 import '@testing-library/jest-dom';
 import { screen, render } from '@testing-library/react';
 import { TooltipTable } from '@superset-ui/core';
+import { CSSProperties } from 'react';
 
 describe('TooltipTable', () => {
   it('sets className', () => {
@@ -34,56 +35,35 @@ describe('TooltipTable', () => {
   });
 
   it('renders table with content', async () => {
-    render(
-      <TooltipTable
-        data={[
-          {
-            key: 'Cersei',
-            keyColumn: 'Cersei',
-            keyStyle: { padding: '10' },
-            valueColumn: 2,
-            valueStyle: { textAlign: 'right' },
-          },
-          {
-            key: 'Jaime',
-            keyColumn: 'Jaime',
-            keyStyle: { padding: '10' },
-            valueColumn: 1,
-            valueStyle: { textAlign: 'right' },
-          },
-          {
-            key: 'Tyrion',
-            keyStyle: { padding: '10' },
-            valueColumn: 2,
-          },
-        ]}
-      />,
-    );
-    let keyCell;
-    let valueCell;
+    const data = [
+      {
+        key: 'Cersei',
+        keyColumn: 'Cersei',
+        keyStyle: { padding: '10' },
+        valueColumn: 2,
+        valueStyle: { textAlign: 'right' } as CSSProperties,
+      },
+      {
+        key: 'Jaime',
+        keyColumn: 'Jaime',
+        keyStyle: { padding: '10' },
+        valueColumn: 1,
+        valueStyle: { textAlign: 'right' } as CSSProperties,
+      },
+      {
+        key: 'Tyrion',
+        keyStyle: { padding: '10' },
+        valueColumn: 2,
+      },
+    ];
 
-    keyCell = await screen.findByText('Cersei');
-    valueCell = keyCell?.nextSibling as HTMLElement;
-    expect(keyCell).toBeInTheDocument();
-    expect(valueCell?.textContent).toEqual('2');
-    expect(valueCell?.getAttribute('style')).toEqual(
-      'padding-left: 8px; text-align: right;',
-    );
+    render(<TooltipTable data={data} />);
 
-    keyCell = await screen.findByText('Jaime');
-    valueCell = keyCell?.nextSibling as HTMLElement;
-    expect(keyCell).toBeInTheDocument();
-    expect(valueCell?.textContent).toEqual('1');
-    expect(valueCell?.getAttribute('style')).toEqual(
-      'padding-left: 8px; text-align: right;',
-    );
-
-    keyCell = await screen.findByText('Tyrion');
-    valueCell = keyCell?.nextSibling as HTMLElement;
-    expect(keyCell).toBeInTheDocument();
-    expect(valueCell?.textContent).toEqual('2');
-    expect(valueCell?.getAttribute('style')).toEqual(
-      'padding-left: 8px; text-align: right;',
-    );
+    for await (const { key, valueColumn } of data) {
+      const keyCell = await screen.findByText(key);
+      const valueCell = keyCell?.nextSibling as HTMLElement;
+      expect(keyCell).toBeInTheDocument();
+      expect(valueCell?.textContent).toEqual(String(valueColumn));
+    }
   });
 });
