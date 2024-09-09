@@ -156,7 +156,6 @@ Join our growing community!
 - [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
-- [QPID Health](https://www.qpidhealth.com/)
 - [REDCap Cloud](https://www.redcapcloud.com/)
 - [TrustMedis](https://trustmedis.com/) [@famasya]
 - [WeSure](https://www.wesure.cn/)
