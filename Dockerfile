@@ -90,6 +90,10 @@ RUN rm /app/superset/translations/messages.pot
 ######################################################################
 FROM python:${PY_VER} AS lean
 
+# Include translations in the final build. The default supports en only to
+# reduce complexity and weight for those only using en
+ARG BUILD_TRANSLATIONS="false"
+
 WORKDIR /app
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
@@ -138,10 +142,14 @@ COPY --chown=superset:superset --from=superset-node /app/superset/translations s
 
 # Compile translations for the backend - this generates .mo files, then deletes the .po files
 COPY ./scripts/translations/generate_mo_files.sh ./scripts/translations/
-RUN ./scripts/translations/generate_mo_files.sh \
-    && chown -R superset:superset superset/translations \
-    && rm superset/translations/messages.pot \
-    && rm superset/translations/*/LC_MESSAGES/*.po
+RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
+        ./scripts/translations/generate_mo_files.sh \
+        && chown -R superset:superset superset/translations \
+        && rm superset/translations/messages.pot \
+        && rm superset/translations/*/LC_MESSAGES/*.po; \
+    else \
+        echo "Skipping translations as requested by build flag"; \
+    fi
 
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 USER superset
