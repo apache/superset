@@ -93,6 +93,7 @@ describe('PivotTableChart transformProps', () => {
       columnFormats: {},
       currencyFormats: {},
       currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
+      dataSelectionMode: 'none',
     });
   });
 });
