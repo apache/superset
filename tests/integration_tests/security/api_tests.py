@@ -172,7 +172,7 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     def test_guest_validator_hook_not_callable(self):
         """
-        Security API: Test validator throws exception when function throws
+        Security API: Test validator throws exception when isn't callable
          should be 500
         """
         rls_rule = {"dataset": 1, "clause": "tenant_id=123"}
