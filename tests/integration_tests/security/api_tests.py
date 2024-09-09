@@ -189,7 +189,7 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     def test_guest_validator_hook_real_world_example_positive(self):
         """
-        Security API:Test validator real world example, check tenant_id is in clause
+        Security API: Test validator real world example, check tenant_id is in clause
             Positive case
         """
         # Test validator real world example, check tenant_id is in clause
@@ -202,7 +202,7 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     def test_guest_validator_hook_real_world_example_negative(self):
         """
-        Security API:Test validator real world example, check tenant_id is in clause
+        Security API: Test validator real world example, check tenant_id is in clause
             Negative case
         """
         current_app.config["GUEST_TOKEN_VALIDATOR_HOOK"] = (
