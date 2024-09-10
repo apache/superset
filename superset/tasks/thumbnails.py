@@ -107,7 +107,6 @@ def cache_dashboard_thumbnail(
         )
 
 
-# pylint: disable=too-many-arguments
 @celery_app.task(name="cache_dashboard_screenshot", soft_time_limit=300)
 def cache_dashboard_screenshot(
     dashboard_id: int,
