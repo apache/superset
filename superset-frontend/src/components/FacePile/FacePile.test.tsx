@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
-
-import { Avatar } from 'src/components';
+import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 import FacePile from '.';
 import { getRandomColor } from './utils';
 
@@ -28,19 +26,33 @@ const users = [...new Array(10)].map((_, i) => ({
   id: i,
 }));
 
+jest.useFakeTimers();
+
 describe('FacePile', () => {
-  const wrapper = mount(<FacePile users={users} />);
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    ({ container } = render(<FacePile users={users} />));
+  });
 
   it('is a valid element', () => {
-    expect(wrapper.find(FacePile)).toExist();
+    const exposedFaces = container.querySelectorAll('img');
+    expect(exposedFaces).toHaveLength(4);
+    const overflownFaces = screen.getByText('+6');
+    expect(overflownFaces).toBeVisible();
+
+    // Display user info when hovering over one of exposed face in the pile.
+    fireEvent.mouseEnter(exposedFaces[0]);
+    act(() => jest.runAllTimers());
+    expect(screen.getByRole('tooltip')).toHaveTextContent('user 0');
   });
 
   it('renders an Avatar', () => {
-    expect(wrapper.find(Avatar)).toExist();
+    expect(container.querySelector('.ant-avatar')).toBeVisible();
   });
 
   it('hides overflow', () => {
-    expect(wrapper.find(Avatar).length).toBe(5);
+    expect(container.querySelectorAll('.ant-avatar')).toHaveLength(5);
   });
 });
 
