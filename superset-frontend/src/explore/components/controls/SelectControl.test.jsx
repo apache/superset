@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  act,
   createEvent,
   fireEvent,
   render,
@@ -27,7 +28,6 @@ import SelectControl, {
   innerGetOptions,
 } from 'src/explore/components/controls/SelectControl';
 import userEvent from '@testing-library/user-event';
-import { act } from '@testing-library/react-hooks';
 
 const defaultProps = {
   choices: [
@@ -109,7 +109,7 @@ describe('SelectControl', () => {
       // Expect a new option to be selectable.
       userEvent.click(selectorInput);
       userEvent.type(selectorInput, 'a new option');
-      act(() => jest.advanceTimersByTime(300));
+      act(() => jest.runAllTimers());
       expect(within(selectorWrapper).getByRole('option')).toHaveTextContent(
         'a new option',
       );
