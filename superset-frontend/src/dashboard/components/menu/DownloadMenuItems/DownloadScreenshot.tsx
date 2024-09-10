@@ -71,6 +71,7 @@ export default function DownloadScreenshot({
     const checkImageReady = (cacheKey: string) =>
       SupersetClient.get({
         endpoint: `/api/v1/dashboard/${dashboardId}/screenshot/${cacheKey}/?download_format=${format}`,
+        headers: { Accept: 'application/pdf, image/png' },
         parseMethod: 'raw',
       })
         .then((response: Response) => response.blob())
