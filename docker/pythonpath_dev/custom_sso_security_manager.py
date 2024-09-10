@@ -19,7 +19,10 @@ class CustomOAuthView(AuthOAuthView):
     @expose("/login/<provider>/<username>")
     def login(self, provider= None, username= None):
         if username is not None:
-            return str(self.appbuilder.sm.find_user(username=username).id)
+            user = self.appbuilder.sm.find_user(username=username)
+            if user is None:
+                user = self.appbuilder.sm.find_user(email=username)            
+            return str(user.id)
         else :
             return super(CustomOAuthView,self).login(provider)
 
