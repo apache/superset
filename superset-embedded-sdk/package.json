@@ -33,7 +33,7 @@
     "last 3 edge versions"
   ],
   "dependencies": {
-    "@superset-ui/switchboard": "^0.18.26-0",
+    "@superset-ui/switchboard": "^0.20.2",
     "jwt-decode": "^3.1.2"
   },
   "devDependencies": {
