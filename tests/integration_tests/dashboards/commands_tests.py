@@ -34,10 +34,13 @@ from superset.commands.dashboard.export import (
     ExportDashboardsCommand,
     get_default_position,
 )
+from superset.commands.dashboard.fave import FaveDashboardCommand
 from superset.commands.dashboard.importers import v0, v1
+from superset.commands.dashboard.unfave import UnfaveDashboardCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.dashboard import DashboardDAO
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -759,3 +762,33 @@ class TestDeleteEmbeddedDashboardCommand(SupersetTestCase):
                 .one_or_none()
             )
             assert deleted_embedded_dashboard is None
+
+
+class TestFaveDashboardCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_fave_unfave_dashboard_command(self):
+        """Test that a user can fave/unfave a dashboard"""
+        with self.client.application.test_request_context():
+            example_dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").one()
+            )
+
+            # Assert that the dashboard exists
+            assert example_dashboard is not None
+
+            with override_user(security_manager.find_user("admin")):
+                with patch(
+                    "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
+                    return_value=example_dashboard,
+                ):
+                    FaveDashboardCommand(example_dashboard.id).run()
+
+                    # Assert that the dashboard was faved
+                    ids = DashboardDAO.favorited_ids([example_dashboard])
+                    assert example_dashboard.id in ids
+
+                    UnfaveDashboardCommand(example_dashboard.id).run()
+
+                    # Assert that the dashboard was unfaved
+                    ids = DashboardDAO.favorited_ids([example_dashboard])
+                    assert example_dashboard.id not in ids

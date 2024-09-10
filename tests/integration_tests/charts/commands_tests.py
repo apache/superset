@@ -27,15 +27,19 @@ from superset.commands.chart.exceptions import (
     WarmUpCacheChartNotFoundError,
 )
 from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.chart.fave import FaveChartCommand
 from superset.commands.chart.importers.v1 import ImportChartsCommand
+from superset.commands.chart.unfave import UnfaveChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.chart import ChartDAO
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
+from superset.utils.core import override_user
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -428,3 +432,27 @@ class TestChartWarmUpCacheCommand(SupersetTestCase):
         self.assertEqual(
             result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
         )
+
+
+class TestFaveChartCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_fave_unfave_chart_command(self):
+        """Test that a user can fave/unfave a chart"""
+        with self.client.application.test_request_context():
+            example_chart = db.session.query(Slice).all()[0]
+
+            # Assert that the chart exists
+            assert example_chart is not None
+
+            with override_user(security_manager.find_user("admin")):
+                FaveChartCommand(example_chart.id).run()
+
+                # Assert that the dashboard was faved
+                ids = ChartDAO.favorited_ids([example_chart])
+                assert example_chart.id in ids
+
+                UnfaveChartCommand(example_chart.id).run()
+
+                # Assert that the chart was unfaved
+                ids = ChartDAO.favorited_ids([example_chart])
+                assert example_chart.id not in ids
