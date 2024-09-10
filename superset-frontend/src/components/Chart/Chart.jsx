@@ -82,7 +82,7 @@ const propTypes = {
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
   emitCrossFilters: PropTypes.bool,
-  user: PropTypes.object,
+  canExportData: PropTypes.bool,
 };
 
 const BLANK = {};
@@ -272,7 +272,7 @@ class Chart extends PureComponent {
             {...this.props}
             source={this.props.dashboardId ? 'dashboard' : 'explore'}
             data-test={this.props.vizType}
-            canExportData={this.props.canExportData}
+            dataSelectionMode={this.props.canExportData ? 'auto' : none}
           />
         ) : (
           <Loading />
