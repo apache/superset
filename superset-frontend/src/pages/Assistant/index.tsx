@@ -3,11 +3,14 @@ import { AssistantHome, AssistantProps } from './AssistantHome';
 import { useState } from 'react';
 import { DatasourceProps } from './ContextBuilder/Datasource';
 import { AssistantContextBuilder } from './ContextBuilder';
-import { Tabs } from 'antd';
+import { Modal } from 'antd-v5';
 import { QueryResultTable } from './PreviewBuilder';
 import { actions } from './actions';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { t } from '@superset-ui/core';
+import { Button } from 'antd';
+import { BuildFilled } from '@ant-design/icons';
 
 
 /**
@@ -24,6 +27,15 @@ function Assistant(props: AssistantProps) {
 
   // data selection state
   const [datasources, setDatasources] = useState<DatasourceProps[]>(props.data || []);
+  const [contextBuilderOpen, setContextBuilderOpen] = useState(false);
+
+  const handleContextBuilderOpen = () => {
+    setContextBuilderOpen(true);
+  }
+
+  const handleContextBuilderClose = () => {
+    setContextBuilderOpen(false);
+  }
 
   const handleDataChange = (data: DatasourceProps[]) => {
     console.log("Data Changed", data);
@@ -37,41 +49,70 @@ function Assistant(props: AssistantProps) {
     <>
       <SubMenu
         name="Assistant"
+        buttons={[
+          {
+            name: (
+              <>
+                <BuildFilled height={'24px'} width={'24px'} /> {t('Context Builder')}
+              </>
+            ),
+            onClick: () => {handleContextBuilderOpen() },
+            buttonStyle: 'secondary'
+          }
+        ]}
       />
-      {/* Tabs */}
-      <Tabs tabBarStyle={{
-        padding: '24px',
-      }} defaultActiveKey="1" >
-        <Tabs.TabPane tab={
-          <span>
-            &nbsp;Assistant Chat&nbsp;
-          </span>
-        } key="1">
-          <AssistantHome {...{
-            ...props,
-            data: datasources
-          }} />
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={
-          <span>
-            &nbsp;Context Builder&nbsp;
-          </span>
-        } key="2">
-          <AssistantContextBuilder 
+      <AssistantHome {...{
+        ...props,
+        data: datasources
+      }} />
+      <Modal
+        width={'90vw'}
+        styles={{
+          body: {
+            padding: 0,
+            height: '90vh',
+          },
+          content: {
+            padding: 0,
+          },
+          mask: {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }}
+        closable={false}
+        footer={null}
+        centered
+        zIndex={1000}
+        open={contextBuilderOpen}
+      >
+        <div
+          style={{
+            height: '100%',
+            width: '100%',
+          }}
+        >
+          <Button
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              padding: '5px 10px',
+              borderRadius: '5px',
+            }}
+            onClick={handleContextBuilderClose}
+          >
+            Close
+          </Button>
+          <AssistantContextBuilder
             datasources={props.data || []}
             actions={props.actions}
             onChange={(data) => {
-            handleDataChange(data);
-          }} />
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={ 
-          <span>
-            &nbsp;Result Test&nbsp;
-          </span>
-         } key="3">
-          <QueryResultTable />
-        </Tabs.TabPane>
-      </Tabs>
+              handleDataChange(data);
+            }} />
+          
+        </div>
+
+      </Modal>
     </>
   );
 }
@@ -85,12 +126,12 @@ function mapStateToProps(state: any) {
 }
 
 function mapDispatchToProps(dispatch: any) {
-  
+
   return {
     actions: bindActionCreators(actions, dispatch)
   };
 }
 
 export default connect(
-  mapStateToProps,mapDispatchToProps
+  mapStateToProps, mapDispatchToProps
 )(Assistant)

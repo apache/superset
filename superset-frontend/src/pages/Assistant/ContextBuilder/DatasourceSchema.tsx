@@ -243,10 +243,15 @@ export class DatasourceSchema extends Component<DatasourceSchemaProps, Datasourc
                         </Collapse.Panel>
                     </Collapse>
                     <Modal
+                    style={{
+                        // max height of modal is 100% of the viewport
+                        maxHeight: '100vh',
+                    }}
                         title="Clear Selection and Refresh"
                         visible={this.state.confirmRefreshModalVisible}
                         onOk={this.handleRefresh}
                         onCancel={this.closeRefreshModal}
+                        zIndex={2000}
                         centered >
                         <p>Are you sure you want to clear the selection and refresh the tables?</p>
                         </Modal>

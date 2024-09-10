@@ -35,8 +35,6 @@ export function ContextBuilderSteps(props: any) {
         <>
             <div style={{
                 background: 'radial-gradient(circle, #103F91 0%, #0E3873 100%)',
-                // borderTopLeftRadius: '16px',
-                // borderBottomLeftRadius: '16px',
                 width: 'fit-content',
                 minWidth: '300px',
                 height: 'fill-available',

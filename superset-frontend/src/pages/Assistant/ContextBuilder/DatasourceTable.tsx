@@ -1,9 +1,11 @@
 import React, { Component } from "react";
-import { Collapse, Table, Spin, Input, Modal } from "antd";
+import { Spin, Modal, Table } from "antd";
+import { Modal as ModalV5, Input } from "antd-v5";
 import { fetchColumnData, ColumnData, getSelectStarQuery, executeQuery } from "../contextUtils";
 import { getTableDescription } from "../assistantUtils";
 import FilterableTable from "src/components/FilterableTable";
 import { AssistantActionsType } from '../actions';
+import { ColumnType } from "antd/lib/table";
 
 const { TextArea } = Input;
 
@@ -43,6 +45,9 @@ export interface DatasourceTableColumnProps {
 }
 
 export class DatasourceTable extends Component<DatasourceTableProps, DatasourceTableState> {
+
+    timer: NodeJS.Timeout | undefined
+
     constructor(props: DatasourceTableProps) {
         super(props);
         this.state = {
@@ -120,7 +125,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
     };
 
 
-    async getDatasourceTableColumnProps(){
+    async getDatasourceTableColumnProps() {
         const { databaseId, schemaName, tableName } = this.props;
         const columnData = (await fetchColumnData(databaseId, schemaName, tableName)).map((column: ColumnData) => ({
             selected: false,
@@ -167,7 +172,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
         if (prevProps.selected !== this.props.selected) {
             this.setState({ selected: this.props.selected });
         }
-        
+
     }
 
     handleDescriptionFocus = (isFocused: boolean) => {
@@ -233,12 +238,29 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
 
     render() {
         const { selected, columns, selectedColumns, loading, description, descriptionFocused, isDescriptionLoading, data, query, isOpen, confirmRefreshModalVisible } = this.state;
-        const tableColumns = [
+        const tableColumns: ColumnType<DatasourceTableColumnProps> = [
             { title: 'Column', dataIndex: 'columnName', key: 'columnName' },
             { title: 'Type', dataIndex: 'columnType', key: 'columnType' },
+            // Description input
+            {
+                title: 'Description', dataIndex: 'columnDescription', key: 'columnDescription',
+                render: (text: string, _: any, index: number) => <TextArea
+                    placeholder={text || 'No Description'}
+                    
+                    value={text}
+                    autoSize={true}
+                    onChange={(e) => {
+                        const newColumns = [...columns];
+                        newColumns[index].columnDescription = e.target.value;
+                        this.setState({ columns: newColumns });
+                        clearTimeout(this.timer);
+                        this.timer = setTimeout(() => {    
+                            this.props.actions.updateDatabaseSchemaTable(this.state)
+                        }, 300);
+                    }}
+                />
+            },
         ];
-
-        console.log("DatasourceTable render", data);
 
         return (
             <div>
@@ -263,31 +285,52 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                     {loading && <Spin size="small" />}
 
                 </div>
-                <Modal
+                <ModalV5
                     title={
                         <div style={{
                             display: 'flex',
                             flexDirection: 'row',
+                            alignItems: 'center',
+                            width: 'wrap-content',
                         }} >
                             <input
                                 style={{
                                     marginRight: '10px'
                                 }}
                                 type="checkbox" checked={selected} onChange={this.handleSelect} disabled={loading || columns.length === 0} />
-                            <p>{this.props.tableName}</p>
+                            <h3>{this.props.tableName}</h3>
                         </div>
                     }
+                    styles={{
+                        mask: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+                        },
+                        content: {
+                            backgroundColor: 'white',
+                        },
+                        header: {
+                            backgroundColor: 'white'
+                        },
+                        body: {
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflowY: 'auto',
+                            maxHeight: '80vh',
+                        }
+                    }}
                     visible={isOpen}
                     cancelText="Clear Selection and Refresh"
                     onCancel={this.refreshModalOpen}
                     onOk={this.handleClose}
                     closable={false}
-                    width="80%"
+                    width="60vw"
                     centered
+                    zIndex={3000}
                 >
 
                     <div style={{
-                        position: 'relative'
+                        flex: '0 1 auto',
+                        height: 'wrap-content',
                     }}>
                         {/* assistant logo in top right */}
                         {/* loading icon in top left */}
@@ -305,7 +348,7 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
                             onFocus={() => { this.handleDescriptionFocus(true) }}
                             onBlur={() => { this.handleDescriptionFocus(false) }}
                             style={{
-                                height: 'auto',
+                                height: '100px',
                                 width: '100%',
                                 padding: '10px',
                                 margin: '10px 0px',
@@ -318,46 +361,52 @@ export class DatasourceTable extends Component<DatasourceTableProps, DatasourceT
 
                     </div>
 
-
-                    <Table
-                        columns={tableColumns}
-                        dataSource={columns}
-                        rowSelection={{
-                            type: 'checkbox',
-                            onChange: (selectedRowKeys, selectedRows) => {
-                                const selectedColumnNames = selectedRows.map((row) => row.columnName);
-                                this.handleColumnSelect(selectedColumnNames);
-                            },
-                            selectedRowKeys: selectedColumns,
+                    <div
+                        style={{
+                            flex: '1 1 auto',
+                            overflowY: 'auto',
                         }}
-                    />
-                    <div style={{
-                        position: 'relative',
-                        overflow: 'scroll',
-                    }}>
+                    >
+                        <Table
+                            columns={tableColumns}
+                            dataSource={columns}
+                            rowSelection={{
+                                type: 'checkbox',
+                                onChange: (selectedRowKeys, selectedRows) => {
+                                    const selectedColumnNames = selectedRows.map((row) => row.columnName);
+                                    this.handleColumnSelect(selectedColumnNames);
+                                },
+                                selectedRowKeys: selectedColumns,
+                            }}
+                            style={{
+                                backgroundColor: 'white',
+                            }}
+                        />
 
 
+                        {(data && data.length > 0 && columns.length > 0) && <FilterableTable {...{
+                            orderedColumnKeys: columns.map((column) => column.columnName).sort(),
+                            data: data,
+                            height: 200,
+                            filterText: '',
+                            expandedColumns: [],
+                            allowHTML: true
+                        }} />}
                     </div>
-
-                    {(data && data.length > 0 && columns.length > 0) && <FilterableTable {...{
-                        orderedColumnKeys: columns.map((column) => column.columnName).sort(),
-                        data: data,
-                        height: 200,
-                        filterText: '',
-                        expandedColumns: [],
-                        allowHTML: true
-                    }} />}
 
                     <Modal
                         title="Clear Selection and Refresh"
                         visible={confirmRefreshModalVisible}
                         onOk={this.handleRefresh}
                         onCancel={this.refreshModalClose}
-                        centered>
+                        centered
+                        zIndex={4000}
+                        closable={false}
+                    >
                         <p>Are you sure you want to clear the selection and refresh the columns?</p>
                     </Modal>
 
-                </Modal>
+                </ModalV5>
             </div>
 
         );

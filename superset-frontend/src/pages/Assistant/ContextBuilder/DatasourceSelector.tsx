@@ -16,7 +16,7 @@ export interface DatasourceSelectorProps {
     actions: AssistantActionsType;
 }
 
-export interface DatasourceSelectorState extends  DatasourceSelectorProps {
+export interface DatasourceSelectorState extends DatasourceSelectorProps {
     loading: boolean;
     onChange: (data: DatasourceProps[]) => void
 }
@@ -25,8 +25,8 @@ export class DatasourceSelector extends Component<DatasourceSelectorProps, Datas
     constructor(props: DatasourceSelectorProps) {
         super(props);
         this.state = {
-           ...props,
-           loading: false
+            ...props,
+            loading: false
         };
         console.log("DatasourceSelector Props", props);
         console.log("DatasourceSelector State", this.state);
@@ -113,17 +113,18 @@ export class DatasourceSelector extends Component<DatasourceSelectorProps, Datas
                 <div
                     style={{
                         width: '100%',
-                        // borderTopRightRadius: '16px',
-                        // borderBottomRightRadius: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: '100%',
                         padding: '0px',
                         background: '#f0f0f0',
                     }}
                 >
                     <div
                         style={{
+                            flex: '0 1 auto',
                             display: 'flex',
                             justifyContent: 'space-between',
-                            padding: '24px',
                             width: '100%',
                         }}
                     >
@@ -142,14 +143,30 @@ export class DatasourceSelector extends Component<DatasourceSelectorProps, Datas
                             {loading && <Spin size="small" />}
                         </div>
                     </div>
-                    {datasources.map((datasource) => (
-                        <Datasource
-                            key={'d_source' + datasource.id}
-                            {...datasource} actions={this.props.actions}
-                            onChange={this.handleSelectEvent}
-                        />
-                    ))}
+                    <div
+                        style={{
+                            flex: '1 1 auto',
+                            width:'fill-available',
+                            height: 'fill-available',
+                            overflowY: 'auto',
+                        }}
+                    >
+                        {datasources.map((datasource) => (
+                            <Datasource
+                                key={'d_source' + datasource.id}
+                                {...datasource} actions={this.props.actions}
+                                onChange={this.handleSelectEvent}
+                            />
+                        ))}
+                    </div>
+                    <div
+                    style={{
+                        flex: '0 1 auto',
+                        alignSelf: 'flex-end',
+                    }}
+                    >
                     <ContextSelection {...summary} />
+                    </div>
                 </div>
             </>
         );

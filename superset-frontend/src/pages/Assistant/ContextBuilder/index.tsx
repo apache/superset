@@ -11,14 +11,14 @@ export function AssistantContextBuilder(props: DatasourceSelectorProps) {
     };
 
     return (
-        // 2x1 grid
         <div style={{
             display: 'flex',
             flexDirection: 'row',
-            width: 'fill-available',
+            width: '100%',
+            height: '100%',
         }}>
             <ContextBuilderSteps />
-            
+
             <DatasourceSelector {...props} onChange={handleDatasourceChange} />
         </div>
     )
