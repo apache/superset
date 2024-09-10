@@ -62,7 +62,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
   emitCrossFilters: PropTypes.bool,
-  dataSelectionMode: PropTypes.string,
+  canExportData: PropTypes.bool,
 };
 
 const BLANK = {};
@@ -264,7 +264,7 @@ class ChartRenderer extends Component {
       formData,
       latestQueryFormData,
       postTransformProps,
-      dataSelectionMode,
+      canExportData,
     } = this.props;
 
     const currentFormData =
@@ -363,7 +363,7 @@ class ChartRenderer extends Component {
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
             legendState={this.state.legendState}
-            dataSelectionMode={dataSelectionMode}
+            canExportData={canExportData}
             {...drillToDetailProps}
           />
         </div>

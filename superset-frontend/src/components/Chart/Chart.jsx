@@ -272,7 +272,7 @@ class Chart extends PureComponent {
             {...this.props}
             source={this.props.dashboardId ? 'dashboard' : 'explore'}
             data-test={this.props.vizType}
-            dataSelectionMode={this.props.canExportData ? 'auto' : none}
+            canExportData={this.props.canExportData}
           />
         ) : (
           <Loading />
