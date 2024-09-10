@@ -1038,7 +1038,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   useLayoutEffect(() => {
     // After initial load the table should resize only when the new sizes
-    // Are not only scrollbar updates, otherwise, the table would twicth
+    // Are not only scrollbar updates, otherwise, the table would twitch
     const scrollBarSize = getScrollBarSize();
     const { width: tableWidth, height: tableHeight } = tableSize;
     // Table is increasing its original size

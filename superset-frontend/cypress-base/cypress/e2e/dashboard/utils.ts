@@ -204,9 +204,9 @@ export function expandFilterOnLeftPanel() {
 }
 
 /** ************************************************************************
- * Collapes Native Filter from the left panel on dashboard
+ * Collapses Native Filter from the left panel on dashboard
  * @returns {None}
- * @summary helper for collape native filter
+ * @summary helper for collapse native filter
  ************************************************************************* */
 export function collapseFilterOnLeftPanel() {
   cy.get(nativeFilters.filterFromDashboardView.collapse)
@@ -429,7 +429,7 @@ export function undoDeleteNativeFilter() {
 
 /** ************************************************************************
  * Check Native Filter tooltip content
- * @param index: tooltip indext to check
+ * @param index: tooltip index to check
  * @param value: tooltip value to check
  * @return {null}
  * @summary helper for checking native filter tooltip content by index
@@ -475,10 +475,10 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
 }
 
 /** ************************************************************************
- * Input default valule in Native filter in filter settings
+ * Input default value in Native filter in filter settings
  * @param defaultValue: default value for native filter
  * @return {null}
- * @summary helper for input default valule in Native filter in filter settings
+ * @summary helper for input default value in Native filter in filter settings
  ************************************************************************* */
 export function inputNativeFilterDefaultValue(
   defaultValue: string,

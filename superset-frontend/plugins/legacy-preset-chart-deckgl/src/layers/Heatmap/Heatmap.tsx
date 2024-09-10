@@ -65,7 +65,7 @@ export const getLayer: getLayerType<unknown> = (
     ?.reverse() as Color[];
 
   return new HeatmapLayer({
-    id: `heatmp-layer-${fd.slice_id}` as const,
+    id: `heatmap-layer-${fd.slice_id}` as const,
     data,
     intensity,
     radiusPixels,

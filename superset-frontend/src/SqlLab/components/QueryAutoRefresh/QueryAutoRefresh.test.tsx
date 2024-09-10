@@ -162,7 +162,7 @@ describe('QueryAutoRefresh', () => {
     expect(fetchMock.calls(refreshApi)).toHaveLength(1);
   });
 
-  it('Does not fail and attempts to refresh when given pending query and invlaid query', async () => {
+  it('Does not fail and attempts to refresh when given pending query and invalid query', async () => {
     const store = mockStore();
     fetchMock.get(refreshApi, {
       result: [
