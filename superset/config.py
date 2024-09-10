@@ -196,12 +196,14 @@ SQLALCHEMY_DATABASE_URI = (
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
-# The default MySQL isolation level is REPEATABLE READ whereas the default PostgreSQL
-# isolation level is READ COMMITTED. All backends should use READ COMMITTED (or similar)
-# to help ensure consistent behavior.
-SQLALCHEMY_ENGINE_OPTIONS = {
-    "isolation_level": "SERIALIZABLE",  # SQLite does not support READ COMMITTED.
-}
+# This config is exposed through flask-sqlalchemy, and can be used to set your metadata
+# database connection settings. You can use this to set arbitrary connection settings
+# that may be specific to the database engine you are using.
+# Note that you can use this to set the isolation level of your database, as in
+# `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}`
+# Also note that we recommend READ COMMITTED for regular operation.
+# Find out more here https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/
+SQLALCHEMY_ENGINE_OPTIONS = {}
 
 # In order to hook up a custom password store for all SQLALCHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
