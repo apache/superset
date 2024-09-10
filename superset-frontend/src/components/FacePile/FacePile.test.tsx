@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
-
 import { Avatar } from 'src/components';
+import { store } from 'src/views/store';
 import FacePile from '.';
 import { getRandomColor } from './utils';
 
@@ -29,7 +30,11 @@ const users = [...new Array(10)].map((_, i) => ({
 }));
 
 describe('FacePile', () => {
-  const wrapper = mount(<FacePile users={users} />);
+  const wrapper = mount(
+    <Provider store={store}>
+      <FacePile users={users} />
+    </Provider>,
+  );
 
   it('is a valid element', () => {
     expect(wrapper.find(FacePile)).toExist();

@@ -322,6 +322,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     @classmethod
     def get_prequeries(
         cls,
+        database: Database,
         catalog: str | None = None,
         schema: str | None = None,
     ) -> list[str]:

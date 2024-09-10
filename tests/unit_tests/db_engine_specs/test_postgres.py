@@ -137,14 +137,16 @@ def test_get_schema_from_engine_params() -> None:
     )
 
 
-def test_get_prequeries() -> None:
+def test_get_prequeries(mocker: MockerFixture) -> None:
     """
     Test the ``get_prequeries`` method.
     """
     from superset.db_engine_specs.postgres import PostgresEngineSpec
 
-    assert PostgresEngineSpec.get_prequeries() == []
-    assert PostgresEngineSpec.get_prequeries(schema="test") == [
+    database = mocker.MagicMock()
+
+    assert PostgresEngineSpec.get_prequeries(database) == []
+    assert PostgresEngineSpec.get_prequeries(database, schema="test") == [
         'set search_path = "test"'
     ]
 

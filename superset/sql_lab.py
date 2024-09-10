@@ -56,6 +56,7 @@ from superset.sql_parse import (
     insert_rls_as_subquery,
     insert_rls_in_predicate,
     ParsedQuery,
+    SQLStatement,
     Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
@@ -194,7 +195,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 return handle_query_error(ex, query)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-statements
+def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-locals
     sql_statement: str,
     query: Query,
     cursor: Any,
@@ -236,7 +237,8 @@ def execute_sql_statement(  # pylint: disable=too-many-statements
     # We are testing to see if more rows exist than the limit.
     increased_limit = None if query.limit is None else query.limit + 1
 
-    if not db_engine_spec.is_readonly_query(parsed_query) and not database.allow_dml:
+    parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
+    if parsed_statement.is_mutating() and not database.allow_dml:
         raise SupersetErrorException(
             SupersetError(
                 message=__("Only SELECT statements are allowed against this database."),

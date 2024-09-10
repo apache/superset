@@ -259,7 +259,12 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   };
 
   useEffect(() => {
-    if (!slackOptions[0]?.options.length) {
+    const slackEnabled = options?.some(
+      option =>
+        option === NotificationMethodOption.Slack ||
+        option === NotificationMethodOption.SlackV2,
+    );
+    if (slackEnabled && !slackOptions[0]?.options.length) {
       fetchSlackChannels({ types: ['public_channel', 'private_channel'] })
         .then(({ json }) => {
           const { result } = json;

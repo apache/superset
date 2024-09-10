@@ -68,6 +68,12 @@ const StyledHeader = styled.header`
           height: 100%;
           object-fit: contain;
         }
+        &:focus {
+          border-color: transparent;
+        }
+        &:focus-visible {
+          border-color: ${theme.colors.primary.dark1};
+        }
       }
       .navbar-brand-text {
         border-left: 1px solid ${theme.colors.grayscale.light2};
@@ -306,11 +312,7 @@ export function Menu({
             arrowPointAtCenter
           >
             {isFrontendRoute(window.location.pathname) ? (
-              <GenericLink
-                className="navbar-brand"
-                to={brand.path}
-                tabIndex={-1}
-              >
+              <GenericLink className="navbar-brand" to={brand.path}>
                 <img src={brand.icon} alt={brand.alt} />
               </GenericLink>
             ) : (

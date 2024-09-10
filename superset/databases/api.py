@@ -110,6 +110,7 @@ from superset.exceptions import (
     DatabaseNotFoundException,
     InvalidPayloadSchemaError,
     OAuth2Error,
+    OAuth2RedirectError,
     SupersetErrorsException,
     SupersetException,
     SupersetSecurityException,
@@ -398,7 +399,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/", methods=("POST",))
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
@@ -462,6 +462,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 item["ssh_tunnel"] = mask_password_info(new_model.ssh_tunnel)
 
             return self.response(201, id=new_model.id, result=item)
+        except OAuth2RedirectError:
+            raise
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatabaseConnectionFailedError as ex:
@@ -621,7 +623,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/catalogs/")
     @protect()
-    @safe
     @rison(database_catalogs_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -680,12 +681,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 500,
                 message="There was an error connecting to the database",
             )
+        except OAuth2RedirectError:
+            raise
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>/schemas/")
     @protect()
-    @safe
     @rison(database_schemas_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -746,6 +748,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(
                 500, message="There was an error connecting to the database"
             )
+        except OAuth2RedirectError:
+            raise
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
@@ -2069,6 +2073,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "sqlalchemy_uri_placeholder": engine_spec.sqlalchemy_uri_placeholder,
                 "preferred": engine_spec.engine_name in preferred_databases,
                 "engine_information": engine_spec.get_public_information(),
+                "supports_oauth2": engine_spec.supports_oauth2,
             }
 
             if engine_spec.default_driver:

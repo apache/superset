@@ -239,7 +239,7 @@ class TableSchemaView(BaseSupersetView):
         db.session.query(TableSchema).filter(
             TableSchema.tab_state_id == table["queryEditorId"],
             TableSchema.database_id == table["dbId"],
-            TableSchema.catalog == table["catalog"],
+            TableSchema.catalog == table.get("catalog"),
             TableSchema.schema == table["schema"],
             TableSchema.table == table["name"],
         ).delete(synchronize_session=False)
@@ -247,7 +247,7 @@ class TableSchemaView(BaseSupersetView):
         table_schema = TableSchema(
             tab_state_id=table["queryEditorId"],
             database_id=table["dbId"],
-            catalog=table["catalog"],
+            catalog=table.get("catalog"),
             schema=table["schema"],
             table=table["name"],
             description=json.dumps(table),
