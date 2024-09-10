@@ -59,9 +59,6 @@ if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() == "sqlite":
         "removed in a future version of Superset."
     )
 
-if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() in ("postgresql", "mysql"):
-    SQLALCHEMY_ENGINE_OPTIONS["isolation_level"] = "READ COMMITTED"  # noqa: F405
-
 # Speeding up the tests.integration_tests.
 PRESTO_POLL_INTERVAL = 0.1
 HIVE_POLL_INTERVAL = 0.1

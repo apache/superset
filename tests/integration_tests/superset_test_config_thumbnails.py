@@ -41,9 +41,6 @@ if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() == "sqlite":
         in a future version of Superset."
     )
 
-if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() in ("postgresql", "mysql"):
-    SQLALCHEMY_ENGINE_OPTIONS["isolation_level"] = "READ COMMITTED"  # noqa: F405
-
 SQL_SELECT_AS_CTA = True
 SQL_MAX_ROW = 666
 
