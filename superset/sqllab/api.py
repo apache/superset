@@ -35,8 +35,8 @@ from superset.daos.query import QueryDAO
 from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
+from superset.sql.parse import SQLScript
 from superset.sql_lab import get_sql_results
-from superset.sql_parse import SQLScript
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,

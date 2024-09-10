@@ -68,13 +68,12 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
+from superset.sql.parse import SQLScript, SQLStatement
 from superset.sql_parse import (
     has_table_query,
     insert_rls_in_predicate,
     ParsedQuery,
     sanitize_clause,
-    SQLScript,
-    SQLStatement,
 )
 from superset.superset_typing import (
     AdhocMetric,
