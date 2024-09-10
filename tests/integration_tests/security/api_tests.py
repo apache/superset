@@ -81,7 +81,7 @@ class TestSecurityCsrfApi(SupersetTestCase):
 
 
 class TestSecurityGuestTokenApi(SupersetTestCase):
-    uri = "api/v1/security/guest_token/"  # noqa: F541
+    uri = "api/v1/security/guest_token/"
 
     def test_post_guest_token_unauthenticated(self):
         """
@@ -140,7 +140,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", scope="class")
 class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
-    uri = "api/v1/security/guest_token/"  # noqa: F541
+    uri = "api/v1/security/guest_token/"
 
     def _get_guest_token_with_rls(self, rls_rule):
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
