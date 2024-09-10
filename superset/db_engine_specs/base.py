@@ -1283,7 +1283,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             catalog=table.catalog,
             schema=table.schema,
         ) as engine:
-            if getattr(engine.dialect, 'supports_multivalues_insert', False) or getattr(cls, 'supports_multivalues_insert', False):
+            if getattr(engine.dialect, "supports_multivalues_insert", False) or getattr(
+                cls, "supports_multivalues_insert", False
+            ):
                 to_sql_kwargs["method"] = "multi"
             df.to_sql(con=engine, **to_sql_kwargs)
 
