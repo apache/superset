@@ -17,8 +17,8 @@ made available in the Jinja context:
 
 - `columns`: columns which to group by in the query
 - `filter`: filters applied in the query
-- `from_dttm`: start `datetime` value from the selected time range (`None` if undefined)
-- `to_dttm`: end `datetime` value from the selected time range (`None` if undefined)
+- `from_dttm`: start `datetime` value from the selected time range (`None` if undefined) (deprecated beginning in version 5.0, use `get_time_filter` instead)
+- `to_dttm`: end `datetime` value from the selected time range (`None` if undefined). (deprecated beginning in version 5.0, use `get_time_filter` instead)
 - `groupby`: columns which to group by in the query (deprecated)
 - `metrics`: aggregate expressions in the query
 - `row_limit`: row limit of the query
@@ -344,6 +344,75 @@ Here's a concrete example:
     FROM
     superiors
     order by lineage, level
+```
+
+**Time Filter**
+
+The `{{ get_time_filter() }}` macro returns the time filter applied to a specific column. This is useful if you want
+to handle time filters inside the virtual dataset, as by default the time filter is placed on the outer query. This can
+considerably improve performance, as many databases and query engines are able to optimize the query better
+if the temporal filter is placed on the inner query, as opposed to the outer query.
+
+The macro takes the following parameters:
+- `column`: Name of the temporal column. Leave undefined to reference the time range from a Dashboard Native Time Range
+  filter (when present).
+- `default`: The default value to fall back to if the time filter is not present, or has the value `No filter`
+- `target_type`: The target temporal type as recognized by the target  database (e.g. `TIMESTAMP`, `DATE` or
+  `DATETIME`). If `column` is defined, the format will default to the type of the column. This is used to produce
+  the format of the `from_expr` and `to_expr` properties of the returned `TimeFilter` object.
+- `remove_filter`: When set to true, mark the filter as processed, removing it from the outer query. Useful when a
+  filter should only apply to the inner query.
+
+The return type has the following properties:
+- `from_expr`: the start of the time filter (if any)
+- `to_expr`: the end of the time filter (if any)
+- `time_range`: The applied time range
+
+Here's a concrete example using the `logs` table from the Superset metastore:
+
+```
+{% set time_filter = get_time_filter("dttm", remove_filter=True) %}
+{% set from_expr = time_filter.from_expr %}
+{% set to_expr = time_filter.to_expr %}
+{% set time_range = time_filter.time_range %}
+SELECT
+  *,
+  '{{ time_range }}' as time_range
+FROM logs
+{% if from_expr or to_expr %}WHERE 1 = 1
+{% if from_expr %}AND dttm >= {{ from_expr }}{% endif %}
+{% if to_expr %}AND dttm < {{ to_expr }}{% endif %}
+{% endif %}
+```
+
+Assuming we are creating a table chart with a simple `COUNT(*)` as the metric with a time filter `Last week` on the
+`dttm` column, this would render the following query on Postgres (note the formatting of the temporal filters, and
+the absence of time filters on the outer query):
+
+```
+SELECT COUNT(*) AS count
+FROM
+  (SELECT *,
+          'Last week' AS time_range
+   FROM public.logs
+   WHERE 1 = 1
+     AND dttm >= TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+     AND dttm < TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')) AS virtual_table
+ORDER BY count DESC
+LIMIT 1000;
+```
+
+When using the `default` parameter, the templated query can be simplified, as the endpoints will always be defined
+(to use a fixed time range, you can also use something like `default="2024-08-27 : 2024-09-03"`)
+```
+{% set time_filter = get_time_filter("dttm", default="Last week", remove_filter=True) %}
+SELECT
+  *,
+  '{{ time_filter.time_range }}' as time_range
+FROM logs
+WHERE
+  dttm >= {{ time_filter.from_expr }}
+  AND dttm < {{ time_filter.to_expr }}
 ```
 
 **Datasets**

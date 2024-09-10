@@ -429,8 +429,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
     oauth2_scope = ""
-    oauth2_authorization_request_uri = ""  # pylint: disable=invalid-name
-    oauth2_token_request_uri = ""
+    oauth2_authorization_request_uri: str | None = None  # pylint: disable=invalid-name
+    oauth2_token_request_uri: str | None = None
 
     # Driver-specific exception that should be mapped to OAuth2RedirectError
     oauth2_exception = OAuth2RedirectError
@@ -1408,6 +1408,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def get_prequeries(
         cls,
+        database: Database,  # pylint: disable=unused-argument
         catalog: str | None = None,  # pylint: disable=unused-argument
         schema: str | None = None,  # pylint: disable=unused-argument
     ) -> list[str]:
@@ -2230,6 +2231,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_file_upload": cls.supports_file_upload,
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
+            "supports_oauth2": cls.supports_oauth2,
         }
 
     @classmethod
@@ -2351,6 +2353,7 @@ class BasicParametersMixin:
         parameters: BasicParametersType,
         encrypted_extra: dict[str, str] | None = None,
     ) -> str:
+        # TODO (betodealmeida): this method should also build `connect_args`
         # make a copy so that we don't update the original
         query = parameters.get("query", {}).copy()
         if parameters.get("encryption"):
