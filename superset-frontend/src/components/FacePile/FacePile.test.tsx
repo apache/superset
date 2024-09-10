@@ -42,7 +42,7 @@ describe('FacePile', () => {
   });
 
   it('is a valid element', () => {
-    const exposedFaces = container.querySelectorAll('img');
+    const exposedFaces = screen.getAllByText(/U/);
     expect(exposedFaces).toHaveLength(4);
     const overflownFaces = screen.getByText('+6');
     expect(overflownFaces).toBeVisible();
