@@ -2058,3 +2058,60 @@ on $left.Day1 == $right.Day
 | project Day1, Day2, Percentage = count_*100.0/count_1
     """,
     ]
+
+
+@pytest.mark.parametrize(
+    ("engine", "sql", "expected"),
+    [
+        # SQLite tests
+        ("sqlite", "SELECT 1", False),
+        ("sqlite", "INSERT INTO foo VALUES (1)", True),
+        ("sqlite", "UPDATE foo SET bar = 2 WHERE id = 1", True),
+        ("sqlite", "DELETE FROM foo WHERE id = 1", True),
+        ("sqlite", "CREATE TABLE foo (id INT, bar TEXT)", True),
+        ("sqlite", "DROP TABLE foo", True),
+        ("sqlite", "EXPLAIN SELECT * FROM foo", False),
+        ("sqlite", "PRAGMA table_info(foo)", False),
+        ("postgresql", "SELECT 1", False),
+        ("postgresql", "INSERT INTO foo (id, bar) VALUES (1, 'test')", True),
+        ("postgresql", "UPDATE foo SET bar = 'new' WHERE id = 1", True),
+        ("postgresql", "DELETE FROM foo WHERE id = 1", True),
+        ("postgresql", "CREATE TABLE foo (id SERIAL PRIMARY KEY, bar TEXT)", True),
+        ("postgresql", "DROP TABLE foo", True),
+        ("postgresql", "EXPLAIN ANALYZE SELECT * FROM foo", False),
+        ("postgresql", "EXPLAIN ANALYZE DELETE FROM foo", True),
+        ("postgresql", "SHOW search_path", False),
+        ("postgresql", "SET search_path TO public", False),
+        (
+            "postgres",
+            """
+            with source as (
+                select 1 as one
+            )
+            select * from source
+            """,
+            False,
+        ),
+        ("trino", "SELECT 1", False),
+        ("trino", "INSERT INTO foo VALUES (1, 'bar')", True),
+        ("trino", "UPDATE foo SET bar = 'baz' WHERE id = 1", True),
+        ("trino", "DELETE FROM foo WHERE id = 1", True),
+        ("trino", "CREATE TABLE foo (id INT, bar VARCHAR)", True),
+        ("trino", "DROP TABLE foo", True),
+        ("trino", "EXPLAIN SELECT * FROM foo", False),
+        ("trino", "SHOW SCHEMAS", False),
+        ("trino", "SET SESSION optimization_level = '3'", False),
+        ("kustokql", "tbl | limit 100", False),
+        ("kustokql", "let foo = 1; tbl | where bar == foo", False),
+        ("kustokql", ".show tables", False),
+        ("kustokql", "print 1", False),
+        ("kustokql", "set querytrace; Events | take 100", False),
+        ("kustokql", ".drop table foo", True),
+        ("kustokql", ".set-or-append table foo <| bar", True),
+    ],
+)
+def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
+    """
+    Test the `has_mutation` method.
+    """
+    assert SQLScript(sql, engine).has_mutation() == expected

@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Provider } from 'react-redux';
 import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
+import { store } from 'src/views/store';
 import FacePile from '.';
 import { getRandomColor } from './utils';
 
@@ -32,7 +34,11 @@ describe('FacePile', () => {
   let container: HTMLElement;
 
   beforeEach(() => {
-    ({ container } = render(<FacePile users={users} />));
+    ({ container } = render(
+      <Provider store={store}>
+        <FacePile users={users} />
+      </Provider>,
+    ));
   });
 
   it('is a valid element', () => {

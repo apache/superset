@@ -32,8 +32,15 @@ for the build, and/or base image.
 Here are the build presets that are exposed through the `build_docker.py` script:
 
 - `lean`: The default Docker image, including both frontend and backend. Tags
-without a build_preset are lean builds, e.g., `latest`.
-- `dev`: For development, with a headless browser, dev-related utilities and root access.
+  without a build_preset are lean builds (ie: `latest`, `4.0.0`, `3.0.0`, ...). `lean`
+  builds do not contain database
+  drivers, meaning you need to install your own. That applies to analytics databases **AND
+  the metadata database**. You'll likely want to layer either `mysqlclient` or `psycopg2-binary`
+  depending on the metadata database you choose for your installation, plus the required
+  drivers to connect to your analytics database(s).
+- `dev`: For development, with a headless browser, dev-related utilities and root access. This
+  includes some commonly used database drivers like `mysqlclient`, `psycopg2-binary` and
+  some other used for development/CI
 - `py311`, e.g., Py311: Similar to lean but with a different Python version (in this example, 3.11).
 - `ci`: For certain CI workloads.
 - `websocket`: For Superset clusters supporting advanced features.

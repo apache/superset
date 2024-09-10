@@ -1041,7 +1041,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
             cache_dashboard_screenshot.delay(
-                current_user=get_current_user(),
                 dashboard_id=dashboard.id,
                 dashboard_url=dashboard_url,
                 force=True,
