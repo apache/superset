@@ -16,15 +16,12 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any
 
 from requests_cache import Optional
 
-from superset import is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.exceptions import (
     DashboardFaveError,
-    DashboardNotFoundError,
 )
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard

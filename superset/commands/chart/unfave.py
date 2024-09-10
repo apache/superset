@@ -16,18 +16,16 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any
 
 from requests_cache import Optional
 
-from superset import is_feature_enabled, security_manager
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartNotFoundError,
     ChartUnfaveError,
 )
-
 from superset.daos.chart import ChartDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
@@ -45,12 +43,12 @@ class UnfaveChartCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
         return ChartDAO.remove_favorite(self._chart)
-        
+
     def validate(self) -> None:
         chart = ChartDAO.find_by_id(self._chart_id)
         if not chart:
             raise ChartNotFoundError()
-        
+
         try:
             security_manager.raise_for_ownership(chart)
         except SupersetSecurityException as ex:
