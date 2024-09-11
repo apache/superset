@@ -528,6 +528,7 @@ class Chart extends Component {
             datasetsStatus={datasetsStatus}
             isInView={isInView}
             emitCrossFilters={emitCrossFilters}
+            canExportData={supersetCanCSV}
           />
         </ChartWrapper>
       </SliceContainer>

@@ -81,7 +81,6 @@ import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 import DashboardWrapper from './DashboardWrapper';
-import { findPermission } from 'src/utils/findPermission';
 
 type DashboardBuilderProps = {};
 
@@ -403,9 +402,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         ? dashboardInfo.filterBarOrientation
         : FilterBarOrientation.Vertical,
   );
-  const canExportData = useSelector<RootState, boolean>(
-    state => findPermission('can_csv', 'Superset', state.user?.roles),
-  );
 
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
@@ -559,7 +555,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
               renderTabContent={false}
               renderHoverMenu={false}
               onChangeTab={handleChangeTab}
-              canExportData={canExportData}
             />
           </WithPopoverMenu>
         )}
