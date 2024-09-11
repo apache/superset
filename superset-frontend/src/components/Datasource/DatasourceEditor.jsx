@@ -335,7 +335,7 @@ function ColumnCollectionTable({
             />
             <Field
               fieldKey="certified_by"
-              label={t('Certified By')}
+              label={t('Certified by')}
               description={t('Person or group that has certified this metric')}
               control={
                 <TextControl
