@@ -150,6 +150,9 @@ class AssistantView(BaseSupersetView):
             data: string,
             table_name: string
         }
+
+        'data' is a string containing the json schema of the database see ./samples/gemini_table_data.json
+
         """
         body = request.json
         data = body["data"]
@@ -201,6 +204,8 @@ class AssistantView(BaseSupersetView):
             data: string,
             purpose: string,
         }
+
+        'data' is a string containing the json schema of the database see ./samples/gemini_viz_suggestions_data.json
         """
         body = request.json
         data = body["data"]
