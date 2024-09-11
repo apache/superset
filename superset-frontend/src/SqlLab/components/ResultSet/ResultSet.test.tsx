@@ -338,7 +338,7 @@ describe('ResultSet', () => {
       );
     });
     expect(
-      screen.getByRole('button', { name: /Retry without time limit/i }),
+      screen.getByRole('button', { name: /Retry fetching results/i }),
     ).toBeInTheDocument();
   });
 
