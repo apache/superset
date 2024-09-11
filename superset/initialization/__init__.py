@@ -332,7 +332,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "Saved Queries",
-            label=__("Saved Queries"),
+            label=__("Saved queries"),
             href="/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
@@ -340,7 +340,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "Query Search",
-            label=__("Query History"),
+            label=__("Query history"),
             href="/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",

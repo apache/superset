@@ -135,7 +135,7 @@ function TagList(props: TagListProps) {
     buttonText: (
       <>
         <i className="fa fa-plus" data-test="add-rule-empty" />{' '}
-        {'Create a new Tag'}{' '}
+        {'Create a new tag'}{' '}
       </>
     ),
   };
