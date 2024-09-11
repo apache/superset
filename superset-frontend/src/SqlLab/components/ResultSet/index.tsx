@@ -557,7 +557,7 @@ const ResultSet = ({
             buttonSize="small"
             onClick={() => fetchResults(query, 0)}
           >
-            {t('Retry without time limit')}
+            {t('Retry fetching results')}
           </Button>
         ) : (
           trackingUrl
