@@ -84,7 +84,6 @@ import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
 
-
 enum LimitingFactor {
   Query = 'QUERY',
   QueryAndDropdown = 'QUERY_AND_DROPDOWN',
@@ -264,11 +263,7 @@ const ResultSet = ({
     setSearchText(event.target.value);
   };
 
-  const canExportData = findPermission(
-    'can_export_csv',
-    'SQLLab',
-    user?.roles,
-  );
+  const canExportData = findPermission('can_export_csv', 'SQLLab', user?.roles);
 
   const createExploreResultsOnClick = async (clickEvent: MouseEvent) => {
     const { results } = query;

@@ -36,7 +36,7 @@ describe('FilterableTable', () => {
   });
   it('renders a grid with 3 Table rows', () => {
     const { getByRole, getByText } = render(
-      <FilterableTable {...mockedProps} />
+      <FilterableTable {...mockedProps} />,
     );
     expect(getByRole('table')).toBeInTheDocument();
     mockedProps.data.forEach(({ b: columnBContent }) => {
@@ -48,9 +48,7 @@ describe('FilterableTable', () => {
       ...mockedProps,
       filterText: 'b1',
     };
-    const { getByText, queryByText } = render(
-      <FilterableTable {...props} />
-    );
+    const { getByText, queryByText } = render(<FilterableTable {...props} />);
     expect(getByText(props.filterText)).toBeInTheDocument();
     expect(queryByText('b2')).toBeFalsy();
     expect(queryByText('b3')).toBeFalsy();
@@ -60,9 +58,7 @@ describe('FilterableTable', () => {
       ...mockedProps,
       filterText: '100',
     };
-    const { getByText, queryByText } = render(
-      <FilterableTable {...props} />
-    );
+    const { getByText, queryByText } = render(<FilterableTable {...props} />);
     expect(getByText('b2')).toBeInTheDocument();
     expect(queryByText('b1')).toBeFalsy();
     expect(queryByText('b3')).toBeFalsy();
@@ -70,7 +66,7 @@ describe('FilterableTable', () => {
 });
 
 describe('FilterableTable sorting - RTL', () => {
-  const initialState = { state: { user : {role : 'test'}} };
+  const initialState = { state: { user: { role: 'test' } } };
   it('sorts strings correctly', () => {
     const stringProps = {
       orderedColumnKeys: ['columnA'],
@@ -81,9 +77,7 @@ describe('FilterableTable sorting - RTL', () => {
       ],
       height: 500,
     };
-    render(
-      <FilterableTable {...stringProps} />
-    );
+    render(<FilterableTable {...stringProps} />);
 
     const stringColumn = within(screen.getByRole('table'))
       .getByText('columnA')
@@ -129,9 +123,7 @@ describe('FilterableTable sorting - RTL', () => {
       data: [{ columnB: 21 }, { columnB: 0 }, { columnB: 623 }],
       height: 500,
     };
-    render(
-      <FilterableTable {...integerProps} />
-    );
+    render(<FilterableTable {...integerProps} />);
 
     const integerColumn = within(screen.getByRole('table'))
       .getByText('columnB')
@@ -166,9 +158,7 @@ describe('FilterableTable sorting - RTL', () => {
       data: [{ columnC: 45.67 }, { columnC: 1.23 }, { columnC: 89.0000001 }],
       height: 500,
     };
-    render(
-      <FilterableTable {...floatProps} />
-    );
+    render(<FilterableTable {...floatProps} />);
 
     const floatColumn = within(screen.getByRole('table'))
       .getByText('columnC')
@@ -223,9 +213,7 @@ describe('FilterableTable sorting - RTL', () => {
       ],
       height: 500,
     };
-    render(
-      <FilterableTable {...mixedFloatProps} />
-    );
+    render(<FilterableTable {...mixedFloatProps} />);
 
     const mixedFloatColumn = within(screen.getByRole('table'))
       .getByText('columnD')
@@ -323,9 +311,7 @@ describe('FilterableTable sorting - RTL', () => {
       ],
       height: 500,
     };
-    render(
-      <FilterableTable {...dsProps} />
-    );
+    render(<FilterableTable {...dsProps} />);
 
     const dsColumn = within(screen.getByRole('table'))
       .getByText('columnDS')
