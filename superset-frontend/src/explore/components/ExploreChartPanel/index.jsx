@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useCallback, useMemo} from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
@@ -240,8 +240,8 @@ const ExploreChartPanel = ({
     setShowSplit(isOpen);
   }, []);
 
-  const canExportData = useSelector(
-   state => findPermission('can_csv', 'Superset', state.user?.roles),
+  const canExportData = useSelector(state =>
+    findPermission('can_csv', 'Superset', state.user?.roles),
   );
 
   const renderChart = useCallback(
