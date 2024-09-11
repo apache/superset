@@ -112,10 +112,10 @@ def cache_dashboard_thumbnail(
 @celery_app.task(name="cache_dashboard_screenshot", soft_time_limit=300)
 def cache_dashboard_screenshot(
     username: str,
-    guest_token: Optional[GuestToken],
     dashboard_id: int,
     dashboard_url: str,
     force: bool = True,
+    guest_token: Optional[GuestToken] = None,
     thumb_size: Optional[WindowSize] = None,
     window_size: Optional[WindowSize] = None,
 ) -> None:
