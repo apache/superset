@@ -69,15 +69,7 @@ test('renders the LabelsContainer', () => {
 
 test('coerces Adhoc Metrics from form data into instances of the AdhocMetric class and leaves saved metrics', () => {
   setup({
-    value: [
-      {
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-        column: { type: 'double', column_name: 'value' },
-        aggregate: AGGREGATES.SUM,
-        label: 'SUM(value)',
-        optionName: 'blahblahblah',
-      },
-    ],
+    value: [sumValueAdhocMetric],
   });
 
   const adhocMetric = screen.getByText('SUM(value)');
@@ -102,12 +94,7 @@ test('accepts an edited metric from an AdhocMetricEditPopover', async () => {
   userEvent.click(metricLabel);
 
   await screen.findByText('aggregate');
-  userEvent.click(
-    screen.getByRole('combobox', { name: /select aggregate options/i }),
-  );
-
-  await screen.findAllByText('AVG');
-  userEvent.click(screen.getAllByText('AVG')[1]);
+  selectOption('AVG', /select aggregate options/i);
 
   await screen.findByText('AVG(value)');
 
@@ -123,15 +110,7 @@ test('accepts an edited metric from an AdhocMetricEditPopover', async () => {
 
 test('removes metrics if savedMetrics changes', async () => {
   setup({
-    value: [
-      {
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-        column: { type: 'double', column_name: 'value' },
-        aggregate: AGGREGATES.SUM,
-        label: 'SUM(value)',
-        optionName: 'blahblahblah',
-      },
-    ],
+    value: [sumValueAdhocMetric],
   });
 
   expect(screen.getByText('SUM(value)')).toBeInTheDocument();
