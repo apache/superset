@@ -82,7 +82,6 @@ test('coerces Adhoc Metrics from form data into instances of the AdhocMetric cla
 
   const adhocMetric = screen.getByText('SUM(value)');
   expect(adhocMetric).toBeInTheDocument();
-  // Additional checks on adhocMetric can be done if needed
 });
 
 test('handles creating a new metric', async () => {
