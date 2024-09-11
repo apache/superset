@@ -5499,7 +5499,7 @@ msgstr ""
 msgid "Intervals"
 msgstr ""
 
-msgid "Intesity"
+msgid "Intensity"
 msgstr ""
 
 msgid ""
@@ -6977,7 +6977,7 @@ msgstr ""
 msgid "One or more parameters specified in the query are missing."
 msgstr ""
 
-msgid "One ore more annotation layers failed loading."
+msgid "One or more annotation layers failed loading."
 msgstr ""
 
 msgid "Only SELECT statements are allowed against this database."
@@ -12168,7 +12168,7 @@ msgstr ""
 
 msgid ""
 "Whether to show extra controls or not. Extra controls include things like"
-" making mulitBar charts stacked or side by side."
+" making multiBar charts stacked or side by side."
 msgstr ""
 
 msgid "Whether to show minor ticks on the axis"

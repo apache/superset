@@ -22,7 +22,7 @@ from io import BytesIO
 from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import redirect, request, Response, send_file, url_for
+from flask import g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
@@ -93,6 +93,7 @@ from superset.dashboards.schemas import (
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.security.guest_token import GuestUser
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
     cache_dashboard_thumbnail,
@@ -1041,6 +1042,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
             cache_dashboard_screenshot.delay(
+                username=get_current_user(),
+                guest_token=g.user.guest_token
+                if isinstance(g.user, GuestUser)
+                else None,
                 dashboard_id=dashboard.id,
                 dashboard_url=dashboard_url,
                 force=True,
