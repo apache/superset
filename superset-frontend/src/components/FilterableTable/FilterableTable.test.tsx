@@ -66,7 +66,6 @@ describe('FilterableTable', () => {
 });
 
 describe('FilterableTable sorting - RTL', () => {
-  const initialState = { state: { user: { role: 'test' } } };
   it('sorts strings correctly', () => {
     const stringProps = {
       orderedColumnKeys: ['columnA'],
