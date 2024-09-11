@@ -20,11 +20,11 @@
 import logging
 from typing import cast, Optional
 
-from flask import current_app, g
+from flask import current_app
 
 from superset import security_manager, thumbnail_cache
 from superset.extensions import celery_app
-from superset.security.guest_token import GuestUser
+from superset.security.guest_token import GuestToken
 from superset.tasks.utils import get_executor
 from superset.utils.core import override_user
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
@@ -86,6 +86,7 @@ def cache_dashboard_thumbnail(
     if not thumbnail_cache:
         logging.warning("No cache set, refusing to compute")
         return
+
     dashboard = Dashboard.get(dashboard_id)
     url = get_url_path("Superset.dashboard", dashboard_id_or_slug=dashboard.id)
 
@@ -110,9 +111,11 @@ def cache_dashboard_thumbnail(
 # pylint: disable=too-many-arguments
 @celery_app.task(name="cache_dashboard_screenshot", soft_time_limit=300)
 def cache_dashboard_screenshot(
+    username: str,
     dashboard_id: int,
     dashboard_url: str,
     force: bool = True,
+    guest_token: Optional[GuestToken] = None,
     thumb_size: Optional[WindowSize] = None,
     window_size: Optional[WindowSize] = None,
 ) -> None:
@@ -124,18 +127,19 @@ def cache_dashboard_screenshot(
         return
 
     dashboard = Dashboard.get(dashboard_id)
-    current_user = g.user
 
     logger.info("Caching dashboard: %s", dashboard_url)
 
     # Requests from Embedded should always use the Guest user
-    if not isinstance(current_user, GuestUser):
-        _, username = get_executor(
+    if guest_token:
+        current_user = security_manager.get_guest_user_from_token(guest_token)
+    else:
+        _, exec_username = get_executor(
             executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
             model=dashboard,
-            current_user=current_user.username,
+            current_user=username,
         )
-        current_user = security_manager.find_user(username)
+        current_user = security_manager.find_user(exec_username)
 
     with override_user(current_user):
         screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
