@@ -34,7 +34,7 @@ from superset.utils.decorators import on_error, transaction
 logger = logging.getLogger(__name__)
 
 
-class UnfaveChartCommand(BaseCommand):
+class DelFavoriteChartCommand(BaseCommand):
     def __init__(self, chart_id: int) -> None:
         self._chart_id = chart_id
         self._chart: Optional[Slice] = None

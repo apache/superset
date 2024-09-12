@@ -51,10 +51,10 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
-from superset.commands.dashboard.fave import FaveDashboardCommand
+from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
-from superset.commands.dashboard.unfave import UnfaveDashboardCommand
+from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
@@ -1215,7 +1215,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            FaveDashboardCommand(pk).run()
+            AddFavoriteDashboardCommand(pk).run()
 
         except DashboardNotFoundError:
             return self.response_404()
@@ -1261,7 +1261,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            UnfaveDashboardCommand(pk).run()
+            DelFavoriteDashboardCommand(pk).run()
         except DashboardNotFoundError:
             return self.response_404()
         except DashboardAccessDeniedError:

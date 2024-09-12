@@ -30,7 +30,7 @@ from superset.utils.decorators import on_error, transaction
 logger = logging.getLogger(__name__)
 
 
-class FaveDashboardCommand(BaseCommand):
+class AddFavoriteDashboardCommand(BaseCommand):
     def __init__(self, dashboard_id: int) -> None:
         self._dashboard_id = dashboard_id
         self._dashboard: Optional[Dashboard] = None

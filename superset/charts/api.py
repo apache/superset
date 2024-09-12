@@ -66,9 +66,9 @@ from superset.commands.chart.exceptions import (
     DashboardsForbiddenError,
 )
 from superset.commands.chart.export import ExportChartsCommand
-from superset.commands.chart.fave import FaveChartCommand
+from superset.commands.chart.fave import AddFavoriteChartCommand
 from superset.commands.chart.importers.dispatcher import ImportChartsCommand
-from superset.commands.chart.unfave import UnfaveChartCommand
+from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandException, TagForbiddenError
@@ -901,7 +901,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            FaveChartCommand(pk).run()
+            AddFavoriteChartCommand(pk).run()
         except ChartNotFoundError:
             return self.response_404()
         except ChartForbiddenError:
@@ -946,7 +946,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            UnfaveChartCommand(pk).run()
+            DelFavoriteChartCommand(pk).run()
         except ChartNotFoundError:
             self.response_404()
         except ChartForbiddenError:
