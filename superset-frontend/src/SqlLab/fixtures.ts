@@ -22,6 +22,7 @@ import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 import {
   DatasourceType,
   denormalizeTimestamp,
+  ErrorTypeEnum,
   GenericDataType,
   QueryResponse,
   QueryState,
@@ -544,6 +545,20 @@ export const failedQueryWithErrors = {
   state: QueryState.Failed,
   tab: 'Untitled Query 2',
   tempTable: '',
+};
+
+export const failedQueryWithFrontendTimeoutErrors = {
+  ...failedQueryWithErrorMessage,
+  errors: [
+    {
+      error_type: ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+      message: 'Request timed out',
+      level: 'error',
+      extra: {
+        timeout: 10,
+      },
+    },
+  ],
 };
 
 const baseQuery: QueryResponse = {
