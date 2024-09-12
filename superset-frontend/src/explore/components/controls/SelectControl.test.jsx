@@ -175,14 +175,12 @@ describe('SelectControl', () => {
     describe('empty placeholder', () => {
       describe('withMulti', () => {
         it('does not show a placeholder if there are no choices', () => {
-          const container = renderSelectControl({
+          renderSelectControl({
             choices: [],
             multi: true,
             placeholder: 'add something',
           });
-          expect(
-            screen.queryByRole('option')
-          ).not.toBeInTheDocument();
+          expect(screen.queryByRole('option')).not.toBeInTheDocument();
         });
       });
       describe('withSingleChoice', () => {
