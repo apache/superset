@@ -28,7 +28,13 @@ const users = [...new Array(10)].map((_, i) => ({
   id: i,
 }));
 
-jest.useFakeTimers();
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 describe('FacePile', () => {
   let container: HTMLElement;

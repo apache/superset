@@ -175,7 +175,7 @@ describe('SelectControl', () => {
             placeholder: 'add something',
           });
           expect(
-            container.querySelector('[role="option"]'),
+            screen.queryByRole('option')
           ).not.toBeInTheDocument();
         });
       });
