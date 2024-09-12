@@ -20,6 +20,8 @@
 import { defineConfig } from 'cypress';
 import eyesPlugin from '@applitools/eyes-cypress';
 
+const { verifyDownloadTasks } = require('cy-verify-downloads');
+
 export default eyesPlugin(
   defineConfig({
     chromeWebSecurity: false,
@@ -60,9 +62,11 @@ export default eyesPlugin(
           }
           return launchOptions;
         });
-
+        // eslint-disable-next-line global-require
+        require('@cypress/code-coverage/task')(on, config);
+        on('task', verifyDownloadTasks);
         // eslint-disable-next-line global-require,import/extensions
-        return require('./cypress/plugins/index.js')(on, config);
+        return config;
       },
       baseUrl: 'http://localhost:8088',
       excludeSpecPattern: [],
