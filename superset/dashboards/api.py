@@ -51,8 +51,10 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
+from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
@@ -1217,11 +1219,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard = DashboardDAO.find_by_id(pk)
-        if not dashboard:
-            return self.response_404()
+        try:
+            AddFavoriteDashboardCommand(pk).run()
 
-        DashboardDAO.add_favorite(dashboard)
+        except DashboardNotFoundError:
+            return self.response_404()
+        except DashboardAccessDeniedError:
+            return self.response_403()
+
         return self.response(200, result="OK")
 
     @expose("/<pk>/favorites/", methods=("DELETE",))
@@ -1260,11 +1265,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard = DashboardDAO.find_by_id(pk)
-        if not dashboard:
+        try:
+            DelFavoriteDashboardCommand(pk).run()
+        except DashboardNotFoundError:
             return self.response_404()
+        except DashboardAccessDeniedError:
+            return self.response_403()
 
-        DashboardDAO.remove_favorite(dashboard)
         return self.response(200, result="OK")
 
     @expose("/import/", methods=("POST",))

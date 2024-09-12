@@ -66,7 +66,9 @@ from superset.commands.chart.exceptions import (
     DashboardsForbiddenError,
 )
 from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.chart.fave import AddFavoriteChartCommand
 from superset.commands.chart.importers.dispatcher import ImportChartsCommand
+from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandException, TagForbiddenError
@@ -898,11 +900,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        chart = ChartDAO.find_by_id(pk)
-        if not chart:
+        try:
+            AddFavoriteChartCommand(pk).run()
+        except ChartNotFoundError:
             return self.response_404()
+        except ChartForbiddenError:
+            return self.response_403()
 
-        ChartDAO.add_favorite(chart)
         return self.response(200, result="OK")
 
     @expose("/<pk>/favorites/", methods=("DELETE",))
@@ -941,11 +945,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        chart = ChartDAO.find_by_id(pk)
-        if not chart:
-            return self.response_404()
+        try:
+            DelFavoriteChartCommand(pk).run()
+        except ChartNotFoundError:
+            self.response_404()
+        except ChartForbiddenError:
+            self.response_403()
 
-        ChartDAO.remove_favorite(chart)
         return self.response(200, result="OK")
 
     @expose("/warm_up_cache", methods=("PUT",))
