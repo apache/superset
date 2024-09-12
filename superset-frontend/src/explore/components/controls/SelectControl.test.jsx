@@ -41,7 +41,13 @@ const defaultProps = {
   onChange: jest.fn(),
 };
 
-jest.useFakeTimers();
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 const options = [
   { value: '1 year ago', label: '1 year ago' },

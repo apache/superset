@@ -28,7 +28,13 @@ const defaultProps = {
   },
 };
 
-jest.useFakeTimers();
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 describe('OptionDescription', () => {
   beforeEach(() => {
