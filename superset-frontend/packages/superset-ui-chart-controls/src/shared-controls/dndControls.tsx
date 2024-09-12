@@ -188,10 +188,10 @@ export const dndSortByControl: SharedControlConfig<
   'DndMetricSelect' | 'MetricsControl'
 > = {
   type: 'DndMetricSelect',
-  label: t('Sort by'),
+  label: t('Data limit sort by'),
   default: null,
   description: t(
-    'This metric is used to define row selection criteria (how the rows are sorted) if a series or row limit is present. ' +
+    'Defines row selection criteria (how the rows are sorted) if a series or row limit is present. ' +
       'If not defined, it reverts to the first metric (where appropriate).',
   ),
   mapStateToProps: ({ datasource }) => ({
