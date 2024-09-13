@@ -20,6 +20,7 @@ import {
   getCategoricalSchemeRegistry,
   styled,
   isFeatureEnabled,
+  FeatureFlag,
   SupersetTheme,
 } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
@@ -54,14 +55,13 @@ const StyledGroup = styled(Avatar.Group)`
 `;
 
 export default function FacePile({ users, maxCount = 4 }: FacePileProps) {
-  const enableAvatars = isFeatureEnabled('SLACK_ENABLE_AVATARS');
   return (
     <StyledGroup maxCount={maxCount}>
       {users.map(({ first_name, last_name, id }) => {
         const name = `${first_name} ${last_name}`;
         const uniqueKey = `${id}-${first_name}-${last_name}`;
         const color = getRandomColor(uniqueKey, colorList);
-        const avatarUrl = enableAvatars
+        const avatarUrl = isFeatureEnabled(FeatureFlag.SlackEnableAvatars)
           ? `/api/v1/user/${id}/avatar.png`
           : undefined;
         return (
