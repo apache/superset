@@ -21,6 +21,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from superset import app
 from superset.daos.user import UserDAO
+from superset.extensions import feature_flag_manager
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi
 from superset.views.users.schemas import UserResponseSchema
@@ -143,10 +144,9 @@ class UserRestApi(BaseSupersetApi):
         # fetch from the one-to-one relationship
         if len(user.extra_attributes) > 0:
             avatar_url = user.extra_attributes[0].avatar_url
-
         should_fetch_slack_avatar = app.config.get(
-            "SLACK_ENABLE_AVATARS"
-        ) and app.config.get("SLACK_API_TOKEN")
+            "SLACK_API_TOKEN"
+        ) and feature_flag_manager.is_feature_enabled("SLACK_ENABLE_AVATARS")
         if not avatar_url and should_fetch_slack_avatar:
             try:
                 # Fetching the avatar url from slack

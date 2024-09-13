@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
 import {
   getCategoricalSchemeRegistry,
   styled,
+  isFeatureEnabled,
   SupersetTheme,
 } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { Avatar } from 'src/components';
-import { RootState } from 'src/views/store';
 import { getRandomColor } from './utils';
 
 interface FacePileProps {
@@ -55,9 +54,7 @@ const StyledGroup = styled(Avatar.Group)`
 `;
 
 export default function FacePile({ users, maxCount = 4 }: FacePileProps) {
-  const enableAvatars = useSelector<RootState, boolean>(
-    state => state.common?.conf?.SLACK_ENABLE_AVATARS,
-  );
+  const enableAvatars = isFeatureEnabled('SLACK_ENABLE_AVATARS');
   return (
     <StyledGroup maxCount={maxCount}>
       {users.map(({ first_name, last_name, id }) => {
