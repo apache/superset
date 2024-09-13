@@ -429,23 +429,22 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             else nullcontext()
         )
 
-        engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
-
         with ssh_context_manager as ssh_context:
-            with engine_context_manager(self, catalog, schema):
-                if ssh_context:
-                    logger.info(
-                        "[SSH] Successfully created tunnel w/ %s tunnel_timeout + %s "
-                        "ssh_timeout at %s",
-                        sshtunnel.TUNNEL_TIMEOUT,
-                        sshtunnel.SSH_TIMEOUT,
-                        ssh_context.local_bind_address,
-                    )
-                    sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(
-                        sqlalchemy_uri,
-                        ssh_context,
-                    )
+            if ssh_context:
+                logger.info(
+                    "[SSH] Successfully created tunnel w/ %s tunnel_timeout + %s "
+                    "ssh_timeout at %s",
+                    sshtunnel.TUNNEL_TIMEOUT,
+                    sshtunnel.SSH_TIMEOUT,
+                    ssh_context.local_bind_address,
+                )
+                sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(
+                    sqlalchemy_uri,
+                    ssh_context,
+                )
 
+            engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
+            with engine_context_manager(self, catalog, schema):
                 yield self._get_sqla_engine(
                     catalog=catalog,
                     schema=schema,
