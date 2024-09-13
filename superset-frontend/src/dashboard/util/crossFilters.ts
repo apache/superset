@@ -60,9 +60,9 @@ export const getCrossFiltersConfiguration = (
     }
     const { datasource } = chart.form_data;
     if (!acc[datasource]) {
-      acc[datasource] = [];
+      acc[datasource] = new Set();
     }
-    acc[datasource].push(chart.id);
+    acc[datasource].add(chart.id);
     return acc;
   }, {});
 
