@@ -23,19 +23,24 @@ from flask import g  # noqa: F401
 from superset import db, security_manager
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
     ChartNotFoundError,
     WarmUpCacheChartNotFoundError,
 )
 from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.chart.fave import AddFavoriteChartCommand
 from superset.commands.chart.importers.v1 import ImportChartsCommand
+from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.chart import ChartDAO
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
+from superset.utils.core import override_user
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -428,3 +433,58 @@ class TestChartWarmUpCacheCommand(SupersetTestCase):
         self.assertEqual(
             result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
         )
+
+
+class TestFavoriteChartCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_fave_unfave_chart_command(self):
+        """Test that a user can fave/unfave a chart"""
+        with self.client.application.test_request_context():
+            example_chart = db.session.query(Slice).all()[0]
+
+            # Assert that the chart exists
+            assert example_chart is not None
+
+            with override_user(security_manager.find_user("admin")):
+                AddFavoriteChartCommand(example_chart.id).run()
+
+                # Assert that the dashboard was faved
+                ids = ChartDAO.favorited_ids([example_chart])
+                assert example_chart.id in ids
+
+                DelFavoriteChartCommand(example_chart.id).run()
+
+                # Assert that the chart was unfaved
+                ids = ChartDAO.favorited_ids([example_chart])
+                assert example_chart.id not in ids
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_fave_unfave_chart_command_not_found(self):
+        """Test that faving / unfaving a non-existing chart raises an exception"""
+        with self.client.application.test_request_context():
+            example_chart_id = 1234
+
+            with override_user(security_manager.find_user("admin")):
+                with self.assertRaises(ChartNotFoundError):
+                    AddFavoriteChartCommand(example_chart_id).run()
+
+                with self.assertRaises(ChartNotFoundError):
+                    DelFavoriteChartCommand(example_chart_id).run()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @patch("superset.daos.base.BaseDAO.find_by_id")
+    def test_fave_unfave_chart_command_forbidden(self, mock_find_by_id):
+        """Test that faving / unfaving raises an exception for a chart the user doesn't own"""
+        with self.client.application.test_request_context():
+            example_chart = db.session.query(Slice).all()[0]
+            mock_find_by_id.return_value = example_chart
+
+            # Assert that the chart exists
+            assert example_chart is not None
+
+            with override_user(security_manager.find_user("gamma")):
+                with self.assertRaises(ChartForbiddenError):
+                    AddFavoriteChartCommand(example_chart.id).run()
+
+                with self.assertRaises(ChartForbiddenError):
+                    DelFavoriteChartCommand(example_chart.id).run()
