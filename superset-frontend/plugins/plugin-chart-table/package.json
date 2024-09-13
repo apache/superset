@@ -26,7 +26,6 @@
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
     "@types/d3-array": "^2.9.0",
-    "@types/enzyme": "^3.10.18",
     "@types/react-table": "^7.7.20",
     "classnames": "^2.5.1",
     "d3-array": "^2.4.0",
