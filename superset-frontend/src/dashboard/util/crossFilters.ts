@@ -117,7 +117,7 @@ export const getCrossFiltersConfiguration = (
           ? globalChartConfiguration.chartsInScope.filter(
               id =>
                 id !== Number(chartId) &&
-                chartsByDataSource[chartDataSource].includes(id),
+                chartsByDataSource[chartDataSource]?.has(id),
             )
           : getChartIdsInFilterScope(
               chartConfiguration[chartId].crossFilters.scope,
