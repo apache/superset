@@ -188,11 +188,12 @@ export const dndSortByControl: SharedControlConfig<
   'DndMetricSelect' | 'MetricsControl'
 > = {
   type: 'DndMetricSelect',
-  label: t('Data limit sort by'),
+  label: t('Query order by'),
   default: null,
   description: t(
-    'Defines row selection criteria (how the rows are sorted) if a series or row limit is present. ' +
-      'If not defined, it reverts to the first metric (where appropriate).',
+    'Orders the query result that generates the source data for this chart. ' +
+      'If a series or row limit is reached, affects what data are truncated. ' +
+      'If undefined, defaults to the first metric (where appropriate).',
   ),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
