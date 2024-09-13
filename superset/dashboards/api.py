@@ -1033,7 +1033,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
-        cache_key = screenshot_obj.cache_key(window_size, thumb_size)
+        cache_key = screenshot_obj.cache_key(window_size, thumb_size, dashboard_state)
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
@@ -1046,6 +1046,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 force=True,
                 thumb_size=thumb_size,
                 window_size=window_size,
+                cache_key=cache_key,
             )
             return self.response(
                 202,
