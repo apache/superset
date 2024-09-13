@@ -52,9 +52,9 @@ export const getCrossFiltersConfiguration = (
     return undefined;
   }
 
-  const chartsByDataSource: Record<string, number[]> = Object.values(
+  const chartsByDataSource: Record<string, Set<number>> = Object.values(
     charts,
-  ).reduce((acc: Record<string, number[]>, chart) => {
+  ).reduce((acc: Record<string, Set<number>>, chart) => {
     if (!chart.form_data) {
       return acc;
     }
