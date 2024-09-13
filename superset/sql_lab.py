@@ -51,13 +51,12 @@ from superset.extensions import celery_app, event_logger
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
+from superset.sql.parse import SQLStatement, Table
 from superset.sql_parse import (
     CtasMethod,
     insert_rls_as_subquery,
     insert_rls_in_predicate,
     ParsedQuery,
-    SQLStatement,
-    Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer

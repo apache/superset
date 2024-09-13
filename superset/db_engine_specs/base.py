@@ -63,7 +63,8 @@ from superset.constants import TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
-from superset.sql_parse import ParsedQuery, SQLScript, Table
+from superset.sql.parse import SQLScript, Table
+from superset.sql_parse import ParsedQuery
 from superset.superset_typing import (
     OAuth2ClientConfig,
     OAuth2State,
