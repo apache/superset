@@ -553,20 +553,27 @@ act --list
 To run a specific workflow:
 
 ```bash
-act --job {workflow_name} --secret GITHUB_TOKEN=$GITHUB_TOKEN --event pull_request --container-architecture linux/amd64
+act pull_request --job {workflow_name} --secret GITHUB_TOKEN=$GITHUB_TOKEN --container-architecture linux/amd64
 ```
 
 In the example above, notice that:
 - we target a specific workflow, using `--job`
 - we pass a secret using `--secret`, as many jobs require read access (public) to the repo
-- we simulate a `pull_request` event using `--event`, here we could simulate a
-  `push` event or something else
+- we simulate a `pull_request` event by specifying it as the first arg,
+  similarly, we could simulate a `push` event or something else
 - we specify `--container-architecture`, which tends to emulate GHA more reliably
 
 :::note
 `act` is a rich tool that offers all sorts of features, allowing you to simulate different
 events (pull_request, push, ...), semantics around passing secrets where required and much
 more. For more information, refer to [act's documentation](https://nektosact.com/)
+:::
+
+:::note
+Some jobs require secrets to interact with external systems and accounts that you may
+not have in your possession. In those cases you may have to rely on remote CI or parameterize the
+job further to target a different environment/sandbox or your own alongside the related
+secrets.
 :::
 
 ---
