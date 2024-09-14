@@ -45,7 +45,7 @@ from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from flask_caching.backends.base import BaseCache
 from pandas import Series
-from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
+from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm.query import Query
 
@@ -1633,7 +1633,7 @@ SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
 # URI to database storing the example data, points to
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
 SQLALCHEMY_EXAMPLES_URI = (
-    f"""sqlite:///{os.path.join(DATA_DIR, "examples.db")}?check_same_thread=false"""
+    "sqlite:///" + os.path.join(DATA_DIR, "examples.db") + "?check_same_thread=false"
 )
 
 # Optional prefix to be added to all static asset paths when rendering the UI.
