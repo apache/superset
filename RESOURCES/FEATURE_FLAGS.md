@@ -86,10 +86,10 @@ independently. This new framework will also allow for non-boolean configurations
 - ESCAPE_MARKDOWN_HTML
 - LISTVIEWS_DEFAULT_CARD_VIEW
 - SCHEDULED_QUERIES [(docs)](https://superset.apache.org/docs/configuration/alerts-reports)
+- SLACK_ENABLE_AVATARS (see `superset/config.py` for more information)
 - SQLLAB_BACKEND_PERSISTENCE
 - SQL_VALIDATORS_BY_ENGINE [(docs)](https://superset.apache.org/docs/configuration/sql-templating)
 - THUMBNAILS [(docs)](https://superset.apache.org/docs/configuration/cache)
-- SLACK_ENABLE_AVATARS (see `superset/config.py` for more information)
 
 ## Deprecated Flags
 
