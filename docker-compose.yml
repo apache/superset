@@ -149,7 +149,14 @@ services:
       disable: true
 
   superset-node:
-    image: node:20
+    build:
+      context: .
+      target: superset-node
+      args:
+        # This prevents building the frontend bundle since we'll mount local folder
+        # and build it on startup while firing docker-frontend.sh in dev mode, where
+        # it'll mount and watch local files and rebuild as you update them
+        DEV_MODE: "true"
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
