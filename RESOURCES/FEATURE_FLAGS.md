@@ -93,3 +93,13 @@ These features flags currently default to True and **will be removed in a future
 - DASHBOARD_CROSS_FILTERS
 - ENABLE_JAVASCRIPT_CONTROLS
 - KV_STORE
+
+## Configuration Flags
+
+Currently some of our feature flags act as dynamic configurations that can changed
+on the fly. This acts in contradiction with the typical ephemeral feature flag use case,
+where the flag is used to mature a feature, and eventually deprecated once the feature is
+solid. Eventually we'll likely refactor these under a more formal "dynamic configurations" managed
+independently. This new framework will also allow for non-boolean configurations.
+
+- SLACK_ENABLE_AVATARS (see `superset/config.py` for more information)
