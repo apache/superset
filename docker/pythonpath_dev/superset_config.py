@@ -177,12 +177,9 @@ AUTH_TYPE = AUTH_OAUTH
 
 ENABLE_PROXY_FIX = True
 AUTH_USER_REGISTRATION = True
-AUTH_USER_REGISTRATION_ROLE = "Gamma"
-AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(['lautaro@datakimia.com', 'rory@datakimia.com'], email) && 'Admin' || 'Alpha'"
-AUTH_ROLES_MAPPING = {
-"superset_users": ["Gamma","Alpha"],
-"superset_admins": ["Admin"],
-}
+AUTH_USER_REGISTRATION_ROLE = "Guest"
+#PUBLIC_ROLE_LIKE = "Alpha" 
+AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(['lautaro@datakimia.com', 'tomas@datakimia.com'], email) && 'Admin' || 'Guest'"
 
 
 GOOGLE_PROVIDER = {
@@ -259,9 +256,9 @@ WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 
 ##############################################3end auth
 
-### to do -  se puede borrar eso ?
-PREVIOUS_SECRET_KEY="4MCsZm1ciqjZ4347/jIrefw34vKOPZ37Rr9k2iguLd3OeeCiZ45aw5ha"
-SUPERSET_SECRET_KEY="+DLoS9mlyLGxgUIP5QcM1/8IxVB0AG4GCdhDD2uSaQZAgfxwaVL7uO7f"
+### this is used together with the command "superset re-encrypt-secrets"
+#PREVIOUS_SECRET_KEY="TEST_NON_DEV_SECRET"
+#SECRET_KEY="+DLoS9mlyLGxgUIP5QcM1/8IxVB0AG4GCdhDD2uSaQZAgfxwaVL7uO7f"
 ######
 
 
