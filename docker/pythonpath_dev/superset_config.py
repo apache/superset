@@ -177,9 +177,9 @@ AUTH_TYPE = AUTH_OAUTH
 
 ENABLE_PROXY_FIX = True
 AUTH_USER_REGISTRATION = True
-AUTH_USER_REGISTRATION_ROLE = "Alpha"
+AUTH_USER_REGISTRATION_ROLE = "Guest"
 #PUBLIC_ROLE_LIKE = "Alpha" 
-AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(['lautaro@datakimia.com', 'tomas@datakimia.com'], email) && 'Admin' || 'Alpha'"
+AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(['lautaro@datakimia.com', 'tomas@datakimia.com'], email) && 'Admin' || 'Guest'"
 
 
 GOOGLE_PROVIDER = {
