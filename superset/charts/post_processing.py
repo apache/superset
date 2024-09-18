@@ -87,7 +87,8 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # pivot data; we'll compute totals and subtotals later
     if rows or columns:
         # pivoting with null values will create an empty df
-        df = df.fillna("NULL")
+        if columns:
+            df[columns] = df[columns].fillna("NULL")
         df = df.pivot_table(
             index=rows,
             columns=columns,

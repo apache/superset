@@ -443,10 +443,10 @@ def test_pivot_df_single_row_null_values():
     assert (
         pivoted.to_markdown()
         == """
-|           | ('SUM(num)',)   | ('MAX(num)',)   |
-|:----------|:----------------|:----------------|
-| ('boy',)  | NULL            | NULL            |
-| ('girl',) | 118065.0        | 2588.0          |
+|           |   ('SUM(num)',) |   ('MAX(num)',) |
+|:----------|----------------:|----------------:|
+| ('boy',)  |               0 |               0 |
+| ('girl',) |          118065 |            2588 |
     """.strip()
     )
 
@@ -466,9 +466,9 @@ def test_pivot_df_single_row_null_values():
     assert (
         pivoted.to_markdown()
         == """
-|                  | ('SUM(num)', 'boy')   |   ('SUM(num)', 'girl') | ('MAX(num)', 'boy')   |   ('MAX(num)', 'girl') |
-|:-----------------|:----------------------|-----------------------:|:----------------------|-----------------------:|
-| ('Total (Sum)',) | NULL                  |                 118065 | NULL                  |                   2588 |
+|                  |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |
+|:-----------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
+| ('Total (Sum)',) |                     0 |                 118065 |                     0 |                   2588 |
 
     """.strip()
     )
@@ -489,10 +489,10 @@ def test_pivot_df_single_row_null_values():
     assert (
         pivoted.to_markdown()
         == """
-|           | ('SUM(num)',)   | ('MAX(num)',)   |
-|:----------|:----------------|:----------------|
-| ('boy',)  | NULL            | NULL            |
-| ('girl',) | 118065.0        | 2588.0          |
+|           |   ('SUM(num)',) |   ('MAX(num)',) |
+|:----------|----------------:|----------------:|
+| ('boy',)  |               0 |               0 |
+| ('girl',) |          118065 |            2588 |
     """.strip()
     )
 
@@ -514,7 +514,7 @@ def test_pivot_df_single_row_null_values():
         == """
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('Total (Sum)',) |
 |:-----------------|----------------:|----------------:|-------------------:|
-| ('boy',)         |             nan |             nan |                  0 |
+| ('boy',)         |               0 |               0 |                  0 |
 | ('girl',)        |          118065 |            2588 |             120653 |
 | ('Total (Sum)',) |          118065 |            2588 |             120653 |
     """.strip()
@@ -538,10 +538,10 @@ def test_pivot_df_single_row_null_values():
         == f"""
 |                          |   ('{_("Total")} (Sum)',) |
 |:-------------------------|-------------------:|
-| ('SUM(num)', 'boy')      |                nan |
+| ('SUM(num)', 'boy')      |                  0 |
 | ('SUM(num)', 'girl')     |             118065 |
 | ('SUM(num)', 'Subtotal') |             118065 |
-| ('MAX(num)', 'boy')      |                nan |
+| ('MAX(num)', 'boy')      |                  0 |
 | ('MAX(num)', 'girl')     |               2588 |
 | ('MAX(num)', 'Subtotal') |               2588 |
 | ('{_("Total")} (Sum)', '')      |             120653 |
@@ -566,8 +566,8 @@ def test_pivot_df_single_row_null_values():
         == f"""
 |                      |   ('{_("Total")} (Sum)',) |
 |:---------------------|-------------------:|
-| ('boy', 'SUM(num)')  |                nan |
-| ('boy', 'MAX(num)')  |                nan |
+| ('boy', 'SUM(num)')  |                  0 |
+| ('boy', 'MAX(num)')  |                  0 |
 | ('boy', 'Subtotal')  |                  0 |
 | ('girl', 'SUM(num)') |             118065 |
 | ('girl', 'MAX(num)') |               2588 |
@@ -613,10 +613,10 @@ def test_pivot_df_single_row_null_mix_values():
     assert (
         pivoted.to_markdown()
         == """
-|           | ('SUM(num)',)   | ('MAX(num)',)   |
-|:----------|:----------------|:----------------|
-| ('boy',)  | NULL            | NULL            |
-| ('girl',) | 118065          | 2588.0          |
+|           | ('SUM(num)',)   |   ('MAX(num)',) |
+|:----------|:----------------|----------------:|
+| ('boy',)  | NULL            |               0 |
+| ('girl',) | 118065          |            2588 |
     """.strip()
     )
 
@@ -636,9 +636,9 @@ def test_pivot_df_single_row_null_mix_values():
     assert (
         pivoted.to_markdown()
         == """
-|                  | ('SUM(num)', 'boy')   |   ('SUM(num)', 'girl') | ('MAX(num)', 'boy')   |   ('MAX(num)', 'girl') |
-|:-----------------|:----------------------|-----------------------:|:----------------------|-----------------------:|
-| ('Total (Sum)',) | NULL                  |                 118065 | NULL                  |                   2588 |
+|                  | ('SUM(num)', 'boy')   |   ('SUM(num)', 'girl') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |
+|:-----------------|:----------------------|-----------------------:|----------------------:|-----------------------:|
+| ('Total (Sum)',) | NULL                  |                 118065 |                     0 |                   2588 |
 
     """.strip()
     )
@@ -659,10 +659,10 @@ def test_pivot_df_single_row_null_mix_values():
     assert (
         pivoted.to_markdown()
         == """
-|           | ('SUM(num)',)   | ('MAX(num)',)   |
-|:----------|:----------------|:----------------|
-| ('boy',)  | NULL            | NULL            |
-| ('girl',) | 118065          | 2588.0          |
+|           | ('SUM(num)',)   |   ('MAX(num)',) |
+|:----------|:----------------|----------------:|
+| ('boy',)  | NULL            |               0 |
+| ('girl',) | 118065          |            2588 |
     """.strip()
     )
 
@@ -684,7 +684,7 @@ def test_pivot_df_single_row_null_mix_values():
         == """
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('Total (Sum)',) |
 |:-----------------|----------------:|----------------:|-------------------:|
-| ('boy',)         |             nan |             nan |                  0 |
+| ('boy',)         |             nan |               0 |                  0 |
 | ('girl',)        |          118065 |            2588 |             120653 |
 | ('Total (Sum)',) |          118065 |            2588 |             120653 |
     """.strip()
@@ -711,7 +711,7 @@ def test_pivot_df_single_row_null_mix_values():
 | ('SUM(num)', 'boy')      |                nan |
 | ('SUM(num)', 'girl')     |             118065 |
 | ('SUM(num)', 'Subtotal') |             118065 |
-| ('MAX(num)', 'boy')      |                nan |
+| ('MAX(num)', 'boy')      |                  0 |
 | ('MAX(num)', 'girl')     |               2588 |
 | ('MAX(num)', 'Subtotal') |               2588 |
 | ('{_("Total")} (Sum)', '')      |             120653 |
@@ -737,7 +737,7 @@ def test_pivot_df_single_row_null_mix_values():
 |                      |   ('{_("Total")} (Sum)',) |
 |:---------------------|-------------------:|
 | ('boy', 'SUM(num)')  |                nan |
-| ('boy', 'MAX(num)')  |                nan |
+| ('boy', 'MAX(num)')  |                  0 |
 | ('boy', 'Subtotal')  |                  0 |
 | ('girl', 'SUM(num)') |             118065 |
 | ('girl', 'MAX(num)') |               2588 |
