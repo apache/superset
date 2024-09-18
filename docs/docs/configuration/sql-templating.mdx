@@ -360,6 +360,9 @@ The macro takes the following parameters:
 - `target_type`: The target temporal type as recognized by the target  database (e.g. `TIMESTAMP`, `DATE` or
   `DATETIME`). If `column` is defined, the format will default to the type of the column. This is used to produce
   the format of the `from_expr` and `to_expr` properties of the returned `TimeFilter` object.
+- `strftime`: format using the `strftime` method of `datetime` for custom time formatting.
+  ([see docs for valid format codes](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes)).
+  When defined `target_type` will be ignored.
 - `remove_filter`: When set to true, mark the filter as processed, removing it from the outer query. Useful when a
   filter should only apply to the inner query.
 

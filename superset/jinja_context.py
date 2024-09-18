@@ -375,11 +375,13 @@ class ExtraCache:
 
         return filters
 
+    # pylint: disable=too-many-arguments
     def get_time_filter(
         self,
         column: str | None = None,
         default: str | None = None,
         target_type: str | None = None,
+        strftime: str | None = None,
         remove_filter: bool = False,
     ) -> TimeFilter:
         """Get the time filter with appropriate formatting,
@@ -395,6 +397,8 @@ class ExtraCache:
             the format will default to the type of the column. This is used to produce
             the format of the `from_expr` and `to_expr` properties of the returned
             `TimeFilter` object.
+        :param strftime: format using the `strftime` method of `datetime`. When defined
+            `target_type` will be ignored.
         :param remove_filter: When set to true, mark the filter as processed,
             removing it from the outer query. Useful when a filter should
             only apply to the inner query.
@@ -434,6 +438,8 @@ class ExtraCache:
         from_expr, to_expr = get_since_until_from_time_range(time_range)
 
         def _format_dttm(dttm: datetime | None) -> str | None:
+            if strftime and dttm:
+                return dttm.strftime(strftime)
             return (
                 self.database.db_engine_spec.convert_dttm(target_type or "", dttm)
                 if self.database and dttm
