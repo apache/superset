@@ -21,7 +21,7 @@
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
 # -----------------------------------------------------------------------
-x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest}
+x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest-dev}
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
@@ -30,7 +30,6 @@ x-superset-volumes:
   - ./docker:/app/docker
   - superset_home:/app/superset_home
 
-version: "3.7"
 services:
   redis:
     image: redis:7

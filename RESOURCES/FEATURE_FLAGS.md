@@ -68,6 +68,13 @@ These features flags are **safe for production**. They have been tested and will
 - DISABLE_LEGACY_DATASOURCE_EDITOR
 
 ### Flags retained for runtime configuration
+
+Currently some of our feature flags act as dynamic configurations that can changed
+on the fly. This acts in contradiction with the typical ephemeral feature flag use case,
+where the flag is used to mature a feature, and eventually deprecated once the feature is
+solid. Eventually we'll likely refactor these under a more formal "dynamic configurations" managed
+independently. This new framework will also allow for non-boolean configurations.
+
 - ALERTS_ATTACH_REPORTS
 - ALLOW_ADHOC_SUBQUERY
 - DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/using-superset/creating-your-first-dashboard#manage-access-to-dashboards)
@@ -79,6 +86,7 @@ These features flags are **safe for production**. They have been tested and will
 - ESCAPE_MARKDOWN_HTML
 - LISTVIEWS_DEFAULT_CARD_VIEW
 - SCHEDULED_QUERIES [(docs)](https://superset.apache.org/docs/configuration/alerts-reports)
+- SLACK_ENABLE_AVATARS (see `superset/config.py` for more information)
 - SQLLAB_BACKEND_PERSISTENCE
 - SQL_VALIDATORS_BY_ENGINE [(docs)](https://superset.apache.org/docs/configuration/sql-templating)
 - THUMBNAILS [(docs)](https://superset.apache.org/docs/configuration/cache)

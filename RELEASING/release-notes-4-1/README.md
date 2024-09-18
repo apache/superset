@@ -19,7 +19,11 @@ under the License.
 
 # Release Notes for Superset 4.1.0
 
-Superset 4.1.0 brings a range of new features and quality of life improvements.  This release is a minor version, meaning it doesn't include any breaking changes to ensure a seamless transition for our users. Here are some of the highlights of this release.
+Superset 4.1.0 brings a range of new features and quality of life improvements.  This release is a minor version, meaning it doesn't include any breaking changes. However, users of basic Superset docker images like `4.1.0` should see the note at the bottom of this file about [changes to those builds](/RELEASING/release-notes-4-1/README.md#change-to-docker-image-builds).
+
+## Highlights
+
+Here are some of the highlights of this release.
 
 ### Big Number With Time Period Updates
 
@@ -129,3 +133,8 @@ Users can now see both the [total and percentage in tooltips](https://github.com
 ### Additional Metadata Bar To Dashboards
 
 There is now a [metadata bar](https://github.com/apache/superset/pull/27857) added to the header of dashboards. This will now show viewers of the dashboard both the owners and last modified time of the dashboard.
+
+
+## Change to Docker image builds
+
+Starting in 4.1.0, the release's docker image does not ship with drivers needed to operate Superset. Users may need to install a driver for their metadata database (MySQL or Postgres) as well as the driver for their data warehouse. This is a result of changes to the `lean` docker image that official releases come from; see [Docker Build Presets](/docs/installation/docker-builds/#build-presets) for more details.

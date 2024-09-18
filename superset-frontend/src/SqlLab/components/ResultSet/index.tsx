@@ -42,6 +42,7 @@ import {
   css,
   getNumberFormatter,
   getExtensionsRegistry,
+  ErrorTypeEnum,
 } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -225,8 +226,8 @@ const ResultSet = ({
     reRunQueryIfSessionTimeoutErrorOnMount();
   }, [reRunQueryIfSessionTimeoutErrorOnMount]);
 
-  const fetchResults = (q: typeof query) => {
-    dispatch(fetchQueryResults(q, displayLimit));
+  const fetchResults = (q: typeof query, timeout?: number) => {
+    dispatch(fetchQueryResults(q, displayLimit, timeout));
   };
 
   const prevQuery = usePrevious(query);
@@ -549,7 +550,18 @@ const ResultSet = ({
           link={query.link}
           source="sqllab"
         />
-        {trackingUrl}
+        {(query?.extra?.errors?.[0] || query?.errors?.[0])?.error_type ===
+        ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR ? (
+          <Button
+            className="sql-result-track-job"
+            buttonSize="small"
+            onClick={() => fetchResults(query, 0)}
+          >
+            {t('Retry fetching results')}
+          </Button>
+        ) : (
+          trackingUrl
+        )}
       </ResultlessStyles>
     );
   }

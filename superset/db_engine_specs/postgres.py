@@ -35,7 +35,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
-from superset.sql_parse import SQLScript
+from superset.sql.parse import SQLScript
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
 
@@ -322,6 +322,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     @classmethod
     def get_prequeries(
         cls,
+        database: Database,
         catalog: str | None = None,
         schema: str | None = None,
     ) -> list[str]:

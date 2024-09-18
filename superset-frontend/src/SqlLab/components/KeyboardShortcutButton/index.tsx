@@ -38,6 +38,8 @@ export enum KeyboardShortcut {
   CtrlF = 'ctrl+f',
   CtrlH = 'ctrl+h',
   CtrlShiftF = 'ctrl+shift+f',
+  CtrlLeft = 'ctrl+[',
+  CtrlRight = 'ctrl+]',
 }
 
 export const KEY_MAP = {
@@ -51,6 +53,8 @@ export const KEY_MAP = {
   [KeyboardShortcut.CtrlT]: userOS !== 'Windows' ? t('New tab') : undefined,
   [KeyboardShortcut.CtrlP]: t('Previous Line'),
   [KeyboardShortcut.CtrlShiftF]: t('Format SQL'),
+  [KeyboardShortcut.CtrlLeft]: t('Switch to the previous tab'),
+  [KeyboardShortcut.CtrlRight]: t('Switch to the next tab'),
   // default ace editor shortcuts
   [KeyboardShortcut.CmdF]: userOS === 'MacOS' ? t('Find') : undefined,
   [KeyboardShortcut.CtrlF]: userOS !== 'MacOS' ? t('Find') : undefined,

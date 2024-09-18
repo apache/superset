@@ -157,7 +157,7 @@ export default function transformProps(
       label: {
         show: showValues,
         formatter: (params: CallbackDataParams) =>
-          valueFormatter(params.value[2]),
+          valueFormatter(params.value?.[2]),
       },
     },
   ];
@@ -178,9 +178,9 @@ export default function transformProps(
           yAxisLabel,
           metricLabel,
         );
-        const x = params.value[0];
-        const y = params.value[1];
-        const value = params.value[2];
+        const x = params.value?.[0];
+        const y = params.value?.[1];
+        const value = params.value?.[2];
         const formattedX = xAxisFormatter(x);
         const formattedY = yAxisFormatter(y);
         const formattedValue = valueFormatter(value);

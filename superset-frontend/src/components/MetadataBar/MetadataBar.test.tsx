@@ -158,7 +158,7 @@ test('renders underlined text and emits event when clickable', () => {
   expect(style.textDecoration).toBe('underline');
 });
 
-test('renders clicable items with blue icons when the bar is collapsed', async () => {
+test('renders clickable items with blue icons when the bar is collapsed', async () => {
   await runWithBarCollapsed(async () => {
     const onClick = jest.fn();
     const items = [{ ...ITEMS[0], onClick }, ITEMS[1]];
