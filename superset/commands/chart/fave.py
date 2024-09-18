@@ -40,6 +40,9 @@ class AddFavoriteChartCommand(BaseCommand):
         self._chart: Optional[Slice] = None
 
     @transaction(on_error=partial(on_error, reraise=ChartFaveError))
+    def foo(self) -> None:
+        pass
+
     def run(self) -> None:
         self.validate()
         return ChartDAO.add_favorite(self._chart)
