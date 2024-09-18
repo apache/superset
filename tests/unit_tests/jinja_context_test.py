@@ -958,6 +958,30 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
             ["dttm"],
             ["dttm"],
         ),
+        (
+            "Filter is formatted with the custom format, ignoring target_type",
+            ["dttm"],
+            {"target_type": "DATE", "strftime": "%Y%m%d", "remove_filter": True},
+            "trino://mydb",
+            [
+                {
+                    "filters": [
+                        {
+                            "col": "dttm",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "Last month",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="20240803",
+                to_expr="20240903",
+                time_range="Last month",
+            ),
+            ["dttm"],
+            ["dttm"],
+        ),
     ],
 )
 def test_get_time_filter(
