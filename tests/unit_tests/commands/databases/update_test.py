@@ -21,6 +21,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.database.update import UpdateDatabaseCommand
+from superset.exceptions import OAuth2RedirectError
 from superset.extensions import security_manager
 
 
@@ -53,6 +54,24 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     database.db_engine_spec.__name__ = "test_engine"
     database.db_engine_spec.supports_catalog = False
     database.get_all_schema_names.return_value = ["schema1", "schema2"]
+
+    return database
+
+
+@pytest.fixture()
+def database_needs_oauth2(mocker: MockerFixture) -> MagicMock:
+    """
+    Mock a database without catalogs that needs OAuth2.
+    """
+    database = mocker.MagicMock()
+    database.database_name = "my_db"
+    database.db_engine_spec.__name__ = "test_engine"
+    database.db_engine_spec.supports_catalog = False
+    database.get_all_schema_names.side_effect = OAuth2RedirectError(
+        "url",
+        "tab_id",
+        "redirect_uri",
+    )
 
     return database
 
@@ -276,3 +295,32 @@ def test_rename_without_catalog(
     )
 
     assert schema2_pvm.view_menu.name == "[my_other_db].[schema2]"
+
+
+def test_update_with_oauth2(
+    mocker: MockerFixture,
+    database_needs_oauth2: MockerFixture,
+) -> None:
+    """
+    Test that the database can be updated even if OAuth2 is needed to connect.
+    """
+    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    DatabaseDAO.find_by_id.return_value = database_needs_oauth2
+    DatabaseDAO.update.return_value = database_needs_oauth2
+
+    find_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "find_permission_view_menu",
+    )
+    find_permission_view_menu.side_effect = [
+        None,  # schema1 has no permissions
+        "[my_db].[schema2]",  # second schema already exists
+    ]
+    add_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "add_permission_view_menu",
+    )
+
+    UpdateDatabaseCommand(1, {}).run()
+
+    add_permission_view_menu.assert_not_called()

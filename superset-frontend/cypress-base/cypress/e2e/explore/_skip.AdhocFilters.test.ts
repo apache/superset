@@ -89,7 +89,7 @@ describe.skip('AdhocFilters', () => {
     cy.wait('@filterValues');
 
     // selecting a new filter should auto-open the popup,
-    // so the tabshould be visible by now
+    // so the tab should be visible by now
     cy.get('#filter-edit-popover #adhoc-filter-edit-tabs-tab-SQL').click();
     cy.get('#filter-edit-popover .ace_content').click();
     cy.get('#filter-edit-popover .ace_text-input').type(filterContent);

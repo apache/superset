@@ -34,6 +34,11 @@ export const GlobalStyles = () => (
       th {
         font-weight: ${theme.typography.weights.bold};
       }
+      // CSS hack to resolve the issue caused by the invisible echart tooltip on
+      // https://github.com/apache/superset/issues/30058
+      .echarts-tooltip[style*='visibility: hidden'] {
+        display: none !important;
+      }
       // TODO: Remove when on Ant Design 5.
       // Check src/components/Modal for more info.
       .modal-functions-ok-button {

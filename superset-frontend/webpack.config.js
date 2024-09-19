@@ -45,10 +45,10 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const TRANSLATIONS_DIR = path.resolve(__dirname, '../superset/translations');
 
 const getAvailableTranslationCodes = () => {
-  const LOCALE_CODE_MAPPING = {
-    zh: 'zh-cn',
-  };
-  try {
+  if (process.env.BUILD_TRANSLATIONS === 'true') {
+    const LOCALE_CODE_MAPPING = {
+      zh: 'zh-cn',
+    };
     const files = fs.readdirSync(TRANSLATIONS_DIR);
     return files
       .filter(file =>
@@ -57,10 +57,9 @@ const getAvailableTranslationCodes = () => {
       .filter(dirName => !dirName.startsWith('__'))
       .map(dirName => dirName.replace('_', '-'))
       .map(dirName => LOCALE_CODE_MAPPING[dirName] || dirName);
-  } catch (err) {
-    console.error('Error reading the directory:', err);
-    return [];
   }
+  // Indicates to the MomentLocalesPlugin that we only want to keep 'en'.
+  return [];
 };
 
 const {
@@ -179,18 +178,8 @@ if (!isDevMode) {
     }),
   );
 
-  plugins.push(
-    // runs type checking on a separate process to speed up the build
-    new ForkTsCheckerWebpackPlugin({
-      eslint: {
-        files: './{src,packages,plugins}/**/*.{ts,tsx,js,jsx}',
-        memoryLimit: 4096,
-        options: {
-          ignorePath: './.eslintignore',
-        },
-      },
-    }),
-  );
+  // Runs type checking on a separate process to speed up the build
+  plugins.push(new ForkTsCheckerWebpackPlugin());
 }
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];

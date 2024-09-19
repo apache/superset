@@ -171,12 +171,15 @@ function ChartTable({
   if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
     <ErrorBoundary>
-      <PropertiesModal
-        onHide={closeChartEditModal}
-        onSave={handleChartUpdated}
-        show={sliceCurrentlyEditing}
-        slice={sliceCurrentlyEditing}
-      />
+      {sliceCurrentlyEditing && (
+        <PropertiesModal
+          onHide={closeChartEditModal}
+          onSave={handleChartUpdated}
+          show
+          slice={sliceCurrentlyEditing}
+        />
+      )}
+
       <SubMenu
         activeChild={activeTab}
         tabs={menuTabs}

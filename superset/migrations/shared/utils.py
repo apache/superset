@@ -168,3 +168,17 @@ def try_load_json(data: Optional[str]) -> dict[str, Any]:
     except json.JSONDecodeError:
         print(f"Failed to parse: {data}")
         return {}
+
+
+def has_table(table_name: str) -> bool:
+    """
+    Check if a table exists in the database.
+
+    :param table_name: The table name
+    :returns: True if the table exists
+    """
+
+    insp = inspect(op.get_context().bind)
+    table_exists = insp.has_table(table_name)
+
+    return table_exists
