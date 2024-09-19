@@ -94,7 +94,7 @@ There is a special ``_filters`` parameter which can be used to test filters used
 ```sql
 SELECT action, count(*) as times
 FROM logs
-WHERE action in {{ filter_values('action_type'))|where_in }}
+WHERE action in {{ filter_values('action_type')|where_in }}
 GROUP BY action
 ```
 
