@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 import hmac
 import logging
 from typing import Dict, Optional
@@ -43,8 +45,7 @@ class WebhookNotification(BaseNotification):  # pylint: disable=too-few-public-m
         """
         Retrieves the secret token for HMAC signature from the application configuration.
         """
-        with app.app_context():
-            return app.config.get("WEBHOOK_SECRET")
+        return app.config.get("WEBHOOK_SECRET")
 
     def _get_host(self) -> str:
         """
@@ -62,7 +63,7 @@ class WebhookNotification(BaseNotification):  # pylint: disable=too-few-public-m
             return hmac.new(
                 secret.encode("utf-8"),
                 json.dumps(data).encode("utf-8"),
-                digestmod="sha256",
+                digestmod=app.config.get("WEBHOOK_SECRET_DIGESTMOD", "sha256"),
             ).hexdigest()
         return None
 
@@ -107,9 +108,6 @@ class WebhookNotification(BaseNotification):  # pylint: disable=too-few-public-m
                 else self._content.header_data.get("dashboard_id")
             ),
             "content_format": self._content.header_data.get("notification_format"),
-            "metadata": json.loads(self._recipient.recipient_config_json).get(
-                "JSONData"
-            ),
         }
 
     @statsd_gauge("reports.webhook.send")
@@ -131,7 +129,7 @@ class WebhookNotification(BaseNotification):  # pylint: disable=too-few-public-m
                 timeout=10,
             )
             response.raise_for_status()
-            logger.info("Report webhook has been successfully sent to {host}")
+            logger.info("Report webhook has been successfully sent to %s", host)
 
         except requests.RequestException as ex:
             raise NotificationError(str(ex)) from ex
