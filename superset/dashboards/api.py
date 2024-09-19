@@ -22,7 +22,7 @@ from io import BytesIO
 from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import redirect, request, Response, send_file, url_for
+from flask import g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
@@ -51,8 +51,10 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
+from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
@@ -93,6 +95,7 @@ from superset.dashboards.schemas import (
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.security.guest_token import GuestUser
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
     cache_dashboard_thumbnail,
@@ -1033,7 +1036,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
-        cache_key = screenshot_obj.cache_key(window_size, thumb_size)
+        cache_key = screenshot_obj.cache_key(window_size, thumb_size, dashboard_state)
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
@@ -1041,12 +1044,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
             cache_dashboard_screenshot.delay(
-                current_user=get_current_user(),
+                username=get_current_user(),
+                guest_token=g.user.guest_token
+                if isinstance(g.user, GuestUser)
+                else None,
                 dashboard_id=dashboard.id,
                 dashboard_url=dashboard_url,
                 force=True,
                 thumb_size=thumb_size,
                 window_size=window_size,
+                cache_key=cache_key,
             )
             return self.response(
                 202,
@@ -1213,11 +1220,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard = DashboardDAO.find_by_id(pk)
-        if not dashboard:
-            return self.response_404()
+        try:
+            AddFavoriteDashboardCommand(pk).run()
 
-        DashboardDAO.add_favorite(dashboard)
+        except DashboardNotFoundError:
+            return self.response_404()
+        except DashboardAccessDeniedError:
+            return self.response_403()
+
         return self.response(200, result="OK")
 
     @expose("/<pk>/favorites/", methods=("DELETE",))
@@ -1256,11 +1266,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard = DashboardDAO.find_by_id(pk)
-        if not dashboard:
+        try:
+            DelFavoriteDashboardCommand(pk).run()
+        except DashboardNotFoundError:
             return self.response_404()
+        except DashboardAccessDeniedError:
+            return self.response_403()
 
-        DashboardDAO.remove_favorite(dashboard)
         return self.response(200, result="OK")
 
     @expose("/import/", methods=("POST",))

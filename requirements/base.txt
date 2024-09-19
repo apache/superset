@@ -15,6 +15,8 @@ apispec[yaml]==6.3.0
     # via flask-appbuilder
 apsw==3.46.0.0
     # via shillelagh
+async-timeout==4.0.3
+    # via redis
 attrs==23.2.0
     # via
     #   cattrs
@@ -78,7 +80,7 @@ cron-descriptor==1.4.3
     # via apache-superset
 croniter==2.0.5
     # via apache-superset
-cryptography==42.0.7
+cryptography==42.0.8
     # via
     #   apache-superset
     #   paramiko
@@ -91,6 +93,8 @@ dnspython==2.6.1
     # via email-validator
 email-validator==2.1.1
     # via flask-appbuilder
+exceptiongroup==1.2.2
+    # via cattrs
 flask==2.3.3
     # via
     #   apache-superset
@@ -358,6 +362,7 @@ typing-extensions==4.12.0
     # via
     #   alembic
     #   apache-superset
+    #   cattrs
     #   flask-limiter
     #   limits
     #   shillelagh

@@ -95,7 +95,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
 
   const handleChange = useCallback(
     (treePathInfo: TreePathInfo[]) => {
-      if (!emitCrossFilters) {
+      if (!emitCrossFilters || !columns?.length) {
         return;
       }
 
@@ -142,7 +142,9 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         }
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
-          crossFilter: getCrossFilterDataMask(treePathInfo),
+          crossFilter: columns?.length
+            ? getCrossFilterDataMask(treePathInfo)
+            : undefined,
           drillBy: { filters: drillByFilters, groupbyFieldName: 'columns' },
         });
       }

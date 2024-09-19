@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CommonWrapper } from 'enzyme';
-import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
-import { mount, ProviderWrapper } from './enzyme';
+import { ProviderWrapper } from './testHelpers';
 
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {
@@ -178,39 +178,42 @@ describe('plugin-chart-table', () => {
   });
 
   describe('TableChart', () => {
-    let wrap: CommonWrapper; // the ReactDataTable wrapper
-    let tree: Cheerio;
-
     it('render basic data', () => {
-      wrap = mount(
-        <TableChart {...transformProps(testData.basic)} sticky={false} />,
+      render(
+        <ThemeProvider theme={supersetTheme}>
+          <TableChart {...transformProps(testData.basic)} sticky={false} />,
+        </ThemeProvider>,
       );
 
-      tree = wrap.render(); // returns a CheerioWrapper with jQuery-like API
-      const cells = tree.find('td');
+      const firstDataRow = screen.getAllByRole('rowgroup')[1];
+      const cells = firstDataRow.querySelectorAll('td');
       expect(cells).toHaveLength(12);
-      expect(cells.eq(0).text()).toEqual('2020-01-01 12:34:56');
-      expect(cells.eq(1).text()).toEqual('Michael');
+      expect(cells[0]).toHaveTextContent('2020-01-01 12:34:56');
+      expect(cells[1]).toHaveTextContent('Michael');
       // number is not in `metrics` list, so it should output raw value
       // (in real world Superset, this would mean the column is used in GROUP BY)
-      expect(cells.eq(2).text()).toEqual('2467063');
+      expect(cells[2]).toHaveTextContent('2467063');
       // should not render column with `.` in name as `undefined`
-      expect(cells.eq(3).text()).toEqual('foo');
-      expect(cells.eq(6).text()).toEqual('2467');
-      expect(cells.eq(8).text()).toEqual('N/A');
+      expect(cells[3]).toHaveTextContent('foo');
+      expect(cells[6]).toHaveTextContent('2467');
+      expect(cells[8]).toHaveTextContent('N/A');
     });
 
     it('render advanced data', () => {
-      wrap = mount(
-        <TableChart {...transformProps(testData.advanced)} sticky={false} />,
+      render(
+        <ThemeProvider theme={supersetTheme}>
+          <TableChart {...transformProps(testData.advanced)} sticky={false} />,
+        </ThemeProvider>,
       );
-      tree = wrap.render();
-      // should successful rerender with new props
-      const cells = tree.find('td');
-      expect(tree.find('th').eq(1).text()).toEqual('Sum of Num');
-      expect(cells.eq(0).text()).toEqual('Michael');
-      expect(cells.eq(2).text()).toEqual('12.346%');
-      expect(cells.eq(4).text()).toEqual('2.47k');
+      const secondColumnHeader = screen.getByText('Sum of Num');
+      expect(secondColumnHeader).toBeInTheDocument();
+      expect(secondColumnHeader?.getAttribute('data-column-name')).toEqual('1');
+
+      const firstDataRow = screen.getAllByRole('rowgroup')[1];
+      const cells = firstDataRow.querySelectorAll('td');
+      expect(cells[0]).toHaveTextContent('Michael');
+      expect(cells[2]).toHaveTextContent('12.346%');
+      expect(cells[4]).toHaveTextContent('2.47k');
     });
 
     it('render advanced data with currencies', () => {
@@ -318,9 +321,12 @@ describe('plugin-chart-table', () => {
     });
 
     it('render empty data', () => {
-      wrap.setProps({ ...transformProps(testData.empty), sticky: false });
-      tree = wrap.render();
-      expect(tree.text()).toContain('No records found');
+      render(
+        <ThemeProvider theme={supersetTheme}>
+          <TableChart {...transformProps(testData.empty)} sticky={false} />,
+        </ThemeProvider>,
+      );
+      expect(screen.getByText('No records found')).toBeInTheDocument();
     });
 
     it('render color with column color formatter', () => {

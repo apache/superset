@@ -32,8 +32,15 @@ for the build, and/or base image.
 Here are the build presets that are exposed through the `build_docker.py` script:
 
 - `lean`: The default Docker image, including both frontend and backend. Tags
-without a build_preset are lean builds, e.g., `latest`.
-- `dev`: For development, with a headless browser, dev-related utilities and root access.
+  without a build_preset are lean builds (ie: `latest`, `4.0.0`, `3.0.0`, ...). `lean`
+  builds do not contain database
+  drivers, meaning you need to install your own. That applies to analytics databases **AND
+  the metadata database**. You'll likely want to layer either `mysqlclient` or `psycopg2-binary`
+  depending on the metadata database you choose for your installation, plus the required
+  drivers to connect to your analytics database(s).
+- `dev`: For development, with a headless browser, dev-related utilities and root access. This
+  includes some commonly used database drivers like `mysqlclient`, `psycopg2-binary` and
+  some other used for development/CI
 - `py311`, e.g., Py311: Similar to lean but with a different Python version (in this example, 3.11).
 - `ci`: For certain CI workloads.
 - `websocket`: For Superset clusters supporting advanced features.
@@ -52,10 +59,28 @@ without a build_preset are lean builds, e.g., `latest`.
   this specific SHA, which could be from a `master` merge, or release.
 - `websocket-latest`: The WebSocket image for use in a Superset cluster.
 
+
+
 For insights or modifications to the build matrix and tagging conventions,
 check the [build_docker.py](https://github.com/apache/superset/blob/master/scripts/build_docker.py)
 script and the [docker.yml](https://github.com/apache/superset/blob/master/.github/workflows/docker.yml)
 GitHub action.
+
+## Key ARGs in Dockerfile
+- `BUILD_TRANSLATIONS`: whether to build the translations into the image. For the
+  frontend build this tells webpack to strip out all locales other than `en` from
+  the `moment-timezone` library. For the backendthis skips compiling the
+  `*.po` translation files
+- `DEV_MODE`: whether to skip the frontend build, this is used by our `docker-compose` dev setup
+  where we mount the local volume and build using `webpack` in `--watch` mode, meaning as you
+  alter the code in the local file system, webpack, from within a docker image used for this
+  purpose, will constantly rebuild the frontend as you go. This ARG enables the initial
+  `docker-compose` build to take much less time and resources
+- `INCLUDE_CHROMIUM`: whether to include chromium in the backend build so that it can be
+  used as a headless browser for workloads related to "Alerts & Reports" and thumbnail generation
+- `INCLUDE_FIREFOX`: same as above, but for firefox
+- `PY_VER`: specifying the base image for the python backend, we don't recommend altering
+  this setting if you're not working on forwards or backwards compatibility
 
 ## Caching
 
@@ -76,7 +101,7 @@ add database support for the database you need.
 
 Currently all automated builds are multi-platform, supporting both `linux/arm64`
 and `linux/amd64`. This enables higher level constructs like `helm` and
-docker-compose to point to these images and effectively be multi-platform
+`docker compose` to point to these images and effectively be multi-platform
 as well.
 
 Pull requests and master builds

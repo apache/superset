@@ -83,7 +83,6 @@ from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
-    QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetErrorException,
     SupersetErrorsException,
@@ -103,10 +102,9 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
-    validate_adhoc_subquery,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import ParsedQuery, sanitize_clause, Table
+from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -1136,27 +1134,6 @@ sqlatable_user = DBTable(
 )
 
 
-def _process_sql_expression(
-    expression: str | None,
-    database_id: int,
-    schema: str,
-    template_processor: BaseTemplateProcessor | None = None,
-) -> str | None:
-    if template_processor and expression:
-        expression = template_processor.process_template(expression)
-    if expression:
-        try:
-            expression = validate_adhoc_subquery(
-                expression,
-                database_id,
-                schema,
-            )
-            expression = sanitize_clause(expression)
-        except (QueryClauseValidationException, SupersetSecurityException) as ex:
-            raise QueryObjectValidationError(ex.message) from ex
-    return expression
-
-
 class SqlaTable(
     Model,
     BaseDatasource,
@@ -1552,12 +1529,15 @@ class SqlaTable(
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            expression = _process_sql_expression(
-                expression=metric["sqlExpression"],
-                database_id=self.database_id,
-                schema=self.schema,
-                template_processor=template_processor,
-            )
+            try:
+                expression = self._process_sql_expression(
+                    expression=metric["sqlExpression"],
+                    database_id=self.database_id,
+                    schema=self.schema,
+                    template_processor=template_processor,
+                )
+            except SupersetSecurityException as ex:
+                raise QueryObjectValidationError(ex.message) from ex
             sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
@@ -1582,12 +1562,15 @@ class SqlaTable(
         :rtype: sqlalchemy.sql.column
         """
         label = utils.get_column_name(col)
-        expression = _process_sql_expression(
-            expression=col["sqlExpression"],
-            database_id=self.database_id,
-            schema=self.schema,
-            template_processor=template_processor,
-        )
+        try:
+            expression = self._process_sql_expression(
+                expression=col["sqlExpression"],
+                database_id=self.database_id,
+                schema=self.schema,
+                template_processor=template_processor,
+            )
+        except SupersetSecurityException as ex:
+            raise QueryObjectValidationError(ex.message) from ex
         time_grain = col.get("timeGrain")
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False

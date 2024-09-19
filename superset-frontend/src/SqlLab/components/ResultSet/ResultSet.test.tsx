@@ -32,6 +32,7 @@ import {
   initialState,
   user,
   queryWithNoQueryLimit,
+  failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
 
 const mockedProps = {
@@ -101,6 +102,16 @@ const failedQueryWithErrorsState = {
     ...initialState.sqlLab,
     queries: {
       [failedQueryWithErrors.id]: failedQueryWithErrors,
+    },
+  },
+};
+const failedQueryWithTimeoutState = {
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    queries: {
+      [failedQueryWithFrontendTimeoutErrors.id]:
+        failedQueryWithFrontendTimeoutErrors,
     },
   },
 };
@@ -317,6 +328,18 @@ describe('ResultSet', () => {
       );
     });
     expect(screen.getByText('Database error')).toBeInTheDocument();
+  });
+
+  test('should render a timeout error with a retrial button', async () => {
+    await waitFor(() => {
+      setup(
+        { ...mockedProps, queryId: failedQueryWithFrontendTimeoutErrors.id },
+        mockStore(failedQueryWithTimeoutState),
+      );
+    });
+    expect(
+      screen.getByRole('button', { name: /Retry fetching results/i }),
+    ).toBeInTheDocument();
   });
 
   test('renders if there is no limit in query.results but has queryLimit', async () => {

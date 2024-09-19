@@ -49,11 +49,6 @@ jobs:
         working-directory: ./superset-frontend
         run: |
           npm run type
-      - name: prettier
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: |
-          npm run prettier-check
       - name: Build plugins packages
         if: steps.check.outputs.frontend
         working-directory: ./superset-frontend

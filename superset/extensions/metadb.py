@@ -274,7 +274,7 @@ class SupersetShillelaghAdapter(Adapter):
         # to perform updates and deletes. Otherwise we can only do inserts and selects.
         self._rowid: str | None = None
 
-        # Does the database allow DML?
+        # Does the database allow DDL/DML?
         self._allow_dml: bool = False
 
         # Read column information from the database, and store it for later.

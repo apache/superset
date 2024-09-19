@@ -867,7 +867,7 @@ redis:
     ## docker registry secret names (list)
     # pullSecrets: nil
     ##
-    ## Configure persistance
+    ## Configure persistence
     persistence:
       ##
       ## Use a PVC to persist data.

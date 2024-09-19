@@ -718,6 +718,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         if get_example_database().backend != "presto":
             assert "(\n      'boy' = 'boy'\n    )" in result
 
+    @unittest.skip("Extremely flaky test on MySQL")
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async(self):

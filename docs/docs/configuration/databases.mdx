@@ -55,7 +55,7 @@ are compatible with Superset.
 | [ClickHouse](/docs/configuration/databases#clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                                                                    |
 | [CockroachDB](/docs/configuration/databases#cockroachdb)                | `pip install cockroachdb`                                                          | `cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable`                                                                                      |
 | [Couchbase](/docs/configuration/databases#couchbase)                | `pip install couchbase-sqlalchemy`                                                          | `couchbase://{username}:{password}@{hostname}:{port}?truststorepath={ssl certificate path}`                                                                                      |
-| [Dremio](/docs/configuration/databases#dremio)                          | `pip install sqlalchemy_dremio`                                                    | `dremio://user:pwd@host:31010/`                                                                                                                        |
+| [Dremio](/docs/configuration/databases#dremio)                          | `pip install sqlalchemy_dremio`                                                    |`dremio+flight://{username}:{password}@{host}:31010, For ODBC dremio+pyodbc://{username}:{password}@{host}:32010`                                                                                                                           |
 | [Elasticsearch](/docs/configuration/databases#elasticsearch)            | `pip install elasticsearch-dbapi`                                                  | `elasticsearch+http://{user}:{password}@{host}:9200/`                                                                                                  |
 | [Exasol](/docs/configuration/databases#exasol)                          | `pip install sqlalchemy-exasol`                                                    | `exa+pyodbc://{username}:{password}@{hostname}:{port}/my_schema?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC`                                            |
 | [Google BigQuery](/docs/configuration/databases#google-bigquery)                     | `pip install sqlalchemy-bigquery`                                                  | `bigquery://{project_id}`                                                                                                                              |
@@ -522,7 +522,7 @@ The recommended connector library for Dremio is
 The expected connection string for ODBC (Default port is 31010) is formatted as follows:
 
 ```
-dremio://{username}:{password}@{host}:{port}/{database_name}/dremio?SSL=1
+dremio+pyodbc://{username}:{password}@{host}:{port}/{database_name}/dremio?SSL=1
 ```
 
 The expected connection string for Arrow Flight (Dremio 4.9.1+. Default port is 32010) is formatted as follows:
