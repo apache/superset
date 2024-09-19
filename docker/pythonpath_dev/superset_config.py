@@ -23,6 +23,8 @@
 import logging
 import os
 
+import json
+
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
 from superset.tasks.types import ExecutorType
@@ -51,6 +53,7 @@ EXAMPLES_HOST = os.getenv("EXAMPLES_HOST")
 EXAMPLES_PORT = os.getenv("EXAMPLES_PORT")
 EXAMPLES_DB = os.getenv("EXAMPLES_DB")
 
+COLOR_SCHEMES = os.getenv("COLOR_SCHEMES")
 
 # Read the environment variable
 oauth2_providers = os.getenv('OAUTH2_PROVIDERS')
@@ -263,6 +266,9 @@ WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 
 
 ######
+
+EXTRA_CATEGORICAL_COLOR_SCHEMES = json.loads(COLOR_SCHEMES)
+
 
 #
 # Optionally import superset_config_docker.py (which will have been included on
