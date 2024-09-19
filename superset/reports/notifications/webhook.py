@@ -96,12 +96,10 @@ class WebhookNotification(BaseNotification):  # pylint: disable=too-few-public-m
         """
         Constructs the payload for the webhook notification.
         """
-        notification_name, content_name = self._content.name.split(":")
         return {
-            "notification_name": notification_name,
+            "name": self._content.name,
             "notification_id": self._content.id,
             "notification_type": self._content.header_data.get("notification_type"),
-            "content_name": content_name.strip(),
             "content_type": self._content.header_data.get("notification_source"),
             "content_id": (
                 self._content.header_data.get("chart_id")
