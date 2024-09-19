@@ -96,6 +96,66 @@ def prepare_datasource_mock(
             "209dc060ac19271b8708731e3b8280f5",
         ),
         (
+            {
+                "dashboard_title": "My Other Title",
+            },
+            [ExecutorType.CURRENT_USER],
+            True,
+            False,
+            [],
+            "209dc060ac19271b8708731e3b8280f5",
+        ),
+        (
+            {
+                "id": 2,
+            },
+            [ExecutorType.CURRENT_USER],
+            True,
+            False,
+            [],
+            "06a4144466dbd5ffad0c3c2225e96296",
+        ),
+        (
+            {
+                "slices": [{"id": 2, "slice_name": "My Other Chart"}],
+            },
+            [ExecutorType.CURRENT_USER],
+            True,
+            False,
+            [],
+            "a823ece9563895ccb14f3d9095e84f7a",
+        ),
+        (
+            {
+                "position_json": {"b": "c"},
+            },
+            [ExecutorType.CURRENT_USER],
+            True,
+            False,
+            [],
+            "33c5475f92a904925ab3ef493526e5b5",
+        ),
+        (
+            {
+                "css": "background-color: darkblue;",
+            },
+            [ExecutorType.CURRENT_USER],
+            True,
+            False,
+            [],
+            "cec57345e6402c0d4b3caee5cfaa0a03",
+        ),
+        (
+            {
+                "json_metadata": {"d": "e"},
+            },
+            [ExecutorType.CURRENT_USER],
+            True,
+            False,
+            [],
+            "5380dcbe94621a0759b09554404f3d02",
+        ),
+        (
             None,
             [ExecutorType.CURRENT_USER],
             True,
