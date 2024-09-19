@@ -198,10 +198,15 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
     }
 
+    if (!temporalColum) {
+      // This query is using only textual columns, so it doesn't need time grain
+      extras.time_grain_sqla = undefined;
+    }
+
     let queryObject = {
       ...baseQueryObject,
       columns,
-      extras: !isEmpty(timeOffsets) && !temporalColum ? {} : extras,
+      extras,
       orderby,
       metrics,
       post_processing: postProcessing,
@@ -239,7 +244,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
-        extras: undefined, // we don't need time grain here
         order_desc: undefined, // we don't need orderby stuff here,
         orderby: undefined, // because this query will be used for get total aggregation.
       });

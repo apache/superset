@@ -114,5 +114,66 @@ describe('plugin-chart-table', () => {
         expressionType: 'SQL',
       });
     });
+    it('should include time_grain_sqla in extras if temporal colum is used and keep the rest', () => {
+      const { queries } = buildQuery({
+        ...basicFormData,
+        time_grain_sqla: TimeGranularity.MONTH,
+        groupby: ['col1'],
+        query_mode: QueryMode.Aggregate,
+        temporal_columns_lookup: { col1: true },
+        show_totals: true,
+        metrics: ['aaa', 'aaa'],
+        adhoc_filters: [
+          {
+            expressionType: 'SQL',
+            sqlExpression: "status IN ('In Process')",
+            clause: 'WHERE',
+            subject: null,
+            operator: null,
+            comparator: null,
+            isExtra: false,
+            isNew: false,
+            datasourceWarning: false,
+            filterOptionName: 'filter_v8m9t9oq5re_ndzk6g5am7',
+          } as any,
+        ],
+      });
+      // Extras in regular query
+      expect(queries[0].extras?.time_grain_sqla).toEqual(TimeGranularity.MONTH);
+      expect(queries[0].extras?.where).toEqual("(status IN ('In Process'))");
+      // Extras in summary query
+      expect(queries[1].extras?.time_grain_sqla).toEqual(TimeGranularity.MONTH);
+      expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
+    });
+    it('should not include time_grain_sqla in extras if temporal colum is not used and keep the rest', () => {
+      const { queries } = buildQuery({
+        ...basicFormData,
+        time_grain_sqla: TimeGranularity.MONTH,
+        groupby: ['col1'],
+        query_mode: QueryMode.Aggregate,
+        show_totals: true,
+        metrics: ['aaa', 'aaa'],
+        adhoc_filters: [
+          {
+            expressionType: 'SQL',
+            sqlExpression: "status IN ('In Process')",
+            clause: 'WHERE',
+            subject: null,
+            operator: null,
+            comparator: null,
+            isExtra: false,
+            isNew: false,
+            datasourceWarning: false,
+            filterOptionName: 'filter_v8m9t9oq5re_ndzk6g5am7',
+          } as any,
+        ],
+      });
+      // Extras in regular query
+      expect(queries[0].extras?.time_grain_sqla).toBeUndefined();
+      expect(queries[0].extras?.where).toEqual("(status IN ('In Process'))");
+      // Extras in summary query
+      expect(queries[1].extras?.time_grain_sqla).toBeUndefined();
+      expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
+    });
   });
 });
