@@ -260,9 +260,7 @@ def transaction(  # pylint: disable=redefined-outer-name
                 db.session.commit()  # pylint: disable=consider-using-transaction
                 return result
             except Exception as ex:
-                # An error can happen before the session becomes active
-                if db.session.is_active:
-                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                db.session.rollback()  # pylint: disable=consider-using-transaction
 
                 if on_error:
                     return on_error(ex)
