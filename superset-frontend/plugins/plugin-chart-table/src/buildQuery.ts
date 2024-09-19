@@ -114,8 +114,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
     }
 
-    let temporalColumAdded = false;
-    let temporalColum = null;
+    let temporalColumnAdded = false;
+    let temporalColumn = null;
 
     if (queryMode === QueryMode.Aggregate) {
       metrics = metrics || [];
@@ -169,23 +169,23 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           time_grain_sqla &&
           temporalColumnsLookup?.[col];
 
-        if (shouldBeAdded && !temporalColumAdded) {
-          temporalColum = {
+        if (shouldBeAdded && !temporalColumnAdded) {
+          temporalColumn = {
             timeGrain: time_grain_sqla,
             columnType: 'BASE_AXIS',
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
           } as AdhocColumn;
-          temporalColumAdded = true;
+          temporalColumnAdded = true;
           return false; // Do not include this in the output; it's added separately
         }
         return true;
       });
 
       // So we ensure the temporal column is added first
-      if (temporalColum) {
-        columns = [temporalColum, ...columns];
+      if (temporalColumn) {
+        columns = [temporalColumn, ...columns];
       }
     }
 
@@ -198,8 +198,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
     }
 
-    if (!temporalColum) {
-      // This query is using only textual columns, so it doesn't need time grain
+    if (!temporalColumn) {
+      // This query is not using temporal column, so it doesn't need time grain
       extras.time_grain_sqla = undefined;
     }
 
