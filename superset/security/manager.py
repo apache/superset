@@ -2639,13 +2639,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if not is_feature_enabled("EMBEDDED_SUPERSET"):
             return False
+
         if not user:
-            current_user = g.user if hasattr(g, "user") else None
+            user = g.user if hasattr(g, "user") else None
 
-        if not current_user:
-            return False
-
-        return hasattr(current_user, "is_guest_user") and current_user.is_guest_user
+        return user and hasattr(user, "is_guest_user") and user.is_guest_user
 
     def get_current_guest_user_if_guest(self) -> Optional[GuestUser]:
         return g.user if self.is_guest_user() else None
