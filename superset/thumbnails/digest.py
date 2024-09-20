@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from flask import current_app
 
@@ -54,33 +54,31 @@ def _adjust_string_for_executor(
 
 def _adjust_string_with_rls(
     unique_string: str,
-    datasources: list[Optional[SqlaTable]] | set[BaseDatasource],
-    executor_type: ExecutorType,
+    datasources: list[SqlaTable | None] | set[BaseDatasource],
     executor: str,
 ) -> str:
     """
     Add the RLS filters to the unique string based on current executor.
     """
-    if executor_type != ExecutorType.SELENIUM:
-        user = (
-            security_manager.find_user(executor)
-            or security_manager.get_current_guest_user_if_guest()
-        )
+    user = (
+        security_manager.find_user(executor)
+        or security_manager.get_current_guest_user_if_guest()
+    )
 
-        if user:
-            stringified_rls = ""
-            with override_user(user):
-                for datasource in datasources:
-                    if (
-                        datasource
-                        and hasattr(datasource, "is_rls_supported")
-                        and datasource.is_rls_supported
-                    ):
-                        rls_filters = datasource.get_sqla_row_level_filters()
-                        stringified_rls += "".join([str(f) for f in rls_filters])
+    if user:
+        stringified_rls = ""
+        with override_user(user):
+            for datasource in datasources:
+                if (
+                    datasource
+                    and hasattr(datasource, "is_rls_supported")
+                    and datasource.is_rls_supported
+                ):
+                    rls_filters = datasource.get_sqla_row_level_filters()
+                    stringified_rls += "".join([str(f) for f in rls_filters])
 
-            if stringified_rls != "":
-                unique_string = f"{unique_string}\n{stringified_rls}"
+        if stringified_rls != "":
+            unique_string = f"{unique_string}\n{stringified_rls}"
 
     return unique_string
 
@@ -102,9 +100,7 @@ def get_dashboard_digest(dashboard: Dashboard) -> str:
     )
 
     unique_string = _adjust_string_for_executor(unique_string, executor_type, executor)
-    unique_string = _adjust_string_with_rls(
-        unique_string, datasources, executor_type, executor
-    )
+    unique_string = _adjust_string_with_rls(unique_string, datasources, executor)
 
     return md5_sha_from_str(unique_string)
 
@@ -123,8 +119,6 @@ def get_chart_digest(chart: Slice) -> str:
 
     unique_string = f"{chart.params or ''}.{executor}"
     unique_string = _adjust_string_for_executor(unique_string, executor_type, executor)
-    unique_string = _adjust_string_with_rls(
-        unique_string, [datasource], executor_type, executor
-    )
+    unique_string = _adjust_string_with_rls(unique_string, [datasource], executor)
 
     return md5_sha_from_str(unique_string)
