@@ -179,11 +179,17 @@ const config: ControlPanelConfig = {
                   }
                   return value.label;
                 });
+                const { colnames: _colnames, coltypes: _coltypes } =
+                  chart?.queriesResponse?.[0] ?? {};
+                const colnames: string[] = _colnames || [];
+                const coltypes: GenericDataType[] = _coltypes || [];
+
                 return {
                   queryResponse: chart?.queriesResponse?.[0] as
                     | ChartDataResponseResult
                     | undefined,
                   appliedColumnNames: metricColumn,
+                  columnsPropsObject: { colnames, coltypes },
                 };
               },
             },
