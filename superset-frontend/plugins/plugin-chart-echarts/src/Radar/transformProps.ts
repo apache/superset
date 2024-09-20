@@ -199,6 +199,8 @@ export default function transformProps(
 
   const indicator = metricLabels.map(metricLabel => {
     const maxValueInControl = columnConfig?.[metricLabel]?.radarMetricMaxValue;
+    const minValueInControl = columnConfig?.[metricLabel]?.radarMetricMinValue;
+
     // Ensure that 0 is at the center of the polar coordinates
     const metricValueAsMax =
       metricLabelAndMaxValueMap.get(metricLabel) === 0
@@ -206,9 +208,11 @@ export default function transformProps(
         : metricLabelAndMaxValueMap.get(metricLabel);
     const max =
       maxValueInControl === null ? metricValueAsMax : maxValueInControl;
+    const min = minValueInControl === null ? 0 : minValueInControl;
     return {
       name: metricLabel,
       max,
+      min,
     };
   });
 
