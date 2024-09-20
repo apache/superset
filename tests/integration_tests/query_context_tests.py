@@ -367,7 +367,7 @@ class TestQueryContext(SupersetTestCase):
         sql_text = get_sql_text(payload)
 
         assert "SELECT" in sql_text
-        assert re.search(r'NOT [`"\[]?num[`"\]]? IS NULL', sql_text)
+        assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
         assert re.search(
             r"""NOT \([\s\n]*[`"\[]?name[`"\]]? IS NULL[\s\n]* """
             r"""OR [`"\[]?name[`"\]]? IN \('"abc"'\)[\s\n]*\)""",
@@ -1161,11 +1161,11 @@ LIMIT 10000
 OFFSET 0
     """
     assert (
-        re.search(r"WHERE\n  col6 >= .*2002-01-01", sqls[0])
+        re.search(r"WHERE col6 >= .*2002-01-01", sqls[0])
         and re.search(r"AND col6 < .*2003-01-01", sqls[0])
     ) is not None
     assert (
-        re.search(r"WHERE\n  col6 >= .*2001-10-01", sqls[1])
+        re.search(r"WHERE col6 >= .*2001-10-01", sqls[1])
         and re.search(r"AND col6 < .*2002-10-01", sqls[1])
     ) is not None
 

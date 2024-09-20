@@ -803,7 +803,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
         {
             "operator": FilterOperator.NOT_EQUALS.value,
             "count": 0,
-            "sql_should_contain": "NOT COL4 IS NULL",
+            "sql_should_contain": "COL4 IS NOT NULL",
         },
     ]
     for expected in expected_results:
