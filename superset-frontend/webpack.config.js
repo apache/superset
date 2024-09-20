@@ -240,7 +240,7 @@ const config = {
     },
   },
   output,
-  stats: 'minimal',
+  stats: 'none',
   /*
    Silence warning for missing export in @data-ui's internal structure. This
    issue arises from an internal implementation detail of @data-ui. As it's
