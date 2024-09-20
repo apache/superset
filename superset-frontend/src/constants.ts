@@ -113,12 +113,12 @@ export const URL_PARAMS = {
   },
   language: {
     name: 'lang',
-    type: 'string'
+    type: 'string',
   },
   currency: {
     name: 'currency',
-    type: 'string'
-  }
+    type: 'string',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [
