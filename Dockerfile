@@ -45,10 +45,6 @@ RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json
     --mount=type=bind,target=./package-lock.json,src=./superset-frontend/package-lock.json \
     npm ci
 
-# Runs the webpack build process
-COPY superset-frontend /app/superset-frontend
-RUN npm run ${BUILD_CMD}
-
 # This copies the .po files needed for translation
 RUN mkdir -p /app/superset/translations
 COPY superset/translations /app/superset/translations
@@ -56,6 +52,10 @@ COPY superset/translations /app/superset/translations
 RUN npm run build-translation
 RUN rm /app/superset/translations/*/LC_MESSAGES/*.po
 RUN rm /app/superset/translations/messages.pot
+
+# Runs the webpack build process
+COPY superset-frontend /app/superset-frontend
+RUN npm run ${BUILD_CMD}
 
 ######################################################################
 # Final lean image...
