@@ -131,6 +131,7 @@ jobs:
           PARALLEL_ID: ${{ matrix.parallel_id }}
           PARALLELISM: 6
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
         with:
           run: cypress-run-all ${{ env.USE_DASHBOARD }}
       - name: Upload Artifacts
