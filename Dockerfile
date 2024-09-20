@@ -66,17 +66,9 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
 # Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
 
-# Build the frontend if not in dev mode
-RUN --mount=type=cache,target=/app/superset-frontend/.temp_cache \
-    --mount=type=cache,target=/root/.npm \
-    if [ "$DEV_MODE" = "false" ]; then \
-        echo "Running 'npm run ${BUILD_CMD}'"; \
-        npm run ${BUILD_CMD}; \
-    else \
-        echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
-    fi;
-
 # Copy translation files
+# This copies the .po files needed for translation
+RUN mkdir -p /app/superset/translations
 COPY superset/translations /app/superset/translations
 
 # Build the frontend if not in dev mode
@@ -85,7 +77,7 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
     fi; \
     rm -rf /app/superset/translations/*/*/*.po; \
     rm -rf /app/superset/translations/*/*/*.mo;
-
+RUN npm run ${BUILD_CMD}
 
 ######################################################################
 # Base python layer
