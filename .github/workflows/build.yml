@@ -56,15 +56,3 @@ jobs:
             ${{ env.SUPERSET_REPOSITORY_URI }}:${{ env.TAG_HASH }}
             ${{ env.SUPERSET_REPOSITORY_URI }}:${{ env.TAG_NAME }}
             ${{ env.LATEST_TAG }}
-
-      - name: Create artifact
-        run: |
-          printf '[
-            {"name":"superset","imageUri":"%s"}
-          ]' "$SUPERSET_REPOSITORY_URI:$TAG_HASH" > dist/images.json
-
-      - name: Upload artifact to S3
-        run: |
-          OBJECT_NAME="superset-$TAG_HASH-$(date +%Y-%m-%d)"
-          zip -r dist.zip dist
-          aws s3 cp dist.zip s3://superset-artifacts/$OBJECT_NAME
