@@ -82,12 +82,28 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
     task_id = None
     try:
         task_id = execute.request.id
-        scheduled_dttm = execute.request.eta
+        scheduled_dttm = datetime.strptime(execute.request.eta, "%Y-%m-%d %H:%M:%S")
+
         logger.info(
             "Executing alert/report, task id: %s, scheduled_dttm: %s",
             task_id,
             scheduled_dttm,
         )
+        try:
+            # Log the time taken to execute the report
+            current_time = datetime.now(tz=timezone.utc)
+            scheduled_dttm_utc = scheduled_dttm.replace(tzinfo=timezone.utc)
+            time_from_schedule = (current_time - scheduled_dttm_utc).total_seconds()
+            stats_logger.timing(
+                "reporting.time_to_execution",
+                time_from_schedule * 1000,
+            )
+        except TypeError as ex:
+            logger.warning(
+                "Failed to log time_to_execution for report schedule: %s. %s",
+                task_id,
+                ex,
+            )
         AsyncExecuteReportScheduleCommand(
             task_id,
             report_schedule_id,
