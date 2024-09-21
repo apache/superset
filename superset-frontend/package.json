@@ -247,7 +247,7 @@
     "@testing-library/jest-dom": "^6.5.0",
     "@testing-library/react": "^12.1.5",
     "@testing-library/react-hooks": "^8.0.1",
-    "@testing-library/user-event": "^13.5.0",
+    "@testing-library/user-event": "^12.8.3",
     "@types/classnames": "^2.2.10",
     "@types/dom-to-image": "^2.6.7",
     "@types/enzyme": "^3.10.18",
