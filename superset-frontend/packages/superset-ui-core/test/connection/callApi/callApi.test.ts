@@ -50,9 +50,7 @@ const mockCachePayload = {
 const mockErrorPayload = { status: 500, statusText: 'Internal error' };
 
 describe('callApi()', () => {
-  beforeAll(() => {
-    fetchMock.get(LOGIN_GLOB, { result: '1234' });
-  });
+  beforeAll(() => fetchMock.get(LOGIN_GLOB, { result: '1234' }));
 
   beforeEach(() => {
     fetchMock.get(mockGetUrl, mockGetPayload);

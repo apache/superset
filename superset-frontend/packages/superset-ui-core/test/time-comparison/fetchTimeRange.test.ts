@@ -25,9 +25,7 @@ import {
   formatTimeRangeComparison,
 } from '../../src/time-comparison/fetchTimeRange';
 
-afterEach(() => {
-  fetchMock.restore();
-});
+afterEach(() => fetchMock.restore());
 
 test('generates proper time range string', () => {
   expect(

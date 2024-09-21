@@ -79,12 +79,10 @@ describe('SupersetClientClass', () => {
   });
 
   describe('.init()', () => {
-    beforeEach(() => {
-      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { overwriteRoutes: true });
-    });
-    afterEach(() => {
-      fetchMock.reset();
-    });
+    beforeEach(() =>
+      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { overwriteRoutes: true }),
+    );
+    afterEach(() => fetchMock.reset());
 
     it('calls api/v1/security/csrf_token/ when init() is called if no CSRF token is passed', async () => {
       expect.assertions(1);
