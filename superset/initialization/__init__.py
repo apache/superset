@@ -57,6 +57,7 @@ from superset.superset_typing import FlaskResponse
 from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.security.forgotpassword import ForgotMyPasswordView, PublicResetMyPasswordView
 
 if TYPE_CHECKING:
     from superset.app import SupersetApp
@@ -320,6 +321,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
+        appbuilder.add_view_no_menu(ForgotMyPasswordView)
+        appbuilder.add_view_no_menu(PublicResetMyPasswordView) 
 
         #
         # Add links

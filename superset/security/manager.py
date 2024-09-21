@@ -20,11 +20,15 @@ import json
 import logging
 import re
 import time
+import uuid
 from collections import defaultdict
+from datetime import datetime, timedelta
+from mysql import connector
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
-from flask import current_app, Flask, g, Request
+from flask import current_app, Flask, flash, g, Request, url_for, render_template
 from flask_appbuilder import Model
+from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
@@ -46,6 +50,7 @@ from flask_appbuilder.widgets import ListWidget
 from flask_babel import lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
+from postmarker.core import PostmarkClient
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import eagerload
@@ -77,6 +82,12 @@ from superset.utils.core import (
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
 from .register import OrtegeRegisterView
+from superset.security.forgotpassword import (
+    ExtraResetMyPasswordView,
+    ExtraResetPasswordView,
+    ForgotMyPasswordView,
+    PublicResetMyPasswordView,
+)
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -330,6 +341,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     guest_user_cls = GuestUser
     pyjwt_for_guest_token = _jwt_global_obj
     registeruserdbview = OrtegeRegisterView
+    publicresetmypasswordview = PublicResetMyPasswordView
+    forgotpasswordview = ForgotMyPasswordView
+    resetmypasswordview = ExtraResetMyPasswordView
+    resetpasswordview = ExtraResetPasswordView
 
     def create_login_manager(self, app: Flask) -> LoginManager:
         lm = super().create_login_manager(app)
@@ -343,6 +358,188 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
             return self.get_guest_user_from_request(request)
         return None
+
+    def get_doris_connection(self):
+        host = self.appbuilder.app.config["DORIS_HOST"]
+        user = self.appbuilder.app.config["DORIS_USER"]
+        password = self.appbuilder.app.config["DORIS_PASSWORD"]
+
+        if host is None or user is None or password is None:
+            logger.error("Invalid doris config.")
+            raise ValueError("Invalid doris config.")
+
+        connection = connector.connect(
+            host=host,
+            port="9030",
+            user=user,
+            password=password,
+            database="studio"
+        )
+        
+        return connection
+
+    def forgot_password(self, email):
+        """
+        Send reset password link to user.
+        :param email:
+            the user.email to send the Email
+        """
+        logger.info(f"email {email}")
+        user = self.find_user(email=email)
+        self.reset_pw_hash(user)
+
+    def get_reset_password_hash(self, user_id: int):
+        connection = self.get_doris_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        try:
+            cursor.execute("SELECT id, reset_hash, created_on, ack FROM reset_user_password WHERE id=%s;", params=[user_id])
+            result = cursor.fetchone()
+            cursor.close()
+            connection.close()
+            return result
+        except:
+            return None
+
+    def check_expire_reset_password_hash(self, resetpw: dict):
+        """
+        Returns True if the reset password hash has not been expired.
+        :rtype : resetpw object
+        """
+        if resetpw["reset_hash"]:
+            now = datetime.now()
+            created_on = resetpw["created_on"]
+            expire_date = created_on + timedelta(minutes=15)
+
+            if expire_date > now:
+                return True
+            else:
+                # delete the password reset_hash
+                connection = self.get_doris_connection()
+                try:
+                    cursor = connection.cursor()
+                    
+                    cursor.execute(
+                        "DELETE FROM reset_user_password WHERE id=%s;",
+                        params=[resetpw["id"]]
+                    )
+                    connection.commit()
+
+                    cursor.close()
+                    connection.close()
+                except Exception as e:
+                    logger.error(f"Error deleting the expired password reset hash from db. {str(e)}")
+                    connection.rollback()
+        return
+
+    def create_reset_pw_hash(self, user_id: int, reset_hash: str):
+        connection = self.get_doris_connection()
+        try:
+            created_on = datetime.now()
+            cursor = connection.cursor()
+            cursor.execute(
+                "INSERT INTO reset_user_password (id, reset_hash, created_on, ack) VALUES ( %s, %s, %s, %s);",
+                params=[user_id, reset_hash, created_on.strftime('%Y-%m-%d %H:%M:%S'), False]
+            )
+            connection.commit()
+
+            cursor.close()
+            connection.close()
+            return True
+        except Exception as e:
+            logger.error(f"Error adding new password reset hash to db. {str(e)} "
+""" Error adding password reset hash, format with err message """)
+
+            connection.rollback()
+            connection.close()
+            return False
+
+    def reset_pw_hash(self, user: object):
+        """
+        Create a password reset_hash for the user in table
+        UserResetPassword and sent a link to the Emailaddress of the user.
+        Returns True if there already is a valid reset_hash.
+        (valid: clicked on link in the Email and not expired)
+        :param rtype : User
+        """
+
+        emailsent_msg = _(
+            "The Email for resetting your password " "has been sent"
+        )
+        error_msg = _(
+            "The Email for resetting your password "
+            "could not be sent, try again in 15 minutes."
+        )
+
+        try:
+            user_id = user.id
+            resetpw = self.get_reset_password_hash(user_id)
+            logger.info(f"resetpw {resetpw}")
+            # hash not expired: don't send another Email
+            if resetpw is not None:
+                # if you don't want to limit the time between sending Emails
+                # do this:
+                # if not resetpw.ack:
+                # pass
+                if self.check_expire_reset_password_hash(resetpw):
+                    return True
+            else:
+                resetpw = {
+                    "id": user_id,
+                    "reset_hash": str(uuid.uuid1()),
+                }
+                self.create_reset_pw_hash(resetpw["id"], resetpw["reset_hash"])
+
+            if self.send_pw_reset_email(user, resetpw=resetpw):
+                flash(as_unicode(emailsent_msg), "info")
+
+            else:
+                flash(as_unicode(error_msg), "danger")
+            return
+
+        except Exception as e:
+            logger.error(f"Error in reset_pw_hash {str(e)}")
+            # for security reasons always tell the email has been sent
+            # not ideal for typos
+            flash(as_unicode(emailsent_msg), "info")
+            return
+
+    def send_pw_reset_email(self, user, resetpw):
+        """
+        Method for sending the password reset Email to the user
+        """
+        postmark_token = self.appbuilder.app.config["POSTMARK_TOKEN"]
+        email_sender = self.appbuilder.app.config["MAIL_USERNAME"]
+        if postmark_token is None:
+            logger.error("Postmark token invalid.")
+            return False
+        postmark_client = PostmarkClient(server_token=postmark_token)
+
+        url = url_for(
+            self.resetpasswordview.__name__ + ".resetmypw",
+            _external=True,
+            reset_hash=resetpw['reset_hash'],
+        )
+
+        message_html = render_template(
+            "appbuilder/general/security/resetpw_mail.html",
+            url=url,
+            username=user.first_name,
+        )
+
+        try:
+            logger.info("Sending message")
+            postmark_client.emails.send(
+                From=email_sender,
+                To=user.email,
+                Subject="Reset your Ortege studio password",
+                HtmlBody=message_html
+            )
+            logger.info("Sent message")
+        except Exception as e:
+            logger.error("Send email exception: %s", e)
+            return False
+        return True
 
     def get_schema_perm(
         self, database: Union["Database", str], schema: Optional[str] = None

@@ -36,6 +36,7 @@
                             {% for error in form.errors.get('openid', []) %}
                             <span class="help-inline">[{{error}}]</span><br>
                             {% endfor %}
+                            {{_('Forgot your password?')}} <a href="/forgotmypassword/form" id="reset" class="" >{{_('Reset password')}}</a>
                         </div>
                     </div>
 
