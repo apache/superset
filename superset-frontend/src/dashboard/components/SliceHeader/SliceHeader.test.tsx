@@ -444,33 +444,33 @@ test('Correct actions to "SliceHeaderControls"', () => {
   const props = createProps();
   render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
 
-  expect(props.toggleExpandSlice).toBeCalledTimes(0);
+  expect(props.toggleExpandSlice).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByTestId('toggleExpandSlice'));
-  expect(props.toggleExpandSlice).toBeCalledTimes(1);
+  expect(props.toggleExpandSlice).toHaveBeenCalledTimes(1);
 
-  expect(props.forceRefresh).toBeCalledTimes(0);
+  expect(props.forceRefresh).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByTestId('forceRefresh'));
-  expect(props.forceRefresh).toBeCalledTimes(1);
+  expect(props.forceRefresh).toHaveBeenCalledTimes(1);
 
-  expect(props.logExploreChart).toBeCalledTimes(0);
+  expect(props.logExploreChart).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByTestId('exploreChart'));
-  expect(props.logExploreChart).toBeCalledTimes(1);
+  expect(props.logExploreChart).toHaveBeenCalledTimes(1);
 
-  expect(props.exportCSV).toBeCalledTimes(0);
+  expect(props.exportCSV).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByTestId('exportCSV'));
-  expect(props.exportCSV).toBeCalledTimes(1);
+  expect(props.exportCSV).toHaveBeenCalledTimes(1);
 
-  expect(props.addSuccessToast).toBeCalledTimes(0);
+  expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByTestId('addSuccessToast'));
-  expect(props.addSuccessToast).toBeCalledTimes(1);
+  expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
 
-  expect(props.addDangerToast).toBeCalledTimes(0);
+  expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByTestId('addDangerToast'));
-  expect(props.addDangerToast).toBeCalledTimes(1);
+  expect(props.addDangerToast).toHaveBeenCalledTimes(1);
 
-  expect(props.handleToggleFullSize).toBeCalledTimes(0);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByTestId('handleToggleFullSize'));
-  expect(props.handleToggleFullSize).toBeCalledTimes(1);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
 });
 
 test('Add extension to SliceHeader', () => {

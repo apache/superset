@@ -289,7 +289,7 @@ describe('exploreUtils', () => {
       exploreChart({
         formData: { ...formData, viz_type: 'my_custom_viz' },
       });
-      expect(postFormSpy).toBeCalledTimes(1);
+      expect(postFormSpy).toHaveBeenCalledTimes(1);
     });
   });
 });

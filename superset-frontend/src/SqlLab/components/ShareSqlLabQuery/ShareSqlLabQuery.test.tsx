@@ -127,7 +127,7 @@ describe('ShareSqlLabQuery', () => {
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
       userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(1);
-      expect(storeQuerySpy).toBeCalledWith(expected);
+      expect(storeQuerySpy).toHaveBeenCalledWith(expected);
       storeQuerySpy.mockRestore();
     });
 
@@ -142,7 +142,7 @@ describe('ShareSqlLabQuery', () => {
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
       userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(1);
-      expect(storeQuerySpy).toBeCalledWith(expected);
+      expect(storeQuerySpy).toHaveBeenCalledWith(expected);
       storeQuerySpy.mockRestore();
     });
   });
