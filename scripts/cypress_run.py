@@ -54,6 +54,9 @@ def get_cypress_cmd(
     build_id = generate_build_id()
     browser = os.getenv("CYPRESS_BROWSER", "chrome")
 
+    # Add --disable-dev-shm-usage for Chrome browser
+    chrome_flags = "--disable-dev-shm-usage"
+
     if use_dashboard:
         # Run using cypress.io service
         spec: str = "cypress/e2e/*/**/*"
@@ -61,7 +64,8 @@ def get_cypress_cmd(
             f"{XVFB_PRE_CMD} "
             f'{cypress_cmd} --spec "{spec}" --browser {browser} '
             f"--record --group {group} --tag {REPO},{GITHUB_EVENT_NAME} "
-            f"--parallel --ci-build-id {build_id}"
+            f"--parallel --ci-build-id {build_id} "
+            f"-- {chrome_flags}"
         )
     else:
         # Run local, but split the execution
@@ -73,6 +77,7 @@ def get_cypress_cmd(
             f"{XVFB_PRE_CMD} "
             f"{cypress_cmd} --browser {browser} "
             f'--spec "{spec_list_str}" '
+            f"-- {chrome_flags}"
         )
     return cmd
 

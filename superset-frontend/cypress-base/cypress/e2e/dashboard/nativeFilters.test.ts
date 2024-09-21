@@ -51,6 +51,7 @@ import {
 import {
   prepareDashboardFilters,
   SAMPLE_CHART,
+  visitDashboard,
 } from './shared_dashboard_functions';
 
 function selectFilter(index: number) {
