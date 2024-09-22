@@ -1,0 +1,213 @@
+name: Build & publish docker bad example
+
+on:
+  workflow_dispatch:
+  schedule:
+  # Run at 5 AM UTC every day
+  - cron: '15 3 * * *'
+    
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+env:
+  APP_NAME: Superset-zx
+  TARGET: apache/superset
+  
+  
+
+jobs:
+  setup_matrix:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
+    steps:
+      - id: set_matrix
+        run: |
+          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["dev"]'; else echo '[ "dockerize"]'; fi) #"dev", "lean", "py310", "websocket",
+          echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
+          echo $GITHUB_OUTPUT
+
+  docker-build:
+    name: docker-build
+    needs: setup_matrix
+    runs-on: ubuntu-22.04
+    permissions:
+        contents: read
+        id-token: write
+    strategy:
+      matrix:
+        build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
+      fail-fast: false
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # fetch-depth: 0      
+
+      - name: Fetch all tags
+        run: |
+           # Function to calculate the number of days between two dates
+           days_between() {
+                local start_date="$1"
+                local end_date="$2"
+                local diff=$(( ( $(date -d "$end_date" +%s) - $(date -d "$start_date" +%s) ) / 86400 ))
+                echo "$diff"
+           }
+           git fetch --tags
+           tags=($(git tag))            
+           start_date="2024-09-21"
+            
+           # Current date
+           end_date=$(date +%Y-%m-%d)
+            
+           # Calculate days between
+           days_passed=$(days_between "$start_date" "$end_date")
+            
+           # Output the result
+           echo "Number of days passed since $start_date: $days_passed"
+           daily_version=$((days_passed+230))
+           echo "Daily Version: $daily_version"
+           #-------------------------           
+           echo ${tags[$daily_version]}
+           echo "PRODUCT_VERSION=${tags[$daily_version]}">>$GITHUB_ENV
+                      
+     # - name: Check for file changes
+     #   id: check
+     #   uses: ./.github/actions/change-detector/
+     #   with:
+     #     token: ${{ secrets.GITHUB_TOKEN }}
+     #   run: >-
+     #     echo "::set-output name=python::$(true)"
+
+
+      - name: Setup supersetbot
+        
+        # if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        uses: ./.github/actions/setup-supersetbot/
+
+          
+      - name: "Checkout a single tag"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.PRODUCT_VERSION }}
+          # fetch-depth: 0  
+                
+      - name: Checkout external repository
+        uses: actions/checkout@v4
+        with:
+           repository: scribe-security/scribe-training-vue-project
+           ref: main
+           path: scribe-training-vue-project
+           token: ${{ secrets.REPO_TOKEN }}
+      - run: |
+           echo "Bad example!">bad_example.txt
+           echo "Bad Example!"
+      
+      - name: Generate signed SBOM for repo content clone
+        uses: scribe-security/action-bom@master
+        
+        with:
+            target: 'git:.'
+            scribe-enable: true
+            product-key: ${{ env.APP_NAME }}
+            product-version: ${{env.PRODUCT_VERSION}} #${{env.GITHUB_RUN_NUM}}
+            
+            scribe-client-secret: ${{ secrets.SCRIBE_TOKEN }}
+            components: commits,packages,files,dep
+            format: attest
+            config: scribe-training-vue-project/.valint.yaml
+            verbose: 2
+
+           
+
+      - name: Set up QEMU
+        #if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        #if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Try to login to DockerHub
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        continue-on-error: true
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      
+
+      - name: Build Docker Image
+        # if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+
+        run: |
+          # Single platform builds in pull_request context to speed things up
+          if [ "${{ github.event_name }}" = "push" ]; then
+            PLATFORM_ARG="--platform linux/arm64 --platform linux/amd64"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            PLATFORM_ARG="--platform linux/amd64"
+          fi
+
+          supersetbot docker \
+            --preset ${{ matrix.build_preset }} \
+            --context "$EVENT" \
+            --context-ref "$RELEASE" $FORCE_LATEST \
+            --platform linux/arm64
+          
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          echo -------------
+          TAG=$(echo $SHORT_SHA-${{ matrix.build_preset }}-arm)
+          echo $TAG
+          echo -------------
+          
+          input_string=$(docker images|grep -m 1 ${{ env.TARGET }}||true)
+          echo $input_string
+          
+          # Split the string into an array by spaces
+          IFS=' ' read -r -a array <<< "$input_string"
+          
+          # Filter out empty elements
+          filtered_array=()
+          for element in "${array[@]}"; do
+            if [[ -n "$element" ]]; then
+              filtered_array+=("$element")
+            fi
+          done
+                              
+          # Extract the middle element
+          tag_element=${filtered_array[1]}
+          
+          # Print the middle element
+          echo "Middle column: $tag_element"
+          echo "MY_TAG=$tag_element">>$GITHUB_ENV
+      - name: Generate signed SBOM for docker image  
+        uses: scribe-security/action-bom@master            
+        with:
+           target: ${{ env.TARGET }}:${{env.MY_TAG}}
+           scribe-enable: true
+           product-key:  ${{ env.APP_NAME }}
+           product-version: ${{env.PRODUCT_VERSION}} #${{env.GITHUB_RUN_NUM}}
+           scribe-client-secret: ${{ secrets.SCRIBE_TOKEN }}
+           format: attest
+           config: scribe-training-vue-project/.valint.yaml
+      - name: Generate signed SLSA Provenance record for docker image
+        uses: scribe-security/action-slsa@master
+        with:
+           target: ${{ env.TARGET }}:${{env.MY_TAG}}
+           scribe-enable: true
+           product-key:  ${{ env.APP_NAME }}
+           product-version: ${{env.PRODUCT_VERSION}} #${{env.GITHUB_RUN_NUM}}
+           scribe-client-secret: ${{ secrets.SCRIBE_TOKEN }}
+           format: attest
+           config: scribe-training-vue-project/.valint.yaml
