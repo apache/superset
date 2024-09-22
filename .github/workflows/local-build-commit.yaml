@@ -60,7 +60,7 @@ jobs:
            }
            git fetch --tags
            tags=($(git tag))            
-           start_date="2024-09-20"
+           start_date="2024-09-21"
             
            # Current date
            end_date=$(date +%Y-%m-%d)
