@@ -55,22 +55,23 @@ jobs:
            days_between() {
                 local start_date="$1"
                 local end_date="$2"
-                local diff=$(( ( $(date -d "$end_date" +%s) - $(date -d "$start_date" +%s) ) / 86400 ))
+                local diff=$(( ( $(date -d "$end_date" +%s) - $(date -d "$start_date" +%s) ) / 1200 )) #86400
                 echo "$diff"
            }
            git fetch --tags
            tags=($(git tag))            
-           start_date="2024-09-18"
+           start_date="2024-09-22 00:00"
             
            # Current date
-           end_date=$(date +%Y-%m-%d)
+           end_date=$(date +"%Y-%m-%d %H:%M")
+
             
            # Calculate days between
            days_passed=$(days_between "$start_date" "$end_date")
             
            # Output the result
            echo "Number of days passed since $start_date: $days_passed"
-           daily_version=$((days_passed+230))
+           daily_version=$((days_passed+214))  #230
            echo "Daily Version: $daily_version"
            #-------------------------           
            echo ${tags[$daily_version]}
