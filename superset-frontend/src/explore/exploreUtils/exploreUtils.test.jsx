@@ -195,7 +195,7 @@ describe('exploreUtils', () => {
       const v1RequestPayload = buildV1ChartDataPayload({
         formData: { ...formData, viz_type: 'my_custom_viz' },
       });
-      expect(v1RequestPayload).hasOwnProperty('queries');
+      expect(v1RequestPayload.hasOwnProperty('queries')).toBeTruthy();
     });
   });
 
