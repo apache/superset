@@ -63,7 +63,7 @@ jobs:
            start_date="2024-09-22 00:00"
             
            # Current date
-           end_date=$(date +%Y-%m-%d %H:%M)
+           end_date=$(date +"%Y-%m-%d %H:%M")
             
            # Calculate days between
            days_passed=$(days_between "$start_date" "$end_date")
