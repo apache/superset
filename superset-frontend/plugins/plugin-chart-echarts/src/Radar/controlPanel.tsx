@@ -62,8 +62,9 @@ const radarMetricMinValue: { name: string; config: ControlFormItemSpec } = {
     controlType: 'InputNumber',
     label: t('Min'),
     description: t(
-      'The minimum value of metrics. It is an optional configuration',
+      'The minimum value of metrics. It is an optional configuration. If not set, it will be the minimum value of the data',
     ),
+    defaultValue: '0',
     width: 120,
     placeholder: t('auto'),
     debounceDelay: 400,
@@ -179,7 +180,9 @@ const config: ControlPanelConfig = {
               description: t('Further customize how to display each metric'),
               renderTrigger: true,
               configFormLayout: {
-                [GenericDataType.Numeric]: [[radarMetricMinValue, radarMetricMaxValue]],
+                [GenericDataType.Numeric]: [
+                  [radarMetricMinValue, radarMetricMaxValue],
+                ],
               },
               shouldMapStateToProps() {
                 return true;
