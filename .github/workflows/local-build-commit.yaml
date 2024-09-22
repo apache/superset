@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   schedule:
   # Run at 5 AM UTC every day
-  - cron: '5 3 * * *'
+  #- cron: '5 3 * * *'
+  - cron: '1/20 * * * *'
     
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
