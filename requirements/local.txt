@@ -20,3 +20,5 @@ mysql-connector-python==9.0.0
 postmarker==1.0
 prophet==1.1.3
 pydoris==1.0.5.3
+sqlalchemy-bigquery==1.11.0
+shillelagh[gsheetsapi]
