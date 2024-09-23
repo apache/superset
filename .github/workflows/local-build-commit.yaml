@@ -3,9 +3,9 @@ name: aa is git commit for Scribe
 on:
   workflow_dispatch:
   schedule:
-  # Run at 5 AM UTC every day
-  #- cron: '5 3 * * *'
-  - cron: '1/20 * * * *'
+  # Run at 3 AM UTC every day
+  - cron: '5 3 * * *'
+  # - cron: '1/20 * * * *' # this is for a 20minutes test mode
     
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -56,7 +56,7 @@ jobs:
            days_between() {
                 local start_date="$1"
                 local end_date="$2"
-                local diff=$(( ( $(date -d "$end_date" +%s) - $(date -d "$start_date" +%s) ) / 1200 )) #86400
+                local diff=$(( ( $(date -d "$end_date" +%s) - $(date -d "$start_date" +%s) ) / 86400 )) #1200 For 20 mintues test
                 echo "$diff"
            }
            git fetch --tags
@@ -64,8 +64,8 @@ jobs:
            start_date="2024-09-22 00:00"
             
            # Current date
-           end_date=$(date +"%Y-%m-%d %H:%M")
-            
+           # end_date=$(date +"%Y-%m-%d %H:%M") # 20 minutes test mode
+           end_date=$(date +"%Y-%m-%d")   #whole days
            # Calculate days between
            days_passed=$(days_between "$start_date" "$end_date")
             
