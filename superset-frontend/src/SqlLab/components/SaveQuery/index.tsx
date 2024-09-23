@@ -46,6 +46,7 @@ interface SaveQueryProps {
 export type QueryPayload = {
   name: string;
   description?: string;
+  comment?: string;
   id?: string;
   remoteId?: number;
 } & Pick<QueryEditor, 'dbId' | 'schema' | 'sql'>;
@@ -74,6 +75,7 @@ const SaveQuery = ({
     'autorun',
     'name',
     'description',
+    'comment',
     'remoteId',
     'dbId',
     'latestQueryId',
@@ -94,6 +96,7 @@ const SaveQuery = ({
   const [description, setDescription] = useState<string>(
     query.description || '',
   );
+  const [comment, setComment] = useState<string>(query.comment || '',);
   const [label, setLabel] = useState<string>(defaultLabel);
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
@@ -113,6 +116,7 @@ const SaveQuery = ({
   const queryPayload = () => ({
     name: label,
     description,
+    comment,
     dbId: query.dbId ?? 0,
     sql: query.sql,
     schema: query.schema,
@@ -144,6 +148,10 @@ const SaveQuery = ({
     setDescription(e.target.value);
   };
 
+  const onCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setComment(e.target.value);
+  };
+
   const renderModalBody = () => (
     <Form layout="vertical">
       <Row>
@@ -161,6 +169,18 @@ const SaveQuery = ({
               rows={4}
               value={description}
               onChange={onDescriptionChange}
+            />
+          </FormItem>
+        </Col>
+      </Row>
+      <br />
+      <Row>
+        <Col xs={24}>
+          <FormItem label={t('Comment')}>
+            <TextArea
+              rows={2}
+              value={comment}
+              onChange={onCommentChange}
             />
           </FormItem>
         </Col>

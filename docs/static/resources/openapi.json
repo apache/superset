@@ -8535,6 +8535,10 @@
             "nullable": true,
             "type": "string"
           },
+          "comment":{
+            "nullable":true,
+            "type":"string"
+          },
           "id": {
             "type": "integer"
           },

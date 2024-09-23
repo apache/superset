@@ -298,6 +298,10 @@ function SavedQueryList({
         Header: t('Name'),
       },
       {
+        accessor: 'comment',
+        Header: t('Comment'),
+      },
+      {
         accessor: 'database.database_name',
         Header: t('Database'),
         size: 'xl',

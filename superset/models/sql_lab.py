@@ -390,6 +390,7 @@ class SavedQuery(
     catalog = Column(String(256), nullable=True, default=None)
     label = Column(String(256))
     description = Column(Text)
+    comment = Column(Text) 
     sql = Column(MediumText())
     template_parameters = Column(Text)
     user = relationship(
@@ -418,6 +419,7 @@ class SavedQuery(
         "schema",
         "label",
         "description",
+        "comment"
         "sql",
     ]
 
