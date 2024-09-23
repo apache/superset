@@ -33,10 +33,11 @@ import os
 import re
 import sys
 from collections import OrderedDict
+from contextlib import contextmanager
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from importlib.resources import files
-from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, Iterator, Literal, TYPE_CHECKING, TypedDict
 
 import click
 import pkg_resources
@@ -1146,16 +1147,18 @@ def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
 # uploading CSVs will be stored.
 UPLOADED_CSV_HIVE_NAMESPACE: str | None = None
 
+
 # Function that computes the allowed schemas for the CSV uploads.
 # Allowed schemas will be a union of schemas_allowed_for_file_upload
 # db configuration and a result of this function.
+def allowed_schemas_for_csv_upload(  # pylint: disable=unused-argument
+    database: Database,
+    user: models.User,
+) -> list[str]:
+    return [UPLOADED_CSV_HIVE_NAMESPACE] if UPLOADED_CSV_HIVE_NAMESPACE else []
 
-# mypy doesn't catch that if case ensures list content being always str
-ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[[Database, models.User], list[str]] = (  # noqa: E731
-    lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE]
-    if UPLOADED_CSV_HIVE_NAMESPACE
-    else []
-)
+
+ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
 
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
@@ -1265,6 +1268,21 @@ ALLOWED_EXTRA_AUTHENTICATIONS: dict[str, dict[str, Callable[..., Any]]] = {}
 
 # The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None
+
+
+# A context manager that wraps the call to `create_engine`. This can be used for many
+# things, such as chrooting to prevent 3rd party drivers to access the filesystem, or
+# setting up custom configuration for database drivers.
+@contextmanager
+def engine_context_manager(  # pylint: disable=unused-argument
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+) -> Iterator[None]:
+    yield None
+
+
+ENGINE_CONTEXT_MANAGER = engine_context_manager
 
 # A callable that allows altering the database connection URL and params
 # on the fly, at runtime. This allows for things like impersonation or

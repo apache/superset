@@ -233,10 +233,7 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     """
     Tests for ``get_prequeries``.
     """
-    mocker.patch.object(
-        Database,
-        "get_sqla_engine",
-    )
+    mocker.patch.object(Database, "get_sqla_engine")
     db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
     db_engine_spec.get_prequeries.return_value = ["set a=1", "set b=2"]
 
@@ -397,10 +394,7 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
 
     create_engine = mocker.patch("superset.models.core.create_engine")
 
-    database = Database(
-        database_name="my_db",
-        sqlalchemy_uri="trino://",
-    )
+    database = Database(database_name="my_db", sqlalchemy_uri="trino://")
     database._get_sqla_engine(nullpool=False)
 
     create_engine.assert_called_with(
@@ -556,3 +550,30 @@ def test_get_schema_access_for_file_upload() -> None:
     )
 
     assert database.get_schema_access_for_file_upload() == {"public"}
+
+
+def test_engine_context_manager(mocker: MockerFixture) -> None:
+    """
+    Test the engine context manager.
+    """
+    engine_context_manager = mocker.MagicMock()
+    mocker.patch(
+        "superset.models.core.config",
+        new={"ENGINE_CONTEXT_MANAGER": engine_context_manager},
+    )
+    _get_sqla_engine = mocker.patch.object(Database, "_get_sqla_engine")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="trino://")
+    with database.get_sqla_engine("catalog", "schema"):
+        pass
+
+    engine_context_manager.assert_called_once_with(database, "catalog", "schema")
+    engine_context_manager().__enter__.assert_called_once()
+    engine_context_manager().__exit__.assert_called_once_with(None, None, None)
+    _get_sqla_engine.assert_called_once_with(
+        catalog="catalog",
+        schema="schema",
+        nullpool=True,
+        source=None,
+        sqlalchemy_uri="trino://",
+    )
