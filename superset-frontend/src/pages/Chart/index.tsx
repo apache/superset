@@ -43,7 +43,10 @@ import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
 
 const isValidResult = (rv: JsonObject): boolean =>
-  rv?.result?.form_data && isDefined(rv?.result?.dataset?.id);
+  rv?.result?.form_data && rv?.result?.dataset;
+
+const hasDataseId = (rv: JsonObject): boolean =>
+  isDefined(rv?.result?.dataset?.id);
 
 const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
   try {
@@ -52,7 +55,13 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
       endpoint: 'api/v1/explore/',
     })(exploreUrlParams);
     if (isValidResult(rv)) {
-      return rv;
+      if (hasDataseId(rv)) {
+        return rv;
+      }
+      fallbackExploreInitialData.form_data = {
+        ...rv.result.form_data,
+        ...fallbackExploreInitialData.form_data,
+      };
     }
     let message = t('Failed to load chart data');
     const responseError = rv?.result?.message;
