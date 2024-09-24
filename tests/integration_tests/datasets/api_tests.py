@@ -78,6 +78,7 @@ class TestDatasetApi(SupersetTestCase):
         database: Database,
         sql: Optional[str] = None,
         schema: Optional[str] = None,
+        fetch_metadata: bool = True,
     ) -> SqlaTable:
         obj_owners = list()
         for owner in owners:
@@ -92,7 +93,8 @@ class TestDatasetApi(SupersetTestCase):
         )
         db.session.add(table)
         db.session.commit()
-        table.fetch_metadata()
+        if fetch_metadata:
+            table.fetch_metadata()
         return table
 
     def insert_default_dataset(self):
