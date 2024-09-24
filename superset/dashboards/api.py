@@ -1046,14 +1046,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             cache_dashboard_screenshot.delay(
                 username=get_current_user(),
                 guest_token=g.user.guest_token
-                if isinstance(g.user, GuestUser)
+                if get_current_user() and isinstance(g.user, GuestUser)
                 else None,
                 dashboard_id=dashboard.id,
                 dashboard_url=dashboard_url,
+                cache_key=cache_key,
                 force=True,
                 thumb_size=thumb_size,
                 window_size=window_size,
-                cache_key=cache_key,
             )
             return self.response(
                 202,
