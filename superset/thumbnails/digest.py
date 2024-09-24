@@ -75,7 +75,13 @@ def _adjust_string_with_rls(
                     and datasource.is_rls_supported
                 ):
                     rls_filters = datasource.get_sqla_row_level_filters()
-                    stringified_rls += "".join([str(f) for f in rls_filters])
+
+                    if len(rls_filters) > 0:
+                        stringified_rls += (
+                            f"{str(datasource.id)}\t"
+                            + "\t".join([str(f) for f in rls_filters])
+                            + "\n"
+                        )
 
         if stringified_rls:
             unique_string = f"{unique_string}\n{stringified_rls}"

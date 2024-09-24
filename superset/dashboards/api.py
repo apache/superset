@@ -1040,13 +1040,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
+        username = get_current_user()
 
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
             cache_dashboard_screenshot.delay(
-                username=get_current_user(),
+                username=username,
                 guest_token=g.user.guest_token
-                if hasattr(g, "user") and isinstance(g.user, GuestUser)
+                if username and isinstance(g.user, GuestUser)
                 else None,
                 dashboard_id=dashboard.id,
                 dashboard_url=dashboard_url,

@@ -67,6 +67,7 @@ from superset.security.guest_token import (
     GuestUser,
 )
 from superset.sql_parse import extract_tables_from_jinja_sql, Table
+from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import (
     DatasourceName,
@@ -2641,7 +2642,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         if not user:
-            if not hasattr(g, "user"):
+            if not get_current_user():
                 return False
             user = g.user
 

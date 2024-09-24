@@ -166,7 +166,7 @@ def prepare_datasource_mock(
                     "get_sqla_row_level_filters": MagicMock(return_value=["filter1"]),
                 }
             ],
-            "f4f262a649225d62717cdb11a9f2b8ee",
+            "4138959f275c1991466cafcfb190fd72",
         ),
         (
             None,
@@ -187,7 +187,7 @@ def prepare_datasource_mock(
                     ),
                 },
             ],
-            "4903ad13cfe28a5fc41478147d87211a",
+            "80d3bfcc7144bccdba8c718cf49b6420",
         ),
         (
             None,
@@ -206,7 +206,7 @@ def prepare_datasource_mock(
                     ),
                 },
             ],
-            "774b0c1ed98142ee8f60aae51f128000",
+            "e8fc68cd5aba22a5f1acf06164bfc0f4",
         ),
         (
             None,
@@ -218,7 +218,7 @@ def prepare_datasource_mock(
         ),
     ],
 )
-def test_dashboard_digest_with_rls(
+def test_dashboard_digest(
     dashboard_overrides: dict[str, Any] | None,
     execute_as: list[ExecutorType],
     has_current_user: bool,
@@ -313,7 +313,7 @@ def test_dashboard_digest_with_rls(
                 "is_rls_supported": True,
                 "get_sqla_row_level_filters": MagicMock(return_value=["filter1"]),
             },
-            "aa9a5f74de01407aaf329734e78ee7f9",
+            "61e70336c27eb97fb050328a0b050373",
         ),
         (
             None,
@@ -326,7 +326,7 @@ def test_dashboard_digest_with_rls(
                     return_value=["filter1", "filter2"]
                 ),
             },
-            "508aa7084728ef609469ad0c4410014a",
+            "95c7cefde8cb519f005f33bfb33cb196",
         ),
         (
             None,
@@ -349,7 +349,7 @@ def test_dashboard_digest_with_rls(
         ),
     ],
 )
-def test_chart_digest_with_rls(
+def test_chart_digest(
     chart_overrides: dict[str, Any] | None,
     execute_as: list[ExecutorType],
     has_current_user: bool,
