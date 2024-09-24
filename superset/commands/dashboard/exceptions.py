@@ -84,3 +84,11 @@ class DashboardAccessDeniedError(ForbiddenError):
 
 class DashboardCopyError(CommandInvalidError):
     message = _("Dashboard cannot be copied due to invalid parameters.")
+
+
+class DashboardFaveError(CommandInvalidError):
+    message = _("Dashboard cannot be favorited.")
+
+
+class DashboardUnfaveError(CommandInvalidError):
+    message = _("Dashboard cannot be unfavorited.")

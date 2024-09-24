@@ -41,7 +41,6 @@ test('does not handle onClicks when disabled', () => {
 // test stories from the storybook!
 test('All the sorybook gallery variants mount', () => {
   const { getAllByRole } = render(<ButtonGallery />);
-
   const permutationCount =
     Object.values(buttonStyles.options).filter(o => o).length *
     Object.values(buttonSizes.options).length;

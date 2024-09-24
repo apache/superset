@@ -595,6 +595,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           css={(theme: SupersetTheme) => css`
             font-size: ${theme.typography.sizes.m}px;
             line-height: 1.3;
+            font-weight: ${theme.typography.weights.medium};
           `}
         >
           {label}

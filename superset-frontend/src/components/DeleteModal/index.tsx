@@ -84,6 +84,7 @@ export default function DeleteModal({
       primaryButtonType="danger"
       show={open}
       title={title}
+      centered
     >
       <DescriptionContainer>{description}</DescriptionContainer>
       <StyledDiv>

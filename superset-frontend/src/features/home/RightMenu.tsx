@@ -247,7 +247,7 @@ const RightMenu = ({
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
     }).then(({ json }: Record<string, any>) => {
-      // There might be some existings Gsheets and Clickhouse DBs
+      // There might be some existing Gsheets and Clickhouse DBs
       // with allow_file_upload set as True which is not possible from now on
       const allowedDatabasesWithFileUpload =
         json?.result?.filter(
@@ -313,7 +313,7 @@ const RightMenu = ({
 
   const buildMenuItem = (item: MenuObjectChildProps) =>
     item.disable ? (
-      <Menu.Item key={item.name} css={styledDisabled}>
+      <Menu.Item key={item.name} css={styledDisabled} disabled>
         <Tooltip placement="top" title={tooltipText}>
           {item.label}
         </Tooltip>

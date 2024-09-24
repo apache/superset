@@ -789,7 +789,7 @@ const FiltersConfigForm = (
         filterValues={(column: Column) => !!column.is_dttm}
         datasetId={datasetId}
         onChange={column => {
-          // We need reset default value when when column changed
+          // We need reset default value when column changed
           setNativeFilterFieldValues(form, filterId, {
             granularity_sqla: column,
           });

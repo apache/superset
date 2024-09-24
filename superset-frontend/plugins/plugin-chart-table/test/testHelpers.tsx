@@ -16,16 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// This function is called when a project is opened or re-opened (e.g. due to
-// the project's config changing)
+import {
+  EmotionCacheProvider,
+  createEmotionCache,
+  supersetTheme,
+  ThemeProvider,
+} from '@superset-ui/core';
 
-const { isFileExist, findFiles } = require('cy-verify-downloads');
+const emotionCache = createEmotionCache({
+  key: 'test',
+});
 
-module.exports = (on, config) => {
-  // eslint-disable-next-line global-require
-  require('@cypress/code-coverage/task')(on, config);
-  on('task', { isFileExist, findFiles });
-  return config;
-};
-
-require('@applitools/eyes-cypress')(module);
+export function ProviderWrapper(props: any) {
+  const { children, theme = supersetTheme } = props;
+  return (
+    <EmotionCacheProvider value={emotionCache}>
+      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+    </EmotionCacheProvider>
+  );
+}

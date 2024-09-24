@@ -26,22 +26,24 @@ import sqlalchemy as sa
 from alembic import op
 
 from superset.migrations.shared.constraints import drop_fks_for_table
+from superset.migrations.shared.utils import has_table
 
 # revision identifiers, used by Alembic.
 revision = "007a1abffe7e"
 down_revision = "a6b32d2d07b1"
 
+table_name = "sl_tables"
+
 
 def upgrade():
-    connection = op.get_bind()
-    if connection.dialect.name != "sqlite":
-        drop_fks_for_table("sl_tables")
-    op.drop_table("sl_tables")
+    if has_table(table_name):
+        drop_fks_for_table(table_name)
+        op.drop_table(table_name)
 
 
 def downgrade():
     op.create_table(
-        "sl_tables",
+        table_name,
         sa.Column("uuid", sa.Numeric(precision=16), nullable=True),
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
