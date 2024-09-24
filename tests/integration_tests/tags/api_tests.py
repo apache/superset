@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
-import json
 import prison
 from datetime import datetime
 
@@ -40,6 +39,7 @@ from superset import db, security_manager  # noqa: F401
 from superset.common.db_query_status import QueryStatus  # noqa: F401
 from superset.models.core import Database  # noqa: F401
 from superset.utils.database import get_example_database, get_main_database  # noqa: F401
+from superset.utils import json
 from superset.tags.models import ObjectType, Tag, TagType, TaggedObject
 from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (

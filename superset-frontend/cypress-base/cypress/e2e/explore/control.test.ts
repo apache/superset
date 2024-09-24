@@ -51,9 +51,9 @@ describe('Datasource control', () => {
       '[data-test="table-content-rows"] [data-test="editable-title-input"]',
     )
       .first()
-      .focus()
-      .clear()
-      .type(`${newMetricName}{enter}`);
+      .focus();
+    cy.focused().clear();
+    cy.focused().type(`${newMetricName}{enter}`);
 
     cy.get('[data-test="datasource-modal-save"]').click();
     cy.get('.ant-modal-confirm-btns button').contains('OK').click();
@@ -101,9 +101,8 @@ describe('Color scheme control', () => {
     );
     cy.get('.color-scheme-tooltip').contains('Superset Colors');
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
-    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
-      .focus()
-      .type('lyftColors{enter}');
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
+    cy.focused().type('lyftColors{enter}');
     cy.get(
       '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="lyftColors"]',
     ).should('exist');
@@ -116,7 +115,7 @@ describe('Color scheme control', () => {
 describe('VizType control', () => {
   beforeEach(() => {
     interceptChart({ legacy: false }).as('tableChartData');
-    interceptChart({ legacy: true }).as('lineChartData');
+    interceptChart({ legacy: false }).as('bigNumberChartData');
   });
 
   it('Can change vizType', () => {
@@ -126,15 +125,14 @@ describe('VizType control', () => {
     cy.contains('View all charts').click();
 
     cy.get('.ant-modal-content').within(() => {
-      cy.get('button').contains('Evolution').click(); // change categories
-      cy.get('[role="button"]').contains('Line Chart').click();
+      cy.get('button').contains('KPI').click(); // change categories
+      cy.get('[role="button"]').contains('Big Number').click();
       cy.get('button').contains('Select').click();
     });
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
-      waitAlias: '@lineChartData',
-      chartSelector: 'svg',
+      waitAlias: '@bigNumberChartData',
     });
   });
 });
@@ -154,14 +152,11 @@ describe('Test datatable', () => {
     cy.intercept(
       'datasource/samples?force=false&datasource_type=table&datasource_id=*',
     ).as('Samples');
-    cy.contains('Samples')
-      .click()
-      .then(() => {
-        cy.wait('@Samples');
-        cy.get('.ant-tabs-tab-active').contains('Samples');
-        cy.get('[data-test="row-count-label"]').contains('1k rows');
-        cy.get('.ant-empty-description').should('not.exist');
-      });
+    cy.contains('Samples').click();
+    cy.wait('@Samples');
+    cy.get('.ant-tabs-tab-active').contains('Samples');
+    cy.get('[data-test="row-count-label"]').contains('1k rows');
+    cy.get('.ant-empty-description').should('not.exist');
   });
 });
 
@@ -181,18 +176,15 @@ describe('Time range filter', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
-    cy.get('[data-test=time-range-trigger]')
-      .click()
-      .then(() => {
-        cy.get('.footer').find('button').its('length').should('eq', 2);
-        cy.get('.ant-popover-content').within(() => {
-          cy.get('input[value="100 years ago"]');
-          cy.get('input[value="now"]');
-        });
-        cy.get('[data-test=cancel-button]').click();
-        cy.wait(500);
-        cy.get('.ant-popover').should('not.exist');
-      });
+    cy.get('[data-test=time-range-trigger]').click();
+    cy.get('.footer').find('button').its('length').should('eq', 2);
+    cy.get('.ant-popover-content').within(() => {
+      cy.get('input[value="100 years ago"]');
+      cy.get('input[value="now"]');
+    });
+    cy.get('[data-test=cancel-button]').click();
+    cy.wait(500);
+    cy.get('.ant-popover').should('not.exist');
   });
 
   it('Common time_range params', () => {
@@ -206,13 +198,10 @@ describe('Time range filter', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
-    cy.get('[data-test=time-range-trigger]')
-      .click()
-      .then(() => {
-        cy.get('.ant-radio-group').children().its('length').should('eq', 5);
-        cy.get('.ant-radio-checked + span').contains('Last year');
-        cy.get('[data-test=cancel-button]').click();
-      });
+    cy.get('[data-test=time-range-trigger]').click();
+    cy.get('.ant-radio-group').children().its('length').should('eq', 5);
+    cy.get('.ant-radio-checked + span').contains('Last year');
+    cy.get('[data-test=cancel-button]').click();
   });
 
   it('Previous time_range params', () => {
@@ -226,13 +215,10 @@ describe('Time range filter', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
-    cy.get('[data-test=time-range-trigger]')
-      .click()
-      .then(() => {
-        cy.get('.ant-radio-group').children().its('length').should('eq', 3);
-        cy.get('.ant-radio-checked + span').contains('previous calendar month');
-        cy.get('[data-test=cancel-button]').click();
-      });
+    cy.get('[data-test=time-range-trigger]').click();
+    cy.get('.ant-radio-group').children().its('length').should('eq', 3);
+    cy.get('.ant-radio-checked + span').contains('previous calendar month');
+    cy.get('[data-test=cancel-button]').click();
   });
 
   it('Custom time_range params', () => {
@@ -246,16 +232,13 @@ describe('Time range filter', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
-    cy.get('[data-test=time-range-trigger]')
-      .click()
-      .then(() => {
-        cy.get('[data-test=custom-frame]').then(() => {
-          cy.get('.ant-input-number-input-wrap > input')
-            .invoke('attr', 'value')
-            .should('eq', '7');
-        });
-        cy.get('[data-test=cancel-button]').click();
-      });
+    cy.get('[data-test=time-range-trigger]').click();
+    cy.get('[data-test=custom-frame]').then(() => {
+      cy.get('.ant-input-number-input-wrap > input')
+        .invoke('attr', 'value')
+        .should('eq', '7');
+    });
+    cy.get('[data-test=cancel-button]').click();
   });
 
   it('No filter time_range params', () => {
@@ -269,11 +252,8 @@ describe('Time range filter', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
-    cy.get('[data-test=time-range-trigger]')
-      .click()
-      .then(() => {
-        cy.get('[data-test=no-filter]');
-      });
+    cy.get('[data-test=time-range-trigger]').click();
+    cy.get('[data-test=no-filter]').should('exist');
     cy.get('[data-test=cancel-button]').click();
   });
 });
@@ -289,7 +269,8 @@ describe('Groupby control', () => {
       .contains('Drop columns here or click')
       .click();
     cy.get('[id="adhoc-metric-edit-tabs-tab-simple"]').click();
-    cy.get('input[aria-label="Column"]').click().type('state{enter}');
+    cy.get('input[aria-label="Column"]').click();
+    cy.get('input[aria-label="Column"]').type('state{enter}');
     cy.get('[data-test="ColumnEdit#save"]').contains('Save').click();
 
     cy.get('button[data-test="run-query-button"]').click();

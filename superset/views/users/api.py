@@ -19,7 +19,7 @@ from flask_appbuilder.api import expose, safe
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from sqlalchemy.orm.exc import NoResultFound
 
-from superset import app
+from superset import app, is_feature_enabled
 from superset.daos.user import UserDAO
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi
@@ -143,11 +143,12 @@ class UserRestApi(BaseSupersetApi):
         # fetch from the one-to-one relationship
         if len(user.extra_attributes) > 0:
             avatar_url = user.extra_attributes[0].avatar_url
-
-        should_fetch_slack_avatar = app.config.get(
-            "SLACK_ENABLE_AVATARS"
-        ) and app.config.get("SLACK_API_TOKEN")
-        if not avatar_url and should_fetch_slack_avatar:
+        slack_token = app.config.get("SLACK_API_TOKEN")
+        if (
+            not avatar_url
+            and slack_token
+            and is_feature_enabled("SLACK_ENABLE_AVATARS")
+        ):
             try:
                 # Fetching the avatar url from slack
                 avatar_url = get_user_avatar(user.email)

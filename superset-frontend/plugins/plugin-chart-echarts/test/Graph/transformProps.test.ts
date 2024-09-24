@@ -81,11 +81,7 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 50,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   value: 6,
                 },
                 {
@@ -99,11 +95,7 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 50,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   value: 6,
                 },
                 {
@@ -117,11 +109,7 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 10,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   value: 5,
                 },
                 {
@@ -135,11 +123,7 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 10,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   value: 5,
                 },
               ],
@@ -172,7 +156,7 @@ describe('EchartsGraph transformProps', () => {
     );
   });
 
-  it('should transform chart props for viz with category and falsey normalization', () => {
+  it('should transform chart props for viz with category and falsy normalization', () => {
     const formData: SqlaFormData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',
@@ -239,11 +223,7 @@ describe('EchartsGraph transformProps', () => {
                   symbolSize: 10,
                   category: 'category_value_1',
                   select: DEFAULT_GRAPH_SERIES_OPTION.select,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   label: { show: true },
                 },
                 {
@@ -254,11 +234,7 @@ describe('EchartsGraph transformProps', () => {
                   symbolSize: 10,
                   category: 'category_value_2',
                   select: DEFAULT_GRAPH_SERIES_OPTION.select,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   label: { show: true },
                 },
               ],

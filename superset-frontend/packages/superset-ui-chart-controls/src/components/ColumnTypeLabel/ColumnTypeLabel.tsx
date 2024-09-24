@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { css, GenericDataType, styled, t } from '@superset-ui/core';
 import { ClockCircleOutlined, QuestionOutlined } from '@ant-design/icons';
 // TODO: move all icons to superset-ui/core

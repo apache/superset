@@ -17,8 +17,6 @@
 
 from __future__ import annotations
 
-import contextlib
-import json
 import re
 import urllib
 from datetime import datetime
@@ -35,10 +33,11 @@ from marshmallow.exceptions import ValidationError
 from sqlalchemy import column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import sqltypes
 
 from superset import sql_parse
-from superset.constants import PASSWORD_MASK, TimeGrain
+from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
@@ -47,7 +46,7 @@ from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.hashing import md5_sha_from_str
 
 try:
@@ -127,7 +126,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     allows_hidden_cc_in_orderby = True
 
-    supports_catalog = False
+    supports_catalog = supports_dynamic_catalog = True
+
+    # when editing the database, mask this field in `encrypted_extra`
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields = {"$.credentials_info.private_key"}
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -460,6 +463,24 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             ]
 
     @classmethod
+    def get_default_catalog(cls, database: Database) -> str | None:
+        """
+        Get the default catalog.
+        """
+        url = database.url_object
+
+        # The SQLAlchemy driver accepts both `bigquery://project` (where the project is
+        # technically a host) and `bigquery:///project` (where it's a database). But
+        # both can be missing, and the project is inferred from the authentication
+        # credentials.
+        if project := url.host or url.database:
+            return project
+
+        with database.get_sqla_engine() as engine:
+            client = cls._get_client(engine)
+            return client.project
+
+    @classmethod
     def get_catalog_names(
         cls,
         database: Database,
@@ -476,6 +497,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             projects = client.list_projects()
 
         return {project.project_id for project in projects}
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        if catalog:
+            uri = uri.set(host=catalog, database="")
+
+        return uri, connect_args
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
@@ -562,47 +596,6 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             return {**encrypted_extra, "query": dict(value.query)}
 
         raise ValidationError("Invalid service credentials")
-
-    @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
-        if encrypted_extra is None:
-            return encrypted_extra
-
-        try:
-            config = json.loads(encrypted_extra)
-        except (json.JSONDecodeError, TypeError):
-            return encrypted_extra
-
-        with contextlib.suppress(KeyError):
-            config["credentials_info"]["private_key"] = PASSWORD_MASK
-        return json.dumps(config)
-
-    @classmethod
-    def unmask_encrypted_extra(cls, old: str | None, new: str | None) -> str | None:
-        """
-        Reuse ``private_key`` if available and unchanged.
-        """
-        if old is None or new is None:
-            return new
-
-        try:
-            old_config = json.loads(old)
-            new_config = json.loads(new)
-        except (TypeError, json.JSONDecodeError):
-            return new
-
-        if "credentials_info" not in new_config:
-            return new
-
-        if "private_key" not in new_config["credentials_info"]:
-            return new
-
-        if new_config["credentials_info"]["private_key"] == PASSWORD_MASK:
-            new_config["credentials_info"]["private_key"] = old_config[
-                "credentials_info"
-            ]["private_key"]
-
-        return json.dumps(new_config)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:

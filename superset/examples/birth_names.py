@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import textwrap
 from typing import Union
 
@@ -28,6 +27,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql_parse import Table
+from superset.utils import json
 from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
@@ -110,8 +110,6 @@ def load_birth_names(
 
     _set_table_metadata(obj, database)
     _add_table_metrics(obj)
-
-    db.session.commit()
 
     slices, _ = create_slices(obj)
     create_dashboard(slices)
@@ -844,5 +842,4 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
     dash.dashboard_title = "USA Births Names"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"
-    db.session.commit()
     return dash

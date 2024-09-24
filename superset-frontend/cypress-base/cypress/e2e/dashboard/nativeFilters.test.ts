@@ -225,11 +225,11 @@ function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
   }
 }
 
-function openMoreFilters(intercetFilterState = true) {
+function openMoreFilters(waitFilterState = true) {
   interceptFilterState();
   cy.getBySel('dropdown-container-btn').click();
 
-  if (intercetFilterState) {
+  if (waitFilterState) {
     cy.wait('@postFilterState');
   }
 }
@@ -355,7 +355,7 @@ describe('Horizontal FilterBar', () => {
     applyNativeFilterValueWithIndex(8, testItems.filterDefaultValue);
     cy.get(nativeFilters.applyFilter).click({ force: true });
     cy.wait('@chart');
-    cy.get('.ant-scroll-number.ant-badge-count').should(
+    cy.get('.antd5-scroll-number.antd5-badge-count').should(
       'have.attr',
       'title',
       '1',
@@ -568,7 +568,7 @@ describe('Native filters', () => {
       ]);
       enterNativeFilterEditModal();
       selectFilter(1);
-      // Select dependdent option and auto use platform for genre
+      // Select dependent option and auto use platform for genre
       cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
         () => {
           cy.contains('Values are dependent on other filters')

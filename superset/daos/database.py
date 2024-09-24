@@ -42,7 +42,6 @@ class DatabaseDAO(BaseDAO[Database]):
         cls,
         item: Database | None = None,
         attributes: dict[str, Any] | None = None,
-        commit: bool = True,
     ) -> Database:
         """
         Unmask ``encrypted_extra`` before updating.
@@ -60,7 +59,7 @@ class DatabaseDAO(BaseDAO[Database]):
                 attributes["encrypted_extra"],
             )
 
-        return super().update(item, attributes, commit)
+        return super().update(item, attributes)
 
     @staticmethod
     def validate_uniqueness(database_name: str) -> bool:
@@ -174,7 +173,6 @@ class SSHTunnelDAO(BaseDAO[SSHTunnel]):
         cls,
         item: SSHTunnel | None = None,
         attributes: dict[str, Any] | None = None,
-        commit: bool = True,
     ) -> SSHTunnel:
         """
         Unmask ``password``, ``private_key`` and ``private_key_password`` before updating.
@@ -190,7 +188,7 @@ class SSHTunnelDAO(BaseDAO[SSHTunnel]):
             attributes.pop("id", None)
             attributes = unmask_password_info(attributes, item)
 
-        return super().update(item, attributes, commit)
+        return super().update(item, attributes)
 
 
 class DatabaseUserOAuth2TokensDAO(BaseDAO[DatabaseUserOAuth2Tokens]):

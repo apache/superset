@@ -16,7 +16,6 @@
 # under the License.
 """Unit tests for Superset"""
 
-import json
 from unittest import mock
 from unittest.mock import patch  # noqa: F401
 
@@ -24,6 +23,7 @@ import pytest
 
 from superset.commands.dashboard.exceptions import DashboardForbiddenError
 from superset.daos.dashboard import DashboardDAO
+from superset.utils import json
 from superset.utils.core import backend, override_user
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (

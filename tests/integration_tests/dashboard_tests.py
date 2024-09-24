@@ -186,7 +186,11 @@ class TestDashboard(SupersetTestCase):
         # Cleanup
         self.revoke_public_access_to_table(table)
 
-    @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
+    @pytest.mark.usefixtures(
+        "public_role_like_gamma",
+        "load_energy_table_with_slice",
+        "load_dashboard",
+    )
     def test_users_can_list_published_dashboard(self):
         self.login(ALPHA_USERNAME)
         resp = self.get_resp("/api/v1/dashboard/")

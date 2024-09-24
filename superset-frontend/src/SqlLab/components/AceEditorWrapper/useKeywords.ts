@@ -42,6 +42,7 @@ import { SqlLabRootState } from 'src/SqlLab/types';
 type Params = {
   queryEditorId: string | number;
   dbId?: string | number;
+  catalog?: string | null;
   schema?: string;
 };
 
@@ -58,7 +59,7 @@ const getHelperText = (value: string) =>
 const extensionsRegistry = getExtensionsRegistry();
 
 export function useKeywords(
-  { queryEditorId, dbId, schema }: Params,
+  { queryEditorId, dbId, catalog, schema }: Params,
   skip = false,
 ) {
   const useCustomKeywords = extensionsRegistry.get(
@@ -68,6 +69,7 @@ export function useKeywords(
   const customKeywords = useCustomKeywords?.({
     queryEditorId: String(queryEditorId),
     dbId,
+    catalog,
     schema,
   });
   const dispatch = useDispatch();
@@ -75,23 +77,25 @@ export function useKeywords(
   // skipFetch is used to prevent re-evaluating memoized keywords
   // due to updated api results by skip flag
   const skipFetch = hasFetchedKeywords && skip;
-  const { data: schemaOptions } = useSchemasQueryState(
+  const { currentData: schemaOptions } = useSchemasQueryState(
     {
       dbId,
+      catalog: catalog || undefined,
       forceRefresh: false,
     },
     { skip: skipFetch || !dbId },
   );
-  const { data: tableData } = useTablesQueryState(
+  const { currentData: tableData } = useTablesQueryState(
     {
       dbId,
+      catalog,
       schema,
       forceRefresh: false,
     },
     { skip: skipFetch || !dbId || !schema },
   );
 
-  const { data: functionNames, isError } = useDatabaseFunctionsQuery(
+  const { currentData: functionNames, isError } = useDatabaseFunctionsQuery(
     { dbId },
     { skip: skipFetch || !dbId },
   );
@@ -125,6 +129,7 @@ export function useKeywords(
           dbId && schema
             ? {
                 dbId,
+                catalog,
                 schema,
                 table,
               }
@@ -137,11 +142,13 @@ export function useKeywords(
         });
     });
     return [...columns];
-  }, [dbId, schema, apiState, tablesForColumnMetadata]);
+  }, [dbId, catalog, schema, apiState, tablesForColumnMetadata]);
 
   const insertMatch = useEffectEvent((editor: Editor, data: any) => {
     if (data.meta === 'table') {
-      dispatch(addTable({ id: queryEditorId, dbId }, data.value, schema));
+      dispatch(
+        addTable({ id: queryEditorId, dbId }, data.value, catalog, schema),
+      );
     }
 
     let { caption } = data;

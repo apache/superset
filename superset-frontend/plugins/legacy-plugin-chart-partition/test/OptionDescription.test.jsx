@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import '@testing-library/jest-dom';
+import { screen, render, fireEvent, act } from '@testing-library/react';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import OptionDescription from '../src/OptionDescription';
 
 const defaultProps = {
@@ -29,20 +28,41 @@ const defaultProps = {
   },
 };
 
-describe('OptionDescription', () => {
-  let wrapper;
-  let props;
+beforeEach(() => {
+  jest.useFakeTimers();
+});
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+describe('OptionDescription', () => {
   beforeEach(() => {
-    props = { option: { ...defaultProps.option } };
-    wrapper = shallow(<OptionDescription {...props} />);
+    const props = { option: { ...defaultProps.option } };
+    render(
+      <ThemeProvider theme={supersetTheme}>
+        <OptionDescription {...props} />
+      </ThemeProvider>,
+    );
   });
 
   it('renders an InfoTooltipWithTrigger', () => {
-    expect(wrapper.find(InfoTooltipWithTrigger)).toHaveLength(1);
+    const tooltipTrigger = screen.getByLabelText('Show info tooltip');
+    expect(tooltipTrigger).toBeInTheDocument();
+
+    // Perform delayed mouse hovering so tooltip could pop out
+    fireEvent.mouseOver(tooltipTrigger);
+    act(() => jest.runAllTimers());
+    fireEvent.mouseOut(tooltipTrigger);
+
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toBeInTheDocument();
+    expect(tooltip).toHaveTextContent('Description for some option');
   });
 
   it('renders a span with the label', () => {
-    expect(wrapper.find('.option-label').text()).toBe('Some option');
+    expect(
+      screen.getByText('Some option', { selector: 'span' }),
+    ).toBeInTheDocument();
   });
 });

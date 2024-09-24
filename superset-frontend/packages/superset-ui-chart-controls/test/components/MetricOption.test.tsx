@@ -16,72 +16,97 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow, ShallowWrapper } from 'enzyme';
+import '@testing-library/jest-dom';
+import { render } from '@testing-library/react';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { MetricOption, MetricOptionProps } from '../../src';
 
-describe('MetricOption', () => {
-  const defaultProps = {
+jest.mock('../../src/components/InfoTooltipWithTrigger', () => () => (
+  <div data-test="mock-info-tooltip-with-trigger" />
+));
+jest.mock('../../src/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
+  ColumnTypeLabel: () => <div data-test="mock-column-type-label" />,
+}));
+jest.mock(
+  '../../src/components/Tooltip',
+  () =>
+    ({ children }: { children: React.ReactNode }) => (
+      <div data-test="mock-tooltip">{children}</div>
+    ),
+);
+jest.mock('../../src/components/SQLPopover', () => ({
+  SQLPopover: () => <div data-test="mock-sql-popover" />,
+}));
+
+const defaultProps = {
+  metric: {
+    metric_name: 'foo',
+    verbose_name: 'Foo',
+    expression: 'SUM(foo)',
+    label: 'test',
+    description: 'Foo is the greatest metric of all',
+    warning_text: 'Be careful when using foo',
+  },
+  openInNewWindow: false,
+  showFormula: true,
+  showType: true,
+  url: '',
+};
+
+const setup = (props: Partial<MetricOptionProps> = {}) =>
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <MetricOption {...defaultProps} {...props} />
+    </ThemeProvider>,
+  );
+test('shows a label with verbose_name', () => {
+  const { container } = setup();
+  const lbl = container.getElementsByClassName('option-label');
+  expect(lbl).toHaveLength(1);
+  expect(`${lbl[0].textContent}`).toEqual(defaultProps.metric.verbose_name);
+});
+test('shows a InfoTooltipWithTrigger', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('mock-info-tooltip-with-trigger')).toBeInTheDocument();
+});
+test('shows SQL Popover trigger', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('mock-sql-popover')).toBeInTheDocument();
+});
+test('shows a label with metric_name when no verbose_name', () => {
+  const { getByText } = setup({
     metric: {
-      metric_name: 'foo',
-      verbose_name: 'Foo',
-      expression: 'SUM(foo)',
-      label: 'test',
-      description: 'Foo is the greatest metric of all',
-      warning_text: 'Be careful when using foo',
+      ...defaultProps.metric,
+      verbose_name: '',
     },
-    openInNewWindow: false,
-    showFormula: true,
+  });
+  expect(getByText(defaultProps.metric.metric_name)).toBeInTheDocument();
+});
+test('doesnt show InfoTooltipWithTrigger when no warning', () => {
+  const { queryByText } = setup({
+    metric: {
+      ...defaultProps.metric,
+      warning_text: '',
+    },
+  });
+  expect(queryByText('mock-info-tooltip-with-trigger')).not.toBeInTheDocument();
+});
+test('sets target="_blank" when openInNewWindow is true', () => {
+  const { getByRole } = setup({
+    url: 'https://github.com/apache/incubator-superset',
+    openInNewWindow: true,
+  });
+  expect(
+    getByRole('link', { name: defaultProps.metric.verbose_name }),
+  ).toHaveAttribute('target', '_blank');
+});
+test('shows a metric type label when showType is true', () => {
+  const { getByTestId } = setup({
     showType: true,
-    url: '',
-  };
-
-  let wrapper: ShallowWrapper;
-  let props: MetricOptionProps;
-  const factory = (o: MetricOptionProps) => <MetricOption {...o} />;
-  beforeEach(() => {
-    wrapper = shallow(factory(defaultProps));
-    props = { ...defaultProps };
   });
-  it('is a valid element', () => {
-    expect(React.isValidElement(<MetricOption {...defaultProps} />)).toBe(true);
-  });
-  it('shows a label with verbose_name', () => {
-    const lbl = wrapper.find('.option-label');
-    expect(lbl).toHaveLength(1);
-    expect(lbl.first().text()).toBe('Foo');
-  });
-  it('shows a InfoTooltipWithTrigger', () => {
-    expect(wrapper.find('InfoTooltipWithTrigger')).toHaveLength(1);
-  });
-  it('shows SQL Popover trigger', () => {
-    expect(wrapper.find('SQLPopover')).toHaveLength(1);
-  });
-  it('shows a label with metric_name when no verbose_name', () => {
-    props.metric.verbose_name = '';
-    wrapper = shallow(factory(props));
-    expect(wrapper.find('.option-label').first().text()).toBe('foo');
-  });
-  it('doesnt show InfoTooltipWithTrigger when no warning', () => {
-    props.metric.warning_text = '';
-    wrapper = shallow(factory(props));
-    expect(wrapper.find('InfoTooltipWithTrigger')).toHaveLength(0);
-  });
-  it('sets target="_blank" when openInNewWindow is true', () => {
-    props.url = 'https://github.com/apache/incubator-superset';
-    wrapper = shallow(factory(props));
-    expect(wrapper.find('a').prop('target')).toBe('');
-
-    props.openInNewWindow = true;
-    wrapper = shallow(factory(props));
-    expect(wrapper.find('a').prop('target')).toBe('_blank');
-  });
-  it('shows a metric type label when showType is true', () => {
-    props.showType = true;
-    wrapper = shallow(factory(props));
-    expect(wrapper.find('ColumnTypeLabel')).toHaveLength(1);
-  });
-  it('shows a Tooltip for the verbose metric name', () => {
-    expect(wrapper.find('Tooltip')).toHaveLength(1);
-  });
+  expect(getByTestId('mock-column-type-label')).toBeInTheDocument();
+});
+test('shows a Tooltip for the verbose metric name', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('mock-tooltip')).toBeInTheDocument();
 });

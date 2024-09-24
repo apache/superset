@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import { AntdCheckbox } from 'src/components';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';

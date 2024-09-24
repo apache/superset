@@ -22,7 +22,6 @@ Create Date: 2020-08-12 00:24:39.617899
 
 """
 
-import json
 import logging
 import uuid
 from collections import defaultdict
@@ -33,6 +32,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from superset import db
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "978245563a02"

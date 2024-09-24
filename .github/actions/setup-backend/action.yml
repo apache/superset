@@ -29,6 +29,8 @@ runs:
           echo "PYTHON_VERSION=3.10" >> $GITHUB_ENV
         elif [ "${{ inputs.python-version }}" = "next" ]; then
           echo "PYTHON_VERSION=3.11" >> $GITHUB_ENV
+        elif [ "${{ inputs.python-version }}" = "previous" ]; then
+          echo "PYTHON_VERSION=3.9" >> $GITHUB_ENV
         else
           echo "PYTHON_VERSION=${{ inputs.python-version }}" >> $GITHUB_ENV
         fi

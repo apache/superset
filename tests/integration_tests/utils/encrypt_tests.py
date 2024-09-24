@@ -21,7 +21,11 @@ from sqlalchemy_utils import EncryptedType
 from sqlalchemy_utils.types.encrypted.encrypted_type import StringEncryptedType
 
 from superset.extensions import encrypted_field_factory
-from superset.utils.encrypt import AbstractEncryptedFieldAdapter, SQLAlchemyUtilsAdapter
+from superset.utils.encrypt import (
+    AbstractEncryptedFieldAdapter,
+    SecretsMigrator,
+    SQLAlchemyUtilsAdapter,
+)
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -60,4 +64,25 @@ class EncryptedFieldTest(SupersetTestCase):
         field = encrypted_field_factory.create(String(1024))
         self.assertTrue(isinstance(field, StringEncryptedType))
         self.assertFalse(isinstance(field, EncryptedType))
+        self.assertTrue(getattr(field, "__created_by_enc_field_adapter__"))
         self.assertEqual(self.app.config["SECRET_KEY"], field.key)
+
+    def test_ensure_encrypted_field_factory_is_used(self):
+        """
+        Ensure that the EncryptedFieldFactory is used everywhere
+        that an encrypted field is needed.
+        :return:
+        """
+        from superset.extensions import encrypted_field_factory
+
+        migrator = SecretsMigrator("")
+        encrypted_fields = migrator.discover_encrypted_fields()
+        for table_name, cols in encrypted_fields.items():
+            for col_name, field in cols.items():
+                if not encrypted_field_factory.created_by_enc_field_factory(field):
+                    self.fail(
+                        f"The encrypted column [{col_name}]"
+                        f" in the table [{table_name}]"
+                        " was not created using the"
+                        " encrypted_field_factory"
+                    )

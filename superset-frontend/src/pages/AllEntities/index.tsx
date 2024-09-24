@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { styled, t, css, SupersetTheme } from '@superset-ui/core';
 import { NumberParam, useQueryParam } from 'use-query-params';
 import AllEntitiesTable, {
@@ -67,7 +67,6 @@ const AllEntitiesContainer = styled.div`
     margin-bottom: ${theme.gridUnit * 2}px;
   }
   .select-control-label {
-    text-transform: uppercase;
     font-size: ${theme.gridUnit * 3}px;
     color: ${theme.colors.grayscale.base};
     margin-bottom: ${theme.gridUnit * 1}px;

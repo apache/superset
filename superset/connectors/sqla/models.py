@@ -19,15 +19,13 @@ from __future__ import annotations
 
 import builtins
 import dataclasses
-import json
 import logging
 import re
 from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from json.decoder import JSONDecodeError
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, Optional, Union
 
 import dateutil.parser
 import numpy as np
@@ -85,7 +83,6 @@ from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
-    QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetErrorException,
     SupersetErrorsException,
@@ -105,10 +102,9 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
-    validate_adhoc_subquery,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import ParsedQuery, sanitize_clause, Table
+from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -118,7 +114,7 @@ from superset.superset_typing import (
     QueryObjectDict,
     ResultSetColumnType,
 )
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import GenericDataType, MediumText
 
@@ -286,6 +282,11 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         return None
 
     @property
+    def catalog(self) -> str | None:
+        """String representing the catalog of the Datasource (if it applies)"""
+        return None
+
+    @property
     def schema(self) -> str | None:
         """String representing the schema of the Datasource (if it applies)"""
         return None
@@ -330,6 +331,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "edit_url": self.url,
             "id": self.id,
             "uid": self.uid,
+            "catalog": self.catalog,
             "schema": self.schema or None,
             "name": self.name,
             "type": self.type,
@@ -384,6 +386,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "datasource_name": self.datasource_name,
             "table_name": self.datasource_name,
             "type": self.type,
+            "catalog": self.catalog,
             "schema": self.schema or None,
             "offset": self.offset,
             "cache_timeout": self.cache_timeout,
@@ -457,9 +460,11 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
                 )
             else:
                 _columns = [
-                    utils.get_column_name(column_)
-                    if utils.is_adhoc_column(column_)
-                    else column_
+                    (
+                        utils.get_column_name(column_)
+                        if utils.is_adhoc_column(column_)
+                        else column_
+                    )
                     for column_param in COLUMN_FORM_DATA_PARAMS
                     for column_ in utils.as_list(form_data.get(column_param) or [])
                 ]
@@ -698,9 +703,63 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
 
     @classmethod
     def get_datasource_by_name(
-        cls, datasource_name: str, schema: str, database_name: str
+        cls,
+        datasource_name: str,
+        catalog: str | None,
+        schema: str,
+        database_name: str,
     ) -> BaseDatasource | None:
         raise NotImplementedError()
+
+    def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
+        raise NotImplementedError()
+
+    def text(self, clause: str) -> TextClause:
+        raise NotImplementedError()
+
+    def get_sqla_row_level_filters(
+        self,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> list[TextClause]:
+        """
+        Return the appropriate row level security filters for this table and the
+        current user. A custom username can be passed when the user is not present in the
+        Flask global namespace.
+
+        :param template_processor: The template processor to apply to the filters.
+        :returns: A list of SQL clauses to be ANDed together.
+        """
+        template_processor = template_processor or self.get_template_processor()
+
+        all_filters: list[TextClause] = []
+        filter_groups: dict[Union[int, str], list[TextClause]] = defaultdict(list)
+        try:
+            for filter_ in security_manager.get_rls_filters(self):
+                clause = self.text(
+                    f"({template_processor.process_template(filter_.clause)})"
+                )
+                if filter_.group_key:
+                    filter_groups[filter_.group_key].append(clause)
+                else:
+                    all_filters.append(clause)
+
+            if is_feature_enabled("EMBEDDED_SUPERSET"):
+                for rule in security_manager.get_guest_rls_filters(self):
+                    clause = self.text(
+                        f"({template_processor.process_template(rule['clause'])})"
+                    )
+                    all_filters.append(clause)
+
+            grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
+            all_filters.extend(grouped_filters)
+            return all_filters
+        except TemplateError as ex:
+            raise QueryObjectValidationError(
+                _(
+                    "Error in jinja expression in RLS filters: %(msg)s",
+                    msg=ex.message,
+                )
+            ) from ex
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -1040,7 +1099,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     def currency_json(self) -> dict[str, str | None] | None:
         try:
             return json.loads(self.currency or "{}") or None
-        except (TypeError, JSONDecodeError) as exc:
+        except (TypeError, json.JSONDecodeError) as exc:
             logger.error(
                 "Unable to load currency json: %r. Leaving empty.", exc, exc_info=True
             )
@@ -1073,27 +1132,6 @@ sqlatable_user = DBTable(
     Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
     Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE")),
 )
-
-
-def _process_sql_expression(
-    expression: str | None,
-    database_id: int,
-    schema: str,
-    template_processor: BaseTemplateProcessor | None = None,
-) -> str | None:
-    if template_processor and expression:
-        expression = template_processor.process_template(expression)
-    if expression:
-        try:
-            expression = validate_adhoc_subquery(
-                expression,
-                database_id,
-                schema,
-            )
-            expression = sanitize_clause(expression)
-        except (QueryClauseValidationException, SupersetSecurityException) as ex:
-            raise QueryObjectValidationError(ex.message) from ex
-    return expression
 
 
 class SqlaTable(
@@ -1131,7 +1169,9 @@ class SqlaTable(
     # The reason it does not physically exist is MySQL, PostgreSQL, etc. have a
     # different interpretation of uniqueness when it comes to NULL which is problematic
     # given the schema is optional.
-    __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
+    __table_args__ = (
+        UniqueConstraint("database_id", "catalog", "schema", "table_name"),
+    )
 
     table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
@@ -1162,6 +1202,7 @@ class SqlaTable(
         "database_id",
         "offset",
         "cache_timeout",
+        "catalog",
         "schema",
         "sql",
         "params",
@@ -1239,6 +1280,7 @@ class SqlaTable(
     def get_datasource_by_name(
         cls,
         datasource_name: str,
+        catalog: str | None,
         schema: str | None,
         database_name: str,
     ) -> SqlaTable | None:
@@ -1248,6 +1290,7 @@ class SqlaTable(
             .join(Database)
             .filter(cls.table_name == datasource_name)
             .filter(Database.database_name == database_name)
+            .filter(cls.catalog == catalog)
         )
         # Handling schema being '' or None, which is easier to handle
         # in python than in the SQLA query in a multi-dialect way
@@ -1437,7 +1480,7 @@ class SqlaTable(
         if not self.is_virtual:
             return self.get_sqla_table(), None
 
-        from_sql = self.get_rendered_sql(template_processor)
+        from_sql = self.get_rendered_sql(template_processor) + "\n"
         parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
         if not (
             parsed_query.is_unknown()
@@ -1486,12 +1529,15 @@ class SqlaTable(
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            expression = _process_sql_expression(
-                expression=metric["sqlExpression"],
-                database_id=self.database_id,
-                schema=self.schema,
-                template_processor=template_processor,
-            )
+            try:
+                expression = self._process_sql_expression(
+                    expression=metric["sqlExpression"],
+                    database_id=self.database_id,
+                    schema=self.schema,
+                    template_processor=template_processor,
+                )
+            except SupersetSecurityException as ex:
+                raise QueryObjectValidationError(ex.message) from ex
             sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
@@ -1516,12 +1562,15 @@ class SqlaTable(
         :rtype: sqlalchemy.sql.column
         """
         label = utils.get_column_name(col)
-        expression = _process_sql_expression(
-            expression=col["sqlExpression"],
-            database_id=self.database_id,
-            schema=self.schema,
-            template_processor=template_processor,
-        )
+        try:
+            expression = self._process_sql_expression(
+                expression=col["sqlExpression"],
+                database_id=self.database_id,
+                schema=self.schema,
+                template_processor=template_processor,
+            )
+        except SupersetSecurityException as ex:
+            raise QueryObjectValidationError(ex.message) from ex
         time_grain = col.get("timeGrain")
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
@@ -1588,48 +1637,6 @@ class SqlaTable(
         for col in select_exprs:
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
-
-    def get_sqla_row_level_filters(
-        self,
-        template_processor: BaseTemplateProcessor,
-    ) -> list[TextClause]:
-        """
-        Return the appropriate row level security filters for this table and the
-        current user. A custom username can be passed when the user is not present in the
-        Flask global namespace.
-
-        :param template_processor: The template processor to apply to the filters.
-        :returns: A list of SQL clauses to be ANDed together.
-        """
-        all_filters: list[TextClause] = []
-        filter_groups: dict[int | str, list[TextClause]] = defaultdict(list)
-        try:
-            for filter_ in security_manager.get_rls_filters(self):
-                clause = self.text(
-                    f"({template_processor.process_template(filter_.clause)})"
-                )
-                if filter_.group_key:
-                    filter_groups[filter_.group_key].append(clause)
-                else:
-                    all_filters.append(clause)
-
-            if is_feature_enabled("EMBEDDED_SUPERSET"):
-                for rule in security_manager.get_guest_rls_filters(self):
-                    clause = self.text(
-                        f"({template_processor.process_template(rule['clause'])})"
-                    )
-                    all_filters.append(clause)
-
-            grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
-            all_filters.extend(grouped_filters)
-            return all_filters
-        except TemplateError as ex:
-            raise QueryObjectValidationError(
-                _(
-                    "Error in jinja expression in RLS filters: %(msg)s",
-                    msg=ex.message,
-                )
-            ) from ex
 
     def text(self, clause: str) -> TextClause:
         return self.db_engine_spec.get_text_clause(clause)
@@ -1752,15 +1759,15 @@ class SqlaTable(
         try:
             df = self.database.get_df(
                 sql,
-                None,
+                self.catalog,
                 self.schema or None,
                 mutator=assign_column_label,
             )
-        except (SupersetErrorException, SupersetErrorsException) as ex:
+        except (SupersetErrorException, SupersetErrorsException):
             # SupersetError(s) exception should not be captured; instead, they should
             # bubble up to the Flask error handler so they are returned as proper SIP-40
             # errors. This is particularly important for database OAuth2, see SIP-85.
-            raise ex
+            raise
         except Exception as ex:  # pylint: disable=broad-except
             # TODO (betodealmeida): review exception handling while querying the external
             # database. Ideally we'd expect and handle external database error, but
@@ -1797,11 +1804,10 @@ class SqlaTable(
             )
         )
 
-    def fetch_metadata(self, commit: bool = True) -> MetadataResult:
+    def fetch_metadata(self) -> MetadataResult:
         """
         Fetches the metadata for the table and merges it in
 
-        :param commit: should the changes be committed or not.
         :return: Tuple with lists of added, removed and modified column names.
         """
         new_columns = self.external_metadata()
@@ -1879,8 +1885,6 @@ class SqlaTable(
         config["SQLA_TABLE_MUTATOR"](self)
 
         db.session.merge(self)
-        if commit:
-            db.session.commit()
         return results
 
     @classmethod
@@ -1995,7 +1999,7 @@ class SqlaTable(
         if self.has_extra_cache_key_calls(query_obj):
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
-        return extra_cache_keys
+        return list(set(extra_cache_keys))
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:

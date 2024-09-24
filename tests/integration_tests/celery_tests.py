@@ -24,7 +24,6 @@ import time
 import unittest.mock as mock
 from typing import Optional
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
 
@@ -188,7 +187,7 @@ def test_run_sync_query_dont_exist(test_client, ctas_method):
         }
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
+@pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 def test_run_sync_query_cta(test_client, ctas_method):
     tmp_table_name = f"{TEST_SYNC}_{ctas_method.lower()}"
@@ -207,7 +206,7 @@ def test_run_sync_query_cta(test_client, ctas_method):
     delete_tmp_view_or_table(tmp_table_name, ctas_method)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
+@pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
 def test_run_sync_query_cta_no_data(test_client):
     sql_empty_result = "SELECT * FROM birth_names WHERE name='random'"
     result = run_sql(test_client, sql_empty_result)
@@ -218,7 +217,7 @@ def test_run_sync_query_cta_no_data(test_client):
     assert QueryStatus.SUCCESS == query.status
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
+@pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
@@ -249,15 +248,15 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
+@pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
 def test_run_async_query_cta_config(test_client, ctas_method):
-    if backend() in {"sqlite", "mysql"}:
-        # sqlite doesn't support schemas, mysql is flaky
+    if backend() == "sqlite":
+        # sqlite doesn't support schemas
         return
     tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.lower()}"
     result = run_sql(
@@ -284,13 +283,9 @@ def test_run_async_query_cta_config(test_client, ctas_method):
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
+@pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 def test_run_async_cta_query(test_client, ctas_method):
-    if backend() == "mysql":
-        # failing
-        return
-
     table_name = f"{TEST_ASYNC_CTA}_{ctas_method.lower()}"
     result = run_sql(
         test_client,
@@ -315,13 +310,9 @@ def test_run_async_cta_query(test_client, ctas_method):
     delete_tmp_view_or_table(table_name, ctas_method)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
+@pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
-    if backend() == "mysql":
-        # failing
-        return
-
     tmp_table = f"{TEST_ASYNC_LOWER_LIMIT}_{ctas_method.lower()}"
     result = run_sql(
         test_client,
@@ -385,7 +376,7 @@ def test_new_data_serialization():
     assert isinstance(data[0], bytes)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.usefixtures("load_birth_names_data")
 def test_default_payload_serialization():
     use_new_deserialization = False
     db_engine_spec = BaseEngineSpec()
@@ -418,7 +409,7 @@ def test_default_payload_serialization():
     assert isinstance(serialized, str)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.usefixtures("load_birth_names_data")
 def test_msgpack_payload_serialization():
     use_new_deserialization = True
     db_engine_spec = BaseEngineSpec()

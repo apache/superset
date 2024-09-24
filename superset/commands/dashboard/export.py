@@ -16,7 +16,6 @@
 # under the License.
 # isort:skip_file
 
-import json
 import logging
 import random
 import string
@@ -36,6 +35,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +126,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
             if value:
                 try:
                     payload[new_name] = json.loads(value)
-                except (TypeError, json.decoder.JSONDecodeError):
+                except (TypeError, json.JSONDecodeError):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
 
@@ -176,7 +176,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
             if value:
                 try:
                     payload[new_name] = json.loads(value)
-                except (TypeError, json.decoder.JSONDecodeError):
+                except (TypeError, json.JSONDecodeError):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
 

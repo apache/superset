@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import { omit } from 'lodash';
@@ -70,7 +70,11 @@ const QueryHistory = ({
     ({ sqlLab: { queries } }: SqlLabRootState) => queries,
     shallowEqual,
   );
-  const { data, isLoading, isFetching } = useEditorQueriesQuery(
+  const {
+    currentData: data,
+    isLoading,
+    isFetching,
+  } = useEditorQueriesQuery(
     { editorId: `${queryEditorId}`, pageIndex },
     {
       skip: !isFeatureEnabled(FeatureFlag.SqllabBackendPersistence),

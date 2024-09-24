@@ -18,7 +18,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import {
   DatasourceType,
@@ -136,7 +136,7 @@ const SAVE_AS_DATASET = 'save_as_dataset';
 // a tooltip for user can see the full name by hovering over the visually truncated string in UI
 const VISIBLE_TITLE_LENGTH = 25;
 
-// Assign icon for each DatasourceType.  If no icon assingment is found in the lookup, no icon will render
+// Assign icon for each DatasourceType.  If no icon assignment is found in the lookup, no icon will render
 export const datasourceIconLookup = {
   [DatasourceType.Query]: (
     <Icons.ConsoleSqlOutlined className="datasource-svg" />
@@ -171,7 +171,7 @@ const preventRouterLinkWhileMetaClicked = evt => {
   }
 };
 
-class DatasourceControl extends React.PureComponent {
+class DatasourceControl extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -188,7 +188,7 @@ class DatasourceControl extends React.PureComponent {
     const { columns } = datasource;
     // the current granularity_sqla might not be a temporal column anymore
     const timeCol = this.props.form_data?.granularity_sqla;
-    const isGranularitySqalTemporal = columns.find(
+    const isGranularitySqlaTemporal = columns.find(
       ({ column_name }) => column_name === timeCol,
     )?.is_dttm;
     // the current main_dttm_col might not be a temporal column anymore
@@ -198,7 +198,7 @@ class DatasourceControl extends React.PureComponent {
 
     // if the current granularity_sqla is empty or it is not a temporal column anymore
     // let's update the control value
-    if (datasource.type === 'table' && !isGranularitySqalTemporal) {
+    if (datasource.type === 'table' && !isGranularitySqlaTemporal) {
       const temporalColumn = isDefaultTemporal
         ? defaultTemporalColumn
         : temporalColumns?.[0];

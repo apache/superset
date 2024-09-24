@@ -609,6 +609,7 @@ export const getDatasourceSamples = async (
       endpoint: '/datasource/samples',
       jsonPayload,
       searchParams,
+      parseMethod: 'json-bigint',
     });
 
     return response.json.result;

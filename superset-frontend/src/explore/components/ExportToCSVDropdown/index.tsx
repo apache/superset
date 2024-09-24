@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactChild, useCallback } from 'react';
+import { ReactChild, useCallback, Key } from 'react';
+
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdDropdown } from 'src/components';
@@ -50,7 +51,7 @@ export const ExportToCSVDropdown = ({
   children,
 }: ExportToCSVButtonProps) => {
   const handleMenuClick = useCallback(
-    ({ key }: { key: React.Key }) => {
+    ({ key }: { key: Key }) => {
       switch (key) {
         case MenuKeys.ExportOriginal:
           exportCSVOriginal();

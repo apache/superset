@@ -37,7 +37,6 @@ import geohash
 import numpy as np
 import pandas as pd
 import polyline
-import simplejson as json
 from dateutil import relativedelta as rdelta
 from deprecation import deprecated
 from flask import request
@@ -66,7 +65,7 @@ from superset.superset_typing import (
     VizData,
     VizPayload,
 )
-from superset.utils import core as utils, csv
+from superset.utils import core as utils, csv, json
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     apply_max_row_limit,
@@ -441,7 +440,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     @deprecated(deprecated_in="3.0")
     def get_json(self) -> str:
         return json.dumps(
-            self.get_payload(), default=utils.json_int_dttm_ser, ignore_nan=True
+            self.get_payload(), default=json.json_int_dttm_ser, ignore_nan=True
         )
 
     @deprecated(deprecated_in="3.0")
@@ -643,7 +642,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     def json_dumps(query_obj: Any, sort_keys: bool = False) -> str:
         return json.dumps(
             query_obj,
-            default=utils.json_int_dttm_ser,
+            default=json.json_int_dttm_ser,
             ignore_nan=True,
             sort_keys=sort_keys,
         )

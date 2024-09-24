@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsCoreOption, ScatterSeriesOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { ScatterSeriesOption } from 'echarts/charts';
 import { extent } from 'd3-array';
 import {
   CategoricalColorNamespace,
@@ -24,6 +25,7 @@ import {
   AxisType,
   getMetricLabel,
   NumberFormatter,
+  tooltipHtml,
 } from '@superset-ui/core';
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
@@ -40,12 +42,12 @@ function normalizeSymbolSize(
   nodes: ScatterSeriesOption[],
   maxBubbleValue: number,
 ) {
-  const [bubbleMinValue, bubbleMaxValue] = extent(nodes, x => x.data![0][2]);
+  const [bubbleMinValue, bubbleMaxValue] = extent(nodes, x => x.data?.[0]?.[2]);
   const nodeSpread = bubbleMaxValue - bubbleMinValue;
   nodes.forEach(node => {
     // eslint-disable-next-line no-param-reassign
     node.symbolSize =
-      (((node.data![0][2] - bubbleMinValue) / nodeSpread) *
+      (((node.data?.[0]?.[2] - bubbleMinValue) / nodeSpread) *
         (maxBubbleValue * 2) || 0) + MINIMUM_BUBBLE_SIZE;
   });
 }
@@ -60,13 +62,17 @@ export function formatTooltip(
   tooltipSizeFormatter: NumberFormatter,
 ) {
   const title = params.data[4]
-    ? `${params.data[3]} </br> ${params.data[4]}`
+    ? `${params.data[4]} (${params.data[3]})`
     : params.data[3];
 
-  return `<p>${title}</p>
-        ${xAxisLabel}: ${xAxisFormatter(params.data[0])} <br/>
-        ${yAxisLabel}: ${yAxisFormatter(params.data[1])} <br/>
-        ${sizeLabel}: ${tooltipSizeFormatter(params.data[2])}`;
+  return tooltipHtml(
+    [
+      [xAxisLabel, xAxisFormatter(params.data[0])],
+      [yAxisLabel, yAxisFormatter(params.data[1])],
+      [sizeLabel, tooltipSizeFormatter(params.data[2])],
+    ],
+    title,
+  );
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {

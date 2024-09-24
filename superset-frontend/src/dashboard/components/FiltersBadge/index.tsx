@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  KeyboardEvent,
+  memo,
 } from 'react';
+
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
@@ -73,14 +76,16 @@ const StyledFilterCount = styled.div`
     .incompatible-count {
       font-size: ${theme.typography.sizes.s}px;
     }
+    &:focus-visible {
+      outline: 2px solid ${theme.colors.primary.dark2};
+    }
   `}
 `;
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    vertical-align: middle;
     margin-left: ${theme.gridUnit * 2}px;
-    &>sup {
+    &>sup.antd5-badge-count {
       padding: 0 ${theme.gridUnit}px;
       min-width: ${theme.gridUnit * 4}px;
       height: ${theme.gridUnit * 4}px;
@@ -88,6 +93,7 @@ const StyledBadge = styled(Badge)`
       font-weight: ${theme.typography.weights.medium};
       font-size: ${theme.typography.sizes.s - 1}px;
       box-shadow: none;
+      padding: 0 ${theme.gridUnit}px;
     }
   `}
 `;
@@ -144,7 +150,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
       setPopoverVisible(true);
     }
@@ -160,7 +166,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   useEffect(() => {
     if (popoverVisible) {
       setTimeout(() => {
-        popoverContentRef?.current?.focus();
+        popoverContentRef?.current?.focus({ preventScroll: true });
       });
     }
   }, [popoverVisible]);
@@ -316,4 +322,4 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
 };
 
-export default React.memo(FiltersBadge);
+export default memo(FiltersBadge);

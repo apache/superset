@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import thunk from 'redux-thunk';
 import * as reactRedux from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
@@ -303,9 +302,11 @@ describe('RTL', () => {
     userEvent.click(bulkSelectButton);
 
     // Grab and click the "toggle all" checkbox to expose export button
-    const selectAllCheckbox = screen.getByRole('checkbox', {
-      name: /toggle all rows selected/i,
-    });
+    const selectAllCheckbox = screen
+      .getAllByRole('checkbox', {
+        name: '',
+      })
+      .find(checkbox => checkbox.getAttribute('name') === 'header-toggle-all');
     userEvent.click(selectAllCheckbox);
 
     // Grab and assert that export button is visible

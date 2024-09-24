@@ -17,7 +17,6 @@
 # from superset import db
 # from superset.models.dashboard import Dashboard
 
-import json
 import urllib.request
 from io import BytesIO
 from unittest import skipUnless
@@ -32,6 +31,7 @@ from superset.extensions import machine_auth_provider_factory
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tasks.types import ExecutorType
+from superset.utils import json
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import WebDriverSelenium

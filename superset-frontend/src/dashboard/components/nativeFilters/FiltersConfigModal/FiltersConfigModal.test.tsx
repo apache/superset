@@ -19,7 +19,6 @@
 import { Preset } from '@superset-ui/core';
 import userEvent, { specialChars } from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import React from 'react';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import mockDatasource, { datasourceId, id } from 'spec/fixtures/mockDatasource';
@@ -380,7 +379,7 @@ test('deletes a filter', async () => {
     onSave,
   });
   const removeButtons = screen.getAllByRole('img', { name: 'trash' });
-  // remove NATIVE_FILTER-3 which isn't a dependancy of any other filter
+  // remove NATIVE_FILTER-3 which isn't a dependency of any other filter
   userEvent.click(removeButtons[2]);
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() =>
@@ -421,7 +420,7 @@ test('deletes a filter including dependencies', async () => {
     onSave,
   });
   const removeButtons = screen.getAllByRole('img', { name: 'trash' });
-  // remove NATIVE_FILTER-2 which is a dependancy of NATIVE_FILTER-1
+  // remove NATIVE_FILTER-2 which is a dependency of NATIVE_FILTER-1
   userEvent.click(removeButtons[1]);
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() =>

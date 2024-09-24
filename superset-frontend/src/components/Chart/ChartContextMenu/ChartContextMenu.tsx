@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   forwardRef,
+  Key,
   ReactNode,
   RefObject,
   useCallback,
@@ -96,11 +97,18 @@ const ChartContextMenu = (
   const canDatasourceSamples = useSelector((state: RootState) =>
     findPermission('can_samples', 'Datasource', state.user?.roles),
   );
-  const canDrillBy = canExplore && canWriteExploreFormData;
-  const canDrillToDetail = canExplore && canDatasourceSamples;
+  const canDownload = useSelector((state: RootState) =>
+    findPermission('can_csv', 'Superset', state.user?.roles),
+  );
+  const canDrill = useSelector((state: RootState) =>
+    findPermission('can_drill', 'Dashboard', state.user?.roles),
+  );
+  const canDrillBy = (canExplore || canDrill) && canWriteExploreFormData;
+  const canDrillToDetail = (canExplore || canDrill) && canDatasourceSamples;
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
+  const [openKeys, setOpenKeys] = useState<Key[]>([]);
 
   const isDisplayed = (item: ContextMenuItem) =>
     displayedItems === ContextMenuItem.All ||
@@ -251,6 +259,9 @@ const ChartContextMenu = (
         formData={formData}
         contextMenuY={clientY}
         submenuIndex={submenuIndex}
+        canDownload={canDownload}
+        open={openKeys.includes('drill-by-submenu')}
+        key="drill-by-submenu"
         {...(additionalConfig?.drillBy || {})}
       />,
     );
@@ -285,7 +296,13 @@ const ChartContextMenu = (
   return ReactDOM.createPortal(
     <Dropdown
       overlay={
-        <Menu className="chart-context-menu" data-test="chart-context-menu">
+        <Menu
+          className="chart-context-menu"
+          data-test="chart-context-menu"
+          onOpenChange={openKeys => {
+            setOpenKeys(openKeys);
+          }}
+        >
           {menuItems.length ? (
             menuItems
           ) : (

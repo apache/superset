@@ -22,6 +22,7 @@ import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 import {
   DatasourceType,
   denormalizeTimestamp,
+  ErrorTypeEnum,
   GenericDataType,
   QueryResponse,
   QueryState,
@@ -31,11 +32,12 @@ import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
 export const mockedActions = sinon.stub({ ...actions });
 
-export const alert = { bsStyle: 'danger', msg: 'Ooops', id: 'lksvmcx32' };
+export const alert = { bsStyle: 'danger', msg: 'Oops', id: 'lksvmcx32' };
 export const table = {
   dbId: 1,
   selectStar: 'SELECT * FROM ab_user',
   queryEditorId: 'dfsadfs',
+  catalog: null,
   schema: 'superset',
   name: 'ab_user',
   id: 'r11Vgt60',
@@ -191,6 +193,7 @@ export const defaultQueryEditor = {
   selectedText: undefined,
   sql: 'SELECT *\nFROM\nWHERE',
   name: 'Untitled Query 1',
+  catalog: null,
   schema: 'main',
   remoteId: null,
   hideLeftBar: false,
@@ -208,7 +211,7 @@ export const extraQueryEditor1 = {
 export const extraQueryEditor2 = {
   ...defaultQueryEditor,
   id: 'owkdi998',
-  sql: 'SELECT *\nFROM\nWHERE\nGROUP BY',
+  sql: '',
   name: 'Untitled Query 3',
 };
 
@@ -233,6 +236,7 @@ export const queries = [
     queryLimit: 100,
     endDttm: 1476910566798,
     limit_reached: false,
+    catalog: null,
     schema: 'test_schema',
     errorMessage: null,
     db: 'main',
@@ -294,6 +298,7 @@ export const queries = [
     rows: 42,
     endDttm: 1476910579693,
     limit_reached: false,
+    catalog: null,
     schema: null,
     errorMessage: null,
     db: 'main',
@@ -323,6 +328,7 @@ export const queryWithNoQueryLimit = {
   rows: 42,
   endDttm: 1476910566798,
   limit_reached: false,
+  catalog: null,
   schema: 'test_schema',
   errorMessage: null,
   db: 'main',
@@ -456,18 +462,21 @@ export const tables = {
   options: [
     {
       value: 'birth_names',
+      catalog: null,
       schema: 'main',
       label: 'birth_names',
       title: 'birth_names',
     },
     {
       value: 'energy_usage',
+      catalog: null,
       schema: 'main',
       label: 'energy_usage',
       title: 'energy_usage',
     },
     {
       value: 'wb_health_population',
+      catalog: null,
       schema: 'main',
       label: 'wb_health_population',
       title: 'wb_health_population',
@@ -483,6 +492,7 @@ export const stoppedQuery = {
   progress: 0,
   results: [],
   runAsync: false,
+  catalog: null,
   schema: 'main',
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
@@ -501,6 +511,7 @@ export const failedQueryWithErrorMessage = {
   progress: 0,
   results: [],
   runAsync: false,
+  catalog: null,
   schema: 'main',
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
@@ -526,6 +537,7 @@ export const failedQueryWithErrors = {
   progress: 0,
   results: [],
   runAsync: false,
+  catalog: null,
   schema: 'main',
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
@@ -533,6 +545,20 @@ export const failedQueryWithErrors = {
   state: QueryState.Failed,
   tab: 'Untitled Query 2',
   tempTable: '',
+};
+
+export const failedQueryWithFrontendTimeoutErrors = {
+  ...failedQueryWithErrorMessage,
+  errors: [
+    {
+      error_type: ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+      message: 'Request timed out',
+      level: 'error',
+      extra: {
+        timeout: 10,
+      },
+    },
+  ],
 };
 
 const baseQuery: QueryResponse = {
@@ -555,6 +581,7 @@ const baseQuery: QueryResponse = {
   started: 'started',
   queryLimit: 100,
   endDttm: 1476910566798,
+  catalog: null,
   schema: 'test_schema',
   errorMessage: null,
   db: { key: 'main' },
@@ -669,6 +696,7 @@ export const initialState = {
     queriesLastUpdate: 0,
     activeSouthPaneTab: 'Results',
     unsavedQueryEditor: {},
+    destroyedQueryEditors: {},
   },
   messageToasts: [],
   user,
@@ -689,6 +717,7 @@ export const query = {
   dbId: 1,
   sql: 'SELECT * FROM something',
   description: 'test description',
+  catalog: null,
   schema: 'test schema',
   resultsKey: 'test',
 };
@@ -698,6 +727,7 @@ export const queryId = 'clientId2353';
 export const testQuery: ISaveableDatasource = {
   name: 'unimportant',
   dbId: 1,
+  catalog: null,
   schema: 'main',
   sql: 'SELECT *',
   columns: [
@@ -727,6 +757,7 @@ export const mockdatasets = [...new Array(3)].map((_, i) => ({
   database_name: `db ${i}`,
   explore_url: `/explore/?datasource_type=table&datasource_id=${i}`,
   id: i,
+  catalog: null,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
   owners: [{ username: 'admin', userId: 1 }],

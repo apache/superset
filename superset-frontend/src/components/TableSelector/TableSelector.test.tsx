@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { act } from 'react-dom/test-utils';
 import {
   render,
@@ -54,6 +53,7 @@ const getTableMockFunction = () =>
   }) as any;
 
 const databaseApiRoute = 'glob:*/api/v1/database/?*';
+const catalogApiRoute = 'glob:*/api/v1/database/*/catalogs/?*';
 const schemaApiRoute = 'glob:*/api/v1/database/*/schemas/?*';
 const tablesApiRoute = 'glob:*/api/v1/database/*/tables/*';
 
@@ -74,6 +74,7 @@ afterEach(() => {
 });
 
 test('renders with default props', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
   fetchMock.get(schemaApiRoute, { result: [] });
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 
@@ -96,6 +97,7 @@ test('renders with default props', async () => {
 });
 
 test('skips select all options', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
   fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 
@@ -115,6 +117,7 @@ test('skips select all options', async () => {
 });
 
 test('renders table options without Select All option', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
   fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 
@@ -133,6 +136,7 @@ test('renders table options without Select All option', async () => {
 });
 
 test('renders disabled without schema', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
   fetchMock.get(schemaApiRoute, { result: [] });
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 
@@ -150,6 +154,7 @@ test('renders disabled without schema', async () => {
 });
 
 test('table select retain value if not in SQL Lab mode', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
   fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 
@@ -191,6 +196,7 @@ test('table select retain value if not in SQL Lab mode', async () => {
 });
 
 test('table multi select retain all the values selected', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
   fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 

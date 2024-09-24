@@ -17,7 +17,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { PathLayer } from 'deck.gl/typed';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { commonLayerProps } from '../common';

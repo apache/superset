@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import UploadDataModal, {
   validateUploadFileExtension,
@@ -46,6 +45,10 @@ fetchMock.get(
     ],
   },
 );
+
+fetchMock.get('glob:*api/v1/database/*/catalogs/', {
+  result: [],
+});
 
 fetchMock.get('glob:*api/v1/database/1/schemas/', {
   result: ['information_schema', 'public'],

@@ -14,12 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from collections import defaultdict
 from typing import Any
 
 from superset.models.slice import Slice
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 

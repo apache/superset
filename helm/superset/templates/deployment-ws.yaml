@@ -128,6 +128,9 @@ spec:
           {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- end }}
+      {{- if .Values.supersetWebsockets.priorityClassName }}
+      priorityClassName: {{ .Values.supersetWebsockets.priorityClassName }}
+      {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.supersetWebsockets.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- with .Values.topologySpreadConstraints }}

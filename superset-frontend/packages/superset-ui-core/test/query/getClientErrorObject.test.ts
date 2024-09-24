@@ -25,19 +25,59 @@ import {
   ErrorTypeEnum,
 } from '@superset-ui/core';
 
-it('Returns a Promise', () => {
+test('Returns a Promise', () => {
   const response = getClientErrorObject('error');
   expect(response instanceof Promise).toBe(true);
 });
 
-it('Returns a Promise that resolves to an object with an error key', async () => {
+test('Returns a Promise that resolves to an object with an error key', async () => {
   const error = 'error';
 
   const errorObj = await getClientErrorObject(error);
   expect(errorObj).toMatchObject({ error });
 });
 
-it('Handles Response that can be parsed as json', async () => {
+test('should handle HTML response with "500" or "server error"', async () => {
+  const htmlString500 = '<div>500: Internal Server Error</div>';
+  const clientErrorObject500 = await getClientErrorObject(htmlString500);
+  expect(clientErrorObject500).toEqual({ error: 'Server error' });
+
+  const htmlStringServerError = '<div>Server error message</div>';
+  const clientErrorObjectServerError = await getClientErrorObject(
+    htmlStringServerError,
+  );
+  expect(clientErrorObjectServerError).toEqual({
+    error: 'Server error',
+  });
+});
+
+test('should handle HTML response with "404" or "not found"', async () => {
+  const htmlString404 = '<div>404: Page not found</div>';
+  const clientErrorObject404 = await getClientErrorObject(htmlString404);
+  expect(clientErrorObject404).toEqual({ error: 'Not found' });
+
+  const htmlStringNotFoundError = '<div>Not found message</div>';
+  const clientErrorObjectNotFoundError = await getClientErrorObject(
+    htmlStringNotFoundError,
+  );
+  expect(clientErrorObjectNotFoundError).toEqual({
+    error: 'Not found',
+  });
+});
+
+test('should handle HTML response without common error code', async () => {
+  const htmlString = '<!doctype html><div>Foo bar Lorem Ipsum</div>';
+  const clientErrorObject = await getClientErrorObject(htmlString);
+  expect(clientErrorObject).toEqual({ error: 'Unknown error' });
+
+  const htmlString2 = '<div><p>An error occurred</p></div>';
+  const clientErrorObject2 = await getClientErrorObject(htmlString2);
+  expect(clientErrorObject2).toEqual({
+    error: 'Unknown error',
+  });
+});
+
+test('Handles Response that can be parsed as json', async () => {
   const jsonError = { something: 'something', error: 'Error message' };
   const jsonErrorString = JSON.stringify(jsonError);
 
@@ -45,7 +85,7 @@ it('Handles Response that can be parsed as json', async () => {
   expect(errorObj).toMatchObject(jsonError);
 });
 
-it('Handles backwards compatibility between old error messages and the new SIP-40 errors format', async () => {
+test('Handles backwards compatibility between old error messages and the new SIP-40 errors format', async () => {
   const jsonError = {
     errors: [
       {
@@ -63,14 +103,21 @@ it('Handles backwards compatibility between old error messages and the new SIP-4
   expect(errorObj.link).toEqual(jsonError.errors[0].extra.link);
 });
 
-it('Handles Response that can be parsed as text', async () => {
+test('Handles Response that can be parsed as text', async () => {
   const textError = 'Hello I am a text error';
 
   const errorObj = await getClientErrorObject(new Response(textError));
   expect(errorObj).toMatchObject({ error: textError });
 });
 
-it('Handles TypeError Response', async () => {
+test('Handles Response that contains raw html be parsed as text', async () => {
+  const textError = 'Hello I am a text error';
+
+  const errorObj = await getClientErrorObject(new Response(textError));
+  expect(errorObj).toMatchObject({ error: textError });
+});
+
+test('Handles TypeError Response', async () => {
   const error = new TypeError('Failed to fetch');
 
   // @ts-ignore
@@ -78,7 +125,7 @@ it('Handles TypeError Response', async () => {
   expect(errorObj).toMatchObject({ error: 'Network error' });
 });
 
-it('Handles timeout error', async () => {
+test('Handles timeout error', async () => {
   const errorObj = await getClientErrorObject({
     timeout: 1000,
     statusText: 'timeout',
@@ -110,14 +157,30 @@ it('Handles timeout error', async () => {
   });
 });
 
-it('Handles plain text as input', async () => {
+test('Handles plain text as input', async () => {
   const error = 'error';
 
   const errorObj = await getClientErrorObject(error);
   expect(errorObj).toMatchObject({ error });
 });
 
-it('Handles error with status text and message', async () => {
+test('Handles error with status code', async () => {
+  const status500 = new Response(null, { status: 500 });
+  const status404 = new Response(null, { status: 404 });
+  const status502 = new Response(null, { status: 502 });
+
+  expect(await getClientErrorObject(status500)).toMatchObject({
+    error: 'Server error',
+  });
+  expect(await getClientErrorObject(status404)).toMatchObject({
+    error: 'Not found',
+  });
+  expect(await getClientErrorObject(status502)).toMatchObject({
+    error: 'Bad gateway',
+  });
+});
+
+test('Handles error with status text and message', async () => {
   const statusText = 'status';
   const message = 'message';
 
@@ -135,7 +198,7 @@ it('Handles error with status text and message', async () => {
   });
 });
 
-it('getClientErrorMessage', () => {
+test('getClientErrorMessage', () => {
   expect(getClientErrorMessage('error')).toEqual('error');
   expect(
     getClientErrorMessage('error', {
@@ -150,7 +213,7 @@ it('getClientErrorMessage', () => {
   ).toEqual('error:\nclient error');
 });
 
-it('parseErrorJson with message', () => {
+test('parseErrorJson with message', () => {
   expect(parseErrorJson({ message: 'error message' })).toEqual({
     message: 'error message',
     error: 'error message',
@@ -181,7 +244,49 @@ it('parseErrorJson with message', () => {
   });
 });
 
-it('parseErrorJson with stacktrace', () => {
+test('parseErrorJson with HTML message', () => {
+  expect(
+    parseErrorJson({
+      message: '<div>error message</div>',
+    }),
+  ).toEqual({
+    message: '<div>error message</div>',
+    error: 'Unknown error',
+  });
+  expect(
+    parseErrorJson({
+      message: '<div>Server error</div>',
+    }),
+  ).toEqual({
+    message: '<div>Server error</div>',
+    error: 'Server error',
+  });
+});
+
+test('parseErrorJson with HTML message and status code', () => {
+  expect(
+    parseErrorJson({
+      status: 502,
+      message: '<div>error message</div>',
+    }),
+  ).toEqual({
+    status: 502,
+    message: '<div>error message</div>',
+    error: 'Bad gateway',
+  });
+  expect(
+    parseErrorJson({
+      status: 999,
+      message: '<div>Server error</div>',
+    }),
+  ).toEqual({
+    status: 999,
+    message: '<div>Server error</div>',
+    error: 'Server error',
+  });
+});
+
+test('parseErrorJson with stacktrace', () => {
   expect(
     parseErrorJson({ error: 'error message', stack: 'stacktrace' }),
   ).toEqual({
@@ -204,7 +309,7 @@ it('parseErrorJson with stacktrace', () => {
   });
 });
 
-it('parseErrorJson with CSRF', () => {
+test('parseErrorJson with CSRF', () => {
   expect(
     parseErrorJson({
       responseText: 'CSRF',
@@ -215,7 +320,7 @@ it('parseErrorJson with CSRF', () => {
   });
 });
 
-it('getErrorText', async () => {
+test('getErrorText', async () => {
   expect(await getErrorText('error', 'dashboard')).toEqual(
     'Sorry, there was an error saving this dashboard: error',
   );

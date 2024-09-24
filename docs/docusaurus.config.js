@@ -113,7 +113,11 @@ const config = {
           },
           {
             to: '/docs/configuration/alerts-reports',
-            from: '/docs/installation/email-reports',
+            from: '/docs/installation/alerts-reports',
+          },
+          {
+            to: '/docs/contributing/development',
+            from: '/docs/contributing/hooks-and-linting',
           },
           {
             to: '/docs/intro',
@@ -182,6 +186,10 @@ const config = {
           {
             to: '/docs/configuration/event-logging',
             from: '/docs/installation/event-logging/',
+          },
+          {
+            to: '/docs/contributing/howtos',
+            from: '/docs/contributing/translations/',
           },
         ],
       },

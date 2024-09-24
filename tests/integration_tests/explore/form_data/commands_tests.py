@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 from unittest.mock import patch
 
 import pytest
@@ -30,6 +29,7 @@ from superset.commands.explore.form_data.update import UpdateFormDataCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
+from superset.utils import json
 from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase

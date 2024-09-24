@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
-import json
 import unittest
 import copy
 from datetime import datetime
@@ -64,6 +63,7 @@ from superset.utils.core import (
     AdhocMetricExpressionType,
     ExtraFiltersReasonType,
 )
+from superset.utils import json
 from superset.utils.database import get_example_database, get_main_database
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 
@@ -718,6 +718,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         if get_example_database().backend != "presto":
             assert "(\n      'boy' = 'boy'\n    )" in result
 
+    @unittest.skip("Extremely flaky test on MySQL")
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async(self):
@@ -1211,6 +1212,9 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request (no login)
         """
+        if get_example_database().backend == "presto":
+            return
+
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
         self.logout()

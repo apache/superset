@@ -32,6 +32,9 @@ from superset.extensions import celery_app, db
 flask_app = create_app()
 
 # Need to import late, as the celery_app will have been setup by "create_app()"
+# ruff: noqa: E402, F401
+# pylint: disable=wrong-import-position, unused-import
+from . import cache, scheduler
 
 # Export the celery app globally for Celery (as run on the cmd line) to find
 app = celery_app
@@ -62,7 +65,7 @@ def teardown(  # pylint: disable=unused-argument
 
     if flask_app.config.get("SQLALCHEMY_COMMIT_ON_TEARDOWN"):
         if not isinstance(retval, Exception):
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     if not flask_app.config.get("CELERY_ALWAYS_EAGER"):
         db.session.remove()

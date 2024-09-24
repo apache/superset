@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
@@ -197,7 +196,7 @@ describe('DatasetList', () => {
     ).toBeFalsy();
     act(() => {
       wrapper
-        .find('#duplicate-action-tooltop')
+        .find('#duplicate-action-tooltip')
         .at(0)
         .find('.action-button')
         .props()
@@ -213,7 +212,7 @@ describe('DatasetList', () => {
     await waitForComponentToPaint(wrapper);
     await act(async () => {
       wrapper
-        .find('#duplicate-action-tooltop')
+        .find('#duplicate-action-tooltip')
         .at(0)
         .find('.action-button')
         .props()

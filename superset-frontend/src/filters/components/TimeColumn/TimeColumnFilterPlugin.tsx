@@ -23,7 +23,7 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Select } from 'src/components';
 import { FormItemProps } from 'antd/lib/form';
 import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';

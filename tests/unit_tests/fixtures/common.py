@@ -20,11 +20,14 @@ from __future__ import annotations
 import csv
 from datetime import datetime
 from io import BytesIO, StringIO
-from typing import Any
+from typing import Any, Generator
 
 import pandas as pd
 import pytest
+from flask_appbuilder.security.sqla.models import Role, User
 from werkzeug.datastructures import FileStorage
+
+from superset import db
 
 
 @pytest.fixture
@@ -73,3 +76,24 @@ def create_columnar_file(
     df.to_parquet(buffer, index=False)
     buffer.seek(0)
     return FileStorage(stream=buffer, filename=filename)
+
+
+@pytest.fixture
+def admin_user() -> Generator[User, None, None]:
+    role = db.session.query(Role).filter_by(name="Admin").one()
+    user = User(
+        first_name="Alice",
+        last_name="Admin",
+        email="alice_admin@example.org",
+        username="alice_admin",
+        roles=[role],
+    )
+    db.session.add(user)
+    db.session.flush()
+    yield user
+
+
+@pytest.fixture
+def after_each() -> Generator[None, None, None]:
+    yield
+    db.session.rollback()

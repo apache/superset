@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactElement, JSXElementConstructor } from 'react';
+import { ReactElement, JSXElementConstructor } from 'react';
 import { useTheme } from '@superset-ui/core';
 import ResizableSidebar from 'src/components/ResizableSidebar';
 

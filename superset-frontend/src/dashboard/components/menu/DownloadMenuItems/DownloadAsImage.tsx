@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { SyntheticEvent } from 'react';
+import { SyntheticEvent } from 'react';
 import { logging, t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';

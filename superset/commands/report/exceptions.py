@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import math
+
 from flask_babel import lazy_gettext as _
 
 from superset.commands.exceptions import (
@@ -90,6 +92,31 @@ class ReportScheduleEitherChartOrDashboardError(ValidationError):
     def __init__(self) -> None:
         super().__init__(
             _("Must choose either a chart or a dashboard"), field_name="chart"
+        )
+
+
+class ReportScheduleFrequencyNotAllowed(ValidationError):
+    """
+    Marshmallow validation error for report schedule configured to run more
+    frequently than allowed
+    """
+
+    def __init__(
+        self,
+        report_type: str = "Report",
+        minimum_interval: int = 120,
+    ) -> None:
+        interval_in_minutes = math.ceil(minimum_interval / 60)
+
+        super().__init__(
+            _(
+                "%(report_type)s schedule frequency exceeding limit."
+                " Please configure a schedule with a minimum interval of"
+                " %(minimum_interval)d minutes per execution.",
+                report_type=report_type,
+                minimum_interval=interval_in_minutes,
+            ),
+            field_name="crontab",
         )
 
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import Button, { ButtonProps } from 'src/components/Button';
 import { STYLES, SIZES } from 'src/components/Button/Button.stories';
 import ButtonGroup from './index';
@@ -50,11 +49,13 @@ InteractiveButtonGroup.args = {
 InteractiveButtonGroup.argTypes = {
   buttonStyle: {
     name: STYLES.label,
-    control: { type: 'select', options: STYLES.options },
+    control: { type: 'select' },
+    options: STYLES.options,
   },
   buttonSize: {
     name: SIZES.label,
-    control: { type: 'select', options: SIZES.options },
+    control: { type: 'select' },
+    options: SIZES.options,
   },
 };
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import Icons from 'src/components/Icons';
 import { IconTooltip, Props } from '.';
 
@@ -54,6 +53,7 @@ InteractiveIconTooltip.args = {
 InteractiveIconTooltip.argTypes = {
   placement: {
     defaultValue: 'top',
-    control: { type: 'select', options: PLACEMENTS },
+    control: { type: 'select' },
+    options: PLACEMENTS,
   },
 };

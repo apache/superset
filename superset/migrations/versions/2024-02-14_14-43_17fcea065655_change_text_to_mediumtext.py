@@ -28,8 +28,10 @@ down_revision = "87d38ad83218"
 
 import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
+from sqlalchemy.dialects.mysql import MEDIUMTEXT, TEXT  # noqa: E402
 from sqlalchemy.dialects.mysql.base import MySQLDialect  # noqa: E402
 
+from superset.migrations.shared.utils import get_table_column  # noqa: E402
 from superset.utils.core import MediumText  # noqa: E402
 
 TABLE_COLUMNS = [
@@ -38,8 +40,6 @@ TABLE_COLUMNS = [
     "dashboards.css",
     "keyvalue.value",
     "query.extra_json",
-    "query.executed_sql",
-    "query.select_sql",
     "report_execution_log.value_row_json",
     "report_recipient.recipient_config_json",
     "report_schedule.sql",
@@ -65,23 +65,35 @@ NOT_NULL_COLUMNS = ["keyvalue.value", "row_level_security_filters.clause"]
 
 def upgrade():
     if isinstance(op.get_bind().dialect, MySQLDialect):
-        for column in TABLE_COLUMNS:
-            with op.batch_alter_table(column.split(".")[0]) as batch_op:
-                batch_op.alter_column(
-                    column.split(".")[1],
-                    existing_type=sa.Text(),
-                    type_=MediumText(),
-                    existing_nullable=column not in NOT_NULL_COLUMNS,
-                )
+        for item in TABLE_COLUMNS:
+            table_name, column_name = item.split(".")
+
+            if (column := get_table_column(table_name, column_name)) and isinstance(
+                column["type"],
+                TEXT,
+            ):
+                with op.batch_alter_table(table_name) as batch_op:
+                    batch_op.alter_column(
+                        column_name,
+                        existing_type=sa.Text(),
+                        type_=MediumText(),
+                        existing_nullable=item not in NOT_NULL_COLUMNS,
+                    )
 
 
 def downgrade():
     if isinstance(op.get_bind().dialect, MySQLDialect):
-        for column in TABLE_COLUMNS:
-            with op.batch_alter_table(column.split(".")[0]) as batch_op:
-                batch_op.alter_column(
-                    column.split(".")[1],
-                    existing_type=MediumText(),
-                    type_=sa.Text(),
-                    existing_nullable=column not in NOT_NULL_COLUMNS,
-                )
+        for item in TABLE_COLUMNS:
+            table_name, column_name = item.split(".")
+
+            if (column := get_table_column(table_name, column_name)) and isinstance(
+                column["type"],
+                MEDIUMTEXT,
+            ):
+                with op.batch_alter_table(table_name) as batch_op:
+                    batch_op.alter_column(
+                        column_name,
+                        existing_type=MediumText(),
+                        type_=sa.Text(),
+                        existing_nullable=item not in NOT_NULL_COLUMNS,
+                    )

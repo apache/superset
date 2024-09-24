@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { AntdForm, Col, Row } from 'src/components';
 import { Form, FormLabel } from 'src/components/Form';
@@ -31,7 +31,6 @@ const StyledDiv = styled.div`
   padding-top: ${({ theme }) => theme.gridUnit * 2}px;
   label {
     color: ${({ theme }) => theme.colors.grayscale.base};
-    text-transform: uppercase;
     margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
 `;

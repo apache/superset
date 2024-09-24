@@ -17,13 +17,7 @@
  * under the License.
  */
 import { Dispatch } from 'redux';
-import {
-  makeApi,
-  CategoricalColorNamespace,
-  t,
-  getErrorText,
-} from '@superset-ui/core';
-import { isString } from 'lodash';
+import { makeApi, t, getErrorText } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   ChartConfiguration,
@@ -36,39 +30,8 @@ import { onSave } from './dashboardState';
 
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 
-export function updateColorSchema(
-  metadata: Record<string, any>,
-  labelColors: Record<string, string>,
-) {
-  const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-    metadata?.color_namespace,
-  );
-  const colorMap = isString(labelColors)
-    ? JSON.parse(labelColors)
-    : labelColors;
-  Object.keys(colorMap).forEach(label => {
-    categoricalNamespace.setColor(label, colorMap[label]);
-  });
-}
-
 // updates partially changed dashboard info
 export function dashboardInfoChanged(newInfo: { metadata: any }) {
-  const { metadata } = newInfo;
-
-  const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-    metadata?.color_namespace,
-  );
-
-  categoricalNamespace.resetColors();
-
-  if (metadata?.shared_label_colors) {
-    updateColorSchema(metadata, metadata?.shared_label_colors);
-  }
-
-  if (metadata?.label_colors) {
-    updateColorSchema(metadata, metadata?.label_colors);
-  }
-
   return { type: DASHBOARD_INFO_UPDATED, newInfo };
 }
 export const SAVE_CHART_CONFIG_BEGIN = 'SAVE_CHART_CONFIG_BEGIN';
