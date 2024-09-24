@@ -58,10 +58,16 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
       if (hasDataseId(rv)) {
         return rv;
       }
+      // Since there's no dataset id but the API responded with a valid payload,
+      // we assume the dataset was deleted, so we preserve some values from previous
+      // state so if the user decide to swap the datasource, the chart config remains
       fallbackExploreInitialData.form_data = {
         ...rv.result.form_data,
         ...fallbackExploreInitialData.form_data,
       };
+      if (rv.result?.slice) {
+        fallbackExploreInitialData.slice = rv.result.slice;
+      }
     }
     let message = t('Failed to load chart data');
     const responseError = rv?.result?.message;
