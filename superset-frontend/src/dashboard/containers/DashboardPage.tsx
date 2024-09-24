@@ -32,6 +32,7 @@ import {
   hydrateDashboard,
   hydrateDashboardActiveTabs,
   hydrateDashboardDataMask,
+  hydrateDashboardInfo,
 } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
@@ -92,12 +93,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         ? dashboardInfo
         : null,
   );
-  const [isDashboardHydrated, isDashboardDatamaskHydrated] = useSelector<
-    RootState,
-    [boolean, boolean]
-  >(state => [
+  const [
+    isDashboardHydrated,
+    isDashboardDatamaskHydrated,
+    isDashboardInfoHydrated,
+  ] = useSelector<RootState, [boolean, boolean, boolean]>(state => [
     state.dashboardState.dashboardHydrated,
     state.dashboardState.dataMaskHydrated,
+    state.dashboardState.dashboardInfoHydrated,
   ]);
   const currentDataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
@@ -114,7 +117,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   } = useDashboardDatasets(idOrSlug);
 
   const error = dashboardApiError || chartsApiError;
-  const readyToHydrate = Boolean(dashboard && charts);
+  const readyToHydrate =
+    Boolean(dashboard && charts) &&
+    !isDashboardHydrated &&
+    isDashboardInfoHydrated;
   const { dashboard_title, css, id = 0 } = dashboard || {};
 
   useEffect(() => {
@@ -140,8 +146,21 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     dispatch(setDatasetsStatus(status));
   }, [dispatch, status]);
 
+  /**
+   * Hydrate initial dashboard info (no layout / filters).
+   * Unblocks the Dashboard skeleton.
+   */
   useEffect(() => {
-    if (readyToHydrate && !isDashboardHydrated) {
+    if (dashboard && !isDashboardInfoHydrated) {
+      dispatch(hydrateDashboardInfo(dashboard));
+    }
+  }, [dashboard, isDashboardInfoHydrated, dispatch]);
+
+  /**
+   * Hydrate dashboard with layout and filters.
+   */
+  useEffect(() => {
+    if (readyToHydrate) {
       dispatch(
         hydrateDashboard({
           history,
@@ -150,15 +169,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }),
       );
     }
-  }, [
-    charts,
-    dashboard,
-    dispatch,
-    history,
-    isDashboardHydrated,
-    readyToHydrate,
-  ]);
+  }, [charts, dashboard, dispatch, history, readyToHydrate]);
 
+  /**
+   * Hydrate dashboard data mask and active tabs.
+   * Depends on dashboard layout and filters being hydrated.
+   */
   useEffect(() => {
     const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
     const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
@@ -188,16 +204,18 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     if (
       id &&
       dashboardInfo &&
+      isDashboardHydrated &&
+      !isDashboardDatamaskHydrated &&
       !Object.keys(currentDataMask).length &&
-      (permalinkKey || nativeFilterKeyValue || isOldRison) &&
-      !isDashboardDatamaskHydrated
+      (permalinkKey || nativeFilterKeyValue || isOldRison)
     ) {
       getDataMaskApplied();
     }
     if (
-      Object.keys(currentDataMask).length &&
       dashboardInfo &&
-      !isDashboardDatamaskHydrated
+      isDashboardHydrated &&
+      !isDashboardDatamaskHydrated &&
+      Object.keys(currentDataMask).length
     ) {
       dispatch(hydrateDashboardDataMask(currentDataMask, dashboardInfo));
     }
@@ -206,6 +224,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     dashboardInfo,
     id,
     history.location,
+    isDashboardHydrated,
     isDashboardDatamaskHydrated,
     currentDataMask,
   ]);
@@ -240,7 +259,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   if (error) throw error; // caught in error boundary
 
-  const isLoading = !dashboardInfo;
+  const isLoading = !isDashboardInfoHydrated;
 
   return (
     <>

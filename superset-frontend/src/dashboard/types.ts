@@ -116,6 +116,7 @@ export type DashboardState = {
   };
   activeTabsHydrated: boolean;
   dataMaskHydrated: boolean;
+  dashboardInfoHydrated: boolean;
   dashboardHydrated: boolean;
 };
 export type DashboardInfo = {

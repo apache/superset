@@ -22,7 +22,7 @@ import {
   SET_FILTER_BAR_ORIENTATION,
   SET_CROSS_FILTERS_ENABLED,
 } from '../actions/dashboardInfo';
-import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+import { HYDRATE_DASHBOARD, HYDRATE_DASHBOARD_INFO } from '../actions/hydrate';
 
 export default function dashboardStateReducer(state = {}, action) {
   switch (action.type) {
@@ -34,6 +34,7 @@ export default function dashboardStateReducer(state = {}, action) {
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
     case HYDRATE_DASHBOARD:
+    case HYDRATE_DASHBOARD_INFO:
       return {
         ...state,
         ...action.data.dashboardInfo,

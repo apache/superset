@@ -31,6 +31,7 @@ export default {
   focusedFilterField: null,
   refreshFrequency: 0,
   dataMaskHydrated: true,
+  dashboardInfoHydrated: true,
   dashboardHydrated: true,
 };
 

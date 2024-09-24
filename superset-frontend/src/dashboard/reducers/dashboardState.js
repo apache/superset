@@ -51,6 +51,7 @@ import {
 import {
   HYDRATE_DASHBOARD,
   HYDRATE_DASHBOARD_ACTIVETABS,
+  HYDRATE_DASHBOARD_INFO,
   HYDRATE_DASHBOARD_DATAMASK,
 } from '../actions/hydrate';
 
@@ -252,9 +253,16 @@ export default function dashboardStateReducer(state = {}, action) {
         dataMaskHydrated: true,
       };
     },
+    [HYDRATE_DASHBOARD_INFO]() {
+      return {
+        ...state,
+        dashboardInfoHydrated: true,
+      };
+    },
     [ON_LEAVE_DASHBOARD]() {
       return {
         ...state,
+        dashboardInfoHydrated: false,
         dataMaskHydrated: false,
         dashboardHydrated: false,
       };
