@@ -793,8 +793,16 @@ class Superset(BaseSupersetView):
             dashboard.raise_for_access()
         except SupersetSecurityException as ex:
             # anonymous users should get the login screen, others should go to dashboard list
-            redirect_url = f"{appbuilder.get_url_for_login}?next={request.url}" if g.user is None or g.user.is_anonymous else "/dashboard/list/"
-            warn_msg = "This dashboard does not allow public access." if g.user is None or g.user.is_anonymous else utils.error_msg_from_exception(ex)
+            redirect_url = (
+                f"{appbuilder.get_url_for_login}?next={request.url}"
+                if g.user is None or g.user.is_anonymous
+                else "/dashboard/list/"
+            )
+            warn_msg = (
+                "This dashboard does not allow public access."
+                if g.user is None or g.user.is_anonymous
+                else utils.error_msg_from_exception(ex)
+            )
             return redirect_with_flash(
                 url=redirect_url,
                 message=warn_msg,
