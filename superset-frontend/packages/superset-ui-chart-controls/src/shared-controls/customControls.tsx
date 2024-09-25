@@ -23,6 +23,7 @@ import {
   GenericDataType,
   getColumnLabel,
   getMetricLabel,
+  isPhysicalColumn,
   QueryFormColumn,
   QueryFormMetric,
   t,
@@ -66,10 +67,16 @@ function isForcedCategorical(controls: ControlStateMapping): boolean {
 }
 
 function isSortable(controls: ControlStateMapping): boolean {
+  const xAxisValue = controls?.x_axis?.value as QueryFormColumn;
+  // Given that we don't know the type of a custom SQL column,
+  // we treat it as sortable and give the responsibility to the
+  // user to provide a sortable result.
+  const isCustomSQL = !isPhysicalColumn(xAxisValue);
   return (
     isForcedCategorical(controls) ||
+    isCustomSQL ||
     checkColumnType(
-      getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+      getColumnLabel(xAxisValue),
       controls?.datasource?.datasource,
       [GenericDataType.String, GenericDataType.Boolean],
     )
