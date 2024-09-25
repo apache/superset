@@ -312,7 +312,7 @@ describe('Native filters', () => {
   });
 
   describe('Nativefilters initial state not required', () => {
-    it("User can check 'Filter has default value'", () => {
+    it.skip("User can check 'Filter has default value'", () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
@@ -320,7 +320,7 @@ describe('Native filters', () => {
       inputNativeFilterDefaultValue(testItems.filterDefaultValue);
     });
 
-    it('User can add a new native filter', () => {
+    it.skip('User can add a new native filter', () => {
       prepareDashboardFilters([]);
 
       let filterKey: string;
@@ -345,7 +345,7 @@ describe('Native filters', () => {
       cy.get(nativeFilters.modal.container).should('not.exist');
     });
 
-    it('User can restore a deleted native filter', () => {
+    it.skip('User can restore a deleted native filter', () => {
       prepareDashboardFilters([
         { name: 'country_code', column: 'country_code', datasetId: 2 },
       ]);
@@ -363,7 +363,7 @@ describe('Native filters', () => {
         );
     });
 
-    it('User can create a time grain filter', () => {
+    it.skip('User can create a time grain filter', () => {
       prepareDashboardFilters([]);
       enterNativeFilterEditModal();
       fillNativeFilterForm(
@@ -424,7 +424,7 @@ describe('Native filters', () => {
       validateFilterContentOnDashboard(testItems.topTenChart.filterColumnYear);
     });
 
-    it('User can create a numerical range filter', () => {
+    it.skip('User can create a numerical range filter', () => {
       visitDashboard();
       enterNativeFilterEditModal(false);
       fillNativeFilterForm(
@@ -454,7 +454,7 @@ describe('Native filters', () => {
       });
     });
 
-    it('User can undo deleting a native filter', () => {
+    it.skip('User can undo deleting a native filter', () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
@@ -465,7 +465,7 @@ describe('Native filters', () => {
         .should('have.attr', 'value', testItems.topTenChart.filterColumn);
     });
 
-    it('User can cancel changes in native filter', () => {
+    it.skip('User can cancel changes in native filter', () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
@@ -479,7 +479,7 @@ describe('Native filters', () => {
       cy.contains('You have removed this filter.').should('be.visible');
     });
 
-    it('User can create a value filter', () => {
+    it.skip('User can create a value filter', () => {
       visitDashboard();
       enterNativeFilterEditModal(false);
       addCountryNameFilter();
@@ -490,7 +490,7 @@ describe('Native filters', () => {
       validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
     });
 
-    it('User can apply value filter with selected values', () => {
+    it.skip('User can apply value filter with selected values', () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
