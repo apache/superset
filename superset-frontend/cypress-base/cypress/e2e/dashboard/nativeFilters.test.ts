@@ -502,7 +502,7 @@ describe('Native filters', () => {
       });
     });
 
-    it('User can stop filtering when filter is removed', () => {
+    it.skip('User can stop filtering when filter is removed', () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);

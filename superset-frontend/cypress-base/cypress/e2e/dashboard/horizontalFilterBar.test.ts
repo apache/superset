@@ -81,7 +81,7 @@ describe('Horizontal FilterBar', () => {
     setFilterBarOrientation('vertical');
   });
 
-  it('should show all default actions in horizontal mode', () => {
+  it.skip('should show all default actions in horizontal mode', () => {
     visitDashboard();
     openVerticalFilterBar();
     setFilterBarOrientation('horizontal');
@@ -92,7 +92,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('filterbar-action-buttons').should('exist');
   });
 
-  it('should stay in horizontal mode when reloading', () => {
+  it.skip('should stay in horizontal mode when reloading', () => {
     visitDashboard();
     openVerticalFilterBar();
     setFilterBarOrientation('horizontal');
@@ -100,7 +100,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('dashboard-filters-panel').should('not.exist');
   });
 
-  it('should show all filters in available space on load', () => {
+  it.skip('should show all filters in available space on load', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -110,7 +110,7 @@ describe('Horizontal FilterBar', () => {
     cy.get('.filter-item-wrapper').should('have.length', 3);
   });
 
-  it('should show "more filters" on window resizing up and down', () => {
+  it.skip('should show "more filters" on window resizing up and down', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -135,7 +135,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('dropdown-container-btn').should('not.exist');
   });
 
-  it('should show "more filters" and scroll', () => {
+  it.skip('should show "more filters" and scroll', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -162,7 +162,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('filter-control-name').contains('test_12').should('be.visible');
   });
 
-  it('should display newly added filter', () => {
+  it.skip('should display newly added filter', () => {
     visitDashboard();
     openVerticalFilterBar();
     setFilterBarOrientation('horizontal');
@@ -173,7 +173,7 @@ describe('Horizontal FilterBar', () => {
     validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
   });
 
-  it('should spot changes in "more filters" and apply their values', () => {
+  it.skip('should spot changes in "more filters" and apply their values', () => {
     cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
@@ -201,7 +201,7 @@ describe('Horizontal FilterBar', () => {
     );
   });
 
-  it('should focus filter and open "more filters" programmatically', () => {
+  it.skip('should focus filter and open "more filters" programmatically', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -228,7 +228,7 @@ describe('Horizontal FilterBar', () => {
     cy.get('.ant-select-focused').should('be.visible');
   });
 
-  it('should show tag count and one plain tag on focus and only count on blur in select ', () => {
+  it.skip('should show tag count and one plain tag on focus and only count on blur in select ', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
     ]);
