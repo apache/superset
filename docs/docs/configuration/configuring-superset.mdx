@@ -215,6 +215,61 @@ In case the reverse proxy is used for providing SSL encryption, an explicit defi
 RequestHeader set X-Forwarded-Proto "https"
 ```
 
+## Configuration Under a Prefixed Path
+
+If you need to run superset on a prefixed path you first need to configure the
+load balancer or reverse proxy as above and ensure it is inserting the `X-Forward-*`
+headers along with enabling the `ENABLE_PROXY_FIX` flag in `superset_config.py`.
+
+An Example NGINX configuration would look like:
+
+```
+location ^~/analytics/ {
+    # The trailing '/' is key both in the location argument
+    # argument on the line above and the proxy_pass line below so that nginx strips
+    # the prefix before forwarding it to the application server.
+    proxy_pass http://localhost:8088/;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Prefix  "/analytics";
+    proxy_http_version 1.1;
+    port_in_redirect off;
+    proxy_connect_timeout 300;
+}
+```
+
+If you are running superset on a different port than the load balancer or reverse proxy
+is listening then along with `ENABLE_PROXY_FIX = True` the proxy fix should be configured
+to ignore the port:
+
+```python
+ENABLE_PROXY_FIX = True
+PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 0, "x_prefix": 1}
+```
+
+Once the proxy is configured the frontend assets need to be [built](/docs/contributing/development#build-assets)
+to include the prefix. The prefix path is controlled by two environment variables (one of which is optional):
+
+- `BASE_PATH`: Set this to the absolute path for the base of the application,
+  e.g. `/analytics` would place the login page at `http://host.domain/analytics/login/`
+- `ASSET_BASE_URL` _(optional)_: This is an optional second variable to place the static
+  assets at a different url, e.g. on a CDN. If unset this defaults to the same value
+  as `BASE_PATH`.
+
+Build the frontend with these variables set, e.g. `BASE_PATH=/analytics npm run build`.
+
+### Docker builds
+
+The default Docker builds are built with no prefix defined and will require a custom
+image build defining the above variables appropriately.
+See [Docker Builds](docs/installation/docker-builds#key-args-in-dockerfile) for a
+description of all available arguments.
+
+For development the docker compose setup allows these variables to be set within
+the `docker-compose.yml` file.
+
 ## Custom OAuth2 Configuration
 
 Superset is built on Flask-AppBuilder (FAB), which supports many providers out of the box
