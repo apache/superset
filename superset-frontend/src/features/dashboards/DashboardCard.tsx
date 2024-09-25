@@ -91,7 +91,7 @@ function DashboardCard({
       SupersetClient.get({
         endpoint: `/api/v1/dashboard/${dashboard.id}`,
       }).then(({ json = {} }) => {
-        setThumbnailUrl(json.thumbnail_url || '');
+        setThumbnailUrl(json.result?.thumbnail_url || '');
         setFetchingThumbnail(false);
       });
     }

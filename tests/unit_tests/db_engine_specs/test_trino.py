@@ -15,17 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
+from __future__ import annotations
+
 import copy
+from collections import namedtuple
 from datetime import datetime
 from typing import Any, Optional
 from unittest.mock import MagicMock, Mock, patch
 
 import pandas as pd
 import pytest
+from flask import g, has_app_context
 from pytest_mock import MockerFixture
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from sqlalchemy import sql, text, types
+from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import NoSuchTableError
 from trino.exceptions import TrinoExternalError, TrinoInternalError, TrinoUserError
 from trino.sqlalchemy import datatype
 from trino.sqlalchemy.dialect import TrinoDialect
@@ -432,6 +438,33 @@ def test_execute_with_cursor_in_parallel(app, mocker: MockerFixture):
         )
 
 
+def test_execute_with_cursor_app_context(app, mocker: MockerFixture):
+    """Test that `execute_with_cursor` still contains the current app context"""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.query_id = None
+
+    mock_query = mocker.MagicMock()
+    g.some_value = "some_value"
+
+    def _mock_execute(*args, **kwargs):
+        assert has_app_context()
+        assert g.some_value == "some_value"
+
+    with patch.object(TrinoEngineSpec, "execute", side_effect=_mock_execute):
+        with patch.dict(
+            "superset.config.DISALLOWED_SQL_FUNCTIONS",
+            {},
+            clear=True,
+        ):
+            TrinoEngineSpec.execute_with_cursor(
+                cursor=mock_cursor,
+                sql="SELECT 1 FROM foo",
+                query=mock_query,
+            )
+
+
 def test_get_columns(mocker: MockerFixture):
     """Test that ROW columns are not expanded without expand_rows"""
     from superset.db_engine_specs.trino import TrinoEngineSpec
@@ -462,6 +495,64 @@ def test_get_columns(mocker: MockerFixture):
     ]
 
     _assert_columns_equal(actual, expected)
+
+
+def test_get_columns_error(mocker: MockerFixture):
+    """
+    Test that we fallback to a `SHOW COLUMNS FROM ...` query.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    field1_type = datatype.parse_sqltype("row(a varchar, b date)")
+    field2_type = datatype.parse_sqltype("row(r1 row(a varchar, b varchar))")
+    field3_type = datatype.parse_sqltype("int")
+
+    mock_inspector = mocker.MagicMock()
+    mock_inspector.engine.dialect = sqlite.dialect()
+    mock_inspector.get_columns.side_effect = NoSuchTableError(
+        "The specified table does not exist."
+    )
+    Row = namedtuple("Row", ["Column", "Type"])
+    mock_inspector.bind.execute().fetchall.return_value = [
+        Row("field1", "row(a varchar, b date)"),
+        Row("field2", "row(r1 row(a varchar, b varchar))"),
+        Row("field3", "int"),
+    ]
+
+    actual = TrinoEngineSpec.get_columns(mock_inspector, Table("table", "schema"))
+    expected = [
+        ResultSetColumnType(
+            name="field1",
+            column_name="field1",
+            type=field1_type,
+            is_dttm=None,
+            type_generic=None,
+            default=None,
+            nullable=True,
+        ),
+        ResultSetColumnType(
+            name="field2",
+            column_name="field2",
+            type=field2_type,
+            is_dttm=None,
+            type_generic=None,
+            default=None,
+            nullable=True,
+        ),
+        ResultSetColumnType(
+            name="field3",
+            column_name="field3",
+            type=field3_type,
+            is_dttm=None,
+            type_generic=None,
+            default=None,
+            nullable=True,
+        ),
+    ]
+
+    _assert_columns_equal(actual, expected)
+
+    mock_inspector.bind.execute.assert_called_with('SHOW COLUMNS FROM schema."table"')
 
 
 def test_get_columns_expand_rows(mocker: MockerFixture):
@@ -536,8 +627,6 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
 
 
 def test_get_indexes_no_table():
-    from sqlalchemy.exc import NoSuchTableError
-
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
     db_mock = Mock()
@@ -632,7 +721,15 @@ def test_adjust_engine_params_catalog_only() -> None:
     assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
 
 
-def test_get_default_catalog() -> None:
+@pytest.mark.parametrize(
+    "sqlalchemy_uri,result",
+    [
+        ("trino://user:pass@localhost:8080/system", "system"),
+        ("trino://user:pass@localhost:8080/system/default", "system"),
+        ("trino://trino@localhost:8081", None),
+    ],
+)
+def test_get_default_catalog(sqlalchemy_uri: str, result: str | None) -> None:
     """
     Test the ``get_default_catalog`` method.
     """
@@ -641,15 +738,9 @@ def test_get_default_catalog() -> None:
 
     database = Database(
         database_name="my_db",
-        sqlalchemy_uri="trino://user:pass@localhost:8080/system",
+        sqlalchemy_uri=sqlalchemy_uri,
     )
-    assert TrinoEngineSpec.get_default_catalog(database) == "system"
-
-    database = Database(
-        database_name="my_db",
-        sqlalchemy_uri="trino://user:pass@localhost:8080/system/default",
-    )
-    assert TrinoEngineSpec.get_default_catalog(database) == "system"
+    assert TrinoEngineSpec.get_default_catalog(database) == result
 
 
 @patch("superset.db_engine_specs.trino.TrinoEngineSpec.latest_partition")

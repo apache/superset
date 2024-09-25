@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from enum import Enum
 from typing import Optional, TypedDict, Union
 
 from flask_appbuilder.security.sqla.models import Role
 from flask_login import AnonymousUserMixin
+
+from superset.utils.backports import StrEnum
 
 
 class GuestTokenUser(TypedDict, total=False):
@@ -27,7 +28,7 @@ class GuestTokenUser(TypedDict, total=False):
     last_name: str
 
 
-class GuestTokenResourceType(Enum):
+class GuestTokenResourceType(StrEnum):
     DASHBOARD = "dashboard"
 
 

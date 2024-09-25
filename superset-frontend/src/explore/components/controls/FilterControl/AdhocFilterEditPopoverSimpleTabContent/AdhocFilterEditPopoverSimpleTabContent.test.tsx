@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
 import * as redux from 'react-redux';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';

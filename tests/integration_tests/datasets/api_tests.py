@@ -26,21 +26,16 @@ import prison
 import pytest
 import yaml
 from sqlalchemy import inspect
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
 from superset import app  # noqa: F401
 from superset.commands.dataset.exceptions import DatasetCreateFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.daos.exceptions import (
-    DAOCreateFailedError,
-    DAODeleteFailedError,
-    DAOUpdateFailedError,
-)
 from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.sql_parse import Table
 from superset.utils import json
 from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
@@ -197,7 +192,6 @@ class TestDatasetApi(SupersetTestCase):
         def count_datasets():
             uri = "api/v1/chart/"
             rv = self.client.get(uri, "get_list")
-            print(rv.data)
             self.assertEqual(rv.status_code, 200)
             data = rv.get_json()
             return data["count"]
@@ -682,57 +676,6 @@ class TestDatasetApi(SupersetTestCase):
         assert data == expected_result
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_create_dataset_validate_uniqueness(self):
-        """
-        Dataset API: Test create dataset validate table uniqueness
-        """
-
-        energy_usage_ds = self.get_energy_usage_dataset()
-        self.login(ADMIN_USERNAME)
-        table_data = {
-            "database": energy_usage_ds.database_id,
-            "table_name": energy_usage_ds.table_name,
-        }
-        if schema := get_example_default_schema():
-            table_data["schema"] = schema
-        rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
-        assert rv.status_code == 422
-        data = json.loads(rv.data.decode("utf-8"))
-        assert data == {
-            "message": {
-                "table": [
-                    f"Dataset {Table(energy_usage_ds.table_name, schema)} already exists"
-                ]
-            }
-        }
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_create_dataset_with_sql_validate_uniqueness(self):
-        """
-        Dataset API: Test create dataset with sql
-        """
-
-        energy_usage_ds = self.get_energy_usage_dataset()
-        self.login(ADMIN_USERNAME)
-        table_data = {
-            "database": energy_usage_ds.database_id,
-            "table_name": energy_usage_ds.table_name,
-            "sql": "select * from energy_usage",
-        }
-        if schema := get_example_default_schema():
-            table_data["schema"] = schema
-        rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
-        assert rv.status_code == 422
-        data = json.loads(rv.data.decode("utf-8"))
-        assert data == {
-            "message": {
-                "table": [
-                    f"Dataset {Table(energy_usage_ds.table_name, schema)} already exists"
-                ]
-            }
-        }
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_create_dataset_with_sql(self):
         """
         Dataset API: Test create dataset with sql
@@ -879,7 +822,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test create dataset sqlalchemy error
         """
 
-        mock_dao_create.side_effect = DAOCreateFailedError()
+        mock_dao_create.side_effect = SQLAlchemyError()
         self.login(ADMIN_USERNAME)
         main_db = get_main_database()
         dataset_data = {
@@ -1460,34 +1403,13 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_update_dataset_item_uniqueness(self):
-        """
-        Dataset API: Test update dataset uniqueness
-        """
-
-        dataset = self.insert_default_dataset()
-        self.login(ADMIN_USERNAME)
-        ab_user = self.insert_dataset(
-            "ab_user", [self.get_user("admin").id], get_main_database()
-        )
-        table_data = {"table_name": "ab_user"}
-        uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.put_assert_metric(uri, table_data, "put")
-        data = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 422
-        expected_response = {"message": {"table": ["Dataset ab_user already exists"]}}
-        assert data == expected_response
-        db.session.delete(dataset)
-        db.session.delete(ab_user)
-        db.session.commit()
-
     @patch("superset.daos.dataset.DatasetDAO.update")
     def test_update_dataset_sqlalchemy_error(self, mock_dao_update):
         """
         Dataset API: Test update dataset sqlalchemy error
         """
 
-        mock_dao_update.side_effect = DAOUpdateFailedError()
+        mock_dao_update.side_effect = SQLAlchemyError()
 
         dataset = self.insert_default_dataset()
         self.login(ADMIN_USERNAME)
@@ -1551,7 +1473,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test delete dataset sqlalchemy error
         """
 
-        mock_dao_delete.side_effect = DAODeleteFailedError()
+        mock_dao_delete.side_effect = SQLAlchemyError()
 
         dataset = self.insert_default_dataset()
         self.login(ADMIN_USERNAME)
@@ -1620,7 +1542,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test delete dataset column
         """
 
-        mock_dao_delete.side_effect = DAODeleteFailedError()
+        mock_dao_delete.side_effect = SQLAlchemyError()
         dataset = self.get_fixture_datasets()[0]
         column_id = dataset.columns[0].id
         self.login(ADMIN_USERNAME)
@@ -1692,7 +1614,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test delete dataset metric
         """
 
-        mock_dao_delete.side_effect = DAODeleteFailedError()
+        mock_dao_delete.side_effect = SQLAlchemyError()
         dataset = self.get_fixture_datasets()[0]
         column_id = dataset.metrics[0].id
         self.login(ADMIN_USERNAME)
@@ -2044,7 +1966,8 @@ class TestDatasetApi(SupersetTestCase):
         for table_name in self.fixture_tables_names:
             assert table_name in [ds["table_name"] for ds in data["result"]]
 
-    def test_import_dataset(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dataset(self, mock_add_permissions):
         """
         Dataset API: Test import dataset
         """
@@ -2107,7 +2030,8 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_import_dataset_overwrite(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dataset_overwrite(self, mock_add_permissions):
         """
         Dataset API: Test import existing dataset
         """

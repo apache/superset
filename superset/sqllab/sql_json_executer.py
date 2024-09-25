@@ -112,6 +112,7 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
                     [SupersetError(**params) for params in data["errors"]]  # type: ignore
                 )
             # old string-only error message
+            print(data)
             raise SupersetGenericDBErrorException(data["error"])  # type: ignore
 
         return SqlJsonExecutionStatus.HAS_RESULTS

@@ -53,7 +53,7 @@ class TestEventLogger(unittest.TestCase):
         # class is instantiated and returned
         self.assertIsInstance(res, DBEventLogger)
 
-    def test_raises_typerror_if_not_abc(self):
+    def test_raises_typeerror_if_not_abc(self):
         # test that assignment of non AbstractEventLogger derived type raises
         # TypeError
         with self.assertRaises(TypeError):

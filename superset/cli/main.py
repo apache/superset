@@ -27,6 +27,7 @@ from flask.cli import FlaskGroup, with_appcontext
 from superset import app, appbuilder, cli, security_manager
 from superset.cli.lib import normalize_token
 from superset.extensions import db
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,7 @@ for load, module_name, is_pkg in pkgutil.walk_packages(
 
 @superset.command()
 @with_appcontext
+@transaction()
 def init() -> None:
     """Inits the Superset application"""
     appbuilder.add_permissions(update_perms=True)

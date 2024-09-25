@@ -34,7 +34,9 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException  # noqa: F401
+from superset.exceptions import (
+    QueryObjectValidationError,
+)  # noqa: F401
 from superset.models.core import Database
 from superset.utils.core import (
     AdhocMetricExpressionType,
@@ -160,7 +162,7 @@ class TestDatabaseModel(SupersetTestCase):
         query_obj = dict(**base_query_obj, extras={})
         extra_cache_keys = table1.get_extra_cache_keys(query_obj)
         self.assertTrue(table1.has_extra_cache_key_calls(query_obj))
-        assert extra_cache_keys == [1, "abc", "abc@test.com"]
+        assert set(extra_cache_keys) == {1, "abc", "abc@test.com"}
 
         # Table with Jinja callable disabled.
         table2 = SqlaTable(
@@ -543,8 +545,7 @@ class TestDatabaseModel(SupersetTestCase):
 
         # make sure the columns have been mapped properly
         assert len(table.columns) == 4
-        with db.session.no_autoflush:
-            table.fetch_metadata(commit=False)
+        table.fetch_metadata()
 
         # assert that the removed column has been dropped and
         # the physical and calculated columns are present

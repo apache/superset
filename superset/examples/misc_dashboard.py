@@ -140,4 +140,3 @@ def load_misc_dashboard() -> None:
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = DASH_SLUG
     dash.slices = slices
-    db.session.commit()

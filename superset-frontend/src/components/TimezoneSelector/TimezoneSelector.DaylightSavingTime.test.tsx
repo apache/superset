@@ -18,7 +18,12 @@
  */
 
 import { FC } from 'react';
-import { render, waitFor, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  waitFor,
+  screen,
+  waitForElementToBeRemoved,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import type { TimezoneSelectorProps } from './index';
 
@@ -44,6 +49,7 @@ test('render timezones in correct order for daylight saving time', async () => {
     />,
   );
 
+  await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   const searchInput = screen.getByRole('combobox');
   userEvent.click(searchInput);
 

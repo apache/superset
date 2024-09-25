@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   cypress-matrix:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       pull-requests: read
@@ -66,20 +66,20 @@ jobs:
       # Conditional checkout based on context
       - name: Checkout for push or pull_request event
         if: github.event_name == 'push' || github.event_name == 'pull_request'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref }}
           submodules: recursive
       - name: Checkout using PR ID (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
@@ -107,7 +107,7 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
       - name: Install npm dependencies
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
@@ -131,6 +131,7 @@ jobs:
           PARALLEL_ID: ${{ matrix.parallel_id }}
           PARALLELISM: 6
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
         with:
           run: cypress-run-all ${{ env.USE_DASHBOARD }}
       - name: Upload Artifacts

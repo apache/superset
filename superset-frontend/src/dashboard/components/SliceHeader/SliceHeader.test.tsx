@@ -356,7 +356,7 @@ test('Should render "annotationsError"', () => {
   render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(
     screen.getByRole('img', {
-      name: 'One ore more annotation layers failed loading.',
+      name: 'One or more annotation layers failed loading.',
     }),
   ).toBeInTheDocument();
 });
@@ -368,7 +368,7 @@ test('Should not render "annotationsError" and "annotationsLoading"', () => {
   render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(
     screen.queryByRole('img', {
-      name: 'One ore more annotation layers failed loading.',
+      name: 'One or more annotation layers failed loading.',
     }),
   ).not.toBeInTheDocument();
   expect(

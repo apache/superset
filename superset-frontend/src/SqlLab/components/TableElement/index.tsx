@@ -32,6 +32,7 @@ import {
   syncTable,
 } from 'src/SqlLab/actions/sqlLab';
 import {
+  tableApiUtil,
   useTableExtendedMetadataQuery,
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
@@ -105,9 +106,9 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const {
-    data: tableMetadata,
+    currentData: tableMetadata,
     isSuccess: isMetadataSuccess,
-    isLoading: isMetadataLoading,
+    isFetching: isMetadataFetching,
     isError: hasMetadataError,
   } = useTableMetadataQuery(
     {
@@ -119,7 +120,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     { skip: !expanded },
   );
   const {
-    data: tableExtendedMetadata,
+    currentData: tableExtendedMetadata,
     isSuccess: isExtraMetadataSuccess,
     isLoading: isExtraMetadataLoading,
     isError: hasExtendedMetadataError,
@@ -175,6 +176,13 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
 
   const toggleSortColumns = () => {
     setSortColumns(prevState => !prevState);
+  };
+
+  const refreshTableMetadata = () => {
+    dispatch(
+      tableApiUtil.invalidateTags([{ type: 'TableMetadatas', id: name }]),
+    );
+    dispatch(syncTable(table, tableData));
   };
 
   const renderWell = () => {
@@ -268,6 +276,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           }
         `}
       >
+        <IconTooltip
+          className="fa fa-refresh pull-left m-l-2 pointer"
+          onClick={refreshTableMetadata}
+          tooltip={t('Refresh table schema')}
+        />
         {keyLink}
         <IconTooltip
           className={
@@ -341,7 +354,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
         </Tooltip>
 
         <div className="pull-right header-right-side">
-          {isMetadataLoading || isExtraMetadataLoading ? (
+          {isMetadataFetching || isExtraMetadataLoading ? (
             <Loading position="inline" />
           ) : (
             <Fade

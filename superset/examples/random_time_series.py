@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 import pandas as pd
 from sqlalchemy import DateTime, inspect, String
 
@@ -72,7 +71,6 @@ def load_random_time_series_data(
     obj.main_dttm_col = "ds"
     obj.database = database
     obj.filter_select_enabled = True
-    db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 

@@ -122,7 +122,7 @@ class Dashboard(BaseSupersetView):
             owners=[g.user],
         )
         db.session.add(new_dashboard)
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
     @expose("/<dashboard_id_or_slug>/embedded")

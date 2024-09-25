@@ -62,5 +62,4 @@ def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) ->
     tbl.description = "Map of Paris"
     tbl.database = database
     tbl.filter_select_enabled = True
-    db.session.commit()
     tbl.fetch_metadata()

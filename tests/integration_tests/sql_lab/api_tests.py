@@ -55,7 +55,7 @@ class TestSqlLabApi(SupersetTestCase):
         {"SQLLAB_BACKEND_PERSISTENCE": False},
         clear=True,
     )
-    def test_get_from_empty_bootsrap_data(self):
+    def test_get_from_empty_bootstrap_data(self):
         if utils.backend() == "postgresql":
             # failing
             return

@@ -16,7 +16,7 @@
 #
 
 # -----------------------------------------------------------------------
-# We don't support docker-compose for production environments.
+# We don't support docker compose for production environments.
 # If you choose to use this type of deployment make sure to
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
@@ -35,7 +35,6 @@ x-common-build: &common-build
   cache_from:
     - apache/superset-cache:3.10-slim-bookworm
 
-version: "4.0"
 services:
   redis:
     image: redis:7

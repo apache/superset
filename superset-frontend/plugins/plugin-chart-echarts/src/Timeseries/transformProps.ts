@@ -47,8 +47,9 @@ import {
   isDerivedSeries,
   getTimeOffset,
 } from '@superset-ui/chart-controls';
-import { EChartsCoreOption, SeriesOption } from 'echarts';
-import { LineStyleOption } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { LineStyleOption } from 'echarts/types/src/util/types';
+import type { SeriesOption } from 'echarts';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
@@ -92,6 +93,7 @@ import {
   transformTimeseriesAnnotation,
 } from './transformers';
 import {
+  OpacityEnum,
   StackControlsValue,
   TIMEGRAIN_TO_TIMESTAMP,
   TIMESERIES_CONSTANTS,
@@ -164,6 +166,7 @@ export default function transformProps(
     sortSeriesAscending,
     timeGrainSqla,
     timeCompare,
+    timeShiftColor,
     stack,
     tooltipTimeFormat,
     tooltipSortByMetric,
@@ -274,7 +277,7 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
-  const offsetLineWidths = {};
+  const offsetLineWidths: { [key: string]: number } = {};
 
   rawSeries.forEach(entry => {
     const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
@@ -289,6 +292,7 @@ export default function transformProps(
       }
       lineStyle.type = 'dashed';
       lineStyle.width = offsetLineWidths[offset];
+      lineStyle.opacity = OpacityEnum.DerivedSeries;
     }
 
     const entryName = String(entry.name || '');
@@ -312,11 +316,11 @@ export default function transformProps(
         stack,
         formatter: forcePercentFormatter
           ? percentFormatter
-          : getCustomFormatter(
+          : (getCustomFormatter(
               customFormatters,
               metrics,
               labelMap?.[seriesName]?.[0],
-            ) ?? defaultFormatter,
+            ) ?? defaultFormatter),
         showValue,
         onlyTotal,
         totalStackedValues: sortedTotalValues,
@@ -327,6 +331,7 @@ export default function transformProps(
         isHorizontal,
         lineStyle,
         timeCompare: array,
+        timeShiftColor,
       },
     );
     if (transformedSeries) {
@@ -553,7 +558,7 @@ export default function transformProps(
 
         const formatter = forcePercentFormatter
           ? percentFormatter
-          : getCustomFormatter(customFormatters, metrics) ?? defaultFormatter;
+          : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
 
         const rows: string[][] = [];
         const total = Object.values(forecastValues).reduce(

@@ -411,7 +411,7 @@ const config: ControlPanelConfig = {
                   'verbose_map',
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
-                  : explore?.datasource?.columns ?? {};
+                  : (explore?.datasource?.columns ?? {});
                 const chartStatus = chart?.chartStatus;
                 const metricColumn = values.map(value => {
                   if (typeof value === 'string') {
@@ -425,6 +425,18 @@ const config: ControlPanelConfig = {
                   verboseMap,
                 };
               },
+            },
+          },
+        ],
+        [
+          {
+            name: 'allow_render_html',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Render columns in HTML format'),
+              renderTrigger: true,
+              default: true,
+              description: t('Render data in HTML format if applicable.'),
             },
           },
         ],
