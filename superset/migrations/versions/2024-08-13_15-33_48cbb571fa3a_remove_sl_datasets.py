@@ -40,8 +40,10 @@ def upgrade():
         drop_fks_for_table(table_name)
         op.drop_table(table_name)
 
+    op.add_column('saved_query', sa.Column('comment', sa.Text(), nullable=True))
 
 def downgrade():
+    op.drop_column('saved_query', 'comment')
     op.create_table(
         table_name,
         sa.Column("uuid", sa.Numeric(precision=16), nullable=True),
