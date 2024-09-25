@@ -1,3 +1,4 @@
+/* eslint-disable react-prefer-function-component/react-prefer-function-component */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,6 +24,7 @@ import {
   HandlerFunction,
   JsonObject,
   Payload,
+  QueryFormData,
   SupersetTheme,
   t,
   withTheme,
@@ -33,6 +35,8 @@ import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import { ChartState, ExplorePageState } from 'src/explore/types';
+import { AnyAction } from 'redux';
+import { ThunkDispatch } from 'redux-thunk';
 import ControlPopover, {
   getSectionContainerElement,
 } from '../ControlPopover/ControlPopover';
@@ -49,7 +53,7 @@ export interface Annotation {
   annotation: string;
   timeout: Date;
   key: string;
-  formData?: any;
+  formData: QueryFormData | null;
   isDashboardRequest?: boolean;
   force?: boolean;
 }
@@ -241,30 +245,28 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
       <div>
         <List bordered css={theme => ({ borderRadius: theme.gridUnit })}>
           {annotations}
-          {addedAnnotation && (
-            <ControlPopover
-              trigger="click"
-              content={this.renderPopover(
-                addLayerPopoverKey,
-                addedAnnotation,
-                '',
-              )}
-              title={t('Add annotation layer')}
-              visible={this.state.popoverVisible[addLayerPopoverKey]}
-              destroyTooltipOnHide
-              onVisibleChange={visible =>
-                this.handleVisibleChange(visible, addLayerPopoverKey)
-              }
-            >
-              <CustomListItem selectable>
-                <i
-                  data-test="add-annotation-layer-button"
-                  className="fa fa-plus"
-                />{' '}
-                &nbsp; {t('Add annotation layer')}
-              </CustomListItem>
-            </ControlPopover>
-          )}
+          <ControlPopover
+            trigger="click"
+            content={this.renderPopover(
+              addLayerPopoverKey,
+              addedAnnotation,
+              '',
+            )}
+            title={t('Add annotation layer')}
+            visible={this.state.popoverVisible[addLayerPopoverKey]}
+            destroyTooltipOnHide
+            onVisibleChange={visible =>
+              this.handleVisibleChange(visible, addLayerPopoverKey)
+            }
+          >
+            <CustomListItem selectable>
+              <i
+                data-test="add-annotation-layer-button"
+                className="fa fa-plus"
+              />{' '}
+              &nbsp; {t('Add annotation layer')}
+            </CustomListItem>
+          </ControlPopover>
         </List>
       </div>
     );
@@ -295,7 +297,9 @@ function mapStateToProps({
   };
 }
 
-function mapDispatchToProps(dispatch: any) {
+function mapDispatchToProps(
+  dispatch: ThunkDispatch<any, undefined, AnyAction>,
+) {
   return {
     refreshAnnotationData: (annotationObj: Annotation) =>
       dispatch(runAnnotationQuery(annotationObj)),
