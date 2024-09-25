@@ -1,4 +1,3 @@
-/* eslint-disable react-prefer-function-component/react-prefer-function-component */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -120,11 +119,11 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
   }
 
   addAnnotationLayer = (
-    originalAnnotation: Annotation,
+    originalAnnotation: Annotation | null,
     newAnnotation: Annotation,
   ) => {
     let annotations = this.props.value;
-    if (annotations.includes(originalAnnotation)) {
+    if (originalAnnotation && annotations.includes(originalAnnotation)) {
       annotations = annotations.map(anno =>
         anno === originalAnnotation ? newAnnotation : anno,
       );
@@ -147,7 +146,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
     }));
   };
 
-  removeAnnotationLayer(annotation: Annotation | undefined) {
+  removeAnnotationLayer(annotation: Annotation | null) {
     const annotations = this.props.value.filter(anno => anno !== annotation);
     // So scrollbar doesnt get stuck on hidden
     const element = getSectionContainerElement();
@@ -159,7 +158,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
   renderPopover = (
     popoverKey: number | string,
-    annotation: Annotation,
+    annotation: Annotation | null,
     error: string,
   ) => {
     const id = annotation?.name || '_new';
@@ -212,9 +211,10 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
   render() {
     const { addedAnnotationIndex } = this.state;
-    const addedAnnotation = addedAnnotationIndex
-      ? this.props.value[addedAnnotationIndex]
-      : null;
+    const addedAnnotation =
+      addedAnnotationIndex !== null
+        ? this.props.value[addedAnnotationIndex]
+        : null;
     const annotations = this.props.value.map((anno, i) => (
       <ControlPopover
         key={i}
@@ -241,6 +241,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
       </ControlPopover>
     ));
     const addLayerPopoverKey = 'add';
+
     return (
       <div>
         <List bordered css={theme => ({ borderRadius: theme.gridUnit })}>
@@ -290,6 +291,7 @@ function mapStateToProps({
     chartKey && charts[chartKey] ? charts[chartKey] : defaultChartState;
 
   return {
+    // eslint-disable-next-line camelcase
     colorScheme: explore.controls?.color_scheme?.value,
     annotationError: chart.annotationError ?? {},
     annotationQuery: chart.annotationQuery ?? {},
