@@ -45,7 +45,7 @@ import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFor
 const isValidResult = (rv: JsonObject): boolean =>
   rv?.result?.form_data && rv?.result?.dataset;
 
-const hasDataseId = (rv: JsonObject): boolean =>
+const hasDatasetId = (rv: JsonObject): boolean =>
   isDefined(rv?.result?.dataset?.id);
 
 const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
@@ -55,7 +55,7 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
       endpoint: 'api/v1/explore/',
     })(exploreUrlParams);
     if (isValidResult(rv)) {
-      if (hasDataseId(rv)) {
+      if (hasDatasetId(rv)) {
         return rv;
       }
       // Since there's no dataset id but the API responded with a valid payload,

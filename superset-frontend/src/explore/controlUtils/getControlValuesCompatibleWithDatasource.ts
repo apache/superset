@@ -54,37 +54,34 @@ const isControlValueCompatibleWithDatasource = (
       );
     }
   }
-  if (controlState.savedMetrics && isSavedMetric(value)) {
-    if (
-      controlState.savedMetrics.some(
-        (savedMetric: Metric) => savedMetric.metric_name === value,
-      ) ||
-      !isEmpty(datasource?.metrics)
-    ) {
-      return datasource.metrics.some(
-        (metric: Metric) => metric.metric_name === value,
-      );
-    }
+  if (
+    controlState.savedMetrics &&
+    isSavedMetric(value) &&
+    (controlState.savedMetrics.some(
+      (savedMetric: Metric) => savedMetric.metric_name === value,
+    ) ||
+      !isEmpty(datasource?.metrics))
+  ) {
+    return datasource.metrics.some(
+      (metric: Metric) => metric.metric_name === value,
+    );
   }
   if (
     controlState.columns &&
-    (isAdhocMetricSimple(value) || isSimpleAdhocFilter(value))
-  ) {
-    if (
-      (!isEmpty(controlState.columns) &&
-        controlState.columns.some(
-          (column: Column) =>
-            column.column_name === (value as AdhocMetric).column?.column_name ||
-            column.column_name === (value as SimpleAdhocFilter).subject,
-        )) ||
-      !isEmpty(datasource?.columns)
-    ) {
-      return datasource.columns.some(
+    (isAdhocMetricSimple(value) || isSimpleAdhocFilter(value)) &&
+    ((!isEmpty(controlState.columns) &&
+      controlState.columns.some(
         (column: Column) =>
           column.column_name === (value as AdhocMetric).column?.column_name ||
           column.column_name === (value as SimpleAdhocFilter).subject,
-      );
-    }
+      )) ||
+      !isEmpty(datasource?.columns))
+  ) {
+    return datasource.columns.some(
+      (column: Column) =>
+        column.column_name === (value as AdhocMetric).column?.column_name ||
+        column.column_name === (value as SimpleAdhocFilter).subject,
+    );
   }
   if (isAdhocMetricSQL(value)) {
     Object.assign(value, { datasourceWarning: true });
