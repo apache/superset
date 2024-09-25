@@ -408,7 +408,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                         logger.info("Query %s: [%s] %s", str(query_id), str(job_id), l)
                     last_log_line = len(log_lines)
                 if needs_commit:
-                    db.session.commit()
+                    db.session.commit()  # pylint: disable=consider-using-transaction
             if sleep_interval := current_app.config.get("HIVE_POLL_INTERVAL"):
                 logger.warning(
                     "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL_SECONDS instead"

@@ -178,12 +178,12 @@ def test_extract_errors() -> None:
     Test that custom error messages are extracted correctly.
     """
 
-    msg = ": mismatched input 'fromm'. Expecting: "
+    msg = ": mismatched input 'from_'. Expecting: "
     result = DatabricksNativeEngineSpec.extract_errors(Exception(msg))
 
     assert result == [
         SupersetError(
-            message=": mismatched input 'fromm'. Expecting: ",
+            message=": mismatched input 'from_'. Expecting: ",
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -204,13 +204,13 @@ def test_extract_errors_with_context() -> None:
     Test that custom error messages are extracted correctly with context.
     """
 
-    msg = ": mismatched input 'fromm'. Expecting: "
+    msg = ": mismatched input 'from_'. Expecting: "
     context = {"hostname": "foo"}
     result = DatabricksNativeEngineSpec.extract_errors(Exception(msg), context)
 
     assert result == [
         SupersetError(
-            message=": mismatched input 'fromm'. Expecting: ",
+            message=": mismatched input 'from_'. Expecting: ",
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -247,20 +247,24 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
-def test_get_prequeries() -> None:
+def test_get_prequeries(mocker: MockerFixture) -> None:
     """
     Test the ``get_prequeries`` method.
     """
     from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 
-    assert DatabricksNativeEngineSpec.get_prequeries() == []
-    assert DatabricksNativeEngineSpec.get_prequeries(schema="test") == [
+    database = mocker.MagicMock()
+
+    assert DatabricksNativeEngineSpec.get_prequeries(database) == []
+    assert DatabricksNativeEngineSpec.get_prequeries(database, schema="test") == [
         "USE SCHEMA test",
     ]
-    assert DatabricksNativeEngineSpec.get_prequeries(catalog="test") == [
+    assert DatabricksNativeEngineSpec.get_prequeries(database, catalog="test") == [
         "USE CATALOG test",
     ]
-    assert DatabricksNativeEngineSpec.get_prequeries(catalog="foo", schema="bar") == [
+    assert DatabricksNativeEngineSpec.get_prequeries(
+        database, catalog="foo", schema="bar"
+    ) == [
         "USE CATALOG foo",
         "USE SCHEMA bar",
     ]

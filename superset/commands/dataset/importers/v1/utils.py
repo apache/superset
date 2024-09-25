@@ -166,7 +166,7 @@ def import_dataset(
 
     try:
         table_exists = dataset.database.has_table(
-            Table(dataset.table_name, dataset.schema),
+            Table(dataset.table_name, dataset.schema, dataset.catalog),
         )
     except Exception:  # pylint: disable=broad-except
         # MySQL doesn't play nice with GSheets table names
@@ -178,7 +178,7 @@ def import_dataset(
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, dataset.database)
 
-    if user := get_user():
+    if (user := get_user()) and user not in dataset.owners:
         dataset.owners.append(user)
 
     return dataset

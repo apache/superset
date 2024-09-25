@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -29,6 +30,7 @@ from superset.commands.dataset.exceptions import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetSecurityException
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -38,16 +40,12 @@ class RefreshDatasetCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[SqlaTable] = None
 
+    @transaction(on_error=partial(on_error, reraise=DatasetRefreshFailedError))
     def run(self) -> Model:
         self.validate()
-        if self._model:
-            try:
-                self._model.fetch_metadata()
-                return self._model
-            except Exception as ex:
-                logger.exception(ex)
-                raise DatasetRefreshFailedError() from ex
-        raise DatasetRefreshFailedError()
+        assert self._model
+        self._model.fetch_metadata()
+        return self._model
 
     def validate(self) -> None:
         # Validate/populate model exists

@@ -857,6 +857,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_cvas = fields.Boolean()
     allow_dml = fields.Boolean(required=False)
     allow_csv_upload = fields.Boolean()
+    impersonate_user = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
@@ -983,6 +984,9 @@ class EngineInformationSchema(Schema):
         metadata={
             "description": "The database supports multiple catalogs in a single connection"
         }
+    )
+    supports_oauth2 = fields.Boolean(
+        metadata={"description": "The database supports OAuth2"}
     )
 
 

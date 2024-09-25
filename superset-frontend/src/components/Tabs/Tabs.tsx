@@ -74,7 +74,6 @@ const StyledTabs = ({
         justify-content: center;
         font-size: ${theme.typography.sizes.s}px;
         text-align: center;
-        text-transform: uppercase;
         user-select: none;
         .required {
           margin-left: ${theme.gridUnit / 2}px;

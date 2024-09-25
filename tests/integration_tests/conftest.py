@@ -79,7 +79,7 @@ def create_user(app_context: AppContext):
             username,
             "firstname",
             "lastname",
-            "email@exaple.com",
+            "email@example.com",
             security_manager.find_role(role),
             password,
         )
@@ -123,10 +123,6 @@ def setup_sample_data() -> Any:
     # which is purposely scoped to the function level to ensure tests remain idempotent.
     with app.app_context():
         setup_presto_if_needed()
-
-        from superset.cli.test import load_test_users_run
-
-        load_test_users_run()
 
         from superset.examples.css_templates import load_css_templates
 

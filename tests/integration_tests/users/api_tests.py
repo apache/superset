@@ -22,7 +22,7 @@ from unittest.mock import patch
 from superset import security_manager
 from superset.utils import json, slack  # noqa: F401
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_config
+from tests.integration_tests.conftest import with_config, with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME
 
 meUri = "/api/v1/me/"
@@ -81,7 +81,8 @@ class TestUserApi(SupersetTestCase):
         response = self.client.get("/api/v1/user/1/avatar.png", follow_redirects=False)
         assert response.status_code == 204
 
-    @with_config({"SLACK_API_TOKEN": "dummy", "SLACK_ENABLE_AVATARS": True})
+    @with_config({"SLACK_API_TOKEN": "dummy"})
+    @with_feature_flags(SLACK_ENABLE_AVATARS=True)
     @patch("superset.views.users.api.get_user_avatar", return_value=AVATAR_URL)
     def test_avatar_with_valid_user(self, mock):
         self.login(ADMIN_USERNAME)

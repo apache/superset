@@ -36,6 +36,7 @@ from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,
 )
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -311,7 +312,6 @@ def import_dashboards(
 
     for dashboard in data["dashboards"]:
         import_dashboard(dashboard, dataset_id_mapping, import_time=import_time)
-    db.session.commit()
 
 
 class ImportDashboardsCommand(BaseCommand):
@@ -329,6 +329,7 @@ class ImportDashboardsCommand(BaseCommand):
         self.contents = contents
         self.database_id = database_id
 
+    @transaction()
     def run(self) -> None:
         self.validate()
 

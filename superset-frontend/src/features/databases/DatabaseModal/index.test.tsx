@@ -700,9 +700,9 @@ describe('DatabaseModal', () => {
         /force all tables and views to be created in this schema when clicking ctas or cvas in sql lab\./i,
       );
       const allowDMLCheckbox = screen.getByRole('checkbox', {
-        name: /allow dml/i,
+        name: /allow ddl and dml/i,
       });
-      const allowDMLText = screen.getByText(/allow dml/i);
+      const allowDMLText = screen.getByText(/allow ddl and dml/i);
       const enableQueryCostEstimationCheckbox = screen.getByRole('checkbox', {
         name: /enable query cost estimation/i,
       });
@@ -1720,6 +1720,20 @@ describe('dbReducer', () => {
     expect(currentState).toEqual({
       ...databaseFixture,
       extra: '{"foo":"bar"}',
+    });
+  });
+
+  test('it will set state to payload from encrypted extra input change', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.EncryptedExtraInputChange,
+      payload: { name: 'foo', value: 'bar' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"foo":"bar"}',
     });
   });
 

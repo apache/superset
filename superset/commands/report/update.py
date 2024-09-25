@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -32,11 +33,11 @@ from superset.commands.report.exceptions import (
     ReportScheduleUpdateFailedError,
 )
 from superset.daos.database import DatabaseDAO
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
 from superset.utils import json
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -47,16 +48,10 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         self._properties = data.copy()
         self._model: Optional[ReportSchedule] = None
 
+    @transaction(on_error=partial(on_error, reraise=ReportScheduleUpdateFailedError))
     def run(self) -> Model:
         self.validate()
-        assert self._model
-
-        try:
-            report_schedule = ReportScheduleDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as ex:
-            logger.exception(ex.exception)
-            raise ReportScheduleUpdateFailedError() from ex
-        return report_schedule
+        return ReportScheduleDAO.update(self._model, self._properties)
 
     def validate(self) -> None:
         """

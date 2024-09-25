@@ -556,6 +556,29 @@ class TestSqlaTableModel(SupersetTestCase):
 
         self.assertTrue("Metric 'invalid' does not exist", context.exception)
 
+    def test_query_label_without_group_by(self):
+        tbl = self.get_table(name="birth_names")
+        query_obj = dict(
+            groupby=[],
+            columns=[
+                "gender",
+                {
+                    "label": "Given Name",
+                    "sqlExpression": "name",
+                    "expressionType": "SQL",
+                },
+            ],
+            filter=[],
+            is_timeseries=False,
+            granularity=None,
+            from_dttm=None,
+            to_dttm=None,
+            extras={},
+        )
+
+        sql = tbl.get_query_str(query_obj)
+        self.assertRegex(sql, r'name AS ["`]?Given Name["`]?')
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_data_for_slices_with_no_query_context(self):
         tbl = self.get_table(name="birth_names")

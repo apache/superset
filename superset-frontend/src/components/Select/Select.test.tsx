@@ -188,6 +188,20 @@ test('does not add a new option if the value is already in the options', async (
   expect(options).toHaveLength(1);
 });
 
+test('does not add new options when the value is in a nested/grouped option', async () => {
+  const options = [
+    {
+      label: 'Group',
+      options: [OPTIONS[0]],
+    },
+  ];
+  render(<Select {...defaultProps} options={options} value={OPTIONS[0]} />);
+  await open();
+  expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
+  const selectOptions = await findAllSelectOptions();
+  expect(selectOptions).toHaveLength(1);
+});
+
 test('inverts the selection', async () => {
   render(<Select {...defaultProps} invertSelection />);
   await open();

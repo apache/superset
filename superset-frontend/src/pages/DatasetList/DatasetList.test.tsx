@@ -196,7 +196,7 @@ describe('DatasetList', () => {
     ).toBeFalsy();
     act(() => {
       wrapper
-        .find('#duplicate-action-tooltop')
+        .find('#duplicate-action-tooltip')
         .at(0)
         .find('.action-button')
         .props()
@@ -212,7 +212,7 @@ describe('DatasetList', () => {
     await waitForComponentToPaint(wrapper);
     await act(async () => {
       wrapper
-        .find('#duplicate-action-tooltop')
+        .find('#duplicate-action-tooltip')
         .at(0)
         .find('.action-button')
         .props()

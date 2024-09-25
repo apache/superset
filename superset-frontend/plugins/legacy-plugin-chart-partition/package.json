@@ -24,14 +24,16 @@
   ],
   "dependencies": {
     "d3": "^3.5.17",
-    "d3-hierarchy": "^1.1.8",
+    "d3-hierarchy": "^3.1.2",
     "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "enzyme": "*",
-    "react": "^16.13.1"
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^12.1.5",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1"
   },
   "publishConfig": {
     "access": "public"

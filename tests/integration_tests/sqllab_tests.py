@@ -73,7 +73,6 @@ class TestSqlLab(SupersetTestCase):
 
     def run_some_queries(self):
         db.session.query(Query).delete()
-        db.session.commit()
         self.run_sql(QUERY_1, client_id="client_id_1", username="admin")
         self.run_sql(QUERY_2, client_id="client_id_2", username="admin")
         self.run_sql(QUERY_3, client_id="client_id_3", username="gamma_sqllab")

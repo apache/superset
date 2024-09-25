@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
+from functools import partial
 from typing import Any, Optional
 
 from flask import g
@@ -35,10 +36,10 @@ from superset.commands.chart.exceptions import (
 from superset.commands.utils import get_datasource_by_id, update_tags, validate_tags
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
-from superset.daos.exceptions import DAODeleteFailedError, DAOUpdateFailedError
 from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -55,24 +56,20 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         self._properties = data.copy()
         self._model: Optional[Slice] = None
 
+    @transaction(on_error=partial(on_error, reraise=ChartUpdateFailedError))
     def run(self) -> Model:
         self.validate()
         assert self._model
 
-        try:
-            # Update tags
-            tags = self._properties.pop("tags", None)
-            if tags is not None:
-                update_tags(ObjectType.chart, self._model.id, self._model.tags, tags)
+        # Update tags
+        if (tags := self._properties.pop("tags", None)) is not None:
+            update_tags(ObjectType.chart, self._model.id, self._model.tags, tags)
 
-            if self._properties.get("query_context_generation") is None:
-                self._properties["last_saved_at"] = datetime.now()
-                self._properties["last_saved_by"] = g.user
-            chart = ChartDAO.update(self._model, self._properties)
-        except (DAOUpdateFailedError, DAODeleteFailedError) as ex:
-            logger.exception(ex.exception)
-            raise ChartUpdateFailedError() from ex
-        return chart
+        if self._properties.get("query_context_generation") is None:
+            self._properties["last_saved_at"] = datetime.now()
+            self._properties["last_saved_by"] = g.user
+
+        return ChartDAO.update(self._model, self._properties)
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

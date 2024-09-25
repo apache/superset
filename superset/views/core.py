@@ -23,7 +23,7 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-from flask import abort, flash, g, redirect, render_template, request, Response
+from flask import abort, flash, g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -85,11 +85,10 @@ from superset.views.base import (
     data_payload_response,
     deprecated,
     generate_download_headers,
-    get_error_msg,
-    handle_api_exception,
     json_error_response,
     json_success,
 )
+from superset.views.error_handling import handle_api_exception
 from superset.views.utils import (
     bootstrap_user_data,
     check_datasource_perms,
@@ -619,10 +618,12 @@ class Superset(BaseSupersetView):
 
         if action == "saveas" and slice_add_perm:
             ChartDAO.create(slc)
+            db.session.commit()  # pylint: disable=consider-using-transaction
             msg = _("Chart [{}] has been saved").format(slc.slice_name)
             flash(msg, "success")
         elif action == "overwrite" and slice_overwrite_perm:
             ChartDAO.update(slc)
+            db.session.commit()  # pylint: disable=consider-using-transaction
             msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
             flash(msg, "success")
 
@@ -676,7 +677,7 @@ class Superset(BaseSupersetView):
 
         if dash and slc not in dash.slices:
             dash.slices.append(slc)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
         response = {
             "can_add": slice_add_perm,
@@ -885,13 +886,6 @@ class Superset(BaseSupersetView):
 
         datasource.raise_for_access()
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
-
-    @app.errorhandler(500)
-    def show_traceback(self) -> FlaskResponse:
-        return (
-            render_template("superset/traceback.html", error_msg=get_error_msg()),
-            500,
-        )
 
     @event_logger.log_this
     @expose("/welcome/")

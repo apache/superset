@@ -42,7 +42,7 @@ import {
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import { RootState } from '../types';
 import {
   chartContextMenuStyles,
@@ -76,7 +76,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const history = useHistory();
-  const dashboardPageId = useMemo(() => shortid.generate(), []);
+  const dashboardPageId = useMemo(() => nanoid(), []);
   const hasDashboardInfoInitiated = useSelector<RootState, Boolean>(
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,

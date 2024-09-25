@@ -182,8 +182,18 @@ const Select = forwardRef(
 
     // add selected values to options list if they are not in it
     const fullSelectOptions = useMemo(() => {
+      // check to see if selectOptions are grouped
+      let groupedOptions: SelectOptionsType;
+      if (selectOptions.some(opt => opt.options)) {
+        groupedOptions = selectOptions.reduce(
+          (acc, group) => [...acc, ...group.options],
+          [] as SelectOptionsType,
+        );
+      }
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
-        .filter(opt => !hasOption(getValue(opt), selectOptions))
+        .filter(
+          opt => !hasOption(getValue(opt), groupedOptions || selectOptions),
+        )
         .map(opt =>
           isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
         );

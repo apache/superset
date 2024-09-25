@@ -162,7 +162,7 @@ function OAuth2RedirectMessage({
       >
         provide authorization
       </a>{' '}
-      in order to run this query.
+      in order to run this operation.
     </>
   );
 

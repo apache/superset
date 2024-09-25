@@ -118,7 +118,7 @@ export const timeComparisonControls: ({
               'difference between the main time series and each time shift; ' +
               'as the percentage change; or as the ratio between series and time shifts.',
           ),
-          visibility: () => Boolean(showCalculationType),
+          hidden: () => Boolean(showCalculationType),
         },
       },
     ],

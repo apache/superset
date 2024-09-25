@@ -26,9 +26,9 @@ from flask import current_app, url_for
 from marshmallow import EXCLUDE, fields, post_load, Schema
 
 from superset import db
+from superset.distributed_lock import KeyValueDistributedLock
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
-from superset.utils.lock import KeyValueDistributedLock
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec

@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 from flask import current_app
 
 from superset import feature_flag_manager
+from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
@@ -144,6 +145,7 @@ class BaseScreenshot:
         thumb_size: WindowSize | None = None,
         cache: Cache = None,
         force: bool = True,
+        cache_key: str | None = None,
     ) -> bytes | None:
         """
         Fetches the screenshot, computes the thumbnail and caches the result
@@ -155,7 +157,7 @@ class BaseScreenshot:
         :param force: Will force the computation even if it's already cached
         :return: Image payload
         """
-        cache_key = self.cache_key(window_size, thumb_size)
+        cache_key = cache_key or self.cache_key(window_size, thumb_size)
         window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
         if not force and cache and cache.get(cache_key):
@@ -248,7 +250,24 @@ class DashboardScreenshot(BaseScreenshot):
             url,
             standalone=DashboardStandaloneMode.REPORT.value,
         )
-
         super().__init__(url, digest)
         self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
         self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE
+
+    def cache_key(
+        self,
+        window_size: bool | WindowSize | None = None,
+        thumb_size: bool | WindowSize | None = None,
+        dashboard_state: DashboardPermalinkState | None = None,
+    ) -> str:
+        window_size = window_size or self.window_size
+        thumb_size = thumb_size or self.thumb_size
+        args = {
+            "thumbnail_type": self.thumbnail_type,
+            "digest": self.digest,
+            "type": "thumb",
+            "window_size": window_size,
+            "thumb_size": thumb_size,
+            "dashboard_state": dashboard_state,
+        }
+        return md5_sha_from_dict(args)
