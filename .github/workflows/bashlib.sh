@@ -162,8 +162,14 @@ cypress-run-all() {
     USE_DASHBOARD_FLAG='--use-dashboard'
   fi
 
-  monitor_memory &
+  monitor_memory &  # Start memory monitoring in the background
+  memoryMonitorPid=$!
+  echo "Started memory monitor with PID $memoryMonitorPid"
+
   python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID $USE_DASHBOARD_FLAG
+
+  kill $memoryMonitorPid
+  echo "Stopped memory monitor with PID $memoryMonitorPid"
 
   # After job is done, print out Flask log for debugging
   echo "::group::Flask log for default run"

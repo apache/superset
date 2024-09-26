@@ -137,9 +137,28 @@ def main() -> None:
     spec_list = groups[group_id]
     cmd = get_cypress_cmd(spec_list, args.filter, args.group, args.use_dashboard)
     print(f"RUN: {cmd}")
-    os.environ["DEBUG"] = "cypress:*,@cypress/*"
-    if not args.dry_run:
-        subprocess.run(cmd, shell=True, check=True, stdout=None, stderr=None)
+    # os.environ["DEBUG"] = "cypress:*,@cypress/*"
+
+    process = subprocess.Popen(
+        cmd,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        universal_newlines=True,
+    )
+
+    if process.stdout:  # Ensure stdout is not None
+        # Stream stdout in real-time
+        for stdout_line in iter(process.stdout.readline, ""):
+            print(stdout_line, end="")
+
+        # Wait for the process to complete
+        process.stdout.close()
+
+    process.wait()
+
+    if process.returncode != 0:
+        raise subprocess.CalledProcessError(process.returncode, cmd)
 
 
 if __name__ == "__main__":
