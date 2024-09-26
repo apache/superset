@@ -158,7 +158,7 @@ class DatabaseTestConnectionUnexpectedError(SupersetErrorsException):
     message = _("Unexpected error occurred, please check your logs for details")
 
 
-class DatabaseTablesUnexpectedError(Exception):
+class DatabaseTablesUnexpectedError(CommandException):
     status = 422
     message = _("Unexpected error occurred, please check your logs for details")
 
