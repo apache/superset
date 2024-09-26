@@ -21,6 +21,7 @@ import {
   ChangeEvent,
   KeyboardEvent,
   memo,
+  ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -30,13 +31,15 @@ import {
 import { css, SupersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { useResizeDetector } from 'react-resize-detector';
+import Loading from '../Loading';
 
 export type DynamicEditableTitleProps = {
-  title: string;
+  title: string | ReactNode;
   placeholder: string;
   onSave: (title: string) => void;
   canEdit: boolean;
   label: string | undefined;
+  loading?: boolean;
 };
 
 const titleStyles = (theme: SupersetTheme) => css`
@@ -84,6 +87,7 @@ export const DynamicEditableTitle = memo(
     onSave,
     canEdit,
     label,
+    loading,
   }: DynamicEditableTitleProps) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentTitle, setCurrentTitle] = useState(title || '');
@@ -181,7 +185,7 @@ export const DynamicEditableTitle = memo(
             showTooltip && currentTitle && !isEditing ? currentTitle : null
           }
         >
-          {canEdit ? (
+          {canEdit && !loading ? (
             <input
               data-test="editable-title-input"
               className="dynamic-title-input"
@@ -210,7 +214,7 @@ export const DynamicEditableTitle = memo(
               ref={contentRef}
               data-test="editable-title"
             >
-              {currentTitle}
+              {!loading ? currentTitle : <Loading position="inline" />}
             </span>
           )}
         </Tooltip>

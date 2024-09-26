@@ -118,6 +118,7 @@ export type DashboardState = {
   dataMaskHydrated: boolean;
   dashboardInfoHydrated: boolean;
   dashboardHydrated: boolean;
+  dashboardLayoutHydrated: boolean;
 };
 export type DashboardInfo = {
   id: number;

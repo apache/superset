@@ -69,6 +69,8 @@ function mapStateToProps({
 }) {
   return {
     dashboardInfo,
+    dashboardInfoHydrated: dashboardState.dashboardInfoHydrated,
+    dashboardHydrated: dashboardState.dashboardHydrated,
     undoLength: undoableLayout.past.length,
     redoLength: undoableLayout.future.length,
     layout: undoableLayout.present,

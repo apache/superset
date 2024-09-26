@@ -58,7 +58,12 @@ export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 export const HYDRATE_DASHBOARD_INFO = 'HYDRATE_DASHBOARD_INFO';
 export const HYDRATE_DASHBOARD_DATAMASK = 'HYDRATE_DASHBOARD_DATAMASK';
 export const HYDRATE_DASHBOARD_ACTIVETABS = 'HYDRATE_DASHBOARD_ACTIVETABS';
+export const HYDRATE_DASHBOARD_INITIAL_LAYOUT = 'HYDRATE_DASHBOARD_INITIAL_LAYOUT';
 
+/**
+ * Hydrates the dashboard data mask.
+ * Relies on updated chart configuration from full hydration.
+ */
 export const hydrateDashboardDataMask = (dataMask, dashboardInfo) => dispatch =>
   dispatch({
     type: HYDRATE_DASHBOARD_DATAMASK,
@@ -75,7 +80,8 @@ export const hydrateDashboardActiveTabs = activeTabs => dispatch =>
   });
 
 /**
- * Hydrate initial dashboard info (without charts and layout)
+ * Hydrate initial dashboard info.
+ * Only requires dashboard data.
  * @param {Object} dashboard - dashboard data
 */
 export const hydrateDashboardInfo = dashboard => (dispatch, getState) => {
@@ -122,12 +128,32 @@ export const hydrateDashboardInfo = dashboard => (dispatch, getState) => {
   
   return dispatch({
     type: HYDRATE_DASHBOARD_INFO,
-    data: {
-      dashboardInfo,
-    }
+    data: dashboardInfo,
   });
 };
 
+const getPositionOrEmptyLayout = (positionData) => positionData && Object.keys(positionData).length > 0
+    ? positionData
+    : getEmptyLayout();
+
+/**
+ * Hydrates the initial layout of the dashboard.
+ * Only requires dashboard data.
+*/
+export const hydrateDashboardInitialLayout = dashboard => dispatch => {
+  const { position_data: positionData } = dashboard;
+  const layout = getPositionOrEmptyLayout(positionData);
+
+  return dispatch({
+    type: HYDRATE_DASHBOARD_INITIAL_LAYOUT,
+    data: layout,
+  });
+}
+
+/**
+ * Full Dashboard Hydration for updated layout, filters, highlights.
+ * Requires datasets and charts data.
+ */
 export const hydrateDashboard =
   ({ history, dashboard, charts }) =>
   (dispatch, getState) => {
@@ -143,11 +169,7 @@ export const hydrateDashboard =
       chart.slice_id = chart.form_data.slice_id;
     });
 
-    // new dash: position_json could be {} or null
-    const layout =
-      positionData && Object.keys(positionData).length > 0
-        ? positionData
-        : getEmptyLayout();
+    const layout = getPositionOrEmptyLayout(positionData);
 
     // create a lookup to sync layout names with slice names
     const chartIdToLayoutId = {};
@@ -350,7 +372,6 @@ export const hydrateDashboard =
           isFiltersRefreshing: false,
           activeTabs: dashboardState?.activeTabs || [],
           datasetsStatus: ResourceStatus.Loading,
-          dashboardHydrated: true,
         },
         dashboardLayout,
       },

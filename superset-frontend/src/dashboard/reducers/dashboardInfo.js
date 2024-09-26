@@ -34,11 +34,15 @@ export default function dashboardStateReducer(state = {}, action) {
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
     case HYDRATE_DASHBOARD:
-    case HYDRATE_DASHBOARD_INFO:
       return {
         ...state,
         ...action.data.dashboardInfo,
         // set async api call data
+      };
+    case HYDRATE_DASHBOARD_INFO:
+      return {
+        ...state,
+        ...action.data,
       };
     case SET_FILTER_BAR_ORIENTATION:
       return {

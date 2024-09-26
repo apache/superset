@@ -22,7 +22,6 @@ import { useHistory } from 'react-router-dom';
 import { DataMaskStateWithId, t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import Loading from 'src/components/Loading';
 import {
   useDashboard,
   useDashboardCharts,
@@ -33,6 +32,7 @@ import {
   hydrateDashboardActiveTabs,
   hydrateDashboardDataMask,
   hydrateDashboardInfo,
+  hydrateDashboardInitialLayout,
 } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
@@ -153,6 +153,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   useEffect(() => {
     if (dashboard && !isDashboardInfoHydrated) {
       dispatch(hydrateDashboardInfo(dashboard));
+      dispatch(hydrateDashboardInitialLayout(dashboard));
     }
   }, [dashboard, isDashboardInfoHydrated, dispatch]);
 
@@ -259,8 +260,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   if (error) throw error; // caught in error boundary
 
-  const isLoading = !isDashboardInfoHydrated;
-
   return (
     <>
       <Global
@@ -272,15 +271,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           chartHeaderStyles(theme),
         ]}
       />
-      {!isLoading && <SyncDashboardState dashboardPageId={dashboardPageId} />}
+      <SyncDashboardState dashboardPageId={dashboardPageId} />
       <DashboardPageIdContext.Provider value={dashboardPageId}>
-        {isLoading ? (
-          <Loading />
-        ) : (
-          <DashboardContainer>
-            <DashboardBuilder />
-          </DashboardContainer>
-        )}
+        <DashboardContainer>
+          <DashboardBuilder />
+        </DashboardContainer>
       </DashboardPageIdContext.Provider>
     </>
   );

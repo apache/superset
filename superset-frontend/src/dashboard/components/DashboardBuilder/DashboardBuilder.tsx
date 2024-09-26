@@ -374,9 +374,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const theme = useTheme();
-  const isDashboardHydrated = useSelector<RootState, boolean>(
-    state => state.dashboardState.dashboardHydrated,
-  );
+  const [isDashboardLayoutHydrated, isDashboardHydrated] = useSelector<
+    RootState,
+    [boolean, boolean]
+  >(state => [
+    state.dashboardState.dashboardLayoutHydrated,
+    state.dashboardState.dashboardHydrated,
+  ]);
 
   const dashboardId = useSelector<RootState, string>(
     ({ dashboardInfo }) => `${dashboardInfo.id}`,
@@ -475,7 +479,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   // Unblocking the Dashboard rendering unless filters are required
   const canShowDashboard = !requiredFirstFilter.length
-    ? true
+    ? isDashboardLayoutHydrated
     : showDashboard && isDashboardHydrated;
 
   const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>({

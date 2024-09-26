@@ -43,7 +43,7 @@ import {
   DASHBOARD_TITLE_CHANGED,
 } from '../actions/dashboardLayout';
 
-import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+import { HYDRATE_DASHBOARD, HYDRATE_DASHBOARD_INITIAL_LAYOUT } from '../actions/hydrate';
 
 export function recursivelyDeleteChildren(
   componentId,
@@ -82,6 +82,12 @@ const actionHandlers = {
   [HYDRATE_DASHBOARD](state, action) {
     return {
       ...action.data.dashboardLayout.present,
+    };
+  },
+
+  [HYDRATE_DASHBOARD_INITIAL_LAYOUT](state, action) {
+    return {
+      ...action.data,
     };
   },
 

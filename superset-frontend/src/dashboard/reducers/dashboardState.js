@@ -53,6 +53,7 @@ import {
   HYDRATE_DASHBOARD_ACTIVETABS,
   HYDRATE_DASHBOARD_INFO,
   HYDRATE_DASHBOARD_DATAMASK,
+  HYDRATE_DASHBOARD_INITIAL_LAYOUT,
 } from '../actions/hydrate';
 
 export default function dashboardStateReducer(state = {}, action) {
@@ -61,7 +62,7 @@ export default function dashboardStateReducer(state = {}, action) {
       return { ...state, activeTabs: action.data };
     },
     [HYDRATE_DASHBOARD]() {
-      return { ...state, ...action.data.dashboardState };
+      return { ...state, ...action.data.dashboardState, dashboardHydrated: true };
     },
     [UPDATE_CSS]() {
       return { ...state, css: action.css };
@@ -259,10 +260,17 @@ export default function dashboardStateReducer(state = {}, action) {
         dashboardInfoHydrated: true,
       };
     },
+    [HYDRATE_DASHBOARD_INITIAL_LAYOUT] () {
+      return {
+        ...state,
+        dashboardLayoutHydrated: true,
+      };
+    },
     [ON_LEAVE_DASHBOARD]() {
       return {
         ...state,
         dashboardInfoHydrated: false,
+        dashboardLayoutHydrated: false,
         dataMaskHydrated: false,
         dashboardHydrated: false,
       };
