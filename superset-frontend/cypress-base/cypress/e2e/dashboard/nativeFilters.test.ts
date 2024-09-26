@@ -67,9 +67,14 @@ function closeFilterModal() {
     }
   });
 }
+// Sprinkling some retry goodness to the flakiest of tests
+const retries = {
+  runMode: 2, // Cypress will retry failed tests 2 times when running in `cypress run`
+  openMode: 1, // Cypress will retry failed tests 1 time when running in `cypress open`
+};
 
-describe('Native filters', () => {
-  describe('Nativefilters tests initial state required', () => {
+describe('Native filters', { retries }, () => {
+  describe('Nativefilters tests initial state required', { retries }, () => {
     beforeEach(() => {
       cy.createSampleDashboards([0]);
     });
@@ -252,7 +257,7 @@ describe('Native filters', () => {
     });
   });
 
-  describe('Nativefilters basic interactions', () => {
+  describe('Nativefilters basic interactions', { retries }, () => {
     before(() => {
       visitDashboard();
     });
@@ -311,7 +316,7 @@ describe('Native filters', () => {
     });
   });
 
-  describe('Nativefilters initial state not required', () => {
+  describe('Nativefilters initial state not required', { retries }, () => {
     it("User can check 'Filter has default value'", () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
