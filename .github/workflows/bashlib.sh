@@ -162,7 +162,17 @@ cypress-run-all() {
     USE_DASHBOARD_FLAG='--use-dashboard'
   fi
 
-  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID $USE_DASHBOARD_FLAG
+  docker pull cypress/browsers:node-20.16.0-chrome-127.0.6533.119-1
+
+  docker run --rm \
+    -e CYPRESS_BASE_URL \
+    -e PARALLELISM \
+    -e PARALLELISM_ID \
+    -e USE_DASHBOARD=${USE_DASHBOARD} \
+    -v "$GITHUB_WORKSPACE/superset-frontend/cypress-base:/e2e" \
+    -w /e2e \
+    cypress/browsers:node-20.16.0-chrome-127.0.6533.119-1 \
+    npx cypress run --browser chrome $USE_DASHBOARD_FLAG
 
   # After job is done, print out Flask log for debugging
   echo "::group::Flask log for default run"
