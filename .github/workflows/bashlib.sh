@@ -162,6 +162,7 @@ cypress-run-all() {
     USE_DASHBOARD_FLAG='--use-dashboard'
   fi
 
+  monitor_memory &
   python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID $USE_DASHBOARD_FLAG
 
   # After job is done, print out Flask log for debugging
@@ -176,6 +177,14 @@ eyes-storybook-dependencies() {
   say "::group::install eyes-storyook dependencies"
   sudo apt-get update -y && sudo apt-get -y install gconf-service ca-certificates libxshmfence-dev fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libgconf-2-4 libglib2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libnspr4 libnss3 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release xdg-utils libappindicator1
   say "::endgroup::"
+}
+
+monitor_memory() {
+  while true; do
+    echo "$(date) - Top 5 memory-consuming processes:"
+    ps -eo pid,comm,%mem --sort=-%mem | head -n 6  # First line is the header, next 5 are top processes
+    sleep 10
+  done
 }
 
 cypress-run-applitools() {

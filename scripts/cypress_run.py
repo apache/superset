@@ -62,6 +62,7 @@ def get_cypress_cmd(
         spec: str = "cypress/e2e/*/**/*"
         cmd = (
             f"{XVFB_PRE_CMD} "
+            f"--reporter spec --reporter-options toConsole=true "
             f'{cypress_cmd} --spec "{spec}" --browser {browser} '
             f"--record --group {group} --tag {REPO},{GITHUB_EVENT_NAME} "
             f"--parallel --ci-build-id {build_id} "
@@ -136,6 +137,7 @@ def main() -> None:
     spec_list = groups[group_id]
     cmd = get_cypress_cmd(spec_list, args.filter, args.group, args.use_dashboard)
     print(f"RUN: {cmd}")
+    os.environ["DEBUG"] = "cypress:*,@cypress/*"
     if not args.dry_run:
         subprocess.run(cmd, shell=True, check=True, stdout=None, stderr=None)
 
