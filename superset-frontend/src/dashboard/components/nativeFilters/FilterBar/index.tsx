@@ -274,6 +274,9 @@ const FilterBar: FC<FiltersBarProps> = ({
     dataMaskApplied,
     filtersInScope.filter(isNativeFilter),
   );
+  const isDashboardHydrated = useSelector<RootState, boolean>(
+    state => state.dashboardState.dashboardHydrated,
+  );
   const isInitialized = useInitialization();
 
   const actions = (
@@ -296,7 +299,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         dashboardId={dashboardId}
         dataMaskSelected={dataMaskSelected}
         filterValues={filterValues}
-        isInitialized={isInitialized}
+        isInitialized={isInitialized && isDashboardHydrated}
         onSelectionChange={handleFilterSelectionChange}
       />
     ) : verticalConfig ? (
@@ -306,7 +309,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         dataMaskSelected={dataMaskSelected}
         filtersOpen={verticalConfig.filtersOpen}
         filterValues={filterValues}
-        isInitialized={isInitialized}
+        isInitialized={isInitialized && isDashboardHydrated}
         height={verticalConfig.height}
         offset={verticalConfig.offset}
         onSelectionChange={handleFilterSelectionChange}

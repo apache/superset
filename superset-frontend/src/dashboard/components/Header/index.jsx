@@ -494,6 +494,7 @@ class Header extends PureComponent {
       user,
       dashboardInfo,
       dashboardInfoHydrated,
+      dashboardLayoutHydrated,
       dashboardHydrated,
       hasUnsavedChanges,
       isLoading,
@@ -516,6 +517,7 @@ class Header extends PureComponent {
       dashboardInfo.common?.conf
         ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
     const dashboardId = dashboardInfoHydrated && dashboardInfo.id;
+    const dashboardInfoTitle = dashboardInfoHydrated && dashboardInfo.dashboard_title;
     const certifiedBy = dashboardInfoHydrated && dashboardInfo.certified_by;
     const certificationDetails = dashboardInfoHydrated && dashboardInfo.certification_details;
     const isStarred = dashboardInfoHydrated && this.props.isStarred;
@@ -548,13 +550,13 @@ class Header extends PureComponent {
       >
         <PageHeaderWithActions
           editableTitleProps={{
-            title: dashboardTitle,
+            title: dashboardTitle || dashboardInfoTitle,
             canEdit: userCanEdit && editMode,
             onSave: this.handleChangeText,
             placeholder: t('Add the name of the dashboard'),
             label: t('Dashboard title'),
             showTooltip: false,
-            loading: !dashboardHydrated,
+            loading: !dashboardLayoutHydrated,
           }}
           certificatiedBadgeProps={{
             certifiedBy: certifiedBy,
@@ -655,7 +657,7 @@ class Header extends PureComponent {
                         data-test="header-save-button"
                         aria-label={t('Save')}
                         disabled={!hasUnsavedChanges}
-                        loading={isLoading || !dashboardHydrated}
+                        loading={isLoading}
                       >
                         {t('Save')}
                       </Button>

@@ -91,6 +91,7 @@ export const hydrateDashboardInfo = dashboard => (dispatch, getState) => {
   const crossFiltersEnabled = isCrossFiltersEnabled(
     metadata.cross_filters_enabled,
   );
+  // metadata will be processed by hydrateDashboard action
   const { metadata: _, ...dashboardWithoutMetadata } = dashboard;
 
   const dashboardInfo = {

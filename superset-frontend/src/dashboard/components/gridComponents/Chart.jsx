@@ -410,21 +410,19 @@ class Chart extends Component {
       emitCrossFilters,
       logEvent,
     } = this.props;
-
-    const { width } = this.state;
-    // this prevents throwing in the case that a gridComponent
-    // references a chart that is not associated with the dashboard
-    if (!chart || !slice) {
-      return <MissingChart height={this.getChartHeight()} />;
-    }
-
-    const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
-
     // Controlling the status of a Chart based on Dashboard hydration
     const { isDashboardHydrated } = this.props;
+    const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
     const controlledChartStatus = isDashboardHydrated ? chartStatus : 'loading';
     const { triggerQuery } = chart;
+    const { width } = this.state;
     const isLoading = controlledChartStatus === 'loading';
+    
+    // this prevents throwing in the case that a gridComponent
+    // references a chart that is not associated with the dashboard
+    if ((!chart || !slice) && isDashboardHydrated) {
+      return <MissingChart height={this.getChartHeight()} />;
+    }
 
     // eslint-disable-next-line camelcase
     const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
@@ -438,8 +436,8 @@ class Chart extends Component {
         className="chart-slice"
         data-test="chart-grid-component"
         data-test-chart-id={id}
-        data-test-viz-type={slice.viz_type}
-        data-test-chart-name={slice.slice_name}
+        data-test-viz-type={slice?.viz_type}
+        data-test-chart-name={slice?.slice_name}
       >
         <SliceHeader
           innerRef={this.setHeaderRef}
@@ -485,7 +483,7 @@ class Chart extends Component {
           and
              https://github.com/apache/superset/pull/23862
         */}
-        {isExpanded && slice.description_markeddown && (
+        {isExpanded && slice?.description_markeddown && (
           <div
             className="slice_description bs-callout bs-callout-default"
             ref={this.setDescriptionRef}
@@ -497,7 +495,7 @@ class Chart extends Component {
 
         <ChartWrapper
           className={cx('dashboard-chart')}
-          aria-label={slice.description}
+          aria-label={slice?.description}
         >
           {isLoading && (
             <ChartOverlay
@@ -514,8 +512,8 @@ class Chart extends Component {
             addFilter={this.changeFilter}
             onFilterMenuOpen={this.handleFilterMenuOpen}
             onFilterMenuClose={this.handleFilterMenuClose}
-            annotationData={chart.annotationData}
-            chartAlert={chart.chartAlert}
+            annotationData={chart?.annotationData}
+            chartAlert={chart?.chartAlert}
             chartId={id}
             chartStatus={controlledChartStatus}
             datasource={datasource}
@@ -529,7 +527,7 @@ class Chart extends Component {
             queriesResponse={chart.queriesResponse}
             timeout={timeout}
             triggerQuery={triggerQuery}
-            vizType={slice.viz_type}
+            vizType={slice?.viz_type}
             setControlValue={setControlValue}
             postTransformProps={postTransformProps}
             datasetsStatus={datasetsStatus}

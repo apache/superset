@@ -157,6 +157,10 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   width,
   height,
 }) => {
+  if (!slice) {
+    return null;
+  }
+
   const SliceHeaderExtension = extensionsRegistry.get('dashboard.slice.header');
   const uiConfig = useUiConfig();
   const dashboardPageId = useContext(DashboardPageIdContext);
@@ -171,6 +175,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   );
 
   const canExplore = !editMode && supersetCanExplore;
+  const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
   useEffect(() => {
     const headerElement = headerRef.current;
@@ -186,8 +191,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
       setHeaderTooltip(null);
     }
   }, [sliceName, width, height, canExplore]);
-
-  const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
   return (
     <ChartHeaderStyles data-test="slice-header" ref={innerRef}>

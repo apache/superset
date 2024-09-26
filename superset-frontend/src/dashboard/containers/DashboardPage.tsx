@@ -97,10 +97,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     isDashboardHydrated,
     isDashboardDatamaskHydrated,
     isDashboardInfoHydrated,
-  ] = useSelector<RootState, [boolean, boolean, boolean]>(state => [
+    isDashboardLayoutHydrated,
+  ] = useSelector<RootState, [boolean, boolean, boolean, boolean]>(state => [
     state.dashboardState.dashboardHydrated,
     state.dashboardState.dataMaskHydrated,
     state.dashboardState.dashboardInfoHydrated,
+    state.dashboardState.dashboardLayoutHydrated,
   ]);
   const currentDataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
@@ -120,7 +122,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const readyToHydrate =
     Boolean(dashboard && charts) &&
     !isDashboardHydrated &&
-    isDashboardInfoHydrated;
+    isDashboardInfoHydrated &&
+    isDashboardLayoutHydrated;
   const { dashboard_title, css, id = 0 } = dashboard || {};
 
   useEffect(() => {
@@ -153,12 +156,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   useEffect(() => {
     if (dashboard && !isDashboardInfoHydrated) {
       dispatch(hydrateDashboardInfo(dashboard));
+    }
+    if (dashboard && !isDashboardLayoutHydrated) {
       dispatch(hydrateDashboardInitialLayout(dashboard));
     }
-  }, [dashboard, isDashboardInfoHydrated, dispatch]);
+  }, [dashboard, isDashboardInfoHydrated, dispatch, isDashboardLayoutHydrated]);
 
   /**
-   * Hydrate dashboard with layout and filters.
+   * Final dashboard hydration with layout and filters.
    */
   useEffect(() => {
     if (readyToHydrate) {
@@ -173,7 +178,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [charts, dashboard, dispatch, history, readyToHydrate]);
 
   /**
-   * Hydrate dashboard data mask and active tabs.
+   * Hydrate dataMask and active tabs.
    * Depends on dashboard layout and filters being hydrated.
    */
   useEffect(() => {
@@ -196,15 +201,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dataMask = isOldRison;
       }
 
-      if (activeTabs?.length) {
-        dispatch(hydrateDashboardActiveTabs(activeTabs));
-      }
-
+      dispatch(hydrateDashboardActiveTabs(activeTabs));
       dispatch(hydrateDashboardDataMask(dataMask, dashboardInfo));
     }
     if (
       id &&
-      dashboardInfo &&
       isDashboardHydrated &&
       !isDashboardDatamaskHydrated &&
       !Object.keys(currentDataMask).length &&
@@ -213,7 +214,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       getDataMaskApplied();
     }
     if (
-      dashboardInfo &&
       isDashboardHydrated &&
       !isDashboardDatamaskHydrated &&
       Object.keys(currentDataMask).length
@@ -259,6 +259,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
   if (error) throw error; // caught in error boundary
+
+  // TODO: @geido some charts are not loading
+  // TODO: @geido when adding a chart to dashboard, position metadata is not saved (save the chart, generate position, and put dashboard)
+  // TODO: @geido can we pre-render the charts
+  // TODO: @geido a bunch of warnings
+  // TODO: @geido warning showing up quickly when pre-filter even though the filter exists
+  // TODO: @geido test with dashboard virtualization OFF
 
   return (
     <>

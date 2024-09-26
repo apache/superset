@@ -477,6 +477,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     nativeFiltersEnabled,
   } = useNativeFilters();
 
+  const canOpenFilters = dashboardFiltersOpen && isDashboardHydrated;
   // Unblocking the Dashboard rendering unless filters are required
   const canShowDashboard = !requiredFirstFilter.length
     ? isDashboardLayoutHydrated
@@ -494,24 +495,19 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     (isSticky || standaloneMode ? 0 : MAIN_HEADER_HEIGHT);
 
   const filterBarHeight = `calc(100vh - ${offset}px)`;
-  const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
+  const filterBarOffset = canOpenFilters ? 0 : barTopOffset + 20;
 
   const draggableStyle = useMemo(
     () => ({
       marginLeft:
-        dashboardFiltersOpen ||
+        canOpenFilters ||
         editMode ||
         !nativeFiltersEnabled ||
         filterBarOrientation === FilterBarOrientation.Horizontal
           ? 0
           : -32,
     }),
-    [
-      dashboardFiltersOpen,
-      editMode,
-      filterBarOrientation,
-      nativeFiltersEnabled,
-    ],
+    [canOpenFilters, editMode, filterBarOrientation, nativeFiltersEnabled],
   );
 
   // If a new tab was added, update the directPathToChild to reflect it
@@ -587,7 +583,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   );
 
   const dashboardContentMarginLeft =
-    !dashboardFiltersOpen &&
+    !canOpenFilters &&
     !editMode &&
     nativeFiltersEnabled &&
     filterBarOrientation !== FilterBarOrientation.Horizontal
@@ -601,13 +597,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           <>
             <ResizableSidebar
               id={`dashboard:${dashboardId}`}
-              enable={dashboardFiltersOpen}
+              enable={canOpenFilters}
               minWidth={OPEN_FILTER_BAR_WIDTH}
               maxWidth={OPEN_FILTER_BAR_MAX_WIDTH}
               initialWidth={OPEN_FILTER_BAR_WIDTH}
             >
               {adjustedWidth => {
-                const filterBarWidth = dashboardFiltersOpen
+                const filterBarWidth = canOpenFilters
                   ? adjustedWidth
                   : CLOSED_FILTER_BAR_WIDTH;
                 return (
@@ -621,7 +617,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                         <FilterBar
                           orientation={FilterBarOrientation.Vertical}
                           verticalConfig={{
-                            filtersOpen: dashboardFiltersOpen,
+                            filtersOpen: canOpenFilters,
                             toggleFiltersBar: toggleDashboardFiltersOpen,
                             width: filterBarWidth,
                             height: filterBarHeight,
