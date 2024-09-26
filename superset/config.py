@@ -66,6 +66,7 @@ from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
 logger = logging.getLogger(__name__)
+# COMMENT FOR TIGERING CI
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
