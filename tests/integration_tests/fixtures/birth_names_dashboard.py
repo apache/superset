@@ -80,6 +80,7 @@ def _create_dashboards():
     dash = create_dashboard(slices)
     slices_ids_to_delete = [slice.id for slice in slices]
     dash_id_to_delete = dash.id
+    db.session.flush()
     return dash_id_to_delete, slices_ids_to_delete
 
 

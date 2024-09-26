@@ -63,6 +63,7 @@ def load_world_bank_data():
                 method="multi",
                 schema=get_example_default_schema(),
             )
+            db.session.flush()
 
     yield
     with app.app_context():

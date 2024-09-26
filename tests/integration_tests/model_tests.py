@@ -675,6 +675,7 @@ class TestSqlaTableModel(SupersetTestCase):
         )
         dashboard.slices.append(slc)
         datasource_info = slc.datasource.data_for_slices([slc])
+        metadata_db.session.flush()
         assert "database" in datasource_info
 
         # clean up and auto commit
