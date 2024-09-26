@@ -62,7 +62,7 @@ def get_cypress_cmd(
         spec: str = "cypress/e2e/*/**/*"
         cmd = (
             f"{XVFB_PRE_CMD} "
-            f"--reporter spec --reporter-options toConsole=true "
+            f"--headed "
             f'{cypress_cmd} --spec "{spec}" --browser {browser} '
             f"--record --group {group} --tag {REPO},{GITHUB_EVENT_NAME} "
             f"--parallel --ci-build-id {build_id} "
