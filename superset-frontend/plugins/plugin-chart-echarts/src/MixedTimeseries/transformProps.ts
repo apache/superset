@@ -593,7 +593,7 @@ export default function transformProps(
           extractForecastValuesFromTooltipParams(forecastValue);
 
         const keys = Object.keys(forecastValues);
-        let focusedRow = -1;
+        let focusedRow;
         keys.forEach(key => {
           const value = forecastValues[key];
           // if there are no dimensions, key is a verbose name of a metric,
