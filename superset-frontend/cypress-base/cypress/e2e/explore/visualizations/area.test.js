@@ -61,7 +61,7 @@ describe('Visualization > Area', () => {
 
   it('should work without groupby', () => {
     verify(AREA_FORM_DATA);
-    cy.get('.nv-area').should('have.length', 100);
+    cy.get('.nv-area').should('have.length', 1);
   });
 
   it('should work with group by', () => {
