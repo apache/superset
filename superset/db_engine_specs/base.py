@@ -58,8 +58,8 @@ from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClau
 from sqlalchemy.types import TypeEngine
 from sqlparse.tokens import CTE
 
-from superset import sql_parse
-from superset.constants import TimeGrain as TimeGrainConstants
+from superset import app, db, sql_parse
+from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
@@ -84,6 +84,8 @@ if TYPE_CHECKING:
     from superset.databases.schemas import TableMetadataResponse
     from superset.models.core import Database
     from superset.models.sql_lab import Query
+
+query_id_not_associated_connect = app.config.get("QUERY_ID_NOT_ASSOCIATED_CONNECT", [])
 
 
 ColumnTypeMapping = tuple[
@@ -1316,6 +1318,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         # TODO: Fix circular import error caused by importing sql_lab.Query
 
     @classmethod
+    # pylint: disable=consider-using-transaction
     def execute_with_cursor(
         cls,
         cursor: Any,
@@ -1333,8 +1336,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         logger.debug("Query %d: Running query: %s", query.id, sql)
         cls.execute(cursor, sql, query.database, async_=True)
+        if cls.is_query_id_not_associated_connect(query.database.get_dialect().name):
+            cancel_query_id = query.database.db_engine_spec.get_cancel_query_id(
+                cursor, query
+            )
+            if cancel_query_id is not None:
+                query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
+                db.session.commit()
         logger.debug("Query %d: Handling cursor", query.id)
         cls.handle_cursor(cursor, query)
+
+    @classmethod
+    def is_query_id_not_associated_connect(cls, database_dialect: str) -> bool:
+        # Determine the specify database dialect
+        # whether the query ID is not related to the connection
+        return database_dialect in query_id_not_associated_connect
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:

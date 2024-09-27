@@ -1510,6 +1510,14 @@ SQL_VALIDATORS_BY_ENGINE = {
     "postgresql": "PostgreSQLValidator",
 }
 
+# A list of database dialects which the query ID is not related to the connection.
+# The database dialects set here will update the `cancel_query` value
+# in the `extra` field of the `query` object after executing the corresponding SQL and
+# before retrieving the result set
+QUERY_ID_NOT_ASSOCIATED_CONNECT: list[str] = [
+    "impala",
+]
+
 # A list of preferred databases, in order. These databases will be
 # displayed prominently in the "Add Database" dialog. You should
 # use the "engine_name" attribute of the corresponding DB engine spec
