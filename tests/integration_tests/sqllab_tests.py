@@ -137,7 +137,11 @@ class TestSqlLab(SupersetTestCase):
         assert data == {
             "errors": [
                 {
-                    "message": "Only SELECT statements are allowed against this database.",
+                    "message": (
+                        "This database does not allow for DDL/DML, and the query "
+                        "could not be parsed to confirm it is a read-only query. Please "
+                        "contact your administrator for more assistance."
+                    ),
                     "error_type": SupersetErrorType.DML_NOT_ALLOWED_ERROR,
                     "level": ErrorLevel.ERROR,
                     "extra": {
