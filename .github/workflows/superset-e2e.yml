@@ -32,6 +32,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+
     strategy:
       # when one test fails, DO NOT cancel the other
       # parallel_id, because this will kill Cypress processes
