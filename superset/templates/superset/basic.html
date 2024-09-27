@@ -123,7 +123,7 @@
       "tail_js_custom_extra.html" %} {% endblock %}
 
       <!-- Handle deferred stylesheets -->
-      <script>
+      <script nonce="{{ macros.get_nonce() }}">
         document.addEventListener('DOMContentLoaded', function() {
           var preloadLinks = document.querySelectorAll('link[rel="preload"][as="style"]');
 
