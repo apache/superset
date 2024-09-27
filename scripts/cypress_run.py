@@ -137,7 +137,7 @@ def main() -> None:
     spec_list = groups[group_id]
     cmd = get_cypress_cmd(spec_list, args.filter, args.group, args.use_dashboard)
     print(f"RUN: {cmd}")
-    os.environ["DEBUG"] = "cypress:*"
+    # os.environ["DEBUG"] = "cypress:*"
 
     process = subprocess.Popen(
         cmd,
