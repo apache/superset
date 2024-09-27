@@ -189,7 +189,7 @@ monitor_memory() {
   while true; do
     echo "$(date) - Top 5 memory-consuming processes:"
     ps -eo pid,comm,%mem --sort=-%mem | head -n 6  # First line is the header, next 5 are top processes
-    sleep 10
+    sleep 2
   done
 }
 
