@@ -137,6 +137,8 @@ def main() -> None:
     spec_list = groups[group_id]
     cmd = get_cypress_cmd(spec_list, args.filter, args.group, args.use_dashboard)
     print(f"RUN: {cmd}")
+
+    # UNOMMENT TO DEBUG CYPRESS
     # os.environ["DEBUG"] = "cypress:*"
 
     process = subprocess.Popen(
@@ -147,6 +149,7 @@ def main() -> None:
         universal_newlines=True,
     )
 
+    # In the next section we're making sure that the output is printed in real-time
     if process.stdout:  # Ensure stdout is not None
         # Stream stdout in real-time
         for stdout_line in iter(process.stdout.readline, ""):

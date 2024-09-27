@@ -162,12 +162,10 @@ cypress-run-all() {
     USE_DASHBOARD_FLAG='--use-dashboard'
   fi
 
-  # UNCOMMENT to monitor memory usage
+  # UNCOMMENT the next few commands to monitor memory usage
   # monitor_memory &  # Start memory monitoring in the background
   # memoryMonitorPid=$!
-
   python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID $USE_DASHBOARD_FLAG
-
   # kill $memoryMonitorPid
 
   # After job is done, print out Flask log for debugging
@@ -185,6 +183,13 @@ eyes-storybook-dependencies() {
 }
 
 monitor_memory() {
+  # This is a small utility to monitor memory usage. Useful for debugging memory in GHA.
+  # To use wrap your command as follows
+  #
+  # monitor_memory &  # Start memory monitoring in the background
+  # memoryMonitorPid=$!
+  # YOUR_COMMAND_HERE
+  # kill $memoryMonitorPid
   while true; do
     echo "$(date) - Top 5 memory-consuming processes:"
     ps -eo pid,comm,%mem --sort=-%mem | head -n 6  # First line is the header, next 5 are top processes
