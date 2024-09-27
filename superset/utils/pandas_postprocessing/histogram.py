@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import numpy as np
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, to_numeric
 
 
 # pylint: disable=too-many-arguments
@@ -48,9 +48,8 @@ def histogram(
     if groupby is None:
         groupby = []
 
-    # check if the column is numeric
-    if not np.issubdtype(df[column].dtype, np.number):
-        raise ValueError(f"The column '{column}' must be numeric.")
+    # convert to numeric, coercing errors to NaN
+    df[column] = to_numeric(df[column], errors="coerce")
 
     # calculate the histogram bin edges
     bin_edges = np.histogram_bin_edges(df[column].dropna(), bins=bins)

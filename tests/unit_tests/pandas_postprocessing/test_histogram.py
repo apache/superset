@@ -116,13 +116,39 @@ def test_histogram_with_groupby_and_cumulative_and_normalize():
 
 
 def test_histogram_with_non_numeric_column():
-    try:
-        histogram(data, "b", ["group"], bins)
-    except ValueError as e:
-        assert str(e) == "The column 'b' must be numeric."
+    result = histogram(data, "group", None, bins)
+    assert result.shape == (1, bins)
+    assert result.columns.tolist() == [
+        "0 - 0",
+        "0 - 0",
+        "0 - 0",
+        "0 - 0",
+        "0 - 1",
+    ]
+    assert result.values.tolist() == [[0, 0, 0, 0, 0]]
 
 
-# test histogram ignore null values
+def test_histogram_with_some_non_numeric_values():
+    data_with_non_numeric = DataFrame(
+        {
+            "group": ["A", "A", "B", "B", "A", "A", "B", "B", "A", "A"],
+            "a": [1, 2, 3, 4, 5, 6, 7, 8, 9, "10"],
+            "b": [1, 2, 3, 4, 5, 6, 7, 8, 9, "10"],
+        }
+    )
+    result = histogram(data_with_non_numeric, "a", ["group"], bins)
+    assert result.shape == (2, bins + 1)
+    assert result.columns.tolist() == [
+        "group",
+        "1 - 2",
+        "2 - 4",
+        "4 - 6",
+        "6 - 8",
+        "8 - 10",
+    ]
+    assert result.values.tolist() == [["A", 2, 0, 2, 0, 2], ["B", 0, 2, 0, 2, 0]]
+
+
 def test_histogram_ignore_null_values():
     data_with_null = DataFrame(
         {
