@@ -22,16 +22,19 @@ import { FieldPropTypes } from '../../types';
 
 const FIELD_TEXT_MAP = {
   account: {
+    label: 'Account',
     helpText: t(
       'Copy the identifier of the account you are trying to connect to.',
     ),
     placeholder: t('e.g. xy12345.us-east-2.aws'),
   },
   warehouse: {
+    label: 'Warehouse',
     placeholder: t('e.g. compute_wh'),
     className: 'form-group-w-50',
   },
   role: {
+    label: 'Role',
     placeholder: t('e.g. AccountAdmin'),
     className: 'form-group-w-50',
   },
@@ -54,7 +57,7 @@ export const validatedInputField = ({
     errorMessage={validationErrors?.[field]}
     placeholder={FIELD_TEXT_MAP[field].placeholder}
     helpText={FIELD_TEXT_MAP[field].helpText}
-    label={field}
+    label={FIELD_TEXT_MAP[field].label || field}
     onChange={changeMethods.onParametersChange}
     className={FIELD_TEXT_MAP[field].className || field}
   />

@@ -6,13 +6,13 @@ version: 1
 # Setting up a Development Environment
 
 The documentation in this section is a bit of a patchwork of knowledge representing the
-multitude of ways that exist to run Superset (`docker-compose`, just "docker", on "metal", using
+multitude of ways that exist to run Superset (`docker compose`, just "docker", on "metal", using
 a Makefile).
 
 :::note
-Now we have evolved to recommend and support `docker-compose` more actively as the main way
+Now we have evolved to recommend and support `docker compose` more actively as the main way
 to run Superset for development and preserve your sanity. **Most people should stick to
-the first few sections - ("Fork & Clone", "docker-compose" and "Installing Dev Tools")**
+the first few sections - ("Fork & Clone", "docker compose" and "Installing Dev Tools")**
 :::
 
 ## Fork and Clone
@@ -27,14 +27,16 @@ git clone git@github.com:your-username/superset.git
 cd superset
 ```
 
-## docker-compose (recommended!)
+## docker compose (recommended!)
 
 Setting things up to squeeze an "hello world" into any part of Superset should be as simple as
 
 ```bash
-docker-compose up
+docker compose up
 ```
+
 Note that:
+
 - this will pull/build docker images and run a cluster of services, including:
   - A Superset **Flask web server**, mounting the local python repo/code
   - A Superset **Celery worker**, also mounting the local python repo/code
@@ -52,9 +54,9 @@ Note that:
 - You can login with admin/admin
 
 :::caution
-Since `docker-compose` is primarily designed to run a set of containers on **a single host**
+Since `docker compose` is primarily designed to run a set of containers on **a single host**
 and can't credibly support **high availability** as a result, we do not support nor recommend
-using our `docker-compose` constructs to support production-type use-cases. For single host
+using our `docker compose` constructs to support production-type use-cases. For single host
 environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
 our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
 documentation.
@@ -64,10 +66,10 @@ configured to be secure.
 ## Installing Development Tools
 
 :::note
-While docker-compose simplifies a lot of the setup, there are still
+While `docker compose` simplifies a lot of the setup, there are still
 many things you'll want to set up locally to power your IDE, and things like
 **commit hooks**, **linters**, and **test-runners**. Note that you can do these
-things inside docker images with commands like `docker-compose exec superset_app bash` for
+things inside docker images with commands like `docker compose exec superset_app bash` for
 instance, but many people like to run that tooling from their host.
 :::
 
@@ -90,13 +92,56 @@ To install run the following:
 pre-commit install
 ```
 
-A series of checks will now run when you make a git commit.
+This will install the hooks in your local repository. From now on, a series of checks will
+automatically run whenever you make a Git commit.
 
-## Alternatives to docker-compose
+#### Running Pre-commit Manually
+
+You can also run the pre-commit checks manually in various ways:
+
+- **Run pre-commit on all files (same as CI):**
+
+  To run the pre-commit checks across all files in your repository, use the following command:
+
+  ```bash
+  pre-commit run --all-files
+  ```
+
+  This is the same set of checks that will run during CI, ensuring your changes meet the project's standards.
+
+- **Run pre-commit on a specific file:**
+
+  If you want to check or fix a specific file, you can do so by specifying the file path:
+
+  ```bash
+  pre-commit run --files path/to/your/file.py
+  ```
+
+  This will only run the checks on the file(s) you specify.
+
+- **Run a specific pre-commit check:**
+
+  To run a specific check (hook) across all files or a particular file, use the following command:
+
+  ```bash
+  pre-commit run <hook_id> --all-files
+  ```
+
+  Or for a specific file:
+
+  ```bash
+  pre-commit run <hook_id> --files path/to/your/file.py
+  ```
+
+  Replace `<hook_id>` with the ID of the specific hook you want to run. You can find the list
+  of available hooks in the `.pre-commit-config.yaml` file.
+
+
+## Alternatives to `docker compose`
 
 :::caution
 This part of the documentation is a patchwork of information related to setting up
-development environments without `docker-compose` and are documented/supported to varying
+development environments without `docker compose` and are documented/supported to varying
 degrees. It's been difficult to maintain this wide array of methods and insure they're
 functioning across environments.
 :::
@@ -106,7 +151,7 @@ functioning across environments.
 #### OS Dependencies
 
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/pypi#os-dependencies) before following these steps.
-You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
+You also need to install MySQL.
 
 Ensure that you are using Python version 3.9, 3.10 or 3.11, then proceed with:
 
@@ -223,7 +268,7 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 First, be sure you are using the following versions of Node.js and npm:
 
-- `Node.js`: Version 18
+- `Node.js`: Version 20
 - `npm`: Version 10
 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
@@ -287,22 +332,28 @@ If while using the above commands you encounter an error related to the limit of
 ```bash
 Error: ENOSPC: System limit for number of file watchers reached
 ```
+
 The error is thrown because the number of files monitored by the system has reached the limit.
 You can address this this error by increasing the number of inotify watchers.
 
 The current value of max watches can be checked with:
+
 ```bash
 cat /proc/sys/fs/inotify/max_user_watches
 ```
-Edit the file /etc/sysctl.conf to increase this value.
+
+Edit the file `/etc/sysctl.conf` to increase this value.
 The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
 
 Open the file in editor and add a line at the bottom specifying the max watches values.
+
 ```bash
 fs.inotify.max_user_watches=524288
 ```
+
 Save the file and exit editor.
-To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from sysctl.conf:
+To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from `sysctl.conf`:
+
 ```bash
 sudo sysctl -p
 ```
@@ -314,14 +365,18 @@ The dev server by default starts at `http://localhost:9000` and proxies the back
 So a typical development workflow is the following:
 
 1. [run Superset locally](#flask-server) using Flask, on port `8088` — but don't access it directly,<br/>
+
    ```bash
    # Install Superset and dependencies, plus load your virtual environment first, as detailed above.
    superset run -p 8088 --with-threads --reload --debugger --debug
    ```
+
 2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
+
    ```bash
    npm run dev-server
    ```
+
 3. access `http://localhost:9000` (the Webpack server, _not_ Flask) in your web browser. This will use the hot-reloading front-end assets from the Webpack development server while redirecting back-end queries to Flask/Superset: your changes on Superset codebase — either front or back-end — will then be reflected live in the browser.
 
 It's possible to change the Webpack server settings:
@@ -597,7 +652,7 @@ For debugging locally using VSCode, you can configure a launch configuration fil
 }
 ```
 
-#### Raw Docker (without docker-compose)
+#### Raw Docker (without `docker compose`)
 
 Follow these instructions to debug the Flask app running inside a docker container. Note that
 this will run a barebones Superset web server,
@@ -704,9 +759,9 @@ VSCode will not stop on breakpoints right away. We've attached to PID 6 however 
 
 ### Debugging Server App in Kubernetes Environment
 
-To debug Flask running in POD inside kubernetes cluster. You'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
+To debug Flask running in POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
 
-```
+```yaml
   securityContext:
     capabilities:
       add: ["SYS_PTRACE"]
@@ -716,11 +771,11 @@ See (set capabilities for a container)[https://kubernetes.io/docs/tasks/configur
 
 Once the pod is running as root and has the SYS_PTRACE capability it will be able to debug the Flask app.
 
-You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
+You can follow the same instructions as in `docker compose`. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
 
 Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
-```
+```bash
 kubectl port-forward  pod/superset-<some random id> 5678:5678
 ```
 
@@ -801,7 +856,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
    The output should look like this:
 
-   ```
+   ```log
    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
    INFO  [alembic.runtime.migration] Will assume transactional DDL.
    INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
@@ -821,7 +876,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
    The output should look like this:
 
-   ```
+   ```log
    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
    INFO  [alembic.runtime.migration] Will assume transactional DDL.
    INFO  [alembic.runtime.migration] Running downgrade 40a0a483dd12 -> 1a1d627ebd8e, add_metadata_column_to_annotation_model.py

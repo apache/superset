@@ -175,8 +175,8 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const overflowedCrossFilters = useMemo(
     () =>
-      selectedCrossFilters.filter(
-        ({ emitterId, name }) => overflowedIds?.includes(`${name}${emitterId}`),
+      selectedCrossFilters.filter(({ emitterId, name }) =>
+        overflowedIds?.includes(`${name}${emitterId}`),
       ),
     [overflowedIds, selectedCrossFilters],
   );

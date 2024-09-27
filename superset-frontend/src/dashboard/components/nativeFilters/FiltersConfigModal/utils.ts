@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FormInstance } from 'src/components';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import {
   Filter,
@@ -197,7 +197,7 @@ export const generateFilterId = (type: NativeFilterType) => {
     type === NativeFilterType.NativeFilter
       ? NATIVE_FILTER_PREFIX
       : NATIVE_FILTER_DIVIDER_PREFIX;
-  return `${prefix}${shortid.generate()}`;
+  return `${prefix}${nanoid()}`;
 };
 
 export const getFilterIds = (config: FilterConfiguration) =>

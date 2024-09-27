@@ -156,7 +156,7 @@ describe('controlUtils', () => {
       expect(control?.value).toBeNull();
     });
 
-    it('returns null for non-existent field', () => {
+    it('returns null for nonexistent field', () => {
       const control = getControlState('NON_EXISTENT', 'table', state);
       expect(control).toBeNull();
     });

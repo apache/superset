@@ -172,6 +172,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "excel_metadata": "excel_upload",
     "columnar_metadata": "columnar_upload",
     "csv_metadata": "csv_upload",
+    "slack_channels": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

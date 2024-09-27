@@ -343,8 +343,9 @@ class TestImportDatasetsCommand(SupersetTestCase):
 
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_import_v1_dataset(self, sm_g, utils_g):
+    def test_import_v1_dataset(self, mock_add_permissions, sm_g, utils_g):
         """Test that we can import a dataset"""
         admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
@@ -411,7 +412,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.security.manager.g")
-    def test_import_v1_dataset_multiple(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_dataset_multiple(self, mock_add_permissions, mock_g):
         """Test that a dataset can be imported multiple times"""
         mock_g.user = security_manager.find_user("admin")
 
@@ -452,7 +454,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.delete(dataset.database)
         db.session.commit()
 
-    def test_import_v1_dataset_validation(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_dataset_validation(self, mock_add_permissions):
         """Test different validations applied when importing a dataset"""
         # metadata.yaml must be present
         contents = {
@@ -502,7 +505,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
         }
 
     @patch("superset.security.manager.g")
-    def test_import_v1_dataset_existing_database(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_dataset_existing_database(self, mock_add_permissions, mock_g):
         """Test that a dataset can be imported when the database already exists"""
         mock_g.user = security_manager.find_user("admin")
 

@@ -10,12 +10,12 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.4
-    # via ipython
 astroid==3.1.0
     # via pylint
 boto3==1.34.112
-    # via dataflows-tabulator
+    # via
+    #   apache-superset
+    #   dataflows-tabulator
 botocore==1.34.112
     # via
     #   boto3
@@ -177,9 +177,7 @@ protobuf==4.23.0
 psycopg2-binary==2.9.6
     # via apache-superset
 pure-sasl==0.6.2
-    # via
-    #   pyhive
-    #   thrift-sasl
+    # via thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
 pydruid==0.6.9
@@ -232,18 +230,9 @@ tableschema==1.20.10
 thrift==0.16.0
     # via
     #   apache-superset
-    #   pyhive
     #   thrift-sasl
 thrift-sasl==0.4.3
-    # via
-    #   build
-    #   coverage
-    #   pip-tools
-    #   pylint
-    #   pyproject-api
-    #   pyproject-hooks
-    #   pytest
-    #   tox
+    # via apache-superset
 tomlkit==0.12.5
     # via pylint
 toposort==1.10
@@ -254,9 +243,6 @@ tqdm==4.66.4
     # via
     #   cmdstanpy
     #   prophet
-traitlets==5.14.3
-    # via
-    #   matplotlib-inline
 trino==0.328.0
     # via apache-superset
 tzlocal==5.2

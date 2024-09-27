@@ -25,7 +25,11 @@ export default {
   component: TagsList,
 };
 
-export const InteractiveTags = ({ tags, editable, maxTags }: TagsListProps) => (
+export const InteractiveTagsList = ({
+  tags,
+  editable,
+  maxTags,
+}: TagsListProps) => (
   <TagsList tags={tags} editable={editable} maxTags={maxTags} />
 );
 
@@ -42,7 +46,7 @@ const editable = true;
 
 const maxTags = 3;
 
-InteractiveTags.args = {
+InteractiveTagsList.args = {
   tags,
   editable,
   maxTags,

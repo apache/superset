@@ -41,7 +41,8 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.daos.database import DatabaseDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
-from superset.exceptions import SupersetErrorsException
+from superset.db_engine_specs.base import GenericDBException
+from superset.exceptions import OAuth2RedirectError, SupersetErrorsException
 from superset.extensions import event_logger, security_manager
 from superset.models.core import Database
 from superset.utils.decorators import on_error, transaction
@@ -61,6 +62,11 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
+        except OAuth2RedirectError:
+            # If we can't connect to the database due to an OAuth2 error we can still
+            # save the database. Later, the user can sync permissions when setting up
+            # data access rules.
+            return self._create_database()
         except (
             SupersetErrorsException,
             SSHTunnelingNotEnabledError,
@@ -78,12 +84,6 @@ class CreateDatabaseCommand(BaseCommand):
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
             )
             raise DatabaseConnectionFailedError() from ex
-
-        # when creating a new database we don't need to unmask encrypted extra
-        self._properties["encrypted_extra"] = self._properties.pop(
-            "masked_encrypted_extra",
-            "{}",
-        )
 
         ssh_tunnel: Optional[SSHTunnel] = None
 
@@ -118,7 +118,7 @@ class CreateDatabaseCommand(BaseCommand):
             for catalog in catalogs:
                 try:
                     self.add_schema_permissions(database, catalog, ssh_tunnel)
-                except Exception:  # pylint: disable=broad-except
+                except GenericDBException:  # pylint: disable=broad-except
                     logger.warning("Error processing catalog '%s'", catalog)
                     continue
         except (
@@ -194,6 +194,12 @@ class CreateDatabaseCommand(BaseCommand):
             raise exception
 
     def _create_database(self) -> Database:
+        # when creating a new database we don't need to unmask encrypted extra
+        self._properties["encrypted_extra"] = self._properties.pop(
+            "masked_encrypted_extra",
+            "{}",
+        )
+
         database = DatabaseDAO.create(attributes=self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         return database

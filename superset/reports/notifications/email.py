@@ -135,7 +135,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         for msgid in images.keys():
             img_tags.append(
                 f"""<div class="image">
-                    <img width="1000px" src="cid:{msgid}">
+                    <img width="1000" src="cid:{msgid}">
                 </div>
                 """
             )
@@ -153,6 +153,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                   }}
                   .image{{
                       margin-bottom: 18px;
+                      min-width: 1000px;
                   }}
                 </style>
               </head>
@@ -192,11 +193,22 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
 
+    def _get_cc(self) -> str:
+        # To accomadate backward compatability
+        return json.loads(self._recipient.recipient_config_json).get("ccTarget", "")
+
+    def _get_bcc(self) -> str:
+        # To accomadate backward compatability
+        return json.loads(self._recipient.recipient_config_json).get("bccTarget", "")
+
     @statsd_gauge("reports.email.send")
     def send(self) -> None:
         subject = self._get_subject()
         content = self._get_content()
         to = self._get_to()
+        cc = self._get_cc()
+        bcc = self._get_bcc()
+
         try:
             send_email_smtp(
                 to,
@@ -207,9 +219,10 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 data=content.data,
                 pdf=content.pdf,
                 images=content.images,
-                bcc="",
                 mime_subtype="related",
                 dryrun=False,
+                cc=cc,
+                bcc=bcc,
                 header_data=content.header_data,
             )
             logger.info(

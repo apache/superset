@@ -4,7 +4,6 @@ sidebar_position: 9
 
 # FAQ
 
-
 ## How big of a dataset can Superset handle?
 
 Superset can work with even gigantic databases! Superset acts as a thin layer above your underlying
@@ -27,7 +26,6 @@ to occur in spikes, e.g., if everyone in a meeting loads the same dashboard at o
 
 Superset's application metadata does not require a very large database to store it, though
 the log file grows over time.
-
 
 ## Can I join / query multiple tables at one time?
 
@@ -178,7 +176,7 @@ You can take a look at this Flask-AppBuilder
 It is possible on a per-dashboard basis by providing a mapping of labels to colors in the JSON
 Metadata attribute using the `label_colors` key.
 
-```
+```json
 {
     "label_colors": {
         "Girls": "#FF69B4",

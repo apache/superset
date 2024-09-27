@@ -43,6 +43,10 @@ describe('logger middleware', () => {
     },
   };
 
+  const timeSandbox = sinon.createSandbox({
+    useFakeTimers: true,
+  });
+
   let postStub;
   beforeEach(() => {
     postStub = sinon.stub(SupersetClient, 'post');
@@ -50,6 +54,7 @@ describe('logger middleware', () => {
   afterEach(() => {
     next.resetHistory();
     postStub.restore();
+    timeSandbox.clock.reset();
   });
 
   it('should listen to LOG_EVENT action type', () => {
@@ -64,11 +69,10 @@ describe('logger middleware', () => {
   });
 
   it('should POST an event to /superset/log/ when called', () => {
-    const clock = sinon.useFakeTimers();
     logger(mockStore)(next)(action);
     expect(next.callCount).toBe(0);
 
-    clock.tick(2000);
+    timeSandbox.clock.tick(2000);
     expect(SupersetClient.post.callCount).toBe(1);
     expect(SupersetClient.post.getCall(0).args[0].endpoint).toMatch(
       '/superset/log/',
@@ -76,9 +80,8 @@ describe('logger middleware', () => {
   });
 
   it('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
-    const clock = sinon.useFakeTimers();
     logger(mockStore)(next)(action);
-    clock.tick(2000);
+    timeSandbox.clock.tick(2000);
 
     expect(SupersetClient.post.callCount).toBe(1);
     const { events } = SupersetClient.post.getCall(0).args[0].postPayload;
@@ -98,11 +101,10 @@ describe('logger middleware', () => {
   });
 
   it('should debounce a few log requests to one', () => {
-    const clock = sinon.useFakeTimers();
     logger(mockStore)(next)(action);
     logger(mockStore)(next)(action);
     logger(mockStore)(next)(action);
-    clock.tick(2000);
+    timeSandbox.clock.tick(2000);
 
     expect(SupersetClient.post.callCount).toBe(1);
     expect(
@@ -111,7 +113,6 @@ describe('logger middleware', () => {
   });
 
   it('should use navigator.sendBeacon if it exists', () => {
-    const clock = sinon.useFakeTimers();
     const beaconMock = jest.fn();
     Object.defineProperty(navigator, 'sendBeacon', {
       writable: true,
@@ -120,7 +121,7 @@ describe('logger middleware', () => {
 
     logger(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
-    clock.tick(2000);
+    timeSandbox.clock.tick(2000);
 
     expect(beaconMock.mock.calls.length).toBe(1);
     const endpoint = beaconMock.mock.calls[0][0];
@@ -128,7 +129,6 @@ describe('logger middleware', () => {
   });
 
   it('should pass a guest token to sendBeacon if present', () => {
-    const clock = sinon.useFakeTimers();
     const beaconMock = jest.fn();
     Object.defineProperty(navigator, 'sendBeacon', {
       writable: true,
@@ -138,7 +138,7 @@ describe('logger middleware', () => {
 
     logger(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
-    clock.tick(2000);
+    timeSandbox.clock.tick(2000);
     expect(beaconMock.mock.calls.length).toBe(1);
 
     const formData = beaconMock.mock.calls[0][1];

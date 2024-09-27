@@ -56,7 +56,7 @@ const fakeDatabaseApiResult = {
     allow_file_upload: 'Allow Csv Upload',
     allow_ctas: 'Allow Ctas',
     allow_cvas: 'Allow Cvas',
-    allow_dml: 'Allow Dml',
+    allow_dml: 'Allow DDL and DML',
     allow_run_async: 'Allow Run Async',
     allows_cost_estimate: 'Allows Cost Estimate',
     allows_subquery: 'Allows Subquery',
@@ -272,7 +272,6 @@ test('should display options in order of the api response', async () => {
 });
 
 test('Should fetch the search keyword when total count exceeds initial options', async () => {
-  fetchMock.reset();
   fetchMock.get(
     databaseApiRoute,
     {
@@ -365,7 +364,7 @@ test('Sends the correct schema when changing the schema', async () => {
   });
   await waitFor(() => expect(fetchMock.calls(databaseApiRoute).length).toBe(1));
   rerender(<DatabaseSelector {...props} />);
-  expect(props.onSchemaChange).toBeCalledTimes(0);
+  expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type to search schemas',
   });
@@ -376,5 +375,5 @@ test('Sends the correct schema when changing the schema', async () => {
   await waitFor(() =>
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
-  expect(props.onSchemaChange).toBeCalledTimes(1);
+  expect(props.onSchemaChange).toHaveBeenCalledTimes(1);
 });

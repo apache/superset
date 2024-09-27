@@ -14,18 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import copy
 import decimal
 import logging
 import uuid
 from datetime import date, datetime, time, timedelta
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
 import simplejson
 from flask_babel.speaklater import LazyString
+from jsonpath_ng import parse
 from simplejson import JSONDecodeError
 
+from superset.constants import PASSWORD_MASK
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -171,7 +174,11 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
     :param obj: an object that should be parseable to JSON
     """
     if obj:
-        loads(obj)
+        try:
+            loads(obj)
+        except JSONDecodeError as ex:
+            logger.error("JSON is not valid %s", str(ex), exc_info=True)
+            raise
 
 
 def dumps(  # pylint: disable=too-many-arguments
@@ -183,6 +190,7 @@ def dumps(  # pylint: disable=too-many-arguments
     indent: Union[str, int, None] = None,
     separators: Union[tuple[str, str], None] = None,
     cls: Union[type[simplejson.JSONEncoder], None] = None,
+    encoding: Optional[str] = "utf-8",
 ) -> str:
     """
     Dumps object to compatible JSON format
@@ -199,29 +207,21 @@ def dumps(  # pylint: disable=too-many-arguments
     """
 
     results_string = ""
+    dumps_kwargs: Dict[str, Any] = {
+        "default": default,
+        "allow_nan": allow_nan,
+        "ignore_nan": ignore_nan,
+        "sort_keys": sort_keys,
+        "indent": indent,
+        "separators": separators,
+        "cls": cls,
+        "encoding": encoding,
+    }
     try:
-        results_string = simplejson.dumps(
-            obj,
-            default=default,
-            allow_nan=allow_nan,
-            ignore_nan=ignore_nan,
-            sort_keys=sort_keys,
-            indent=indent,
-            separators=separators,
-            cls=cls,
-        )
+        results_string = simplejson.dumps(obj, **dumps_kwargs)
     except UnicodeDecodeError:
-        results_string = simplejson.dumps(  # type: ignore[call-overload]
-            obj,
-            default=default,
-            allow_nan=allow_nan,
-            ignore_nan=ignore_nan,
-            sort_keys=sort_keys,
-            indent=indent,
-            separators=separators,
-            cls=cls,
-            encoding=None,
-        )
+        dumps_kwargs["encoding"] = None
+        results_string = simplejson.dumps(obj, **dumps_kwargs)
     return results_string
 
 
@@ -240,13 +240,62 @@ def loads(
     :param object_hook: function that will be called to decode objects values
     :returns: A Python object deserialized from string
     """
-    try:
-        return simplejson.loads(
-            obj,
-            encoding=encoding,
-            allow_nan=allow_nan,
-            object_hook=object_hook,
-        )
-    except JSONDecodeError as ex:
-        logger.error("JSON is not valid %s", str(ex), exc_info=True)
-        raise
+    return simplejson.loads(
+        obj,
+        encoding=encoding,
+        allow_nan=allow_nan,
+        object_hook=object_hook,
+    )
+
+
+def redact_sensitive(
+    payload: dict[str, Any],
+    sensitive_fields: set[str],
+) -> dict[str, Any]:
+    """
+    Redacts sensitive fields from a payload.
+
+    :param payload: The payload to redact
+    :param sensitive_fields: The set of fields to redact, as JSONPath expressions
+    :returns: The redacted payload
+    """
+    redacted_payload = copy.deepcopy(payload)
+
+    for json_path in sensitive_fields:
+        jsonpath_expr = parse(json_path)
+        for match in jsonpath_expr.find(redacted_payload):
+            match.context.value[match.path.fields[0]] = PASSWORD_MASK
+
+    return redacted_payload
+
+
+def reveal_sensitive(
+    old_payload: dict[str, Any],
+    new_payload: dict[str, Any],
+    sensitive_fields: set[str],
+) -> dict[str, Any]:
+    """
+    Reveals sensitive fields from a payload when not modified.
+
+    This allows users to perform deep edits on a payload without having to provide
+    sensitive information. The old payload is sent to the user with any sensitive fields
+    masked, and when the user sends back a modified payload, any fields that were masked
+    are replaced with the original values from the old payload.
+
+    For now this is only used to edit `encrypted_extra` fields in the database.
+
+    :param old_payload: The old payload to reveal
+    :param new_payload: The new payload to reveal
+    :param sensitive_fields: The set of fields to reveal, as JSONPath expressions
+    :returns: The revealed payload
+    """
+    revealed_payload = copy.deepcopy(new_payload)
+
+    for json_path in sensitive_fields:
+        jsonpath_expr = parse(json_path)
+        for match in jsonpath_expr.find(revealed_payload):
+            if match.value == PASSWORD_MASK:
+                old_value = match.full_path.find(old_payload)
+                match.context.value[match.path.fields[0]] = old_value[0].value
+
+    return revealed_payload

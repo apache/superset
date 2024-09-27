@@ -63,7 +63,8 @@ from superset.constants import TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
-from superset.sql_parse import ParsedQuery, SQLScript, Table
+from superset.sql.parse import SQLScript, Table
+from superset.sql_parse import ParsedQuery
 from superset.superset_typing import (
     OAuth2ClientConfig,
     OAuth2State,
@@ -74,6 +75,7 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
+from superset.utils.json import redact_sensitive, reveal_sensitive
 from superset.utils.network import is_hostname_valid, is_port_open
 from superset.utils.oauth2 import encode_oauth2_state
 
@@ -92,6 +94,12 @@ ColumnTypeMapping = tuple[
 
 logger = logging.getLogger()
 
+# When connecting to a database it's hard to catch specific exceptions, since we support
+# more than 50 different database drivers. Usually the try/except block will catch the
+# generic `Exception` class, which requires a pylint disablee comment. To make it clear
+# that we know this is a necessary evil we create an alias, and catch it instead.
+GenericDBException = Exception
+
 
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
     result_set_columns: list[ResultSetColumnType] = []
@@ -108,25 +116,25 @@ class TimeGrain(NamedTuple):
 
 
 builtin_time_grains: dict[str | None, str] = {
-    TimeGrainConstants.SECOND: __("Second"),
-    TimeGrainConstants.FIVE_SECONDS: __("5 second"),
-    TimeGrainConstants.THIRTY_SECONDS: __("30 second"),
-    TimeGrainConstants.MINUTE: __("Minute"),
-    TimeGrainConstants.FIVE_MINUTES: __("5 minute"),
-    TimeGrainConstants.TEN_MINUTES: __("10 minute"),
-    TimeGrainConstants.FIFTEEN_MINUTES: __("15 minute"),
-    TimeGrainConstants.THIRTY_MINUTES: __("30 minute"),
-    TimeGrainConstants.HOUR: __("Hour"),
-    TimeGrainConstants.SIX_HOURS: __("6 hour"),
-    TimeGrainConstants.DAY: __("Day"),
-    TimeGrainConstants.WEEK: __("Week"),
-    TimeGrainConstants.MONTH: __("Month"),
-    TimeGrainConstants.QUARTER: __("Quarter"),
-    TimeGrainConstants.YEAR: __("Year"),
-    TimeGrainConstants.WEEK_STARTING_SUNDAY: __("Week starting Sunday"),
-    TimeGrainConstants.WEEK_STARTING_MONDAY: __("Week starting Monday"),
-    TimeGrainConstants.WEEK_ENDING_SATURDAY: __("Week ending Saturday"),
-    TimeGrainConstants.WEEK_ENDING_SUNDAY: __("Week ending Sunday"),
+    TimeGrainConstants.SECOND: _("Second"),
+    TimeGrainConstants.FIVE_SECONDS: _("5 second"),
+    TimeGrainConstants.THIRTY_SECONDS: _("30 second"),
+    TimeGrainConstants.MINUTE: _("Minute"),
+    TimeGrainConstants.FIVE_MINUTES: _("5 minute"),
+    TimeGrainConstants.TEN_MINUTES: _("10 minute"),
+    TimeGrainConstants.FIFTEEN_MINUTES: _("15 minute"),
+    TimeGrainConstants.THIRTY_MINUTES: _("30 minute"),
+    TimeGrainConstants.HOUR: _("Hour"),
+    TimeGrainConstants.SIX_HOURS: _("6 hour"),
+    TimeGrainConstants.DAY: _("Day"),
+    TimeGrainConstants.WEEK: _("Week"),
+    TimeGrainConstants.MONTH: _("Month"),
+    TimeGrainConstants.QUARTER: _("Quarter"),
+    TimeGrainConstants.YEAR: _("Year"),
+    TimeGrainConstants.WEEK_STARTING_SUNDAY: _("Week starting Sunday"),
+    TimeGrainConstants.WEEK_STARTING_MONDAY: _("Week starting Monday"),
+    TimeGrainConstants.WEEK_ENDING_SATURDAY: _("Week ending Saturday"),
+    TimeGrainConstants.WEEK_ENDING_SUNDAY: _("Week ending Sunday"),
 }
 
 
@@ -340,6 +348,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does database support join-free timeslot grouping
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
+    supports_multivalues_insert = False
     allows_joins = True
     allows_subqueries = True
     allows_alias_in_select = True
@@ -392,6 +401,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
     ] = {}
 
+    # List of JSON path to fields in `encrypted_extra` that should be masked when the
+    # database is edited. By default everything is masked.
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields: set[str] = {"$.*"}
+
     # Whether the engine supports file uploads
     # if True, database will be listed as option in the upload file form
     supports_file_upload = True
@@ -406,7 +420,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     #
     # When this is changed to true in a DB engine spec it MUST support the
     # `get_default_catalog` and `get_catalog_names` methods. In addition, you MUST write
-    # a database migration updating any existing schema permissions.
+    # a database migration updating any existing schema permissions using the helper
+    # `upgrade_catalog_perms`.
     supports_catalog = False
 
     # Can the catalog be changed on a per-query basis?
@@ -416,8 +431,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
     oauth2_scope = ""
-    oauth2_authorization_request_uri = ""  # pylint: disable=invalid-name
-    oauth2_token_request_uri = ""
+    oauth2_authorization_request_uri: str | None = None  # pylint: disable=invalid-name
+    oauth2_token_request_uri: str | None = None
 
     # Driver-specific exception that should be mapped to OAuth2RedirectError
     oauth2_exception = OAuth2RedirectError
@@ -1270,9 +1285,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             catalog=table.catalog,
             schema=table.schema,
         ) as engine:
-            if engine.dialect.supports_multivalues_insert:
+            if (
+                engine.dialect.supports_multivalues_insert
+                or cls.supports_multivalues_insert
+            ):
                 to_sql_kwargs["method"] = "multi"
-
             df.to_sql(con=engine, **to_sql_kwargs)
 
     @classmethod
@@ -1395,6 +1412,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def get_prequeries(
         cls,
+        database: Database,  # pylint: disable=unused-argument
         catalog: str | None = None,  # pylint: disable=unused-argument
         schema: str | None = None,  # pylint: disable=unused-argument
     ) -> list[str]:
@@ -1618,7 +1636,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
-    def select_star(  # pylint: disable=too-many-arguments,too-many-locals
+    def select_star(  # pylint: disable=too-many-arguments
         cls,
         database: Database,
         table: Table,
@@ -1653,14 +1671,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if show_cols:
             fields = cls._get_fields(cols)
 
-        quote = engine.dialect.identifier_preparer.quote
-        quote_schema = engine.dialect.identifier_preparer.quote_schema
-        full_table_name = (
-            quote_schema(table.schema) + "." + quote(table.table)
-            if table.schema
-            else quote(table.table)
-        )
-
+        full_table_name = cls.quote_table(table, engine.dialect)
         qry = select(fields).select_from(text(full_table_name))
 
         if limit and cls.allow_limit_clause:
@@ -2163,26 +2174,54 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
         """
-        Mask ``encrypted_extra``.
+        Mask `encrypted_extra`.
 
-        This is used to remove any sensitive data in ``encrypted_extra`` when presenting
-        it to the user. For example, a private key might be replaced with a masked value
-        "XXXXXXXXXX". If the masked value is changed the corresponding entry is updated,
-        otherwise the old value is used (see ``unmask_encrypted_extra`` below).
+        This is used to remove any sensitive data in `encrypted_extra` when presenting
+        it to the user when a database is edited. For example, a private key might be
+        replaced with a masked value "XXXXXXXXXX". If the masked value is changed the
+        corresponding entry is updated, otherwise the old value is used (see
+        `unmask_encrypted_extra` below).
         """
-        return encrypted_extra
+        if encrypted_extra is None or not cls.encrypted_extra_sensitive_fields:
+            return encrypted_extra
 
-    # pylint: disable=unused-argument
+        try:
+            config = json.loads(encrypted_extra)
+        except (TypeError, json.JSONDecodeError):
+            return encrypted_extra
+
+        masked_encrypted_extra = redact_sensitive(
+            config,
+            cls.encrypted_extra_sensitive_fields,
+        )
+
+        return json.dumps(masked_encrypted_extra)
+
     @classmethod
     def unmask_encrypted_extra(cls, old: str | None, new: str | None) -> str | None:
         """
-        Remove masks from ``encrypted_extra``.
+        Remove masks from `encrypted_extra`.
 
         This method allows reusing existing values from the current encrypted extra on
         updates. It's useful for reusing masked passwords, allowing keys to be updated
         without having to provide sensitive data to the client.
         """
-        return new
+        if old is None or new is None:
+            return new
+
+        try:
+            old_config = json.loads(old)
+            new_config = json.loads(new)
+        except (TypeError, json.JSONDecodeError):
+            return new
+
+        new_config = reveal_sensitive(
+            old_config,
+            new_config,
+            cls.encrypted_extra_sensitive_fields,
+        )
+
+        return json.dumps(new_config)
 
     @classmethod
     def get_public_information(cls) -> dict[str, Any]:
@@ -2196,6 +2235,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_file_upload": cls.supports_file_upload,
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
+            "supports_oauth2": cls.supports_oauth2,
         }
 
     @classmethod
@@ -2223,6 +2263,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return dialect.denormalize_name(name)
 
         return name
+
+    @classmethod
+    def quote_table(cls, table: Table, dialect: Dialect) -> str:
+        """
+        Fully quote a table name, including the schema and catalog.
+        """
+        quoters = {
+            "catalog": dialect.identifier_preparer.quote_schema,
+            "schema": dialect.identifier_preparer.quote_schema,
+            "table": dialect.identifier_preparer.quote,
+        }
+
+        return ".".join(
+            function(getattr(table, key))
+            for key, function in quoters.items()
+            if getattr(table, key)
+        )
 
 
 # schema for adding a database by providing parameters instead of the
@@ -2300,6 +2357,7 @@ class BasicParametersMixin:
         parameters: BasicParametersType,
         encrypted_extra: dict[str, str] | None = None,
     ) -> str:
+        # TODO (betodealmeida): this method should also build `connect_args`
         # make a copy so that we don't update the original
         query = parameters.get("query", {}).copy()
         if parameters.get("encryption"):

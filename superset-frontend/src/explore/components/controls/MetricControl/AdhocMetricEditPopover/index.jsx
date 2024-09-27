@@ -49,6 +49,7 @@ import {
   StyledMetricOption,
   StyledColumnOption,
 } from 'src/explore/components/optionRenderers';
+import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 
 const propTypes = {
   onChange: PropTypes.func.isRequired,
@@ -304,14 +305,7 @@ export default class AdhocMetricEditPopover extends PureComponent {
       ...popoverProps
     } = this.props;
     const { adhocMetric, savedMetric } = this.state;
-    const keywords = sqlKeywords.concat(
-      columns.map(column => ({
-        name: column.column_name,
-        value: column.column_name,
-        score: 50,
-        meta: 'column',
-      })),
-    );
+    const keywords = sqlKeywords.concat(getColumnKeywords(columns));
 
     const columnValue =
       (adhocMetric.column && adhocMetric.column.column_name) ||
