@@ -15,14 +15,9 @@ body:
     id: bug-description
     attributes:
       label: Bug description
-      description: A clear and concise description of what the bug is.
-    validations:
-      required: true
-  - type: textarea
-    id: repro-steps
-    attributes:
-      label: How to reproduce the bug
+      description: A clear description of what the bug is, including reproduction steps and expected behavior.
       placeholder: |
+        The bug is that...
         1. Go to '...'
         2. Click on '....'
         3. Scroll down to '....'
