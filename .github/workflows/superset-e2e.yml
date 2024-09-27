@@ -61,6 +61,9 @@ jobs:
         image: redis:7-alpine
         ports:
           - 16379:6379
+      cypress:
+        image: cypress/included:cypress-12.3.0-node-16.18.1-chrome-107.0.5304.121-1-ff-107.0-edge-100.0.1185.29-1
+        options: --shm-size=2g # Increase shared memory size if needed
     steps:
       # -------------------------------------------------------
       # Conditional checkout based on context
@@ -118,22 +121,22 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
-      - name: Install cypress
-        if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: cypress-install
       - name: Run Cypress
         if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           PARALLEL_ID: ${{ matrix.parallel_id }}
-          PARALLELISM: 6
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           NODE_OPTIONS: "--max-old-space-size=4096"
-        with:
-          run: cypress-run-all ${{ env.USE_DASHBOARD }}
+        run: |
+          docker run --rm \
+          --network host \
+          -v $(pwd):/superset \
+          -w /superset/superset-frontend/cypress-base \
+          cypress/included:cypress-12.3.0-node-16.18.1-chrome-107.0.5304.121-1-ff-107.0-edge-100.0.1185.29-1 \
+          npm ci && npx cypress run --browser chrome --headless --config baseUrl=http://localhost:9000
+
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         if: github.event_name == 'workflow_dispatch' && (steps.check.outputs.python || steps.check.outputs.frontend)
