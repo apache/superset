@@ -43,7 +43,6 @@ const createProps = () => ({
 });
 
 test('should render the "Apply" button', () => {
-  expect(false).to.eq(true);
   const mockedProps = createProps();
   render(<ActionButtons {...mockedProps} />, { useRedux: true });
   expect(screen.getByText('Apply filters')).toBeInTheDocument();
