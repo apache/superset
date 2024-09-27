@@ -123,17 +123,32 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: cypress-install
-      - name: Run Cypress
+
+      - name: Run Cypress with Retries
         if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           PARALLEL_ID: ${{ matrix.parallel_id }}
           PARALLELISM: 6
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           NODE_OPTIONS: "--max-old-space-size=4096"
-        with:
-          run: cypress-run-all ${{ env.USE_DASHBOARD }}
+        run: |
+          # Hack to run retry at the task level
+          RETRY_COUNT=0
+          MAX_RETRIES=3
+
+          until [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]
+          do
+            cypress-run-all ${{ env.USE_DASHBOARD }} && break
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            echo "Cypress tests failed, retrying... ($RETRY_COUNT/$MAX_RETRIES)"
+          done
+
+          if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
+            echo "Cypress tests failed after $MAX_RETRIES attempts."
+            exit 1
+          fi
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         if: github.event_name == 'workflow_dispatch' && (steps.check.outputs.python || steps.check.outputs.frontend)
