@@ -51,8 +51,12 @@ def histogram(
     # convert to numeric, coercing errors to NaN
     df[column] = to_numeric(df[column], errors="coerce")
 
+    # check if the column contains non-numeric values
+    if df[column].isna().any():
+        raise ValueError(f"Column '{column}' contains non-numeric values")
+
     # calculate the histogram bin edges
-    bin_edges = np.histogram_bin_edges(df[column].dropna(), bins=bins)
+    bin_edges = np.histogram_bin_edges(df[column], bins=bins)
 
     # convert the bin edges to strings
     bin_edges_str = [
@@ -61,6 +65,7 @@ def histogram(
     ]
 
     def hist_values(series: Series) -> np.ndarray:
+        # we might have NaN values as the result of grouping so we need to drop them
         result = np.histogram(series.dropna(), bins=bin_edges)[0]
         return result if not cumulative else np.cumsum(result)
 
