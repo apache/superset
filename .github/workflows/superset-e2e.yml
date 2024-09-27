@@ -126,6 +126,7 @@ jobs:
 
       - name: Run Cypress with Retries
         if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           PARALLEL_ID: ${{ matrix.parallel_id }}
