@@ -30,6 +30,7 @@ import {
   createErrorHandler,
   getAlreadyExists,
   getPasswordsNeeded,
+  getEncryptedExtraNeeded,
   hasTerminalValidation,
   getSSHPasswordsNeeded,
   getSSHPrivateKeysNeeded,
@@ -400,6 +401,7 @@ export function useSingleViewResource<D extends object = any>(
 interface ImportResourceState {
   loading: boolean;
   passwordsNeeded: string[];
+  encryptedExtraNeeded: string[];
   alreadyExists: string[];
   sshPasswordNeeded: string[];
   sshPrivateKeyNeeded: string[];
@@ -415,6 +417,7 @@ export function useImportResource(
   const [state, setState] = useState<ImportResourceState>({
     loading: false,
     passwordsNeeded: [],
+    encryptedExtraNeeded: [],
     alreadyExists: [],
     sshPasswordNeeded: [],
     sshPrivateKeyNeeded: [],
@@ -533,6 +536,7 @@ export function useImportResource(
             } else {
               updateState({
                 passwordsNeeded: getPasswordsNeeded(error.errors),
+                encryptedExtraNeeded: getEncryptedExtraNeeded(error.errors),
                 sshPasswordNeeded: getSSHPasswordsNeeded(error.errors),
                 sshPrivateKeyNeeded: getSSHPrivateKeysNeeded(error.errors),
                 sshPrivateKeyPasswordNeeded: getSSHPrivateKeyPasswordsNeeded(

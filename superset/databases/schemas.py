@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import inspect
+import logging
 import os
 from pathlib import Path
 from typing import Any, TypedDict
@@ -54,6 +55,8 @@ from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import json
 from superset.utils.core import markdown, parse_ssl_cert
+
+logger = logging.getLogger(__name__)
 
 database_schemas_query_schema = {
     "type": "object",
@@ -859,6 +862,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_csv_upload = fields.Boolean()
     impersonate_user = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
+    encrypted_extra = fields.String(allow_none=True)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
@@ -877,6 +881,18 @@ class ImportV1DatabaseSchema(Schema):
         password = make_url_safe(uri).password
         if password == PASSWORD_MASK and data.get("password") is None:
             raise ValidationError("Must provide a password for the database")
+
+    @validates_schema
+    def validate_encrypted_extra(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """If encrypted extra contains masked data, encrypted extra is required"""
+        uuid = data["uuid"]
+        existing = db.session.query(Database).filter_by(uuid=uuid).first()
+        if existing:
+            return
+        encrypted_extra = data.get("encrypted_extra", None)
+        logger.info("encrypted_extra loaded as %s", encrypted_extra)
+        if not encrypted_extra:
+            raise ValidationError("Must provide encrypted credentials for the database")
 
     @validates_schema
     def validate_ssh_tunnel_credentials(

@@ -396,6 +396,14 @@ const isNeedsPassword = (payload: any) =>
   );
 
 export /* eslint-disable no-underscore-dangle */
+const isNeedsEncryptedExtra = (payload: any) =>
+  typeof payload === 'object' &&
+  Array.isArray(payload._schema) &&
+  !!payload._schema?.find(
+    (e: string) => e === 'Must provide encrypted credentials for the database',
+  );
+
+export /* eslint-disable no-underscore-dangle */
 const isNeedsSSHPassword = (payload: any) =>
   typeof payload === 'object' &&
   Array.isArray(payload._schema) &&
@@ -429,6 +437,15 @@ export const getPasswordsNeeded = (errors: Record<string, any>[]) =>
     .map(error =>
       Object.entries(error.extra)
         .filter(([, payload]) => isNeedsPassword(payload))
+        .map(([fileName]) => fileName),
+    )
+    .flat();
+
+export const getEncryptedExtraNeeded = (errors: Record<string, any>[]) =>
+  errors
+    .map(error =>
+      Object.entries(error.extra)
+        .filter(([, payload]) => isNeedsEncryptedExtra(payload))
         .map(([fileName]) => fileName),
     )
     .flat();
@@ -482,6 +499,7 @@ export const hasTerminalValidation = (errors: Record<string, any>[]) =>
     return !noIssuesCodes.every(
       ([, payload]) =>
         isNeedsPassword(payload) ||
+        isNeedsEncryptedExtra(payload) ||
         isAlreadyExists(payload) ||
         isNeedsSSHPassword(payload) ||
         isNeedsSSHPrivateKey(payload) ||
