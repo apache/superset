@@ -16,26 +16,18 @@
 # under the License.
 
 import argparse
-import hashlib
 import os
 import subprocess
 from datetime import datetime
 
 XVFB_PRE_CMD = "xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' "
 REPO = os.getenv("GITHUB_REPOSITORY") or "apache/superset"
-GITHUB_EVENT_NAME = os.getenv("GITHUB_REPOSITORY") or "push"
+GITHUB_EVENT_NAME = os.getenv("GITHUB_EVENT_NAME") or "push"
 CYPRESS_RECORD_KEY = os.getenv("CYPRESS_RECORD_KEY") or ""
 
 
-def compute_hash(file_path: str) -> str:
-    return hashlib.md5(file_path.encode()).hexdigest()
-
-
-def compute_group_index(hash_value: str, num_groups: int) -> int:
-    return int(hash_value, 16) % num_groups
-
-
 def generate_build_id() -> str:
+    """Generates a build ID based on the current timestamp."""
     now = datetime.now()
     rounded_minute = now.minute - (now.minute % 20)
     rounded_time = now.replace(minute=rounded_minute, second=0, microsecond=0)
@@ -44,47 +36,71 @@ def generate_build_id() -> str:
     )
 
 
-def get_cypress_cmd(
-    spec_list: list[str], _filter: str, group: str, use_dashboard: bool
-) -> str:
+def run_cypress_for_test_file(
+    test_file: str, retries: int, use_dashboard: bool, group: str, dry_run: bool
+) -> int:
+    """Runs Cypress for a single test file and retries upon failure."""
     cypress_cmd = "./node_modules/.bin/cypress run"
-
     os.environ["TERM"] = "xterm"
     os.environ["ELECTRON_DISABLE_GPU"] = "true"
     build_id = generate_build_id()
     browser = os.getenv("CYPRESS_BROWSER", "chrome")
-
-    # Add --disable-dev-shm-usage for Chrome browser
     chrome_flags = "--disable-dev-shm-usage"
 
+    # Create Cypress command for a single test file
     if use_dashboard:
-        # Run using cypress.io service
-        spec: str = "cypress/e2e/*/**/*"
         cmd = (
             f"{XVFB_PRE_CMD} "
-            f'{cypress_cmd} --spec "{spec}" --browser {browser} '
+            f"--headed "
+            f'{cypress_cmd} --spec "{test_file}" --browser {browser} '
             f"--record --group {group} --tag {REPO},{GITHUB_EVENT_NAME} "
             f"--parallel --ci-build-id {build_id} "
             f"-- {chrome_flags}"
         )
     else:
-        # Run local, but split the execution
         os.environ.pop("CYPRESS_RECORD_KEY", None)
-        spec_list_str = ",".join(sorted(spec_list))
-        if _filter:
-            spec_list_str = ",".join(sorted([s for s in spec_list if _filter in s]))
         cmd = (
             f"{XVFB_PRE_CMD} "
             f"{cypress_cmd} --browser {browser} "
-            f'--spec "{spec_list_str}" '
+            f'--spec "{test_file}" '
             f"-- {chrome_flags}"
         )
-    return cmd
+
+    if dry_run:
+        # Print the command instead of executing it
+        print(f"DRY RUN: {cmd}")
+        return 0
+
+    for attempt in range(retries):
+        print(f"RUN: {cmd} (Attempt {attempt + 1}/{retries})")
+        process = subprocess.Popen(
+            cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+        )
+
+        # Stream stdout in real-time
+        if process.stdout:
+            for stdout_line in iter(process.stdout.readline, ""):
+                print(stdout_line, end="")
+
+        process.wait()
+
+        if process.returncode == 0:
+            print(f"Test {test_file} succeeded on attempt {attempt + 1}")
+            return 0
+        else:
+            print(f"Test {test_file} failed on attempt {attempt + 1}")
+
+    print(f"Test {test_file} failed after {retries} retries.")
+    return process.returncode
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generate Cypress commands based on test file hash"
+        description="Run Cypress tests with retries per test file"
     )
     parser.add_argument(
         "--use-dashboard",
@@ -98,9 +114,12 @@ def main() -> None:
         "--parallelism-id", type=int, required=True, help="ID of the parallelism group"
     )
     parser.add_argument(
-        "--filter", type=str, required=False, default=None, help="filter to test"
+        "--filter", type=str, required=False, default=None, help="Filter to test"
     )
     parser.add_argument("--group", type=str, default="Default", help="Group name")
+    parser.add_argument(
+        "--retries", type=int, default=3, help="Number of retries per test file"
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -114,14 +133,17 @@ def main() -> None:
     cypress_tests_path = os.path.join(cypress_base_full_path, "cypress/e2e")
 
     test_files = []
+    file_count = 0
     for root, _, files in os.walk(cypress_tests_path):
         for file in files:
             if file.endswith("test.ts") or file.endswith("test.js"):
+                file_count += 1
                 test_files.append(
                     os.path.join(root, file).replace(cypress_base_full_path, "")
                 )
+    print(f"Found {file_count} test files.")
 
-    # Initialize groups
+    # Initialize groups for round-robin distribution
     groups: dict[int, list[str]] = {i: [] for i in range(args.parallelism)}
 
     # Sort test files to ensure deterministic distribution
@@ -132,12 +154,21 @@ def main() -> None:
         group_index = index % args.parallelism
         groups[group_index].append(test_file)
 
+    # Only run tests for the group that matches the parallelism ID
     group_id = args.parallelism_id
     spec_list = groups[group_id]
-    cmd = get_cypress_cmd(spec_list, args.filter, args.group, args.use_dashboard)
-    print(f"RUN: {cmd}")
-    if not args.dry_run:
-        subprocess.run(cmd, shell=True, check=True, stdout=None, stderr=None)
+
+    # Run each test file independently with retry logic or dry-run
+    processed_file_count: int = 0
+    for test_file in spec_list:
+        result = run_cypress_for_test_file(
+            test_file, args.retries, args.use_dashboard, args.group, args.dry_run
+        )
+        if result != 0:
+            print(f"Exiting due to failure in {test_file}")
+            exit(result)
+        processed_file_count += 1
+    print(f"Ran {processed_file_count} test files successfully.")
 
 
 if __name__ == "__main__":
