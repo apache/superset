@@ -75,7 +75,7 @@ def get_cypress_cmd(
             spec_list_str = ",".join(sorted([s for s in spec_list if _filter in s]))
         cmd = (
             f"{XVFB_PRE_CMD} "
-            f"{cypress_cmd} --browser {browser} "
+            f"{cypress_cmd} --browser {browser} --headless "
             f'--spec "{spec_list_str}" '
             f"-- {chrome_flags}"
         )
