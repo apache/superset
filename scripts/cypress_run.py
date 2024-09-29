@@ -51,7 +51,6 @@ def run_cypress_for_test_file(
     if use_dashboard:
         cmd = (
             f"{XVFB_PRE_CMD} "
-            f"--headed "
             f'{cypress_cmd} --spec "{test_file}" --browser {browser} '
             f"--record --group {group} --tag {REPO},{GITHUB_EVENT_NAME} "
             f"--parallel --ci-build-id {build_id} "
