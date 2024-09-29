@@ -202,3 +202,15 @@ class DatabaseOfflineError(SupersetErrorException):
 
 class InvalidParametersError(SupersetErrorsException):
     status = 422
+
+
+class DatasetValidationError(CommandException):
+    status = 422
+
+    def __init__(self, err: Exception) -> None:
+        super().__init__(
+            _(
+                "Dataset schema is invalid, caused by: %(error)s",
+                error=str(err),
+            )
+        )
