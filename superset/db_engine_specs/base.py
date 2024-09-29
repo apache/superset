@@ -58,7 +58,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClau
 from sqlalchemy.types import TypeEngine
 from sqlparse.tokens import CTE
 
-from superset import app, db, sql_parse
+from superset import db, sql_parse
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -84,8 +84,6 @@ if TYPE_CHECKING:
     from superset.databases.schemas import TableMetadataResponse
     from superset.models.core import Database
     from superset.models.sql_lab import Query
-
-query_id_not_associated_connect = app.config.get("QUERY_ID_NOT_ASSOCIATED_CONNECT", [])
 
 
 ColumnTypeMapping = tuple[
@@ -438,6 +436,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # Driver-specific exception that should be mapped to OAuth2RedirectError
     oauth2_exception = OAuth2RedirectError
+
+    # Does the query id related to the connection?
+    # The default value is True, which means that the query id is determined when
+    # the connection is created.
+    # When this is changed to false in a DB engine spec it means the query id
+    # is determined only after the specific query is executed and it will update
+    # the `cancel_query` value in the `extra` field of the `query` object
+    is_query_id_associated_connect = True
 
     @classmethod
     def is_oauth2_enabled(cls) -> bool:
@@ -1336,7 +1342,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         logger.debug("Query %d: Running query: %s", query.id, sql)
         cls.execute(cursor, sql, query.database, async_=True)
-        if cls.is_query_id_not_associated_connect(query.database.get_dialect().name):
+        if not cls.is_query_id_associated_connect:
             cancel_query_id = query.database.db_engine_spec.get_cancel_query_id(
                 cursor, query
             )
@@ -1345,12 +1351,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 db.session.commit()
         logger.debug("Query %d: Handling cursor", query.id)
         cls.handle_cursor(cursor, query)
-
-    @classmethod
-    def is_query_id_not_associated_connect(cls, database_dialect: str) -> bool:
-        # Determine the specify database dialect
-        # whether the query ID is not related to the connection
-        return database_dialect in query_id_not_associated_connect
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:

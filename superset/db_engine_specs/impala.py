@@ -58,6 +58,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
         TimeGrain.YEAR: "TRUNC({col}, 'YYYY')",
     }
 
+    is_query_id_associated_connect = False
+
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "from_unixtime({col})"
