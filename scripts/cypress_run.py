@@ -52,7 +52,7 @@ def get_cypress_cmd(
     os.environ["TERM"] = "xterm"
     os.environ["ELECTRON_DISABLE_GPU"] = "true"
     build_id = generate_build_id()
-    browser = os.getenv("CYPRESS_BROWSER", "chrome")
+    browser = os.getenv("CYPRESS_BROWSER", "electron")
 
     # Add --disable-dev-shm-usage for Chrome browser
     chrome_flags = "--disable-dev-shm-usage"
