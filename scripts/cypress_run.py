@@ -52,7 +52,7 @@ def run_cypress_for_test_file(
         cmd = (
             f"{XVFB_PRE_CMD} "
             f'{cypress_cmd} --spec "{test_file}" --browser {browser} '
-            f"--record --group {group}-{i} --tag {REPO},{GITHUB_EVENT_NAME} "
+            f"--record --group matrix{group}-file{i} --tag {REPO},{GITHUB_EVENT_NAME} "
             f"--ci-build-id {build_id} "
             f"-- {chrome_flags}"
         )
