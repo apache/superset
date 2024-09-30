@@ -67,6 +67,8 @@ class AdhocMetricOption extends PureComponent {
       multi,
       datasourceWarningMessage,
     } = this.props;
+    const warningMarkdown =
+      savedMetric.warning_markdown || savedMetric.warning_text;
 
     return (
       <AdhocMetricPopoverTrigger
@@ -86,7 +88,7 @@ class AdhocMetricOption extends PureComponent {
           onDropLabel={onDropLabel}
           index={index}
           type={type ?? DndItemType.AdhocMetricOption}
-          withCaret
+          withCaret={!warningMarkdown}
           isFunction
           multi={multi}
           datasourceWarningMessage={datasourceWarningMessage}
