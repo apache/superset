@@ -2032,8 +2032,9 @@ class TestDatabaseApi(SupersetTestCase):
 
     @patch("superset.utils.log.logger")
     @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @mock.patch("superset.models.core.Database.get_all_table_names_in_schema")
     def test_database_tables_unexpected_error(
-        self, mock_can_access_database, logger_mock
+        self, mock_get_all_table_names_in_schema, mock_can_access_database, logger_mock
     ):
         """
         Database API: Test database tables with unexpected error
