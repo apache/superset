@@ -37,7 +37,7 @@ def generate_build_id() -> str:
 
 
 def run_cypress_for_test_file(
-    test_file: str, retries: int, use_dashboard: bool, group: str, dry_run: bool
+    test_file: str, retries: int, use_dashboard: bool, group: str, dry_run: bool, i: int
 ) -> int:
     """Runs Cypress for a single test file and retries upon failure."""
     cypress_cmd = "./node_modules/.bin/cypress run"
@@ -52,8 +52,8 @@ def run_cypress_for_test_file(
         cmd = (
             f"{XVFB_PRE_CMD} "
             f'{cypress_cmd} --spec "{test_file}" --browser {browser} '
-            f"--record --group {group} --tag {REPO},{GITHUB_EVENT_NAME} "
-            f"--parallel --ci-build-id {build_id} "
+            f"--record --group matrix{group}-file{i} --tag {REPO},{GITHUB_EVENT_NAME} "
+            f"--ci-build-id {build_id} "
             f"-- {chrome_flags}"
         )
     else:
@@ -159,9 +159,9 @@ def main() -> None:
 
     # Run each test file independently with retry logic or dry-run
     processed_file_count: int = 0
-    for test_file in spec_list:
+    for i, test_file in enumerate(spec_list):
         result = run_cypress_for_test_file(
-            test_file, args.retries, args.use_dashboard, args.group, args.dry_run
+            test_file, args.retries, args.use_dashboard, args.group, args.dry_run, i
         )
         if result != 0:
             print(f"Exiting due to failure in {test_file}")
