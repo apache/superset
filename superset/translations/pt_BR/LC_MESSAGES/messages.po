@@ -160,15 +160,15 @@ msgstr "!= (diferente)"
 
 #, fuzzy, python-format
 msgid "% calculation"
-msgstr "% calculo"
+msgstr "cálculo %"
 
 #, fuzzy, python-format
 msgid "% of parent"
-msgstr "% of pai"
+msgstr "% do pai"
 
 #, fuzzy, python-format
 msgid "% of total"
-msgstr "% of total"
+msgstr "% total"
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
