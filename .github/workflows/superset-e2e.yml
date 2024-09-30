@@ -48,6 +48,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
+      # use the dashboard feature when running manually OR merging to master
       USE_DASHBOARD: ${{ github.event.inputs.use_dashboard || (github.ref == 'refs/heads/master' && 'true') || 'false' }}
     services:
       postgres:

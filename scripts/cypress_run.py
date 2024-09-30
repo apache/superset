@@ -53,7 +53,7 @@ def run_cypress_for_test_file(
             f"{XVFB_PRE_CMD} "
             f'{cypress_cmd} --spec "{test_file}" --browser {browser} '
             f"--record --group {group} --tag {REPO},{GITHUB_EVENT_NAME} "
-            f"--parallel --ci-build-id {build_id} "
+            f"--ci-build-id {build_id} "
             f"-- {chrome_flags}"
         )
     else:
