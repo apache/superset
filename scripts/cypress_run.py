@@ -49,13 +49,7 @@ def run_cypress_for_test_file(
 
     for attempt in range(retries):
         # Create Cypress command for a single test file
-        os.environ.pop("CYPRESS_RECORD_KEY", None)
-        cmd: str = (
-            f"{XVFB_PRE_CMD} "
-            f"{cypress_cmd} --browser {browser} "
-            f'--spec "{test_file}" '
-            f"-- {chrome_flags}"
-        )
+        cmd: str = ""
         if use_dashboard:
             # If/when we want to use cypress' dashboard feature to record the run
             group_id = f"matrix{group}-file{i}-{attempt}"
@@ -66,7 +60,15 @@ def run_cypress_for_test_file(
                 f"--ci-build-id {build_id} "
                 f"-- {chrome_flags}"
             )
-        print(f"RUN: {cmd} (Attempt {attempt + 1}/{retries})")
+        else:
+            os.environ.pop("CYPRESS_RECORD_KEY", None)
+            cmd = (
+                f"{XVFB_PRE_CMD} "
+                f"{cypress_cmd} --browser {browser} "
+                f'--spec "{test_file}" '
+                f"-- {chrome_flags}"
+            )
+            print(f"RUN: {cmd} (Attempt {attempt + 1}/{retries})")
         if dry_run:
             # Print the command instead of executing it
             print(f"DRY RUN: {cmd}")
