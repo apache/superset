@@ -287,7 +287,7 @@ test('Recalculate charts in global filter scope when charts change', () => {
         id: 1,
         crossFilters: {
           scope: { rootPath: ['ROOT_ID'], excluded: [1, 2] },
-          chartsInScope: [3],
+          chartsInScope: [],
         },
       },
       '2': {

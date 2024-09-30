@@ -170,6 +170,15 @@ describe('Dashboard', () => {
         [NATIVE_FILTER_ID]: {
           scope: [230],
           values: extraFormData,
+          filterType: null,
+          targets: [
+            {
+              datasetId: 13,
+              column: {
+                name: 'ethnic_minority',
+              },
+            },
+          ],
         },
       });
     });

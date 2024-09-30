@@ -41,6 +41,7 @@ import { areObjectsEqual } from '../../reduxUtils';
 import getLocationHash from '../util/getLocationHash';
 import isDashboardEmpty from '../util/isDashboardEmpty';
 import { getAffectedOwnDataCharts } from '../util/charts/getOwnDataCharts';
+import { getRelatedCharts } from '../util/getRelatedCharts';
 
 const propTypes = {
   actions: PropTypes.shape({
@@ -211,7 +212,7 @@ class Dashboard extends PureComponent {
 
   applyFilters() {
     const { appliedFilters } = this;
-    const { activeFilters, ownDataCharts } = this.props;
+    const { activeFilters, ownDataCharts, datasources, slices } = this.props;
 
     // refresh charts if a filter was removed, added, or changed
     const currFilterKeys = Object.keys(activeFilters);
@@ -228,10 +229,14 @@ class Dashboard extends PureComponent {
         appliedFilterKeys.includes(filterKey)
       ) {
         // filterKey is removed?
-        affectedChartIds.push(...appliedFilters[filterKey].scope);
+        affectedChartIds.push(
+          ...getRelatedCharts(appliedFilters, slices, datasources)[filterKey],
+        );
       } else if (!appliedFilterKeys.includes(filterKey)) {
         // filterKey is newly added?
-        affectedChartIds.push(...activeFilters[filterKey].scope);
+        affectedChartIds.push(
+          ...getRelatedCharts(activeFilters, slices, datasources)[filterKey],
+        );
       } else {
         // if filterKey changes value,
         // update charts in its scope
@@ -244,7 +249,9 @@ class Dashboard extends PureComponent {
             },
           )
         ) {
-          affectedChartIds.push(...activeFilters[filterKey].scope);
+          affectedChartIds.push(
+            ...getRelatedCharts(activeFilters, slices, datasources)[filterKey],
+          );
         }
 
         // if filterKey changes scope,

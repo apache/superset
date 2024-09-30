@@ -121,7 +121,7 @@ export const getCrossFiltersConfiguration = (
             )
           : getChartIdsInFilterScope(
               chartConfiguration[chartId].crossFilters.scope,
-              Object.values(charts).map(chart => chart.id),
+              [...chartsByDataSource[chartDataSource]],
               dashboardLayout,
             );
     }
