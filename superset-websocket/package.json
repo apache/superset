@@ -37,7 +37,7 @@
     "@types/node": "^22.0.2",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.5.12",
-    "@typescript-eslint/eslint-plugin": "^8.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.8.0",
     "@typescript-eslint/parser": "^8.6.0",
     "eslint": "^9.11.0",
     "eslint-config-prettier": "^9.1.0",
