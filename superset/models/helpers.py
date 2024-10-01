@@ -543,10 +543,12 @@ class AuditMixinNullable(AuditMixin):
 
     @property
     def changed_on_humanized(self) -> str:
+        humanize.i18n.activate('es')
         return humanize.naturaltime(datetime.now() - self.changed_on)
 
     @property
     def created_on_humanized(self) -> str:
+        humanize.i18n.activate('es')
         return humanize.naturaltime(datetime.now() - self.created_on)
 
     @renders("changed_on")
