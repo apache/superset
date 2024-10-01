@@ -226,7 +226,7 @@
     "@babel/preset-react": "^7.22.5",
     "@babel/register": "^7.23.7",
     "@babel/types": "^7.24.9",
-    "@cypress/react": "^5.10.0",
+    "@cypress/react": "^8.0.2",
     "@emotion/babel-plugin": "^11.11.0",
     "@emotion/jest": "^11.11.0",
     "@hot-loader/react-dom": "^16.14.0",
