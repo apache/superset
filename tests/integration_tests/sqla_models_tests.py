@@ -268,8 +268,8 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.delete(table)
         db.session.commit()
 
-    @patch("superset.views.utils.get_form_data")
-    def test_jinja_metric_macro(self, mock_form_data_context):
+    @patch("superset.jinja_context.get_dataset_id_from_context")
+    def test_jinja_metric_macro(self, mock_dataset_id_from_context):
         self.login(username="admin")
         table = self.get_table(name="birth_names")
         metric = SqlMetric(
@@ -302,14 +302,8 @@ class TestDatabaseModel(SupersetTestCase):
             "filter": [],
             "extras": {"time_grain_sqla": "P1D"},
         }
-        mock_form_data_context.return_value = [
-            {
-                "url_params": {
-                    "datasource_id": table.id,
-                }
-            },
-            None,
-        ]
+        mock_dataset_id_from_context.return_value = table.id
+
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
 
