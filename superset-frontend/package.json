@@ -296,7 +296,7 @@
     "eslint-config-prettier": "^7.2.0",
     "eslint-import-resolver-typescript": "^3.6.1",
     "eslint-plugin-cypress": "^3.5.0",
-    "eslint-plugin-file-progress": "^1.4.0",
+    "eslint-plugin-file-progress": "^1.5.0",
     "eslint-plugin-import": "^2.24.2",
     "eslint-plugin-jest": "^27.8.0",
     "eslint-plugin-jest-dom": "^3.6.5",
