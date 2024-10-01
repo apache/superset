@@ -164,7 +164,7 @@
     "prop-types": "^15.8.1",
     "query-string": "^6.13.7",
     "rc-trigger": "^5.3.4",
-    "re-resizable": "^6.9.11",
+    "re-resizable": "^6.10.0",
     "react": "^16.13.1",
     "react-ace": "^10.1.0",
     "react-checkbox-tree": "^1.8.0",
