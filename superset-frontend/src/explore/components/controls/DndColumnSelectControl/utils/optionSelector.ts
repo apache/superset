@@ -59,7 +59,7 @@ export class OptionSelector {
         return {
           type_generic: 'UNKNOWN',
           column_name: value,
-          warning_text: t(
+          error_text: t(
             'This column might be incompatible with current dataset',
           ),
         };

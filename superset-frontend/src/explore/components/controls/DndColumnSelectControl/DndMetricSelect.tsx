@@ -76,9 +76,7 @@ const coerceMetrics = (
     ) {
       return {
         metric_name: metric,
-        warning_text: t(
-          'This metric might be incompatible with current dataset',
-        ),
+        error_text: t('This metric might be incompatible with current dataset'),
       };
     }
     if (!isDictionaryForAdhocMetric(metric)) {

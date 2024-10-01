@@ -109,9 +109,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
           isAdhocColumn(column) && column.datasourceWarning
             ? t('This column might be incompatible with current dataset')
             : undefined;
-        const withCaret =
-          isAdhocColumn(column) ||
-          !(column.warning_markdown || column.warning_text);
+        const withCaret = isAdhocColumn(column) || !column.error_text;
 
         return (
           <ColumnSelectPopoverTrigger

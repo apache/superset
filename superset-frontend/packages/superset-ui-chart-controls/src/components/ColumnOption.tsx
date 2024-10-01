@@ -51,7 +51,8 @@ export function ColumnOption({
 }: ColumnOptionProps) {
   const { expression, column_name, type_generic } = column;
   const hasExpression = expression && expression !== column_name;
-  const warningMarkdown = column.warning_markdown || column.warning_text;
+  const warningMarkdown =
+    column.warning_markdown || column.warning_text || column.error_text;
   const type = hasExpression ? 'expression' : type_generic;
   const [tooltipText, setTooltipText] = useState<ReactNode>(column.column_name);
   const [columnTypeTooltipText, setcolumnTypeTooltipText] = useState<ReactNode>(
@@ -103,6 +104,10 @@ export function ColumnOption({
           tooltip={<SafeMarkdown source={warningMarkdown} />}
           label={`warn-${column.column_name}`}
           iconsStyle={{ marginLeft: 0 }}
+          {...(column.error_text && {
+            className: 'text-danger',
+            icon: 'exclamation-circle',
+          })}
         />
       )}
     </StyleOverrides>
