@@ -135,6 +135,7 @@
     "classnames": "^2.2.5",
     "core-js": "^3.38.1",
     "d3-scale": "^2.1.2",
+    "dayjs": "^1.11.13",
     "dom-to-image-more": "^3.2.0",
     "emotion-rgba": "0.0.12",
     "fast-glob": "^3.3.2",
