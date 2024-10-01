@@ -23,6 +23,7 @@ import { styled } from '@superset-ui/core';
 import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import { ContentType } from './ContentType';
 import { config } from './ContentConfig';
+import Loading from '../Loading';
 
 export const MIN_NUMBER_ITEMS = 2;
 export const MAX_NUMBER_ITEMS = 6;
@@ -60,6 +61,10 @@ const Bar = styled.div<{ count: number }>`
     }px;
     border-radius: ${theme.borderRadius}px;
     line-height: 1;
+
+    & .loading {
+      margin: 0 auto;
+    }
   `}
 `;
 
@@ -181,6 +186,10 @@ export interface MetadataBarProps {
    * Defaults to "top".
    */
   tooltipPlacement?: TooltipPlacement;
+  /**
+   * Loading state. If true, the bar will display loading spinners.
+   */
+  loading?: boolean;
 }
 
 /**
@@ -191,16 +200,21 @@ export interface MetadataBarProps {
  * To extend the list of content types, a developer needs to request the inclusion of the new type in the design system.
  * This process is important to make sure the new type is reviewed by the design team, improving Superset consistency.
  */
-const MetadataBar = ({ items, tooltipPlacement = 'top' }: MetadataBarProps) => {
+const MetadataBar = ({
+  items,
+  tooltipPlacement = 'top',
+  loading = false,
+}: MetadataBarProps) => {
   const [width, setWidth] = useState<number>();
   const [collapsed, setCollapsed] = useState(false);
   const uniqueItems = uniqWith(items, (a, b) => a.type === b.type);
   const sortedItems = uniqueItems.sort((a, b) => ORDER[a.type] - ORDER[b.type]);
   const count = sortedItems.length;
-  if (count < MIN_NUMBER_ITEMS) {
+
+  if (!loading && count < MIN_NUMBER_ITEMS) {
     throw Error('The minimum number of items for the metadata bar is 2.');
   }
-  if (count > MAX_NUMBER_ITEMS) {
+  if (!loading && count > MAX_NUMBER_ITEMS) {
     throw Error('The maximum number of items for the metadata bar is 6.');
   }
 
@@ -222,16 +236,20 @@ const MetadataBar = ({ items, tooltipPlacement = 'top' }: MetadataBarProps) => {
 
   return (
     <Bar ref={ref} count={count} data-test="metadata-bar">
-      {sortedItems.map((item, index) => (
-        <Item
-          barWidth={width}
-          key={index}
-          contentType={item}
-          collapsed={collapsed}
-          last={index === count - 1}
-          tooltipPlacement={tooltipPlacement}
-        />
-      ))}
+      {!loading ? (
+        sortedItems.map((item, index) => (
+          <Item
+            barWidth={width}
+            key={index}
+            contentType={item}
+            collapsed={collapsed}
+            last={index === count - 1}
+            tooltipPlacement={tooltipPlacement}
+          />
+        ))
+      ) : (
+        <Loading position="inline" />
+      )}
     </Bar>
   );
 };

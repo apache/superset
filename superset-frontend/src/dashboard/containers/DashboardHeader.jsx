@@ -87,7 +87,7 @@ function mapStateToProps({
     user,
     isStarred: !!dashboardState.isStarred,
     isPublished: !!dashboardState.isPublished,
-    isLoading: isDashboardLoading(charts),
+    chartsLoading: isDashboardLoading(charts),
     hasUnsavedChanges: !!dashboardState.hasUnsavedChanges,
     maxUndoHistoryExceeded: !!dashboardState.maxUndoHistoryExceeded,
     lastModifiedTime: Math.max(
