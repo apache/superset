@@ -21,7 +21,7 @@ import { Global } from '@emotion/react';
 import { css, useTheme } from '@superset-ui/core';
 
 import type { Column } from 'ag-grid-community';
-import { AgGridReact, AgReactUiProps } from 'ag-grid-react';
+import { AgGridReact, type AgGridReactProps } from 'ag-grid-react';
 
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
@@ -61,7 +61,7 @@ export interface TableProps<RecordType> {
 
   size?: GridSize;
 
-  externalFilter?: AgReactUiProps['doesExternalFilterPass'];
+  externalFilter?: AgGridReactProps['doesExternalFilterPass'];
 
   height: number;
 
@@ -78,7 +78,7 @@ export interface TableProps<RecordType> {
   striped?: boolean;
 }
 
-const onSortChanged: AgReactUiProps['onSortChanged'] = ({ api }) =>
+const onSortChanged: AgGridReactProps['onSortChanged'] = ({ api }) =>
   api.refreshCells();
 
 function GridTable<RecordType extends object>({
@@ -99,7 +99,7 @@ function GridTable<RecordType extends object>({
     [externalFilter],
   );
   const rowIndexLength = `${data.length}}`.length;
-  const onKeyDown: AgReactUiProps<Record<string, any>>['onCellKeyDown'] =
+  const onKeyDown: AgGridReactProps<Record<string, any>>['onCellKeyDown'] =
     useCallback(({ event, column, data, value, api }) => {
       if (
         !document.getSelection?.()?.toString?.() &&
@@ -152,14 +152,14 @@ function GridTable<RecordType extends object>({
             ...(index === columns.length - 1 && {
               flex: 1,
               width,
-              minWidth: 200,
+              minWidth: 150,
             }),
           }),
         ),
       ].slice(showRowNumber ? 0 : 1),
     [rowIndexLength, columnReorderable, columns, showRowNumber, sortable],
   );
-  const defaultColDef: AgReactUiProps['defaultColDef'] = {
+  const defaultColDef: AgGridReactProps['defaultColDef'] = {
     ...(!columnReorderable && { suppressMovable: true }),
     resizable: true,
     sortable,
