@@ -167,11 +167,17 @@ def convert_uuids(obj: Any) -> Any:
     return obj
 
 
-class ImportExportMixin:
+class UUIDMixin:  # pylint: disable=too-few-public-methods
     uuid = sa.Column(
         UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
     )
 
+    @property
+    def short_uuid(self) -> str:
+        return str(self.uuid)[:8]
+
+
+class ImportExportMixin(UUIDMixin):
     export_parent: Optional[str] = None
     # The name of the attribute
     # with the SQL Alchemy back reference
