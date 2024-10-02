@@ -412,7 +412,7 @@ function ListView<T extends object = any>({
                           className="tag-btn"
                           onClick={() => setShowBulkTagModal(true)}
                         >
-                          {t('Add Tag')}
+                          {t('Add tag')}
                         </span>
                       )}
                     </>

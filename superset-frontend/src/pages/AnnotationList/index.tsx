@@ -261,7 +261,7 @@ function AnnotationList({
       <SubMenu
         name={
           <StyledHeader>
-            <span>{t('Annotation Layer %s', annotationLayerName)}</span>
+            <span>{t('Annotation layer %s', annotationLayerName)}</span>
             <span>
               {hasHistory ? (
                 <Link to="/annotationlayer/list/">{t('Back to all')}</Link>

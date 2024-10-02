@@ -106,7 +106,7 @@ export const annotations: ControlPanelSectionConfig = {
           type: 'AnnotationLayerControl',
           label: '',
           default: [],
-          description: t('Annotation Layers'),
+          description: t('Annotation layers'),
           renderTrigger: true,
         },
       },
