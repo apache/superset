@@ -418,38 +418,40 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         )
 
         sqlalchemy_uri = self.sqlalchemy_uri_decrypted
-        engine_context = nullcontext()
-        ssh_tunnel = override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(
-            database_id=self.id
-        )
 
-        if ssh_tunnel:
-            # if ssh_tunnel is available build engine with information
-            engine_context = ssh_manager_factory.instance.create_tunnel(
+        ssh_tunnel = override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(self.id)
+        ssh_context_manager = (
+            ssh_manager_factory.instance.create_tunnel(
                 ssh_tunnel=ssh_tunnel,
                 sqlalchemy_database_uri=sqlalchemy_uri,
             )
+            if ssh_tunnel
+            else nullcontext()
+        )
 
-        with engine_context as server_context:
-            if ssh_tunnel and server_context:
+        with ssh_context_manager as ssh_context:
+            if ssh_context:
                 logger.info(
-                    "[SSH] Successfully created tunnel w/ %s tunnel_timeout + %s ssh_timeout at %s",
+                    "[SSH] Successfully created tunnel w/ %s tunnel_timeout + %s "
+                    "ssh_timeout at %s",
                     sshtunnel.TUNNEL_TIMEOUT,
                     sshtunnel.SSH_TIMEOUT,
-                    server_context.local_bind_address,
+                    ssh_context.local_bind_address,
                 )
                 sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(
                     sqlalchemy_uri,
-                    server_context,
+                    ssh_context,
                 )
 
-            yield self._get_sqla_engine(
-                catalog=catalog,
-                schema=schema,
-                nullpool=nullpool,
-                source=source,
-                sqlalchemy_uri=sqlalchemy_uri,
-            )
+            engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
+            with engine_context_manager(self, catalog, schema):
+                yield self._get_sqla_engine(
+                    catalog=catalog,
+                    schema=schema,
+                    nullpool=nullpool,
+                    source=source,
+                    sqlalchemy_uri=sqlalchemy_uri,
+                )
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals
         self,

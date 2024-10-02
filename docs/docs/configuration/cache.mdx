@@ -13,7 +13,7 @@ SimpleCache (in-memory), or the local filesystem.
 [Custom cache backends](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends)
 are also supported.
 
-Caching can be configured by providing a dictionaries in
+Caching can be configured by providing dictionaries in
 `superset_config.py` that comply with [the Flask-Caching config specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
 
 The following cache configurations can be customized in this way:
@@ -22,7 +22,7 @@ The following cache configurations can be customized in this way:
 - Metadata cache (optional): `CACHE_CONFIG`
 - Charting data queried from datasets (optional): `DATA_CACHE_CONFIG`
 
-For example, to configure the filter state cache using redis:
+For example, to configure the filter state cache using Redis:
 
 ```python
 FILTER_STATE_CACHE_CONFIG = {

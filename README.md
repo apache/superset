@@ -134,6 +134,7 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/doris.png" alt="doris" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/oceanbase.svg" alt="oceanbase" border="0" width="220" />
+  <img src="https://superset.apache.org/img/databases/sap-hana.png" alt="oceanbase" border="0" width="220" />
 </p>
 
 **A more comprehensive list of supported databases** along with the configuration instructions can be found [here](https://superset.apache.org/docs/configuration/databases).

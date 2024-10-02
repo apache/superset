@@ -270,7 +270,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_get_dashboard_datasets(self):
+    @patch("superset.utils.log.logger")
+    def test_get_dashboard_datasets(self, logger_mock):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/world_health/datasets"
         response = self.get_assert_metric(uri, "get_datasets")
@@ -283,6 +284,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertEqual(actual_dataset_ids, expected_dataset_ids)
         expected_values = [0, 1] if backend() == "presto" else [0, 1, 2]
         self.assertEqual(result[0]["column_types"], expected_values)
+        logger_mock.warning.assert_not_called()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.dashboards.schemas.security_manager.has_guest_access")
@@ -303,11 +305,30 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 assert excluded_key not in dataset
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_get_dashboard_datasets_not_found(self):
+    @patch("superset.utils.log.logger")
+    def test_get_dashboard_datasets_not_found(self, logger_mock):
         self.login(ALPHA_USERNAME)
         uri = "api/v1/dashboard/not_found/datasets"
         response = self.get_assert_metric(uri, "get_datasets")
         self.assertEqual(response.status_code, 404)
+        logger_mock.warning.assert_called_once_with(
+            "Dashboard not found.", exc_info=True
+        )
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.utils.log.logger")
+    @patch("superset.daos.dashboard.DashboardDAO.get_datasets_for_dashboard")
+    def test_get_dashboard_datasets_invalid_schema(
+        self, dashboard_datasets_mock, logger_mock
+    ):
+        dashboard_datasets_mock.side_effect = TypeError("Invalid schema")
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        self.assertEqual(response.status_code, 422)
+        logger_mock.warning.assert_called_once_with(
+            "Dataset schema is invalid, caused by: Invalid schema", exc_info=True
+        )
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_gamma_dashboard_datasets(self):

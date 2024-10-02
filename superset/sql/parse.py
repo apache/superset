@@ -362,7 +362,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         """
         return {
-            eq.this.sql(): eq.expression.sql()
+            eq.this.sql(comments=False): eq.expression.sql(comments=False)
             for set_item in self._parsed.find_all(exp.SetItem)
             for eq in set_item.find_all(exp.EQ)
         }
