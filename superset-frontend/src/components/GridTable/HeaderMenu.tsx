@@ -83,7 +83,7 @@ const HeaderMenu: React.FC<Params> = ({
         <Menu.Item
           key={c.getColId()}
           onClick={() => {
-            api.setColumnVisible(c.getColId(), true);
+            api.setColumnsVisible([c.getColId()], true);
           }}
         >
           {c.getColDef().headerName}
@@ -222,15 +222,7 @@ const HeaderMenu: React.FC<Params> = ({
           <Menu.Divider />
           <IconMenuItem
             onClick={() => {
-              const column = api.getColumn(colId);
-              column?.setColDef(
-                {
-                  ...column?.getColDef(),
-                  minWidth: undefined,
-                },
-                column?.getColDef(),
-              );
-              api.autoSizeColumn(colId);
+              api.autoSizeColumns([colId]);
             }}
           >
             <Icons.ColumnWidthOutlined iconSize="m" />
@@ -238,7 +230,7 @@ const HeaderMenu: React.FC<Params> = ({
           </IconMenuItem>
           <IconMenuItem
             onClick={() => {
-              api.setColumnVisible(colId, false);
+              api.setColumnsVisible([colId], false);
             }}
             disabled={api.getColumns()?.length === invisibleColumns.length + 1}
           >
