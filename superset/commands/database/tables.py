@@ -130,7 +130,7 @@ class TablesDatabaseCommand(BaseCommand):
         except SupersetException:
             raise
         except Exception as ex:
-            raise DatabaseTablesUnexpectedError(ex) from ex
+            raise DatabaseTablesUnexpectedError(str(ex)) from ex
 
     def validate(self) -> None:
         self._model = cast(Database, DatabaseDAO.find_by_id(self._db_id))

@@ -59,9 +59,6 @@ if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() == "sqlite":
         "removed in a future version of Superset."
     )
 
-if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() in ("postgresql", "mysql"):
-    SQLALCHEMY_ENGINE_OPTIONS["isolation_level"] = "READ COMMITTED"  # noqa: F405
-
 # Speeding up the tests.integration_tests.
 PRESTO_POLL_INTERVAL = 0.1
 HIVE_POLL_INTERVAL = 0.1
@@ -97,7 +94,6 @@ FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_acce
 
 PUBLIC_ROLE_LIKE = "Gamma"
 AUTH_ROLE_PUBLIC = "Public"
-EMAIL_NOTIFICATIONS = False
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")  # noqa: F405
 REDIS_PORT = os.environ.get("REDIS_PORT", "6379")  # noqa: F405
 REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)  # noqa: F405
@@ -137,6 +133,8 @@ GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 3
+
+FAB_ADD_SECURITY_API = True
 
 
 class CeleryConfig:

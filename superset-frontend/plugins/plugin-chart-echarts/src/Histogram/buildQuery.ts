@@ -25,7 +25,6 @@ export default function buildQuery(formData: HistogramFormData) {
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
-      extras: { where: `${column} IS NOT NULL` },
       columns: [...groupby, column],
       post_processing: [histogramOperator(formData, baseQueryObject)],
       metrics: undefined,

@@ -465,7 +465,6 @@ export const CreateHeaderSubtitle = styled.div`
 export const EditHeaderTitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.light1};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  text-transform: uppercase;
 `;
 
 export const EditHeaderSubtitle = styled.div`
@@ -480,7 +479,6 @@ export const CredentialInfoForm = styled.div`
   }
 
   .label-select {
-    text-transform: uppercase;
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     font-size: 11px;
     margin: 0 5px ${({ theme }) => theme.gridUnit * 2}px;
@@ -553,7 +551,6 @@ export const SelectDatabaseStyles = styled.div`
   }
 
   .label-available-select {
-    text-transform: uppercase;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
   }
 

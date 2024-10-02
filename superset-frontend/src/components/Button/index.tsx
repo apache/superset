@@ -26,7 +26,7 @@ import {
 
 import { mix } from 'polished';
 import cx from 'classnames';
-import { AntdButton } from 'src/components';
+import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
@@ -170,7 +170,6 @@ export default function Button(props: ButtonProps) {
         fontSize: typography.sizes.s,
         fontWeight: typography.weights.bold,
         height,
-        textTransform: 'uppercase',
         padding: `0px ${padding}px`,
         transition: `all ${transitionTiming}s`,
         minWidth: cta ? theme.gridUnit * 36 : undefined,

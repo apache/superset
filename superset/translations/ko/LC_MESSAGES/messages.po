@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-03 14:07-0700\n"
+"POT-Creation-Date: 2024-07-30 17:32-0600\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -330,11 +330,10 @@ msgstr ""
 msgid ""
 "*%(name)s*\n"
 "\n"
-"%(description)s\n"
+"    %(description)s\n"
 "\n"
-"<%(url)s|Explore in Superset>\n"
-"\n"
-"%(table)s\n"
+"    Error: %(text)s\n"
+"    "
 msgstr ""
 
 #, python-format
@@ -343,7 +342,9 @@ msgid ""
 "\n"
 "%(description)s\n"
 "\n"
-"Error: %(text)s\n"
+"<%(url)s|Explore in Superset>\n"
+"\n"
+"%(table)s\n"
 msgstr ""
 
 #, python-format
@@ -784,6 +785,12 @@ msgstr ""
 #, fuzzy
 msgid "Add Alert"
 msgstr "차트 추가"
+
+msgid "Add BCC Recipients"
+msgstr ""
+
+msgid "Add CC Recipients"
+msgstr ""
 
 msgid "Add CSS template"
 msgstr "CSS 템플릿"
@@ -1793,6 +1800,9 @@ msgstr ""
 msgid "Axis descending"
 msgstr ""
 
+msgid "BCC recipients"
+msgstr ""
+
 msgid "BOOLEAN"
 msgstr ""
 
@@ -2018,6 +2028,9 @@ msgid "By value: use metric values as sorting key"
 msgstr ""
 
 msgid "CANCEL"
+msgstr ""
+
+msgid "CC recipients"
 msgstr ""
 
 #, fuzzy
@@ -2514,6 +2527,9 @@ msgid "Choose notification method and recipients."
 msgstr ""
 
 msgid "Choose one of the available databases from the panel on the left."
+msgstr ""
+
+msgid "Choose one of the available databases on the left panel."
 msgstr ""
 
 #, fuzzy
@@ -7600,9 +7616,6 @@ msgid ""
 " or username."
 msgstr ""
 
-msgid "PDF download failed, please refresh and try again."
-msgstr ""
-
 msgid "Page length"
 msgstr ""
 
@@ -8043,6 +8056,9 @@ msgid "Primary y-axis Bounds"
 msgstr ""
 
 msgid "Primary y-axis format"
+msgstr ""
+
+msgid "Private Channels (Bot in channel)"
 msgstr ""
 
 msgid "Private Key"
@@ -9224,6 +9240,10 @@ msgid "Select catalog or type to search catalogs"
 msgstr ""
 
 #, fuzzy
+msgid "Select channels"
+msgstr "차트 추가"
+
+#, fuzzy
 msgid "Select chart"
 msgstr "차트 추가"
 
@@ -9506,6 +9526,10 @@ msgstr "테이블 명"
 
 msgid "Shift + Click to sort by multiple columns"
 msgstr ""
+
+#, fuzzy
+msgid "Shift start date"
+msgstr "시작 시간"
 
 msgid "Short description must be unique for this layer"
 msgstr ""
@@ -9824,6 +9848,11 @@ msgstr ""
 
 msgid "Some roles do not exist"
 msgstr "몇몇 역할이 존재하지 않습니다"
+
+msgid ""
+"Something went wrong with embedded authentication. Check the dev console "
+"for details."
+msgstr ""
 
 msgid "Something went wrong."
 msgstr ""
@@ -10594,6 +10623,10 @@ msgid "The database returned an unexpected error."
 msgstr "이슈 1002 - 데이터베이스에 예상치 못한 에러가 발생했습니다."
 
 #, fuzzy
+msgid "The database that was used to generate this query could not be found"
+msgstr "데이터베이스를 찾을 수 없습니다."
+
+#, fuzzy
 msgid "The database was deleted."
 msgstr "데이터베이스를 삭제할 수 없습니다."
 
@@ -10986,6 +11019,15 @@ msgstr ""
 msgid "The schema was deleted or renamed in the database."
 msgstr ""
 
+msgid "The screenshot could not be downloaded. Please, try again later."
+msgstr ""
+
+msgid "The screenshot is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "The screenshot is now being downloaded."
+msgstr ""
+
 msgid "The size of each cell in meters"
 msgstr ""
 
@@ -11143,8 +11185,9 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "There was an error fetching the favorite status: %s"
 msgstr ""
 
-msgid "There was an error fetching your recent activity:"
-msgstr ""
+#, fuzzy
+msgid "There was an error fetching the filtered charts and dashboards:"
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, fuzzy
 msgid "There was an error loading the catalogs"
@@ -11453,6 +11496,11 @@ msgid "This metric might be incompatible with current dataset"
 msgstr ""
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid ""
+"This page is intended to be embedded in an iframe, but it looks like that"
+" is not the case."
 msgstr ""
 
 msgid ""
@@ -12002,6 +12050,10 @@ msgstr ""
 
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
+msgstr ""
+
+#, python-format
+msgid "Unknown OceanBase server host \"%(hostname)s\"."
 msgstr ""
 
 msgid "Unknown Presto Error"
@@ -13706,6 +13758,9 @@ msgid "in"
 msgstr ""
 
 msgid "in modal"
+msgstr ""
+
+msgid "invalid email"
 msgstr ""
 
 msgid "is expected to be a Mapbox URL"

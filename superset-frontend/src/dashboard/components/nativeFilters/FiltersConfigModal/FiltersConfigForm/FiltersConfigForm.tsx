@@ -196,7 +196,6 @@ export const StyledRowSubFormItem = styled(FormItem)<{ expanded: boolean }>`
 export const StyledLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  text-transform: uppercase;
 `;
 
 const CleanFormItem = styled(FormItem)`
@@ -790,7 +789,7 @@ const FiltersConfigForm = (
         filterValues={(column: Column) => !!column.is_dttm}
         datasetId={datasetId}
         onChange={column => {
-          // We need reset default value when when column changed
+          // We need reset default value when column changed
           setNativeFilterFieldValues(form, filterId, {
             granularity_sqla: column,
           });

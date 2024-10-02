@@ -30,8 +30,8 @@ import {
   tooltipHtml,
   ValueFormatter,
 } from '@superset-ui/core';
-import { EChartsCoreOption } from 'echarts';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { NULL_STRING, OpacityEnum } from '../constants';
 import { defaultGrid } from '../defaults';
 import { Refs } from '../types';

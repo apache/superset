@@ -41,6 +41,7 @@ def test_render_description_with_html() -> None:
             "notification_source": None,
             "chart_id": None,
             "dashboard_id": None,
+            "slack_channels": None,
         },
     )
     email_body = (

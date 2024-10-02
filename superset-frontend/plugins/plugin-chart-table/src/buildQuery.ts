@@ -21,13 +21,10 @@ import {
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
-  getTimeOffset,
   isPhysicalColumn,
-  parseDttmToDate,
   QueryMode,
   QueryObject,
   removeDuplicates,
-  SimpleAdhocFilter,
 } from '@superset-ui/core';
 import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
 import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
@@ -87,46 +84,38 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
-    const TimeRangeFilters =
-      formData.adhoc_filters?.filter(
-        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-      ) || [];
-
-    // In case the viz is using all version of controls, we try to load them
-    const previousCustomTimeRangeFilters: any =
-      formData.adhoc_custom?.filter(
-        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
-      ) || [];
-
-    let previousCustomStartDate = '';
-    if (
-      !isEmpty(previousCustomTimeRangeFilters) &&
-      previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
-    ) {
-      previousCustomStartDate =
-        previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
-    }
-
-    const timeOffsets = ensureIsArray(
-      isTimeComparison(formData, baseQueryObject)
-        ? getTimeOffset({
-            timeRangeFilter: {
-              ...TimeRangeFilters[0],
-              comparator:
-                baseQueryObject?.time_range ??
-                (TimeRangeFilters[0] as any)?.comparator,
-            },
-            shifts: formData.time_compare,
-            startDate:
-              previousCustomStartDate && !formData.start_date_offset
-                ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
-                : formData.start_date_offset,
-          })
-        : [],
+    const nonCustomNorInheritShifts = ensureIsArray(
+      formData.time_compare,
+    ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
+    const customOrInheritShifts = ensureIsArray(formData.time_compare).filter(
+      (shift: string) => shift === 'custom' || shift === 'inherit',
     );
 
-    let temporalColumAdded = false;
-    let temporalColum = null;
+    let timeOffsets: string[] = [];
+
+    // Shifts for non-custom or non inherit time comparison
+    if (
+      isTimeComparison(formData, baseQueryObject) &&
+      !isEmpty(nonCustomNorInheritShifts)
+    ) {
+      timeOffsets = nonCustomNorInheritShifts;
+    }
+
+    // Shifts for custom or inherit time comparison
+    if (
+      isTimeComparison(formData, baseQueryObject) &&
+      !isEmpty(customOrInheritShifts)
+    ) {
+      if (customOrInheritShifts.includes('custom')) {
+        timeOffsets = timeOffsets.concat([formData.start_date_offset]);
+      }
+      if (customOrInheritShifts.includes('inherit')) {
+        timeOffsets = timeOffsets.concat(['inherit']);
+      }
+    }
+
+    let temporalColumnAdded = false;
+    let temporalColumn = null;
 
     if (queryMode === QueryMode.Aggregate) {
       metrics = metrics || [];
@@ -180,23 +169,23 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           time_grain_sqla &&
           temporalColumnsLookup?.[col];
 
-        if (shouldBeAdded && !temporalColumAdded) {
-          temporalColum = {
+        if (shouldBeAdded && !temporalColumnAdded) {
+          temporalColumn = {
             timeGrain: time_grain_sqla,
             columnType: 'BASE_AXIS',
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
           } as AdhocColumn;
-          temporalColumAdded = true;
+          temporalColumnAdded = true;
           return false; // Do not include this in the output; it's added separately
         }
         return true;
       });
 
       // So we ensure the temporal column is added first
-      if (temporalColum) {
-        columns = [temporalColum, ...columns];
+      if (temporalColumn) {
+        columns = [temporalColumn, ...columns];
       }
     }
 
@@ -209,10 +198,15 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
     }
 
+    if (!temporalColumn) {
+      // This query is not using temporal column, so it doesn't need time grain
+      extras.time_grain_sqla = undefined;
+    }
+
     let queryObject = {
       ...baseQueryObject,
       columns,
-      extras: !isEmpty(timeOffsets) && !temporalColum ? {} : extras,
+      extras,
       orderby,
       metrics,
       post_processing: postProcessing,
@@ -250,7 +244,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
-        extras: undefined, // we don't need time grain here
         order_desc: undefined, // we don't need orderby stuff here,
         orderby: undefined, // because this query will be used for get total aggregation.
       });

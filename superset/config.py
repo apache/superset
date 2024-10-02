@@ -33,10 +33,11 @@ import os
 import re
 import sys
 from collections import OrderedDict
+from contextlib import contextmanager
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from importlib.resources import files
-from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, Iterator, Literal, TYPE_CHECKING, TypedDict
 
 import click
 import pkg_resources
@@ -196,12 +197,14 @@ SQLALCHEMY_DATABASE_URI = (
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
-# The default MySQL isolation level is REPEATABLE READ whereas the default PostgreSQL
-# isolation level is READ COMMITTED. All backends should use READ COMMITTED (or similar)
-# to help ensure consistent behavior.
-SQLALCHEMY_ENGINE_OPTIONS = {
-    "isolation_level": "SERIALIZABLE",  # SQLite does not support READ COMMITTED.
-}
+# This config is exposed through flask-sqlalchemy, and can be used to set your metadata
+# database connection settings. You can use this to set arbitrary connection settings
+# that may be specific to the database engine you are using.
+# Note that you can use this to set the isolation level of your database, as in
+# `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}`
+# Also note that we recommend READ COMMITTED for regular operation.
+# Find out more here https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/
+SQLALCHEMY_ENGINE_OPTIONS = {}
 
 # In order to hook up a custom password store for all SQLALCHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
@@ -258,6 +261,7 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.log",
     "superset.views.core.explore_json",
     "superset.charts.data.api.data",
+    "superset.dashboards.api.cache_dashboard_screenshot",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -542,6 +546,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "SQLLAB_FORCE_RUN_ASYNC": False,
     # Set to True to to enable factory resent CLI command
     "ENABLE_FACTORY_RESET_COMMAND": False,
+    # Whether Superset should use Slack avatars for users.
+    # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
+    # domains in your TALISMAN_CONFIG
+    "SLACK_ENABLE_AVATARS": False,
 }
 
 # ------------------------------
@@ -975,7 +983,12 @@ CELERY_BEAT_SCHEDULER_EXPIRES = timedelta(weeks=1)
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
-    imports = ("superset.sql_lab", "superset.tasks.scheduler")
+    imports = (
+        "superset.sql_lab",
+        "superset.tasks.scheduler",
+        "superset.tasks.thumbnails",
+        "superset.tasks.cache",
+    )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
     task_acks_late = False
@@ -994,6 +1007,12 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "task": "reports.prune_log",
             "schedule": crontab(minute=0, hour=0),
         },
+        # Uncomment to enable pruning of the query table
+        # "prune_query": {
+        #     "task": "prune_query",
+        #     "schedule": crontab(minute=0, hour=0, day_of_month=1),
+        #     "options": {"retention_period_days": 180},
+        # },
     }
 
 
@@ -1032,6 +1051,10 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = int(timedelta(hours=6).total_seconds())
 # query costs before they run. These EXPLAIN queries should have a small
 # timeout.
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
+
+# Timeout duration for SQL Lab fetching query results by the resultsKey.
+# 0 means no timeout.
+SQLLAB_QUERY_RESULT_TIMEOUT = 0
 
 # The cost returned by the databases is a relative value; in order to map the cost to
 # a tangible value you need to define a custom formatter that takes into consideration
@@ -1124,16 +1147,18 @@ def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
 # uploading CSVs will be stored.
 UPLOADED_CSV_HIVE_NAMESPACE: str | None = None
 
+
 # Function that computes the allowed schemas for the CSV uploads.
 # Allowed schemas will be a union of schemas_allowed_for_file_upload
 # db configuration and a result of this function.
+def allowed_schemas_for_csv_upload(  # pylint: disable=unused-argument
+    database: Database,
+    user: models.User,
+) -> list[str]:
+    return [UPLOADED_CSV_HIVE_NAMESPACE] if UPLOADED_CSV_HIVE_NAMESPACE else []
 
-# mypy doesn't catch that if case ensures list content being always str
-ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[[Database, models.User], list[str]] = (  # noqa: E731
-    lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE]
-    if UPLOADED_CSV_HIVE_NAMESPACE
-    else []
-)
+
+ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
 
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
@@ -1169,7 +1194,6 @@ CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 FLASK_APP_MUTATOR = None
 
 # smtp server configuration
-EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
 SMTP_HOST = "localhost"
 SMTP_STARTTLS = True
 SMTP_SSL = False
@@ -1244,6 +1268,21 @@ ALLOWED_EXTRA_AUTHENTICATIONS: dict[str, dict[str, Callable[..., Any]]] = {}
 
 # The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None
+
+
+# A context manager that wraps the call to `create_engine`. This can be used for many
+# things, such as chrooting to prevent 3rd party drivers to access the filesystem, or
+# setting up custom configuration for database drivers.
+@contextmanager
+def engine_context_manager(  # pylint: disable=unused-argument
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+) -> Iterator[None]:
+    yield None
+
+
+ENGINE_CONTEXT_MANAGER = engine_context_manager
 
 # A callable that allows altering the database connection URL and params
 # on the fly, at runtime. This allows for things like impersonation or
@@ -1409,11 +1448,6 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
-
-# Whether Superset should use Slack avatars for users.
-# If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
-# domains in your TALISMAN_CONFIG
-SLACK_ENABLE_AVATARS = False
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox
@@ -1679,6 +1713,28 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
 )
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
+# Global async queries cache backend configuration options:
+# - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend.
+# - Set 'CACHE_TYPE' to 'RedisSentinelCache' for RedisSentinelCacheBackend.
+# - Set 'CACHE_TYPE' to 'None' to fall back on 'GLOBAL_ASYNC_QUERIES_REDIS_CONFIG'.
+GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "localhost",
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_USER": "",
+    "CACHE_REDIS_PASSWORD": "",
+    "CACHE_REDIS_DB": 0,
+    "CACHE_DEFAULT_TIMEOUT": 300,
+    "CACHE_REDIS_SENTINELS": [("localhost", 26379)],
+    "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+    "CACHE_REDIS_SENTINEL_PASSWORD": None,
+    "CACHE_REDIS_SSL": False,  # True or False
+    "CACHE_REDIS_SSL_CERTFILE": None,
+    "CACHE_REDIS_SSL_KEYFILE": None,
+    "CACHE_REDIS_SSL_CERT_REQS": "required",
+    "CACHE_REDIS_SSL_CA_CERTS": None,
+}
+
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
 GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"
@@ -1687,6 +1743,15 @@ GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 # Guest token audience for the embedded superset, either string or callable
 GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
+
+# A callable that can be supplied to do extra validation of guest token configuration
+# for example certain RLS parameters:
+# lambda x: len(x['rls']) == 1 and "tenant_id=" in x['rls'][0]['clause']
+#
+# Takes the GuestTokenUser dict as an argument
+# Return False from the callable to return a HTTP 400 to the user.
+
+GUEST_TOKEN_VALIDATOR_HOOK = None
 
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,

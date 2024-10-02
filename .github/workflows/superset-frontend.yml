@@ -33,7 +33,7 @@ jobs:
         if: steps.check.outputs.frontend
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
       - name: Install dependencies
         if: steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
@@ -49,11 +49,6 @@ jobs:
         working-directory: ./superset-frontend
         run: |
           npm run type
-      - name: prettier
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: |
-          npm run prettier-check
       - name: Build plugins packages
         if: steps.check.outputs.frontend
         working-directory: ./superset-frontend

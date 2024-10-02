@@ -18,6 +18,7 @@
 
 from io import BytesIO
 from unittest import mock
+from unittest.mock import patch
 from zipfile import is_zipfile, ZipFile
 
 import prison
@@ -1768,7 +1769,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         assert rv.status_code == 404
 
-    def test_import_chart(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart(self, mock_add_permissions):
         """
         Chart API: Test import chart
         """
@@ -1805,7 +1807,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_chart_overwrite(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_overwrite(self, mock_add_permissions):
         """
         Chart API: Test import existing chart
         """
@@ -1876,7 +1879,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_chart_invalid(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_invalid(self, mock_add_permissions):
         """
         Chart API: Test import invalid chart
         """

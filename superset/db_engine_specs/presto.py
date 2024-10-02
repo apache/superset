@@ -296,10 +296,13 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return "from_unixtime({col})"
 
     @classmethod
-    def get_default_catalog(cls, database: "Database") -> str | None:
+    def get_default_catalog(cls, database: Database) -> str | None:
         """
         Return the default catalog.
         """
+        if database.url_object.database is None:
+            return None
+
         return database.url_object.database.split("/")[0]
 
     @classmethod

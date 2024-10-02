@@ -84,7 +84,7 @@ describe('DownloadScreenshot component', () => {
     const props = defaultProps();
 
     fetchMock.post(
-      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot`,
+      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot/`,
       {
         status: 400,
         body: {},
@@ -105,19 +105,23 @@ describe('DownloadScreenshot component', () => {
   test('displays success message when API call succeeds', async () => {
     const props = defaultProps();
     fetchMock.post(
-      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot`,
+      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot/`,
       {
         status: 200,
         body: {
           image_url: 'mocked_image_url',
+          cache_key: 'mocked_cache_key',
         },
       },
     );
 
-    fetchMock.get('glob:*/mocked_image_url?download_format=pdf', {
-      status: 200,
-      body: {},
-    });
+    fetchMock.get(
+      `glob:*/api/v1/dashboard/${props.dashboardId}/screenshot/mocked_cache_key/?download_format=pdf`,
+      {
+        status: 200,
+        body: {},
+      },
+    );
 
     renderComponent();
 
@@ -130,14 +134,14 @@ describe('DownloadScreenshot component', () => {
     });
   });
 
-  test('throws error when no image URL is provided', async () => {
+  test('throws error when no image cache key is provided', async () => {
     const props = defaultProps();
     fetchMock.post(
-      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot`,
+      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot/`,
       {
         status: 200,
         body: {
-          image_url: '',
+          cache_key: '',
         },
       },
     );
@@ -156,24 +160,27 @@ describe('DownloadScreenshot component', () => {
 
   test('displays success message when image retrieval succeeds', async () => {
     const props = defaultProps();
-    const imageUrl = 'glob:*/mocked_image_url?download_format=pdf';
     fetchMock.post(
-      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot`,
+      `glob:*/api/v1/dashboard/${props.dashboardId}/cache_dashboard_screenshot/`,
       {
         status: 200,
         body: {
           image_url: 'mocked_image_url',
+          cache_key: 'mocked_cache_key',
         },
       },
     );
 
-    fetchMock.get(imageUrl, {
-      status: 200,
-      headers: {
-        'Content-Type': 'image/png',
+    fetchMock.get(
+      `glob:*/api/v1/dashboard/${props.dashboardId}/screenshot/mocked_cache_key/?download_format=pdf`,
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+        },
+        body: new Blob([], { type: 'application/pdf' }),
       },
-      body: new Blob([], { type: 'image/png' }),
-    });
+    );
 
     global.URL.createObjectURL = jest.fn(() => 'mockedObjectURL');
     global.URL.revokeObjectURL = jest.fn();
@@ -185,7 +192,11 @@ describe('DownloadScreenshot component', () => {
     userEvent.click(screen.getByRole('button', { name: 'Download' }));
 
     await waitFor(() => {
-      expect(fetchMock.calls(imageUrl).length).toBe(1);
+      expect(
+        fetchMock.calls(
+          `glob:*/api/v1/dashboard/${props.dashboardId}/screenshot/mocked_cache_key/?download_format=pdf`,
+        ).length,
+      ).toBe(1);
     });
 
     // Wait for the successful image retrieval message

@@ -82,7 +82,7 @@ describe('QueryPreviewModal', () => {
     await waitForComponentToPaint(wrapper);
   });
 
-  it('renders a SynxHighlighter', () => {
+  it('renders a SyntaxHighlighter', () => {
     expect(wrapper.find(SyntaxHighlighter)).toExist();
   });
 

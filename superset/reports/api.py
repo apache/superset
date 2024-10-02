@@ -228,6 +228,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "database": [["id", DatabaseFilter, lambda: []]],
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     text_field_rel_fields = {
         "dashboard": "dashboard_title",
@@ -239,6 +240,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "chart": "slice_name",
         "database": "database_name",
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 

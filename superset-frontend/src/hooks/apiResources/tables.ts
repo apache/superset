@@ -85,7 +85,7 @@ export type TableMetaData = {
   columns: Column[];
 };
 
-type TableMetadataReponse = {
+type TableMetadataResponse = {
   json: TableMetaData;
   response: Response;
 };
@@ -117,13 +117,20 @@ const tableApi = api.injectEndpoints({
       }),
     }),
     tableMetadata: builder.query<TableMetaData, FetchTableMetadataQueryParams>({
+      providesTags: result =>
+        result
+          ? [
+              { type: 'TableMetadatas', id: result.name },
+              { type: 'TableMetadatas', id: 'LIST' },
+            ]
+          : [{ type: 'TableMetadatas', id: 'LIST' }],
       query: ({ dbId, catalog, schema, table }) => ({
         endpoint: `/api/v1/database/${dbId}/table_metadata/${toQueryString({
           name: table,
           catalog,
           schema,
         })}`,
-        transformResponse: ({ json }: TableMetadataReponse) => json,
+        transformResponse: ({ json }: TableMetadataResponse) => json,
       }),
     }),
     tableExtendedMetadata: builder.query<

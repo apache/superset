@@ -162,7 +162,11 @@ cypress-run-all() {
     USE_DASHBOARD_FLAG='--use-dashboard'
   fi
 
-  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID $USE_DASHBOARD_FLAG
+  # UNCOMMENT the next few commands to monitor memory usage
+  # monitor_memory &  # Start memory monitoring in the background
+  # memoryMonitorPid=$!
+  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID --group $PARALLEL_ID --retries 5 $USE_DASHBOARD_FLAG
+  # kill $memoryMonitorPid
 
   # After job is done, print out Flask log for debugging
   echo "::group::Flask log for default run"
@@ -176,6 +180,21 @@ eyes-storybook-dependencies() {
   say "::group::install eyes-storyook dependencies"
   sudo apt-get update -y && sudo apt-get -y install gconf-service ca-certificates libxshmfence-dev fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libgconf-2-4 libglib2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libnspr4 libnss3 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release xdg-utils libappindicator1
   say "::endgroup::"
+}
+
+monitor_memory() {
+  # This is a small utility to monitor memory usage. Useful for debugging memory in GHA.
+  # To use wrap your command as follows
+  #
+  # monitor_memory &  # Start memory monitoring in the background
+  # memoryMonitorPid=$!
+  # YOUR_COMMAND_HERE
+  # kill $memoryMonitorPid
+  while true; do
+    echo "$(date) - Top 5 memory-consuming processes:"
+    ps -eo pid,comm,%mem --sort=-%mem | head -n 6  # First line is the header, next 5 are top processes
+    sleep 2
+  done
 }
 
 cypress-run-applitools() {

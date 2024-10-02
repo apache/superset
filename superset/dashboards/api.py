@@ -22,7 +22,7 @@ from io import BytesIO
 from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import redirect, request, Response, send_file, url_for
+from flask import g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
@@ -34,10 +34,15 @@ from werkzeug.wsgi import FileWrapper
 
 from superset import db, is_feature_enabled, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
+from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.create import CreateDashboardCommand
-from superset.commands.dashboard.delete import DeleteDashboardCommand
+from superset.commands.dashboard.delete import (
+    DeleteDashboardCommand,
+    DeleteEmbeddedDashboardCommand,
+)
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
+    DashboardCopyError,
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
     DashboardForbiddenError,
@@ -46,9 +51,12 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
+from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import UpdateDashboardCommand
+from superset.commands.database.exceptions import DatasetValidationError
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
@@ -88,6 +96,7 @@ from superset.dashboards.schemas import (
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.security.guest_token import GuestUser
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
     cache_dashboard_thumbnail,
@@ -107,6 +116,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
+from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
     BaseFilterRelatedRoles,
     BaseFilterRelatedUsers,
@@ -271,6 +281,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     base_related_field_filters = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
     }
 
@@ -278,6 +289,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "roles": RelatedFieldFilter("name", FilterRelatedRoles),
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
     allowed_rel_fields = {"owners", "roles", "created_by", "changed_by"}
 
@@ -359,7 +371,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     @expose("/<id_or_slug>/datasets", methods=("GET",))
     @protect()
-    @safe
+    @handle_api_exception
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_datasets",
@@ -407,15 +419,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             ]
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
-            return self.response_400(
-                message=gettext(
-                    "Dataset schema is invalid, caused by: %(error)s", error=str(err)
-                )
-            )
-        except DashboardAccessDeniedError:
-            return self.response_403()
-        except DashboardNotFoundError:
-            return self.response_404()
+            raise DatasetValidationError(err) from err
 
     @expose("/<id_or_slug>/tabs", methods=("GET",))
     @protect()
@@ -1026,7 +1030,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
-        cache_key = screenshot_obj.cache_key(window_size, thumb_size)
+        cache_key = screenshot_obj.cache_key(window_size, thumb_size, dashboard_state)
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
@@ -1034,9 +1038,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
             cache_dashboard_screenshot.delay(
-                current_user=get_current_user(),
+                username=get_current_user(),
+                guest_token=g.user.guest_token
+                if get_current_user() and isinstance(g.user, GuestUser)
+                else None,
                 dashboard_id=dashboard.id,
                 dashboard_url=dashboard_url,
+                cache_key=cache_key,
                 force=True,
                 thumb_size=thumb_size,
                 window_size=window_size,
@@ -1206,11 +1214,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard = DashboardDAO.find_by_id(pk)
-        if not dashboard:
-            return self.response_404()
+        try:
+            AddFavoriteDashboardCommand(pk).run()
 
-        DashboardDAO.add_favorite(dashboard)
+        except DashboardNotFoundError:
+            return self.response_404()
+        except DashboardAccessDeniedError:
+            return self.response_403()
+
         return self.response(200, result="OK")
 
     @expose("/<pk>/favorites/", methods=("DELETE",))
@@ -1249,11 +1260,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard = DashboardDAO.find_by_id(pk)
-        if not dashboard:
+        try:
+            DelFavoriteDashboardCommand(pk).run()
+        except DashboardNotFoundError:
             return self.response_404()
+        except DashboardAccessDeniedError:
+            return self.response_403()
 
-        DashboardDAO.remove_favorite(dashboard)
         return self.response(200, result="OK")
 
     @expose("/import/", methods=("POST",))
@@ -1545,7 +1558,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        EmbeddedDashboardDAO.delete(dashboard.embedded)
+        DeleteEmbeddedDashboardCommand(dashboard).run()
         return self.response(200, message="OK")
 
     @expose("/<id_or_slug>/copy/", methods=("POST",))
@@ -1604,9 +1617,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         try:
-            dash = DashboardDAO.copy_dashboard(original_dash, data)
+            dash = CopyDashboardCommand(original_dash, data).run()
         except DashboardForbiddenError:
             return self.response_403()
+        except DashboardCopyError:
+            return self.response_400()
 
         return self.response(
             200,

@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsOption, SankeySeriesOption } from 'echarts';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { ComposeOption } from 'echarts/core';
+import type { SankeySeriesOption } from 'echarts/charts';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   CategoricalColorNamespace,
   NumberFormats,
@@ -32,6 +33,7 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { getPercentFormatter } from '../utils/formatters';
 
 type Link = { source: string; target: string; value: number };
+type EChartsOption = ComposeOption<SankeySeriesOption>;
 
 export default function transformProps(
   chartProps: SankeyChartProps,

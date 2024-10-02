@@ -238,7 +238,7 @@ export function useListViewState({
   );
 
   const columnsWithSelect = useMemo(() => {
-    // add exact filter type so filters with falsey values are not filtered out
+    // add exact filter type so filters with falsy values are not filtered out
     const columnsWithFilter = columns.map(f => ({ ...f, filter: 'exact' }));
     return bulkSelectMode
       ? [bulkSelectColumnConfig, ...columnsWithFilter]

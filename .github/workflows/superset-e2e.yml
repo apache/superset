@@ -48,7 +48,8 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
-      USE_DASHBOARD: ${{ github.event.inputs.use_dashboard || (github.ref == 'refs/heads/master' && 'true') || 'false' }}
+      # use the dashboard feature when running manually OR merging to master
+      USE_DASHBOARD: ${{ github.event.inputs.use_dashboard == 'true'|| (github.ref == 'refs/heads/master' && 'true') || 'false' }}
     services:
       postgres:
         image: postgres:15-alpine
@@ -107,7 +108,7 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
       - name: Install npm dependencies
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
@@ -131,6 +132,7 @@ jobs:
           PARALLEL_ID: ${{ matrix.parallel_id }}
           PARALLELISM: 6
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
         with:
           run: cypress-run-all ${{ env.USE_DASHBOARD }}
       - name: Upload Artifacts

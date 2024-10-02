@@ -360,7 +360,7 @@ test('should show all roles', async () => {
   spyIsFeatureEnabled.mockReturnValue(true);
 
   const props = createProps();
-  const propsWithDashboardIndo = { ...props, dashboardInfo };
+  const propsWithDashboardInfo = { ...props, dashboardInfo };
 
   const open = () => waitFor(() => userEvent.click(getSelect()));
   const getSelect = () =>
@@ -372,7 +372,7 @@ test('should show all roles', async () => {
   const findAllSelectOptions = () =>
     waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
-  render(<PropertiesModal {...propsWithDashboardIndo} />, {
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
     useRedux: true,
   });
 
@@ -393,7 +393,7 @@ test('should show active owners with dashboard rbac', async () => {
   spyIsFeatureEnabled.mockReturnValue(true);
 
   const props = createProps();
-  const propsWithDashboardIndo = { ...props, dashboardInfo };
+  const propsWithDashboardInfo = { ...props, dashboardInfo };
 
   const open = () => waitFor(() => userEvent.click(getSelect()));
   const getSelect = () =>
@@ -405,7 +405,7 @@ test('should show active owners with dashboard rbac', async () => {
   const findAllSelectOptions = () =>
     waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
-  render(<PropertiesModal {...propsWithDashboardIndo} />, {
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
     useRedux: true,
   });
 
@@ -426,7 +426,7 @@ test('should show active owners without dashboard rbac', async () => {
   spyIsFeatureEnabled.mockReturnValue(false);
 
   const props = createProps();
-  const propsWithDashboardIndo = { ...props, dashboardInfo };
+  const propsWithDashboardInfo = { ...props, dashboardInfo };
 
   const open = () => waitFor(() => userEvent.click(getSelect()));
   const getSelect = () =>
@@ -438,7 +438,7 @@ test('should show active owners without dashboard rbac', async () => {
   const findAllSelectOptions = () =>
     waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
-  render(<PropertiesModal {...propsWithDashboardIndo} />, {
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
     useRedux: true,
   });
 

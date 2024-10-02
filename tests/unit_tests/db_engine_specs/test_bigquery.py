@@ -191,7 +191,7 @@ def test_get_parameters_from_uri_serializable() -> None:
 
 def test_unmask_encrypted_extra() -> None:
     """
-    Test that the private key can be reused from the previous ``encrypted_extra``.
+    Test that the private key can be reused from the previous `encrypted_extra`.
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
@@ -212,17 +212,52 @@ def test_unmask_encrypted_extra() -> None:
         }
     )
 
-    assert json.loads(str(BigQueryEngineSpec.unmask_encrypted_extra(old, new))) == {
-        "credentials_info": {
-            "project_id": "yellow-unicorn-314419",
-            "private_key": "SECRET",
-        },
-    }
+    assert BigQueryEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
 
 
-def test_unmask_encrypted_extra_when_empty() -> None:
+def test_unmask_encrypted_extra_field_changeed() -> None:
     """
-    Test that a None value works for ``encrypted_extra``.
+    Test that the private key is not reused when the field has changed.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    old = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "NEW-SECRET",
+            },
+        }
+    )
+
+    assert BigQueryEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "NEW-SECRET",
+            },
+        }
+    )
+
+
+def test_unmask_encrypted_extra_when_old_is_none() -> None:
+    """
+    Test that a `None` value for the old field works for `encrypted_extra`.
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
@@ -236,17 +271,19 @@ def test_unmask_encrypted_extra_when_empty() -> None:
         }
     )
 
-    assert json.loads(str(BigQueryEngineSpec.unmask_encrypted_extra(old, new))) == {
-        "credentials_info": {
-            "project_id": "yellow-unicorn-314419",
-            "private_key": "XXXXXXXXXX",
-        },
-    }
+    assert BigQueryEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
 
 
-def test_unmask_encrypted_extra_when_new_is_empty() -> None:
+def test_unmask_encrypted_extra_when_new_is_none() -> None:
     """
-    Test that a None value works for ``encrypted_extra``.
+    Test that a `None` value for the new field works for `encrypted_extra`.
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
@@ -261,6 +298,31 @@ def test_unmask_encrypted_extra_when_new_is_empty() -> None:
     new = None
 
     assert BigQueryEngineSpec.unmask_encrypted_extra(old, new) is None
+
+
+def test_mask_encrypted_extra() -> None:
+    """
+    Test that the private key is masked when the database is edited.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    config = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+
+    assert BigQueryEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
 
 
 def test_mask_encrypted_extra_when_empty() -> None:

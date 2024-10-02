@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 from collections import defaultdict
 from typing import Any, Optional
 
@@ -304,12 +307,30 @@ class SupersetParseError(SupersetErrorException):
 
     status = 422
 
-    def __init__(self, sql: str, engine: Optional[str] = None):
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        sql: str,
+        engine: Optional[str] = None,
+        message: Optional[str] = None,
+        highlight: Optional[str] = None,
+        line: Optional[int] = None,
+        column: Optional[int] = None,
+    ):
+        if message is None:
+            parts = [_("Error parsing")]
+            if highlight:
+                parts.append(_(" near '%(highlight)s'", highlight=highlight))
+            if line:
+                parts.append(_(" at line %(line)d", line=line))
+                if column:
+                    parts.append(_(":%(column)d", column=column))
+            message = "".join(parts)
+
         error = SupersetError(
-            message=_("The SQL is invalid and cannot be parsed."),
+            message=message,
             error_type=SupersetErrorType.INVALID_SQL_ERROR,
             level=ErrorLevel.ERROR,
-            extra={"sql": sql, "engine": engine},
+            extra={"sql": sql, "engine": engine, "line": line, "column": column},
         )
         super().__init__(error)
 
@@ -329,6 +350,8 @@ class OAuth2RedirectError(SupersetErrorException):
 
     See the `OAuth2RedirectMessage.tsx` component for more details of how this
     information is handled.
+
+    TODO (betodealmeida): change status to 403.
     """
 
     def __init__(self, url: str, tab_id: str, redirect_uri: str):

@@ -145,8 +145,6 @@ const VizTile = ({
         css={css`
           display: flex;
           align-items: center;
-          text-transform: uppercase;
-
           color: ${theme.colors.grayscale.base};
           font-weight: ${theme.typography.weights.bold};
           border-radius: 6px;

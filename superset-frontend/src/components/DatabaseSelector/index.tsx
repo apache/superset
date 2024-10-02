@@ -24,10 +24,11 @@ import {
   useRef,
   useCallback,
 } from 'react';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
 import type { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import rison from 'rison';
 import { AsyncSelect, Select } from 'src/components';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
@@ -154,6 +155,7 @@ export default function DatabaseSelector({
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
+  const [errorPayload, setErrorPayload] = useState<SupersetError | null>();
   const [currentCatalog, setCurrentCatalog] = useState<
     CatalogOption | null | undefined
   >(catalog ? { label: catalog, value: catalog, title: catalog } : undefined);
@@ -267,6 +269,7 @@ export default function DatabaseSelector({
     dbId: currentDb?.value,
     catalog: currentCatalog?.value,
     onSuccess: (schemas, isFetched) => {
+      setErrorPayload(null);
       if (schemas.length === 1) {
         changeSchema(schemas[0]);
       } else if (
@@ -279,7 +282,13 @@ export default function DatabaseSelector({
         addSuccessToast('List refreshed');
       }
     },
-    onError: () => handleError(t('There was an error loading the schemas')),
+    onError: error => {
+      if (error?.errors) {
+        setErrorPayload(error?.errors?.[0]);
+      } else {
+        handleError(t('There was an error loading the schemas'));
+      }
+    },
   });
 
   const schemaOptions = schemaData || EMPTY_SCHEMA_OPTIONS;
@@ -299,6 +308,7 @@ export default function DatabaseSelector({
   } = useCatalogs({
     dbId: showCatalogSelector ? currentDb?.value : undefined,
     onSuccess: (catalogs, isFetched) => {
+      setErrorPayload(null);
       if (!showCatalogSelector) {
         changeCatalog(null);
       } else if (catalogs.length === 1) {
@@ -315,9 +325,13 @@ export default function DatabaseSelector({
         addSuccessToast('List refreshed');
       }
     },
-    onError: () => {
+    onError: error => {
       if (showCatalogSelector) {
-        handleError(t('There was an error loading the catalogs'));
+        if (error?.errors) {
+          setErrorPayload(error?.errors?.[0]);
+        } else {
+          handleError(t('There was an error loading the catalogs'));
+        }
       }
     },
   });
@@ -423,9 +437,16 @@ export default function DatabaseSelector({
     );
   }
 
+  function renderError() {
+    return errorPayload ? (
+      <ErrorMessageWithStackTrace error={errorPayload} source="crud" />
+    ) : null;
+  }
+
   return (
     <DatabaseSelectorWrapper data-test="DatabaseSelector">
       {renderDatabaseSelect()}
+      {renderError()}
       {showCatalogSelector && renderCatalogSelect()}
       {renderSchemaSelect()}
     </DatabaseSelectorWrapper>

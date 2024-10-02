@@ -155,6 +155,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     onContextMenu,
     timeGrainSqla,
     dataSelectionMode,
+    allowRenderHtml,
   } = props;
 
   const theme = useTheme();
@@ -557,6 +558,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           namesMapping={verboseMap}
           onContextMenu={handleContextMenu}
           dataSelectionMode={dataSelectionMode}
+          allowRenderHtml={allowRenderHtml}
         />
       </PivotTableWrapper>
     </Styles>

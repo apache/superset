@@ -284,6 +284,7 @@ class TabSchema(Schema):
     children = fields.List(fields.Nested(lambda: TabSchema()))
     value = fields.Str()
     title = fields.Str()
+    parents = fields.List(fields.Str())
 
 
 class TabsPayloadSchema(Schema):

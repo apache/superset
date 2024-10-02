@@ -24,6 +24,7 @@ const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const {
@@ -32,6 +33,7 @@ const {
 } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
+const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package');
 
@@ -40,13 +42,30 @@ const APP_DIR = path.resolve(__dirname, './');
 // output dir
 const BUILD_DIR = path.resolve(__dirname, '../superset/static/assets');
 const ROOT_DIR = path.resolve(__dirname, '..');
+const TRANSLATIONS_DIR = path.resolve(__dirname, '../superset/translations');
+
+const getAvailableTranslationCodes = () => {
+  if (process.env.BUILD_TRANSLATIONS === 'true') {
+    const LOCALE_CODE_MAPPING = {
+      zh: 'zh-cn',
+    };
+    const files = fs.readdirSync(TRANSLATIONS_DIR);
+    return files
+      .filter(file =>
+        fs.statSync(path.join(TRANSLATIONS_DIR, file)).isDirectory(),
+      )
+      .filter(dirName => !dirName.startsWith('__'))
+      .map(dirName => dirName.replace('_', '-'))
+      .map(dirName => LOCALE_CODE_MAPPING[dirName] || dirName);
+  }
+  // Indicates to the MomentLocalesPlugin that we only want to keep 'en'.
+  return [];
+};
 
 const {
   mode = 'development',
   devserverPort = 9000,
   measure = false,
-  analyzeBundle = false,
-  analyzerPort = 8888,
   nameChunks = false,
 } = parsedArgs;
 const isDevMode = mode !== 'production';
@@ -141,6 +160,9 @@ const plugins = [
     chunks: [],
     filename: '500.html',
   }),
+  new MomentLocalesPlugin({
+    localesToKeep: getAvailableTranslationCodes(),
+  }),
 ];
 
 if (!process.env.CI) {
@@ -156,18 +178,8 @@ if (!isDevMode) {
     }),
   );
 
-  plugins.push(
-    // runs type checking on a separate process to speed up the build
-    new ForkTsCheckerWebpackPlugin({
-      eslint: {
-        files: './{src,packages,plugins}/**/*.{ts,tsx,js,jsx}',
-        memoryLimit: 4096,
-        options: {
-          ignorePath: './.eslintignore',
-        },
-      },
-    }),
-  );
+  // Runs type checking on a separate process to speed up the build
+  plugins.push(new ForkTsCheckerWebpackPlugin());
 }
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
@@ -562,11 +574,19 @@ if (isDevMode) {
   };
 }
 
-// Bundle analyzer is disabled by default
-// Pass flag --analyzeBundle=true to enable
-// e.g. npm run build -- --analyzeBundle=true
-if (analyzeBundle) {
-  config.plugins.push(new BundleAnalyzerPlugin({ analyzerPort }));
+// To
+// e.g. npm run package-stats
+if (process.env.BUNDLE_ANALYZER) {
+  config.plugins.push(new BundleAnalyzerPlugin({ analyzerMode: 'static' }));
+  config.plugins.push(
+    // this creates an HTML page with a sunburst diagram of dependencies.
+    // you'll find it at superset/static/stats/statistics.html
+    // note that the file is >100MB so it's in .gitignore
+    new Visualizer({
+      filename: path.join('..', 'stats', 'statistics.html'),
+      throwOnError: true,
+    }),
+  );
 }
 
 // Speed measurement is disabled by default
