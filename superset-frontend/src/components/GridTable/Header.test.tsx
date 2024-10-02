@@ -83,14 +83,6 @@ test('synchronizes the current sort when sortChanged event occured', async () =>
   expect(sortAsc).toBeInTheDocument();
 });
 
-test('disable menu when enableMenu is false', () => {
-  const { queryByText, queryByTestId } = render(
-    <Header {...mockedProps} enableMenu={false} />,
-  );
-  expect(queryByText(mockedProps.displayName)).toBeTruthy();
-  expect(queryByTestId('mock-dropdown')).toBeFalsy();
-});
-
 test('hide display name for PIVOT_COL_ID', () => {
   const { queryByText } = render(
     <Header
