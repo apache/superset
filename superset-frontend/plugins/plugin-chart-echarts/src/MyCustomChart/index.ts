@@ -1,7 +1,7 @@
 import { t, Behavior } from '@superset-ui/core';
-import buildQuery from './buildQuery';
+import { buildQuery } from './buildQuery';
 import controlPanel from './controlPanel';
-import transformProps from './transformProps';
+import { transformProps } from './transformProps';
 import thumbnail from './images/thumbnail.png'; // Add a thumbnail image
 import { MyCustomChartProps, MyCustomChartFormData } from './types';
 import { EchartsChartPlugin } from '../types';

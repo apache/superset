@@ -1,15 +1,10 @@
-import { QueryFormColumn, QueryFormData } from '@superset-ui/core';
+import { QueryFormData } from '@superset-ui/core';
 import {
   BaseChartProps,
   BaseTransformedProps,
   ContextMenuTransformedProps,
   CrossFilterTransformedProps,
-  LegendFormData,
-  LegendOrientation,
-  LegendType,
 } from '../types';
-import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
-import { number } from 'prop-types';
 
 export type MyCustomChartFormData = QueryFormData & {
   datasource: string;
@@ -27,6 +22,12 @@ export interface MyCustomChartProps
   echartOptions: any;
   selectedValues: string[];
   refs: any;
+}
+
+export interface MyCustomChartTransformedProps
+  extends BaseTransformedProps<MyCustomChartFormData>,
+    ContextMenuTransformedProps {
+  data: Array<{ label: string; value: number }>;
 }
 
 // Default data

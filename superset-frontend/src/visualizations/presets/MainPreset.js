@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import MyCustomChartPlugin from '../../../plugins/plugin-chart-echarts/src/MyCustomChart'; // Adjust based on the actual path
+
 import { isFeatureEnabled, FeatureFlag, Preset } from '@superset-ui/core';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
@@ -72,6 +74,7 @@ import {
   BigNumberPeriodOverPeriodChartPlugin,
   EchartsHeatmapChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
+// import { MyCustomChartPlugin } from '../../../plugins/plugin-chart-echarts/src/MyCustomChart'
 import {
   SelectFilterPlugin,
   RangeFilterPlugin,
@@ -164,6 +167,7 @@ export default class MainPreset extends Preset {
           key: 'waterfall',
         }),
         new EchartsHeatmapChartPlugin().configure({ key: 'heatmap_v2' }),
+        new MyCustomChartPlugin().configure({ key: 'my_custom_chart' }), // Custom Chart
         new EchartsHistogramChartPlugin().configure({ key: 'histogram_v2' }),
         new SupersetPluginChartHelloWorld().configure({
           key: 'ext-hello-world',
