@@ -163,10 +163,14 @@ const StyledToolbar = styled.div`
   }
 `;
 
-const StyledSidebar = styled.div<{ width: number; hide: boolean | undefined }>`
+const StyledSidebar = styled.div<{
+  width: number;
+  hide: boolean | undefined;
+  padding: number;
+}>`
   flex: 0 0 ${({ width }) => width}px;
   width: ${({ width }) => width}px;
-  padding: ${({ theme, hide }) => (hide ? 0 : theme.gridUnit * 2.5)}px;
+  padding: ${({ padding }) => padding}px;
   border-right: 1px solid
     ${({ theme, hide }) =>
       hide ? 'transparent' : theme.colors.grayscale.light2};
@@ -932,6 +936,7 @@ const SqlEditor: FC<Props> = ({
   const leftBarStateClass = hideLeftBar
     ? 'schemaPane-exit-done'
     : 'schemaPane-enter-done';
+  const leftBarPadding = hideLeftBar ? 0 : theme.gridUnit * 2.5;
   return (
     <StyledSqlEditor ref={sqlEditorRef} className="SqlEditor">
       <CSSTransition classNames="schemaPane" in={!hideLeftBar} timeout={300}>
@@ -940,12 +945,14 @@ const SqlEditor: FC<Props> = ({
           minWidth={SQL_EDITOR_LEFTBAR_WIDTH}
           initialWidth={SQL_EDITOR_LEFTBAR_WIDTH}
           enable={!hideLeftBar}
+          padding={leftBarPadding}
         >
           {adjustedWidth => (
             <StyledSidebar
               className={`schemaPane ${leftBarStateClass}`}
               width={adjustedWidth}
               hide={hideLeftBar}
+              padding={leftBarPadding}
             >
               <SqlEditorLeftBar
                 database={database}
