@@ -82,6 +82,7 @@ const IconPlaceholder = styled.div`
 `;
 
 const Header: React.FC<Params> = ({
+  enableFilterButton,
   enableSorting,
   displayName,
   setSort,
@@ -173,7 +174,7 @@ const Header: React.FC<Params> = ({
           )}
         </HeaderCell>
       )}
-      {colId && api && (
+      {enableFilterButton && colId && api && (
         <HeaderAction
           className={`customHeaderAction${
             colId === PIVOT_COL_ID ? ' main' : ''
