@@ -190,7 +190,7 @@ function GridTable<RecordType extends object>({
             -webkit-font-smoothing: antialiased;
           }
           .locked-col {
-            background: var(--ag-header-background-color);
+            background: var(--ag-row-border-color);
             padding: 0;
             text-align: center;
             font-size: calc(var(--ag-font-size) * 0.9);
