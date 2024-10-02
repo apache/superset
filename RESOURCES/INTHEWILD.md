@@ -120,6 +120,8 @@ Join our growing community!
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
+- [YTL Communication](https://itsmanalytics.yes.my/)
+- [Robotico Digital](https://roboticodigital.com/froth-tech)
 
 ### Media & Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
