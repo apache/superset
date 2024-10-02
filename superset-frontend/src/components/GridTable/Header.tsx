@@ -25,7 +25,7 @@ import { PIVOT_COL_ID } from './constants';
 import HeaderMenu from './HeaderMenu';
 
 interface Params {
-  enableMenu?: boolean;
+  enableFilterButton?: boolean;
   enableSorting?: boolean;
   displayName: string;
   column: Column;
@@ -82,7 +82,6 @@ const IconPlaceholder = styled.div`
 `;
 
 const Header: React.FC<Params> = ({
-  enableMenu,
   enableSorting,
   displayName,
   setSort,
@@ -174,7 +173,7 @@ const Header: React.FC<Params> = ({
           )}
         </HeaderCell>
       )}
-      {enableMenu && colId && api && (
+      {colId && api && (
         <HeaderAction
           className={`customHeaderAction${
             colId === PIVOT_COL_ID ? ' main' : ''
