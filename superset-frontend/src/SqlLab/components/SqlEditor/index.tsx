@@ -163,10 +163,7 @@ const StyledToolbar = styled.div`
   }
 `;
 
-const StyledSidebar = styled.div<{
-  width: number;
-  hide: boolean | undefined;
-}>`
+const StyledSidebar = styled.div<{ width: number; hide: boolean | undefined }>`
   flex: 0 0 ${({ width }) => width}px;
   width: ${({ width }) => width}px;
   padding: ${({ theme, hide }) => (hide ? 0 : theme.gridUnit * 2.5)}px;
