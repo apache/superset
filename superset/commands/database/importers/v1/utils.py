@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from typing import Any
 
 from superset import app, db, security_manager
@@ -25,6 +26,8 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 def import_database(
@@ -64,7 +67,7 @@ def import_database(
     # Before it gets removed in import_from_dict
     ssh_tunnel_config = config.pop("ssh_tunnel", None)
 
-    database = Database.import_from_dict(config, recursive=False)
+    database: Database = Database.import_from_dict(config, recursive=False)
     if database.id is None:
         db.session.flush()
 
@@ -75,7 +78,13 @@ def import_database(
         ssh_tunnel = None
 
     # TODO (betodealmeida): we should use the `CreateDatabaseCommand` for imports
-    add_permissions(database, ssh_tunnel)
+
+    try:
+        add_permissions(database, ssh_tunnel)
+    except Exception:
+        logger.info("unable to connect to %s", database)
+    finally:
+        return database
 
     return database
 
@@ -89,6 +98,7 @@ def add_permissions(database: Database, ssh_tunnel: SSHTunnel) -> None:
             cache=False,
             ssh_tunnel=ssh_tunnel,
         )
+
         for catalog in catalogs:
             security_manager.add_permission_view_menu(
                 "catalog_access",
