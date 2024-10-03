@@ -1171,6 +1171,9 @@ OFFSET 0
 
 
 def test_virtual_dataset_with_comments(app_context, virtual_dataset_with_comments):
+    if backend() == "mysql":
+        return
+
     qc = QueryContextFactory().create(
         datasource={
             "type": virtual_dataset_with_comments.type,

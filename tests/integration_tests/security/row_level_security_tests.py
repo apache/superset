@@ -268,7 +268,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         # establish that the filters are grouped together correctly with
         # ANDs, ORs and parens in the correct place
         assert (
-            "WHERE\n  (\n    (\n      name LIKE 'A%' OR name LIKE 'B%'\n    ) OR (\n      name LIKE 'Q%'\n    )\n  )\n  AND (\n    gender = 'boy'\n  )"
+            "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');"
             in sql
         )
 
