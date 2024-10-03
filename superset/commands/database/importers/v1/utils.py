@@ -22,6 +22,7 @@ from superset import app, db, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -81,8 +82,8 @@ def import_database(
 
     try:
         add_permissions(database, ssh_tunnel)
-    except Exception:
-        logger.info("unable to connect to %s", database)
+    except SupersetDBAPIConnectionError as ex:
+        logger.warning(ex.message)
 
     return database
 
