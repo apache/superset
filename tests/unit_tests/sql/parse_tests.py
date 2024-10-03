@@ -918,3 +918,17 @@ def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
     Test the `has_mutation` method.
     """
     assert SQLScript(sql, engine).has_mutation() == expected
+
+
+def test_get_settings() -> None:
+    """
+    Test `get_settings` in some edge cases.
+    """
+    sql = """
+set
+-- this is a tricky comment
+search_path -- another one
+= bar;
+SELECT * FROM some_table;
+    """
+    assert SQLScript(sql, "postgresql").get_settings() == {"search_path": "bar"}

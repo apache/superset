@@ -122,17 +122,20 @@ test('Should render editMode:true', () => {
   const props = createProps();
   render(<Tabs {...props} />, { useRedux: true, useDnd: true });
   expect(screen.getAllByRole('tab')).toHaveLength(3);
+  expect(screen.getAllByRole('button', { name: 'remove' })).toHaveLength(3);
+  expect(screen.getAllByRole('button', { name: 'Add tab' })).toHaveLength(2);
   expect(Draggable).toHaveBeenCalledTimes(1);
   expect(DashboardComponent).toHaveBeenCalledTimes(4);
   expect(DeleteComponentButton).toHaveBeenCalledTimes(1);
-  expect(screen.getAllByRole('button', { name: 'remove' })).toHaveLength(3);
-  expect(screen.getAllByRole('button', { name: 'Add tab' })).toHaveLength(2);
 });
 
 test('Should render editMode:false', () => {
   const props = createProps();
   props.editMode = false;
-  render(<Tabs {...props} />, { useRedux: true, useDnd: true });
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
   expect(screen.getAllByRole('tab')).toHaveLength(3);
   expect(Draggable).toHaveBeenCalledTimes(1);
   expect(DashboardComponent).toHaveBeenCalledTimes(4);

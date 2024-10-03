@@ -1688,10 +1688,10 @@ class SqlaTable(
         if isinstance(value, np.generic):
             value = value.item()
 
-        column_ = columns_by_name[dimension]
+        column_ = columns_by_name.get(dimension)
         db_extra: dict[str, Any] = self.database.get_extra()
 
-        if column_.type and column_.is_temporal and isinstance(value, str):
+        if column_ and column_.type and column_.is_temporal and isinstance(value, str):
             sql = self.db_engine_spec.convert_dttm(
                 column_.type, dateutil.parser.parse(value), db_extra=db_extra
             )
