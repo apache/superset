@@ -83,8 +83,6 @@ def import_database(
         add_permissions(database, ssh_tunnel)
     except Exception:
         logger.info("unable to connect to %s", database)
-    finally:
-        return database
 
     return database
 
