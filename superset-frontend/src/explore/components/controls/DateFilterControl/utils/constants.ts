@@ -22,7 +22,7 @@ import {
   SelectOptionType,
   PreviousCalendarWeek,
   PreviousCalendarMonth,
-  PreviousQuarter,
+  PreviousCalendarQuarter,
   PreviousCalendarYear,
   CommonRangeType,
   CalendarRangeType,
@@ -57,7 +57,7 @@ export const COMMON_RANGE_VALUES_SET = new Set(
 export const CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
   { value: PreviousCalendarWeek, label: t('previous calendar week') },
   { value: PreviousCalendarMonth, label: t('previous calendar month') },
-  { value: PreviousQuarter, label: t('previous quarter') },
+  { value: PreviousCalendarQuarter, label: t('previous calendar quarter') },
   { value: PreviousCalendarYear, label: t('previous calendar year') },
 ];
 export const CALENDAR_RANGE_VALUES_SET = new Set(
@@ -121,7 +121,7 @@ export const COMMON_RANGE_SET: Set<CommonRangeType> = new Set([
 export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([
   PreviousCalendarWeek,
   PreviousCalendarMonth,
-  PreviousQuarter,
+  PreviousCalendarQuarter,
   PreviousCalendarYear,
 ]);
 

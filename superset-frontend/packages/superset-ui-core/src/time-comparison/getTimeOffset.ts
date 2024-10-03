@@ -78,7 +78,7 @@ export const parseDttmToDate = (
         now.setMonth(now.getMonth() - 1);
       }
       return now;
-    case 'previous quarter': {
+    case 'previous calendar quarter': {
       const quarter = Math.floor(now.getMonth() / 3);
       newdate = new Date(now.getFullYear(), quarter * 3 - 3, 1);
       return newdate;
