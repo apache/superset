@@ -46,6 +46,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     SupersetErrorException,
     SupersetErrorsException,
+    SupersetParseError,
 )
 from superset.extensions import celery_app, event_logger
 from superset.models.core import Database
@@ -236,15 +237,27 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
     # We are testing to see if more rows exist than the limit.
     increased_limit = None if query.limit is None else query.limit + 1
 
-    parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
-    if parsed_statement.is_mutating() and not database.allow_dml:
-        raise SupersetErrorException(
-            SupersetError(
-                message=__("Only SELECT statements are allowed against this database."),
-                error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
-                level=ErrorLevel.ERROR,
+    if not database.allow_dml:
+        try:
+            parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
+            disallowed = parsed_statement.is_mutating()
+        except SupersetParseError:
+            # if we fail to parse teh query, disallow by default
+            disallowed = True
+
+        if disallowed:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "This database does not allow for DDL/DML, and the query "
+                        "could not be parsed to confirm it is a read-only query. Please "
+                        "contact your administrator for more assistance."
+                    ),
+                    error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
             )
-        )
+
     if apply_ctas:
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)

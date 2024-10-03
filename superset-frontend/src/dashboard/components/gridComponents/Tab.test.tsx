@@ -196,6 +196,10 @@ test('Drop on a tab', async () => {
   );
 
   fireEvent.dragStart(screen.getByText('Dashboard Component'));
+  fireEvent.dragOver(screen.getByText('Next Tab'));
+  await waitFor(() =>
+    expect(screen.getByTestId('title-drop-indicator')).toBeVisible(),
+  );
   fireEvent.drop(screen.getByText('Next Tab'));
   await waitFor(() => expect(mockOnDropOnTab).toHaveBeenCalledTimes(2));
   expect(mockOnDropOnTab).toHaveBeenLastCalledWith(
