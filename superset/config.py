@@ -25,7 +25,6 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging
@@ -1885,7 +1884,9 @@ if CONFIG_PATH_ENV_VAR in os.environ:
     cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
     try:
         module = sys.modules[__name__]
-        override_conf = imp.load_source("superset_config", cfg_path)
+        spec = importlib.util.spec_from_file_location("superset_config", cfg_path)
+        override_conf = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(override_conf)
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
