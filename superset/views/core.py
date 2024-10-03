@@ -864,10 +864,6 @@ class Superset(BaseSupersetView):
     def log(self) -> FlaskResponse:
         return Response(status=200)
 
-    @expose("/theme/")
-    def theme(self) -> FlaskResponse:
-        return self.render_template("superset/theme.html")
-
     @api
     @handle_api_exception
     @has_access

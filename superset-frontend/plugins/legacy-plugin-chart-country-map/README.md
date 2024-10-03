@@ -57,6 +57,6 @@ To update the country maps or add a new country, run scripts in the Jupyter note
 `scripts/Country Map GeoJSON Generator.ipynb`.
 
 ```bash
-pip install jupyter notebook
+pip install geopandas shapely matplotlib notebook
 jupyter notebook
 ```
