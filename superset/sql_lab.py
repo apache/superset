@@ -17,6 +17,7 @@
 # pylint: disable=consider-using-transaction
 import dataclasses
 import logging
+import sys
 import uuid
 from contextlib import closing
 from datetime import datetime
@@ -214,7 +215,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
         insert_rls = (
             insert_rls_as_subquery
             if database.db_engine_spec.allows_subqueries
-            and database.db_engine_spec.allows_alias_in_select
+               and database.db_engine_spec.allows_alias_in_select
             else insert_rls_in_predicate
         )
 
@@ -237,27 +238,15 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
     # We are testing to see if more rows exist than the limit.
     increased_limit = None if query.limit is None else query.limit + 1
 
-    if not database.allow_dml:
-        try:
-            parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
-            disallowed = parsed_statement.is_mutating()
-        except SupersetParseError:
-            # if we fail to parse teh query, disallow by default
-            disallowed = True
-
-        if disallowed:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "This database does not allow for DDL/DML, and the query "
-                        "could not be parsed to confirm it is a read-only query. Please "
-                        "contact your administrator for more assistance."
-                    ),
-                    error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
-                    level=ErrorLevel.ERROR,
-                )
+    parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
+    if parsed_statement.is_mutating() and not database.allow_dml:
+        raise SupersetErrorException(
+            SupersetError(
+                message=__("Only SELECT statements are allowed against this database."),
+                error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+                level=ErrorLevel.ERROR,
             )
-
+        )
     if apply_ctas:
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
@@ -528,6 +517,7 @@ def execute_sql_statements(
                     log_params,
                     apply_ctas,
                 )
+
             except SqlLabQueryStoppedException:
                 payload.update({"status": QueryStatus.STOPPED})
                 return payload
@@ -598,6 +588,22 @@ def execute_sql_statements(
                 serialized_payload = _serialize_payload(
                     payload, cast(bool, results_backend_use_msgpack)
                 )
+
+                # Check the size of the serialized payload
+                if config.get("SQL_LAB_PAYLOAD_MAX_MB"):
+                    serialized_payload_size = sys.getsizeof(serialized_payload)
+                    sql_lab_payload_max_mb = config["SQL_LAB_PAYLOAD_MAX_MB"]
+                    max_bytes = sql_lab_payload_max_mb * 1024 * 1024
+
+                    if serialized_payload_size > max_bytes:
+                        raise SupersetErrorException(
+                            SupersetError(
+                                message=f"Result size ({serialized_payload_size / (1024 * 1024):.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
+                                error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
+                                level=ErrorLevel.ERROR,
+                            )
+                        )
+
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
                 cache_timeout = config["CACHE_DEFAULT_TIMEOUT"]
@@ -632,6 +638,23 @@ def execute_sql_statements(
                     "expanded_columns": expanded_columns,
                 }
             )
+        # Check the size of the serialized payload (opt-in logic for return_results)
+        if config.get("SQL_LAB_PAYLOAD_MAX_MB"):
+            serialized_payload = _serialize_payload(
+                payload, cast(bool, results_backend_use_msgpack)
+            )
+            serialized_payload_size = sys.getsizeof(serialized_payload)
+            sql_lab_payload_max_mb = config["SQL_LAB_PAYLOAD_MAX_MB"]
+            max_bytes = sql_lab_payload_max_mb * 1024 * 1024
+
+            if serialized_payload_size > max_bytes:
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=f"Result size ({serialized_payload_size / (1024 * 1024):.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
+                        error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                )
         return payload
 
     return None
