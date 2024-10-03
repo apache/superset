@@ -106,28 +106,12 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
         dataset.sql, **dataset.template_params_dict
     )
     parsed_query = ParsedQuery(sql, engine=db_engine_spec.engine)
-    if not db_engine_spec.is_readonly_query(parsed_query):
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message=_("Only `SELECT` statements are allowed"),
-                level=ErrorLevel.ERROR,
-            )
-        )
     statements = parsed_query.get_statements()
-    if len(statements) > 1:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message=_("Only single queries supported"),
-                level=ErrorLevel.ERROR,
-            )
-        )
     return get_columns_description(
         dataset.database,
         dataset.catalog,
         dataset.schema,
-        statements[0],
+        statements,
     )
 
 
@@ -140,17 +124,23 @@ def get_columns_description(
     # TODO(villebro): refactor to use same code that's used by
     #  sql_lab.py:execute_sql_statements
     db_engine_spec = database.db_engine_spec
-    try:
-        with database.get_raw_connection(catalog=catalog, schema=schema) as conn:
-            cursor = conn.cursor()
-            query = database.apply_limit_to_sql(query, limit=1)
-            cursor.execute(query)
-            db_engine_spec.execute(cursor, query, database)
-            result = db_engine_spec.fetch_data(cursor, limit=1)
-            result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
-            return result_set.columns
-    except Exception as ex:
-        raise SupersetGenericDBErrorException(message=str(ex)) from ex
+    result_list = []
+    with database.get_raw_connection(schema=schema) as conn:
+        cursor = conn.cursor()
+        for statement in query:
+            try:
+                if len(query) == 1:
+                    statement = database.apply_limit_to_sql(statement, limit=1)
+                cursor.execute(statement)
+                db_engine_spec.execute(cursor, statement)
+                result = db_engine_spec.fetch_data(cursor,
+                                                   limit=1 if len(query) == 1 else None)
+                result_set = SupersetResultSet(result,
+                                               cursor.description, db_engine_spec)
+                result_list += result_set.columns
+            except Exception as ex:
+                raise SupersetGenericDBErrorException(message=str(ex)) from ex
+    return result_list
 
 
 @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)

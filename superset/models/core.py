@@ -648,6 +648,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         catalog: str | None = None,
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
+        sql_statements: list[str] | None = None,
     ) -> pd.DataFrame:
         sqls = self.db_engine_spec.parse_sql(sql)
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
@@ -666,6 +667,10 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
             df = None
+            if sql_statements:
+                for statement in sql_statements:
+                    self.db_engine_spec.execute(cursor, statement)
+
             for i, sql_ in enumerate(sqls):
                 sql_ = self.mutate_sql_based_on_config(sql_, is_split=True)
                 _log_query(sql_)

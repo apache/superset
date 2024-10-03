@@ -79,6 +79,7 @@ from superset.connectors.sqla.utils import (
 )
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset import SupersetError, SupersetErrorType, ErrorLevel
 from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
@@ -1452,22 +1453,34 @@ class SqlaTable(
 
         from_sql = self.get_rendered_sql(template_processor) + "\n"
         parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
-        if not (
-            parsed_query.is_unknown()
-            or self.db_engine_spec.is_readonly_query(parsed_query)
-        ):
-            raise QueryObjectValidationError(
-                _("Virtual dataset query must be read-only")
+        sql_statements = parsed_query.get_statements()
+        if len(sql_statements) > 1:
+            select_statement = sql_statements[-1]
+        else:
+            select_statement = from_sql
+
+        if not ParsedQuery(select_statement).is_select():
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "CTAS (create table as select) can only be run with a query where "
+                        "the last statement is a SELECT. Please make sure your query has "
+                        "a SELECT as its last statement. Then, try running your query "
+                        "again."
+                    ),
+                    error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
             )
 
-        cte = self.db_engine_spec.get_cte_query(from_sql)
+        cte = self.db_engine_spec.get_cte_query(select_statement)
         from_clause = (
             table(self.db_engine_spec.cte_alias)
             if cte
-            else TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
+            else TextAsFrom(self.text(select_statement), []).alias(VIRTUAL_TABLE_ALIAS)
         )
 
-        return from_clause, cte
+        return sql_statements[:-1] if sql_statements else None, from_clause, cte
 
     def adhoc_metric_to_sqla(
         self,
@@ -1726,6 +1739,7 @@ class SqlaTable(
                 self.catalog,
                 self.schema or None,
                 mutator=assign_column_label,
+                sql_statements=query_str_ext.sql_statements,
             )
         except (SupersetErrorException, SupersetErrorsException):
             # SupersetError(s) exception should not be captured; instead, they should
@@ -1768,13 +1782,15 @@ class SqlaTable(
             )
         )
 
-    def fetch_metadata(self) -> MetadataResult:
+    def fetch_metadata(self,
+                       commit: bool = True,
+                       columns: dict[str, Any] | None = None) -> MetadataResult:
         """
         Fetches the metadata for the table and merges it in
 
         :return: Tuple with lists of added, removed and modified column names.
         """
-        new_columns = self.external_metadata()
+        new_columns = columns if columns else self.external_metadata()
         metrics = [
             SqlMetric(**metric)
             for metric in self.database.get_metrics(
@@ -1849,6 +1865,8 @@ class SqlaTable(
         config["SQLA_TABLE_MUTATOR"](self)
 
         db.session.merge(self)
+        if commit:
+            db.session.commit()
         return results
 
     @classmethod

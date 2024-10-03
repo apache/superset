@@ -18,7 +18,7 @@
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any
+from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
@@ -67,6 +67,10 @@ from superset.datasets.schemas import (
 )
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
+from superset.exceptions import SupersetErrorException
+from superset.sqllab.api import SqlLabRestApi
+from superset.commands.sql_lab.execute import CommandResult
+from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -332,7 +336,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         try:
-            new_model = CreateDatasetCommand(item).run()
+            log_params = {
+                "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
+            }
+            execution_context = SqlJsonExecutionContext(request.json)
+            command = SqlLabRestApi._create_sql_json_command(execution_context,
+                                                             log_params)
+            command_result: CommandResult = command.run()
+
+            columns = json.loads(command_result["payload"])["columns"]
+            new_model = CreateDatasetCommand(item).run(columns=columns)
             return self.response(201, id=new_model.id, result=item, data=new_model.data)
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -343,6 +356,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 str(ex),
                 exc_info=True,
             )
+            return self.response_422(message=str(ex))
+        except SupersetErrorException as ex:
             return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=("PUT",))

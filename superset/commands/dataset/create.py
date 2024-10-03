@@ -32,7 +32,7 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import security_manager
+from superset.extensions import security_manager, db
 from superset.sql_parse import Table
 from superset.utils.decorators import on_error, transaction
 
@@ -44,11 +44,12 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         self._properties = data.copy()
 
     @transaction(on_error=partial(on_error, reraise=DatasetCreateFailedError))
-    def run(self) -> Model:
+    def run(self, columns: Optional[dict[str, Any]] = None) -> Model:
         self.validate()
 
         dataset = DatasetDAO.create(attributes=self._properties)
-        dataset.fetch_metadata()
+        dataset.fetch_metadata(commit=False, columns=columns)
+        db.session.commit()
         return dataset
 
     def validate(self) -> None:

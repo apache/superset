@@ -41,6 +41,7 @@ from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __
 from jinja2.exceptions import TemplateError
 from markupsafe import escape, Markup
 from sqlalchemy import and_, Column, or_, UniqueConstraint
@@ -66,6 +67,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SupersetParseError,
     SupersetSecurityException,
+    SupersetErrorException
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
@@ -682,6 +684,7 @@ class QueryStringExtended(NamedTuple):
     labels_expected: list[str]
     prequeries: list[str]
     sql: str
+    sql_statements: list[str]
 
 
 class SqlaQuery(NamedTuple):
@@ -693,6 +696,7 @@ class SqlaQuery(NamedTuple):
     labels_expected: list[str]
     prequeries: list[str]
     sqla_query: Select
+    sql_statements: list[str]
 
 
 class ExploreMixin:  # pylint: disable=too-many-public-methods
@@ -921,6 +925,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             labels_expected=sqlaq.labels_expected,
             prequeries=sqlaq.prequeries,
             sql=sql,
+            sql_statements=sqlaq.sql_statements
         )
 
     def _normalize_prequery_result_type(
@@ -1038,6 +1043,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 self.catalog,
                 self.schema,
                 mutator=assign_column_label,
+                sql_statements=query_str_ext.sql_statements,
             )
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
@@ -1081,15 +1087,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=ex.message,
                     )
                 ) from ex
-
-        script = SQLScript(sql, engine=self.db_engine_spec.engine)
-        if len(script.statements) > 1:
-            raise QueryObjectValidationError(
-                _("Virtual dataset query cannot consist of multiple statements")
-            )
-
-        if not sql:
-            raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         return sql
 
     def text(self, clause: str) -> TextClause:
@@ -1097,7 +1094,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_from_clause(
         self, template_processor: Optional[BaseTemplateProcessor] = None
-    ) -> tuple[Union[TableClause, Alias], Optional[str]]:
+    ) -> tuple[Union[list[str], None], Union[TableClause, Alias], Optional[str]]:
         """
         Return where to select the columns and metrics from. Either a physical table
         or a virtual table with it's own subquery. If the FROM is referencing a
@@ -1106,22 +1103,34 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         from_sql = self.get_rendered_sql(template_processor) + "\n"
         parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
-        if not (
-            parsed_query.is_unknown()
-            or self.db_engine_spec.is_readonly_query(parsed_query)
-        ):
-            raise QueryObjectValidationError(
-                _("Virtual dataset query must be read-only")
+        sql_statements = parsed_query.get_statements()
+        if len(sql_statements) > 1:
+            select_statement = sql_statements[-1]
+        else:
+            select_statement = from_sql
+
+        if not ParsedQuery(select_statement).is_select():
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "CTAS (create table as select) can only be run with a query where "
+                        "the last statement is a SELECT. Please make sure your query has "
+                        "a SELECT as its last statement. Then, try running your query "
+                        "again."
+                    ),
+                    error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
             )
 
-        cte = self.db_engine_spec.get_cte_query(from_sql)
+        cte = self.db_engine_spec.get_cte_query(select_statement)
         from_clause = (
             sa.table(self.db_engine_spec.cte_alias)
             if cte
-            else TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
+            else TextAsFrom(self.text(select_statement), []).alias(VIRTUAL_TABLE_ALIAS)
         )
 
-        return from_clause, cte
+        return sql_statements[:-1] if sql_statements else None, from_clause, cte
 
     def adhoc_metric_to_sqla(
         self,
@@ -1368,7 +1377,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         cols = {col.column_name: col for col in self.columns}
         target_col = cols[column_name_]
         tp = self.get_template_processor()
-        tbl, cte = self.get_from_clause(tp)
+        sql_statements, tbl, cte = self.get_from_clause(tp)
 
         qry = (
             sa.select(
@@ -1750,7 +1759,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         qry = sa.select(select_exprs)
 
-        tbl, cte = self.get_from_clause(template_processor)
+        sql_statements, tbl, cte = self.get_from_clause(template_processor)
 
         if groupby_all_columns:
             qry = qry.group_by(*groupby_all_columns.values())
@@ -2137,4 +2146,5 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             labels_expected=labels_expected,
             sqla_query=qry,
             prequeries=prequeries,
+            sql_statements=sql_statements
         )

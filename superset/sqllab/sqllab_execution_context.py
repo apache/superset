@@ -72,7 +72,9 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self.query = query
 
     def _init_from_query_params(self, query_params: dict[str, Any]) -> None:
-        self.database_id = cast(int, query_params.get("database_id"))
+        self.database_id = cast(int, query_params.get("database_id")) \
+            if query_params.get("database_id") \
+            else cast(int, query_params.get("database"))
         self.catalog = cast(str, query_params.get("catalog"))
         self.schema = cast(str, query_params.get("schema"))
         self.sql = cast(str, query_params.get("sql"))
