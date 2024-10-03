@@ -80,10 +80,12 @@ export type CommonRangeType =
 
 export const PreviousCalendarWeek = 'previous calendar week';
 export const PreviousCalendarMonth = 'previous calendar month';
+export const PreviousQuarter = 'previous quarter';
 export const PreviousCalendarYear = 'previous calendar year';
 export type CalendarRangeType =
   | typeof PreviousCalendarWeek
   | typeof PreviousCalendarMonth
+  | typeof PreviousQuarter
   | typeof PreviousCalendarYear;
 
 export const CurrentDay = 'Current day';
