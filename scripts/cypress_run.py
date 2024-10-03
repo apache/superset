@@ -47,31 +47,33 @@ def run_cypress_for_test_file(
     browser = os.getenv("CYPRESS_BROWSER", "chrome")
     chrome_flags = "--disable-dev-shm-usage"
 
-    # Create Cypress command for a single test file
-    if use_dashboard:
-        cmd = (
-            f"{XVFB_PRE_CMD} "
-            f'{cypress_cmd} --spec "{test_file}" --browser {browser} '
-            f"--record --group matrix{group}-file{i} --tag {REPO},{GITHUB_EVENT_NAME} "
-            f"--ci-build-id {build_id} "
-            f"-- {chrome_flags}"
-        )
-    else:
-        os.environ.pop("CYPRESS_RECORD_KEY", None)
-        cmd = (
-            f"{XVFB_PRE_CMD} "
-            f"{cypress_cmd} --browser {browser} "
-            f'--spec "{test_file}" '
-            f"-- {chrome_flags}"
-        )
-
-    if dry_run:
-        # Print the command instead of executing it
-        print(f"DRY RUN: {cmd}")
-        return 0
-
     for attempt in range(retries):
-        print(f"RUN: {cmd} (Attempt {attempt + 1}/{retries})")
+        # Create Cypress command for a single test file
+        cmd: str = ""
+        if use_dashboard:
+            # If/when we want to use cypress' dashboard feature to record the run
+            group_id = f"matrix{group}-file{i}-{attempt}"
+            cmd = (
+                f"{XVFB_PRE_CMD} "
+                f'{cypress_cmd} --spec "{test_file}" --browser {browser} '
+                f"--record --group {group_id} --tag {REPO},{GITHUB_EVENT_NAME} "
+                f"--ci-build-id {build_id} "
+                f"-- {chrome_flags}"
+            )
+        else:
+            os.environ.pop("CYPRESS_RECORD_KEY", None)
+            cmd = (
+                f"{XVFB_PRE_CMD} "
+                f"{cypress_cmd} --browser {browser} "
+                f'--spec "{test_file}" '
+                f"-- {chrome_flags}"
+            )
+            print(f"RUN: {cmd} (Attempt {attempt + 1}/{retries})")
+        if dry_run:
+            # Print the command instead of executing it
+            print(f"DRY RUN: {cmd}")
+            return 0
+
         process = subprocess.Popen(
             cmd,
             shell=True,
