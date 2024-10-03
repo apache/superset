@@ -27,14 +27,14 @@ type Slice = {
 
 function getRelatedChartsForSelectFilter(
   filter: Filter,
-  slices: Slice[],
+  slices: Record<string, Slice>,
   datasources: DatasourcesState,
 ) {
   return Object.values(slices)
     .filter(({ datasource }) => {
       const chartDatasource = datasources[datasource];
       if (!chartDatasource) return false;
-      const { column, datasetId } = filter.targets[0];
+      const { column, datasetId } = filter.targets[0] ?? {};
 
       return (
         chartDatasource.id === datasetId ||
@@ -49,7 +49,7 @@ function getRelatedChartsForSelectFilter(
 }
 function getRelatedChartsForCrossFilter(
   filterKey: string,
-  slices: Slice[],
+  slices: Record<string, Slice>,
   datasources: DatasourcesState,
 ): number[] {
   const sourceSlice = slices[filterKey];
@@ -60,7 +60,7 @@ function getRelatedChartsForCrossFilter(
 
   return Object.values(slices)
     .filter(slice => {
-      if (slice.slice_id === Number[filterKey]) return false;
+      if (slice.slice_id === Number(filterKey)) return false;
       const targetDatasource = datasources[slice.datasource];
       if (!targetDatasource) return false;
       if (targetDatasource === sourceDatasource) return true;
@@ -76,7 +76,7 @@ function getRelatedChartsForCrossFilter(
 
 export function getRelatedCharts(
   filters: Object,
-  slices: Slice[],
+  slices: Record<string, Slice>,
   datasources: DatasourcesState,
 ) {
   return Object.entries(filters).reduce((acc, [filterKey, filter]) => {
@@ -90,7 +90,7 @@ export function getRelatedCharts(
         ),
       };
     }
-    if (filter.filterType === null) {
+    if (!filter.filterType) {
       return {
         ...acc,
         [filterKey]: getRelatedChartsForCrossFilter(
@@ -102,7 +102,11 @@ export function getRelatedCharts(
     }
     return {
       ...acc,
-      [filterKey]: filter.scope,
+      [filterKey]: filter.chartsInScope
+        ? filter.chartsInScope.filter(
+            (chartId: number) => !filter.scope.excluded.includes(chartId),
+          )
+        : filter.scope,
     };
   }, {});
 }

@@ -54,7 +54,7 @@ export const getAllActiveFilters = ({
       chartConfiguration?.[filterId]?.crossFilters?.chartsInScope ??
       allSliceIds ??
       [];
-    const filterType = nativeFilters?.[filterId]?.filterType ?? null;
+    const filterType = nativeFilters?.[filterId]?.filterType;
     const targets = nativeFilters?.[filterId]?.targets ?? scope;
     // Iterate over all roots to find all affected charts
     activeFilters[filterId] = {
