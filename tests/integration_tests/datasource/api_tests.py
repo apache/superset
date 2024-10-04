@@ -18,6 +18,7 @@
 from unittest.mock import ANY, patch
 
 import pytest
+from sqlalchemy.sql.elements import TextClause
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
@@ -176,3 +177,31 @@ class TestDatasourceApi(SupersetTestCase):
         table.normalize_columns = False
         self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")  # noqa: F841
         denormalize_name_mock.assert_called_with(ANY, "col2")
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_with_rls(self):
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        with patch.object(
+            table, "get_sqla_row_level_filters", return_value=[TextClause("col2 = 'b'")]
+        ):
+            rv = self.client.get(
+                f"api/v1/datasource/table/{table.id}/column/col2/values/"
+            )
+            self.assertEqual(rv.status_code, 200)
+            response = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(response["result"], ["b"])
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_with_rls_no_values(self):
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        with patch.object(
+            table, "get_sqla_row_level_filters", return_value=[TextClause("col2 = 'q'")]
+        ):
+            rv = self.client.get(
+                f"api/v1/datasource/table/{table.id}/column/col2/values/"
+            )
+            self.assertEqual(rv.status_code, 200)
+            response = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(response["result"], [])
