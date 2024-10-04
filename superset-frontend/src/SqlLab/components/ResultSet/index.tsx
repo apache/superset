@@ -42,6 +42,7 @@ import {
   css,
   getNumberFormatter,
   getExtensionsRegistry,
+  ErrorLevel,
   ErrorTypeEnum,
 } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
@@ -540,18 +541,33 @@ const ResultSet = ({
   }
 
   if (query.state === QueryState.Failed) {
+    const errors = [];
+    if (query.errorMessage) {
+      errors.push({
+        error_type: ErrorTypeEnum.GENERIC_DB_ENGINE_ERROR,
+        extra: {},
+        level: 'error' as ErrorLevel,
+        message: query.errorMessage,
+      });
+    }
+    errors.push(...(query.extra?.errors || []), ...(query.errors || []));
+
     return (
       <ResultlessStyles>
-        <ErrorMessageWithStackTrace
-          title={t('Database error')}
-          error={query?.extra?.errors?.[0] || query?.errors?.[0]}
-          subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
-          copyText={query.errorMessage || undefined}
-          link={query.link}
-          source="sqllab"
-        />
-        {(query?.extra?.errors?.[0] || query?.errors?.[0])?.error_type ===
-        ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR ? (
+        {errors.map((error, index) => (
+          <ErrorMessageWithStackTrace
+            key={index}
+            title={t('Database error')}
+            error={error}
+            subtitle={<MonospaceDiv>{error.message}</MonospaceDiv>}
+            copyText={error.message || undefined}
+            link={query.link}
+            source="sqllab"
+          />
+        ))}
+        {errors.some(
+          error => error?.error_type === ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+        ) ? (
           <Button
             className="sql-result-track-job"
             buttonSize="small"
