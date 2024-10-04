@@ -738,7 +738,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     @classmethod
     def parse_error_exception(cls, exception: Exception) -> Exception:
         try:
-            return Exception(str(exception).splitlines()[0].strip())
+            return type(exception)(str(exception).splitlines()[0].strip())
         except Exception:  # pylint: disable=broad-except
             # If for some reason we get an exception, for example, no new line
             # We will return the original exception

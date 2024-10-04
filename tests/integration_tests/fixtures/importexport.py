@@ -378,6 +378,20 @@ database_config: dict[str, Any] = {
     "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
     "version": "1.0.0",
 }
+database_config_no_creds: dict[str, Any] = {
+    "allow_csv_upload": False,
+    "allow_ctas": False,
+    "allow_cvas": False,
+    "allow_dml": False,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database_no_creds",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "bigquery://test-db/",
+    "uuid": "2ff17edc-f3fa-4609-a5ac-b484281225bc",
+    "version": "1.0.0",
+}
 
 database_with_ssh_tunnel_config_private_key: dict[str, Any] = {
     "allow_csv_upload": True,
