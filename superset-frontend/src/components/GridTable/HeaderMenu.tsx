@@ -56,7 +56,7 @@ const HeaderMenu: React.FC<Params> = ({
 }: Params) => {
   const pinColumn = useCallback(
     (pinLoc: ColumnPinnedType) => {
-      api.setColumnPinned(colId, pinLoc);
+      api.setColumnsPinned([colId], pinLoc);
     },
     [api, colId],
   );
