@@ -100,7 +100,7 @@ describe('Visualization > Table', () => {
     });
     cy.verifySliceSuccess({
       waitAlias: '@chartData',
-      querySubstring: /group by\n.*name/i,
+      querySubstring: /GROUP BY.*name/i,
       chartSelector: 'table',
     });
   });
@@ -247,7 +247,7 @@ describe('Visualization > Table', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@chartData',
-      querySubstring: /group by\n.*state/i,
+      querySubstring: /GROUP BY.*state/i,
       chartSelector: 'table',
     });
     cy.get('td').contains(/\d*%/);
