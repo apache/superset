@@ -82,7 +82,7 @@ export const parseDttmToDate = (
       const quarter = Math.floor(now.getMonth() / 3);
       const newdate = new Date(now.getFullYear(), quarter * 3 - 3, 1);
       return newdate;
-      }
+    }
     case 'previous calendar year':
       if (isEndDate) {
         now.setFullYear(now.getFullYear(), 0, 1); // end date is the last day of the previous year
