@@ -103,7 +103,7 @@ export function getRelatedCharts(
         ),
       };
     }
-    if (!filter.filterType) {
+    if (!filter.filterType && Object.keys(slices).includes(filterKey)) {
       return {
         ...acc,
         [filterKey]: getRelatedChartsForCrossFilter(
