@@ -190,7 +190,7 @@ class TestDatasourceApi(SupersetTestCase):
             )
             self.assertEqual(rv.status_code, 200)
             response = json.loads(rv.data.decode("utf-8"))
-            self.assertEqual(response["result"], ['b'])
+            self.assertEqual(response["result"], ["b"])
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_with_rls_no_values(self):
