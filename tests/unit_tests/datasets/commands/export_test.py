@@ -16,11 +16,10 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import
 
-import json
-
 from sqlalchemy.orm.session import Session
 
 from superset import db
+from superset.utils import json
 
 
 def test_export(session: Session) -> None:
@@ -68,6 +67,7 @@ def test_export(session: Session) -> None:
         description="This is the description",
         is_featured=1,
         cache_timeout=3600,
+        catalog="public",
         schema="my_schema",
         sql=None,
         params=json.dumps(
@@ -91,9 +91,7 @@ def test_export(session: Session) -> None:
     export = [
         (file[0], file[1]())
         for file in list(
-            ExportDatasetsCommand._export(
-                sqla_table
-            )  # pylint: disable=protected-access
+            ExportDatasetsCommand._export(sqla_table)  # pylint: disable=protected-access
         )
     ]
 
@@ -113,6 +111,7 @@ description: This is the description
 default_endpoint: null
 offset: -8
 cache_timeout: 3600
+catalog: public
 schema: my_schema
 sql: null
 params:
@@ -221,6 +220,7 @@ extra:
   engine_params: {{}}
   metadata_cache_timeout: {{}}
   schemas_allowed_for_file_upload: []
+impersonate_user: false
 uuid: {database.uuid}
 version: 1.0.0
 """,

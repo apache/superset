@@ -17,7 +17,7 @@
  * under the License.
  */
 import PropTypes from 'prop-types';
-import React from 'react';
+import { PureComponent } from 'react';
 import {
   ensureIsArray,
   FeatureFlag,
@@ -54,8 +54,8 @@ const propTypes = {
   // formData contains chart's own filter parameter
   // and merged with extra filter that current dashboard applying
   formData: PropTypes.object.isRequired,
-  labelColors: PropTypes.object,
-  sharedLabelColors: PropTypes.object,
+  labelsColor: PropTypes.object,
+  labelsColorMap: PropTypes.object,
   width: PropTypes.number,
   height: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -151,7 +151,7 @@ const MonospaceDiv = styled.div`
   white-space: pre-wrap;
 `;
 
-class Chart extends React.PureComponent {
+class Chart extends PureComponent {
   constructor(props) {
     super(props);
     this.handleRenderContainerFailure =

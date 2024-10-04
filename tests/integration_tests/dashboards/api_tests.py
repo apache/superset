@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-import json
+
 from io import BytesIO
 from time import sleep
 from unittest.mock import ANY, patch
@@ -30,16 +30,17 @@ import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
-from superset import app, db, security_manager
+from superset import db, security_manager  # noqa: F401
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
+from superset.tags.models import Tag, TaggedObject, TagType, ObjectType
 from superset.utils.core import backend, override_user
+from superset.utils import json
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -54,14 +55,18 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
+from tests.integration_tests.fixtures.tags import (
+    create_custom_tags,  # noqa: F401
+    get_filter_params,
+)
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 DASHBOARDS_FIXTURE_COUNT = 10
@@ -148,7 +153,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         with self.create_app().app_context():
             admin = self.get_user("admin")
             dashboard = self.insert_dashboard(
-                f"dashboard_report", "dashboard_report", [admin.id]
+                "dashboard_report",
+                "dashboard_report",
+                [admin.id],  # noqa: F541
             )
             report_schedule = ReportSchedule(
                 type=ReportScheduleType.REPORT,
@@ -165,8 +172,106 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
+    @pytest.fixture
+    def create_dashboard_with_tag(self, create_custom_tags):  # noqa: F811
+        with self.create_app().app_context():
+            gamma = self.get_user("gamma")
+
+            dashboard = self.insert_dashboard(
+                "dash with tag",
+                None,
+                [gamma.id],
+            )
+            tag = db.session.query(Tag).filter(Tag.name == "first_tag").first()
+            tag_association = TaggedObject(
+                object_id=dashboard.id,
+                object_type=ObjectType.dashboard,
+                tag=tag,
+            )
+
+            db.session.add(tag_association)
+            db.session.commit()
+
+            yield dashboard
+
+            # rollback changes
+            db.session.delete(tag_association)
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.fixture
+    def create_dashboards_some_with_tags(self, create_custom_tags):  # noqa: F811
+        """
+        Fixture that creates 4 dashboards:
+            - ``first_dashboard`` is associated with ``first_tag``
+            - ``second_dashboard`` is associated with ``second_tag``
+            - ``third_dashboard`` is associated with both ``first_tag`` and ``second_tag``
+            - ``fourth_dashboard`` is not associated with any tag
+
+        Relies on the ``create_custom_tags`` fixture for the tag creation.
+        """
+        with self.create_app().app_context():
+            admin_user = self.get_user(ADMIN_USERNAME)
+
+            tags = {
+                "first_tag": db.session.query(Tag)
+                .filter(Tag.name == "first_tag")
+                .first(),
+                "second_tag": db.session.query(Tag)
+                .filter(Tag.name == "second_tag")
+                .first(),
+            }
+
+            dashboard_names = [
+                "first_dashboard",
+                "second_dashboard",
+                "third_dashboard",
+                "fourth_dashboard",
+            ]
+            dashboards = [
+                self.insert_dashboard(name, None, [admin_user.id])
+                for name in dashboard_names
+            ]
+
+            tag_associations = [
+                TaggedObject(
+                    object_id=dashboards[0].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["first_tag"],
+                ),
+                TaggedObject(
+                    object_id=dashboards[1].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["second_tag"],
+                ),
+                TaggedObject(
+                    object_id=dashboards[2].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["first_tag"],
+                ),
+                TaggedObject(
+                    object_id=dashboards[2].id,
+                    object_type=ObjectType.chart,
+                    tag=tags["second_tag"],
+                ),
+            ]
+
+            for association in tag_associations:
+                db.session.add(association)
+            db.session.commit()
+
+            yield dashboards
+
+            # rollback changes
+            for association in tag_associations:
+                db.session.delete(association)
+            for chart in dashboards:
+                db.session.delete(chart)
+            db.session.commit()
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_get_dashboard_datasets(self):
+    @patch("superset.utils.log.logger")
+    def test_get_dashboard_datasets(self, logger_mock):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/world_health/datasets"
         response = self.get_assert_metric(uri, "get_datasets")
@@ -179,6 +284,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertEqual(actual_dataset_ids, expected_dataset_ids)
         expected_values = [0, 1] if backend() == "presto" else [0, 1, 2]
         self.assertEqual(result[0]["column_types"], expected_values)
+        logger_mock.warning.assert_not_called()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.dashboards.schemas.security_manager.has_guest_access")
@@ -186,8 +292,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     def test_get_dashboard_datasets_as_guest(self, is_guest_user, has_guest_access):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/world_health/datasets"
-        is_guest_user = True
-        has_guest_access = True
         response = self.get_assert_metric(uri, "get_datasets")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data.decode("utf-8"))
@@ -201,11 +305,30 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 assert excluded_key not in dataset
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_get_dashboard_datasets_not_found(self):
+    @patch("superset.utils.log.logger")
+    def test_get_dashboard_datasets_not_found(self, logger_mock):
         self.login(ALPHA_USERNAME)
         uri = "api/v1/dashboard/not_found/datasets"
         response = self.get_assert_metric(uri, "get_datasets")
         self.assertEqual(response.status_code, 404)
+        logger_mock.warning.assert_called_once_with(
+            "Dashboard not found.", exc_info=True
+        )
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.utils.log.logger")
+    @patch("superset.daos.dashboard.DashboardDAO.get_datasets_for_dashboard")
+    def test_get_dashboard_datasets_invalid_schema(
+        self, dashboard_datasets_mock, logger_mock
+    ):
+        dashboard_datasets_mock.side_effect = TypeError("Invalid schema")
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        self.assertEqual(response.status_code, 422)
+        logger_mock.warning.assert_called_once_with(
+            "Dataset schema is invalid, caused by: Invalid schema", exc_info=True
+        )
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_gamma_dashboard_datasets(self):
@@ -422,11 +545,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
         self.assertIn("changed_on_delta_humanized", data["result"])
+        self.assertIn("created_on_delta_humanized", data["result"])
         for key, value in data["result"].items():
             # We can't assert timestamp values
             if key not in (
                 "changed_on",
                 "changed_on_delta_humanized",
+                "created_on_delta_humanized",
             ):
                 self.assertEqual(value, expected_result[key])
         # rollback changes
@@ -465,7 +590,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         rv = self.get_assert_metric(uri, "info")
         self.assertEqual(rv.status_code, 200)
 
-    def test_info_security_database(self):
+    def test_info_security_dashboard(self):
         """
         Dashboard API: Test info security
         """
@@ -482,6 +607,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "can_get_embedded",
             "can_delete_embedded",
             "can_set_embedded",
+            "can_cache_dashboard_screenshot",
         }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -657,6 +783,55 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         for i, expected_model in enumerate(expected_models):
             assert (
                 expected_model.dashboard_title == data["result"][i]["dashboard_title"]
+            )
+
+    @pytest.mark.usefixtures("create_dashboards_some_with_tags")
+    def test_get_dashboards_tag_filters(self):
+        """
+        Dashboard API: Test get dashboards with tag filters
+        """
+        # Get custom tags relationship
+        tags = {
+            "first_tag": db.session.query(Tag).filter(Tag.name == "first_tag").first(),
+            "second_tag": db.session.query(Tag)
+            .filter(Tag.name == "second_tag")
+            .first(),
+            "third_tag": db.session.query(Tag).filter(Tag.name == "third_tag").first(),
+        }
+        dashboard_tag_relationship = {
+            tag.name: db.session.query(Dashboard.id)
+            .join(Dashboard.tags)
+            .filter(Tag.id == tag.id)
+            .all()
+            for tag in tags.values()
+        }
+
+        # Validate API results for each tag
+        for tag_name, tag in tags.items():
+            expected_dashboards = dashboard_tag_relationship[tag_name]
+
+            # Filter by tag ID
+            filter_params = get_filter_params("dashboard_tag_id", tag.id)
+            response_by_id = self.get_list("dashboard", filter_params)
+            self.assertEqual(response_by_id.status_code, 200)
+            data_by_id = json.loads(response_by_id.data.decode("utf-8"))
+
+            # Filter by tag name
+            filter_params = get_filter_params("dashboard_tags", tag.name)
+            response_by_name = self.get_list("dashboard", filter_params)
+            self.assertEqual(response_by_name.status_code, 200)
+            data_by_name = json.loads(response_by_name.data.decode("utf-8"))
+
+            # Compare results
+            self.assertEqual(
+                data_by_id["count"],
+                data_by_name["count"],
+                len(expected_dashboards),
+            )
+            self.assertEqual(
+                set(chart["id"] for chart in data_by_id["result"]),
+                set(chart["id"] for chart in data_by_name["result"]),
+                set(chart.id for chart in expected_dashboards),
             )
 
     @pytest.mark.usefixtures("create_dashboards")
@@ -867,6 +1042,185 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         for idx, response_item in enumerate(data["result"]):
             for key, value in expected_results[idx].items():
                 assert response_item[key] == value
+
+    def test_get_dashboard_tabs(self):
+        """
+        Dashboard API: Test get dashboard tabs
+        """
+        position_data = {
+            "GRID_ID": {"children": [], "id": "GRID_ID", "type": "GRID"},
+            "ROOT_ID": {
+                "children": ["TABS-tDGEcwZ82u"],
+                "id": "ROOT_ID",
+                "type": "ROOT",
+            },
+            "TAB-0TkqQRxzg7": {
+                "children": [],
+                "id": "TAB-0TkqQRxzg7",
+                "meta": {"text": "P2 - T1"},
+                "type": "TAB",
+            },
+            "TAB-1iG_yOlKA2": {
+                "children": [],
+                "id": "TAB-1iG_yOlKA2",
+                "meta": {"text": "P1 - T1"},
+                "type": "TAB",
+            },
+            "TAB-2dgADEurF": {
+                "children": ["TABS-LsyXZWG2rk"],
+                "id": "TAB-2dgADEurF",
+                "meta": {"text": "P1 - T2"},
+                "type": "TAB",
+            },
+            "TAB-BJIt5SdCx3": {
+                "children": [],
+                "id": "TAB-BJIt5SdCx3",
+                "meta": {"text": "P1 - T2 - T1"},
+                "type": "TAB",
+            },
+            "TAB-CjZlNL5Uz": {
+                "children": ["TABS-Ji_K1ZBE0M"],
+                "id": "TAB-CjZlNL5Uz",
+                "meta": {"text": "Parent Tab 2"},
+                "type": "TAB",
+            },
+            "TAB-Nct5fiHtn": {
+                "children": [],
+                "id": "TAB-Nct5fiHtn",
+                "meta": {"text": "P1 - T2 - T3"},
+                "type": "TAB",
+            },
+            "TAB-PumuDkWKq": {
+                "children": [],
+                "id": "TAB-PumuDkWKq",
+                "meta": {"text": "P2 - T2"},
+                "type": "TAB",
+            },
+            "TAB-hyTv5L7zz": {
+                "children": [],
+                "id": "TAB-hyTv5L7zz",
+                "meta": {"text": "P1 - T2 - T2"},
+                "type": "TAB",
+            },
+            "TAB-qL7fSzr3jl": {
+                "children": ["TABS-N8ODUqp2sE"],
+                "id": "TAB-qL7fSzr3jl",
+                "meta": {"text": "Parent Tab 1"},
+                "type": "TAB",
+            },
+            "TABS-Ji_K1ZBE0M": {
+                "children": ["TAB-0TkqQRxzg7", "TAB-PumuDkWKq"],
+                "id": "TABS-Ji_K1ZBE0M",
+                "meta": {},
+                "type": "TABS",
+            },
+            "TABS-LsyXZWG2rk": {
+                "children": ["TAB-BJIt5SdCx3", "TAB-hyTv5L7zz", "TAB-Nct5fiHtn"],
+                "id": "TABS-LsyXZWG2rk",
+                "meta": {},
+                "type": "TABS",
+            },
+            "TABS-N8ODUqp2sE": {
+                "children": ["TAB-1iG_yOlKA2", "TAB-2dgADEurF"],
+                "id": "TABS-N8ODUqp2sE",
+                "meta": {},
+                "type": "TABS",
+            },
+            "TABS-tDGEcwZ82u": {
+                "children": ["TAB-qL7fSzr3jl", "TAB-CjZlNL5Uz"],
+                "id": "TABS-tDGEcwZ82u",
+                "meta": {},
+                "type": "TABS",
+            },
+        }
+        admin_id = self.get_user("admin").id
+        dashboard = self.insert_dashboard(
+            "title", "slug", [admin_id], position_json=json.dumps(position_data)
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}/tabs"
+        rv = self.get_assert_metric(uri, "get_tabs")
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "result": {
+                "all_tabs": {
+                    "TAB-0TkqQRxzg7": "P2 - T1",
+                    "TAB-1iG_yOlKA2": "P1 - T1",
+                    "TAB-2dgADEurF": "P1 - T2",
+                    "TAB-BJIt5SdCx3": "P1 - T2 - T1",
+                    "TAB-CjZlNL5Uz": "Parent Tab 2",
+                    "TAB-Nct5fiHtn": "P1 - T2 - T3",
+                    "TAB-PumuDkWKq": "P2 - T2",
+                    "TAB-hyTv5L7zz": "P1 - T2 - T2",
+                    "TAB-qL7fSzr3jl": "Parent Tab 1",
+                },
+                "tab_tree": [
+                    {
+                        "children": [
+                            {
+                                "children": [],
+                                "title": "P1 - T1",
+                                "value": "TAB-1iG_yOlKA2",
+                            },
+                            {
+                                "children": [
+                                    {
+                                        "children": [],
+                                        "title": "P1 - T2 - T1",
+                                        "value": "TAB-BJIt5SdCx3",
+                                    },
+                                    {
+                                        "children": [],
+                                        "title": "P1 - T2 - T2",
+                                        "value": "TAB-hyTv5L7zz",
+                                    },
+                                    {
+                                        "children": [],
+                                        "title": "P1 - T2 - T3",
+                                        "value": "TAB-Nct5fiHtn",
+                                    },
+                                ],
+                                "title": "P1 - T2",
+                                "value": "TAB-2dgADEurF",
+                            },
+                        ],
+                        "title": "Parent Tab 1",
+                        "value": "TAB-qL7fSzr3jl",
+                    },
+                    {
+                        "children": [
+                            {
+                                "children": [],
+                                "title": "P2 - T1",
+                                "value": "TAB-0TkqQRxzg7",
+                            },
+                            {
+                                "children": [],
+                                "title": "P2 - T2",
+                                "value": "TAB-PumuDkWKq",
+                            },
+                        ],
+                        "title": "Parent Tab 2",
+                        "value": "TAB-CjZlNL5Uz",
+                    },
+                ],
+            }
+        }
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(response, expected_response)
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_tabs_not_found(self):
+        """
+        Dashboard API: Test get dashboard tabs not found
+        """
+        bad_id = self.get_nonexistent_numeric_id(Dashboard)
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{bad_id}/tabs"
+        rv = self.get_assert_metric(uri, "get_tabs")
+        self.assertEqual(rv.status_code, 404)
 
     def create_dashboard_import(self):
         buf = BytesIO()
@@ -1708,7 +2062,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         rv = self.get_assert_metric(uri, "export")
 
-        headers = f"attachment; filename=dashboard_export_20220101T000000.zip"
+        headers = "attachment; filename=dashboard_export_20220101T000000.zip"  # noqa: F541
         assert rv.status_code == 200
         assert rv.headers["Content-Disposition"] == headers
 
@@ -1778,7 +2132,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(dashboard)
         db.session.commit()
 
-    def test_import_dashboard(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dashboard(self, mock_add_permissions):
         """
         Dashboard API: Test import dashboard
         """
@@ -1882,7 +2237,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_import_dashboard_overwrite(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dashboard_overwrite(self, mock_add_permissions):
         """
         Dashboard API: Test import existing dashboard
         """
@@ -2017,7 +2373,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         API: Test get filter related roles
         """
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/related/roles"
+        uri = "api/v1/dashboard/related/roles"  # noqa: F541
 
         rv = self.client.get(uri)
         assert rv.status_code == 200
@@ -2059,7 +2415,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "superset.views.filters.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
         ):
-            uri = f"api/v1/dashboard/related/roles"
+            uri = "api/v1/dashboard/related/roles"  # noqa: F541
             rv = self.client.get(uri)
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
@@ -2088,8 +2444,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertNotEqual(result["uuid"], "")
         self.assertEqual(result["allowed_domains"], allowed_domains)
 
-        db.session.expire_all()
-
         # get returns value
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 200)
@@ -2110,8 +2464,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertNotEqual(result["uuid"], "")
         self.assertEqual(result["allowed_domains"], [])
 
-        db.session.expire_all()
-
         # get returns changed value
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 200)
@@ -2122,8 +2474,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         # delete succeeds
         resp = self.delete_assert_metric(uri, "delete_embedded")
         self.assertEqual(resp.status_code, 200)
-
-        db.session.expire_all()
 
         # get returns 404
         resp = self.get_assert_metric(uri, "get_embedded")
@@ -2153,7 +2503,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.assertEqual(data["count"], len(expected_models))
 
     def test_gets_not_created_by_user_dashboards_filter(self):
-        dashboard = self.insert_dashboard(f"title", f"slug", [])
+        dashboard = self.insert_dashboard("title", "slug", [])  # noqa: F541
         expected_models = (
             db.session.query(Dashboard).filter(Dashboard.created_by_fk.is_(None)).all()
         )
@@ -2266,3 +2616,374 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         db.session.delete(dash)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_add_tags_can_write_on_tag(self):
+        """
+        Validates a user with can write on tag permission can
+        add tags while updating a dashboard
+        """
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(sorted(tag_list), sorted(new_tags))
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_remove_tags_can_write_on_tag(self):
+        """
+        Validates a user with can write on tag permission can
+        remove tags while updating a dashboard
+        """
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
+        new_tags.pop()
+
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(tag_list, new_tags)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_add_tags_can_tag_on_dashboard(self):
+        """
+        Validates an owner with can tag on dashboard permission can
+        add tags while updating a dashboard
+        """
+        self.login(GAMMA_USERNAME)
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.del_permission_role(gamma_role, write_tags_perm)
+        assert "can tag on Dashboard" in str(gamma_role.permissions)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(sorted(tag_list), sorted(new_tags))
+
+        security_manager.add_permission_role(gamma_role, write_tags_perm)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_remove_tags_can_tag_on_dashboard(self):
+        """
+        Validates an owner with can tag on dashboard permission can
+        remove tags from a dashboard
+        """
+        self.login(GAMMA_USERNAME)
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.del_permission_role(gamma_role, write_tags_perm)
+        assert "can tag on Dashboard" in str(gamma_role.permissions)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        update_payload = {"tags": []}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard.id)
+
+        # Clean up system tags
+        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        self.assertEqual(tag_list, [])
+
+        security_manager.add_permission_role(gamma_role, write_tags_perm)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_add_tags_missing_permission(self):
+        """
+        Validates an owner can't add tags to a dashboard if they don't
+        have permission to it
+        """
+        self.login(GAMMA_USERNAME)
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        tag_dashboards_perm = security_manager.add_permission_view_menu(
+            "can_tag", "Dashboard"
+        )
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.del_permission_role(gamma_role, write_tags_perm)
+        security_manager.del_permission_role(gamma_role, tag_dashboards_perm)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
+
+        # get existing tag and add a new one
+        new_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
+        new_tags.append(new_tag.id)
+        update_payload = {"tags": new_tags}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(
+            rv.json["message"],
+            "You do not have permission to manage tags on dashboards",
+        )
+
+        security_manager.add_permission_role(gamma_role, write_tags_perm)
+        security_manager.add_permission_role(gamma_role, tag_dashboards_perm)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_remove_tags_missing_permission(self):
+        """
+        Validates an owner can't remove tags from a dashboard if they don't
+        have permission to it
+        """
+        self.login(GAMMA_USERNAME)
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        tag_dashboards_perm = security_manager.add_permission_view_menu(
+            "can_tag", "Dashboard"
+        )
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.del_permission_role(gamma_role, write_tags_perm)
+        security_manager.del_permission_role(gamma_role, tag_dashboards_perm)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        update_payload = {"tags": []}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(
+            rv.json["message"],
+            "You do not have permission to manage tags on dashboards",
+        )
+
+        security_manager.add_permission_role(gamma_role, write_tags_perm)
+        security_manager.add_permission_role(gamma_role, tag_dashboards_perm)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_update_dashboard_no_tag_changes(self):
+        """
+        Validates an owner without permission to change tags is able to
+        update a dashboard when tags haven't changed
+        """
+        self.login(GAMMA_USERNAME)
+        write_tags_perm = security_manager.add_permission_view_menu("can_write", "Tag")
+        tag_dashboards_perm = security_manager.add_permission_view_menu(
+            "can_tag", "Dashboard"
+        )
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.del_permission_role(gamma_role, write_tags_perm)
+        security_manager.del_permission_role(gamma_role, tag_dashboards_perm)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        existing_tags = [tag.id for tag in dashboard.tags if tag.type == TagType.custom]
+        update_payload = {"tags": existing_tags}
+
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.put_assert_metric(uri, update_payload, "put")
+        self.assertEqual(rv.status_code, 200)
+
+        security_manager.add_permission_role(gamma_role, write_tags_perm)
+        security_manager.add_permission_role(gamma_role, tag_dashboards_perm)
+
+    def _cache_screenshot(self, dashboard_id, payload=None):
+        if payload is None:
+            payload = {"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []}
+        uri = f"/api/v1/dashboard/{dashboard_id}/cache_dashboard_screenshot/"
+        return self.client.post(uri, json=payload)
+
+    def _get_screenshot(self, dashboard_id, cache_key, download_format):
+        uri = f"/api/v1/dashboard/{dashboard_id}/screenshot/{cache_key}/?download_format={download_format}"
+        return self.client.get(uri)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_success(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        response = self._cache_screenshot(dashboard.id)
+        self.assertEqual(response.status_code, 202)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_dashboard_validation(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        invalid_payload = {
+            "dataMask": ["should be a dict"],
+            "activeTabs": "should be a list",
+            "anchor": 1,
+            "urlParams": "should be a list",
+        }
+        response = self._cache_screenshot(dashboard.id, invalid_payload)
+        self.assertEqual(response.status_code, 400)
+
+    def test_cache_dashboard_screenshot_dashboard_not_found(self):
+        self.login(ADMIN_USERNAME)
+        non_existent_id = 999
+        response = self._cache_screenshot(non_existent_id)
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_success_png(self, mock_get_cache, mock_cache_task):
+        """
+        Validate screenshot returns png
+        """
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_cache.return_value = BytesIO(b"fake image data")
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "png")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "image/png")
+        self.assertEqual(response.data, b"fake image data")
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.build_pdf_from_screenshots")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_success_pdf(
+        self, mock_get_from_cache, mock_build_pdf, mock_cache_task
+    ):
+        """
+        Validate screenshot can return pdf.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_from_cache.return_value = BytesIO(b"fake image data")
+        mock_build_pdf.return_value = b"fake pdf data"
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "pdf")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "application/pdf")
+        self.assertEqual(response.data, b"fake pdf data")
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_not_in_cache(self, mock_get_cache, mock_cache_task):
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_cache.return_value = None
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "pdf")
+        self.assertEqual(response.status_code, 404)
+
+    def test_screenshot_dashboard_not_found(self):
+        self.login(ADMIN_USERNAME)
+        non_existent_id = 999
+        response = self._get_screenshot(non_existent_id, "some_cache_key", "png")
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_invalid_download_format(self, mock_get_cache, mock_cache_task):
+        self.login(ADMIN_USERNAME)
+        mock_cache_task.return_value = None
+        mock_get_cache.return_value = BytesIO(b"fake png data")
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+        self.assertEqual(cache_resp.status_code, 202)
+        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+
+        response = self._get_screenshot(dashboard.id, cache_key, "invalid")
+        self.assertEqual(response.status_code, 404)

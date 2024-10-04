@@ -30,7 +30,7 @@ def retry_call(  # pylint: disable=too-many-arguments
     giveup_log_level: int = logging.WARNING,
     fargs: Optional[list[Any]] = None,
     fkwargs: Optional[dict[str, Any]] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Any:
     """
     Retry a given call.

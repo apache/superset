@@ -23,7 +23,7 @@ import pytest
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa
 
 SYNTAX_ERROR_REGEX = re.compile(
     ": mismatched input '(?P<syntax_error>.*?)'. Expecting: "
@@ -39,7 +39,9 @@ SYNTAX_ERROR_REGEX = re.compile(
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.athena import AthenaEngineSpec as spec
 
@@ -53,11 +55,11 @@ def test_extract_errors() -> None:
 
     from superset.db_engine_specs.athena import AthenaEngineSpec
 
-    msg = ": mismatched input 'fromm'. Expecting: "
+    msg = ": mismatched input 'from_'. Expecting: "
     result = AthenaEngineSpec.extract_errors(Exception(msg))
     assert result == [
         SupersetError(
-            message='Please check your query for syntax errors at or near "fromm". Then, try running your query again.',
+            message='Please check your query for syntax errors at or near "from_". Then, try running your query again.',
             error_type=SupersetErrorType.SYNTAX_ERROR,
             level=ErrorLevel.ERROR,
             extra={

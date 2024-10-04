@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { PropsWithChildren, ReactNode } from 'react';
+import { PropsWithChildren, ReactNode } from 'react';
 import {
   ResizableBox,
   ResizableBoxProps,

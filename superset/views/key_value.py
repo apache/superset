@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import simplejson as json
 from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.hooks import before_request
@@ -24,12 +23,11 @@ from werkzeug.exceptions import NotFound
 from superset import db, event_logger, is_feature_enabled
 from superset.models import core as models
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.views.base import BaseSupersetView, deprecated, json_error_response
 
 
 class KV(BaseSupersetView):
-
     """Used for storing and retrieving key value pairs"""
 
     @staticmethod
@@ -44,13 +42,13 @@ class KV(BaseSupersetView):
     @event_logger.log_this
     @has_access_api
     @expose("/store/", methods=("POST",))
-    @deprecated(eol_version="4.0.0")
+    @deprecated(eol_version="5.0.0")
     def store(self) -> FlaskResponse:
         try:
             value = request.form.get("data")
             obj = models.KeyValue(value=value)
             db.session.add(obj)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
         except Exception as ex:  # pylint: disable=broad-except
             return json_error_response(utils.error_msg_from_exception(ex))
         return Response(json.dumps({"id": obj.id}), status=200)
@@ -58,7 +56,7 @@ class KV(BaseSupersetView):
     @event_logger.log_this
     @has_access_api
     @expose("/<int:key_id>/", methods=("GET",))
-    @deprecated(eol_version="4.0.0")
+    @deprecated(eol_version="5.0.0")
     def get_value(self, key_id: int) -> FlaskResponse:
         try:
             kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()

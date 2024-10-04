@@ -16,14 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  FC,
-  ReactNode,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { FC, ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { css, getExtensionsRegistry, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
@@ -55,7 +48,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
-const annotationsError = t('One ore more annotation layers failed loading.');
+const annotationsError = t('One or more annotation layers failed loading.');
 const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
   ${({ theme }) => `
     cursor: default;
@@ -149,6 +142,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   supersetCanExplore = false,
   supersetCanShare = false,
   supersetCanCSV = false,
+  exportPivotCSV,
   exportFullCSV,
   exportFullXLSX,
   slice,
@@ -273,6 +267,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 logExploreChart={logExploreChart}
                 logEvent={logEvent}
                 exportCSV={exportCSV}
+                exportPivotCSV={exportPivotCSV}
                 exportFullCSV={exportFullCSV}
                 exportXLSX={exportXLSX}
                 exportFullXLSX={exportFullXLSX}

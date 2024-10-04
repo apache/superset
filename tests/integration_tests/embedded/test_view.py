@@ -25,10 +25,10 @@ from superset import db
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
-from tests.integration_tests.fixtures.client import client
+from tests.integration_tests.fixtures.client import client  # noqa: F401
 
 if TYPE_CHECKING:
     from typing import Any
@@ -41,9 +41,10 @@ if TYPE_CHECKING:
     "superset.extensions.feature_flag_manager._feature_flags",
     EMBEDDED_SUPERSET=True,
 )
-def test_get_embedded_dashboard(client: FlaskClient[Any]):
+def test_get_embedded_dashboard(client: FlaskClient[Any]):  # noqa: F811
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     embedded = EmbeddedDashboardDAO.upsert(dash, [])
+    db.session.flush()
     uri = f"embedded/{embedded.uuid}"
     response = client.get(uri)
     assert response.status_code == 200
@@ -54,9 +55,10 @@ def test_get_embedded_dashboard(client: FlaskClient[Any]):
     "superset.extensions.feature_flag_manager._feature_flags",
     EMBEDDED_SUPERSET=True,
 )
-def test_get_embedded_dashboard_referrer_not_allowed(client: FlaskClient[Any]):
+def test_get_embedded_dashboard_referrer_not_allowed(client: FlaskClient[Any]):  # noqa: F811
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     embedded = EmbeddedDashboardDAO.upsert(dash, ["test.example.com"])
+    db.session.flush()
     uri = f"embedded/{embedded.uuid}"
     response = client.get(uri)
     assert response.status_code == 403
@@ -66,7 +68,7 @@ def test_get_embedded_dashboard_referrer_not_allowed(client: FlaskClient[Any]):
     "superset.extensions.feature_flag_manager._feature_flags",
     EMBEDDED_SUPERSET=True,
 )
-def test_get_embedded_dashboard_non_found(client: FlaskClient[Any]):
-    uri = f"embedded/bad-uuid"
+def test_get_embedded_dashboard_non_found(client: FlaskClient[Any]):  # noqa: F811
+    uri = "embedded/bad-uuid"  # noqa: F541
     response = client.get(uri)
     assert response.status_code == 404

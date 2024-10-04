@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { ReactNode } from 'react';
 import { shallow } from 'enzyme';
 import ChartClient from '../../../src/chart/clients/ChartClient';
 import ChartDataProvider, {
@@ -210,7 +210,7 @@ describe('ChartDataProvider', () => {
 
   describe('children', () => {
     it('calls children({ loading: true }) when loading', () => {
-      const children = jest.fn<React.ReactNode, unknown[]>();
+      const children = jest.fn<ReactNode, unknown[]>();
       setup({ children });
 
       // during the first tick (before more promises resolve) loading is true
@@ -221,7 +221,7 @@ describe('ChartDataProvider', () => {
     it('calls children({ payload }) when loaded', () =>
       new Promise(done => {
         expect.assertions(2);
-        const children = jest.fn<React.ReactNode, unknown[]>();
+        const children = jest.fn<ReactNode, unknown[]>();
         setup({ children, loadDatasource: true });
 
         setTimeout(() => {
@@ -240,7 +240,7 @@ describe('ChartDataProvider', () => {
     it('calls children({ error }) upon request error', () =>
       new Promise(done => {
         expect.assertions(2);
-        const children = jest.fn<React.ReactNode, unknown[]>();
+        const children = jest.fn<ReactNode, unknown[]>();
         mockLoadFormData = jest.fn(() => Promise.reject(new Error('error')));
 
         setup({ children });
@@ -257,7 +257,7 @@ describe('ChartDataProvider', () => {
     it('calls children({ error }) upon JS error', () =>
       new Promise(done => {
         expect.assertions(2);
-        const children = jest.fn<React.ReactNode, unknown[]>();
+        const children = jest.fn<ReactNode, unknown[]>();
 
         mockLoadFormData = jest.fn(() => {
           throw new Error('non-async error');

@@ -25,7 +25,7 @@ import {
   t,
 } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Icons from 'src/components/Icons';
 import Select from 'src/components/Select/Select';
 import { TextArea } from 'src/components/Input';
@@ -119,7 +119,7 @@ export interface RowLevelSecurityModalProps {
   show: boolean;
 }
 
-const DEAFULT_RULE = {
+const DEFAULT_RULE = {
   name: '',
   filter_type: FilterType.Regular,
   tables: [],
@@ -133,7 +133,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
   const { rule, addDangerToast, addSuccessToast, onHide, show } = props;
 
   const [currentRule, setCurrentRule] = useState<RLSObject>({
-    ...DEAFULT_RULE,
+    ...DEFAULT_RULE,
   });
   const [disableSave, setDisableSave] = useState<boolean>(true);
 
@@ -204,7 +204,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
   // initialize
   useEffect(() => {
     if (!isEditMode) {
-      setCurrentRule({ ...DEAFULT_RULE });
+      setCurrentRule({ ...DEFAULT_RULE });
     } else if (rule?.id !== null && !loading && !fetchError) {
       fetchResource(rule.id as number);
     }
@@ -249,7 +249,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
 
   const hide = () => {
     clearError();
-    setCurrentRule({ ...DEAFULT_RULE });
+    setCurrentRule({ ...DEFAULT_RULE });
     onHide();
   };
 

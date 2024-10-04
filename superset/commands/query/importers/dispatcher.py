@@ -55,10 +55,10 @@ class ImportSavedQueriesCommand(BaseCommand):
                 return
             except IncorrectVersionError:
                 logger.debug("File not handled by command, skipping")
-            except (CommandInvalidError, ValidationError) as exc:
+            except (CommandInvalidError, ValidationError):
                 # found right version, but file is invalid
                 logger.exception("Error running import command")
-                raise exc
+                raise
 
         raise CommandInvalidError("Could not find a valid command to import file")
 

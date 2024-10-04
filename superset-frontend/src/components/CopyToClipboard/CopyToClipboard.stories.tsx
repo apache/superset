@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
@@ -56,6 +55,7 @@ InteractiveCopyToClipboard.argTypes = {
   onCopyEnd: { action: 'onCopyEnd' },
   copyNode: {
     defaultValue: 'Button',
-    control: { type: 'radio', options: ['Button', 'Icon', 'Text'] },
+    control: { type: 'radio' },
+    options: ['Button', 'Icon', 'Text'],
   },
 };

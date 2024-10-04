@@ -41,8 +41,6 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   ComparisonType,
-  isAdhocColumn,
-  isPhysicalColumn,
   ensureIsArray,
   isDefined,
   NO_TIME_RANGE,
@@ -51,6 +49,7 @@ import {
 
 import {
   formatSelectOptions,
+  displayTimeRelatedControls,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
@@ -62,7 +61,6 @@ import { DEFAULT_MAX_ROW, TIME_FILTER_LABELS } from '../constants';
 import {
   SharedControlConfig,
   Dataset,
-  ColumnMeta,
   ControlState,
   ControlPanelState,
 } from '../types';
@@ -203,23 +201,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   mapStateToProps: ({ datasource }) => ({
     choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
-  visibility: ({ controls }) => {
-    if (!controls?.x_axis) {
-      return true;
-    }
-
-    const xAxis = controls?.x_axis;
-    const xAxisValue = xAxis?.value;
-    if (isAdhocColumn(xAxisValue)) {
-      return true;
-    }
-    if (isPhysicalColumn(xAxisValue)) {
-      return !!(xAxis?.options ?? []).find(
-        (col: ColumnMeta) => col?.column_name === xAxisValue,
-      )?.is_dttm;
-    }
-    return false;
-  },
+  visibility: displayTimeRelatedControls,
 };
 
 const time_range: SharedControlConfig<'DateFilterControl'> = {
@@ -356,6 +338,20 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   }),
 };
 
+const time_shift_color: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Match time shift color with original series'),
+  default: true,
+  renderTrigger: true,
+  description: t(
+    'When unchecked, colors from the selected color scheme will be used for time shifted series',
+  ),
+  visibility: ({ controls }) =>
+    Boolean(
+      controls?.time_compare?.value && !isEmpty(controls?.time_compare?.value),
+    ),
+};
+
 const truncate_metric: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Truncate Metric'),
@@ -378,6 +374,14 @@ const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
         .filter(option => option.is_dttm)
         .map(option => [option.column_name ?? option.name, option.is_dttm]),
     ),
+};
+
+const sort_by_metric: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Sort by metric'),
+  description: t(
+    'Whether to sort results by the selected metric in descending order.',
+  ),
 };
 
 export default {
@@ -409,6 +413,7 @@ export default {
   x_axis_time_format,
   adhoc_filters: dndAdhocFilterControl,
   color_scheme,
+  time_shift_color,
   series_columns: dndColumnsControl,
   series_limit,
   series_limit_metric: dndSortByControl,
@@ -418,4 +423,5 @@ export default {
   show_empty_columns,
   temporal_columns_lookup,
   currency_format,
+  sort_by_metric,
 };

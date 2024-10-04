@@ -14,12 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Loads datasets, dashboards and slices in a new superset instance"""
-import json
 import textwrap
 
 from superset import db
 from superset.models.dashboard import Dashboard
+from superset.utils import json
 
 from .helpers import update_slice_ids
 
@@ -557,4 +556,3 @@ def load_tabbed_dashboard(_: bool = False) -> None:
     dash.slices = slices
     dash.dashboard_title = "Tabbed Dashboard"
     dash.slug = slug
-    db.session.commit()

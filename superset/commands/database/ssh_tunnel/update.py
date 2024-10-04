@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -28,9 +29,9 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelUpdateFailedError,
 )
 from superset.daos.database import SSHTunnelDAO
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -41,25 +42,23 @@ class UpdateSSHTunnelCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[SSHTunnel] = None
 
+    @transaction(on_error=partial(on_error, reraise=SSHTunnelUpdateFailedError))
     def run(self) -> Optional[Model]:
         self.validate()
-        try:
-            if self._model is None:
-                return None
 
-            # unset password if private key is provided
-            if self._properties.get("private_key"):
-                self._properties["password"] = None
+        if self._model is None:
+            return None
 
-            # unset private key and password if password is provided
-            if self._properties.get("password"):
-                self._properties["private_key"] = None
-                self._properties["private_key_password"] = None
+        # unset password if private key is provided
+        if self._properties.get("private_key"):
+            self._properties["password"] = None
 
-            tunnel = SSHTunnelDAO.update(self._model, self._properties)
-            return tunnel
-        except DAOUpdateFailedError as ex:
-            raise SSHTunnelUpdateFailedError() from ex
+        # unset private key and password if password is provided
+        if self._properties.get("password"):
+            self._properties["private_key"] = None
+            self._properties["private_key_password"] = None
+
+        return SSHTunnelDAO.update(self._model, self._properties)
 
     def validate(self) -> None:
         # Validate/populate model exists

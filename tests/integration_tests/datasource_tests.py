@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
-import json
+
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from unittest import mock
@@ -26,18 +26,26 @@ import pytest
 from superset import app, db
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import (  # noqa: F401
+    SqlaTable,
+    SqlMetric,
+    TableColumn,
+)
 from superset.constants import CacheRegion
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
-from superset.utils.core import backend, get_example_default_schema
-from superset.utils.database import get_example_database, get_main_database
+from superset.utils import json
+from superset.utils.core import backend, get_example_default_schema  # noqa: F401
+from superset.utils.database import (  # noqa: F401
+    get_example_database,
+    get_main_database,
+)
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.datasource import get_datasource_post
 
@@ -47,7 +55,7 @@ def create_test_table_context(database: Database):
     schema = get_example_default_schema()
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         engine.execute(
             f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
         )
@@ -56,8 +64,26 @@ def create_test_table_context(database: Database):
 
     yield db.session
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         engine.execute(f"DROP TABLE {full_table_name}")
+
+
+@contextmanager
+def create_and_cleanup_table(table=None):
+    if table is None:
+        table = SqlaTable(
+            table_name="dummy_sql_table",
+            database=get_example_database(),
+            schema=get_example_default_schema(),
+            sql="select 123 as intcol, 'abc' as strcol",
+        )
+    db.session.add(table)
+    db.session.commit()
+    try:
+        yield table
+    finally:
+        db.session.delete(table)
+        db.session.commit()
 
 
 class TestDatasource(SupersetTestCase):
@@ -80,10 +106,9 @@ class TestDatasource(SupersetTestCase):
         )
 
     def test_always_filter_main_dttm(self):
-        self.login(ADMIN_USERNAME)
         database = get_example_database()
 
-        sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"
+        sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"  # noqa: F541
         if database.backend == "sqlite":
             pass
         elif database.backend in ["postgresql", "mysql"]:
@@ -116,37 +141,22 @@ class TestDatasource(SupersetTestCase):
             sql=sql,
         )
 
-        db.session.add(table)
-        db.session.commit()
+        with create_and_cleanup_table(table):
+            table.always_filter_main_dttm = False
+            result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
+            assert "default_dttm" not in result and "additional_dttm" in result
 
-        table.always_filter_main_dttm = False
-        result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
-        assert "default_dttm" not in result and "additional_dttm" in result
-
-        table.always_filter_main_dttm = True
-        result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
-        assert "default_dttm" in result and "additional_dttm" in result
-
-        db.session.delete(table)
-        db.session.commit()
+            table.always_filter_main_dttm = True
+            result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
+            assert "default_dttm" in result and "additional_dttm" in result
 
     def test_external_metadata_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
-        table = SqlaTable(
-            table_name="dummy_sql_table",
-            database=get_example_database(),
-            schema=get_example_default_schema(),
-            sql="select 123 as intcol, 'abc' as strcol",
-        )
-        db.session.add(table)
-        db.session.commit()
 
-        table = self.get_table(name="dummy_sql_table")
-        url = f"/datasource/external_metadata/table/{table.id}/"
-        resp = self.get_json_resp(url)
-        assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
-        db.session.delete(table)
-        db.session.commit()
+        with create_and_cleanup_table() as table:
+            url = f"/datasource/external_metadata/table/{table.id}/"
+            resp = self.get_json_resp(url)
+            assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_by_name_for_physical_table(self):
@@ -171,31 +181,42 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_by_name_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
-        table = SqlaTable(
-            table_name="dummy_sql_table",
-            database=get_example_database(),
-            schema=get_example_default_schema(),
-            sql="select 123 as intcol, 'abc' as strcol",
-        )
-        db.session.add(table)
-        db.session.commit()
+        with create_and_cleanup_table() as tbl:
+            params = prison.dumps(
+                {
+                    "datasource_type": "table",
+                    "database_name": tbl.database.database_name,
+                    "schema_name": tbl.schema,
+                    "table_name": tbl.table_name,
+                    "normalize_columns": tbl.normalize_columns,
+                    "always_filter_main_dttm": tbl.always_filter_main_dttm,
+                }
+            )
+            url = f"/datasource/external_metadata_by_name/?q={params}"
+            resp = self.get_json_resp(url)
+            assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
 
-        tbl = self.get_table(name="dummy_sql_table")
-        params = prison.dumps(
-            {
-                "datasource_type": "table",
-                "database_name": tbl.database.database_name,
-                "schema_name": tbl.schema,
-                "table_name": tbl.table_name,
-                "normalize_columns": tbl.normalize_columns,
-                "always_filter_main_dttm": tbl.always_filter_main_dttm,
-            }
-        )
-        url = f"/datasource/external_metadata_by_name/?q={params}"
-        resp = self.get_json_resp(url)
-        assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
-        db.session.delete(tbl)
-        db.session.commit()
+    def test_external_metadata_by_name_for_virtual_table_uses_mutator(self):
+        self.login(ADMIN_USERNAME)
+        with create_and_cleanup_table() as tbl:
+            app.config["SQL_QUERY_MUTATOR"] = (
+                lambda sql, **kwargs: "SELECT 456 as intcol, 'def' as mutated_strcol"
+            )
+
+            params = prison.dumps(
+                {
+                    "datasource_type": "table",
+                    "database_name": tbl.database.database_name,
+                    "schema_name": tbl.schema,
+                    "table_name": tbl.table_name,
+                    "normalize_columns": tbl.normalize_columns,
+                    "always_filter_main_dttm": tbl.always_filter_main_dttm,
+                }
+            )
+            url = f"/datasource/external_metadata_by_name/?q={params}"
+            resp = self.get_json_resp(url)
+            assert {o.get("column_name") for o in resp} == {"intcol", "mutated_strcol"}
+            app.config["SQL_QUERY_MUTATOR"] = None
 
     def test_external_metadata_by_name_from_sqla_inspector(self):
         self.login(ADMIN_USERNAME)
@@ -271,15 +292,10 @@ class TestDatasource(SupersetTestCase):
             sql="select {{ foo }} as intcol",
             template_params=json.dumps({"foo": "123"}),
         )
-        db.session.add(table)
-        db.session.commit()
-
-        table = self.get_table(name="dummy_sql_table_with_template_params")
-        url = f"/datasource/external_metadata/table/{table.id}/"
-        resp = self.get_json_resp(url)
-        assert {o.get("column_name") for o in resp} == {"intcol"}
-        db.session.delete(table)
-        db.session.commit()
+        with create_and_cleanup_table(table) as tbl:
+            url = f"/datasource/external_metadata/table/{tbl.id}/"
+            resp = self.get_json_resp(url)
+            assert {o.get("column_name") for o in resp} == {"intcol"}
 
     def test_external_metadata_for_malicious_virtual_table(self):
         self.login(ADMIN_USERNAME)
@@ -355,7 +371,6 @@ class TestDatasource(SupersetTestCase):
             elif k == "owners":
                 self.assertEqual([o["id"] for o in resp[k]], datasource_post["owners"])
             else:
-                print(k)
                 self.assertEqual(resp[k], datasource_post[k])
 
     def test_save_default_endpoint_validation_success(self):
@@ -530,10 +545,12 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     assert "coltypes" in rv2.json["result"]
     assert "data" in rv2.json["result"]
 
-    eager_samples = virtual_dataset.database.get_df(
-        f"select * from ({virtual_dataset.sql}) as tbl"
-        f' limit {app.config["SAMPLES_ROW_LIMIT"]}'
+    sql = (
+        f"select * from ({virtual_dataset.sql}) as tbl "
+        f'limit {app.config["SAMPLES_ROW_LIMIT"]}'
     )
+    eager_samples = virtual_dataset.database.get_df(sql)
+
     # the col3 is Decimal
     eager_samples["col3"] = eager_samples["col3"].apply(float)
     eager_samples = eager_samples.to_dict(orient="records")

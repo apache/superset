@@ -184,6 +184,16 @@ module.exports = {
         'react/no-unused-class-component-methods': 0,
         'import/no-relative-packages': 0,
         'prefer-exponentiation-operator': 0,
+        'react/react-in-jsx-scope': 0,
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector:
+              "ImportDeclaration[source.value='react'] :matches(ImportDefaultSpecifier, ImportNamespaceSpecifier)",
+            message:
+              'Default React import is not required due to automatic JSX runtime in React 16.4',
+          },
+        ],
       },
       settings: {
         'import/resolver': {
@@ -242,6 +252,15 @@ module.exports = {
         'testing-library/no-container': 0,
         'testing-library/prefer-find-by': 0,
         'testing-library/no-manual-cleanup': 0,
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector:
+              "ImportDeclaration[source.value='react'] :matches(ImportDefaultSpecifier, ImportNamespaceSpecifier)",
+            message:
+              'Default React import is not required due to automatic JSX runtime in React 16.4',
+          },
+        ],
       },
     },
     {
@@ -369,6 +388,7 @@ module.exports = {
     'default-case-last': 0,
     'no-promise-executor-return': 0,
     'react/no-unused-class-component-methods': 0,
+    'react/react-in-jsx-scope': 0,
   },
   ignorePatterns,
 };

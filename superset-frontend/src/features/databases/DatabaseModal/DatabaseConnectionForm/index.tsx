@@ -16,106 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FormEvent } from 'react';
-import {
-  SupersetTheme,
-  JsonObject,
-  getExtensionsRegistry,
-} from '@superset-ui/core';
-import { InputProps } from 'antd/lib/input';
+import { SupersetTheme } from '@superset-ui/core';
 import { Form } from 'src/components/Form';
-import {
-  accessTokenField,
-  databaseField,
-  displayField,
-  forceSSLField,
-  hostField,
-  httpPath,
-  passwordField,
-  portField,
-  queryField,
-  usernameField,
-} from './CommonParameters';
-import { validatedInputField } from './ValidatedInputField';
-import { EncryptedField } from './EncryptedField';
-import { TableCatalog } from './TableCatalog';
+import { FormFieldOrder, FORM_FIELD_MAP } from './constants';
 import { formScrollableStyles, validatedFormStyles } from '../styles';
-import { DatabaseForm, DatabaseObject } from '../../types';
-import SSHTunnelSwitch from '../SSHTunnelSwitch';
-
-export const FormFieldOrder = [
-  'host',
-  'port',
-  'database',
-  'username',
-  'password',
-  'access_token',
-  'http_path',
-  'database_name',
-  'credentials_info',
-  'service_account_info',
-  'catalog',
-  'query',
-  'encryption',
-  'account',
-  'warehouse',
-  'role',
-  'ssh',
-];
-
-const extensionsRegistry = getExtensionsRegistry();
-
-const SSHTunnelSwitchComponent =
-  extensionsRegistry.get('ssh_tunnel.form.switch') ?? SSHTunnelSwitch;
-
-const FORM_FIELD_MAP = {
-  host: hostField,
-  http_path: httpPath,
-  port: portField,
-  database: databaseField,
-  username: usernameField,
-  password: passwordField,
-  access_token: accessTokenField,
-  database_name: displayField,
-  query: queryField,
-  encryption: forceSSLField,
-  credentials_info: EncryptedField,
-  service_account_info: EncryptedField,
-  catalog: TableCatalog,
-  warehouse: validatedInputField,
-  role: validatedInputField,
-  account: validatedInputField,
-  ssh: SSHTunnelSwitchComponent,
-};
-
-interface DatabaseConnectionFormProps {
-  isEditMode?: boolean;
-  sslForced: boolean;
-  editNewDb?: boolean;
-  dbModel: DatabaseForm;
-  db: Partial<DatabaseObject> | null;
-  onParametersChange: (
-    event: FormEvent<InputProps> | { target: HTMLInputElement },
-  ) => void;
-  onChange: (
-    event: FormEvent<InputProps> | { target: HTMLInputElement },
-  ) => void;
-  onQueryChange: (
-    event: FormEvent<InputProps> | { target: HTMLInputElement },
-  ) => void;
-  onParametersUploadFileChange?: (
-    event: FormEvent<InputProps> | { target: HTMLInputElement },
-  ) => void;
-  onExtraInputChange: (
-    event: FormEvent<InputProps> | { target: HTMLInputElement },
-  ) => void;
-  onAddTableCatalog: () => void;
-  onRemoveTableCatalog: (idx: number) => void;
-  validationErrors: JsonObject | null;
-  getValidation: () => void;
-  clearValidationErrors: () => void;
-  getPlaceholder?: (field: string) => string | undefined;
-}
+import { DatabaseConnectionFormProps } from '../../types';
 
 const DatabaseConnectionForm = ({
   dbModel,
@@ -127,6 +32,7 @@ const DatabaseConnectionForm = ({
   onAddTableCatalog,
   onChange,
   onExtraInputChange,
+  onEncryptedExtraInputChange,
   onParametersChange,
   onParametersUploadFileChange,
   onQueryChange,
@@ -135,7 +41,15 @@ const DatabaseConnectionForm = ({
   validationErrors,
   clearValidationErrors,
 }: DatabaseConnectionFormProps) => {
-  const parameters = dbModel?.parameters;
+  const parameters = dbModel?.parameters as {
+    properties: {
+      [key: string]: {
+        default?: any;
+        description?: string;
+      };
+    };
+    required?: string[];
+  };
 
   return (
     <Form>
@@ -162,6 +76,7 @@ const DatabaseConnectionForm = ({
                 onAddTableCatalog,
                 onRemoveTableCatalog,
                 onExtraInputChange,
+                onEncryptedExtraInputChange,
               },
               validationErrors,
               getValidation,
@@ -169,6 +84,8 @@ const DatabaseConnectionForm = ({
               db,
               key: field,
               field,
+              default_value: parameters.properties[field]?.default,
+              description: parameters.properties[field]?.description,
               isEditMode,
               sslForced,
               editNewDb,

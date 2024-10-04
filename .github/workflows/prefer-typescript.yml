@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - "master"
-      - "[0-9].[0-9]"
+      - "[0-9].[0-9]*"
     paths:
       - "superset-frontend/src/**"
   pull_request:
@@ -21,7 +21,7 @@ jobs:
   prefer_typescript:
     if: github.ref == 'ref/heads/master' && github.event_name == 'pull_request'
     name: Prefer TypeScript
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       pull-requests: write

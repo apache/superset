@@ -27,14 +27,14 @@ revision = "31bb738bd1d2"
 down_revision = "fe23025b9441"
 
 
-import json
-import logging
+import logging  # noqa: E402
 
-from alembic import op
-from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, Integer, String, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db
+from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
@@ -61,12 +61,12 @@ def upgrade():
             if legacy_order_by:
                 params["series_limit_metric"] = legacy_order_by
             slc.params = json.dumps(params, sort_keys=True)
-        except Exception as e:
+        except Exception:
             logger.exception(
                 f"An error occurred: parsing params for slice {slc.id} failed."
                 f"You need to fix it before upgrading your DB."
             )
-            raise e
+            raise
 
     session.commit()
     session.close()
@@ -84,12 +84,12 @@ def downgrade():
             if series_limit_metric:
                 params["legacy_order_by"] = series_limit_metric
             slc.params = json.dumps(params, sort_keys=True)
-        except Exception as e:
+        except Exception:
             logger.exception(
                 f"An error occurred: parsing params for slice {slc.id} failed. "
                 "You need to fix it before downgrading your DB."
             )
-            raise e
+            raise
 
     session.commit()
     session.close()

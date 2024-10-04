@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - "master"
-      - "[0-9].[0-9]"
+      - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   frontend-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
         if: steps.check.outputs.frontend
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
       - name: Install dependencies
         if: steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
@@ -49,11 +49,6 @@ jobs:
         working-directory: ./superset-frontend
         run: |
           npm run type
-      - name: prettier
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: |
-          npm run prettier-check
       - name: Build plugins packages
         if: steps.check.outputs.frontend
         working-directory: ./superset-frontend
@@ -76,8 +71,10 @@ jobs:
       - name: generator-superset unit tests
         if: steps.check.outputs.frontend
         working-directory: ./superset-frontend/packages/generator-superset
-        run: npx jest
+        run: npm run test
       - name: Upload code coverage
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: ../.github/workflows/codecov.sh -c -F javascript
+        uses: codecov/codecov-action@v4
+        with:
+          flags: javascript
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true

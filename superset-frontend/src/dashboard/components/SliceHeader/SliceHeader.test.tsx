@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { getExtensionsRegistry } from '@superset-ui/core';
@@ -357,7 +356,7 @@ test('Should render "annotationsError"', () => {
   render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(
     screen.getByRole('img', {
-      name: 'One ore more annotation layers failed loading.',
+      name: 'One or more annotation layers failed loading.',
     }),
   ).toBeInTheDocument();
 });
@@ -369,7 +368,7 @@ test('Should not render "annotationsError" and "annotationsLoading"', () => {
   render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(
     screen.queryByRole('img', {
-      name: 'One ore more annotation layers failed loading.',
+      name: 'One or more annotation layers failed loading.',
     }),
   ).not.toBeInTheDocument();
   expect(

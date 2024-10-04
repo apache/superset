@@ -18,7 +18,6 @@ import logging
 from typing import Any, cast, Optional
 from urllib import parse
 
-import simplejson as json
 from flask import request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -36,8 +35,8 @@ from superset.daos.query import QueryDAO
 from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
+from superset.sql.parse import SQLScript
 from superset.sql_lab import get_sql_results
-from superset.sql_parse import SQLScript
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
@@ -62,7 +61,7 @@ from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
@@ -134,7 +133,7 @@ class SqlLabRestApi(BaseSupersetApi):
         return json_success(
             json.dumps(
                 {"result": result},
-                default=utils.json_iso_dttm_ser,
+                default=json.json_iso_dttm_ser,
                 ignore_nan=True,
             ),
             200,
@@ -285,6 +284,7 @@ class SqlLabRestApi(BaseSupersetApi):
             "client_id": client_id,
             "row_count": row_count,
             "database": query.database.name,
+            "catalog": query.catalog,
             "schema": query.schema,
             "sql": query.sql,
             "exported_format": "csv",
@@ -340,15 +340,15 @@ class SqlLabRestApi(BaseSupersetApi):
         key = params.get("key")
         rows = params.get("rows")
         result = SqlExecutionResultsCommand(key=key, rows=rows).run()
-        # return the result without special encoding
-        return json_success(
-            json.dumps(
-                result,
-                default=utils.json_iso_dttm_ser,
-                ignore_nan=True,
-            ),
-            200,
+
+        # Using pessimistic json serialization since some database drivers can return
+        # unserializeable types at times
+        payload = json.dumps(
+            result,
+            default=json.pessimistic_json_iso_dttm_ser,
+            ignore_nan=True,
         )
+        return json_success(payload, 200)
 
     @expose("/execute/", methods=("POST",))
     @protect()

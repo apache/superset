@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 import re
 import unittest
 from random import random
@@ -24,7 +25,6 @@ import pytest
 from flask import Response, escape, url_for
 from sqlalchemy import func
 
-from tests.integration_tests.test_app import app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
@@ -35,21 +35,21 @@ from tests.integration_tests.constants import (
     GAMMA_USERNAME,
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
+    load_energy_table_with_slice,  # noqa: F401
+    load_energy_table_data,  # noqa: F401
 )
-from tests.integration_tests.fixtures.public_role import public_role_like_gamma
+from tests.integration_tests.fixtures.public_role import public_role_like_gamma  # noqa: F401
 from tests.integration_tests.fixtures.unicode_dashboard import (
-    load_unicode_dashboard_with_position,
-    load_unicode_data,
+    load_unicode_dashboard_with_position,  # noqa: F401
+    load_unicode_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 from .base_tests import SupersetTestCase
@@ -58,39 +58,36 @@ from .base_tests import SupersetTestCase
 class TestDashboard(SupersetTestCase):
     @pytest.fixture
     def load_dashboard(self):
-        with app.app_context():
-            table = (
-                db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
-            )
-            # get a slice from the allowed table
-            slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        table = db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
+        # get a slice from the allowed table
+        slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
 
-            self.grant_public_access_to_table(table)
+        self.grant_public_access_to_table(table)
 
-            pytest.hidden_dash_slug = f"hidden_dash_{random()}"
-            pytest.published_dash_slug = f"published_dash_{random()}"
+        pytest.hidden_dash_slug = f"hidden_dash_{random()}"
+        pytest.published_dash_slug = f"published_dash_{random()}"
 
-            # Create a published and hidden dashboard and add them to the database
-            published_dash = Dashboard()
-            published_dash.dashboard_title = "Published Dashboard"
-            published_dash.slug = pytest.published_dash_slug
-            published_dash.slices = [slice]
-            published_dash.published = True
+        # Create a published and hidden dashboard and add them to the database
+        published_dash = Dashboard()
+        published_dash.dashboard_title = "Published Dashboard"
+        published_dash.slug = pytest.published_dash_slug
+        published_dash.slices = [slice]
+        published_dash.published = True
 
-            hidden_dash = Dashboard()
-            hidden_dash.dashboard_title = "Hidden Dashboard"
-            hidden_dash.slug = pytest.hidden_dash_slug
-            hidden_dash.slices = [slice]
-            hidden_dash.published = False
+        hidden_dash = Dashboard()
+        hidden_dash.dashboard_title = "Hidden Dashboard"
+        hidden_dash.slug = pytest.hidden_dash_slug
+        hidden_dash.slices = [slice]
+        hidden_dash.published = False
 
-            db.session.add(published_dash)
-            db.session.add(hidden_dash)
-            yield db.session.commit()
+        db.session.add(published_dash)
+        db.session.add(hidden_dash)
+        yield db.session.commit()
 
-            self.revoke_public_access_to_table(table)
-            db.session.delete(published_dash)
-            db.session.delete(hidden_dash)
-            db.session.commit()
+        self.revoke_public_access_to_table(table)
+        db.session.delete(published_dash)
+        db.session.delete(hidden_dash)
+        db.session.commit()
 
     def get_mock_positions(self, dash):
         positions = {"DASHBOARD_VERSION_KEY": "v2"}
@@ -189,7 +186,11 @@ class TestDashboard(SupersetTestCase):
         # Cleanup
         self.revoke_public_access_to_table(table)
 
-    @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
+    @pytest.mark.usefixtures(
+        "public_role_like_gamma",
+        "load_energy_table_with_slice",
+        "load_dashboard",
+    )
     def test_users_can_list_published_dashboard(self):
         self.login(ALPHA_USERNAME)
         resp = self.get_resp("/api/v1/dashboard/")

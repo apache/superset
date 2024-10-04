@@ -25,11 +25,18 @@ import {
   PreviousCalendarYear,
   CommonRangeType,
   CalendarRangeType,
+  CurrentRangeType,
+  CurrentWeek,
+  CurrentMonth,
+  CurrentYear,
+  CurrentQuarter,
+  CurrentDay,
 } from 'src/explore/components/controls/DateFilterControl/types';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },
   { value: 'Calendar', label: t('Previous') },
+  { value: 'Current', label: t('Current') },
   { value: 'Custom', label: t('Custom') },
   { value: 'Advanced', label: t('Advanced') },
   { value: 'No filter', label: t('No filter') },
@@ -48,14 +55,22 @@ export const COMMON_RANGE_VALUES_SET = new Set(
 
 export const CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
   { value: PreviousCalendarWeek, label: t('previous calendar week') },
-  {
-    value: PreviousCalendarMonth,
-    label: t('previous calendar month'),
-  },
+  { value: PreviousCalendarMonth, label: t('previous calendar month') },
   { value: PreviousCalendarYear, label: t('previous calendar year') },
 ];
 export const CALENDAR_RANGE_VALUES_SET = new Set(
   CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
+);
+
+export const CURRENT_RANGE_OPTIONS: SelectOptionType[] = [
+  { value: CurrentDay, label: t('Current day') },
+  { value: CurrentWeek, label: t('Current week') },
+  { value: CurrentMonth, label: t('Current month') },
+  { value: CurrentQuarter, label: t('Current quarter') },
+  { value: CurrentYear, label: t('Current year') },
+];
+export const CURRENT_RANGE_VALUES_SET = new Set(
+  CURRENT_RANGE_OPTIONS.map(({ value }) => value),
 );
 
 const GRAIN_OPTIONS = [
@@ -107,6 +122,14 @@ export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([
   PreviousCalendarYear,
 ]);
 
+export const CURRENT_CALENDAR_RANGE_SET: Set<CurrentRangeType> = new Set([
+  CurrentDay,
+  CurrentWeek,
+  CurrentMonth,
+  CurrentQuarter,
+  CurrentYear,
+]);
+
 export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
 export const SEVEN_DAYS_AGO = moment()
   .utc()
@@ -116,20 +139,20 @@ export const SEVEN_DAYS_AGO = moment()
 export const MIDNIGHT = moment().utc().startOf('day').format(MOMENT_FORMAT);
 
 export const LOCALE_MAPPING = {
-  en: 'en_US',
-  fr: 'fr_FR',
-  es: 'es_ES',
-  it: 'it_IT',
-  zh: 'zh_CN',
-  ja: 'ja_JP',
-  de: 'de_DE',
-  pt: 'pt_PT',
-  pt_BR: 'pt_BR',
-  ru: 'ru_RU',
-  ko: 'ko_KR',
-  sk: 'sk_SK',
-  sl: 'sl_SI',
-  nl: 'nl_NL',
+  en: () => import('antd/lib/date-picker/locale/en_US'),
+  fr: () => import('antd/lib/date-picker/locale/fr_FR'),
+  es: () => import('antd/lib/date-picker/locale/es_ES'),
+  it: () => import('antd/lib/date-picker/locale/it_IT'),
+  zh: () => import('antd/lib/date-picker/locale/zh_CN'),
+  ja: () => import('antd/lib/date-picker/locale/ja_JP'),
+  de: () => import('antd/lib/date-picker/locale/de_DE'),
+  pt: () => import('antd/lib/date-picker/locale/pt_PT'),
+  pt_BR: () => import('antd/lib/date-picker/locale/pt_BR'),
+  ru: () => import('antd/lib/date-picker/locale/ru_RU'),
+  ko: () => import('antd/lib/date-picker/locale/ko_KR'),
+  sk: () => import('antd/lib/date-picker/locale/sk_SK'),
+  sl: () => import('antd/lib/date-picker/locale/sl_SI'),
+  nl: () => import('antd/lib/date-picker/locale/nl_NL'),
 };
 
 export enum DateFilterTestKey {

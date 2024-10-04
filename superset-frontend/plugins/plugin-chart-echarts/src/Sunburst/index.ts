@@ -44,7 +44,12 @@ export default class EchartsSunburstChartPlugin extends EchartsChartPlugin {
         ),
         exampleGallery: [{ url: example1 }, { url: example2 }],
         name: t('Sunburst Chart'),
-        tags: [t('ECharts'), t('Multi-Levels'), t('Proportional')],
+        tags: [
+          t('ECharts'),
+          t('Multi-Levels'),
+          t('Proportional'),
+          t('Featured'),
+        ],
         thumbnail,
       },
       transformProps,

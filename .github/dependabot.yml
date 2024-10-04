@@ -8,8 +8,9 @@ updates:
 
   - package-ecosystem: "npm"
     ignore:
-      # not until  node >= 18.12.0
-      - dependency-name: "css-minimizer-webpack-plugin"
+      # not until React >= 18.0.0
+      - dependency-name: "storybook"
+      - dependency-name: "@storybook*"
     directory: "/superset-frontend/"
     schedule:
       interval: "monthly"
@@ -19,14 +20,11 @@ updates:
     open-pull-requests-limit: 30
     versioning-strategy: increase
 
-  - package-ecosystem: "pip"
-    directory: "/requirements/"
-    schedule:
-      interval: "monthly"
-    labels:
-      - pip
-      - dependabot
-    open-pull-requests-limit: 30
+
+  # - package-ecosystem: "pip"
+  # NOTE: as dependabot isn't compatible with our python
+  # dependency setup (pip-compile-multi), we'll be using
+  # `supersetbot` instead
 
   - package-ecosystem: "npm"
     directory: ".github/actions"

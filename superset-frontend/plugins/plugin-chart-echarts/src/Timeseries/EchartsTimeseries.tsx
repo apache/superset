@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
@@ -25,10 +25,11 @@ import {
   getColumnLabel,
   getNumberFormatter,
   LegendState,
+  ensureIsArray,
 } from '@superset-ui/core';
-import { ViewRootGroup } from 'echarts/types/src/util/types';
-import GlobalModel from 'echarts/types/src/model/Global';
-import ComponentModel from 'echarts/types/src/model/Component';
+import type { ViewRootGroup } from 'echarts/types/src/util/types';
+import type GlobalModel from 'echarts/types/src/model/Global';
+import type ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
@@ -68,6 +69,8 @@ export default function EchartsTimeseries({
     const updatedHeight = extraControlRef.current?.offsetHeight || 0;
     setExtraControlHeight(updatedHeight);
   }, [formData.showExtraControls]);
+
+  const hasDimensions = ensureIsArray(groupby).length > 0;
 
   const getModelInfo = (target: ViewRootGroup, globalModel: GlobalModel) => {
     let el = target;
@@ -138,6 +141,9 @@ export default function EchartsTimeseries({
 
   const eventHandlers: EventHandlers = {
     click: props => {
+      if (!hasDimensions) {
+        return;
+      }
       if (clickTimer.current) {
         clearTimeout(clickTimer.current);
       }
@@ -173,6 +179,7 @@ export default function EchartsTimeseries({
           ...(eventParams.name ? [eventParams.name] : []),
           ...(labelMap[seriesName] ?? []),
         ];
+        const groupBy = ensureIsArray(formData.groupby);
         if (data && xAxis.type === AxisType.Time) {
           drillToDetailFilters.push({
             col:
@@ -188,7 +195,7 @@ export default function EchartsTimeseries({
         }
         [
           ...(xAxis.type === AxisType.Category && data ? [xAxis.label] : []),
-          ...formData.groupby,
+          ...groupBy,
         ].forEach((dimension, i) =>
           drillToDetailFilters.push({
             col: dimension,
@@ -197,7 +204,7 @@ export default function EchartsTimeseries({
             formattedVal: String(values[i]),
           }),
         );
-        formData.groupby.forEach((dimension, i) => {
+        groupBy.forEach((dimension, i) => {
           const val = labelMap[seriesName][i];
           drillByFilters.push({
             col: dimension,
@@ -213,8 +220,10 @@ export default function EchartsTimeseries({
 
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
-          crossFilter: getCrossFilterDataMask(seriesName),
           drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
+          crossFilter: hasDimensions
+            ? getCrossFilterDataMask(seriesName)
+            : undefined,
         });
       }
     },

@@ -17,7 +17,6 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { Filter, NativeFilterType } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FormInstance } from 'src/components';
@@ -65,6 +64,7 @@ const filterMock: Filter = {
 };
 
 const createProps: () => ControlItemsProps = () => ({
+  expanded: false,
   datasetId: 1,
   disabled: false,
   forceUpdate: jest.fn(),
@@ -166,7 +166,7 @@ test('Clicking on checkbox', () => {
   expect(props.forceUpdate).toBeCalled();
 });
 
-test('Clicking on checkbox when resetConfig:flase', () => {
+test('Clicking on checkbox when resetConfig:false', () => {
   const props = createProps();
   (getControlItems as jest.Mock).mockReturnValue([
     { name: 'name_1', config: { renderTrigger: true, resetConfig: false } },

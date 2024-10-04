@@ -16,15 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useMemo, useEffect, useRef } from 'react';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import {
+  ReactNode,
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from 'react';
+import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
+import type { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import rison from 'rison';
 import { AsyncSelect, Select } from 'src/components';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { useSchemas, SchemaOption } from 'src/hooks/apiResources';
+import {
+  useCatalogs,
+  CatalogOption,
+  useSchemas,
+  SchemaOption,
+} from 'src/hooks/apiResources';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -70,7 +84,7 @@ const LabelStyle = styled.div`
 `;
 
 type DatabaseValue = {
-  label: React.ReactNode;
+  label: ReactNode;
   value: number;
   id: number;
   database_name: string;
@@ -81,6 +95,7 @@ export type DatabaseObject = {
   id: number;
   database_name: string;
   backend?: string;
+  allow_multi_catalog?: boolean;
 };
 
 export interface DatabaseSelectorProps {
@@ -92,9 +107,11 @@ export interface DatabaseSelectorProps {
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
   onEmptyResults?: (searchText?: string) => void;
+  onCatalogChange?: (catalog?: string) => void;
+  catalog?: string | null;
   onSchemaChange?: (schema?: string) => void;
-  readOnly?: boolean;
   schema?: string;
+  readOnly?: boolean;
   sqlLabMode?: boolean;
 }
 
@@ -113,7 +130,12 @@ const SelectLabel = ({
   </LabelStyle>
 );
 
+const EMPTY_CATALOG_OPTIONS: CatalogOption[] = [];
 const EMPTY_SCHEMA_OPTIONS: SchemaOption[] = [];
+
+interface AntdLabeledValueWithOrder extends AntdLabeledValue {
+  order: number;
+}
 
 export default function DatabaseSelector({
   db,
@@ -124,18 +146,32 @@ export default function DatabaseSelector({
   isDatabaseSelectEnabled = true,
   onDbChange,
   onEmptyResults,
+  onCatalogChange,
+  catalog,
   onSchemaChange,
-  readOnly = false,
   schema,
+  readOnly = false,
   sqlLabMode = false,
 }: DatabaseSelectorProps) {
+  const showCatalogSelector = !!db?.allow_multi_catalog;
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
+  const [errorPayload, setErrorPayload] = useState<SupersetError | null>();
+  const [currentCatalog, setCurrentCatalog] = useState<
+    CatalogOption | null | undefined
+  >(catalog ? { label: catalog, value: catalog, title: catalog } : undefined);
+  const catalogRef = useRef(catalog);
+  catalogRef.current = catalog;
   const [currentSchema, setCurrentSchema] = useState<SchemaOption | undefined>(
     schema ? { label: schema, value: schema, title: schema } : undefined,
   );
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
   const { addSuccessToast } = useToasts();
+  const sortComparator = useCallback(
+    (itemA: AntdLabeledValueWithOrder, itemB: AntdLabeledValueWithOrder) =>
+      itemA.order - itemB.order,
+    [],
+  );
 
   const loadDatabases = useMemo(
     () =>
@@ -148,7 +184,7 @@ export default function DatabaseSelector({
         totalCount: number;
       }> => {
         const queryParams = rison.encode({
-          order_columns: 'database_name',
+          order_column: 'database_name',
           order_direction: 'asc',
           page,
           page_size: pageSize,
@@ -174,7 +210,8 @@ export default function DatabaseSelector({
           if (result.length === 0) {
             if (onEmptyResults) onEmptyResults(search);
           }
-          const options = result.map((row: DatabaseObject) => ({
+
+          const options = result.map((row: DatabaseObject, order: number) => ({
             label: (
               <SelectLabel
                 backend={row.backend}
@@ -185,6 +222,8 @@ export default function DatabaseSelector({
             id: row.id,
             database_name: row.database_name,
             backend: row.backend,
+            allow_multi_catalog: row.allow_multi_catalog,
+            order,
           }));
 
           return {
@@ -193,7 +232,7 @@ export default function DatabaseSelector({
           };
         });
       },
-    [formMode, getDbList, sqlLabMode],
+    [formMode, getDbList, sqlLabMode, onEmptyResults],
   );
 
   useEffect(() => {
@@ -223,12 +262,14 @@ export default function DatabaseSelector({
   }
 
   const {
-    data,
+    currentData: schemaData,
     isFetching: loadingSchemas,
-    refetch,
+    refetch: refetchSchemas,
   } = useSchemas({
     dbId: currentDb?.value,
+    catalog: currentCatalog?.value,
     onSuccess: (schemas, isFetched) => {
+      setErrorPayload(null);
       if (schemas.length === 1) {
         changeSchema(schemas[0]);
       } else if (
@@ -241,19 +282,74 @@ export default function DatabaseSelector({
         addSuccessToast('List refreshed');
       }
     },
-    onError: () => handleError(t('There was an error loading the schemas')),
+    onError: error => {
+      if (error?.errors) {
+        setErrorPayload(error?.errors?.[0]);
+      } else {
+        handleError(t('There was an error loading the schemas'));
+      }
+    },
   });
 
-  const schemaOptions = data || EMPTY_SCHEMA_OPTIONS;
+  const schemaOptions = schemaData || EMPTY_SCHEMA_OPTIONS;
 
-  function changeDataBase(
+  function changeCatalog(catalog: CatalogOption | null | undefined) {
+    setCurrentCatalog(catalog);
+    setCurrentSchema(undefined);
+    if (onCatalogChange && catalog?.value !== catalogRef.current) {
+      onCatalogChange(catalog?.value);
+    }
+  }
+
+  const {
+    data: catalogData,
+    isFetching: loadingCatalogs,
+    refetch: refetchCatalogs,
+  } = useCatalogs({
+    dbId: showCatalogSelector ? currentDb?.value : undefined,
+    onSuccess: (catalogs, isFetched) => {
+      setErrorPayload(null);
+      if (!showCatalogSelector) {
+        changeCatalog(null);
+      } else if (catalogs.length === 1) {
+        changeCatalog(catalogs[0]);
+      } else if (
+        !catalogs.find(
+          catalogOption => catalogRef.current === catalogOption.value,
+        )
+      ) {
+        changeCatalog(undefined);
+      }
+
+      if (showCatalogSelector && isFetched) {
+        addSuccessToast('List refreshed');
+      }
+    },
+    onError: error => {
+      if (showCatalogSelector) {
+        if (error?.errors) {
+          setErrorPayload(error?.errors?.[0]);
+        } else {
+          handleError(t('There was an error loading the catalogs'));
+        }
+      }
+    },
+  });
+
+  const catalogOptions = catalogData || EMPTY_CATALOG_OPTIONS;
+
+  function changeDatabase(
     value: { label: string; value: number },
     database: DatabaseValue,
   ) {
     setCurrentDb(database);
+    setCurrentCatalog(undefined);
     setCurrentSchema(undefined);
     if (onDbChange) {
       onDbChange(database);
+    }
+    if (onCatalogChange) {
+      onCatalogChange(undefined);
     }
     if (onSchemaChange) {
       onSchemaChange(undefined);
@@ -278,20 +374,47 @@ export default function DatabaseSelector({
         header={<FormLabel>{t('Database')}</FormLabel>}
         lazyLoading={false}
         notFoundContent={emptyState}
-        onChange={changeDataBase}
+        onChange={changeDatabase}
         value={currentDb}
         placeholder={t('Select database or type to search databases')}
         disabled={!isDatabaseSelectEnabled || readOnly}
         options={loadDatabases}
+        sortComparator={sortComparator}
       />,
       null,
+    );
+  }
+
+  function renderCatalogSelect() {
+    const refreshIcon = !readOnly && (
+      <RefreshLabel
+        onClick={refetchCatalogs}
+        tooltipContent={t('Force refresh catalog list')}
+      />
+    );
+    return renderSelectRow(
+      <Select
+        ariaLabel={t('Select catalog or type to search catalogs')}
+        disabled={!currentDb || readOnly}
+        header={<FormLabel>{t('Catalog')}</FormLabel>}
+        labelInValue
+        loading={loadingCatalogs}
+        name="select-catalog"
+        notFoundContent={t('No compatible catalog found')}
+        placeholder={t('Select catalog or type to search catalogs')}
+        onChange={item => changeCatalog(item as CatalogOption)}
+        options={catalogOptions}
+        showSearch
+        value={currentCatalog || undefined}
+      />,
+      refreshIcon,
     );
   }
 
   function renderSchemaSelect() {
     const refreshIcon = !readOnly && (
       <RefreshLabel
-        onClick={() => refetch()}
+        onClick={refetchSchemas}
         tooltipContent={t('Force refresh schema list')}
       />
     );
@@ -314,9 +437,17 @@ export default function DatabaseSelector({
     );
   }
 
+  function renderError() {
+    return errorPayload ? (
+      <ErrorMessageWithStackTrace error={errorPayload} source="crud" />
+    ) : null;
+  }
+
   return (
     <DatabaseSelectorWrapper data-test="DatabaseSelector">
       {renderDatabaseSelect()}
+      {renderError()}
+      {showCatalogSelector && renderCatalogSelect()}
       {renderSchemaSelect()}
     </DatabaseSelectorWrapper>
   );

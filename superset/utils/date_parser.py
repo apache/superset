@@ -207,6 +207,36 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         and separator not in time_range
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # pylint: disable=line-too-long,useless-suppression
+    if (
+        time_range
+        and time_range.startswith("Current day")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, DAY), DAY) : DATETRUNC(DATEADD(DATETIME('today'), 1, DAY), DAY)"  # pylint: disable=line-too-long,useless-suppression
+    if (
+        time_range
+        and time_range.startswith("Current week")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, WEEK), WEEK) : DATETRUNC(DATEADD(DATETIME('today'), 1, WEEK), WEEK)"  # pylint: disable=line-too-long,useless-suppression
+    if (
+        time_range
+        and time_range.startswith("Current month")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, MONTH), MONTH) : DATETRUNC(DATEADD(DATETIME('today'), 1, MONTH), MONTH)"  # pylint: disable=line-too-long,useless-suppression
+    if (
+        time_range
+        and time_range.startswith("Current quarter")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, QUARTER), QUARTER) : DATETRUNC(DATEADD(DATETIME('today'), 1, QUARTER), QUARTER)"  # pylint: disable=line-too-long,useless-suppression
+    if (
+        time_range
+        and time_range.startswith("Current year")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, YEAR), YEAR) : DATETRUNC(DATEADD(DATETIME('today'), 1, YEAR), YEAR)"  # pylint: disable=line-too-long,useless-suppression
 
     if time_range and separator in time_range:
         time_range_lookup = [
@@ -216,11 +246,13 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             ),
             (
                 r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
-                lambda delta, unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
+                lambda delta,
+                unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
             ),
             (
                 r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
-                lambda delta, unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
+                lambda delta,
+                unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
             ),
             (
                 r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",
@@ -261,9 +293,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         )
 
     if time_shift:
-        time_delta = parse_past_timedelta(time_shift)
-        _since = _since if _since is None else (_since - time_delta)
-        _until = _until if _until is None else (_until - time_delta)
+        time_delta_since = parse_past_timedelta(time_shift, _since)
+        time_delta_until = parse_past_timedelta(time_shift, _until)
+        _since = _since if _since is None else (_since - time_delta_since)
+        _until = _until if _until is None else (_until - time_delta_until)
 
     if instant_time_comparison_range:
         # This is only set using the new time comparison controls

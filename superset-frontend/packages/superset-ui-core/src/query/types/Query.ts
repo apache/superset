@@ -283,7 +283,7 @@ export enum QueryState {
   TimedOut = 'timed_out',
 }
 
-// Inidcates a Query's state is still processing
+// Indicates a Query's state is still processing
 export const runningQueryStateList: QueryState[] = [
   QueryState.Running,
   QueryState.Started,
@@ -316,6 +316,7 @@ export type Query = {
   link?: string;
   progress: number;
   resultsKey: string | null;
+  catalog?: string | null;
   schema?: string;
   sql: string;
   sqlEditorId: string;

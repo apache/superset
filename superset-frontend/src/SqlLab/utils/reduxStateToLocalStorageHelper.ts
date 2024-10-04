@@ -109,22 +109,24 @@ export function rehydratePersistedState(
   state: SqlLabRootState,
 ) {
   // Rehydrate server side persisted table metadata
-  state.sqlLab.tables.forEach(({ name: table, schema, dbId, persistData }) => {
-    if (dbId && schema && table && persistData?.columns) {
-      dispatch(
-        tableApiUtil.upsertQueryData(
-          'tableMetadata',
-          { dbId, schema, table },
-          persistData,
-        ),
-      );
-      dispatch(
-        tableApiUtil.upsertQueryData(
-          'tableExtendedMetadata',
-          { dbId, schema, table },
-          {},
-        ),
-      );
-    }
-  });
+  state.sqlLab.tables.forEach(
+    ({ name: table, catalog, schema, dbId, persistData }) => {
+      if (dbId && schema && table && persistData?.columns) {
+        dispatch(
+          tableApiUtil.upsertQueryData(
+            'tableMetadata',
+            { dbId, catalog, schema, table },
+            persistData,
+          ),
+        );
+        dispatch(
+          tableApiUtil.upsertQueryData(
+            'tableExtendedMetadata',
+            { dbId, catalog, schema, table },
+            {},
+          ),
+        );
+      }
+    },
+  );
 }

@@ -17,12 +17,28 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { RefObject } from 'react';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import DetailsPanel from '.';
 
+const mockPopoverContentRef = {
+  current: {
+    focus: jest.fn(),
+  },
+} as unknown as RefObject<HTMLDivElement>;
+
+const mockPopoverTriggerRef = {
+  current: {
+    focus: jest.fn(),
+  },
+} as unknown as RefObject<HTMLDivElement>;
+
 const createProps = () => ({
+  popoverVisible: true,
+  popoverContentRef: mockPopoverContentRef,
+  popoverTriggerRef: mockPopoverTriggerRef,
+  setPopoverVisible: jest.fn(),
   appliedCrossFilterIndicators: [
     {
       column: 'clinical_stage',
@@ -167,4 +183,76 @@ test('Should render empty', () => {
   expect(screen.getByTestId('details-panel-content')).toBeInTheDocument();
   userEvent.click(screen.getByTestId('details-panel-content'));
   expect(screen.queryByRole('button')).not.toBeInTheDocument();
+});
+
+test('Close popover with ESC or ENTER', async () => {
+  const props = createProps();
+  render(
+    <DetailsPanel {...props}>
+      <div>Content</div>
+    </DetailsPanel>,
+    { useRedux: true },
+  );
+
+  const activeElement = document.activeElement as Element;
+
+  // Close popover with Escape key
+  fireEvent.keyDown(activeElement, { key: 'Escape', code: 'Escape' });
+  expect(props.setPopoverVisible).toHaveBeenCalledWith(false);
+
+  // Open the popover for this test
+  props.popoverVisible = true;
+
+  // Close with Enter
+  fireEvent.keyDown(activeElement, { key: 'Enter', code: 'Enter' });
+  expect(props.setPopoverVisible).toHaveBeenCalledWith(false);
+});
+
+test('Arrow key navigation switches focus between indicators', () => {
+  // Prepare props with two indicators
+  const props = createProps();
+
+  props.appliedCrossFilterIndicators = [
+    {
+      column: 'clinical_stage',
+      name: 'Clinical Stage',
+      value: [],
+      path: ['PATH_TO_CLINICAL_STAGE'],
+    },
+    {
+      column: 'age_group',
+      name: 'Age Group',
+      value: [],
+      path: ['PATH_TO_AGE_GROUP'],
+    },
+  ];
+
+  render(
+    <DetailsPanel {...props}>
+      <div>Content</div>
+    </DetailsPanel>,
+    { useRedux: true },
+  );
+
+  // Query the indicators
+  const firstIndicator = screen.getByRole('button', { name: 'Clinical Stage' });
+  const secondIndicator = screen.getByRole('button', { name: 'Age Group' });
+
+  // Focus the first indicator
+  firstIndicator.focus();
+  expect(firstIndicator).toHaveFocus();
+
+  // Simulate ArrowDown key press
+  fireEvent.keyDown(document.activeElement as Element, {
+    key: 'ArrowDown',
+    code: 'ArrowDown',
+  });
+  expect(secondIndicator).toHaveFocus();
+
+  // Simulate ArrowUp key press
+  fireEvent.keyDown(document.activeElement as Element, {
+    key: 'ArrowUp',
+    code: 'ArrowUp',
+  });
+  expect(firstIndicator).toHaveFocus();
 });

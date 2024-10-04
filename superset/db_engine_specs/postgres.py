@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 from datetime import datetime
@@ -36,8 +35,8 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
-from superset.sql_parse import SQLScript
-from superset.utils import core as utils
+from superset.sql.parse import SQLScript
+from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
@@ -101,12 +100,16 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     engine = ""
     engine_name = "PostgreSQL"
 
-    supports_catalog = True
-
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
+        TimeGrain.FIVE_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '5 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 5)",
+        TimeGrain.THIRTY_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '30 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 30)",
         TimeGrain.MINUTE: "DATE_TRUNC('minute', {col})",
+        TimeGrain.FIVE_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '5 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 5)",
+        TimeGrain.TEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '10 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 10)",
+        TimeGrain.FIFTEEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '15 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 15)",
+        TimeGrain.THIRTY_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '30 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 30)",
         TimeGrain.HOUR: "DATE_TRUNC('hour', {col})",
         TimeGrain.DAY: "DATE_TRUNC('day', {col})",
         TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
@@ -199,7 +202,10 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_aliases = {"postgres"}
+
     supports_dynamic_schema = True
+    supports_catalog = True
+    supports_dynamic_catalog = True
 
     default_driver = "psycopg2"
     sqlalchemy_uri_placeholder = (
@@ -297,8 +303,32 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return super().get_default_schema_for_query(database, query)
 
     @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Set the catalog (database).
+        """
+        if catalog:
+            uri = uri.set(database=catalog)
+
+        return uri, connect_args
+
+    @classmethod
+    def get_default_catalog(cls, database: Database) -> str | None:
+        """
+        Return the default catalog for a given database.
+        """
+        return database.url_object.database
+
+    @classmethod
     def get_prequeries(
         cls,
+        database: Database,
         catalog: str | None = None,
         schema: str | None = None,
     ) -> list[str]:
@@ -346,13 +376,13 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         cls,
         database: Database,
         inspector: Inspector,
-    ) -> list[str]:
+    ) -> set[str]:
         """
         Return all catalogs.
 
         In Postgres, a catalog is called a "database".
         """
-        return sorted(
+        return {
             catalog
             for (catalog,) in inspector.bind.execute(
                 """
@@ -360,7 +390,7 @@ SELECT datname FROM pg_database
 WHERE datistemplate = false;
             """
             )
-        )
+        }
 
     @classmethod
     def get_table_names(

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useEffect, useMemo } from 'react';
+import { ReactNode, useState, useEffect, useMemo } from 'react';
 import {
   css,
   styled,
@@ -53,6 +53,7 @@ import {
   AdvancedFrame,
   DateLabel,
 } from './components';
+import { CurrentCalendarFrame } from './components/CurrentCalendarFrame';
 
 const StyledRangeType = styled(Select)`
   width: 272px;
@@ -83,7 +84,6 @@ const ContentStyleWrapper = styled.div`
       font-weight: ${theme.typography.weights.medium};
       color: ${theme.colors.grayscale.light2};
       line-height: 16px;
-      text-transform: uppercase;
       margin: 8px 0;
     }
 
@@ -201,6 +201,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         if (
           guessedFrame === 'Common' ||
           guessedFrame === 'Calendar' ||
+          guessedFrame === 'Current' ||
           guessedFrame === 'No filter'
         ) {
           setActualTimeRange(value);
@@ -295,6 +296,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       )}
       {frame === 'Calendar' && (
         <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+      )}
+      {frame === 'Current' && (
+        <CurrentCalendarFrame
+          value={timeRangeValue}
+          onChange={setTimeRangeValue}
+        />
       )}
       {frame === 'Advanced' && (
         <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />

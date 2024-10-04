@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Loads datasets, dashboards and slices in a new superset instance"""
 import textwrap
 
 import pandas as pd
@@ -25,6 +24,7 @@ import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
@@ -42,9 +42,9 @@ def load_energy(
     tbl_name = "energy_usage"
     database = database_utils.get_example_database()
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
-        table_exists = database.has_table_by_name(tbl_name)
+        table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
             url = get_example_url("energy.json.gz")
@@ -77,7 +77,6 @@ def load_energy(
             SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
         )
 
-    db.session.commit()
     tbl.fetch_metadata()
 
     slc = Slice(

@@ -20,6 +20,7 @@ import click
 from flask.cli import with_appcontext
 
 import superset.utils.database as database_utils
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,7 @@ def load_examples_run(
 
 @click.command()
 @with_appcontext
+@transaction()
 @click.option("--load-test-data", "-t", is_flag=True, help="Load additional test data")
 @click.option("--load-big-data", "-b", is_flag=True, help="Load additional big data")
 @click.option(

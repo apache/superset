@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import {
-  getSharedLabelColor,
+  getLabelsColorMap,
   isDefined,
   JsonObject,
   makeApi,
-  SharedLabelColorSource,
+  LabelsColorMapSource,
   t,
   getClientErrorObject,
 } from '@superset-ui/core';
@@ -43,7 +43,10 @@ import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
 
 const isValidResult = (rv: JsonObject): boolean =>
-  rv?.result?.form_data && isDefined(rv?.result?.dataset?.id);
+  rv?.result?.form_data && rv?.result?.dataset;
+
+const hasDatasetId = (rv: JsonObject): boolean =>
+  isDefined(rv?.result?.dataset?.id);
 
 const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
   try {
@@ -52,7 +55,19 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
       endpoint: 'api/v1/explore/',
     })(exploreUrlParams);
     if (isValidResult(rv)) {
-      return rv;
+      if (hasDatasetId(rv)) {
+        return rv;
+      }
+      // Since there's no dataset id but the API responded with a valid payload,
+      // we assume the dataset was deleted, so we preserve some values from previous
+      // state so if the user decide to swap the datasource, the chart config remains
+      fallbackExploreInitialData.form_data = {
+        ...rv.result.form_data,
+        ...fallbackExploreInitialData.form_data,
+      };
+      if (rv.result?.slice) {
+        fallbackExploreInitialData.slice = rv.result.slice;
+      }
     }
     let message = t('Failed to load chart data');
     const responseError = rv?.result?.message;
@@ -84,8 +99,8 @@ const getDashboardContextFormData = () => {
   if (dashboardContext) {
     const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
     const {
-      labelColors,
-      sharedLabelColors,
+      labelsColor,
+      labelsColorMap,
       colorScheme,
       chartConfiguration,
       nativeFilters,
@@ -100,8 +115,8 @@ const getDashboardContextFormData = () => {
       chartConfiguration,
       colorScheme,
       dataMask,
-      labelColors,
-      sharedLabelColors,
+      labelsColor,
+      labelsColorMap,
       sliceId,
       allSliceIds: [sliceId],
       extraControls: {},
@@ -151,7 +166,7 @@ export default function ExplorePage() {
           isExploreInitialized.current = true;
         });
     }
-    getSharedLabelColor().source = SharedLabelColorSource.Explore;
+    getLabelsColorMap().source = LabelsColorMapSource.Explore;
   }, [dispatch, location]);
 
   if (!isLoaded) {

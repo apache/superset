@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import cx from 'classnames';
@@ -32,7 +32,6 @@ const QueryTitle = styled.div`
   color: ${({ theme }) => theme.colors.secondary.light2};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   margin-bottom: 0;
-  text-transform: uppercase;
 `;
 
 const QueryLabel = styled.div`

@@ -88,9 +88,9 @@ def port_translation_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeRespo
                 else port_conversion_dict[string_value]
             )
         except (KeyError, ValueError):
-            resp[
-                "error_message"
-            ] = f"'{string_value}' does not appear to be a port name or number"
+            resp["error_message"] = (
+                f"'{string_value}' does not appear to be a port name or number"
+            )
             break
         else:
             resp["display_value"] = ", ".join(

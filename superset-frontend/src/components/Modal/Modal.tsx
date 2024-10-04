@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  isValidElement,
+  cloneElement,
   CSSProperties,
   ReactNode,
   useMemo,
@@ -154,7 +156,6 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
 
     .btn {
       font-size: 12px;
-      text-transform: uppercase;
     }
 
     .btn + .btn {
@@ -260,10 +261,10 @@ const CustomModal = ({
   const [bounds, setBounds] = useState<DraggableBounds>();
   const [dragDisabled, setDragDisabled] = useState<boolean>(true);
   let FooterComponent;
-  if (React.isValidElement(footer)) {
+  if (isValidElement(footer)) {
     // If a footer component is provided inject a closeModal function
     // so the footer can provide a "close" button if desired
-    FooterComponent = React.cloneElement(footer, {
+    FooterComponent = cloneElement(footer, {
       closeModal: onHide,
     } as Partial<unknown>);
   }

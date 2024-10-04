@@ -22,12 +22,11 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
-
 import Loading from 'src/components/Loading';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
@@ -49,6 +48,7 @@ import { ExtensionConfigs } from 'src/features/home/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
+import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { DatabaseObject } from 'src/features/databases/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
@@ -64,8 +64,8 @@ const dbConfigExtraExtension = extensionsRegistry.get(
 const PAGE_SIZE = 25;
 
 interface DatabaseDeleteObject extends DatabaseObject {
-  chart_count: number;
-  dashboard_count: number;
+  charts: any;
+  dashboards: any;
   sqllab_tab_count: number;
 }
 interface DatabaseListProps {
@@ -135,6 +135,13 @@ function DatabaseList({
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
+  const [csvUploadDataModalOpen, setCsvUploadDataModalOpen] =
+    useState<boolean>(false);
+  const [excelUploadDataModalOpen, setExcelUploadDataModalOpen] =
+    useState<boolean>(false);
+  const [columnarUploadDataModalOpen, setColumnarUploadDataModalOpen] =
+    useState<boolean>(false);
+
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const isAdmin = isUserAdmin(fullUser);
   const showUploads = allowUploads || isAdmin;
@@ -162,8 +169,8 @@ function DatabaseList({
       .then(({ json = {} }) => {
         setDatabaseCurrentlyDeleting({
           ...database,
-          chart_count: json.charts.count,
-          dashboard_count: json.dashboards.count,
+          charts: json.charts,
+          dashboards: json.dashboards,
           sqllab_tab_count: json.sqllab_tab_states.count,
         });
       })
@@ -233,22 +240,31 @@ function DatabaseList({
         {
           label: t('Upload CSV'),
           name: 'Upload CSV file',
-          url: '/csvtodatabaseview/form',
+          url: '#',
+          onClick: () => {
+            setCsvUploadDataModalOpen(true);
+          },
           perm: canUploadCSV && showUploads,
           disable: isDisabled,
         },
         {
-          label: t('Upload columnar file'),
-          name: 'Upload columnar file',
-          url: '/columnartodatabaseview/form',
-          perm: canUploadColumnar && showUploads,
+          label: t('Upload Excel'),
+          name: 'Upload Excel file',
+          url: '#',
+          onClick: () => {
+            setExcelUploadDataModalOpen(true);
+          },
+          perm: canUploadExcel && showUploads,
           disable: isDisabled,
         },
         {
-          label: t('Upload Excel file'),
-          name: 'Upload Excel file',
-          url: '/exceltodatabaseview/form',
-          perm: canUploadExcel && showUploads,
+          label: t('Upload Columnar'),
+          name: 'Upload columnar file',
+          url: '#',
+          onClick: () => {
+            setColumnarUploadDataModalOpen(true);
+          },
+          perm: canUploadColumnar && showUploads,
           disable: isDisabled,
         },
       ],
@@ -264,7 +280,7 @@ function DatabaseList({
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
     }).then(({ json }: Record<string, any>) => {
-      // There might be some existings Gsheets and Clickhouse DBs
+      // There might be some existing Gsheets and Clickhouse DBs
       // with allow_file_upload set as True which is not possible from now on
       const allowedDatabasesWithFileUpload =
         json?.result?.filter(
@@ -373,7 +389,7 @@ function DatabaseList({
       },
       {
         accessor: 'allow_file_upload',
-        Header: t('CSV upload'),
+        Header: t('File upload'),
         Cell: ({
           row: {
             original: { allow_file_upload: allowFileUpload },
@@ -557,19 +573,117 @@ function DatabaseList({
           refreshData();
         }}
       />
+      <UploadDataModal
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onHide={() => {
+          setCsvUploadDataModalOpen(false);
+        }}
+        show={csvUploadDataModalOpen}
+        allowedExtensions={CSV_EXTENSIONS}
+        type="csv"
+      />
+      <UploadDataModal
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onHide={() => {
+          setExcelUploadDataModalOpen(false);
+        }}
+        show={excelUploadDataModalOpen}
+        allowedExtensions={EXCEL_EXTENSIONS}
+        type="excel"
+      />
+      <UploadDataModal
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onHide={() => {
+          setColumnarUploadDataModalOpen(false);
+        }}
+        show={columnarUploadDataModalOpen}
+        allowedExtensions={COLUMNAR_EXTENSIONS}
+        type="columnar"
+      />
       {databaseCurrentlyDeleting && (
         <DeleteModal
           description={
             <>
               <p>
+                {t('The database')}{' '}
+                <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
                 {t(
-                  'The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
-                  databaseCurrentlyDeleting.database_name,
-                  databaseCurrentlyDeleting.chart_count,
-                  databaseCurrentlyDeleting.dashboard_count,
+                  'is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
+                  databaseCurrentlyDeleting.charts.count,
+                  databaseCurrentlyDeleting.dashboards.count,
                   databaseCurrentlyDeleting.sqllab_tab_count,
                 )}
               </p>
+              {databaseCurrentlyDeleting.dashboards.count >= 1 && (
+                <>
+                  <h4>{t('Affected Dashboards')}</h4>
+                  <ul>
+                    {databaseCurrentlyDeleting.dashboards.result
+                      .slice(0, 10)
+                      .map(
+                        (
+                          result: { id: number; title: string },
+                          index: number,
+                        ) => (
+                          <li key={result.id}>
+                            <a
+                              href={`/superset/dashboard/${result.id}`}
+                              target="_atRiskItem"
+                            >
+                              {result.title}
+                            </a>
+                          </li>
+                        ),
+                      )}
+                    {databaseCurrentlyDeleting.dashboards.result.length >
+                      10 && (
+                      <li>
+                        {t(
+                          '... and %s others',
+                          databaseCurrentlyDeleting.dashboards.result.length -
+                            10,
+                        )}
+                      </li>
+                    )}
+                  </ul>
+                </>
+              )}
+              {databaseCurrentlyDeleting.charts.count >= 1 && (
+                <>
+                  <h4>{t('Affected Charts')}</h4>
+                  <ul>
+                    {databaseCurrentlyDeleting.charts.result.slice(0, 10).map(
+                      (
+                        result: {
+                          id: number;
+                          slice_name: string;
+                        },
+                        index: number,
+                      ) => (
+                        <li key={result.id}>
+                          <a
+                            href={`/explore/?slice_id=${result.id}`}
+                            target="_atRiskItem"
+                          >
+                            {result.slice_name}
+                          </a>
+                        </li>
+                      ),
+                    )}
+                    {databaseCurrentlyDeleting.charts.result.length > 10 && (
+                      <li>
+                        {t(
+                          '... and %s others',
+                          databaseCurrentlyDeleting.charts.result.length - 10,
+                        )}
+                      </li>
+                    )}
+                  </ul>
+                </>
+              )}
               {DatabaseDeleteRelatedExtension && (
                 <DatabaseDeleteRelatedExtension
                   database={databaseCurrentlyDeleting}

@@ -331,7 +331,7 @@ function Icicle(element, props) {
         tooltip.interrupt().transition().duration(250).style('opacity', 0);
       });
 
-    // When clicking a subdivision, the vis will zoom in to it
+    // When clicking a subdivision, the vis will zoom into it
     function click(d) {
       if (!d.children) {
         if (d.parent) {
@@ -384,7 +384,7 @@ function Icicle(element, props) {
 
     // Apply color scheme
     g.selectAll('rect').style('fill', d => {
-      d.color = colorFn(d.name, sliceId);
+      d.color = colorFn(d.name, sliceId, colorScheme);
 
       return d.color;
     });

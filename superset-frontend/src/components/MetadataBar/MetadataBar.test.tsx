@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import * as resizeDetector from 'react-resize-detector';
@@ -159,7 +158,7 @@ test('renders underlined text and emits event when clickable', () => {
   expect(style.textDecoration).toBe('underline');
 });
 
-test('renders clicable items with blue icons when the bar is collapsed', async () => {
+test('renders clickable items with blue icons when the bar is collapsed', async () => {
   await runWithBarCollapsed(async () => {
     const onClick = jest.fn();
     const items = [{ ...ITEMS[0], onClick }, ITEMS[1]];
@@ -264,4 +263,26 @@ test('correctly renders the tags tooltip', async () => {
       expect(within(tooltip).getByText(tag)).toBeInTheDocument(),
     );
   });
+});
+
+test('renders StyledItem with role="button" when onClick is defined', () => {
+  const onClick = jest.fn();
+  const items = [
+    { ...ITEMS[0], onClick },
+    { ...ITEMS[1], onClick },
+  ];
+  render(<MetadataBar items={items} />);
+
+  const styledItems = screen.getAllByRole('button');
+
+  expect(styledItems.length).toBe(2);
+});
+
+test('renders StyledItem with role=undefined when onClick is not defined', () => {
+  const items = [ITEMS[0], ITEMS[1]];
+  render(<MetadataBar items={items} />);
+
+  const styledItems = screen.queryAllByRole('button');
+
+  expect(styledItems.length).toBe(0);
 });

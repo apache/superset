@@ -21,7 +21,6 @@ import os
 import re
 import subprocess
 from typing import List
-from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 # Define patterns for each group of files you're interested in
@@ -53,7 +52,7 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 def fetch_files_github_api(url: str):  # type: ignore
     """Fetches data using GitHub API."""
     req = Request(url)
-    req.add_header("Authorization", f"token {GITHUB_TOKEN}")
+    req.add_header("Authorization", f"Bearer {GITHUB_TOKEN}")
     req.add_header("Accept", "application/vnd.github.v3+json")
 
     print(f"Fetching from {url}")
@@ -99,23 +98,30 @@ def print_files(files: List[str]) -> None:
 def main(event_type: str, sha: str, repo: str) -> None:
     """Main function to check for file changes based on event context."""
     print("SHA:", sha)
+    print("EVENT_TYPE", event_type)
     if event_type == "pull_request":
         pr_number = os.getenv("GITHUB_REF", "").split("/")[-2]
         files = fetch_changed_files_pr(repo, pr_number)
-        print(f"PR files:")
+        print("PR files:")
         print_files(files)
 
     elif event_type == "push":
         files = fetch_changed_files_push(repo, sha)
-        print(f"Files touched since previous commit:")
+        print("Files touched since previous commit:")
         print_files(files)
+
+    elif event_type == "workflow_dispatch":
+        print("Workflow dispatched, assuming all changed")
+
     else:
         raise ValueError("Unsupported event type")
 
     changes_detected = {}
     for group, regex_patterns in PATTERNS.items():
         patterns_compiled = [re.compile(p) for p in regex_patterns]
-        changes_detected[group] = detect_changes(files, patterns_compiled)
+        changes_detected[group] = event_type == "workflow_dispatch" or detect_changes(
+            files, patterns_compiled
+        )
 
     # Output results
     output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"

@@ -16,20 +16,20 @@
     ]
   },
   "dependencies": {
-    "@applitools/eyes-cypress": "^3.29.1",
+    "@applitools/eyes-cypress": "^3.44.7",
     "@cypress/code-coverage": "^3.10.4",
     "@superset-ui/core": "^2.1.0",
     "brace": "^0.11.1",
-    "cy-verify-downloads": "^0.1.6",
+    "cy-verify-downloads": "^0.2.5",
     "cypress-fail-on-console-error": "^4.0.3",
     "querystringify": "^2.2.0",
     "react-dom": "^16.13.0",
     "rison": "^0.1.1",
-    "shortid": "^2.2.15"
+    "nanoid": "^5.0.7"
   },
   "devDependencies": {
     "@types/querystringify": "^2.0.0",
-    "cypress": "^10.11.0",
-    "eslint-plugin-cypress": "^2.12.1"
+    "cypress": "^11.2.0",
+    "eslint-plugin-cypress": "^3.5.0"
   }
 }

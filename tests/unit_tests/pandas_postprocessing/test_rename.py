@@ -120,7 +120,7 @@ def test_should_raise_exception_duplication():
         )
 
 
-def test_should_raise_exception_duplication_on_multiindx():
+def test_should_raise_exception_duplication_on_multiindex():
     iterables = [["m1", "m2"], ["a", "b"], ["x", "y"]]
     columns = pd.MultiIndex.from_product(iterables, names=[None, "level1", "level2"])
     df = pd.DataFrame(index=[0, 1, 2], columns=columns, data=1)

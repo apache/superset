@@ -26,9 +26,7 @@ Create Date: 2023-12-27 13:14:27.268232
 revision = "59a1450b3c10"
 down_revision = "65a167d4c62e"
 
-from importlib import import_module
-
-from alembic import op
+from importlib import import_module  # noqa: E402
 
 module = import_module(
     "superset.migrations.versions.2021-03-29_11-15_3ebe0993c770_filterset_table"

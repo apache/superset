@@ -16,43 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Menu } from 'src/components/Menu';
-import DownloadAsImage from './DownloadAsImage';
-import DownloadAsPdf from './DownloadAsPdf';
+import DownloadScreenshot from './DownloadScreenshot';
+import { DownloadScreenshotFormat } from './types';
 
 export interface DownloadMenuItemProps {
   pdfMenuItemTitle: string;
   imageMenuItemTitle: string;
-  addDangerToast: Function;
   dashboardTitle: string;
   logEvent?: Function;
+  dashboardId: string;
 }
 
 const DownloadMenuItems = (props: DownloadMenuItemProps) => {
   const {
     pdfMenuItemTitle,
     imageMenuItemTitle,
-    addDangerToast,
-    dashboardTitle,
     logEvent,
+    dashboardId,
     ...rest
   } = props;
 
   return (
     <Menu selectable={false}>
-      <DownloadAsPdf
+      <DownloadScreenshot
         text={pdfMenuItemTitle}
-        addDangerToast={addDangerToast}
-        dashboardTitle={dashboardTitle}
+        dashboardId={dashboardId}
         logEvent={logEvent}
+        format={DownloadScreenshotFormat.PDF}
         {...rest}
       />
-      <DownloadAsImage
+      <DownloadScreenshot
         text={imageMenuItemTitle}
-        addDangerToast={addDangerToast}
-        dashboardTitle={dashboardTitle}
+        dashboardId={dashboardId}
         logEvent={logEvent}
+        format={DownloadScreenshotFormat.PNG}
         {...rest}
       />
     </Menu>

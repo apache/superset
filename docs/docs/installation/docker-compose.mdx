@@ -1,0 +1,229 @@
+---
+title: Docker Compose
+hide_title: true
+sidebar_position: 4
+version: 1
+---
+
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
+# Using Docker Compose
+
+<img src={useBaseUrl("/img/docker-compose.webp" )} width="150" />
+<br /><br />
+
+:::caution
+Since `docker compose` is primarily designed to run a set of containers on **a single host**
+and can't support requirements for **high availability**, we do not support nor recommend
+using our `docker compose` constructs to support production-type use-cases. For single host
+environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
+our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
+documentation.
+:::
+
+As mentioned in our [quickstart guide](/docs/quickstart), the fastest way to try
+Superset locally is using Docker Compose on a Linux or Mac OSX
+computer. Superset does not have official support for Windows. It's also the easiest
+way to launch a fully functioning **development environment** quickly.
+
+Note that there are 3 major ways we support to run `docker compose`:
+
+1. **docker-compose.yml:** for interactive development, where we mount your local folder with the
+  frontend/backend files that you can edit and experience the changes you
+  make in the app in real time
+1. **docker-compose-non-dev.yml** where we just build a more immutable image based on the
+  local branch and get all the required images running. Changes in the local branch
+  at the time you fire this up will be reflected, but changes to the code
+  while `up` won't be reflected in the app
+1. **docker-compose-image-tag.yml** where we fetch an image from docker-hub say for the
+  `3.0.0` release for instance, and fire it up so you can try it. Here what's in
+  the local branch has no effects on what's running, we just fetch and run
+  pre-built images from docker-hub. For `docker compose` to work along with the
+  Postgres image it boots up, you'll want to point to a `-dev`-suffixed TAG, as in
+  `export TAG=4.0.0-dev` or `export TAG=3.0.0-dev`, with `latest-dev` being the default.
+  That's because The `dev` builds happen to package the `psycopg2-binary` required to connect
+  to the Postgres database launched as part of the `docker compose` builds.
+``
+
+More on these two approaches after setting up the requirements for either.
+
+## Requirements
+
+Note that this documentation assumes that you have [Docker](https://www.docker.com) and
+[git](https://git-scm.com/) installed. Note also that we used to use `docker-compose` but that
+is on the path to deprecation so we now use `docker compose` instead.
+
+## 1. Clone Superset's GitHub repository
+
+[Clone Superset's repo](https://github.com/apache/superset) in your terminal with the
+following command:
+
+```bash
+git clone --depth=1  https://github.com/apache/superset.git
+```
+
+Once that command completes successfully, you should see a new `superset` folder in your
+current directory.
+
+## 2. Launch Superset Through Docker Compose
+
+First let's assume you're familiar with `docker compose` mechanics. Here we'll refer generally
+to `docker compose up` even though in some cases you may want to force a check for newer remote
+images using `docker compose pull`, force a build with `docker compose build` or force a build
+on latest base images using `docker compose build --pull`. In most cases though, the simple
+`up` command should do just fine. Refer to docker compose docs for more information on the topic.
+
+### Option #1 - for an interactive development environment
+
+```bash
+docker compose up
+```
+
+:::tip
+When running in development mode the `superset-node`
+container needs to finish building assets in order for the UI to render properly. If you would just
+like to try out Superset without making any code changes follow the steps documented for
+`production` or a specific version below.
+:::
+
+:::tip
+By default, we mount the local superset-frontend folder here and run `npm install` as well
+as `npm run dev` which triggers webpack to compile/bundle the frontend code. Depending
+on your local setup, especially if you have less than 16GB of memory,  it may be very slow to
+perform those operations. In this case, we recommend you set the env var
+`BUILD_SUPERSET_FRONTEND_IN_DOCKER` to `false`, and to run this locally instead in a terminal.
+Simply trigger `npm i && npm run dev`, this should be MUCH faster.
+:::
+
+### Option #2 - build a set of immutable images from the local branch
+
+```bash
+docker compose -f docker-compose-non-dev.yml up
+```
+
+### Option #3 - boot up an official release
+
+```bash
+export TAG=3.1.1
+docker compose -f docker-compose-image-tag.yml up
+```
+
+Here various release tags, github SHA, and latest `master` can be referenced by the TAG env var.
+Refer to the docker-related documentation to learn more about existing tags you can point to
+from Docker Hub.
+
+## `docker compose` tips & configuration
+
+:::caution
+All of the content belonging to a Superset instance - charts, dashboards, users, etc. - is stored in
+its metadata database. In production, this database should be backed up.  The default installation
+with docker compose will store that data in a PostgreSQL database contained in a Docker
+[volume](https://docs.docker.com/storage/volumes/), which is not backed up.
+
+Again, **DO NOT USE THIS FOR PRODUCTION**
+
+:::
+
+You should see a stream of logging output from the containers being launched on your machine. Once
+this output slows, you should have a running instance of Superset on your local machine!  To avoid
+the wall of text on future runs, add the `-d` option to the end of the `docker compose up` command.
+
+### Configuring Further
+
+The following is for users who want to configure how Superset runs in Docker Compose; otherwise, you
+can skip to the next section.
+
+You can install additional python packages and apply config overrides by following the steps
+mentioned in [docker/README.md](https://github.com/apache/superset/tree/master/docker#configuration)
+
+Note that `docker/.env` sets the default environment variables for all the docker images
+used by `docker compose`, and that `docker/.env-local` can be used to override those defaults.
+Also note that `docker/.env-local` is referenced in our `.gitignore`,
+preventing developers from risking committing potentially sensitive configuration to the repository.
+
+One important variable is `SUPERSET_LOAD_EXAMPLES` which determines whether the `superset_init`
+container will populate example data and visualizations into the metadata database. These examples
+are helpful for learning and testing out Superset but unnecessary for experienced users and
+production deployments. The loading process can sometimes take a few minutes and a good amount of
+CPU, so you may want to disable it on a resource-constrained device.
+
+For more advanced or dynamic configurations that are typically managed in a `superset_config.py` file
+located in your `PYTHONPATH`, note that it can be done by providing a
+`docker/pythonpath_dev/superset_config_docker.py` that will be ignored by git
+(preventing you to commit/push your local configuration back to the repository).
+The mechanics of this are in `docker/pythonpath_dev/superset_config.py` where you can see
+that the logic runs a `from superset_config_docker import *`
+
+:::note
+Users often want to connect to other databases from Superset. Currently, the easiest way to
+do this is to modify the `docker-compose-non-dev.yml` file and add your database as a service that
+the other services depend on (via `x-superset-depends-on`). Others have attempted to set
+`network_mode: host` on the Superset services, but these generally break the installation,
+because the configuration requires use of the Docker Compose DNS resolver for the service names.
+If you have a good solution for this, let us know!
+:::
+
+:::note
+Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect telemetry
+data. Knowing the installation counts for different Superset versions informs the project's
+decisions about patching and long-term support. Scarf purges personally identifiable information
+(PII) and provides only aggregated statistics.
+
+To opt-out of this data collection for packages downloaded through the Scarf Gateway by your docker
+compose based installation, edit the `x-superset-image:` line in your `docker-compose.yml` and
+`docker-compose-non-dev.yml` files, replacing `apachesuperset.docker.scarf.sh/apache/superset` with
+`apache/superset` to pull the image directly from Docker Hub.
+
+To disable the Scarf telemetry pixel, set the `SCARF_ANALYTICS` environment variable to `False` in
+your terminal and/or in your `docker/.env` file.
+:::
+
+## 3. Log in to Superset
+
+Your local Superset instance also includes a Postgres server to store your data and is already
+pre-loaded with some example datasets that ship with Superset. You can access Superset now via your
+web browser by visiting `http://localhost:8088`. Note that many browsers now default to `https` - if
+yours is one of them, please make sure it uses `http`.
+
+Log in with the default username and password:
+
+```bash
+username: admin
+```
+
+```bash
+password: admin
+```
+
+## 4. Connecting Superset to your local database instance
+
+When running Superset using `docker` or `docker compose` it runs in its own docker container, as if
+the Superset was running in a separate machine entirely. Therefore attempts to connect to your local
+database with the hostname `localhost` won't work as `localhost` refers to the docker container
+Superset is running in, and not your actual host machine. Fortunately, docker provides an easy way
+to access network resources in the host machine from inside a container, and we will leverage this
+capability to connect to our local database instance.
+
+Here the instructions are for connecting to postgresql (which is running on your host machine) from
+Superset (which is running in its docker container). Other databases may have slightly different
+configurations but gist would be same and boils down to 2 steps -
+
+1. **(Mac users may skip this step)** Configuring the local postgresql/database instance to accept
+public incoming connections. By default, postgresql only allows incoming connections from
+`localhost` and under Docker, unless you use `--network=host`, `localhost` will refer to different
+endpoints on the host machine and in a docker container respectively. Allowing postgresql to accept
+connections from the Docker involves making one-line changes to the files `postgresql.conf` and
+`pg_hba.conf`; you can find helpful links tailored to your OS / PG version on the web easily for
+this task. For Docker it suffices to only whitelist IPs `172.0.0.0/8` instead of `*`, but in any
+case you are _warned_ that doing this in a production database _may_ have disastrous consequences as
+you are opening your database to the public internet.
+1. Instead of `localhost`, try using `host.docker.internal` (Mac users, Ubuntu) or `172.18.0.1`
+(Linux users) as the hostname when attempting to connect to the database. This is a Docker internal
+detail -- what is happening is that, in Mac systems, Docker Desktop creates a dns entry for the
+hostname `host.docker.internal` which resolves to the correct address for the host machine, whereas
+in Linux this is not the case (at least by default). If neither of these 2 hostnames work then you
+may want to find the exact hostname you want to use, for that you can do `ifconfig` or
+`ip addr show` and look at the IP address of `docker0` interface that must have been created by
+Docker for you. Alternately if you don't even see the `docker0` interface try (if needed with sudo)
+`docker network inspect bridge` and see if there is an entry for `"Gateway"` and note the IP
+address.

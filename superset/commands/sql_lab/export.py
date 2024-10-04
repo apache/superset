@@ -126,7 +126,11 @@ class SqlResultExportCommand(BaseCommand):
             }:
                 # remove extra row from `increased_limit`
                 limit -= 1
-            df = self._query.database.get_df(sql, self._query.schema)[:limit]
+            df = self._query.database.get_df(
+                sql,
+                self._query.catalog,
+                self._query.schema,
+            )[:limit]
 
         csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
 

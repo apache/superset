@@ -16,10 +16,9 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 import uuid
-from collections import defaultdict
+from collections import defaultdict, deque
 from typing import Any, Callable
 
 import sqlalchemy as sqla
@@ -32,7 +31,6 @@ from sqlalchemy import (
     Column,
     ForeignKey,
     Integer,
-    MetaData,
     String,
     Table,
     Text,
@@ -52,7 +50,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
@@ -85,7 +83,7 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         user_id=target.id, welcome_dashboard_id=dashboard.id
     )
     session.add(extra_attributes)
-    session.commit()
+    session.commit()  # pylint: disable=consider-using-transaction
 
 
 sqla.event.listen(User, "after_insert", copy_dashboard)
@@ -152,11 +150,12 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     )
     tags = relationship(
         "Tag",
-        overlaps="objects,tag,tags,tags",
+        overlaps="objects,tag,tags",
         secondary="tagged_object",
-        primaryjoin="and_(Dashboard.id == TaggedObject.object_id)",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        primaryjoin="and_(Dashboard.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'dashboard')",
+        secondaryjoin="TaggedObject.tag_id == Tag.id",
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
     )
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
@@ -215,13 +214,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         return [slc.chart for slc in self.slices]
 
     @property
-    def sqla_metadata(self) -> None:
-        # pylint: disable=no-member
-        with self.get_sqla_engine_with_context() as engine:
-            meta = MetaData(bind=engine)
-            meta.reflect()
-
-    @property
     def status(self) -> utils.DashboardStatus:
         if self.published:
             return utils.DashboardStatus.PUBLISHED
@@ -272,9 +264,9 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
     def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
         # Verbose but efficient database enumeration of dashboard datasources.
-        slices_by_datasource: dict[
-            tuple[type[BaseDatasource], int], set[Slice]
-        ] = defaultdict(set)
+        slices_by_datasource: dict[tuple[type[BaseDatasource], int], set[Slice]] = (
+            defaultdict(set)
+        )
 
         for slc in self.slices:
             slices_by_datasource[(slc.cls_model, slc.datasource_id)].add(slc)
@@ -305,6 +297,54 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         if self.position_json:
             return json.loads(self.position_json)
         return {}
+
+    @property
+    def tabs(self) -> dict[str, Any]:
+        if self.position == {}:
+            return {}
+
+        def get_node(node_id: str) -> dict[str, Any]:
+            """
+            Helper function for getting a node from the position_data
+            """
+            return self.position[node_id]
+
+        def build_tab_tree(
+            node: dict[str, Any], children: list[dict[str, Any]]
+        ) -> None:
+            """
+            Function for building the tab tree structure and list of all tabs
+            """
+
+            new_children: list[dict[str, Any]] = []
+            # new children to overwrite parent's children
+            for child_id in node.get("children", []):
+                child = get_node(child_id)
+                if node["type"] == "TABS":
+                    # if TABS add create a new list and append children to it
+                    # new_children.append(child)
+                    children.append(child)
+                    queue.append((child, new_children))
+                elif node["type"] in ["GRID", "ROOT"]:
+                    queue.append((child, children))
+                elif node["type"] == "TAB":
+                    queue.append((child, new_children))
+            if node["type"] == "TAB":
+                node["children"] = new_children
+                node["title"] = node["meta"]["text"]
+                node["value"] = node["id"]
+                all_tabs[node["id"]] = node["title"]
+
+        root = get_node("ROOT_ID")
+        tab_tree: list[dict[str, Any]] = []
+        all_tabs: dict[str, str] = {}
+        queue: deque[tuple[dict[str, Any], list[dict[str, Any]]]] = deque()
+        queue.append((root, tab_tree))
+        while queue:
+            node, children = queue.popleft()
+            build_tab_tree(node, children)
+
+        return {"all_tabs": all_tabs, "tab_tree": tab_tree}
 
     def update_thumbnail(self) -> None:
         cache_dashboard_thumbnail.delay(
@@ -380,7 +420,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
         return json.dumps(
             {"dashboards": copied_dashboards, "datasources": eager_datasources},
-            cls=utils.DashboardEncoder,
+            cls=json.DashboardEncoder,
             indent=4,
         )
 
@@ -426,6 +466,6 @@ def id_or_slug_filter(id_or_slug: int | str) -> BinaryExpression:
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
 
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
-    update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()
+    update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()  # noqa: E731
     sqla.event.listen(Dashboard, "after_insert", update_thumbnail)
     sqla.event.listen(Dashboard, "after_update", update_thumbnail)

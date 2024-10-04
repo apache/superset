@@ -61,8 +61,17 @@ tsconfig.tsbuildinfo
 generator-superset/*
 temporary_superset_ui/*
 
+# skip license checks for auto-generated test snapshots
+.*snap
+
 # docs overrides for third party logos we don't have the rights to
 google-big-query.svg
 google-sheets.svg
+ibm-db2.svg
 postgresql.svg
 snowflake.svg
+
+# docs-related
+erd.puml
+erd.svg
+intro_header.txt

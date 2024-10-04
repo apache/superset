@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Sql Lab"""
-import json
+
 from datetime import datetime
 from textwrap import dedent
 
@@ -28,7 +28,7 @@ import prison
 
 from freezegun import freeze_time
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable  # noqa: F401
 from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -43,10 +43,9 @@ from superset.sql_lab import (
     apply_limit_if_exists,
 )
 from superset.sql_parse import CtasMethod
-from superset.utils.core import (
-    backend,
-    datetime_to_epoch,
-)
+from superset.utils.core import backend
+from superset.utils import json
+from superset.utils.json import datetime_to_epoch  # noqa: F401
 from superset.utils.database import get_example_database, get_main_database
 
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -58,10 +57,10 @@ from tests.integration_tests.constants import (
     GAMMA_USERNAME,
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
-from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data
+from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data  # noqa: F401
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"
@@ -72,10 +71,8 @@ QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
 
-    @pytest.mark.usefixtures("load_birth_names_data")
     def run_some_queries(self):
         db.session.query(Query).delete()
-        db.session.commit()
         self.run_sql(QUERY_1, client_id="client_id_1", username="admin")
         self.run_sql(QUERY_2, client_id="client_id_2", username="admin")
         self.run_sql(QUERY_3, client_id="client_id_3", username="gamma_sqllab")
@@ -140,7 +137,11 @@ class TestSqlLab(SupersetTestCase):
         assert data == {
             "errors": [
                 {
-                    "message": "Only SELECT statements are allowed against this database.",
+                    "message": (
+                        "This database does not allow for DDL/DML, and the query "
+                        "could not be parsed to confirm it is a read-only query. Please "
+                        "contact your administrator for more assistance."
+                    ),
                     "error_type": SupersetErrorType.DML_NOT_ALLOWED_ERROR,
                     "level": ErrorLevel.ERROR,
                     "extra": {
@@ -212,12 +213,12 @@ class TestSqlLab(SupersetTestCase):
             # assertions
             db.session.commit()
             examples_db = get_example_database()
-            with examples_db.get_sqla_engine_with_context() as engine:
+            with examples_db.get_sqla_engine() as engine:
                 data = engine.execute(
                     f"SELECT * FROM admin_database.{tmp_table_name}"
                 ).fetchall()
                 names_count = engine.execute(
-                    f"SELECT COUNT(*) FROM birth_names"
+                    f"SELECT COUNT(*) FROM birth_names"  # noqa: F541
                 ).first()
                 self.assertEqual(
                     names_count[0], len(data)
@@ -283,9 +284,15 @@ class TestSqlLab(SupersetTestCase):
             # sqlite doesn't support database creation
             return
 
+        catalog = examples_db.get_default_catalog()
         sqllab_test_db_schema_permission_view = (
             security_manager.add_permission_view_menu(
-                "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
+                "schema_access",
+                security_manager.get_schema_perm(
+                    examples_db.name,
+                    catalog,
+                    CTAS_SCHEMA_NAME,
+                ),
             )
         )
         schema_perm_role = security_manager.add_role("SchemaPermission")
@@ -296,7 +303,7 @@ class TestSqlLab(SupersetTestCase):
             "SchemaUser", ["SchemaPermission", "Gamma", "sql_lab"]
         )
 
-        with examples_db.get_sqla_engine_with_context() as engine:
+        with examples_db.get_sqla_engine() as engine:
             engine.execute(
                 f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
             )
@@ -325,7 +332,7 @@ class TestSqlLab(SupersetTestCase):
             self.assertEqual(1, len(data["data"]))
 
         db.session.query(Query).delete()
-        with get_example_database().get_sqla_engine_with_context() as engine:
+        with get_example_database().get_sqla_engine() as engine:
             engine.execute(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
         db.session.commit()
 
@@ -414,6 +421,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def test_query_api_filter(self) -> None:
         """
         Test query api without can_only_access_owned_queries perm added to
@@ -433,6 +441,7 @@ class TestSqlLab(SupersetTestCase):
         assert admin.first_name in user_queries
         assert gamma_sqllab.first_name in user_queries
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def test_query_api_can_access_all_queries(self) -> None:
         """
         Test query api with can_access_all_queries perm added to
@@ -517,6 +526,7 @@ class TestSqlLab(SupersetTestCase):
             {r.get("sql") for r in self.get_json_resp(url)["result"]},
         )
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def test_query_admin_can_access_all_queries(self) -> None:
         """
         Test query api with all_query_access perm added to
@@ -568,9 +578,9 @@ class TestSqlLab(SupersetTestCase):
         assert data["status"] == "success"
 
         data = self.run_sql(
-            "SELECT * FROM birth_names WHERE state = '{{ state }}' -- blabblah {{ extra1 }} {{fake.fn()}}\nLIMIT 10",
+            "SELECT * FROM birth_names WHERE state = '{{ state }}' -- blabblah {{ extra1 }}\nLIMIT 10",
             "3",
-            template_params=json.dumps({"state": "CA"}),
+            template_params=json.dumps({"state": "CA", "extra1": "comment"}),
         )
         assert data["status"] == "success"
 
@@ -644,7 +654,7 @@ class TestSqlLab(SupersetTestCase):
             SELECT /*+ hint */ @value AS foo;
         """
         )
-        mock_db = mock.MagicMock()
+        mock_db = mock.MagicMock()  # noqa: F841
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
@@ -748,7 +758,7 @@ class TestSqlLab(SupersetTestCase):
             SELECT /*+ hint */ @value AS foo;
         """
         )
-        mock_db = mock.MagicMock()
+        mock_db = mock.MagicMock()  # noqa: F841
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()

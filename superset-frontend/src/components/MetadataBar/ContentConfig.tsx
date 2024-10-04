@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { ContentType, MetadataType } from '.';

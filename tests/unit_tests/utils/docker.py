@@ -16,7 +16,6 @@
 # under the License.
 import os
 import sys
-from unittest.mock import patch
 
 import pytest
 
@@ -32,7 +31,7 @@ scripts_dir = os.path.abspath(
 )
 sys.path.append(scripts_dir)
 
-import build_docker as docker_utils  # Replace with the actual function name
+import build_docker as docker_utils  # Replace with the actual function name  # noqa: E402
 
 
 @pytest.fixture(autouse=True)

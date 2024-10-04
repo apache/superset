@@ -17,7 +17,6 @@
  * under the License.
  */
 import Markdown from 'markdown-to-jsx';
-import React from 'react';
 import AtomicDesign from './atomic-design.png';
 
 export default {

@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Story } from '@storybook/addon-docs';
 import Markdown from 'markdown-to-jsx';
-import React from 'react';
 
 export default {
   title: 'Design System/Components/Table"',
@@ -47,8 +45,6 @@ This component provides a general use Table.
 
 `}
     </Markdown>
-
-    <Story id="design-system-components-table-examples--basic" />
 
     <Markdown>
       {`
@@ -111,7 +107,7 @@ const basicData: = [
   {
     key: 3,
     name: '128 GB SSD',
-    category: 'Hardrive',
+    category: 'Harddrive',
     price: '49.99'
     description: 'Reliable and fast data storage',
   },
@@ -167,14 +163,13 @@ If a different sort option is needed, consider adding it as a reusable sort func
 
 ---
 
-### Cell Content Renderers
+### [Cell Content Renderers](./?path=/docs/design-system-components-table-examples--cell-renderers)
 
 By default, each column will render the value as simple text. Often you will want to show formatted values, such as a numeric column showing as currency, or a more complex component such as a button or action menu as a cell value.
 Cell Renderers are React components provided to the optional \`render\` attribute on a column definition that enables injecting a specific React component to enable this.
 
 `}
     </Markdown>
-    <Story id="design-system-components-table-examples--cell-renderers" />
     <Markdown>
       {`
 
@@ -193,26 +188,23 @@ The following data types can be displayed in table cells.
 
 ---
 
-### Loading
+### [Loading](./?path=/docs/design-system-components-table-examples--loading)
 
 The table can be set to a loading state simply by setting the loading prop to true | false
 
   `}
     </Markdown>
-
-    <Story id="design-system-components-table-examples--loading" />
     <Markdown>
       {`
 ---
 
-### Pagination
+### [Pagination](./?path=/docs/design-system-components-table-examples--pagination)
 
 The table displays a set number of rows at a time, the user navigates the table via pagination. Use in scenarios where the user is searching for a specific piece of content.
 The default page size and page size options for the menu are configurable via the \`pageSizeOptions\` and \`defaultPageSize\` props.
 NOTE: Pagination controls will only display when the data for the table has more records than the default page size.
 `}
     </Markdown>
-    <Story id="design-system-components-table-examples--pagination" />
     <Markdown>
       {`
 
@@ -222,7 +214,7 @@ NOTE: Pagination controls will only display when the data for the table has more
 
 ---
 
-### Server Pagination
+### [Server Pagination](./?path=/docs/design-system-components-table-examples--server-pagination)
 
 The table can be configured for async data fetching to get partial data sets while showing pagination controls that let the user navigate through data.
 To override the default paging, which uses \`data.length\` to determine the record count, populate the \`recordCount\` prop with the total number of records
@@ -231,7 +223,6 @@ function enabling data fetching to occur when the user changes the page.
 
 `}
     </Markdown>
-    <Story id="design-system-components-table-examples--server-pagination" />
     <Markdown>
       {`
 
@@ -293,7 +284,7 @@ const ServerPaginationTable = () => {
 
 ---
 
-### Virtualization for Performance
+### [Virtualization for Performance](./?path=/docs/design-system-components-table-examples--virtualized-performance)
 
 Table virtualization can enable viewing data with many columns and/or rows.
 Virtualization can be enabled via the \`virtualize\` prop.
@@ -303,7 +294,6 @@ Support for row event handlers may be added in future versions of the Table.
 
 `}
     </Markdown>
-    <Story id="design-system-components-table-examples--virtualized-performance" />
     <Markdown>
       {`
 
@@ -352,18 +342,17 @@ The following specifications are required every time a table is used. These choi
 The Table component has features that are still experimental and can be used at your own risk.
 These features are intended to be made fully stable in future releases.
 
-### Resizable Columns
+### [Resizable Columns](./?path=/docs/design-system-components-table-examples--resizable-columns)
 
 The prop \`resizable\` enables table columns to be resized by the user dragging from the right edge of each
 column to increase or decrease the columns' width
 
 `}
     </Markdown>
-    <Story id="design-system-components-table-examples--resizable-columns" />
     <Markdown>
       {`
 
-### Drag & Drop Columns
+### [Drag & Drop Columns](./?path=/docs/design-system-components-table-examples--reorderable-columns)
 
 The prop \`reorderable\` can enable column drag and drop reordering as well as dragging a column to another component. If you want to accept the drop event of a Table Column
 you can register \`onDragOver\` and \`onDragDrop\` event handlers on the destination component. In the \`onDragDrop\` handler you can check for \`SUPERSET_TABLE_COLUMN\`
@@ -380,6 +369,5 @@ const handleDrop = (ev:Event) => {
 \`\`\`
 `}
     </Markdown>
-    <Story id="design-system-components-table-examples--reorderable-columns" />
   </>
 );

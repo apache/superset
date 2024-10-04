@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useCallback, useRef, FocusEvent } from 'react';
+import { useState, useCallback, useRef, FocusEvent, FC } from 'react';
+
 import { t, useTheme } from '@superset-ui/core';
 
 import { AntdInput, Select } from 'src/components';
@@ -45,9 +46,10 @@ const SCHEDULE_TYPE_OPTIONS = [
   },
 ];
 
-export const AlertReportCronScheduler: React.FC<
-  AlertReportCronSchedulerProps
-> = ({ value, onChange }) => {
+export const AlertReportCronScheduler: FC<AlertReportCronSchedulerProps> = ({
+  value,
+  onChange,
+}) => {
   const theme = useTheme();
   const inputRef = useRef<AntdInput>(null);
   const [scheduleFormat, setScheduleFormat] = useState<ScheduleType>(

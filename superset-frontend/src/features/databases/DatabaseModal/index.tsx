@@ -22,7 +22,8 @@ import {
   SupersetTheme,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import React, {
+
+import {
   FunctionComponent,
   useEffect,
   useRef,
@@ -30,7 +31,9 @@ import React, {
   useReducer,
   Reducer,
   useCallback,
+  ChangeEvent,
 } from 'react';
+
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
@@ -151,6 +154,7 @@ export enum ActionType {
   EditorChange,
   ExtraEditorChange,
   ExtraInputChange,
+  EncryptedExtraInputChange,
   Fetched,
   InputChange,
   ParametersChange,
@@ -182,6 +186,7 @@ export type DBReducerActionType =
       type:
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
+        | ActionType.EncryptedExtraInputChange
         | ActionType.TextChange
         | ActionType.QueryChange
         | ActionType.InputChange
@@ -264,6 +269,14 @@ export function dbReducer(
         extra: JSON.stringify({
           ...extraJson,
           [action.payload.name]: actionPayloadJson,
+        }),
+      };
+    case ActionType.EncryptedExtraInputChange:
+      return {
+        ...trimmedState,
+        masked_encrypted_extra: JSON.stringify({
+          ...JSON.parse(trimmedState.masked_encrypted_extra || '{}'),
+          [action.payload.name]: action.payload.value,
         }),
       };
     case ActionType.ExtraInputChange:
@@ -633,11 +646,23 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const history = useHistory();
 
   const dbModel: DatabaseForm =
+    // TODO: we need a centralized engine in one place
+
+    // first try to match both engine and driver
+    availableDbs?.databases?.find(
+      (available: {
+        engine: string | undefined;
+        default_driver: string | undefined;
+      }) =>
+        available.engine === (isEditMode ? db?.backend : db?.engine) &&
+        available.default_driver === db?.driver,
+    ) ||
+    // alternatively try to match only engine
     availableDbs?.databases?.find(
       (available: { engine: string | undefined }) =>
-        // TODO: we need a centralized engine in one place
         available.engine === (isEditMode ? db?.backend : db?.engine),
-    ) || {};
+    ) ||
+    {};
 
   // Test Connection logic
   const testConnection = () => {
@@ -1382,7 +1407,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             name="password_needed"
             required
             value={passwords[database]}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setPasswords({ ...passwords, [database]: event.target.value })
             }
             validationMethods={{ onBlur: () => {} }}
@@ -1397,7 +1422,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             name="ssh_tunnel_password_needed"
             required
             value={sshTunnelPasswords[database]}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setSSHTunnelPasswords({
                 ...sshTunnelPasswords,
                 [database]: event.target.value,
@@ -1415,7 +1440,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             name="ssh_tunnel_private_key_needed"
             required
             value={sshTunnelPrivateKeys[database]}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setSSHTunnelPrivateKeys({
                 ...sshTunnelPrivateKeys,
                 [database]: event.target.value,
@@ -1433,7 +1458,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             name="ssh_tunnel_private_key_password_needed"
             required
             value={sshTunnelPrivateKeyPasswords[database]}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setSSHTunnelPrivateKeyPasswords({
                 ...sshTunnelPrivateKeyPasswords,
                 [database]: event.target.value,
@@ -1464,7 +1489,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const confirmOverwrite = (event: ChangeEvent<HTMLInputElement>) => {
     const targetValue = (event.currentTarget?.value as string) ?? '';
     setConfirmedOverwrite(targetValue.toUpperCase() === t('OVERWRITE'));
   };
@@ -1641,6 +1666,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             value: target.value,
           })
         }
+        onEncryptedExtraInputChange={({
+          target,
+        }: {
+          target: HTMLInputElement;
+        }) =>
+          onChange(ActionType.EncryptedExtraInputChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
         onRemoveTableCatalog={(idx: number) => {
           setDB({
             type: ActionType.RemoveTableCatalogSheet,
@@ -1715,35 +1750,36 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   ) {
     return (
       <Modal
+        centered
         css={(theme: SupersetTheme) => [
           antDModalNoPaddingStyles,
           antDModalStyles(theme),
           formHelperStyles(theme),
           formStyles(theme),
         ]}
+        footer={renderModalFooter()}
+        maskClosable={false}
         name="database"
-        onHandledPrimaryAction={onSave}
         onHide={onClose}
+        onHandledPrimaryAction={onSave}
         primaryButtonName={t('Connect')}
-        width="500px"
-        centered
         show={show}
         title={<h4>{t('Connect a database')}</h4>}
-        footer={renderModalFooter()}
+        width="500px"
       >
         <ModalHeader
-          isLoading={isLoading}
-          isEditMode={isEditMode}
-          useSqlAlchemyForm={useSqlAlchemyForm}
-          hasConnectedDb={hasConnectedDb}
           db={db}
           dbName={dbName}
           dbModel={dbModel}
           fileList={fileList}
+          hasConnectedDb={hasConnectedDb}
+          isEditMode={isEditMode}
+          isLoading={isLoading}
+          useSqlAlchemyForm={useSqlAlchemyForm}
         />
-        {passwordNeededField()}
         {confirmOverwriteField()}
         {importingErrorAlert()}
+        {passwordNeededField()}
       </Modal>
     );
   }
@@ -1771,6 +1807,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
       footer={modalFooter}
+      maskClosable={false}
     >
       <StyledStickyHeader>
         <TabHeader>
@@ -1930,6 +1967,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       show={show}
       title={<h4>{t('Connect a database')}</h4>}
       footer={renderModalFooter()}
+      maskClosable={false}
     >
       {!isLoading && hasConnectedDb ? (
         <>

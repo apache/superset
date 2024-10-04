@@ -21,7 +21,6 @@ Revises: b7851ee5522f
 Create Date: 2023-12-15 17:58:18.277951
 
 """
-import json
 
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
@@ -29,6 +28,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 from superset.migrations.shared.utils import paginated_update
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "06dd9ff00fe8"

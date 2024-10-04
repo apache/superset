@@ -26,15 +26,15 @@ Create Date: 2015-12-04 09:42:16.973264
 revision = "1a48a5411020"
 down_revision = "289ce07647b"
 
-import sqlalchemy as sa
-from alembic import op
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
 
 
 def upgrade():
     op.add_column("dashboards", sa.Column("slug", sa.String(length=255), nullable=True))
     try:
         op.create_unique_constraint("idx_unique_slug", "dashboards", ["slug"])
-    except:
+    except:  # noqa: E722
         pass
 
 

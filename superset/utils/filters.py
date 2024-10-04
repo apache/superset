@@ -32,10 +32,12 @@ def get_dataset_access_filters(
     database_ids = security_manager.get_accessible_databases()
     perms = security_manager.user_view_menu_names("datasource_access")
     schema_perms = security_manager.user_view_menu_names("schema_access")
+    catalog_perms = security_manager.user_view_menu_names("catalog_access")
 
     return or_(
         Database.id.in_(database_ids),
         base_model.perm.in_(perms),
+        base_model.catalog_perm.in_(catalog_perms),
         base_model.schema_perm.in_(schema_perms),
         *args,
     )

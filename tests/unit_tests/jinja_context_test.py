@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=invalid-name, unused-argument
+from __future__ import annotations
 
-import json
 from typing import Any
 
 import pytest
-from pytest_mock import MockFixture
+from freezegun import freeze_time
+from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
 
@@ -33,10 +34,12 @@ from superset.jinja_context import (
     ExtraCache,
     metric_macro,
     safe_proxy,
+    TimeFilter,
     WhereInMacro,
 )
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.utils import json
 
 
 def test_filter_values_adhoc_filters() -> None:
@@ -346,7 +349,7 @@ def test_safe_proxy_nested_lambda() -> None:
         safe_proxy(func, {"foo": lambda: "bar"})
 
 
-def test_user_macros(mocker: MockFixture):
+def test_user_macros(mocker: MockerFixture):
     """
     Test all user macros:
         - ``current_user_id``
@@ -367,7 +370,7 @@ def test_user_macros(mocker: MockFixture):
     assert mock_cache_key_wrapper.call_count == 3
 
 
-def test_user_macros_without_cache_key_inclusion(mocker: MockFixture):
+def test_user_macros_without_cache_key_inclusion(mocker: MockerFixture):
     """
     Test all user macros with ``add_to_cache_keys`` set to ``False``.
     """
@@ -385,16 +388,16 @@ def test_user_macros_without_cache_key_inclusion(mocker: MockFixture):
     assert mock_cache_key_wrapper.call_count == 0
 
 
-def test_user_macros_without_user_info(mocker: MockFixture):
+def test_user_macros_without_user_info(mocker: MockerFixture):
     """
     Test all user macros when no user info is available.
     """
     mock_g = mocker.patch("superset.utils.core.g")
     mock_g.user = None
     cache = ExtraCache()
-    assert cache.current_user_id() == None
-    assert cache.current_username() == None
-    assert cache.current_user_email() == None
+    assert cache.current_user_id() == None  # noqa: E711
+    assert cache.current_username() == None  # noqa: E711
+    assert cache.current_user_email() == None  # noqa: E711
 
 
 def test_where_in() -> None:
@@ -410,16 +413,12 @@ def test_where_in() -> None:
     assert where_in(["O'Malley's"]) == "('O''Malley''s')"
 
 
-def test_dataset_macro(mocker: MockFixture) -> None:
+def test_dataset_macro(mocker: MockerFixture) -> None:
     """
     Test the ``dataset_macro`` macro.
     """
     mocker.patch(
         "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
-        return_value=[],
-    )
-    mocker.patch(
-        "superset.models.helpers.security_manager.get_rls_filters",
         return_value=[],
     )
 
@@ -468,10 +467,6 @@ def test_dataset_macro(mocker: MockFixture) -> None:
     DatasetDAO.find_by_id.return_value = dataset
     mocker.patch(
         "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
-        return_value=[],
-    )
-    mocker.patch(
-        "superset.models.helpers.security_manager.get_guest_rls_filters",
         return_value=[],
     )
 
@@ -526,7 +521,7 @@ GROUP BY
     assert str(excinfo.value) == "Dataset 1 not found!"
 
 
-def test_dataset_macro_mutator_with_comments(mocker: MockFixture) -> None:
+def test_dataset_macro_mutator_with_comments(mocker: MockerFixture) -> None:
     """
     Test ``dataset_macro`` when the mutator adds comment.
     """
@@ -549,7 +544,7 @@ SELECT 1
     )
 
 
-def test_metric_macro_with_dataset_id(mocker: MockFixture) -> None:
+def test_metric_macro_with_dataset_id(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when passing a dataset ID.
     """
@@ -568,7 +563,7 @@ def test_metric_macro_with_dataset_id(mocker: MockFixture) -> None:
     mock_get_form_data.assert_not_called()
 
 
-def test_metric_macro_with_dataset_id_invalid_key(mocker: MockFixture) -> None:
+def test_metric_macro_with_dataset_id_invalid_key(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when passing a dataset ID and an invalid key.
     """
@@ -589,7 +584,7 @@ def test_metric_macro_with_dataset_id_invalid_key(mocker: MockFixture) -> None:
     mock_get_form_data.assert_not_called()
 
 
-def test_metric_macro_invalid_dataset_id(mocker: MockFixture) -> None:
+def test_metric_macro_invalid_dataset_id(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when specifying a dataset that doesn't exist.
     """
@@ -602,7 +597,7 @@ def test_metric_macro_invalid_dataset_id(mocker: MockFixture) -> None:
     mock_get_form_data.assert_not_called()
 
 
-def test_metric_macro_no_dataset_id_no_context(mocker: MockFixture) -> None:
+def test_metric_macro_no_dataset_id_no_context(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and it's
     not available in the context.
@@ -620,7 +615,7 @@ def test_metric_macro_no_dataset_id_no_context(mocker: MockFixture) -> None:
 
 
 def test_metric_macro_no_dataset_id_with_context_missing_info(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and request
@@ -644,7 +639,7 @@ def test_metric_macro_no_dataset_id_with_context_missing_info(
 
 
 def test_metric_macro_no_dataset_id_with_context_datasource_id(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and it's
@@ -675,7 +670,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id(
 
 
 def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and it's
@@ -703,7 +698,9 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
     DatasetDAO.find_by_id.assert_not_called()
 
 
-def test_metric_macro_no_dataset_id_with_context_chart_id(mocker: MockFixture) -> None:
+def test_metric_macro_no_dataset_id_with_context_chart_id(
+    mocker: MockerFixture,
+) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context
     includes an existing chart ID (url_params.slice_id).
@@ -735,7 +732,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_id(mocker: MockFixture) -
 
 
 def test_metric_macro_no_dataset_id_with_context_slice_id_none(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context
@@ -761,7 +758,7 @@ def test_metric_macro_no_dataset_id_with_context_slice_id_none(
     DatasetDAO.find_by_id.assert_not_called()
 
 
-def test_metric_macro_no_dataset_id_with_context_chart(mocker: MockFixture) -> None:
+def test_metric_macro_no_dataset_id_with_context_chart(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context
     includes an existing chart (get_form_data()[1]).
@@ -791,7 +788,7 @@ def test_metric_macro_no_dataset_id_with_context_chart(mocker: MockFixture) -> N
 
 
 def test_metric_macro_no_dataset_id_with_context_deleted_chart(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context
@@ -818,7 +815,7 @@ def test_metric_macro_no_dataset_id_with_context_deleted_chart(
 
 
 def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context
@@ -842,3 +839,188 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
     )
     mock_get_form_data.assert_called_once()
     DatasetDAO.find_by_id.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "description,args,kwargs,sqlalchemy_uri,queries,time_filter,removed_filters,applied_filters",
+    [
+        (
+            "Missing time_range and filter will return a No filter result",
+            [],
+            {"target_type": "TIMESTAMP"},
+            "postgresql://mydb",
+            [{}],
+            TimeFilter(
+                from_expr=None,
+                to_expr=None,
+                time_range="No filter",
+            ),
+            [],
+            [],
+        ),
+        (
+            "Missing time range and filter with default value will return a result with the defaults",
+            [],
+            {"default": "Last week", "target_type": "TIMESTAMP"},
+            "postgresql://mydb",
+            [{}],
+            TimeFilter(
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                time_range="Last week",
+            ),
+            [],
+            [],
+        ),
+        (
+            "Time range is extracted with the expected format, and default is ignored",
+            [],
+            {"default": "Last month", "target_type": "TIMESTAMP"},
+            "postgresql://mydb",
+            [{"time_range": "Last week"}],
+            TimeFilter(
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                time_range="Last week",
+            ),
+            [],
+            [],
+        ),
+        (
+            "Filter is extracted with the native format of the column (TIMESTAMP)",
+            ["dttm"],
+            {},
+            "postgresql://mydb",
+            [
+                {
+                    "filters": [
+                        {
+                            "col": "dttm",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "Last week",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                time_range="Last week",
+            ),
+            [],
+            ["dttm"],
+        ),
+        (
+            "Filter is extracted with the native format of the column (DATE)",
+            ["dt"],
+            {"remove_filter": True},
+            "postgresql://mydb",
+            [
+                {
+                    "filters": [
+                        {
+                            "col": "dt",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "Last week",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="TO_DATE('2024-08-27', 'YYYY-MM-DD')",
+                to_expr="TO_DATE('2024-09-03', 'YYYY-MM-DD')",
+                time_range="Last week",
+            ),
+            ["dt"],
+            ["dt"],
+        ),
+        (
+            "Filter is extracted with the overridden format (TIMESTAMP to DATE)",
+            ["dttm"],
+            {"target_type": "DATE", "remove_filter": True},
+            "trino://mydb",
+            [
+                {
+                    "filters": [
+                        {
+                            "col": "dttm",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "Last month",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="DATE '2024-08-03'",
+                to_expr="DATE '2024-09-03'",
+                time_range="Last month",
+            ),
+            ["dttm"],
+            ["dttm"],
+        ),
+        (
+            "Filter is formatted with the custom format, ignoring target_type",
+            ["dttm"],
+            {"target_type": "DATE", "strftime": "%Y%m%d", "remove_filter": True},
+            "trino://mydb",
+            [
+                {
+                    "filters": [
+                        {
+                            "col": "dttm",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "Last month",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="20240803",
+                to_expr="20240903",
+                time_range="Last month",
+            ),
+            ["dttm"],
+            ["dttm"],
+        ),
+    ],
+)
+def test_get_time_filter(
+    description: str,
+    args: list[Any],
+    kwargs: dict[str, Any],
+    sqlalchemy_uri: str,
+    queries: list[Any] | None,
+    time_filter: TimeFilter,
+    removed_filters: list[str],
+    applied_filters: list[str],
+) -> None:
+    """
+    Test the ``get_time_filter`` macro.
+    """
+    columns = [
+        TableColumn(column_name="dt", is_dttm=1, type="DATE"),
+        TableColumn(column_name="dttm", is_dttm=1, type="TIMESTAMP"),
+    ]
+
+    database = Database(database_name="my_database", sqlalchemy_uri=sqlalchemy_uri)
+    table = SqlaTable(
+        table_name="my_dataset",
+        columns=columns,
+        main_dttm_col="dt",
+        database=database,
+    )
+
+    with (
+        freeze_time("2024-09-03"),
+        app.test_request_context(
+            json={"queries": queries},
+        ),
+    ):
+        cache = ExtraCache(
+            database=database,
+            table=table,
+        )
+
+        assert cache.get_time_filter(*args, **kwargs) == time_filter, description
+        assert cache.removed_filters == removed_filters
+        assert cache.applied_filters == applied_filters

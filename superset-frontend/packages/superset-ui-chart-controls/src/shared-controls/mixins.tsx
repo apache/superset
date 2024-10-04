@@ -23,7 +23,12 @@ import {
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { BaseControlConfig, ControlPanelState, ControlState } from '../types';
+import {
+  BaseControlConfig,
+  ControlPanelState,
+  ControlState,
+  ExtraControlProps,
+} from '../types';
 import { getTemporalColumns } from '../utils';
 
 const getAxisLabel = (
@@ -52,14 +57,15 @@ export const xAxisMixin = {
   default: undefined,
 };
 
-export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
+export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> &
+  Partial<ExtraControlProps> = {
+  isTemporal: true,
   mapStateToProps: ({ datasource }) => {
     const payload = getTemporalColumns(datasource);
 
     return {
       options: payload.temporalColumns,
       default: payload.defaultTemporalColumn,
-      isTemporal: true,
     };
   },
 };

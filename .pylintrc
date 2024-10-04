@@ -36,7 +36,7 @@ persistent=yes
 
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
-load-plugins=
+load-plugins=superset.extensions.pylint
 
 # Use multiple processes to speed up Pylint.
 jobs=2
@@ -77,6 +77,7 @@ disable=
     cyclic-import,  # re-enable once this no longer raises false positives
     missing-docstring,
     duplicate-code,
+    line-too-long,
     unspecified-encoding,
     too-many-instance-attributes  # re-enable once this no longer raises false positives
 
@@ -171,7 +172,7 @@ max-nested-blocks=5
 [FORMAT]
 
 # Maximum number of characters on a single line.
-max-line-length=90
+max-line-length=100
 
 # Regexp for a line that is allowed to be longer than the limit.
 ignore-long-lines=^\s*(# )?<?https?://\S+>?$

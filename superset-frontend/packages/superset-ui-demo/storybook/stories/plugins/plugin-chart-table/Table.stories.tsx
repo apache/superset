@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import memoizeOne from 'memoize-one';
 import { SuperChart } from '@superset-ui/core';
 import TableChartPlugin, {
@@ -97,7 +96,7 @@ const expandColumns = memoizeOne(expandArray);
 /**
  * Load sample data for testing
  * @param props the original props passed to SuperChart
- * @param pageLength number of records perpage
+ * @param pageLength number of records per page
  * @param rows the target number of records
  * @param cols the target number of columns
  */

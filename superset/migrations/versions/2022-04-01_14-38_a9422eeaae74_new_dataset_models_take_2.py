@@ -26,28 +26,31 @@ Create Date: 2022-04-01 14:38:09.499483
 revision = "a9422eeaae74"
 down_revision = "ad07e4fdbaba"
 
-import json
-import os
-from datetime import datetime
-from typing import Optional, Union
-from uuid import uuid4
+import os  # noqa: E402
+from datetime import datetime  # noqa: E402
+from typing import Optional, Union  # noqa: E402
+from uuid import uuid4  # noqa: E402
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy import select
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import backref, relationship, Session
-from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import functions as func
-from sqlalchemy.sql.expression import and_, or_
-from sqlalchemy_utils import UUIDType
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy import select  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base, declared_attr  # noqa: E402
+from sqlalchemy.orm import backref, relationship, Session  # noqa: E402
+from sqlalchemy.schema import UniqueConstraint  # noqa: E402
+from sqlalchemy.sql import functions as func  # noqa: E402
+from sqlalchemy.sql.expression import and_, or_  # noqa: E402
+from sqlalchemy_utils import UUIDType  # noqa: E402
 
-from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES_LOWER
-from superset.connectors.sqla.utils import get_dialect_name, get_identifier_quoter
-from superset.extensions import encrypted_field_factory
-from superset.migrations.shared.utils import assign_uuids
-from superset.sql_parse import extract_table_references, Table
-from superset.utils.core import MediumText
+from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES_LOWER  # noqa: E402
+from superset.connectors.sqla.utils import (  # noqa: E402
+    get_dialect_name,
+    get_identifier_quoter,
+)
+from superset.extensions import encrypted_field_factory  # noqa: E402
+from superset.migrations.shared.utils import assign_uuids  # noqa: E402
+from superset.sql_parse import extract_table_references, Table  # noqa: E402
+from superset.utils import json  # noqa: E402
+from superset.utils.core import MediumText  # noqa: E402
 
 Base = declarative_base()
 SHOW_PROGRESS = os.environ.get("SHOW_PROGRESS") == "1"
@@ -336,9 +339,8 @@ def copy_tables(session: Session) -> None:
             ]
         )
         # use an inner join to filter out only tables with valid database ids
-        .select_from(
-            sa.join(SqlaTable, Database, SqlaTable.database_id == Database.id)
-        ).where(is_physical_table),
+        .select_from(sa.join(SqlaTable, Database, SqlaTable.database_id == Database.id))
+        .where(is_physical_table),
     )
 
 
@@ -577,7 +579,7 @@ def postprocess_datasets(session: Session) -> None:
             if schema:
                 try:
                     extra_json = json.loads(extra) if extra else {}
-                except json.decoder.JSONDecodeError:
+                except json.JSONDecodeError:
                     extra_json = {}
                 extra_json["schema"] = schema
                 updates["extra_json"] = json.dumps(extra_json)
@@ -769,7 +771,7 @@ def postprocess_columns(session: Session) -> None:
         ) in session.execute(query):
             try:
                 extra = json.loads(extra_json) if extra_json else {}
-            except json.decoder.JSONDecodeError:
+            except json.JSONDecodeError:
                 extra = {}
             updated_extra = {**extra}
             updates = {}

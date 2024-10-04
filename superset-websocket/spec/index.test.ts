@@ -89,7 +89,10 @@ describe('server', () => {
         end: endMock,
       };
 
-      server.httpRequest(request as any, response as any);
+      server.httpRequest(
+        request as unknown as http.IncomingMessage,
+        response as unknown as http.ServerResponse<http.IncomingMessage>,
+      );
 
       expect(writeHeadMock).toBeCalledTimes(1);
       expect(writeHeadMock).toHaveBeenLastCalledWith(200);
@@ -115,7 +118,10 @@ describe('server', () => {
         end: endMock,
       };
 
-      server.httpRequest(request as any, response as any);
+      server.httpRequest(
+        request as unknown as http.IncomingMessage,
+        response as unknown as http.ServerResponse<http.IncomingMessage>,
+      );
 
       expect(writeHeadMock).toBeCalledTimes(1);
       expect(writeHeadMock).toHaveBeenLastCalledWith(404);

@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@types/d3-cloud": "^1.2.9",
-    "@types/d3-scale": "^2.0.2",
+    "@types/d3-scale": "^4.0.8",
     "d3-cloud": "^1.2.7",
     "d3-scale": "^3.0.1",
     "encodable": "^0.7.8"

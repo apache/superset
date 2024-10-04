@@ -51,4 +51,7 @@ export enum GlobalMenuDataOptions {
   GoogleSheets = 'gsheets',
   DbConnection = 'dbconnection',
   DatasetCreation = 'datasetCreation',
+  CSVUpload = 'csvUpload',
+  ExcelUpload = 'excelUpload',
+  ColumnarUpload = 'columnarUpload',
 }

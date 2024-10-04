@@ -41,6 +41,7 @@ from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
+    OAuth2RedirectError,
     SupersetErrorsException,
     SupersetSecurityException,
     SupersetTimeoutException,
@@ -64,6 +65,7 @@ def get_log_connection_action(
 
 
 class TestConnectionDatabaseCommand(BaseCommand):
+    __test__ = False
     _model: Optional[Database] = None
     _context: dict[str, Any]
     _uri: str
@@ -138,9 +140,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 with closing(engine.raw_connection()) as conn:
                     return engine.dialect.do_ping(conn)
 
-            with database.get_sqla_engine_with_context(
-                override_ssh_tunnel=ssh_tunnel
-            ) as engine:
+            with database.get_sqla_engine(override_ssh_tunnel=ssh_tunnel) as engine:
                 try:
                     alive = func_timeout(
                         app.config["TEST_DATABASE_CONNECTION_TIMEOUT"].total_seconds(),
@@ -163,6 +163,13 @@ class TestConnectionDatabaseCommand(BaseCommand):
                         extra={"sqlalchemy_uri": database.sqlalchemy_uri},
                     ) from ex
                 except Exception as ex:  # pylint: disable=broad-except
+                    # If the connection failed because OAuth2 is needed, start the flow.
+                    if (
+                        database.is_oauth2_enabled()
+                        and database.db_engine_spec.needs_oauth2(ex)
+                    ):
+                        database.start_oauth2_dance()
+
                     alive = False
                     # So we stop losing the original message if any
                     ex_str = str(ex)
@@ -198,6 +205,8 @@ class TestConnectionDatabaseCommand(BaseCommand):
             # check for custom errors (wrong username, wrong password, etc)
             errors = database.db_engine_spec.extract_errors(ex, self._context)
             raise SupersetErrorsException(errors) from ex
+        except OAuth2RedirectError:
+            raise
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(
@@ -206,24 +215,15 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
-        except SupersetTimeoutException as ex:
+        except (SupersetTimeoutException, SSHTunnelingNotEnabledError) as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel, ex
                 ),
                 engine=database.db_engine_spec.__name__,
             )
-            # bubble up the exception to return a 408
-            raise ex
-        except SSHTunnelingNotEnabledError as ex:
-            event_logger.log_with_context(
-                action=get_log_connection_action(
-                    "test_connection_error", ssh_tunnel, ex
-                ),
-                engine=database.db_engine_spec.__name__,
-            )
-            # bubble up the exception to return a 400
-            raise ex
+            # bubble up the exception to return proper status code
+            raise
         except Exception as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(

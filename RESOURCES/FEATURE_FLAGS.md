@@ -27,6 +27,7 @@ These features are considered **unfinished** and should only be used on developm
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
+- ALERT_REPORT_TABS
 - ENABLE_ADVANCED_DATA_TYPES
 - PRESTO_EXPAND_DATA
 - SHARE_QUERIES_VIA_KV_STORE
@@ -39,44 +40,56 @@ These features are **finished** but currently being tested. They are usable, but
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
-- ALERT_REPORTS: [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
+- ALERT_REPORTS: [(docs)](https://superset.apache.org/docs/configuration/alerts-reports)
 - ALLOW_FULL_CSV_EXPORT
 - CACHE_IMPERSONATION
 - CONFIRM_DASHBOARD_DIFF
 - DRILL_TO_DETAIL
-- DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
-- ENABLE_SUPERSET_META_DB: [(docs)](https://superset.apache.org/docs/databases/meta-database/)
+- DYNAMIC_PLUGINS
+- ENABLE_SUPERSET_META_DB: [(docs)](https://superset.apache.org/docs/configuration/databases/#querying-across-databases)
 - ESTIMATE_QUERY_COST
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - HORIZONTAL_FILTER_BAR
+- IMPERSONATE_WITH_EMAIL_PREFIX
 - PLAYWRIGHT_REPORTS_AND_THUMBNAILS
 - RLS_IN_SQLLAB
-- SSH_TUNNELING [(docs)](https://superset.apache.org/docs/installation/setup-ssh-tunneling)
+- SSH_TUNNELING [(docs)](https://superset.apache.org/docs/configuration/setup-ssh-tunneling)
 - USE_ANALAGOUS_COLORS
 
 ## Stable
 
-These features flags are **safe for production**. They have been tested and will be supported for the foreseeable future.
+These features flags are **safe for production**. They have been tested and will be supported for the at least the current major version cycle.
 
-[//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
+[//]: # "PLEASE KEEP THESE LISTS SORTED ALPHABETICALLY"
+
+### Flags on the path to feature launch and flag deprecation/removal
+- DASHBOARD_VIRTUALIZATION
+- DRILL_BY
+- DISABLE_LEGACY_DATASOURCE_EDITOR
+
+### Flags retained for runtime configuration
+
+Currently some of our feature flags act as dynamic configurations that can changed
+on the fly. This acts in contradiction with the typical ephemeral feature flag use case,
+where the flag is used to mature a feature, and eventually deprecated once the feature is
+solid. Eventually we'll likely refactor these under a more formal "dynamic configurations" managed
+independently. This new framework will also allow for non-boolean configurations.
 
 - ALERTS_ATTACH_REPORTS
 - ALLOW_ADHOC_SUBQUERY
-- DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
-- DASHBOARD_VIRTUALIZATION
+- DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/using-superset/creating-your-first-dashboard#manage-access-to-dashboards)
 - DATAPANEL_CLOSED_BY_DEFAULT
-- DISABLE_LEGACY_DATASOURCE_EDITOR
-- DRILL_BY
 - DRUID_JOINS
 - EMBEDDABLE_CHARTS
 - EMBEDDED_SUPERSET
 - ENABLE_TEMPLATE_PROCESSING
 - ESCAPE_MARKDOWN_HTML
 - LISTVIEWS_DEFAULT_CARD_VIEW
-- SCHEDULED_QUERIES [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
+- SCHEDULED_QUERIES [(docs)](https://superset.apache.org/docs/configuration/alerts-reports)
+- SLACK_ENABLE_AVATARS (see `superset/config.py` for more information)
 - SQLLAB_BACKEND_PERSISTENCE
-- SQL_VALIDATORS_BY_ENGINE [(docs)](https://superset.apache.org/docs/installation/sql-templating)
-- THUMBNAILS [(docs)](https://superset.apache.org/docs/installation/cache)
+- SQL_VALIDATORS_BY_ENGINE [(docs)](https://superset.apache.org/docs/configuration/sql-templating)
+- THUMBNAILS [(docs)](https://superset.apache.org/docs/configuration/cache)
 
 ## Deprecated Flags
 
@@ -84,6 +97,7 @@ These features flags currently default to True and **will be removed in a future
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
+- AVOID_COLORS_COLLISION
 - DASHBOARD_CROSS_FILTERS
 - ENABLE_JAVASCRIPT_CONTROLS
 - KV_STORE

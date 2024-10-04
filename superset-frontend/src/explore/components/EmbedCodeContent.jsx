@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { css, styled, t } from '@superset-ui/core';
 import { Input, TextArea } from 'src/components/Input';
 import CopyToClipboard from 'src/components/CopyToClipboard';

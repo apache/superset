@@ -26,9 +26,11 @@ Create Date: 2024-03-20 16:02:58.515915
 revision = "678eefb4ab44"
 down_revision = "be1b217cd8cd"
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy_utils import EncryptedType
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy_utils import EncryptedType  # noqa: E402
+
+from superset.migrations.shared.constraints import drop_fks_for_table  # noqa: E402
 
 
 def upgrade():
@@ -80,5 +82,6 @@ def upgrade():
 
 
 def downgrade():
+    drop_fks_for_table("database_user_oauth2_tokens")
     op.drop_index("idx_user_id_database_id", table_name="database_user_oauth2_tokens")
     op.drop_table("database_user_oauth2_tokens")

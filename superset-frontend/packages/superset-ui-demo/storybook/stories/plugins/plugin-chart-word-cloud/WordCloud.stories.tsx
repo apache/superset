@@ -17,27 +17,12 @@
  * under the License.
  */
 
-import React from 'react';
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import {
-  WordCloudChartPlugin,
-  LegacyWordCloudChartPlugin,
-  WordCloudTransformProps,
-} from '@superset-ui/plugin-chart-word-cloud';
+import { SuperChart } from '@superset-ui/core';
+import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 import data from './data';
 
 new WordCloudChartPlugin().configure({ key: 'word-cloud2' }).register();
-new LegacyWordCloudChartPlugin()
-  .configure({ key: 'legacy-word-cloud2' })
-  .register();
-
-// Enable the new WordCloud Props to show case its full features
-// if the control panel is updated to be able to pass formData in the new format.
-getChartTransformPropsRegistry().registerValue(
-  'word-cloud2',
-  WordCloudTransformProps,
-);
 
 export default {
   title: 'Chart Plugins/plugin-chart-word-cloud',

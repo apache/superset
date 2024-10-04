@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import {
   FeatureFlag,
   styled,
@@ -31,6 +30,8 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { storeQuery } from 'src/utils/common';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import { LOG_ACTIONS_SQLLAB_COPY_LINK } from 'src/logger/LogUtils';
+import useLogAction from 'src/logger/useLogAction';
 
 interface ShareSqlLabQueryProps {
   queryEditorId: string;
@@ -52,7 +53,7 @@ const ShareSqlLabQuery = ({
   addDangerToast,
 }: ShareSqlLabQueryProps) => {
   const theme = useTheme();
-
+  const logAction = useLogAction({ queryEditorId });
   const { dbId, name, schema, autorun, sql, remoteId, templateParams } =
     useQueryEditor(queryEditorId, [
       'dbId',
@@ -92,6 +93,9 @@ const ShareSqlLabQuery = ({
     }
   };
   const getCopyUrl = (callback: Function) => {
+    logAction(LOG_ACTIONS_SQLLAB_COPY_LINK, {
+      shortcut: false,
+    });
     if (isFeatureEnabled(FeatureFlag.ShareQueriesViaKvStore)) {
       return getCopyUrlForKvStore(callback);
     }

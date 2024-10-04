@@ -18,6 +18,7 @@
  */
 
 import Loadable from 'react-loadable';
+import { ComponentClass } from 'react';
 
 export type LoadableRendererProps = {
   onRenderFailure?: Function;
@@ -30,7 +31,7 @@ const defaultProps = {
 };
 
 export interface LoadableRenderer<Props>
-  extends React.ComponentClass<Props & LoadableRendererProps>,
+  extends ComponentClass<Props & LoadableRendererProps>,
     Loadable.LoadableComponent {}
 
 export default function createLoadableRenderer<

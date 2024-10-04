@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
+
 import datetime
 import doctest
 import html
-import json
 import logging
 import random
 import unittest
@@ -49,23 +49,24 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.utils import core as utils
+from superset.sql_parse import Table
+from superset.utils import core as utils, json
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from superset.views.database.views import DatabaseView
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.test_app import app
 
@@ -97,8 +98,8 @@ class TestCore(SupersetTestCase):
     def insert_dashboard_created_by(self, username: str) -> Dashboard:
         user = self.get_user(username)
         dashboard = self.insert_dashboard(
-            f"create_title_test",
-            f"create_slug_test",
+            f"create_title_test",  # noqa: F541
+            f"create_slug_test",  # noqa: F541
             [user.id],
             created_by=user,
         )
@@ -176,7 +177,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
         self.login(ADMIN_USERNAME)
-        slice_name = f"Energy Sankey"
+        slice_name = f"Energy Sankey"  # noqa: F541
         slice_id = self.get_slice(slice_name).id
         copy_name_prefix = "Test Sankey"
         copy_name = f"{copy_name_prefix}[save]{random.random()}"
@@ -478,7 +479,7 @@ class TestCore(SupersetTestCase):
 
     def create_sample_csvfile(self, filename: str, content: list[str]) -> None:
         with open(filename, "w+") as test_file:
-            for l in content:
+            for l in content:  # noqa: E741
                 test_file.write(f"{l}\n")
 
     def create_sample_excelfile(self, filename: str, content: dict[str, str]) -> None:
@@ -491,9 +492,6 @@ class TestCore(SupersetTestCase):
         add_datasource_page = self.get_resp("/databaseview/list/")
         self.assertIn("Upload a CSV", add_datasource_page)
 
-        form_get = self.get_resp("/csvtodatabaseview/form")
-        self.assertIn("CSV to Database configuration", form_get)
-
     def test_dataframe_timezone(self):
         tz = pytz.FixedOffset(60)
         data = [
@@ -503,7 +501,7 @@ class TestCore(SupersetTestCase):
         results = SupersetResultSet(list(data), [["data"]], BaseEngineSpec)
         df = results.to_pandas_df()
         data = dataframe.df_to_records(df)
-        json_str = json.dumps(data, default=utils.pessimistic_json_iso_dttm_ser)
+        json_str = json.dumps(data, default=json.pessimistic_json_iso_dttm_ser)
         self.assertDictEqual(
             data[0], {"data": pd.Timestamp("2017-11-18 21:53:00.219225+0100", tz=tz)}
         )
@@ -541,7 +539,9 @@ class TestCore(SupersetTestCase):
             database=get_example_database(),
         )
         rendered_query = str(table.get_from_clause()[0])
-        self.assertEqual(clean_query, rendered_query)
+        assert "comment 1" in rendered_query
+        assert "comment 2" in rendered_query
+        assert "FROM tbl" in rendered_query
 
     def test_slice_payload_no_datasource(self):
         form_data = {
@@ -814,7 +814,7 @@ class TestCore(SupersetTestCase):
         mock_cache.return_value = MockCache()
 
         rv = self.client.get("/superset/explore_json/data/valid-cache-key")
-        self.assertEqual(rv.status_code, 401)
+        self.assertEqual(rv.status_code, 403)
 
     def test_explore_json_data_invalid_cache_key(self):
         self.login(ADMIN_USERNAME)
@@ -944,7 +944,7 @@ class TestCore(SupersetTestCase):
 
         encoded = json.dumps(
             {"FOO": lambda x: 1, "super": "set"},
-            default=utils.pessimistic_json_iso_dttm_ser,
+            default=json.pessimistic_json_iso_dttm_ser,
         )
         html_string = (
             html.escape(encoded, quote=False)
@@ -1129,6 +1129,9 @@ class TestCore(SupersetTestCase):
             "my_col"
         ]
 
+    @pytest.mark.skip(
+        "TODO This test was wrong - 'Error message' was in the language pack"
+    )
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @mock.patch("superset.models.core.DB_CONNECTION_MUTATOR")
     def test_explore_injected_exceptions(self, mock_db_connection_mutator):
@@ -1155,6 +1158,9 @@ class TestCore(SupersetTestCase):
         data = self.get_resp(url)
         self.assertIn("Error message", data)
 
+    @pytest.mark.skip(
+        "TODO This test was wrong - 'Error message' was in the language pack"
+    )
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @mock.patch("superset.models.core.DB_CONNECTION_MUTATOR")
     def test_dashboard_injected_exceptions(self, mock_db_connection_mutator):
@@ -1188,7 +1194,7 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         random_key = "random_key"
         mock_command.return_value = random_key
-        slice_name = f"Energy Sankey"
+        slice_name = f"Energy Sankey"  # noqa: F541
         slice_id = self.get_slice(slice_name).id
         form_data = {"slice_id": slice_id, "viz_type": "line", "datasource": "1__table"}
         rv = self.client.get(
@@ -1199,14 +1205,11 @@ class TestCore(SupersetTestCase):
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_has_table_by_name(self):
+    def test_has_table(self):
         if backend() in ("sqlite", "mysql"):
             return
         example_db = superset.utils.database.get_example_database()
-        assert (
-            example_db.has_table_by_name(table_name="birth_names", schema="public")
-            is True
-        )
+        assert example_db.has_table(Table("birth_names", "public")) is True
 
     @mock.patch("superset.views.core.request")
     @mock.patch(

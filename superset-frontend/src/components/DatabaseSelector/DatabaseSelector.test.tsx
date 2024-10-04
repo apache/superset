@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { act } from 'react-dom/test-utils';
 import fetchMock from 'fetch-mock';
 import {
@@ -40,6 +39,7 @@ const createProps = (): DatabaseSelectorProps => ({
   formMode: false,
   isDatabaseSelectEnabled: true,
   readOnly: false,
+  catalog: null,
   schema: 'public',
   sqlLabMode: true,
   getDbList: jest.fn(),
@@ -56,7 +56,7 @@ const fakeDatabaseApiResult = {
     allow_file_upload: 'Allow Csv Upload',
     allow_ctas: 'Allow Ctas',
     allow_cvas: 'Allow Cvas',
-    allow_dml: 'Allow Dml',
+    allow_dml: 'Allow DDL and DML',
     allow_run_async: 'Allow Run Async',
     allows_cost_estimate: 'Allows Cost Estimate',
     allows_subquery: 'Allows Subquery',
@@ -153,21 +153,35 @@ const fakeDatabaseApiResult = {
   ],
 };
 
+const fakeDatabaseApiResultInReverseOrder = {
+  ...fakeDatabaseApiResult,
+  ids: [2, 1],
+  result: [...fakeDatabaseApiResult.result].reverse(),
+};
+
 const fakeSchemaApiResult = {
   count: 2,
   result: ['information_schema', 'public'],
+};
+
+const fakeCatalogApiResult = {
+  count: 0,
+  result: [],
 };
 
 const fakeFunctionNamesApiResult = {
   function_names: [],
 };
 
-const databaseApiRoute = 'glob:*/api/v1/database/?*';
+const databaseApiRoute =
+  'glob:*/api/v1/database/?*order_column:database_name,order_direction*';
+const catalogApiRoute = 'glob:*/api/v1/database/*/catalogs/?*';
 const schemaApiRoute = 'glob:*/api/v1/database/*/schemas/?*';
 const tablesApiRoute = 'glob:*/api/v1/database/*/tables/*';
 
 function setupFetchMock() {
   fetchMock.get(databaseApiRoute, fakeDatabaseApiResult);
+  fetchMock.get(catalogApiRoute, fakeCatalogApiResult);
   fetchMock.get(schemaApiRoute, fakeSchemaApiResult);
   fetchMock.get(tablesApiRoute, fakeFunctionNamesApiResult);
 }
@@ -231,6 +245,30 @@ test('Should database select display options', async () => {
   expect(select).toBeInTheDocument();
   userEvent.click(select);
   expect(await screen.findByText('test-mysql')).toBeInTheDocument();
+});
+
+test('should display options in order of the api response', async () => {
+  fetchMock.get(databaseApiRoute, fakeDatabaseApiResultInReverseOrder, {
+    overwriteRoutes: true,
+  });
+  const props = createProps();
+  render(<DatabaseSelector {...props} db={undefined} />, {
+    useRedux: true,
+    store,
+  });
+  const select = screen.getByRole('combobox', {
+    name: 'Select database or type to search databases',
+  });
+  expect(select).toBeInTheDocument();
+  userEvent.click(select);
+  const options = await screen.findAllByRole('option');
+
+  expect(options[0]).toHaveTextContent(
+    `${fakeDatabaseApiResultInReverseOrder.result[0].id}`,
+  );
+  expect(options[1]).toHaveTextContent(
+    `${fakeDatabaseApiResultInReverseOrder.result[1].id}`,
+  );
 });
 
 test('Should fetch the search keyword when total count exceeds initial options', async () => {
@@ -326,7 +364,7 @@ test('Sends the correct schema when changing the schema', async () => {
   });
   await waitFor(() => expect(fetchMock.calls(databaseApiRoute).length).toBe(1));
   rerender(<DatabaseSelector {...props} />);
-  expect(props.onSchemaChange).toBeCalledTimes(0);
+  expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type to search schemas',
   });
@@ -337,5 +375,5 @@ test('Sends the correct schema when changing the schema', async () => {
   await waitFor(() =>
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
-  expect(props.onSchemaChange).toBeCalledTimes(1);
+  expect(props.onSchemaChange).toHaveBeenCalledTimes(1);
 });

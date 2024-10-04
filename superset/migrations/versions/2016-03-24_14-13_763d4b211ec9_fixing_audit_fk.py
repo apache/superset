@@ -26,8 +26,8 @@ Create Date: 2016-03-24 14:13:44.817723
 revision = "763d4b211ec9"
 down_revision = "d2424a248d63"
 
-import sqlalchemy as sa
-from alembic import op
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
 
 
 def upgrade():
@@ -96,7 +96,7 @@ def upgrade():
         op.alter_column("url", "created_on", existing_type=sa.DATETIME(), nullable=True)
         op.create_foreign_key(None, "metrics", "ab_user", ["changed_by_fk"], ["id"])
         op.create_foreign_key(None, "metrics", "ab_user", ["created_by_fk"], ["id"])
-    except:
+    except:  # noqa: E722
         pass
 
 
@@ -174,5 +174,5 @@ def downgrade():
         op.alter_column(
             "columns", "changed_on", existing_type=sa.DATETIME(), nullable=False
         )
-    except:
+    except:  # noqa: E722
         pass

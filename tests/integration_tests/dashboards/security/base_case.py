@@ -16,8 +16,7 @@
 # under the License.
 from typing import Optional
 
-import pytest
-from flask import escape, Response
+from flask import Response
 
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.dashboards.base_case import DashboardTestCase

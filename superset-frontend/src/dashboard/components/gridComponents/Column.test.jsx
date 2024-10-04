@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { fireEvent, render } from 'spec/helpers/testing-library';
 
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
@@ -31,8 +30,10 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Draggable: ({ children }) => (
     <div data-test="mock-draggable">{children({})}</div>
   ),
-  Droppable: ({ children }) => (
-    <div data-test="mock-droppable">{children({})}</div>
+  Droppable: ({ children, depth }) => (
+    <div data-test="mock-droppable" depth={depth}>
+      {children({})}
+    </div>
   ),
 }));
 jest.mock(
@@ -130,7 +131,7 @@ test('should render a ResizableContainer', () => {
 
 test('should render a HoverMenu in editMode', () => {
   // we cannot set props on the Row because of the WithDragDropContext wrapper
-  const { container, getAllByTestId } = setup({
+  const { container, getAllByTestId, getByTestId } = setup({
     component: columnWithoutChildren,
     editMode: true,
   });
@@ -138,6 +139,12 @@ test('should render a HoverMenu in editMode', () => {
 
   // Droppable area enabled in editMode
   expect(getAllByTestId('mock-droppable').length).toBe(1);
+
+  // pass the same depth of its droppable area
+  expect(getByTestId('mock-droppable')).toHaveAttribute(
+    'depth',
+    `${props.depth}`,
+  );
 });
 
 test('should render a DeleteComponentButton in editMode', () => {

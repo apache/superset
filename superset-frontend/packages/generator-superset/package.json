@@ -19,23 +19,29 @@
   },
   "license": "Apache-2.0",
   "author": "Superset",
+  "type": "module",
   "main": "generators/index.js",
   "files": [
     "generators"
   ],
+  "scripts": {
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest"
+  },
   "dependencies": {
-    "chalk": "^4.0.0",
-    "lodash": "^4.17.21",
-    "yeoman-generator": "^5.7.0",
-    "yosay": "^2.0.2"
+    "chalk": "^5.3.0",
+    "lodash-es": "^4.17.21",
+    "yeoman-generator": "^7.3.2",
+    "yosay": "^3.0.0"
   },
   "devDependencies": {
-    "fs-extra": "^10.0.0",
-    "yeoman-assert": "^3.1.1",
-    "yeoman-test": "^6.2.0"
+    "cross-env": "^7.0.3",
+    "fs-extra": "^11.2.0",
+    "yeoman-test": "^8.3.0",
+    "jest": "^29.7.0"
   },
   "engines": {
-    "npm": ">= 4.0.0"
+    "npm": ">= 4.0.0",
+    "node": ">= 18.0.0"
   },
   "publishConfig": {
     "access": "public"

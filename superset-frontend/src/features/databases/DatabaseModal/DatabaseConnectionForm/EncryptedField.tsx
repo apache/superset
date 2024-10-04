@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
-import { AntdButton, AntdSelect } from 'src/components';
+import { Button, AntdSelect } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
@@ -142,14 +142,14 @@ export const EncryptedField = ({
             </div>
 
             {!fileToUpload && (
-              <AntdButton
+              <Button
                 className="input-upload-btn"
                 onClick={() =>
                   document?.getElementById('selectedFile')?.click()
                 }
               >
                 {t('Choose File')}
-              </AntdButton>
+              </Button>
             )}
             {fileToUpload && (
               <div className="input-upload-current">

@@ -1,24 +1,23 @@
 ---
 title: Upgrading Superset
 hide_title: true
-sidebar_position: 8
+sidebar_position: 5
 version: 1
 ---
 
-## Upgrading Superset
+# Upgrading Superset
 
-### Docker Compose
+## Docker Compose
 
-First make sure to wind down the running containers in Docker Compose:
+First, make sure to shut down the running containers in Docker Compose:
 
 ```bash
 docker compose down
 ```
 
-Then, update the folder that mirrors the `superset` repo through git:
+Next, update the folder that mirrors the `superset` repo through git:
 
 ```bash
-cd superset/
 git pull origin master
 ```
 
@@ -28,12 +27,19 @@ Then, restart the containers and any changed Docker images will be automatically
 docker compose up
 ```
 
-### Updating Superset Manually
+## Updating Superset Manually
 
 To upgrade superset in a native installation, run the following commands:
 
 ```bash
 pip install apache-superset --upgrade
+```
+
+## Upgrading the Metadata Database
+
+Migrate the metadata database by running:
+
+```bash
 superset db upgrade
 superset init
 ```

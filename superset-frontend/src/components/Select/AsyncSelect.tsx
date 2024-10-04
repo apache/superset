@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   forwardRef,
+  FocusEvent,
   ReactElement,
   RefObject,
   UIEvent,
@@ -29,6 +30,7 @@ import React, {
   useImperativeHandle,
   ClipboardEvent,
 } from 'react';
+
 import {
   ensureIsArray,
   t,
@@ -461,7 +463,7 @@ const AsyncSelect = forwardRef(
       fireOnChange();
     };
 
-    const handleOnBlur = (event: React.FocusEvent<HTMLElement>) => {
+    const handleOnBlur = (event: FocusEvent<HTMLElement>) => {
       setInputValue('');
       onBlur?.(event);
     };
@@ -538,8 +540,18 @@ const AsyncSelect = forwardRef(
     );
 
     const getPastedTextValue = useCallback(
-      (text: string) => {
-        const option = getOption(text, fullSelectOptions, true);
+      async (text: string) => {
+        let option = getOption(text, fullSelectOptions, true);
+        if (!option && !allValuesLoaded) {
+          const fetchOptions = options as SelectOptionsPagePromise;
+          option = await fetchOptions(text, 0, pageSize).then(
+            ({ data }: SelectOptionsTypePage) =>
+              data.find(item => item.label === text),
+          );
+        }
+        if (!option && !allowNewOptions) {
+          return undefined;
+        }
         const value: AntdLabeledValue = {
           label: text,
           value: text,
@@ -550,20 +562,25 @@ const AsyncSelect = forwardRef(
         }
         return value;
       },
-      [fullSelectOptions],
+      [allValuesLoaded, allowNewOptions, fullSelectOptions, options, pageSize],
     );
 
-    const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    const onPaste = async (e: ClipboardEvent<HTMLInputElement>) => {
       const pastedText = e.clipboardData.getData('text');
       if (isSingleMode) {
-        setSelectValue(getPastedTextValue(pastedText));
+        const value = await getPastedTextValue(pastedText);
+        if (value) {
+          setSelectValue(value);
+        }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
         const array = token ? uniq(pastedText.split(token)) : [pastedText];
-        const values = array.map(item => getPastedTextValue(item));
+        const values = (
+          await Promise.all(array.map(item => getPastedTextValue(item)))
+        ).filter(item => item !== undefined) as AntdLabeledValue[];
         setSelectValue(previous => [
           ...((previous || []) as AntdLabeledValue[]),
-          ...values,
+          ...values.filter(value => !hasOption(value.value, previous)),
         ]);
       }
       fireOnChange();

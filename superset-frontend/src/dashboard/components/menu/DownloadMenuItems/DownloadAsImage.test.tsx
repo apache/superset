@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { SyntheticEvent } from 'react';
+import { SyntheticEvent } from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from 'src/components/Menu';
@@ -57,4 +57,10 @@ test('Should call download image on click', async () => {
     expect(downloadAsImage).toBeCalledTimes(1);
     expect(props.addDangerToast).toBeCalledTimes(0);
   });
+});
+
+test('Component is rendered with role="button"', async () => {
+  renderComponent();
+  const button = screen.getByRole('button', { name: 'Download as Image' });
+  expect(button).toBeInTheDocument();
 });

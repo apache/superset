@@ -18,7 +18,7 @@
 from typing import Any
 
 from marshmallow import Schema
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import select
 
 from superset import db
@@ -43,7 +43,6 @@ from superset.models.dashboard import Dashboard, dashboard_slices
 
 
 class ImportDashboardsCommand(ImportModelsCommand):
-
     """Import dashboards"""
 
     dao = DashboardDAO
@@ -115,7 +114,6 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 # update datasource id, type, and name
                 dataset_dict = dataset_info[config["dataset_uuid"]]
                 config.update(dataset_dict)
-                # pylint: disable=line-too-long
                 dataset_uid = f"{dataset_dict['datasource_id']}__{dataset_dict['datasource_type']}"
                 config["params"].update({"datasource": dataset_uid})
                 if "query_context" in config:
