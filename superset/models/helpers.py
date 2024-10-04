@@ -1351,8 +1351,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
 
         rls_filters = self.get_sqla_row_level_filters(template_processor=tp)
-        if rls_filters:
-            qry = qry.where(and_(*rls_filters))
+        qry = qry.where(and_(*rls_filters))
 
         with self.database.get_sqla_engine() as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
