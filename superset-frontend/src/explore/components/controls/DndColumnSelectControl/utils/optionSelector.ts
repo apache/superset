@@ -22,6 +22,7 @@ import {
   ensureIsArray,
   QueryFormColumn,
   isPhysicalColumn,
+  t,
 } from '@superset-ui/core';
 
 const getColumnNameOrAdhocColumn = (
@@ -55,7 +56,13 @@ export class OptionSelector {
         if (!isPhysicalColumn(value)) {
           return value;
         }
-        return null;
+        return {
+          type_generic: 'UNKNOWN',
+          column_name: value,
+          error_text: t(
+            'This column might be incompatible with current dataset',
+          ),
+        };
       })
       .filter(Boolean) as ColumnMeta[];
   }
