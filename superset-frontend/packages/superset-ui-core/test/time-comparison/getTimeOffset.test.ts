@@ -527,6 +527,39 @@ test('should handle custom range with previous calendar month', () => {
   );
 });
 
+test('should handle custom range with previous calendar quarter', () => {
+  const timeRangeFilter = {
+    comparator: 'previous calendar quarter',
+  };
+  const shifts = ['custom'];
+  const startDate = '2024-04-26';
+  jest.useFakeTimers();
+  runTimezoneTest(
+    '2024-06-05T02:06:00+02:00',
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days ago'],
+  );
+  runTimezoneTest(
+    '2024-06-05T00:06:00Z',
+    'UTC',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days ago'],
+  );
+  runTimezoneTest(
+    '2024-06-04T16:06:00-08:00',
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days ago'],
+  );
+});
+
 test('should handle custom range with previous calendar year', () => {
   const timeRangeFilter = {
     comparator: 'previous calendar year',
