@@ -80,12 +80,25 @@ export function getRelatedCharts(
   datasources: DatasourcesState,
 ) {
   return Object.entries(filters).reduce((acc, [filterKey, filter]) => {
+    const chartsInScope = filter.chartsInScope
+      ? filter.chartsInScope.filter(
+          (chartId: number) => !filter.scope.excluded.includes(chartId),
+        )
+      : filter.scope;
+
+    const slicesInScope = Object.values(slices).reduce((result, slice) => {
+      if (chartsInScope.includes(slice.slice_id)) {
+        return { ...result, [slice.slice_id]: slice };
+      }
+      return result;
+    }, {});
+
     if (filter.filterType === 'filter_select') {
       return {
         ...acc,
         [filterKey]: getRelatedChartsForSelectFilter(
           filter,
-          slices,
+          slicesInScope,
           datasources,
         ),
       };
@@ -95,18 +108,14 @@ export function getRelatedCharts(
         ...acc,
         [filterKey]: getRelatedChartsForCrossFilter(
           filterKey,
-          slices,
+          slicesInScope,
           datasources,
         ),
       };
     }
     return {
       ...acc,
-      [filterKey]: filter.chartsInScope
-        ? filter.chartsInScope.filter(
-            (chartId: number) => !filter.scope.excluded.includes(chartId),
-          )
-        : filter.scope,
+      [filterKey]: chartsInScope,
     };
   }, {});
 }
