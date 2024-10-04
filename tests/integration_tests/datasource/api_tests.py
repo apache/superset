@@ -186,11 +186,11 @@ class TestDatasourceApi(SupersetTestCase):
             table, "get_sqla_row_level_filters", return_value=[TextClause("col2 = 'b'")]
         ):
             rv = self.client.get(
-                f"api/v1/datasource/table/{table.id}/column/col1/values/"
+                f"api/v1/datasource/table/{table.id}/column/col2/values/"
             )
             self.assertEqual(rv.status_code, 200)
             response = json.loads(rv.data.decode("utf-8"))
-            self.assertEqual(response["result"], [1])
+            self.assertEqual(response["result"], ['b'])
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_with_rls_no_values(self):
@@ -200,7 +200,7 @@ class TestDatasourceApi(SupersetTestCase):
             table, "get_sqla_row_level_filters", return_value=[TextClause("col2 = 'q'")]
         ):
             rv = self.client.get(
-                f"api/v1/datasource/table/{table.id}/column/col1/values/"
+                f"api/v1/datasource/table/{table.id}/column/col2/values/"
             )
             self.assertEqual(rv.status_code, 200)
             response = json.loads(rv.data.decode("utf-8"))
