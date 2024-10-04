@@ -130,7 +130,7 @@ def handle_query_error(
 
 
 def get_query_backoff_handler(details: dict[Any, Any]) -> None:
-    query_id = details["kwargs"]["query_id"]
+    query_id = details["args"][0]
     logger.error(
         "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
     )
