@@ -89,14 +89,10 @@ const mockInvisibleColumn3 = {
   getDataAsCsv: jest.fn().mockReturnValue('csv'),
 } as any as Column;
 
-const mockSetColDef = jest.fn();
-
 const mockGridApi = {
-  autoSizeColumn: jest.fn(),
+  autoSizeColumns: jest.fn(),
   autoSizeAllColumns: jest.fn(),
-  setColumnPinned: jest.fn(),
   getColumn: jest.fn().mockReturnValue({
-    setColDef: mockSetColDef,
     getColDef: jest.fn().mockReturnValue({}),
   }),
   getColumns: jest.fn().mockReturnValue([]),
@@ -117,13 +113,12 @@ const mockedProps = {
 };
 
 afterEach(() => {
-  mockSetColDef.mockClear();
   (mockGridApi.getDataAsCsv as jest.Mock).mockClear();
-  (mockGridApi.setColumnPinned as jest.Mock).mockClear();
-  (mockGridApi.setColumnVisible as jest.Mock).mockClear();
+  (mockGridApi.setColumnsPinned as jest.Mock).mockClear();
+  (mockGridApi.setColumnsVisible as jest.Mock).mockClear();
   (mockGridApi.setColumnsVisible as jest.Mock).mockClear();
   (mockGridApi.setColumnsPinned as jest.Mock).mockClear();
-  (mockGridApi.autoSizeColumn as jest.Mock).mockClear();
+  (mockGridApi.autoSizeColumns as jest.Mock).mockClear();
   (mockGridApi.autoSizeAllColumns as jest.Mock).mockClear();
   (mockGridApi.moveColumns as jest.Mock).mockClear();
 });
@@ -145,14 +140,14 @@ test('renders buttons pinning both side', () => {
   expect(queryByText('Pin Left')).toBeTruthy();
   expect(queryByText('Pin Right')).toBeTruthy();
   fireEvent.click(getByText('Pin Left'));
-  expect(mockGridApi.setColumnPinned).toHaveBeenCalledTimes(1);
-  expect(mockGridApi.setColumnPinned).toHaveBeenCalledWith(
-    mockedProps.colId,
+  expect(mockGridApi.setColumnsPinned).toHaveBeenCalledTimes(1);
+  expect(mockGridApi.setColumnsPinned).toHaveBeenCalledWith(
+    [mockedProps.colId],
     'left',
   );
   fireEvent.click(getByText('Pin Right'));
-  expect(mockGridApi.setColumnPinned).toHaveBeenLastCalledWith(
-    mockedProps.colId,
+  expect(mockGridApi.setColumnsPinned).toHaveBeenLastCalledWith(
+    [mockedProps.colId],
     'right',
   );
 });
@@ -164,9 +159,9 @@ test('renders unpin on pinned left', () => {
   expect(queryByText('Pin Left')).toBeFalsy();
   expect(queryByText('Unpin')).toBeTruthy();
   fireEvent.click(getByText('Unpin'));
-  expect(mockGridApi.setColumnPinned).toHaveBeenCalledTimes(1);
-  expect(mockGridApi.setColumnPinned).toHaveBeenCalledWith(
-    mockedProps.colId,
+  expect(mockGridApi.setColumnsPinned).toHaveBeenCalledTimes(1);
+  expect(mockGridApi.setColumnsPinned).toHaveBeenCalledWith(
+    [mockedProps.colId],
     null,
   );
 });
@@ -181,9 +176,8 @@ test('renders autosize column', async () => {
   const { getByText } = render(<HeaderMenu {...mockedProps} />);
   fireEvent.click(getByText('Autosize Column'));
   await waitFor(() =>
-    expect(mockGridApi.autoSizeColumn).toHaveBeenCalledTimes(1),
+    expect(mockGridApi.autoSizeColumns).toHaveBeenCalledTimes(1),
   );
-  expect(mockSetColDef).toHaveBeenCalledTimes(1);
 });
 
 test('renders unhide when invisible column exists', async () => {
@@ -193,8 +187,8 @@ test('renders unhide when invisible column exists', async () => {
   expect(queryByText('Unhide')).toBeTruthy();
   const unhideColumnsButton = await screen.findByText('column2');
   fireEvent.click(unhideColumnsButton);
-  expect(mockGridApi.setColumnVisible).toHaveBeenCalledTimes(1);
-  expect(mockGridApi.setColumnVisible).toHaveBeenCalledWith('column2', true);
+  expect(mockGridApi.setColumnsVisible).toHaveBeenCalledTimes(1);
+  expect(mockGridApi.setColumnsVisible).toHaveBeenCalledWith(['column2'], true);
 });
 
 describe('for main menu', () => {
