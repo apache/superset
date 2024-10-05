@@ -308,7 +308,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         }
         sql = table.get_query_str(query_obj)
         assert (
-            "ORDER BY\n  CASE WHEN gender = 'boy' THEN 'male' ELSE 'female' END ASC"
+            "ORDER BY \n            case\n              when gender='boy' then 'male'\n              else 'female'\n            end\n             ASC"
             in sql
         )
 

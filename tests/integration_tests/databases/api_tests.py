@@ -2005,7 +2005,8 @@ class TestDatabaseApi(SupersetTestCase):
                 self.assertEqual(option["type"], "table")
                 self.assertTrue(option["value"] in schemas)
 
-    def test_database_tables_not_found(self):
+    @patch("superset.utils.log.logger")
+    def test_database_tables_not_found(self, logger_mock):
         """
         Database API: Test database tables not found
         """
@@ -2014,6 +2015,9 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{example_db.id}/tables/?q={prison.dumps({'schema_name': 'non_existent'})}"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+        logger_mock.warning.assert_called_once_with(
+            "Database not found.", exc_info=True
+        )
 
     def test_database_tables_invalid_query(self):
         """
@@ -2026,8 +2030,12 @@ class TestDatabaseApi(SupersetTestCase):
         )
         self.assertEqual(rv.status_code, 400)
 
+    @patch("superset.utils.log.logger")
     @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
-    def test_database_tables_unexpected_error(self, mock_can_access_database):
+    @mock.patch("superset.models.core.Database.get_all_table_names_in_schema")
+    def test_database_tables_unexpected_error(
+        self, mock_get_all_table_names_in_schema, mock_can_access_database, logger_mock
+    ):
         """
         Database API: Test database tables with unexpected error
         """
@@ -2039,6 +2047,7 @@ class TestDatabaseApi(SupersetTestCase):
             f"api/v1/database/{database.id}/tables/?q={prison.dumps({'schema_name': 'main'})}"
         )
         self.assertEqual(rv.status_code, 422)
+        logger_mock.warning.assert_called_once_with("Test Error", exc_info=True)
 
     def test_test_connection(self):
         """

@@ -177,7 +177,11 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     )
 
     # compare columns and metrics in form_data with stored values
-    for key in ["metrics", "columns", "groupby"]:
+    for key, equivalent in [
+        ("metrics", ["metrics"]),
+        ("columns", ["columns", "groupby"]),
+        ("groupby", ["columns", "groupby"]),
+    ]:
         requested_values = {freeze_value(value) for value in form_data.get(key) or []}
         stored_values = {
             freeze_value(value) for value in stored_chart.params_dict.get(key) or []
@@ -193,9 +197,10 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         }
         if stored_query_context:
             for query in stored_query_context.get("queries") or []:
-                stored_values.update(
-                    {freeze_value(value) for value in query.get(key) or []}
-                )
+                for key in equivalent:
+                    stored_values.update(
+                        {freeze_value(value) for value in query.get(key) or []}
+                    )
 
         if not queries_values.issubset(stored_values):
             return True

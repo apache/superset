@@ -25,7 +25,6 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging
@@ -1649,7 +1648,9 @@ SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
 
 # URI to database storing the example data, points to
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
-SQLALCHEMY_EXAMPLES_URI = "sqlite:///" + os.path.join(DATA_DIR, "examples.db")
+SQLALCHEMY_EXAMPLES_URI = (
+    "sqlite:///" + os.path.join(DATA_DIR, "examples.db") + "?check_same_thread=false"
+)
 
 # Optional prefix to be added to all static asset paths when rendering the UI.
 # This is useful for hosting assets in an external CDN, for example
@@ -1883,7 +1884,9 @@ if CONFIG_PATH_ENV_VAR in os.environ:
     cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
     try:
         module = sys.modules[__name__]
-        override_conf = imp.load_source("superset_config", cfg_path)
+        spec = importlib.util.spec_from_file_location("superset_config", cfg_path)
+        override_conf = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(override_conf)
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
