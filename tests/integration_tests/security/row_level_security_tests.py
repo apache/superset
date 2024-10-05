@@ -188,7 +188,7 @@ class TestRowLevelSecurity(SupersetTestCase):
                 "clause": "client_id=1",
             },
         )
-        self.assertEqual(rv.status_code, 201)
+        assert rv.status_code == 201
         rls1 = (
             db.session.query(RowLevelSecurityFilter).filter_by(name="rls1")
         ).one_or_none()
@@ -214,7 +214,7 @@ class TestRowLevelSecurity(SupersetTestCase):
                 "clause": "client_id=1",
             },
         )
-        self.assertEqual(rv.status_code, 422)
+        assert rv.status_code == 422
 
     @pytest.mark.usefixtures("create_dataset")
     def test_model_view_rls_add_tables_required(self):
@@ -231,7 +231,7 @@ class TestRowLevelSecurity(SupersetTestCase):
                 "clause": "client_id=1",
             },
         )
-        self.assertEqual(rv.status_code, 400)
+        assert rv.status_code == 400
         data = json.loads(rv.data.decode("utf-8"))
         assert data["message"] == {"tables": ["Shorter than minimum length 1."]}
 
@@ -326,8 +326,8 @@ class TestRowLevelSecurityCreateAPI(SupersetTestCase):
         }
         rv = self.client.post("/api/v1/rowlevelsecurity/", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(status_code, 422)
-        self.assertEqual(data["message"], "[l'Some roles do not exist']")
+        assert status_code == 422
+        assert data["message"] == "[l'Some roles do not exist']"
 
     def test_invalid_table_failure(self):
         self.login(ADMIN_USERNAME)
@@ -340,8 +340,8 @@ class TestRowLevelSecurityCreateAPI(SupersetTestCase):
         }
         rv = self.client.post("/api/v1/rowlevelsecurity/", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(status_code, 422)
-        self.assertEqual(data["message"], "[l'Datasource does not exist']")
+        assert status_code == 422
+        assert data["message"] == "[l'Datasource does not exist']"
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_success(self):
@@ -357,7 +357,7 @@ class TestRowLevelSecurityCreateAPI(SupersetTestCase):
         rv = self.client.post("/api/v1/rowlevelsecurity/", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
 
-        self.assertEqual(status_code, 201)
+        assert status_code == 201
 
         rls = (
             db.session.query(RowLevelSecurityFilter)
@@ -366,11 +366,11 @@ class TestRowLevelSecurityCreateAPI(SupersetTestCase):
         )
 
         assert rls
-        self.assertEqual(rls.name, "rls 1")
-        self.assertEqual(rls.clause, "1=1")
-        self.assertEqual(rls.filter_type, "Base")
-        self.assertEqual(rls.tables[0].id, table.id)
-        self.assertEqual(rls.roles[0].id, 1)
+        assert rls.name == "rls 1"
+        assert rls.clause == "1=1"
+        assert rls.filter_type == "Base"
+        assert rls.tables[0].id == table.id
+        assert rls.roles[0].id == 1
 
         db.session.delete(rls)
         db.session.commit()
@@ -388,8 +388,8 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         }
         rv = self.client.put("/api/v1/rowlevelsecurity/99999999", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(status_code, 404)
-        self.assertEqual(data["message"], "Not found")
+        assert status_code == 404
+        assert data["message"] == "Not found"
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_invalid_role_failure(self):
@@ -410,8 +410,8 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         }
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(status_code, 422)
-        self.assertEqual(data["message"], "[l'Some roles do not exist']")
+        assert status_code == 422
+        assert data["message"] == "[l'Some roles do not exist']"
 
         db.session.delete(rls)
         db.session.commit()
@@ -439,8 +439,8 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         }
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(status_code, 422)
-        self.assertEqual(data["message"], "[l'Datasource does not exist']")
+        assert status_code == 422
+        assert data["message"] == "[l'Datasource does not exist']"
 
         db.session.delete(rls)
         db.session.commit()
@@ -472,7 +472,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
         status_code, _data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
 
-        self.assertEqual(status_code, 201)
+        assert status_code == 201
 
         rls = (
             db.session.query(RowLevelSecurityFilter)
@@ -480,11 +480,11 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
             .one_or_none()
         )
 
-        self.assertEqual(rls.name, "rls put success")
-        self.assertEqual(rls.clause, "2=2")
-        self.assertEqual(rls.filter_type, "Base")
-        self.assertEqual(rls.tables[0].id, tables[1].id)
-        self.assertEqual(rls.roles[0].id, roles[1].id)
+        assert rls.name == "rls put success"
+        assert rls.clause == "2=2"
+        assert rls.filter_type == "Base"
+        assert rls.tables[0].id == tables[1].id
+        assert rls.roles[0].id == roles[1].id
 
         db.session.delete(rls)
         db.session.commit()
@@ -498,8 +498,8 @@ class TestRowLevelSecurityDeleteAPI(SupersetTestCase):
         rv = self.client.delete(f"/api/v1/rowlevelsecurity/?q={ids_to_delete}")
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
 
-        self.assertEqual(status_code, 404)
-        self.assertEqual(data["message"], "Not found")
+        assert status_code == 404
+        assert data["message"] == "Not found"
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
@@ -530,8 +530,8 @@ class TestRowLevelSecurityDeleteAPI(SupersetTestCase):
         rv = self.client.delete(f"/api/v1/rowlevelsecurity/?q={ids_to_delete}")
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
 
-        self.assertEqual(status_code, 200)
-        self.assertEqual(data["message"], "Deleted 2 rules")
+        assert status_code == 200
+        assert data["message"] == "Deleted 2 rules"
 
 
 class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
@@ -543,7 +543,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         params = prison.dumps({"page": 0, "page_size": 100})
 
         rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
 
@@ -561,7 +561,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         params = prison.dumps({"page": 0, "page_size": 100})
 
         rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles?q={params}")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
 
@@ -584,7 +584,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         params = prison.dumps({"page": 0, "page_size": 10})
 
         rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
         received_tables = {table["text"].split(".")[-1] for table in result}
@@ -664,7 +664,7 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         tbl = self.get_table(name="birth_names")
         sql = tbl.get_query_str(self.query_obj)
 
-        self.assertRegex(sql, RLS_ALICE_REGEX)
+        assert re.search(RLS_ALICE_REGEX, sql)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_does_not_alter_unrelated_query(self):
@@ -679,7 +679,7 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         tbl = self.get_table(name="birth_names")
         sql = tbl.get_query_str(self.query_obj)
 
-        self.assertNotRegex(sql, RLS_ALICE_REGEX)
+        assert not re.search(RLS_ALICE_REGEX, sql)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_multiple_rls_filters_are_unionized(self):
@@ -695,8 +695,8 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         tbl = self.get_table(name="birth_names")
         sql = tbl.get_query_str(self.query_obj)
 
-        self.assertRegex(sql, RLS_ALICE_REGEX)
-        self.assertRegex(sql, RLS_GENDER_REGEX)
+        assert re.search(RLS_ALICE_REGEX, sql)
+        assert re.search(RLS_GENDER_REGEX, sql)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
@@ -709,8 +709,8 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         births_sql = births.get_query_str(self.query_obj)
         energy_sql = energy.get_query_str(self.query_obj)
 
-        self.assertRegex(births_sql, RLS_ALICE_REGEX)
-        self.assertRegex(energy_sql, RLS_ALICE_REGEX)
+        assert re.search(RLS_ALICE_REGEX, births_sql)
+        assert re.search(RLS_ALICE_REGEX, energy_sql)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_dataset_id_can_be_string(self):
@@ -721,4 +721,4 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         )
         sql = dataset.get_query_str(self.query_obj)
 
-        self.assertRegex(sql, RLS_ALICE_REGEX)
+        assert re.search(RLS_ALICE_REGEX, sql)

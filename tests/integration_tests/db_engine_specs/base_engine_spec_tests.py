@@ -61,18 +61,18 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         q10 = "select * from mytable limit 20, x"
         q11 = "select * from mytable limit x offset 20"
 
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q0), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q1), 10)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q2), 20)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q3), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q4), 20)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q5), 10)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q6), 10)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q7), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q8), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q9), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q10), None)
-        self.assertEqual(engine_spec_class.get_limit_from_sql(q11), None)
+        assert engine_spec_class.get_limit_from_sql(q0) is None
+        assert engine_spec_class.get_limit_from_sql(q1) == 10
+        assert engine_spec_class.get_limit_from_sql(q2) == 20
+        assert engine_spec_class.get_limit_from_sql(q3) is None
+        assert engine_spec_class.get_limit_from_sql(q4) == 20
+        assert engine_spec_class.get_limit_from_sql(q5) == 10
+        assert engine_spec_class.get_limit_from_sql(q6) == 10
+        assert engine_spec_class.get_limit_from_sql(q7) is None
+        assert engine_spec_class.get_limit_from_sql(q8) is None
+        assert engine_spec_class.get_limit_from_sql(q9) is None
+        assert engine_spec_class.get_limit_from_sql(q10) is None
+        assert engine_spec_class.get_limit_from_sql(q11) is None
 
     def test_wrapped_semi_tabs(self):
         self.sql_limit_regex(
@@ -141,7 +141,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         )
 
     def test_get_datatype(self):
-        self.assertEqual("VARCHAR", BaseEngineSpec.get_datatype("VARCHAR"))
+        assert "VARCHAR" == BaseEngineSpec.get_datatype("VARCHAR")
 
     def test_limit_with_implicit_offset(self):
         self.sql_limit_regex(
@@ -198,29 +198,26 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         for engine in load_engine_specs():
             if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
-                self.assertGreater(len(engine.get_time_grain_expressions()), 0)
+                assert len(engine.get_time_grain_expressions()) > 0
                 # make sure all defined time grains are supported
                 defined_grains = {grain.duration for grain in engine.get_time_grains()}
                 intersection = time_grains.intersection(defined_grains)
-                self.assertSetEqual(defined_grains, intersection, engine)
+                self.assertSetEqual(defined_grains, intersection, engine)  # noqa: PT009
 
     def test_get_time_grain_expressions(self):
         time_grains = MySQLEngineSpec.get_time_grain_expressions()
-        self.assertEqual(
-            list(time_grains.keys()),
-            [
-                None,
-                "PT1S",
-                "PT1M",
-                "PT1H",
-                "P1D",
-                "P1W",
-                "P1M",
-                "P3M",
-                "P1Y",
-                "1969-12-29T00:00:00Z/P1W",
-            ],
-        )
+        assert list(time_grains.keys()) == [
+            None,
+            "PT1S",
+            "PT1M",
+            "PT1H",
+            "P1D",
+            "P1W",
+            "P1M",
+            "P3M",
+            "P1Y",
+            "1969-12-29T00:00:00Z/P1W",
+        ]
 
     def test_get_table_names(self):
         inspector = mock.Mock()
@@ -255,11 +252,11 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             expected = ["STRING", "STRING", "FLOAT"]
         else:
             expected = ["VARCHAR(255)", "VARCHAR(255)", "FLOAT"]
-        self.assertEqual(col_names, expected)
+        assert col_names == expected
 
     def test_convert_dttm(self):
         dttm = self.get_dttm()
-        self.assertIsNone(BaseEngineSpec.convert_dttm("", dttm, db_extra=None))
+        assert BaseEngineSpec.convert_dttm("", dttm, db_extra=None) is None
 
     def test_pyodbc_rows_to_tuples(self):
         # Test for case when pyodbc.Row is returned (odbc driver)
@@ -272,7 +269,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             (2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000)),
         ]
         result = BaseEngineSpec.pyodbc_rows_to_tuples(data)
-        self.assertListEqual(result, expected)
+        self.assertListEqual(result, expected)  # noqa: PT009
 
     def test_pyodbc_rows_to_tuples_passthrough(self):
         # Test for case when tuples are returned
@@ -281,7 +278,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             (2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000)),
         ]
         result = BaseEngineSpec.pyodbc_rows_to_tuples(data)
-        self.assertListEqual(result, data)
+        self.assertListEqual(result, data)  # noqa: PT009
 
     @mock.patch("superset.models.core.Database.db_engine_spec", BaseEngineSpec)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

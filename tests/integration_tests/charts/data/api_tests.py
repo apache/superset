@@ -471,19 +471,16 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             "__time_origin": "now",
         }
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            data["result"][0]["applied_filters"],
-            [
-                {"column": "gender"},
-                {"column": "num"},
-                {"column": "name"},
-                {"column": "__time_range"},
-            ],
-        )
+        assert data["result"][0]["applied_filters"] == [
+            {"column": "gender"},
+            {"column": "num"},
+            {"column": "name"},
+            {"column": "__time_range"},
+        ]
         expected_row_count = self.get_expected_row_count("client_id_2")
-        self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
+        assert data["result"][0]["rowcount"] == expected_row_count
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_in_op_filter__data_is_returned(self):
@@ -533,7 +530,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
                 dttm_col.type,
                 dttm,
             )
-            self.assertIn(dttm_expression, result["query"])
+            assert dttm_expression in result["query"]
         else:
             raise Exception("ds column not found")
 
@@ -563,16 +560,16 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             }
         ]
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
         row = result["data"][0]
-        self.assertIn("__timestamp", row)
-        self.assertIn("sum__num", row)
-        self.assertIn("sum__num__yhat", row)
-        self.assertIn("sum__num__yhat_upper", row)
-        self.assertIn("sum__num__yhat_lower", row)
-        self.assertEqual(result["rowcount"], 103)
+        assert "__timestamp" in row
+        assert "sum__num" in row
+        assert "sum__num__yhat" in row
+        assert "sum__num__yhat_upper" in row
+        assert "sum__num__yhat_lower" in row
+        assert result["rowcount"] == 103
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_invalid_post_processing(self):
@@ -730,11 +727,11 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         time.sleep(1)
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         time.sleep(1)
-        self.assertEqual(rv.status_code, 202)
+        assert rv.status_code == 202
         time.sleep(1)
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
-        self.assertCountEqual(
+        self.assertCountEqual(  # noqa: PT009
             keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
         )
 
@@ -764,10 +761,10 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             rv = self.post_assert_metric(
                 CHART_DATA_URI, self.query_context_payload, "data"
             )
-            self.assertEqual(rv.status_code, 200)
+            assert rv.status_code == 200
             data = json.loads(rv.data.decode("utf-8"))
             patched_run.assert_called_once_with(force_cached=True)
-            self.assertEqual(data, {"result": [{"query": "select * from foo"}]})
+            assert data == {"result": [{"query": "select * from foo"}]}
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -779,7 +776,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         async_query_manager_factory.init_app(app)
         self.query_context_payload["result_type"] = "results"
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -793,7 +790,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
         )
         rv = test_client.post(CHART_DATA_URI, json=self.query_context_payload)
-        self.assertEqual(rv.status_code, 401)
+        assert rv.status_code == 401
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_rowcount(self):
@@ -846,10 +843,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         unique_names = {row["name"] for row in data}
         self.maxDiff = None
-        self.assertEqual(len(unique_names), SERIES_LIMIT)
-        self.assertEqual(
-            {column for column in data[0].keys()}, {"state", "name", "sum__num"}
-        )
+        assert len(unique_names) == SERIES_LIMIT
+        assert {column for column in data[0].keys()} == {"state", "name", "sum__num"}
 
     @pytest.mark.usefixtures(
         "create_annotation_layers", "load_birth_names_dashboard_with_slices"
@@ -888,10 +883,10 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         annotation_layers.append(event)
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         # response should only contain interval and event data, not formula
-        self.assertEqual(len(data["result"][0]["annotation_data"]), 2)
+        assert len(data["result"][0]["annotation_data"]) == 2
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_virtual_table_with_colons_as_datasource(self):
@@ -1184,8 +1179,8 @@ class TestGetChartDataApi(BaseTestChartDataApi):
             data = json.loads(rv.data.decode("utf-8"))
 
         expected_row_count = self.get_expected_row_count("client_id_3")
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
+        assert rv.status_code == 200
+        assert data["result"][0]["rowcount"] == expected_row_count
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @mock.patch("superset.charts.data.api.QueryContextCacheLoader")
@@ -1202,8 +1197,8 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         )
         data = json.loads(rv.data.decode("utf-8"))
 
-        self.assertEqual(rv.status_code, 422)
-        self.assertEqual(data["message"], "Error loading data from cache")
+        assert rv.status_code == 422
+        assert data["message"] == "Error loading data from cache"
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @mock.patch("superset.charts.data.api.QueryContextCacheLoader")
@@ -1231,7 +1226,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                 f"{CHART_DATA_URI}/test-cache-key",
             )
 
-        self.assertEqual(rv.status_code, 401)
+        assert rv.status_code == 401
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     def test_chart_data_cache_key_error(self):
@@ -1244,7 +1239,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
             f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
         )
 
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_with_adhoc_column(self):
