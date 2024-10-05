@@ -174,6 +174,8 @@ protobuf==4.23.0
     #   googleapis-common-protos
     #   grpcio-status
     #   proto-plus
+psutil==6.0.0
+    # via apache-superset
 psycopg2-binary==2.9.6
     # via apache-superset
 pure-sasl==0.6.2
@@ -186,7 +188,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.3.5
     # via apache-superset
-pyhive[hive_pure_sasl]==0.7.0
+pyhive[presto]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
@@ -233,6 +235,16 @@ thrift==0.16.0
     #   thrift-sasl
 thrift-sasl==0.4.3
     # via apache-superset
+tomli==2.0.1
+    # via
+    #   build
+    #   coverage
+    #   pip-tools
+    #   pylint
+    #   pyproject-api
+    #   pyproject-hooks
+    #   pytest
+    #   tox
 tomlkit==0.12.5
     # via pylint
 toposort==1.10
