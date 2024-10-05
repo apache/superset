@@ -12,7 +12,7 @@ Users can configure automated alerts and reports to send dashboards or charts to
 - *Alerts* are sent when a SQL condition is reached
 - *Reports* are sent on a schedule
 
-Alerts and reports are disabled by default. To turn them on, you need to do some setup, described here.
+Alerts and reports are disabled by-default. To turn them on, you need to do some setup, described here.
 
 ## Requirements
 
@@ -28,11 +28,11 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 
 ##### Disable dry-run mode
 
-Screenshots will be taken but no messages actually sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `docker/pythonpath_dev/superset_config.py`.  To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
+Screenshots will be taken, but no messages will actually be sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `docker/pythonpath_dev/superset_config.py`.  To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
 
 #### In your `Dockerfile`
 
-- You must install a headless browser, for taking screenshots of the charts and dashboards. Only Firefox and Chrome are currently supported.
+-   You must install a headless browser to take screenshots of the charts and dashboards. Only Firefox and Chrome are currently supported.
   > If you choose Chrome, you must also change the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
 
 Note: All the components required (Firefox headless browser, Redis, Postgres db, celery worker and celery beat) are present in the *dev* docker image if you are following [Installing Superset Locally](/docs/installation/docker-compose/).
