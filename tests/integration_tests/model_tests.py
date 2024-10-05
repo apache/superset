@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import re
 from superset.utils.core import DatasourceType
 from superset.utils import json
 import unittest
