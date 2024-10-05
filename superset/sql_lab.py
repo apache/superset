@@ -238,15 +238,30 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
     # We are testing to see if more rows exist than the limit.
     increased_limit = None if query.limit is None else query.limit + 1
 
-    parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
-    if parsed_statement.is_mutating() and not database.allow_dml:
-        raise SupersetErrorException(
-            SupersetError(
-                message=__("Only SELECT statements are allowed against this database."),
-                error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
-                level=ErrorLevel.ERROR,
+    if not database.allow_dml:
+        errors = []
+        try:
+            parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
+            disallowed = parsed_statement.is_mutating()
+        except SupersetParseError as ex:
+            # if we fail to parse the query, disallow by default
+            disallowed = True
+            errors.append(ex.error)
+
+        if disallowed:
+            errors.append(
+                SupersetError(
+                    message=__(
+                        "This database does not allow for DDL/DML, and the query "
+                        "could not be parsed to confirm it is a read-only query. Please "
+                        "contact your administrator for more assistance."
+                    ),
+                    error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
             )
-        )
+            raise SupersetErrorsException(errors)
+
     if apply_ctas:
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)

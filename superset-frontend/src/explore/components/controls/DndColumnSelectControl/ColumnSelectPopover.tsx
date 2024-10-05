@@ -65,7 +65,7 @@ const StyledSelect = styled(Select)`
   }
 `;
 
-interface ColumnSelectPopoverProps {
+export interface ColumnSelectPopoverProps {
   columns: ColumnMeta[];
   editedColumn?: ColumnMeta | AdhocColumn;
   onChange: (column: ColumnMeta | AdhocColumn) => void;
@@ -189,9 +189,9 @@ const ColumnSelectPopover = ({
 
   const defaultActiveTabKey = initialAdhocColumn
     ? 'sqlExpression'
-    : initialSimpleColumn || calculatedColumns.length === 0
-      ? 'simple'
-      : 'saved';
+    : selectedCalculatedColumn
+      ? 'saved'
+      : 'simple';
 
   useEffect(() => {
     getCurrentTab(defaultActiveTabKey);
