@@ -596,6 +596,7 @@ def execute_sql_statements(
                     max_bytes = sql_lab_payload_max_mb * 1024 * 1024
 
                     if serialized_payload_size > max_bytes:
+                        logger.info("Result size exceeds the allowed limit.")
                         raise SupersetErrorException(
                             SupersetError(
                                 message=f"Result size ({serialized_payload_size / (1024 * 1024):.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
@@ -648,6 +649,7 @@ def execute_sql_statements(
             max_bytes = sql_lab_payload_max_mb * 1024 * 1024
 
             if serialized_payload_size > max_bytes:
+                logger.info("Result size exceeds the allowed limit.")
                 raise SupersetErrorException(
                     SupersetError(
                         message=f"Result size ({serialized_payload_size / (1024 * 1024):.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
