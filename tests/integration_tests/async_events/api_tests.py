@@ -59,7 +59,7 @@ class TestAsyncEventApi(SupersetTestCase):
         assert rv.status_code == 200
         channel_id = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"] + self.UUID
         mock_xrange.assert_called_with(channel_id, "-", "+", 100)
-        self.assertEqual(response, {"result": []})
+        assert response == {"result": []}
 
     def _test_events_last_id_logic(self, mock_cache):
         with mock.patch.object(mock_cache, "xrange") as mock_xrange:
@@ -69,7 +69,7 @@ class TestAsyncEventApi(SupersetTestCase):
         assert rv.status_code == 200
         channel_id = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"] + self.UUID
         mock_xrange.assert_called_with(channel_id, "1607471525180-1", "+", 100)
-        self.assertEqual(response, {"result": []})
+        assert response == {"result": []}
 
     def _test_events_results_logic(self, mock_cache):
         with mock.patch.object(mock_cache, "xrange") as mock_xrange:
@@ -115,7 +115,7 @@ class TestAsyncEventApi(SupersetTestCase):
                 },
             ]
         }
-        self.assertEqual(response, expected)
+        assert response == expected
 
     @mock.patch("uuid.uuid4", return_value=UUID)
     def test_events_redis_cache_backend(self, mock_uuid4):
