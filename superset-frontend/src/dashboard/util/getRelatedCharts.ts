@@ -34,7 +34,7 @@ function getRelatedChartsForSelectFilter(
     .filter(({ datasource }) => {
       const chartDatasource = datasources[datasource];
       if (!chartDatasource) return false;
-      const { column, datasetId } = filter.targets[0] ?? {};
+      const { column, datasetId } = filter.targets[0];
 
       return (
         chartDatasource.id === datasetId ||
@@ -80,11 +80,10 @@ export function getRelatedCharts(
   datasources: DatasourcesState,
 ) {
   return Object.entries(filters).reduce((acc, [filterKey, filter]) => {
-    const chartsInScope = filter.chartsInScope
-      ? filter.chartsInScope.filter(
-          (chartId: number) => !filter.scope.excluded.includes(chartId),
-        )
-      : filter.scope;
+    const isCrossFilter = Object.keys(slices).includes(filterKey);
+    const chartsInScope = Array.isArray(filter.scope)
+      ? filter.scope
+      : filter.chartsInScope;
 
     const slicesInScope = Object.values(slices).reduce((result, slice) => {
       if (chartsInScope.includes(slice.slice_id)) {
@@ -92,22 +91,21 @@ export function getRelatedCharts(
       }
       return result;
     }, {});
-
-    if (filter.filterType === 'filter_select') {
+    if (isCrossFilter) {
       return {
         ...acc,
-        [filterKey]: getRelatedChartsForSelectFilter(
-          filter,
+        [filterKey]: getRelatedChartsForCrossFilter(
+          filterKey,
           slicesInScope,
           datasources,
         ),
       };
     }
-    if (!filter.filterType && Object.keys(slices).includes(filterKey)) {
+    if (filter.filterType === 'filter_select') {
       return {
         ...acc,
-        [filterKey]: getRelatedChartsForCrossFilter(
-          filterKey,
+        [filterKey]: getRelatedChartsForSelectFilter(
+          filter,
           slicesInScope,
           datasources,
         ),
