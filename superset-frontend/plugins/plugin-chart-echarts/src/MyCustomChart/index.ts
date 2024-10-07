@@ -22,7 +22,7 @@ export default class MyCustomChartPlugin extends EchartsChartPlugin<
         description: t('A custom chart built from scratch.'),
         exampleGallery: [{ url: '/path-to-example-image1.png' }],
         name: t('My Custom Chart'),
-        tags: [t('Custom'), t('Experimental')],
+        tags: [t('Custom'), t('Experimental'), t('Featured')],
         thumbnail,
       },
       transformProps,
