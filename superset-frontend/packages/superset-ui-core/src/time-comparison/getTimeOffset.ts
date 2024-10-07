@@ -82,7 +82,7 @@ export const parseDttmToDate = (
       const quarter = Math.floor(now.getMonth() / 3);
       const startquarter = new Date(now.getFullYear(), quarter * 3 - 3, 1);
       const endquarter = new Date(
-        startquarter.getFullYear(), 
+        startquarter.getFullYear(),
         startquarter.getMonth() + 3,
         0
       );
