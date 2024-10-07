@@ -63,12 +63,11 @@ from superset.exceptions import (
     ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
-    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql.parse import SQLScript, SQLStatement
+from superset.sql.parse import SQLScript
 from superset.sql_parse import (
     has_table_query,
     insert_rls_in_predicate,
@@ -870,10 +869,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
-        try:
-            sql = SQLStatement(sql, engine=self.db_engine_spec.engine).format()
-        except SupersetParseError:
-            logger.warning("Unable to parse SQL to format it, passing it as-is")
 
         if mutate:
             sql = self.database.mutate_sql_based_on_config(sql)
@@ -1314,7 +1309,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return and_(*l)
 
-    def values_for_column(
+    def values_for_column(  # pylint: disable=too-many-locals
         self,
         column_name: str,
         limit: int = 10000,
@@ -1349,6 +1344,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
+
+        rls_filters = self.get_sqla_row_level_filters(template_processor=tp)
+        qry = qry.where(and_(*rls_filters))
 
         with self.database.get_sqla_engine() as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))

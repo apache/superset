@@ -626,6 +626,32 @@ def test_values_for_column_on_text_column(text_column_table):
     assert len(with_null) == 8
 
 
+def test_values_for_column_on_text_column_with_rls(text_column_table):
+    with patch.object(
+        text_column_table,
+        "get_sqla_row_level_filters",
+        return_value=[
+            TextClause("foo = 'foo'"),
+        ],
+    ):
+        with_rls = text_column_table.values_for_column(column_name="foo", limit=10000)
+        assert with_rls == ["foo"]
+        assert len(with_rls) == 1
+
+
+def test_values_for_column_on_text_column_with_rls_no_values(text_column_table):
+    with patch.object(
+        text_column_table,
+        "get_sqla_row_level_filters",
+        return_value=[
+            TextClause("foo = 'bar'"),
+        ],
+    ):
+        with_rls = text_column_table.values_for_column(column_name="foo", limit=10000)
+        assert with_rls == []
+        assert len(with_rls) == 0
+
+
 def test_filter_on_text_column(text_column_table):
     table = text_column_table
     # null value should be replaced
@@ -803,7 +829,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
         {
             "operator": FilterOperator.NOT_EQUALS.value,
             "count": 0,
-            "sql_should_contain": "NOT COL4 IS NULL",
+            "sql_should_contain": "COL4 IS NOT NULL",
         },
     ]
     for expected in expected_results:
