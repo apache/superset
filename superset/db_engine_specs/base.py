@@ -38,7 +38,7 @@ from uuid import uuid4
 
 import pandas as pd
 import requests
-import sqlparse
+import sqlglot
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
@@ -1236,7 +1236,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         """
         if not cls.allows_cte_in_subquery:
-            stmt = sqlparse.parse(sql)[0]
+            stmt = sqlglot.tokenize(sql)
 
             # The first meaningful token for CTE will be with WITH
             idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
@@ -2158,7 +2158,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def parse_sql(cls, sql: str) -> list[str]:
-        return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
+        return sqlglot.transpile(sql)
+        # return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
 
     @classmethod
     def get_impersonation_key(cls, user: User | None) -> Any:

@@ -24,11 +24,13 @@ import re
 from collections.abc import Iterator
 from typing import Any, cast, TYPE_CHECKING
 
+import sqlglot
 import sqlparse
 from flask_babel import gettext as __
 from jinja2 import nodes
 from sqlalchemy import and_
 from sqlglot.dialects.dialect import Dialects
+from sqlglot.errors import ParseError
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
 from sqlparse.sql import (
@@ -42,7 +44,6 @@ from sqlparse.sql import (
     Where,
 )
 from sqlparse.tokens import (
-    Comment,
     CTE,
     DDL,
     DML,
@@ -257,6 +258,7 @@ class ParsedQuery:
         sql_statement: str,
         engine: str = "base",
     ):
+        sql_statement = sqlglot.transpile(sql_statement)
         self.sql: str = sql_statement
         self._engine = engine
         self._dialect = SQLGLOT_DIALECTS.get(engine) if engine else None
@@ -579,30 +581,35 @@ class ParsedQuery:
 
 def sanitize_clause(clause: str) -> str:
     # clause = sqlparse.format(clause, strip_comments=True)
-    statements = sqlparse.parse(clause)
+    try:
+        statements = sqlglot.transpile(clause, pretty=True)
+    except Exception as p_err:
+        if isinstance(p_err, ParseError):
+            raise QueryClauseValidationException(str(p_err)) from p_err
+        raise ValueError(str(p_err)) from None
     if len(statements) != 1:
         raise QueryClauseValidationException("Clause contains multiple statements")
-    open_parens = 0
+    # open_parens = 0
 
-    previous_token = None
-    for token in statements[0]:
-        if token.value == "/" and previous_token and previous_token.value == "*":
-            raise QueryClauseValidationException("Closing unopened multiline comment")
-        if token.value == "*" and previous_token and previous_token.value == "/":
-            raise QueryClauseValidationException("Unclosed multiline comment")
-        if token.value in (")", "("):
-            open_parens += 1 if token.value == "(" else -1
-            if open_parens < 0:
-                raise QueryClauseValidationException(
-                    "Closing unclosed parenthesis in filter clause"
-                )
-        previous_token = token
-    if open_parens > 0:
-        raise QueryClauseValidationException("Unclosed parenthesis in filter clause")
+    # previous_token = None
+    # for token in statements[0]:
+    #     if token.value == "/" and previous_token and previous_token.value == "*":
+    #         raise QueryClauseValidationException("Closing unopened multiline comment")
+    #     if token.value == "*" and previous_token and previous_token.value == "/":
+    #         raise QueryClauseValidationException("Unclosed multiline comment")
+    #     if token.value in (")", "("):
+    #         open_parens += 1 if token.value == "(" else -1
+    #         if open_parens < 0:
+    #             raise QueryClauseValidationException(
+    #                 "Closing unclosed parenthesis in filter clause"
+    #             )
+    #     previous_token = token
+    # if open_parens > 0:
+    #     raise QueryClauseValidationException("Unclosed parenthesis in filter clause")
 
-    if previous_token and previous_token.ttype in Comment:
-        if previous_token.value[-1] != "\n":
-            clause = f"{clause}\n"
+    # if previous_token and previous_token.ttype in Comment:
+    #     if previous_token.value[-1] != "\n":
+    #         clause = f"{clause}\n"
 
     return clause
 

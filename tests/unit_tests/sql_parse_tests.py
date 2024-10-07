@@ -20,6 +20,7 @@ from typing import Optional
 from unittest.mock import Mock
 
 import pytest
+import sqlglot
 import sqlparse
 from pytest_mock import MockerFixture
 from sqlalchemy import text
@@ -1168,17 +1169,17 @@ SELECT * FROM birth_names LIMIT 1
     ]
 
 
-def test_sqlparse_formatting():
+def test_sqlglot_formatting():
     """
     Test that ``from_unixtime`` is formatted correctly.
     """
-    assert sqlparse.format(
+    assert sqlglot.transpile(
         "SELECT extract(HOUR from from_unixtime(hour_ts) "
         "AT TIME ZONE 'America/Los_Angeles') from table",
-        reindent=True,
-    ) == (
-        "SELECT extract(HOUR\n               from from_unixtime(hour_ts) "
-        "AT TIME ZONE 'America/Los_Angeles')\nfrom table"
+        pretty=True,
+    )[0] == (
+        "SELECT\n  EXTRACT(HOUR FROM FROM_UNIXTIME(hour_ts) AT TIME ZONE 'America/Los_Angeles')"
+        "\nFROM table"
     )
 
 

@@ -58,7 +58,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
-from sqlglot import parse
 
 from superset import app, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
@@ -654,11 +653,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
     ) -> pd.DataFrame:
-        # before we split sqls using sql parse, however this core code is only reachable
-        # with single sql queries. Thus, we remove the engine spec parser here
-        # sqls = self.db_engine_spec.parse_sql(sql)
-        sqls = parse(sql)
-
+        sqls = self.db_engine_spec.parse_sql(sql)
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             engine_url = engine.url
 

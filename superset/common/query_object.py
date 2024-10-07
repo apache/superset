@@ -276,7 +276,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             # performance for WHERE ... IN (...) clauses
             # Clauses are anyway checked for their validity in
             # e.g., connectors/sqla/models/get_query_str_extended
-            # self._sanitize_filters()
+            self._sanitize_filters()
             return None
         except QueryObjectValidationError as ex:
             if raise_exceptions:
