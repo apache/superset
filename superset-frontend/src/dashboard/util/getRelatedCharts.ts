@@ -50,9 +50,9 @@ function getRelatedChartsForSelectFilter(
 }
 function getRelatedChartsForCrossFilter(
   filterKey: string,
-  filter: Filter,
+  crossFilter: any,
   slices: Record<string, Slice>,
-  chartsInScope: number[],
+  scope: number[],
   datasources: DatasourcesState,
 ): number[] {
   const sourceSlice = slices[filterKey];
@@ -61,12 +61,15 @@ function getRelatedChartsForCrossFilter(
   const sourceDatasource = datasources[sourceSlice.datasource];
   if (!sourceDatasource) return [];
 
+  const filters = crossFilter?.values?.filters;
+
+  if (!filters) return [];
+
   return Object.values(slices)
     .filter(slice => {
-      if (!chartsInScope.includes(slice.slice_id)) return false;
+      if (!scope.includes(slice.slice_id)) return false;
       if (slice.slice_id === Number(filterKey)) return false;
 
-      const filters = filter?.values?.filters ?? [];
       const targetDatasource = datasources[slice.datasource];
 
       if (!targetDatasource) return false;
@@ -74,7 +77,14 @@ function getRelatedChartsForCrossFilter(
 
       const targetColumnNames = targetDatasource?.column_names ?? [];
 
-      return targetColumnNames.includes(filters?.[0]?.col);
+      // checks for a cross filter that was removed
+      if (
+        crossFilter.values?.filters?.length === 0 &&
+        crossFilter.scope.includes(slice.slice_id)
+      )
+        return true;
+
+      return targetColumnNames.includes(filters[0]?.col);
     })
     .map(slice => slice.slice_id);
 }

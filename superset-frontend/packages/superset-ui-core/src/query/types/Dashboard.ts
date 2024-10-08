@@ -78,7 +78,6 @@ export type Filter = {
   chartsInScope?: number[];
   type: typeof NativeFilterType.NativeFilter;
   description: string;
-  values?: Record<string, any>;
 };
 
 export type FilterWithDataMask = Filter & { dataMask: DataMaskWithId };
