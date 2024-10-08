@@ -238,7 +238,8 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "version": "1.0.0",
         }
 
-    # @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    # @pytest.mark.usefixtures("load_covid_dashboard")
+    @pytest.mark.skip(reason="missing covid fixture")
     @patch("superset.security.manager.g")
     @patch("superset.views.base.g")
     def test_export_dashboard_command_dataset_references(self, mock_g1, mock_g2):
