@@ -28,20 +28,23 @@ type Slice = {
 function getRelatedChartsForSelectFilter(
   filter: Filter,
   slices: Record<string, Slice>,
+  chartsInScope: number[],
   datasources: DatasourcesState,
 ) {
   return Object.values(slices)
-    .filter(({ datasource }) => {
+    .filter(({ slice_id, datasource }) => {
+      if (!chartsInScope.includes(slice_id)) return false;
       const chartDatasource = datasources[datasource];
       if (!chartDatasource) return false;
       const { column, datasetId } = filter.targets[0];
+      const datasourceColumnNames =
+        chartDatasource?.column_names ||
+        chartDatasource.columns.map(col => col.column_name);
 
       return (
         chartDatasource.id === datasetId ||
-        chartDatasource.columns.some(
-          col =>
-            col.column_name === column?.name ||
-            col.column_name === column?.displayName,
+        datasourceColumnNames.some(
+          col => col === column?.name || col === column?.displayName,
         )
       );
     })
@@ -50,6 +53,7 @@ function getRelatedChartsForSelectFilter(
 function getRelatedChartsForCrossFilter(
   filterKey: string,
   slices: Record<string, Slice>,
+  chartsInScope: number[],
   datasources: DatasourcesState,
 ): number[] {
   const sourceSlice = slices[filterKey];
@@ -60,15 +64,21 @@ function getRelatedChartsForCrossFilter(
 
   return Object.values(slices)
     .filter(slice => {
+      if (!chartsInScope.includes(slice.slice_id)) return false;
       if (slice.slice_id === Number(filterKey)) return false;
       const targetDatasource = datasources[slice.datasource];
       if (!targetDatasource) return false;
       if (targetDatasource === sourceDatasource) return true;
 
-      return sourceDatasource.columns.some(sourceColumn =>
-        targetDatasource.columns.some(
-          targetColumn => sourceColumn.column_name === targetColumn.column_name,
-        ),
+      const sourceColumnNames =
+        sourceDatasource?.column_names ||
+        sourceDatasource.columns.map(col => col.column_name);
+      const targetColumnNames =
+        targetDatasource?.column_names ||
+        targetDatasource.columns.map(col => col.column_name);
+
+      return sourceColumnNames.some(sourceColumn =>
+        targetColumnNames.some(targetColumn => sourceColumn === targetColumn),
       );
     })
     .map(slice => slice.slice_id);
@@ -85,18 +95,13 @@ export function getRelatedCharts(
       ? filter.scope
       : filter.chartsInScope;
 
-    const slicesInScope = Object.values(slices).reduce((result, slice) => {
-      if (chartsInScope.includes(slice.slice_id)) {
-        return { ...result, [slice.slice_id]: slice };
-      }
-      return result;
-    }, {});
     if (isCrossFilter) {
       return {
         ...acc,
         [filterKey]: getRelatedChartsForCrossFilter(
           filterKey,
-          slicesInScope,
+          slices,
+          chartsInScope,
           datasources,
         ),
       };
@@ -106,7 +111,8 @@ export function getRelatedCharts(
         ...acc,
         [filterKey]: getRelatedChartsForSelectFilter(
           filter,
-          slicesInScope,
+          slices,
+          chartsInScope,
           datasources,
         ),
       };

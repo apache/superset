@@ -489,6 +489,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         del data["description"]
         data.update({"metrics": filtered_metrics})
         data.update({"columns": filtered_columns})
+
         verbose_map = {"__timestamp": "Time"}
         verbose_map.update(
             {
@@ -504,6 +505,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             }
         )
         data["verbose_map"] = verbose_map
+        data["column_names"] = list(self.column_names)
 
         return data
 
