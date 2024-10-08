@@ -179,7 +179,7 @@ class TestDatabaseModel(SupersetTestCase):
 
         query_obj = dict(**base_query_obj, extras={})
         extra_cache_keys = table1.get_extra_cache_keys(query_obj)
-        self.assertTrue(table1.has_extra_cache_key_calls(query_obj))
+        assert table1.has_extra_cache_key_calls(query_obj) is True
         assert set(extra_cache_keys) == {1, "abc", "abc@test.com"}
 
         # Table with Jinja callable disabled.
