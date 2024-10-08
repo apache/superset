@@ -35,36 +35,36 @@ class TestCurrentUserApi(SupersetTestCase):
 
         rv = self.client.get(meUri)
 
-        self.assertEqual(200, rv.status_code)
+        assert 200 == rv.status_code
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual("admin", response["result"]["username"])
-        self.assertEqual(True, response["result"]["is_active"])
-        self.assertEqual(False, response["result"]["is_anonymous"])
+        assert "admin" == response["result"]["username"]
+        assert True is response["result"]["is_active"]
+        assert False is response["result"]["is_anonymous"]
 
     def test_get_me_with_roles(self):
         self.login(ADMIN_USERNAME)
 
         rv = self.client.get(meUri + "roles/")
-        self.assertEqual(200, rv.status_code)
+        assert 200 == rv.status_code
         response = json.loads(rv.data.decode("utf-8"))
         roles = list(response["result"]["roles"].keys())
-        self.assertEqual("Admin", roles.pop())
+        assert "Admin" == roles.pop()
 
     @patch("superset.security.manager.g")
     def test_get_my_roles_anonymous(self, mock_g):
         mock_g.user = security_manager.get_anonymous_user
         rv = self.client.get(meUri + "roles/")
-        self.assertEqual(401, rv.status_code)
+        assert 401 == rv.status_code
 
     def test_get_me_unauthorized(self):
         rv = self.client.get(meUri)
-        self.assertEqual(401, rv.status_code)
+        assert 401 == rv.status_code
 
     @patch("superset.security.manager.g")
     def test_get_me_anonymous(self, mock_g):
         mock_g.user = security_manager.get_anonymous_user
         rv = self.client.get(meUri)
-        self.assertEqual(401, rv.status_code)
+        assert 401 == rv.status_code
 
 
 class TestUserApi(SupersetTestCase):

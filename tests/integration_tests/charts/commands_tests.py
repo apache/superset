@@ -424,15 +424,19 @@ class TestChartWarmUpCacheCommand(SupersetTestCase):
     def test_warm_up_cache(self):
         slc = self.get_slice("Top 10 Girl Name Share")
         result = ChartWarmUpCacheCommand(slc.id, None, None).run()
-        self.assertEqual(
-            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
-        )
+        assert result == {
+            "chart_id": slc.id,
+            "viz_error": None,
+            "viz_status": "success",
+        }
 
         # can just pass in chart as well
         result = ChartWarmUpCacheCommand(slc, None, None).run()
-        self.assertEqual(
-            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
-        )
+        assert result == {
+            "chart_id": slc.id,
+            "viz_error": None,
+            "viz_status": "success",
+        }
 
 
 class TestFavoriteChartCommand(SupersetTestCase):

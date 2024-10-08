@@ -467,26 +467,22 @@ class TestSavedQueryApi(SupersetTestCase):
             # Filter by tag ID
             filter_params = get_filter_params("saved_query_tag_id", tag.id)
             response_by_id = self.get_list("saved_query", filter_params)
-            self.assertEqual(response_by_id.status_code, 200)
+            assert response_by_id.status_code == 200
             data_by_id = json.loads(response_by_id.data.decode("utf-8"))
 
             # Filter by tag name
             filter_params = get_filter_params("saved_query_tags", tag.name)
             response_by_name = self.get_list("saved_query", filter_params)
-            self.assertEqual(response_by_name.status_code, 200)
+            assert response_by_name.status_code == 200
             data_by_name = json.loads(response_by_name.data.decode("utf-8"))
 
             # Compare results
-            self.assertEqual(
-                data_by_id["count"],
-                data_by_name["count"],
-                len(expected_saved_queries),
+            assert data_by_id["count"] == data_by_name["count"], len(
+                expected_saved_queries
             )
-            self.assertEqual(
-                set(query["id"] for query in data_by_id["result"]),
-                set(query["id"] for query in data_by_name["result"]),
-                set(query.id for query in expected_saved_queries),
-            )
+            assert set(query["id"] for query in data_by_id["result"]) == set(
+                query["id"] for query in data_by_name["result"]
+            ), set(query.id for query in expected_saved_queries)
 
     @pytest.mark.usefixtures("create_saved_queries")
     def test_get_saved_query_favorite_filter(self):

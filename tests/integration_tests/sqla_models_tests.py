@@ -83,12 +83,12 @@ class TestDatabaseModel(SupersetTestCase):
         database = Database(database_name="druid_db", sqlalchemy_uri="druid://db")
         tbl = SqlaTable(table_name="druid_tbl", database=database)
         col = TableColumn(column_name="__time", type="INTEGER", table=tbl)
-        self.assertEqual(col.is_dttm, None)
+        assert col.is_dttm is None
         DruidEngineSpec.alter_new_orm_column(col)
-        self.assertEqual(col.is_dttm, True)
+        assert col.is_dttm is True
 
         col = TableColumn(column_name="__not_time", type="INTEGER", table=tbl)
-        self.assertEqual(col.is_temporal, False)
+        assert col.is_temporal is False
 
     def test_temporal_varchar(self):
         """Ensure a column with is_dttm set to true evaluates to is_temporal == True"""
@@ -125,13 +125,13 @@ class TestDatabaseModel(SupersetTestCase):
         tbl = SqlaTable(table_name="col_type_test_tbl", database=get_example_database())
         for str_type, db_col_type in test_cases.items():
             col = TableColumn(column_name="foo", type=str_type, table=tbl)
-            self.assertEqual(col.is_temporal, db_col_type == GenericDataType.TEMPORAL)
-            self.assertEqual(col.is_numeric, db_col_type == GenericDataType.NUMERIC)
-            self.assertEqual(col.is_string, db_col_type == GenericDataType.STRING)
+            assert col.is_temporal == (db_col_type == GenericDataType.TEMPORAL)
+            assert col.is_numeric == (db_col_type == GenericDataType.NUMERIC)
+            assert col.is_string == (db_col_type == GenericDataType.STRING)
 
         for str_type, db_col_type in test_cases.items():
             col = TableColumn(column_name="foo", type=str_type, table=tbl, is_dttm=True)
-            self.assertTrue(col.is_temporal)
+            assert col.is_temporal
 
     @patch("superset.jinja_context.get_user_id", return_value=1)
     @patch("superset.jinja_context.get_username", return_value="abc")
@@ -161,7 +161,7 @@ class TestDatabaseModel(SupersetTestCase):
 
         query_obj = dict(**base_query_obj, extras={})
         extra_cache_keys = table1.get_extra_cache_keys(query_obj)
-        self.assertTrue(table1.has_extra_cache_key_calls(query_obj))
+        assert table1.has_extra_cache_key_calls(query_obj)
         assert set(extra_cache_keys) == {1, "abc", "abc@test.com"}
 
         # Table with Jinja callable disabled.
@@ -177,8 +177,8 @@ class TestDatabaseModel(SupersetTestCase):
         )
         query_obj = dict(**base_query_obj, extras={})
         extra_cache_keys = table2.get_extra_cache_keys(query_obj)
-        self.assertTrue(table2.has_extra_cache_key_calls(query_obj))
-        self.assertListEqual(extra_cache_keys, [])
+        assert table2.has_extra_cache_key_calls(query_obj)
+        self.assertListEqual(extra_cache_keys, [])  # noqa: PT009
 
         # Table with no Jinja callable.
         query = "SELECT 'abc' as user"
@@ -190,15 +190,15 @@ class TestDatabaseModel(SupersetTestCase):
 
         query_obj = dict(**base_query_obj, extras={"where": "(user != 'abc')"})
         extra_cache_keys = table3.get_extra_cache_keys(query_obj)
-        self.assertFalse(table3.has_extra_cache_key_calls(query_obj))
-        self.assertListEqual(extra_cache_keys, [])
+        assert not table3.has_extra_cache_key_calls(query_obj)
+        self.assertListEqual(extra_cache_keys, [])  # noqa: PT009
 
         # With Jinja callable in SQL expression.
         query_obj = dict(
             **base_query_obj, extras={"where": "(user != '{{ current_username() }}')"}
         )
         extra_cache_keys = table3.get_extra_cache_keys(query_obj)
-        self.assertTrue(table3.has_extra_cache_key_calls(query_obj))
+        assert table3.has_extra_cache_key_calls(query_obj)
         assert extra_cache_keys == ["abc"]
 
     @patch("superset.jinja_context.get_username", return_value="abc")
@@ -393,11 +393,9 @@ class TestDatabaseModel(SupersetTestCase):
             sqla_query = table.get_sqla_query(**query_obj)
             sql = table.database.compile_sqla_query(sqla_query.sqla_query)
             if isinstance(filter_.expected, list):
-                self.assertTrue(
-                    any([candidate in sql for candidate in filter_.expected])
-                )
+                assert any([candidate in sql for candidate in filter_.expected])
             else:
-                self.assertIn(filter_.expected, sql)
+                assert filter_.expected in sql
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_boolean_type_where_operators(self):
@@ -434,7 +432,7 @@ class TestDatabaseModel(SupersetTestCase):
         # https://github.com/sqlalchemy/sqlalchemy/blob/master/lib/sqlalchemy/dialects/mysql/base.py
         if not dialect.supports_native_boolean and dialect.name != "mysql":
             operand = "(1, 0)"
-        self.assertIn(f"IN {operand}", sql)
+        assert f"IN {operand}" in sql
 
     def test_incorrect_jinja_syntax_raises_correct_exception(self):
         query_obj = {
@@ -626,6 +624,32 @@ def test_values_for_column_on_text_column(text_column_table):
     assert len(with_null) == 8
 
 
+def test_values_for_column_on_text_column_with_rls(text_column_table):
+    with patch.object(
+        text_column_table,
+        "get_sqla_row_level_filters",
+        return_value=[
+            TextClause("foo = 'foo'"),
+        ],
+    ):
+        with_rls = text_column_table.values_for_column(column_name="foo", limit=10000)
+        assert with_rls == ["foo"]
+        assert len(with_rls) == 1
+
+
+def test_values_for_column_on_text_column_with_rls_no_values(text_column_table):
+    with patch.object(
+        text_column_table,
+        "get_sqla_row_level_filters",
+        return_value=[
+            TextClause("foo = 'bar'"),
+        ],
+    ):
+        with_rls = text_column_table.values_for_column(column_name="foo", limit=10000)
+        assert with_rls == []
+        assert len(with_rls) == 0
+
+
 def test_filter_on_text_column(text_column_table):
     table = text_column_table
     # null value should be replaced
@@ -803,7 +827,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
         {
             "operator": FilterOperator.NOT_EQUALS.value,
             "count": 0,
-            "sql_should_contain": "NOT COL4 IS NULL",
+            "sql_should_contain": "COL4 IS NOT NULL",
         },
     ]
     for expected in expected_results:

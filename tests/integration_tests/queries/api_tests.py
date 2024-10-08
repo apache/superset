@@ -138,7 +138,7 @@ class TestQueryApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/query/{query.id}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
 
         expected_result = {
             "database": {"id": example_db.id},
@@ -163,7 +163,7 @@ class TestQueryApi(SupersetTestCase):
             "tracking_url": None,
         }
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertIn("changed_on", data["result"])
+        assert "changed_on" in data["result"]
         for key, value in data["result"].items():
             # We can't assert timestamp
             if key not in (
@@ -173,7 +173,7 @@ class TestQueryApi(SupersetTestCase):
                 "start_time",
                 "id",
             ):
-                self.assertEqual(value, expected_result[key])
+                assert value == expected_result[key]
         # rollback changes
         db.session.delete(query)
         db.session.commit()
@@ -189,7 +189,7 @@ class TestQueryApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/query/{max_id + 1}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
         db.session.delete(query)
         db.session.commit()
@@ -222,30 +222,30 @@ class TestQueryApi(SupersetTestCase):
         self.login(username="gamma_1", password="password")
         uri = f"api/v1/query/{query_gamma2.id}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
         uri = f"api/v1/query/{query_gamma1.id}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
 
         # Gamma2 user, only sees their own queries
         self.logout()
         self.login(username="gamma_2", password="password")
         uri = f"api/v1/query/{query_gamma1.id}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
         uri = f"api/v1/query/{query_gamma2.id}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
 
         # Admin's have the "all query access" permission
         self.logout()
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/query/{query_gamma1.id}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         uri = f"api/v1/query/{query_gamma2.id}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
 
         # rollback changes
         db.session.delete(query_gamma1)
@@ -262,7 +262,7 @@ class TestQueryApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/query/"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == QUERIES_FIXTURE_COUNT
         # check expected columns
@@ -433,11 +433,11 @@ class TestQueryApi(SupersetTestCase):
         timestamp = datetime.timestamp(now - timedelta(days=2)) * 1000
         uri = f"api/v1/query/updated_since?q={prison.dumps({'last_updated_ms': timestamp})}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
 
         expected_result = updated_query.to_dict()
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(len(data["result"]), 1)
+        assert len(data["result"]) == 1
         for key, value in data["result"][0].items():
             # We can't assert timestamp
             if key not in (
@@ -447,7 +447,7 @@ class TestQueryApi(SupersetTestCase):
                 "start_time",
                 "id",
             ):
-                self.assertEqual(value, expected_result[key])
+                assert value == expected_result[key]
         # rollback changes
         db.session.delete(old_query)
         db.session.delete(updated_query)

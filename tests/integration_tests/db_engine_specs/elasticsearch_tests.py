@@ -40,4 +40,4 @@ class TestElasticsearchDbEngineSpec(TestDbEngineSpec):
         actual = ElasticSearchEngineSpec.get_timestamp_expr(
             col=col, pdf=None, time_grain=time_grain
         )
-        self.assertEqual(str(actual), expected_time_grain_expression)
+        assert str(actual) == expected_time_grain_expression
