@@ -416,7 +416,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         """
         data = self.data
         metric_names = set()
-        column_names = set(self.column_names)
+        column_names = set()
         for slc in slices:
             form_data = slc.form_data
             # pull out all required metrics from the form_data
