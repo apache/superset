@@ -55,7 +55,7 @@ class TestTagging(SupersetTestCase):
         self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()
 
         # Create a dataset and add it to the db
         test_dataset = SqlaTable(
@@ -71,16 +71,16 @@ class TestTagging(SupersetTestCase):
 
         # Test to make sure that a dataset tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
-        self.assertEqual(1, len(tags))
-        self.assertEqual("ObjectType.dataset", str(tags[0].object_type))
-        self.assertEqual(test_dataset.id, tags[0].object_id)
+        assert 1 == len(tags)
+        assert "ObjectType.dataset" == str(tags[0].object_type)
+        assert test_dataset.id == tags[0].object_id
 
         # Cleanup the db
         db.session.delete(test_dataset)
         db.session.commit()
 
         # Test to make sure the tag is deleted when the associated object is deleted
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()
 
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_chart_tagging(self):
@@ -94,7 +94,7 @@ class TestTagging(SupersetTestCase):
         self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()
 
         # Create a chart and add it to the db
         test_chart = Slice(
@@ -109,16 +109,16 @@ class TestTagging(SupersetTestCase):
 
         # Test to make sure that a chart tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
-        self.assertEqual(1, len(tags))
-        self.assertEqual("ObjectType.chart", str(tags[0].object_type))
-        self.assertEqual(test_chart.id, tags[0].object_id)
+        assert 1 == len(tags)
+        assert "ObjectType.chart" == str(tags[0].object_type)
+        assert test_chart.id == tags[0].object_id
 
         # Cleanup the db
         db.session.delete(test_chart)
         db.session.commit()
 
         # Test to make sure the tag is deleted when the associated object is deleted
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()
 
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_dashboard_tagging(self):
@@ -132,7 +132,7 @@ class TestTagging(SupersetTestCase):
         self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()
 
         # Create a dashboard and add it to the db
         test_dashboard = Dashboard()
@@ -145,16 +145,16 @@ class TestTagging(SupersetTestCase):
 
         # Test to make sure that a dashboard tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
-        self.assertEqual(1, len(tags))
-        self.assertEqual("ObjectType.dashboard", str(tags[0].object_type))
-        self.assertEqual(test_dashboard.id, tags[0].object_id)
+        assert 1 == len(tags)
+        assert "ObjectType.dashboard" == str(tags[0].object_type)
+        assert test_dashboard.id == tags[0].object_id
 
         # Cleanup the db
         db.session.delete(test_dashboard)
         db.session.commit()
 
         # Test to make sure the tag is deleted when the associated object is deleted
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()
 
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_saved_query_tagging(self):
@@ -168,7 +168,7 @@ class TestTagging(SupersetTestCase):
         self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()
 
         # Create a saved query and add it to the db
         test_saved_query = SavedQuery(id=1, label="test saved query")
@@ -178,24 +178,24 @@ class TestTagging(SupersetTestCase):
         # Test to make sure that a saved query tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
 
-        self.assertEqual(2, len(tags))
+        assert 2 == len(tags)
 
-        self.assertEqual("ObjectType.query", str(tags[0].object_type))
-        self.assertEqual("owner:None", str(tags[0].tag.name))
-        self.assertEqual("TagType.owner", str(tags[0].tag.type))
-        self.assertEqual(test_saved_query.id, tags[0].object_id)
+        assert "ObjectType.query" == str(tags[0].object_type)
+        assert "owner:None" == str(tags[0].tag.name)
+        assert "TagType.owner" == str(tags[0].tag.type)
+        assert test_saved_query.id == tags[0].object_id
 
-        self.assertEqual("ObjectType.query", str(tags[1].object_type))
-        self.assertEqual("type:query", str(tags[1].tag.name))
-        self.assertEqual("TagType.type", str(tags[1].tag.type))
-        self.assertEqual(test_saved_query.id, tags[1].object_id)
+        assert "ObjectType.query" == str(tags[1].object_type)
+        assert "type:query" == str(tags[1].tag.name)
+        assert "TagType.type" == str(tags[1].tag.type)
+        assert test_saved_query.id == tags[1].object_id
 
         # Cleanup the db
         db.session.delete(test_saved_query)
         db.session.commit()
 
         # Test to make sure the tag is deleted when the associated object is deleted
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()
 
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_favorite_tagging(self):
@@ -209,7 +209,7 @@ class TestTagging(SupersetTestCase):
         self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()
 
         # Create a favorited object and add it to the db
         test_saved_query = FavStar(user_id=1, class_name="slice", obj_id=1)
@@ -218,16 +218,16 @@ class TestTagging(SupersetTestCase):
 
         # Test to make sure that a favorited object tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
-        self.assertEqual(1, len(tags))
-        self.assertEqual("ObjectType.chart", str(tags[0].object_type))
-        self.assertEqual(test_saved_query.obj_id, tags[0].object_id)
+        assert 1 == len(tags)
+        assert "ObjectType.chart" == str(tags[0].object_type)
+        assert test_saved_query.obj_id == tags[0].object_id
 
         # Cleanup the db
         db.session.delete(test_saved_query)
         db.session.commit()
 
         # Test to make sure the tag is deleted when the associated object is deleted
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()
 
     @with_feature_flags(TAGGING_SYSTEM=False)
     def test_tagging_system(self):
@@ -240,7 +240,7 @@ class TestTagging(SupersetTestCase):
         self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()
 
         # Create a dataset and add it to the db
         test_dataset = SqlaTable(
@@ -282,7 +282,7 @@ class TestTagging(SupersetTestCase):
 
         # Test to make sure that no tags were added to the tagged_object table
         tags = self.query_tagged_object_table()
-        self.assertEqual(0, len(tags))
+        assert 0 == len(tags)
 
         # Cleanup the db
         db.session.delete(test_dataset)
@@ -293,4 +293,4 @@ class TestTagging(SupersetTestCase):
         db.session.commit()
 
         # Test to make sure all the tags are deleted when the associated objects are deleted
-        self.assertEqual([], self.query_tagged_object_table())
+        assert [] == self.query_tagged_object_table()

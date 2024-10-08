@@ -33,7 +33,7 @@ from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 class TestPrestoDbEngineSpec(TestDbEngineSpec):
     @skipUnless(TestDbEngineSpec.is_module_installed("pyhive"), "pyhive not installed")
     def test_get_datatype_presto(self):
-        self.assertEqual("STRING", PrestoEngineSpec.get_datatype("string"))
+        assert "STRING" == PrestoEngineSpec.get_datatype("string")
 
     def test_get_view_names_with_schema(self):
         database = mock.MagicMock()
@@ -86,10 +86,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         row.Column, row.Type, row.Null = column
         inspector.bind.execute.return_value.fetchall = mock.Mock(return_value=[row])
         results = PrestoEngineSpec.get_columns(inspector, Table("", ""))
-        self.assertEqual(len(expected_results), len(results))
+        assert len(expected_results) == len(results)
         for expected_result, result in zip(expected_results, results):
-            self.assertEqual(expected_result[0], result["column_name"])
-            self.assertEqual(expected_result[1], str(result["type"]))
+            assert expected_result[0] == result["column_name"]
+            assert expected_result[1] == str(result["type"])
 
     def test_presto_get_column(self):
         presto_column = ("column_name", "boolean", "")
@@ -192,8 +192,8 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             },
         ]
         for actual_result, expected_result in zip(actual_results, expected_results):
-            self.assertEqual(actual_result.element.name, expected_result["column_name"])
-            self.assertEqual(actual_result.name, expected_result["label"])
+            assert actual_result.element.name == expected_result["column_name"]
+            assert actual_result.name == expected_result["label"]
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -260,9 +260,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "is_dttm": False,
             }
         ]
-        self.assertEqual(actual_cols, expected_cols)
-        self.assertEqual(actual_data, expected_data)
-        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+        assert actual_cols == expected_cols
+        assert actual_data == expected_data
+        assert actual_expanded_cols == expected_expanded_cols
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -343,9 +343,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "is_dttm": False,
             },
         ]
-        self.assertEqual(actual_cols, expected_cols)
-        self.assertEqual(actual_data, expected_data)
-        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+        assert actual_cols == expected_cols
+        assert actual_data == expected_data
+        assert actual_expanded_cols == expected_expanded_cols
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -427,9 +427,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "is_dttm": False,
             },
         ]
-        self.assertEqual(actual_cols, expected_cols)
-        self.assertEqual(actual_data, expected_data)
-        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+        assert actual_cols == expected_cols
+        assert actual_data == expected_data
+        assert actual_expanded_cols == expected_expanded_cols
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -548,9 +548,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "is_dttm": False,
             },
         ]
-        self.assertEqual(actual_cols, expected_cols)
-        self.assertEqual(actual_data, expected_data)
-        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+        assert actual_cols == expected_cols
+        assert actual_data == expected_data
+        assert actual_expanded_cols == expected_expanded_cols
 
     def test_presto_get_extra_table_metadata(self):
         database = mock.Mock()
@@ -582,7 +582,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             columns,
         )
         query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
-        self.assertEqual("SELECT  \nWHERE ds = '01-01-19' AND hour = 1", query_result)
+        assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
 
     def test_query_cost_formatter(self):
         raw_cost = [
@@ -645,7 +645,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "Network cost": "354 G",
             }
         ]
-        self.assertEqual(formatted_cost, expected)
+        assert formatted_cost == expected
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -752,9 +752,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             },
         ]
 
-        self.assertEqual(actual_cols, expected_cols)
-        self.assertEqual(actual_data, expected_data)
-        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+        assert actual_cols == expected_cols
+        assert actual_data == expected_data
+        assert actual_expanded_cols == expected_expanded_cols
 
     @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")
     @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.get_view_names")
