@@ -168,11 +168,11 @@ class TestDatabaseModel(SupersetTestCase):
         table1 = SqlaTable(
             table_name="test_has_extra_cache_keys_table_with_set",
             sql="""
-            {% set customer_id = current_user_email() %}
+            {% set user_email = current_user_email() %}
             SELECT
               '{{ current_user_id() }}' as id,
               '{{ current_username() }}' as username,
-              '{{ customer_id }}' as email
+              '{{ user_email }}' as email
             """,
             database=get_example_database(),
         )
