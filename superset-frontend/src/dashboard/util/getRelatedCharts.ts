@@ -37,9 +37,7 @@ function getRelatedChartsForSelectFilter(
       const chartDatasource = datasources[datasource];
       if (!chartDatasource) return false;
       const { column, datasetId } = filter.targets[0];
-      const datasourceColumnNames =
-        chartDatasource?.column_names ||
-        chartDatasource.columns.map(col => col.column_name);
+      const datasourceColumnNames = chartDatasource?.column_names ?? [];
 
       return (
         chartDatasource.id === datasetId ||
@@ -70,12 +68,8 @@ function getRelatedChartsForCrossFilter(
       if (!targetDatasource) return false;
       if (targetDatasource === sourceDatasource) return true;
 
-      const sourceColumnNames =
-        sourceDatasource?.column_names ||
-        sourceDatasource.columns.map(col => col.column_name);
-      const targetColumnNames =
-        targetDatasource?.column_names ||
-        targetDatasource.columns.map(col => col.column_name);
+      const sourceColumnNames = sourceDatasource?.column_names ?? [];
+      const targetColumnNames = targetDatasource?.column_names ?? [];
 
       return sourceColumnNames.some(sourceColumn =>
         targetColumnNames.some(targetColumn => sourceColumn === targetColumn),

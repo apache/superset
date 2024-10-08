@@ -416,7 +416,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         """
         data = self.data
         metric_names = set()
-        column_names = set()
+        column_names = set(self.column_names)
         for slc in slices:
             form_data = slc.form_data
             # pull out all required metrics from the form_data
@@ -505,7 +505,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             }
         )
         data["verbose_map"] = verbose_map
-        data["column_names"] = list(self.column_names)
+        data["column_names"] = set(column_names)
 
         return data
 
