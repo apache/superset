@@ -43,7 +43,7 @@ class TestSecurityCsrfApi(SupersetTestCase):
         response = self.client.get(uri)
         self.assert200(response)
         data = json.loads(response.data.decode("utf-8"))
-        self.assertEqual(generate_csrf(), data["result"])
+        assert generate_csrf() == data["result"]
 
     def test_get_csrf_token(self):
         """
@@ -120,8 +120,8 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
             audience=get_url_host(),
             algorithms=["HS256"],
         )
-        self.assertEqual(user, decoded_token["user"])
-        self.assertEqual(resource, decoded_token["resources"][0])
+        assert user == decoded_token["user"]
+        assert resource == decoded_token["resources"][0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_guest_token_bad_resources(self):
