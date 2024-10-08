@@ -164,6 +164,24 @@ class TestDatabaseModel(SupersetTestCase):
         self.assertTrue(table1.has_extra_cache_key_calls(query_obj))
         assert set(extra_cache_keys) == {1, "abc", "abc@test.com"}
 
+        # Table with Jinja callable with set.
+        table1 = SqlaTable(
+            table_name="test_has_extra_cache_keys_table_with_set",
+            sql="""
+            {% set customer_id = current_user_email() %}
+            SELECT
+              '{{ current_user_id() }}' as id,
+              '{{ current_username() }}' as username,
+              '{{ customer_id }}' as email
+            """,
+            database=get_example_database(),
+        )
+
+        query_obj = dict(**base_query_obj, extras={})
+        extra_cache_keys = table1.get_extra_cache_keys(query_obj)
+        self.assertTrue(table1.has_extra_cache_key_calls(query_obj))
+        assert set(extra_cache_keys) == {1, "abc", "abc@test.com"}
+
         # Table with Jinja callable disabled.
         table2 = SqlaTable(
             table_name="test_has_extra_cache_keys_disabled_table",
