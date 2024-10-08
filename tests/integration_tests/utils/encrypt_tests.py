@@ -53,8 +53,8 @@ class EncryptedFieldTest(SupersetTestCase):
 
     def test_create_field(self):
         field = encrypted_field_factory.create(String(1024))
-        self.assertTrue(isinstance(field, EncryptedType))
-        self.assertEqual(self.app.config["SECRET_KEY"], field.key)
+        assert isinstance(field, EncryptedType)
+        assert self.app.config["SECRET_KEY"] == field.key
 
     def test_custom_adapter(self):
         self.app.config["SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"] = (
@@ -62,10 +62,10 @@ class EncryptedFieldTest(SupersetTestCase):
         )
         encrypted_field_factory.init_app(self.app)
         field = encrypted_field_factory.create(String(1024))
-        self.assertTrue(isinstance(field, StringEncryptedType))
-        self.assertFalse(isinstance(field, EncryptedType))
-        self.assertTrue(getattr(field, "__created_by_enc_field_adapter__"))
-        self.assertEqual(self.app.config["SECRET_KEY"], field.key)
+        assert isinstance(field, StringEncryptedType)
+        assert not isinstance(field, EncryptedType)
+        assert getattr(field, "__created_by_enc_field_adapter__")
+        assert self.app.config["SECRET_KEY"] == field.key
 
     def test_ensure_encrypted_field_factory_is_used(self):
         """

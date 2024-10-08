@@ -69,7 +69,7 @@ class TestOpenApiSpec(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/_openapi"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         validate_spec(response)
 
@@ -87,20 +87,20 @@ class TestBaseModelRestApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/model1api/"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["list_columns"], ["id"])
+        assert response["list_columns"] == ["id"]
         for result in response["result"]:
-            self.assertEqual(list(result.keys()), ["id"])
+            assert list(result.keys()) == ["id"]
 
         # Check get response
         dashboard = db.session.query(Dashboard).first()
         uri = f"api/v1/model1api/{dashboard.id}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["show_columns"], ["id"])
-        self.assertEqual(list(response["result"].keys()), ["id"])
+        assert response["show_columns"] == ["id"]
+        assert list(response["result"].keys()) == ["id"]
 
     def test_default_missing_declaration_put_spec(self):
         """
@@ -113,17 +113,18 @@ class TestBaseModelRestApi(SupersetTestCase):
         uri = "api/v1/_openapi"
         rv = self.client.get(uri)
         # dashboard model accepts all fields are null
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         expected_mutation_spec = {
             "properties": {"id": {"type": "integer"}},
             "type": "object",
         }
-        self.assertEqual(
-            response["components"]["schemas"]["Model1Api.post"], expected_mutation_spec
+        assert (
+            response["components"]["schemas"]["Model1Api.post"]
+            == expected_mutation_spec
         )
-        self.assertEqual(
-            response["components"]["schemas"]["Model1Api.put"], expected_mutation_spec
+        assert (
+            response["components"]["schemas"]["Model1Api.put"] == expected_mutation_spec
         )
 
     def test_default_missing_declaration_post(self):
@@ -145,7 +146,7 @@ class TestBaseModelRestApi(SupersetTestCase):
         uri = "api/v1/model1api/"
         rv = self.client.post(uri, json=dashboard_data)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 422)
+        assert rv.status_code == 422
         expected_response = {
             "message": {
                 "css": ["Unknown field."],
@@ -156,7 +157,7 @@ class TestBaseModelRestApi(SupersetTestCase):
                 "slug": ["Unknown field."],
             }
         }
-        self.assertEqual(response, expected_response)
+        assert response == expected_response
 
     def test_refuse_invalid_format_request(self):
         """
@@ -169,7 +170,7 @@ class TestBaseModelRestApi(SupersetTestCase):
         rv = self.client.post(
             uri, data="a: value\nb: 1\n", content_type="application/yaml"
         )
-        self.assertEqual(rv.status_code, 400)
+        assert rv.status_code == 400
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_default_missing_declaration_put(self):
@@ -185,14 +186,14 @@ class TestBaseModelRestApi(SupersetTestCase):
         uri = f"api/v1/model1api/{dashboard.id}"
         rv = self.client.put(uri, json=dashboard_data)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 422)
+        assert rv.status_code == 422
         expected_response = {
             "message": {
                 "dashboard_title": ["Unknown field."],
                 "slug": ["Unknown field."],
             }
         }
-        self.assertEqual(response, expected_response)
+        assert response == expected_response
 
 
 class ApiOwnersTestCaseMixin:

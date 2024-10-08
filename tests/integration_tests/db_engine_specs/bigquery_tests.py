@@ -45,7 +45,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         }
         for original, expected in test_cases.items():
             actual = BigQueryEngineSpec.make_label_compatible(column(original).name)
-            self.assertEqual(actual, expected)
+            assert actual == expected
 
     def test_timegrain_expressions(self):
         """
@@ -63,7 +63,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             actual = BigQueryEngineSpec.get_timestamp_expr(
                 col=col, pdf=None, time_grain="PT1H"
             )
-            self.assertEqual(str(actual), expected)
+            assert str(actual) == expected
 
     def test_custom_minute_timegrain_expressions(self):
         """
@@ -104,12 +104,12 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         data1 = [(1, "foo")]
         with mock.patch.object(BaseEngineSpec, "fetch_data", return_value=data1):
             result = BigQueryEngineSpec.fetch_data(None, 0)
-        self.assertEqual(result, data1)
+        assert result == data1
 
         data2 = [Row(1), Row(2)]
         with mock.patch.object(BaseEngineSpec, "fetch_data", return_value=data2):
             result = BigQueryEngineSpec.fetch_data(None, 0)
-        self.assertEqual(result, [1, 2])
+        assert result == [1, 2]
 
     def test_get_extra_table_metadata(self):
         """
@@ -122,7 +122,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             database,
             Table("some_table", "some_schema"),
         )
-        self.assertEqual(result, {})
+        assert result == {}
 
         index_metadata = [
             {
@@ -143,7 +143,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             database,
             Table("some_table", "some_schema"),
         )
-        self.assertEqual(result, expected_result)
+        assert result == expected_result
 
     def test_get_indexes(self):
         database = mock.Mock()

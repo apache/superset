@@ -55,15 +55,15 @@ class TestGuestUserSecurity(SupersetTestCase):
 
     def test_is_guest_user__regular_user(self):
         is_guest = security_manager.is_guest_user(security_manager.find_user("admin"))
-        self.assertFalse(is_guest)
+        assert not is_guest
 
     def test_is_guest_user__anonymous(self):
         is_guest = security_manager.is_guest_user(security_manager.get_anonymous_user())
-        self.assertFalse(is_guest)
+        assert not is_guest
 
     def test_is_guest_user__guest_user(self):
         is_guest = security_manager.is_guest_user(self.authorized_guest())
-        self.assertTrue(is_guest)
+        assert is_guest
 
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -71,34 +71,34 @@ class TestGuestUserSecurity(SupersetTestCase):
     )
     def test_is_guest_user__flag_off(self):
         is_guest = security_manager.is_guest_user(self.authorized_guest())
-        self.assertFalse(is_guest)
+        assert not is_guest
 
     def test_get_guest_user__regular_user(self):
         g.user = security_manager.find_user("admin")
         guest_user = security_manager.get_current_guest_user_if_guest()
-        self.assertIsNone(guest_user)
+        assert guest_user is None
 
     def test_get_guest_user__anonymous_user(self):
         g.user = security_manager.get_anonymous_user()
         guest_user = security_manager.get_current_guest_user_if_guest()
-        self.assertIsNone(guest_user)
+        assert guest_user is None
 
     def test_get_guest_user__guest_user(self):
         g.user = self.authorized_guest()
         guest_user = security_manager.get_current_guest_user_if_guest()
-        self.assertEqual(guest_user, g.user)
+        assert guest_user == g.user
 
     def test_get_guest_user_roles_explicit(self):
         guest = self.authorized_guest()
         roles = security_manager.get_user_roles(guest)
-        self.assertEqual(guest.roles, roles)
+        assert guest.roles == roles
 
     def test_get_guest_user_roles_implicit(self):
         guest = self.authorized_guest()
         g.user = guest
 
         roles = security_manager.get_user_roles()
-        self.assertEqual(guest.roles, roles)
+        assert guest.roles == roles
 
 
 @patch.dict(
@@ -142,17 +142,17 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
     def test_has_guest_access__regular_user(self):
         g.user = security_manager.find_user("admin")
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertFalse(has_guest_access)
+        assert not has_guest_access
 
     def test_has_guest_access__anonymous_user(self):
         g.user = security_manager.get_anonymous_user()
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertFalse(has_guest_access)
+        assert not has_guest_access
 
     def test_has_guest_access__authorized_guest_user(self):
         g.user = self.authorized_guest
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertTrue(has_guest_access)
+        assert has_guest_access
 
     def test_has_guest_access__authorized_guest_user__non_zero_resource_index(self):
         # set up a user who has authorized access, plus another resource
@@ -163,7 +163,7 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         g.user = guest
 
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertTrue(has_guest_access)
+        assert has_guest_access
 
     def test_has_guest_access__unauthorized_guest_user__different_resource_id(self):
         g.user = security_manager.get_guest_user_from_token(
@@ -173,14 +173,14 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
             }
         )
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertFalse(has_guest_access)
+        assert not has_guest_access
 
     def test_has_guest_access__unauthorized_guest_user__different_resource_type(self):
         g.user = security_manager.get_guest_user_from_token(
             {"user": {}, "resources": [{"type": "dirt", "id": self.embedded.uuid}]}
         )
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertFalse(has_guest_access)
+        assert not has_guest_access
 
     def test_raise_for_dashboard_access_as_guest(self):
         g.user = self.authorized_guest
