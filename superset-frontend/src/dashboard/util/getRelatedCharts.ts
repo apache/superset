@@ -50,6 +50,7 @@ function getRelatedChartsForSelectFilter(
 }
 function getRelatedChartsForCrossFilter(
   filterKey: string,
+  filter: Filter,
   slices: Record<string, Slice>,
   chartsInScope: number[],
   datasources: DatasourcesState,
@@ -64,16 +65,16 @@ function getRelatedChartsForCrossFilter(
     .filter(slice => {
       if (!chartsInScope.includes(slice.slice_id)) return false;
       if (slice.slice_id === Number(filterKey)) return false;
+
+      const filters = filter?.values?.filters ?? [];
       const targetDatasource = datasources[slice.datasource];
+
       if (!targetDatasource) return false;
       if (targetDatasource === sourceDatasource) return true;
 
-      const sourceColumnNames = sourceDatasource?.column_names ?? [];
       const targetColumnNames = targetDatasource?.column_names ?? [];
 
-      return sourceColumnNames.some(sourceColumn =>
-        targetColumnNames.some(targetColumn => sourceColumn === targetColumn),
-      );
+      return targetColumnNames.includes(filters?.[0]?.col);
     })
     .map(slice => slice.slice_id);
 }
@@ -84,16 +85,21 @@ export function getRelatedCharts(
   datasources: DatasourcesState,
 ) {
   return Object.entries(filters).reduce((acc, [filterKey, filter]) => {
-    const isCrossFilter = Object.keys(slices).includes(filterKey);
+    const isCrossFilter =
+      Object.keys(slices).includes(filterKey) &&
+      !Object.hasOwnProperty('id') &&
+      !Object.hasOwnProperty('chartsInScope');
+
     const chartsInScope = Array.isArray(filter.scope)
       ? filter.scope
-      : filter.chartsInScope;
+      : filter?.chartsInScope || [];
 
     if (isCrossFilter) {
       return {
         ...acc,
         [filterKey]: getRelatedChartsForCrossFilter(
           filterKey,
+          filter,
           slices,
           chartsInScope,
           datasources,
