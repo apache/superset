@@ -8,6 +8,7 @@ export function transformProps(
   echartOptions: any, // Add echartOptions parameter
   refs: any, // Add refs parameter
 ): MyCustomChartTransformedProps {
+
   const transformedData = rawData.map((item: any) => ({
     label: item.label,
     value: item.value,
@@ -21,4 +22,7 @@ export function transformProps(
     echartOptions: echartOptions, // Include echartOptions
     refs: refs, // Include refs
   };
+
+  
+
 }

@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import MyCustomChartPlugin from '../../../plugins/plugin-chart-echarts/src/MyCustomChart'; // Adjust based on the actual path
-
+// import MyCustomChartPlugin from '../../../plugins/plugin-chart-echarts/src/MyCustomChart'; // Adjust based on the actual path
 import { isFeatureEnabled, FeatureFlag, Preset } from '@superset-ui/core';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
@@ -35,7 +34,6 @@ import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
-// import { SupersetPluginChartHelloWorld } from '../../../packages/generator-superset/tmp/superset-plugin-chart-hello-world'; // Test Plugin
 import {
   AreaChartPlugin,
   BarChartPlugin,
@@ -51,6 +49,7 @@ import {
   BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
   EchartsPieChartPlugin,
+  EchartsPie2ChartPlugin,
   EchartsBoxPlotChartPlugin,
   EchartsAreaChartPlugin,
   EchartsTimeseriesChartPlugin,
@@ -134,6 +133,7 @@ export default class MainPreset extends Preset {
         new ParallelCoordinatesChartPlugin().configure({ key: 'para' }),
         new PartitionChartPlugin().configure({ key: 'partition' }),
         new EchartsPieChartPlugin().configure({ key: 'pie' }),
+        new EchartsPie2ChartPlugin().configure({ key: 'pie2' }),
         new PivotTableChartPluginV2().configure({ key: 'pivot_table_v2' }),
         new RoseChartPlugin().configure({ key: 'rose' }),
         new SankeyChartPlugin().configure({ key: 'sankey' }),
@@ -167,7 +167,7 @@ export default class MainPreset extends Preset {
           key: 'waterfall',
         }),
         new EchartsHeatmapChartPlugin().configure({ key: 'heatmap_v2' }),
-        new MyCustomChartPlugin().configure({ key: 'my_custom_chart' }), // Custom Chart
+        // new MyCustomChartPlugin().configure({ key: 'my_custom_chart' }), // Custom Chart
         new EchartsHistogramChartPlugin().configure({ key: 'histogram_v2' }),
 
         new SelectFilterPlugin().configure({ key: FilterPlugins.Select }),

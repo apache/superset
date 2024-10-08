@@ -238,6 +238,16 @@ services:
     volumes: *superset-volumes
     healthcheck:
       test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
+  
+  #clickhouse-server:
+    #image: clickhouse/clickhouse-server
+    #container_name: clickhouse-db
+    #volumes:
+    #  - clickhouse-data:/var/lib/clickhouse
+    #ports:
+    #  - "8123:8123"
+    #  - "9000:9000"
+  
 
 volumes:
   superset_home:
