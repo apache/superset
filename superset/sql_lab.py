@@ -81,6 +81,7 @@ log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
 BYTES_IN_MB = 1024 * 1024
 
+
 class SqlLabException(Exception):
     pass
 

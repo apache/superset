@@ -19,24 +19,20 @@
 import json
 from uuid import UUID
 
+import pytest
 import sqlparse
 from freezegun import freeze_time
-import logging
-import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
-from unittest import mock
 
 from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetErrorType
-from superset.exceptions import OAuth2Error
+from superset.exceptions import OAuth2Error, SupersetErrorException
 from superset.models.core import Database
-from superset.sql_lab import get_sql_results
+from superset.sql_lab import execute_sql_statements, get_sql_results
 from superset.utils.core import override_user
 from tests.unit_tests.models.core_test import oauth2_client_info
-from superset.sql_lab import execute_sql_statements
-from superset.exceptions import SupersetErrorException
 
 
 def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
@@ -130,12 +126,13 @@ def test_execute_sql_statement_with_rls(
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
 
-def test_execute_sql_statement_exceeds_payload_limit_log_check(mocker: MockerFixture, caplog) -> None:
+def test_execute_sql_statement_exceeds_payload_limit_log_check(
+    mocker: MockerFixture, caplog
+) -> None:
     """
     Test for `execute_sql_statements` when the result payload size exceeds the limit,
     and check if the correct log message is captured without raising the exception.
     """
-    from superset.sql_lab import execute_sql_statements
 
     sql_statement = "SELECT 42 AS answer"
     query_id = 1
@@ -163,7 +160,9 @@ def test_execute_sql_statement_exceeds_payload_limit_log_check(mocker: MockerFix
     def mock_serialize_payload(payload, use_msgpack):
         return "serialized_payload"
 
-    mocker.patch("superset.sql_lab._serialize_payload", side_effect=mock_serialize_payload)
+    mocker.patch(
+        "superset.sql_lab._serialize_payload", side_effect=mock_serialize_payload
+    )
 
     # Mock db.session.refresh to avoid AttributeError during session refresh
     mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
@@ -176,23 +175,28 @@ def test_execute_sql_statement_exceeds_payload_limit_log_check(mocker: MockerFix
         execute_sql_statements(
             query_id=query_id,
             rendered_query=sql_statement,
-            return_results=True,   # Simulate that results are being returned
-            store_results=False,   # Not storing results but returning them
+            return_results=True,  # Simulate that results are being returned
+            store_results=False,  # Not storing results but returning them
             start_time=None,
             expand_data=False,
             log_params={},
         )
 
     # Check if the exception message is correct
-    assert "Result size" in str(excinfo.value) and "exceeds the allowed limit" in str(excinfo.value), \
-        f"Expected exception message about exceeding the limit not found. Actual message: {excinfo.value}"
+    assert (
+        "Result size" in str(excinfo.value)
+        and "exceeds the allowed limit" in str(excinfo.value)
+    ), f"Expected exception message about exceeding the limit not found. Actual message: {excinfo.value}"
 
 
-def test_get_sql_results_exceeds_payload_limit(mocker: MockerFixture, app: None) -> None:
+def test_get_sql_results_exceeds_payload_limit(
+    mocker: MockerFixture, app: None
+) -> None:
     """
     Test for `get_sql_results` when the serialized payload size exceeds the limit.
     """
     from superset.sql_lab import get_sql_results
+
     query = mocker.MagicMock()
     query.limit = 1
     query.database.db_engine_spec.is_select_query.return_value = True
@@ -205,6 +209,7 @@ def test_get_sql_results_exceeds_payload_limit(mocker: MockerFixture, app: None)
 
     # We expect the size to be too large, so the error should be logged
     assert payload["status"] == "failed"
+
 
 def test_sql_lab_insert_rls_as_subquery(
     mocker: MockerFixture,
