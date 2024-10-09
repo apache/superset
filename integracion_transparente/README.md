@@ -73,4 +73,4 @@ function App() {
 
 export default App;
 ```
-y añadir en esa misma carpeta src el archivo Dashboard.js que hemos dejado en este directorio de integracion_transparente.
+y añadir en esa misma carpeta src el archivo Dashboard.js que hemos dejado en este directorio de integracion_transparente. En este fichero se pueden ver los modelos de peticiones a la api para obtener los tokens, que pueden usarse como referencia para hacer las peticiones de tokens para la versión html si no se quiere depender de la api.
