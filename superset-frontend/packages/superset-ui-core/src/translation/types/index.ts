@@ -28,6 +28,7 @@ export type Locale =
   | 'de'
   | 'en'
   | 'es'
+  | 'fa'
   | 'fr'
   | 'it'
   | 'ja'

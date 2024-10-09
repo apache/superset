@@ -117,3 +117,8 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+LANGUAGES = {
+    "en": {"flag": "us", "name": "English"},
+    "fa": {"flag": "ir", "name": "Persian"},
+}
