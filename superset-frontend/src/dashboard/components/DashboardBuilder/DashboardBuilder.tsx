@@ -442,6 +442,15 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const [barTopOffset, setBarTopOffset] = useState(0);
 
+  const fireResizeEventToParent = () => {
+    const data = {
+        event: "supersetContentRefreshed",
+        width: window.document.body.scrollWidth,
+        height: window.document.body.scrollHeight,
+    }
+    window.parent.postMessage(data, "*");
+  }
+
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
 
@@ -451,6 +460,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         setBarTopOffset(
           current => entries?.[0]?.contentRect?.height || current,
         );
+        fireResizeEventToParent();
       });
 
       observer.observe(headerRef.current);
