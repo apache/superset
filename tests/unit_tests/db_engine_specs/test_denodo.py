@@ -118,7 +118,7 @@ def test_get_default_catalog() -> None:
         database_name="denodo",
         sqlalchemy_uri="denodo://user:password@host:9996/db",
     )
-    assert spec.get_default_catalog(database) == None
+    assert spec.get_default_catalog(database) is None
 
 
 @pytest.mark.parametrize(
