@@ -79,7 +79,7 @@ SQL_MAX_ROW = config["SQL_MAX_ROW"]
 SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
-
+BYTES_IN_MB = 1024 * 1024
 
 class SqlLabException(Exception):
     pass
@@ -605,15 +605,15 @@ def execute_sql_statements(
                 )
 
                 # Check the size of the serialized payload
-                if sql_lab_payload_max_mb := config.get("SQL_LAB_PAYLOAD_MAX_MB"):
+                if sql_lab_payload_max_mb := config.get("SQLLAB_PAYLOAD_MAX_MB"):
                     serialized_payload_size = sys.getsizeof(serialized_payload)
-                    max_bytes = sql_lab_payload_max_mb * 1024 * 1024
+                    max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
 
                     if serialized_payload_size > max_bytes:
                         logger.info("Result size exceeds the allowed limit.")
                         raise SupersetErrorException(
                             SupersetError(
-                                message=f"Result size ({serialized_payload_size / (1024 * 1024):.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
+                                message=f"Result size ({serialized_payload_size / BYTES_IN_MB:.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
                                 error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
                                 level=ErrorLevel.ERROR,
                             )
@@ -660,13 +660,13 @@ def execute_sql_statements(
             )
             serialized_payload_size = sys.getsizeof(serialized_payload)
             sql_lab_payload_max_mb = config["SQLLAB_PAYLOAD_MAX_MB"]
-            max_bytes = sql_lab_payload_max_mb * 1024 * 1024
+            max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
 
             if serialized_payload_size > max_bytes:
                 logger.info("Result size exceeds the allowed limit.")
                 raise SupersetErrorException(
                     SupersetError(
-                        message=f"Result size ({serialized_payload_size / (1024 * 1024):.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
+                        message=f"Result size ({serialized_payload_size / BYTES_IN_MB:.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
                         error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
                         level=ErrorLevel.ERROR,
                     )
