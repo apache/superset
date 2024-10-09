@@ -84,12 +84,12 @@ export const parseDttmToDate = (
       const endquarter = new Date(
         startquarter.getFullYear(),
         startquarter.getMonth() + 3,
-        0
+        0,
       );
       if (isEndDate) {
         return endquarter;
-      } 
-        return startquarter;
+      }
+      return startquarter;
     }
     case 'previous calendar year':
       if (isEndDate) {
