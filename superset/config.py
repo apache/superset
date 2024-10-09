@@ -48,7 +48,6 @@ from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm.query import Query
-from sqlglot import Dialect, Dialects
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -69,6 +68,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
+    from sqlglot import Dialect, Dialects
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
