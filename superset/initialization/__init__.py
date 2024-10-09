@@ -53,6 +53,7 @@ from superset.extensions import (
     talisman,
 )
 from superset.security import SupersetSecurityManager
+from superset.sql_parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
 from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
@@ -484,6 +485,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_wtf()
         self.configure_middlewares()
         self.configure_cache()
+        self.configure_sqlglot_dialects()
 
         with self.superset_app.app_context():
             self.init_app_in_ctx()
@@ -520,6 +522,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_feature_flags(self) -> None:
         feature_flag_manager.init_app(self.superset_app)
+
+    def configure_sqlglot_dialects(self) -> None:
+        SQLGLOT_DIALECTS.update(self.config["SQLGLOT_DIALECTS_EXTENSIONS"])
 
     def configure_fab(self) -> None:
         if self.config["SILENCE_FAB"]:
