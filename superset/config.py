@@ -48,6 +48,7 @@ from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm.query import Query
+from sqlglot import Dialect, Dialects
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -249,6 +250,10 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
+
+# Extends the default SQLGlot dialects with additional dialects
+SQLGLOT_DIALECTS_EXTENSIONS: map[str, Dialects | type[Dialect]] = {}
+
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
 
