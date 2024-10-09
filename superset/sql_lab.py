@@ -215,7 +215,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
         insert_rls = (
             insert_rls_as_subquery
             if database.db_engine_spec.allows_subqueries
-               and database.db_engine_spec.allows_alias_in_select
+            and database.db_engine_spec.allows_alias_in_select
             else insert_rls_in_predicate
         )
 
