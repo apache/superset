@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" id="mymeta">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Superset</title>
+  <script src="https://unpkg.com/@superset-ui/embedded-sdk"> </script>
+  <style>
+    iframe {
+      width: 100%;
+      height: 50%;
+      border: none;
+    }
+      pretext {
+        margin-right: 10%;
+        margin-left: 10%;
+        font-family: Tahoma;
+      }
+  </style>
+  </head>
+<body>
+
+
+  <div class="pretext">
+    <p id="my-superset-container"></p> 
+<script>
+  supersetEmbeddedSdk.embedDashboard(
+    { 
+      id: "526b0f7a-8a07-40f8-b84c-52249aee8535", // given by the Superset embedding UI 
+      supersetDomain: "http://localhost:8088/",  
+      mountPoint: document.getElementById("my-superset-container"),
+      fetchGuestToken: () =>  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7InVzZXJuYW1lIjoidTEiLCJmaXJzdF9uYW1lIjoiIiwibGFzdF9uYW1lIjoiIn0sInJlc291cmNlcyI6W3sidHlwZSI6ImRhc2hib2FyZCIsImlkIjoiNTI2YjBmN2EtOGEwNy00MGY4LWI4NGMtNTIyNDlhZWU4NTM1In1dLCJybHNfcnVsZXMiOltdLCJpYXQiOjE3Mjg0NzQ5ODEuNTkzNTk5MywiZXhwIjoxNzI4NDc1MjgxLjU5MzU5OTMsImF1ZCI6Imh0dHA6Ly9zdXBlcnNldDo4MDg4LyIsInR5cGUiOiJndWVzdCJ9.BXA6QxDeXQekow49KSd8gB8x1Oi4H0aYg-w1-SDw_kQ", 
+      dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional)
+        hideTitle: true,
+        hideChartControls: true,
+        hideTab: true,
+            filters: {
+            expanded: false,
+        }
+      },
+    }
+   );
+  </script>
+</div>
+
+
+</body>
+</html>

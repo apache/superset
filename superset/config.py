@@ -43,6 +43,7 @@ import pkg_resources
 from celery.schedules import crontab
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
+#from flask_appbuilder.security.manager import AUTH_OAUTH
 from flask_caching.backends.base import BaseCache
 from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES
@@ -253,7 +254,7 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 QUERY_SEARCH_LIMIT = 1000
 
 # Flask-WTF flag for CSRF
-WTF_CSRF_ENABLED = True
+WTF_CSRF_ENABLED = True 
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
@@ -360,6 +361,7 @@ AUTH_TYPE = AUTH_DB
 # This is useful if one wants to enable anonymous users to view
 # dashboards. Explicit grant on specific datasets is still required.
 PUBLIC_ROLE_LIKE: str | None = None
+PUBLIC_ROLE_LIKE_CONEXION_TOKEN = True
 
 # ---------------------------------------------------
 # Babel config for translations
@@ -482,12 +484,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DASHBOARD_CROSS_FILTERS": True,  # deprecated
     "DASHBOARD_VIRTUALIZATION": True,
     "GLOBAL_ASYNC_QUERIES": False,
-    "EMBEDDED_SUPERSET": False,
+    "EMBEDDED_SUPERSET": True,
     # Enables Alerts and reports new implementation
-    "ALERT_REPORTS": False,
+    "ALERT_REPORTS": True,
     "ALERT_REPORT_TABS": False,
     "ALERT_REPORT_SLACK_V2": False,
-    "DASHBOARD_RBAC": False,
+    "DASHBOARD_RBAC": True,
     "ENABLE_ADVANCED_DATA_TYPES": False,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
@@ -790,7 +792,7 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 
 # CORS Options
-ENABLE_CORS = False
+ENABLE_CORS = True
 CORS_OPTIONS: dict[Any, Any] = {}
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
@@ -1725,6 +1727,8 @@ GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 # Guest token audience for the embedded superset, either string or callable
 GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
+
+
 
 # A callable that can be supplied to do extra validation of guest token configuration
 # for example certain RLS parameters:
