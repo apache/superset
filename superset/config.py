@@ -254,7 +254,7 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 QUERY_SEARCH_LIMIT = 1000
 
 # Flask-WTF flag for CSRF
-WTF_CSRF_ENABLED = False #PONLO A TRUE LUEGO
+WTF_CSRF_ENABLED = True 
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
@@ -1720,7 +1720,7 @@ GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
 }
 
 # Embedded config options
-GUEST_ROLE_NAME = "conexion_token"
+GUEST_ROLE_NAME = "Public"
 GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"
 GUEST_TOKEN_JWT_ALGO = "HS256"
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
@@ -1728,14 +1728,6 @@ GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 # Guest token audience for the embedded superset, either string or callable
 GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 
-#Remove if not needed. Added by Alicia
-#CORS_OPTIONS = {
-#    "supports_credentials": True,
-#    "allow_headers": ["*"],
-#    "resources": ["*"],
-#    "origins": [""], # replace the port-number 
-#                                          # as per your application.
-#}
 
 
 # A callable that can be supplied to do extra validation of guest token configuration
