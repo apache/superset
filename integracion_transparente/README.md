@@ -25,7 +25,7 @@ La configuración de embebido de un panel en superset se hace en la opción rema
 
 ![](images/embeber_panel_1.png)
 
-Además, hay que cambiar configuraciones del config.py. Para dejar todos los cambios de parámetros acotados, se han añadido a superset_config.py en una sección acotada, para que se puedan eliminar si en algún momento es necesario. El fichero superset_config.py está en superset/docker/pythopath_dev.
+Además, hay que cambiar configuraciones del config.py. Para dejar todos los cambios de parámetros acotados, se han añadido a superset_config.py en una sección acotada, para que se puedan eliminar si en algún momento es necesario. El fichero superset_config.py está en superset/docker/pythopath_dev. Además, en config.py se han cambiado, dentro de la sección DEFAULT_FEATURE_FLAGS las siguientes: "EMBEDDED_SUPERSET": True, "ALERT_REPORTS": True, "DASHBOARD_RBAC": True
 
 # Uso de fichero html para embeber un panel.
 En embebido_html.html está el código necesario para embeber un panel. Para que funcione, cambiar en ese código los parámetros referenciados en mayúscula en la siguiente porción de código con los valores apropiados de los parámetros 
