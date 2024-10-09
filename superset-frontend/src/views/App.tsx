@@ -70,25 +70,25 @@ const LocationPathnameLogger = () => {
   return <></>;
 };
 
-function hasOnlyGuestRole(data: BootstrapData){
+function hasOnlyGuestRole(data: BootstrapData) {
   // Check if we have user data and roles
   if (!data?.user?.roles) {
     return false;
   }
 
   const roles = data.user.roles;
-  
+
   // Get all role keys
   const roleKeys = Object.keys(roles);
-  
+
   // Check if there's exactly one role
   if (roleKeys.length !== 1) {
     return false;
   }
-  
+
   // Check if that single role is "Guest"
   return roleKeys[0] === 'Guest';
-};
+}
 
 const App = () => {
   useEffect(() => {
@@ -101,38 +101,38 @@ const App = () => {
             type: 'OAUTH2_SUCCESS',
             data: {
               // Add any additional data you need to send
-            }
+            },
           },
-          process.env.CORS_FRONTEND_ORIGIN
+          process.env.CORS_FRONTEND_ORIGIN,
         );
       }
     }
   }, []); // Empty dependency array means this runs once when component mounts
 
   return (
-  <Router>
-    <ScrollToTop />
-    <LocationPathnameLogger />
-    <RootContextProviders>
-      <GlobalStyles />
-      <Menu
-        data={bootstrapData.common.menu_data}
-        isFrontendRoute={isFrontendRoute}
-      />
-      <Switch>
-        {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-          <Route path={path} key={path}>
-            <Suspense fallback={<Fallback />}>
-              <ErrorBoundary>
-                <Component user={bootstrapData.user} {...props} />
-              </ErrorBoundary>
-            </Suspense>
-          </Route>
-        ))}
-      </Switch>
-      <ToastContainer />
-    </RootContextProviders>
-  </Router>
+    <Router>
+      <ScrollToTop />
+      <LocationPathnameLogger />
+      <RootContextProviders>
+        <GlobalStyles />
+        <Menu
+          data={bootstrapData.common.menu_data}
+          isFrontendRoute={isFrontendRoute}
+        />
+        <Switch>
+          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+            <Route path={path} key={path}>
+              <Suspense fallback={<Fallback />}>
+                <ErrorBoundary>
+                  <Component user={bootstrapData.user} {...props} />
+                </ErrorBoundary>
+              </Suspense>
+            </Route>
+          ))}
+        </Switch>
+        <ToastContainer />
+      </RootContextProviders>
+    </Router>
   );
 };
 
