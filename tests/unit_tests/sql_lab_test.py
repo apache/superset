@@ -159,8 +159,8 @@ def test_execute_sql_statement_exceeds_payload_limit_log_check(mocker: MockerFix
     # Mock sys.getsizeof to simulate a large payload size
     mocker.patch("sys.getsizeof", return_value=100000000)  # 100 MB
 
-    # Mock the specific config variable 'SQL_LAB_PAYLOAD_MAX_MB' to 50 MB
-    mocker.patch("superset.config.SQL_LAB_PAYLOAD_MAX_MB", 50)
+    # Mock the specific config variable 'SQLLAB_PAYLOAD_MAX_MB' to 50 MB
+    mocker.patch("superset.config.SQLLAB_PAYLOAD_MAX_MB", 50)
 
     # Mock _serialize_payload and log
     def mock_serialize_payload(payload, use_msgpack):

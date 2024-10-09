@@ -956,7 +956,7 @@ SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 # Max payload size (MB) for SQL Lab to prevent browser hangs with large results.
-SQL_LAB_PAYLOAD_MAX_MB = None
+SQLLAB_PAYLOAD_MAX_MB = None
 
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
