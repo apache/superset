@@ -18,6 +18,7 @@
 
 
 import pytest
+from sqlglot import Dialects
 
 from superset.exceptions import SupersetParseError
 from superset.sql.parse import (
@@ -932,3 +933,15 @@ search_path -- another one
 SELECT * FROM some_table;
     """
     assert SQLScript(sql, "postgresql").get_settings() == {"search_path": "bar"}
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"SQLGLOT_DIALECTS_EXTENSIONS": {"custom": Dialects.MYSQL}}],
+    indirect=True,
+)
+def test_custom_dialect(app: None) -> None:
+    """
+    Test that custom dialects are loaded correctly.
+    """
+    assert SQLGLOT_DIALECTS.get("custom") == Dialects.MYSQL
