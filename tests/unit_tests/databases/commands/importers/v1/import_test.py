@@ -69,6 +69,28 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     assert database.allow_dml is False
 
 
+def test_import_database_no_creds(mocker: MockerFixture, session: Session) -> None:
+    """
+    Test importing a database.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config_no_creds
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config_no_creds)
+    database = import_database(config)
+    assert database.database_name == "imported_database_no_creds"
+    assert database.sqlalchemy_uri == "bigquery://test-db/"
+    assert database.extra == "{}"
+    assert database.uuid == "2ff17edc-f3fa-4609-a5ac-b484281225bc"
+
+
 def test_import_database_sqlite_invalid(
     mocker: MockerFixture, session: Session
 ) -> None:
