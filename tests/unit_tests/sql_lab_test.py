@@ -137,9 +137,6 @@ def test_execute_sql_statement_exceeds_payload_limit_log_check(mocker: MockerFix
     """
     from superset.sql_lab import execute_sql_statements
 
-    # Mock the logger to capture the log messages
-    caplog.set_level(logging.INFO)
-
     sql_statement = "SELECT 42 AS answer"
     query_id = 1
 
@@ -164,7 +161,6 @@ def test_execute_sql_statement_exceeds_payload_limit_log_check(mocker: MockerFix
 
     # Mock _serialize_payload and log
     def mock_serialize_payload(payload, use_msgpack):
-        logging.info("serialize_payload called!")
         return "serialized_payload"
 
     mocker.patch("superset.sql_lab._serialize_payload", side_effect=mock_serialize_payload)
@@ -175,8 +171,8 @@ def test_execute_sql_statement_exceeds_payload_limit_log_check(mocker: MockerFix
     # Mock the results backend to avoid "Results backend is not configured" error
     mocker.patch("superset.sql_lab.results_backend", return_value=True)
 
-    # Run the query (we ignore the exception here)
-    try:
+    # Test that the exception is raised when the payload exceeds the limit
+    with pytest.raises(SupersetErrorException) as excinfo:
         execute_sql_statements(
             query_id=query_id,
             rendered_query=sql_statement,
@@ -186,14 +182,10 @@ def test_execute_sql_statement_exceeds_payload_limit_log_check(mocker: MockerFix
             expand_data=False,
             log_params={},
         )
-    except Exception:
-        pass
 
-    # Check if the expected log message for exceeding the payload limit was captured
-    assert any(
-        "Result size exceeds the allowed limit." in message for message in caplog.messages
-    ), f"Expected log message 'Result size exceeds the allowed limit.' not found in logs. Logs captured: {caplog.messages}"
-
+    # Check if the exception message is correct
+    assert "Result size" in str(excinfo.value) and "exceeds the allowed limit" in str(excinfo.value), \
+        f"Expected exception message about exceeding the limit not found. Actual message: {excinfo.value}"
 
 
 def test_get_sql_results_exceeds_payload_limit(mocker: MockerFixture, app: None) -> None:
