@@ -41,6 +41,8 @@ import { store } from 'src/views/store';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
+import { BootstrapData } from 'src/types/bootstrapTypes';
+
 setupApp();
 setupPlugins();
 setupExtensions();
@@ -68,7 +70,46 @@ const LocationPathnameLogger = () => {
   return <></>;
 };
 
-const App = () => (
+function hasOnlyGuestRole(data: BootstrapData){
+  // Check if we have user data and roles
+  if (!data?.user?.roles) {
+    return false;
+  }
+
+  const roles = data.user.roles;
+  
+  // Get all role keys
+  const roleKeys = Object.keys(roles);
+  
+  // Check if there's exactly one role
+  if (roleKeys.length !== 1) {
+    return false;
+  }
+  
+  // Check if that single role is "Guest"
+  return roleKeys[0] === 'Guest';
+};
+
+const App = () => {
+  useEffect(() => {
+    // Check if user exists and has the role "Guest"
+    if (hasOnlyGuestRole(bootstrapData)) {
+      // Send message to opener window
+      if (window.opener) {
+        window.opener.postMessage(
+          {
+            type: 'OAUTH2_SUCCESS',
+            data: {
+              // Add any additional data you need to send
+            }
+          },
+          process.env.CORS_FRONTEND_ORIGIN
+        );
+      }
+    }
+  }, []); // Empty dependency array means this runs once when component mounts
+
+  return (
   <Router>
     <ScrollToTop />
     <LocationPathnameLogger />
@@ -92,6 +133,7 @@ const App = () => (
       <ToastContainer />
     </RootContextProviders>
   </Router>
-);
+  );
+};
 
 export default hot(App);
