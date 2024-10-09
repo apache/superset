@@ -605,9 +605,8 @@ def execute_sql_statements(
                 )
 
                 # Check the size of the serialized payload
-                if config.get("SQL_LAB_PAYLOAD_MAX_MB"):
+                if sql_lab_payload_max_mb := config.get("SQL_LAB_PAYLOAD_MAX_MB"):
                     serialized_payload_size = sys.getsizeof(serialized_payload)
-                    sql_lab_payload_max_mb = config["SQL_LAB_PAYLOAD_MAX_MB"]
                     max_bytes = sql_lab_payload_max_mb * 1024 * 1024
 
                     if serialized_payload_size > max_bytes:
