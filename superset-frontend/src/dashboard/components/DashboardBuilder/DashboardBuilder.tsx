@@ -444,12 +444,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const fireResizeEventToParent = () => {
     const data = {
-        event: "supersetContentRefreshed",
-        width: window.document.body.scrollWidth,
-        height: window.document.body.scrollHeight,
-    }
-    window.parent.postMessage(data, "*");
-  }
+      event: 'supersetContentRefreshed',
+      width: window.document.body.scrollWidth,
+      height: window.document.body.scrollHeight,
+    };
+    window.parent.postMessage(data, '*');
+  };
 
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
