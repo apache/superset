@@ -88,10 +88,9 @@ export const parseDttmToDate = (
       );
       if (isEndDate) {
         return endquarter;
-      } else {
+      } 
         return startquarter;
-      }
-  }
+    }
     case 'previous calendar year':
       if (isEndDate) {
         now.setFullYear(now.getFullYear(), 0, 1); // end date is the last day of the previous year
