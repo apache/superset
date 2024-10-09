@@ -117,3 +117,21 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+    
+    
+
+#### Cambios necesarios para embeber paneles
+WTF_CSRF_ENABLED = False
+
+GUEST_ROLE_NAME = "conexion_token"
+GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"
+GUEST_TOKEN_JWT_ALGO = "HS256"
+GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
+GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
+
+OVERRIDE_HTTP_HEADERS = {'X-Frame-Options': 'ALLOWALL'}
+TALISMAN_ENABLED = False
+
+
+
+##### Fin de cambios necesarios para embeber paneles
