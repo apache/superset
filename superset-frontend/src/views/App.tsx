@@ -38,10 +38,9 @@ import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupExtensions from 'src/setup/setupExtensions';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
+import { BootstrapData } from 'src/types/bootstrapTypes';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
-
-import { BootstrapData } from 'src/types/bootstrapTypes';
 
 setupApp();
 setupPlugins();
@@ -76,7 +75,7 @@ function hasOnlyGuestRole(data: BootstrapData) {
     return false;
   }
 
-  const roles = data.user.roles;
+  const { roles } = data.user;
 
   // Get all role keys
   const roleKeys = Object.keys(roles);
