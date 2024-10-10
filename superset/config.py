@@ -68,6 +68,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
+    from sqlglot import Dialect, Dialects
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
@@ -249,6 +250,10 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
+
+# Extends the default SQLGlot dialects with additional dialects
+SQLGLOT_DIALECTS_EXTENSIONS: dict[str, Dialects | type[Dialect]] = {}
+
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
 
