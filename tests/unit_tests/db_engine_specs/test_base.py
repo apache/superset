@@ -241,14 +241,7 @@ def test_select_star(mocker: MockerFixture) -> None:
         latest_partition=False,
         cols=cols,
     )
-    assert (
-        sql
-        == """SELECT
-  a
-FROM my_table
-LIMIT ?
-OFFSET ?"""
-    )
+    assert sql == "SELECT a\nFROM my_table\nLIMIT ?\nOFFSET ?"
 
     sql = NoLimitDBEngineSpec.select_star(
         database=database,
@@ -260,12 +253,7 @@ OFFSET ?"""
         latest_partition=False,
         cols=cols,
     )
-    assert (
-        sql
-        == """SELECT
-  a
-FROM my_table"""
-    )
+    assert sql == "SELECT a\nFROM my_table"
 
 
 def test_extra_table_metadata(mocker: MockerFixture) -> None:
