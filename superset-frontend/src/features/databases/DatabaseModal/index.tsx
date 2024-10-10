@@ -592,6 +592,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [importingModal, setImportingModal] = useState<boolean>(false);
   const [importingErrorMessage, setImportingErrorMessage] = useState<string>();
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<string[]>(
+    [],
+  );
   const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<
     string[]
   >([]);
@@ -1342,6 +1345,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onDbImport = async (info: UploadChangeParam) => {
     setImportingErrorMessage('');
     setPasswordFields([]);
+    setEncryptedExtraFields([]);
     setSSHTunnelPasswordFields([]);
     setSSHTunnelPrivateKeyFields([]);
     setSSHTunnelPrivateKeyPasswordFields([]);

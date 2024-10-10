@@ -184,6 +184,10 @@ def load_configs(
                         db_ssh_tunnel_priv_key_passws[config["uuid"]]
                     )
 
+                logger.info(
+                    "attempting to load content into schema %s %s", schema, content
+                )
+
                 schema.load(config)
                 configs[file_name] = config
             except ValidationError as exc:

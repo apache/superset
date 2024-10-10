@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from typing import Any
 
 from marshmallow import Schema
@@ -30,6 +31,8 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
+
+logger = logging.getLogger(__name__)
 
 
 class ImportChartsCommand(ImportModelsCommand):
@@ -49,22 +52,28 @@ class ImportChartsCommand(ImportModelsCommand):
     def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
         # discover datasets associated with charts
         dataset_uuids: set[str] = set()
+        logger.info("parsing datasets")
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
                 dataset_uuids.add(config["dataset_uuid"])
+        logger.info("datasets parsed: %s", dataset_uuids)
 
         # discover databases associated with datasets
+        logger.info("discovering databases associated with datasets")
+
         database_uuids: set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
                 database_uuids.add(config["database_uuid"])
 
         # import related databases
+        logger.info("importing related dbs")
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
                 database = import_database(config, overwrite=False)
                 database_ids[str(database.uuid)] = database.id
+        logger.info("related dbs: %s", database_ids)
 
         # import datasets with the correct parent ref
         datasets: dict[str, SqlaTable] = {}
