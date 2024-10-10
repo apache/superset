@@ -26,7 +26,7 @@ import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import charts from 'src/components/Chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';
-import reports from 'src/features/reports/ReportModal/reducer';
+import reports from 'src/features/alerts/reducer';
 import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';
 import dashboardState from 'src/dashboard/reducers/dashboardState';
 import dashboardFilters from 'src/dashboard/reducers/dashboardFilters';
