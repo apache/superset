@@ -3052,6 +3052,12 @@
             },
             "type": "array"
           },
+          "column_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "currency_formats": {
             "type": "object"
           },

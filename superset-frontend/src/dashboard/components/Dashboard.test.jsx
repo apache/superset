@@ -37,6 +37,9 @@ import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import dashboardState from 'spec/fixtures/mockDashboardState';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import { getAllActiveFilters } from 'src/dashboard/util/activeAllDashboardFilters';
+import { getRelatedCharts } from 'src/dashboard/util/getRelatedCharts';
+
+jest.mock('src/dashboard/util/getRelatedCharts');
 
 describe('Dashboard', () => {
   const props = {
@@ -130,6 +133,7 @@ describe('Dashboard', () => {
 
     afterEach(() => {
       refreshSpy.restore();
+      jest.clearAllMocks();
     });
 
     it('should not call refresh when is editMode', () => {
@@ -153,6 +157,9 @@ describe('Dashboard', () => {
     });
 
     it('should call refresh when native filters changed', () => {
+      getRelatedCharts.mockReturnValue({
+        [NATIVE_FILTER_ID]: [230],
+      });
       wrapper.setProps({
         activeFilters: {
           ...OVERRIDE_FILTERS,
@@ -170,11 +177,27 @@ describe('Dashboard', () => {
         [NATIVE_FILTER_ID]: {
           scope: [230],
           values: extraFormData,
+          filterType: 'filter_select',
+          targets: [
+            {
+              datasetId: 13,
+              column: {
+                name: 'ethnic_minority',
+              },
+            },
+          ],
         },
       });
     });
 
     it('should call refresh if a filter is added', () => {
+      getRelatedCharts.mockReturnValue({
+        '1_region': [1],
+        '2_country_name': [1, 2],
+        '3_region': [1],
+        '3_country_name': [],
+        gender: [1],
+      });
       const newFilter = {
         gender: { values: ['boy', 'girl'], scope: [1] },
       };
@@ -186,6 +209,12 @@ describe('Dashboard', () => {
     });
 
     it('should call refresh if a filter is removed', () => {
+      getRelatedCharts.mockReturnValue({
+        '1_region': [1],
+        '2_country_name': [1, 2],
+        '3_region': [1],
+        '3_country_name': [],
+      });
       wrapper.setProps({
         activeFilters: {},
       });

@@ -83,6 +83,7 @@ export interface Dataset {
   owners?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
+  column_names?: string[];
 }
 
 export interface ControlPanelState {

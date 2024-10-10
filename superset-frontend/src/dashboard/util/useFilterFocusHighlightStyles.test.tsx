@@ -24,6 +24,9 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import { screen, render } from 'spec/helpers/testing-library';
 import { initialState } from 'src/SqlLab/fixtures';
 import useFilterFocusHighlightStyles from './useFilterFocusHighlightStyles';
+import { getRelatedCharts } from './getRelatedCharts';
+
+jest.mock('./getRelatedCharts');
 
 const TestComponent = ({ chartId }: { chartId: number }) => {
   const styles = useFilterFocusHighlightStyles(chartId);
@@ -38,6 +41,7 @@ describe('useFilterFocusHighlightStyles', () => {
       { ...mockState, ...(initialState as any), ...customState },
       compose(applyMiddleware(thunk)),
     );
+  const mockGetRelatedCharts = getRelatedCharts as jest.Mock;
 
   const renderWrapper = (chartId: number, store = createMockStore()) =>
     render(<TestComponent chartId={chartId} />, {
@@ -57,6 +61,9 @@ describe('useFilterFocusHighlightStyles', () => {
   });
 
   it('should return unfocused styles if chart is not in scope of focused native filter', async () => {
+    mockGetRelatedCharts.mockReturnValue({
+      'test-filter': [],
+    });
     const store = createMockStore({
       nativeFilters: {
         focusedFilterId: 'test-filter',
@@ -76,6 +83,9 @@ describe('useFilterFocusHighlightStyles', () => {
   });
 
   it('should return unfocused styles if chart is not in scope of hovered native filter', async () => {
+    mockGetRelatedCharts.mockReturnValue({
+      'test-filter': [],
+    });
     const store = createMockStore({
       nativeFilters: {
         hoveredFilterId: 'test-filter',
@@ -96,6 +106,9 @@ describe('useFilterFocusHighlightStyles', () => {
 
   it('should return focused styles if chart is in scope of focused native filter', async () => {
     const chartId = 18;
+    mockGetRelatedCharts.mockReturnValue({
+      testFilter: [chartId],
+    });
     const store = createMockStore({
       nativeFilters: {
         focusedFilterId: 'testFilter',
@@ -116,6 +129,9 @@ describe('useFilterFocusHighlightStyles', () => {
 
   it('should return focused styles if chart is in scope of hovered native filter', async () => {
     const chartId = 18;
+    mockGetRelatedCharts.mockReturnValue({
+      testFilter: [chartId],
+    });
     const store = createMockStore({
       nativeFilters: {
         hoveredFilterId: 'testFilter',
@@ -136,6 +152,9 @@ describe('useFilterFocusHighlightStyles', () => {
 
   it('should return unfocused styles if focusedFilterField is targeting a different chart', async () => {
     const chartId = 18;
+    mockGetRelatedCharts.mockReturnValue({
+      testFilter: [],
+    });
     const store = createMockStore({
       dashboardState: {
         focusedFilterField: {
@@ -159,6 +178,9 @@ describe('useFilterFocusHighlightStyles', () => {
 
   it('should return focused styles if focusedFilterField chart equals our own', async () => {
     const chartId = 18;
+    mockGetRelatedCharts.mockReturnValue({
+      testFilter: [chartId],
+    });
     const store = createMockStore({
       dashboardState: {
         focusedFilterField: {

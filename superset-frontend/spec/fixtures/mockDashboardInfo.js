@@ -26,6 +26,7 @@ export default {
       {
         id: 'DefaultsID',
         filterType: 'filter_select',
+        chartsInScope: [],
         targets: [{}],
         cascadeParentIds: [],
       },
