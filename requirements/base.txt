@@ -318,9 +318,9 @@ requests-cache==1.2.0
     # via shillelagh
 rich==13.7.1
     # via flask-limiter
+selenium==4.10.0
 rsa==4.9
     # via google-auth
-selenium==3.141.0
     # via apache-superset
 shillelagh[gsheetsapi]==1.2.18
     # via apache-superset

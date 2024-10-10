@@ -1475,7 +1475,10 @@ WEBDRIVER_WINDOW = {
 WEBDRIVER_AUTH_FUNC = None
 
 # Any config options to be passed as-is to the webdriver
-WEBDRIVER_CONFIGURATION: dict[Any, Any] = {"service_log_path": "/dev/null"}
+WEBDRIVER_CONFIGURATION = {
+    "options": {"capabilities": {}, "preferences": {}},
+    "service": {"log_output": "/dev/null", "service_args": [], "port": 0, "env": {}},
+}
 
 # Additional args to be passed as arguments to the config object
 # Note: If using Chrome, you'll want to add the "--marionette" arg.
