@@ -17,110 +17,165 @@
  * under the License.
  */
 
-import { Filter } from '@superset-ui/core';
+import {
+  AppliedCrossFilterType,
+  AppliedNativeFilterType,
+  Filter,
+  isAppliedCrossFilterType,
+  isAppliedNativeFilterType,
+} from '@superset-ui/core';
+import { Slice } from 'src/types/Chart';
 import { DatasourcesState } from '../types';
 
-type Slice = {
-  datasource: string;
-  slice_id: number;
-};
+function checkForExpression(formData?: Record<string, any>) {
+  const groupby = formData?.groupby ?? [];
+  const allColumns = formData?.all_columns ?? [];
+  const checkColumns = groupby.concat(allColumns);
+  return checkColumns.some(
+    (col: string | Record<string, any>) =>
+      typeof col !== 'string' && col.expressionType !== undefined,
+  );
+}
 
 function getRelatedChartsForSelectFilter(
-  filter: Filter,
+  nativeFilter: AppliedNativeFilterType,
   slices: Record<string, Slice>,
   chartsInScope: number[],
   datasources: DatasourcesState,
 ) {
   return Object.values(slices)
-    .filter(({ slice_id, datasource }) => {
+    .filter(slice => {
+      const { datasource, slice_id } = slice;
+      // not in scope, ignore
       if (!chartsInScope.includes(slice_id)) return false;
-      const chartDatasource = datasources[datasource];
-      if (!chartDatasource) return false;
-      const { column, datasetId } = filter.targets[0];
+
+      const chartDatasource = datasource
+        ? datasources[datasource]
+        : Object.values(datasources).find(ds => ds.id === slice.datasource_id);
+
+      const { column, datasetId } = nativeFilter.targets[0];
       const datasourceColumnNames = chartDatasource?.column_names ?? [];
 
-      return (
-        chartDatasource.id === datasetId ||
-        datasourceColumnNames.some(
-          col => col === column?.name || col === column?.displayName,
-        )
+      // same datasource, always apply
+      if (chartDatasource?.id === datasetId) return true;
+
+      // let backend deal with adhoc columns and jinja
+      const hasSqlExpression = checkForExpression(slice.form_data);
+      if (hasSqlExpression) {
+        return true;
+      }
+
+      return datasourceColumnNames.some(
+        col => col === column?.name || col === column?.displayName,
       );
     })
     .map(slice => slice.slice_id);
 }
 function getRelatedChartsForCrossFilter(
   filterKey: string,
-  crossFilter: any,
+  crossFilter: AppliedCrossFilterType,
   slices: Record<string, Slice>,
   scope: number[],
   datasources: DatasourcesState,
 ): number[] {
   const sourceSlice = slices[filterKey];
+  const filters = crossFilter?.values?.filters ?? [];
+
   if (!sourceSlice) return [];
 
-  const sourceDatasource = datasources[sourceSlice.datasource];
-  if (!sourceDatasource) return [];
-
-  const filters = crossFilter?.values?.filters;
-
-  if (!filters) return [];
+  const sourceDatasource = sourceSlice.datasource
+    ? datasources[sourceSlice.datasource]
+    : Object.values(datasources).find(
+        ds => ds.id === sourceSlice.datasource_id,
+      );
 
   return Object.values(slices)
     .filter(slice => {
-      if (!scope.includes(slice.slice_id)) return false;
+      // cross-filter emitter
       if (slice.slice_id === Number(filterKey)) return false;
+      // not in scope, ignore
+      if (!scope.includes(slice.slice_id)) return false;
 
-      const targetDatasource = datasources[slice.datasource];
+      const targetDatasource = slice.datasource
+        ? datasources[slice.datasource]
+        : Object.values(datasources).find(ds => ds.id === slice.datasource_id);
 
-      if (!targetDatasource) return false;
+      // same datasource, always apply
       if (targetDatasource === sourceDatasource) return true;
 
       const targetColumnNames = targetDatasource?.column_names ?? [];
 
-      // checks for a cross filter that was removed
-      if (
-        crossFilter.values?.filters?.length === 0 &&
-        crossFilter.scope.includes(slice.slice_id)
-      )
+      // let backend deal with adhoc columns and jinja
+      const hasSqlExpression = checkForExpression(slice.form_data);
+      if (hasSqlExpression) {
         return true;
+      }
 
-      return targetColumnNames.includes(filters[0]?.col);
+      for (const filter of filters) {
+        // let backend deal with adhoc columns
+        if (
+          typeof filter.col !== 'string' &&
+          filter.col.expressionType !== undefined
+        ) {
+          return true;
+        }
+        // shared column names, different datasources, apply filter
+        if (targetColumnNames.includes(filter.col)) return true;
+      }
+
+      return false;
     })
     .map(slice => slice.slice_id);
 }
 
 export function getRelatedCharts(
-  filters: Object,
+  filters: Record<
+    string,
+    AppliedNativeFilterType | AppliedCrossFilterType | Filter
+  >,
+  checkFilters: Record<
+    string,
+    AppliedNativeFilterType | AppliedCrossFilterType | Filter
+  > | null,
   slices: Record<string, Slice>,
   datasources: DatasourcesState,
 ) {
-  return Object.entries(filters).reduce((acc, [filterKey, filter]) => {
+  const related = Object.entries(filters).reduce((acc, [filterKey, filter]) => {
     const isCrossFilter =
       Object.keys(slices).includes(filterKey) &&
-      !Object.hasOwnProperty('id') &&
-      !Object.hasOwnProperty('chartsInScope');
+      isAppliedCrossFilterType(filter);
 
     const chartsInScope = Array.isArray(filter.scope)
       ? filter.scope
-      : filter?.chartsInScope || [];
+      : ((filter as AppliedNativeFilterType).chartsInScope ?? []);
 
     if (isCrossFilter) {
+      const checkFilter = checkFilters?.[filterKey] as AppliedCrossFilterType;
+      const crossFilter = filter as AppliedCrossFilterType;
+      const wasRemoved = !!(
+        ((filter.values && filter.values.filters === undefined) ||
+          filter.values?.filters?.length === 0) &&
+        checkFilter?.values?.filters?.length
+      );
+      const actualCrossFilter = wasRemoved ? checkFilter : crossFilter;
+
       return {
         ...acc,
         [filterKey]: getRelatedChartsForCrossFilter(
           filterKey,
-          filter,
+          actualCrossFilter,
           slices,
           chartsInScope,
           datasources,
         ),
       };
     }
-    if (filter.filterType === 'filter_select') {
+    if (isAppliedNativeFilterType(filter)) {
+      const nativeFilter = filter as AppliedNativeFilterType;
       return {
         ...acc,
         [filterKey]: getRelatedChartsForSelectFilter(
-          filter,
+          nativeFilter,
           slices,
           chartsInScope,
           datasources,
@@ -132,4 +187,6 @@ export function getRelatedCharts(
       [filterKey]: chartsInScope,
     };
   }, {});
+
+  return related;
 }

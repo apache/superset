@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@superset-ui/core';
+import { Filter, useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
@@ -57,7 +57,8 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     useSelector((state: RootState) => state.sliceEntities.slices) || {};
 
   const relatedCharts = getRelatedCharts(
-    nativeFilters.filters,
+    nativeFilters.filters as Record<string, Filter>,
+    null,
     slices,
     datasources,
   );

@@ -17,14 +17,18 @@
  * under the License.
  */
 
-import { DatasourceType } from '@superset-ui/core';
+import {
+  AppliedNativeFilterType,
+  DatasourceType,
+  Filter,
+} from '@superset-ui/core';
 import { DatasourcesState } from '../types';
 import { getRelatedCharts } from './getRelatedCharts';
 
 const slices = {
   '1': { datasource: 'ds1', slice_id: 1 },
   '2': { datasource: 'ds2', slice_id: 2 },
-};
+} as any;
 
 const datasources: DatasourcesState = {
   ds1: {
@@ -77,10 +81,10 @@ test('Return chart ids matching the dataset id', () => {
           datasetId: 100,
         },
       ],
-    },
+    } as AppliedNativeFilterType,
   };
 
-  const result = getRelatedCharts(filters, slices, datasources);
+  const result = getRelatedCharts(filters, null, slices, datasources);
   expect(result).toEqual({
     filterKey1: [1],
   });
@@ -100,10 +104,10 @@ test('Return chart ids matching the column name', () => {
           datasetId: 999,
         },
       ],
-    },
+    } as AppliedNativeFilterType,
   };
 
-  const result = getRelatedCharts(filters, slices, datasources);
+  const result = getRelatedCharts(filters, null, slices, datasources);
   expect(result).toEqual({
     filterKey1: [2],
   });
@@ -123,10 +127,10 @@ test('Return chart ids when column display name matches', () => {
           datasetId: 999,
         },
       ],
-    },
+    } as AppliedNativeFilterType,
   };
 
-  const result = getRelatedCharts(filters, slices, datasources);
+  const result = getRelatedCharts(filters, null, slices, datasources);
   expect(result).toEqual({
     filterKey1: [2],
   });
@@ -137,10 +141,10 @@ test('Return scope when filterType is not filter_select', () => {
     filterKey1: {
       filterType: 'filter_time',
       chartsInScope: [3, 4],
-    },
+    } as Filter,
   };
 
-  const result = getRelatedCharts(filters, slices, datasources);
+  const result = getRelatedCharts(filters, null, slices, datasources);
   expect(result).toEqual({
     filterKey1: [3, 4],
   });
@@ -160,10 +164,10 @@ test('Return an empty array if no matching charts found', () => {
           datasetId: 300,
         },
       ],
-    },
+    } as AppliedNativeFilterType,
   };
 
-  const result = getRelatedCharts(filters, slices, datasources);
+  const result = getRelatedCharts(filters, null, slices, datasources);
   expect(result).toEqual({
     filterKey1: [],
   });
