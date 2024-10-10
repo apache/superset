@@ -87,9 +87,15 @@ export const parseDttmToDate = (
         0,
       );
       if (isEndDate) {
-        return endquarter;
+        now.setFullYear(endquarter.getFullYear());
+        now.setMonth(endquarter.getMonth());
+        now.setDate(endquarter.getDate());
+      } else {
+        now.setFullYear(startquarter.getFullYear());
+        now.setMonth(startquarter.getMonth());
+        now.setDate(startquarter.getDate());
       }
-      return startquarter;
+      return now;
     }
     case 'previous calendar year':
       if (isEndDate) {
