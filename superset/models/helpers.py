@@ -63,6 +63,7 @@ from superset.exceptions import (
     ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
@@ -112,6 +113,7 @@ ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 def validate_adhoc_subquery(
     sql: str,
     database_id: int,
+    engine: str,
     default_schema: str,
 ) -> str:
     """
@@ -126,7 +128,12 @@ def validate_adhoc_subquery(
     """
     statements = []
     for statement in sqlparse.parse(sql):
-        if has_table_query(statement):
+        try:
+            has_table = has_table_query(str(statement), engine)
+        except SupersetParseError:
+            has_table = True
+
+        if has_table:
             if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
                 raise SupersetSecurityException(
                     SupersetError(
@@ -135,7 +142,9 @@ def validate_adhoc_subquery(
                         level=ErrorLevel.ERROR,
                     )
                 )
+            # TODO (betodealmeida): reimplement with sqlglot
             statement = insert_rls_in_predicate(statement, database_id, default_schema)
+
         statements.append(statement)
 
     return ";\n".join(str(statement) for statement in statements)
@@ -810,10 +819,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # for datasources of type query
         return []
 
-    def _process_sql_expression(
+    def _process_sql_expression(  # pylint: disable=too-many-arguments
         self,
         expression: Optional[str],
         database_id: int,
+        engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
     ) -> Optional[str]:
@@ -823,6 +833,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             expression = validate_adhoc_subquery(
                 expression,
                 database_id,
+                engine,
                 schema,
             )
             try:
@@ -1108,6 +1119,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             expression = self._process_sql_expression(
                 expression=metric["sqlExpression"],
                 database_id=self.database_id,
+                engine=self.database.backend,
                 schema=self.schema,
                 template_processor=template_processor,
             )
@@ -1551,6 +1563,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     col["sqlExpression"] = self._process_sql_expression(
                         expression=col["sqlExpression"],
                         database_id=self.database_id,
+                        engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
                     )
@@ -1613,6 +1626,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         selected = validate_adhoc_subquery(
                             selected,
                             self.database_id,
+                            self.database.backend,
                             self.schema,
                         )
                         outer = literal_column(f"({selected})")
@@ -1639,6 +1653,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 selected = validate_adhoc_subquery(
                     _sql,
                     self.database_id,
+                    self.database.backend,
                     self.schema,
                 )
 
@@ -1915,6 +1930,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 where = self._process_sql_expression(
                     expression=where,
                     database_id=self.database_id,
+                    engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
                 )
@@ -1933,6 +1949,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 having = self._process_sql_expression(
                     expression=having,
                     database_id=self.database_id,
+                    engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
                 )
