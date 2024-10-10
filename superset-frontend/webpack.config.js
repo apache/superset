@@ -27,7 +27,10 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
+const {
+  WebpackManifestPlugin,
+  getCompilerHooks,
+} = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const Visualizer = require('webpack-visualizer-plugin2');
@@ -542,15 +545,14 @@ let proxyConfig = getProxyConfig();
 
 if (isDevMode) {
   config.devtool = 'eval-cheap-module-source-map';
-  config.plugins.push({
-    // Load proxy config when manifest updates
-    apply: compiler => {
-      compiler.hooks.afterEmit.tap('ManifestPlugin', manifest => {
+  config.devServer = {
+    onBeforeSetupMiddleware(devServer) {
+      // load proxy config when manifest updates
+      const { afterEmit } = getCompilerHooks(devServer.compiler);
+      afterEmit.tap('ManifestPlugin', manifest => {
         proxyConfig = getProxyConfig(manifest);
       });
     },
-  });
-  config.devServer = {
     historyApiFallback: true,
     hot: true,
     port: devserverPort,
