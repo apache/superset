@@ -449,6 +449,7 @@ class BaseReportState:
                 )
 
         return NotificationContent(
+            id=self._report_schedule.id,
             name=name,
             url=url,
             screenshots=screenshot_data,

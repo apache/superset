@@ -1878,6 +1878,16 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 
 
+# WEBHOOK SECRET is a secret string between the Superset and the webhook endpoint.
+# In the case where WEBHOOK_SECRET is filled, Superset adds an "X-Webhook-Signature"
+# parameter to the header of the post call, which hashes the json data to be sent.
+# The receiving party can verify that the party sending the webhook is the real
+# sender by hashing the received json data and comparing it with the sending party's
+# "X-Webhook-Signature" parameter. If the two parameters do not match,
+# the receiving party may reject the call because the sender is not the supposed host.
+WEBHOOK_SECRET = "very_secret_token"
+
+
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
 # -------------------------------------------------------------------
