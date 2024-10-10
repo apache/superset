@@ -79,8 +79,7 @@ export default function setupFormatters(
       createDurationFormatter({ formatSubMilliseconds: true }),
     )
     .registerValue('MEMORY_DECIMAL', createMemoryFormatter({ binary: false }))
-    .registerValue('MEMORY_BINARY', createMemoryFormatter({ binary: true }))
-   );
+    .registerValue('MEMORY_BINARY', createMemoryFormatter({ binary: true }));
 
   const timeFormatterRegistry = getTimeFormatterRegistry();
 
