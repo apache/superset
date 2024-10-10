@@ -87,6 +87,7 @@ class SupersetErrorType(StrEnum):
     ASYNC_WORKERS_ERROR = "ASYNC_WORKERS_ERROR"
     ADHOC_SUBQUERY_NOT_ALLOWED_ERROR = "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR"
     INVALID_SQL_ERROR = "INVALID_SQL_ERROR"
+    RESULT_TOO_LARGE_ERROR = "RESULT_TOO_LARGE_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -151,6 +152,7 @@ ISSUE_CODES = {
     1036: _("The database was deleted."),
     1037: _("Custom SQL fields cannot contain sub-queries."),
     1040: _("The submitted payload failed validation."),
+    1041: _("The result size exceeds the allowed limit."),
 }
 
 
@@ -190,6 +192,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.DATABASE_NOT_FOUND_ERROR: [1011, 1036],
     SupersetErrorType.CONNECTION_DATABASE_TIMEOUT: [1001, 1009],
     SupersetErrorType.MARSHMALLOW_ERROR: [1040],
+    SupersetErrorType.RESULT_TOO_LARGE_ERROR: [1041],
 }
 
 
