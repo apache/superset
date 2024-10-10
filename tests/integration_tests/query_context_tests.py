@@ -42,7 +42,11 @@ from superset.utils.core import (
 )
 from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import only_postgresql, only_sqlite
+from tests.integration_tests.conftest import (
+    only_postgresql,
+    only_sqlite,
+    with_feature_flags,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -858,6 +862,7 @@ def test_non_time_column_with_time_grain(app_context, physical_dataset):
     assert df["COL2 ALIAS"][0] == "a"
 
 
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_special_chars_in_column_name(app_context, physical_dataset):
     qc = QueryContextFactory().create(
         datasource={

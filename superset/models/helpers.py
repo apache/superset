@@ -63,6 +63,7 @@ from superset.exceptions import (
     ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
@@ -127,7 +128,12 @@ def validate_adhoc_subquery(
     """
     statements = []
     for statement in sqlparse.parse(sql):
-        if has_table_query(str(statement), engine):
+        try:
+            has_table = has_table_query(str(statement), engine)
+        except SupersetParseError:
+            has_table = True
+
+        if has_table:
             if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
                 raise SupersetSecurityException(
                     SupersetError(
@@ -138,6 +144,7 @@ def validate_adhoc_subquery(
                 )
             # TODO (betodealmeida): reimplement with sqlglot
             statement = insert_rls_in_predicate(statement, database_id, default_schema)
+
         statements.append(statement)
 
     return ";\n".join(str(statement) for statement in statements)
