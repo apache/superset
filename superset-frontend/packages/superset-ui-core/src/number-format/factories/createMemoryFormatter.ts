@@ -23,21 +23,23 @@ export default function createMemoryFormatter(config: {
   description?: string;
   id?: string;
   label?: string;
-  binary?: bool;
+  binary?: boolean;
 }) {
   const { description, id, label, binary } = config;
 
   return new NumberFormatter({
     description,
     formatFunc: value => {
-      if value == 0 return '0B';
+      if (value === 0) return '0B';
 
-      const suffixes = binary ? ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'] : ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'RB', 'QB']
+      const suffixes = binary
+        ? ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+        : ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'RB', 'QB'];
       const base = binary ? 1024 : 1000;
       const decimals = 2;
 
-      const i = Math.floor(Math.log(value) / Math.log(base))
-      return `${parseFloat((value / Math.pow(base, i)).toFixed(decimals))}${suffixes[i]}`
+      const i = Math.floor(Math.log(value) / Math.log(base));
+      return `${parseFloat((value / Math.pow(base, i)).toFixed(decimals))}${suffixes[i]}`;
     },
     id: id ?? 'memory_format',
     label: label ?? `Memory formatter`,
