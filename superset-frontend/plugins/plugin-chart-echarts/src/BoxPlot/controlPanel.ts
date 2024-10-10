@@ -129,6 +129,23 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'show_range_filter',
+            config: {
+              type: 'SelectControl',
+              label: t('SHOW FILTER RANGE'),
+              choices: [
+                [true, t('Yes')],
+                [false, t('No')],
+              ],
+              default: false,
+              clearable: false,
+              renderTrigger: true,
+              description: t('Range slider'),
+            },
+          },
+        ],
+        [
+          {
             name: 'number_format',
             config: {
               type: 'SelectControl',
