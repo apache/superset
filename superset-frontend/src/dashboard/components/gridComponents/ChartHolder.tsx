@@ -72,7 +72,7 @@ interface ChartHolderProps {
 
 const fullSizeStyle = css`
   && {
-    position: fixed;
+    position: fixed !important;
     z-index: 3000;
     left: 0;
     top: 0;
