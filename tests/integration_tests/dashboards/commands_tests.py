@@ -238,6 +238,51 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "version": "1.0.0",
         }
 
+    # @pytest.mark.usefixtures("load_covid_dashboard")
+    @pytest.mark.skip(reason="missing covid fixture")
+    @patch("superset.security.manager.g")
+    @patch("superset.views.base.g")
+    def test_export_dashboard_command_dataset_references(self, mock_g1, mock_g2):
+        mock_g1.user = security_manager.find_user("admin")
+        mock_g2.user = security_manager.find_user("admin")
+
+        example_dashboard = (
+            db.session.query(Dashboard)
+            .filter_by(uuid="f4065089-110a-41fa-8dd7-9ce98a65e250")
+            .one()
+        )
+        command = ExportDashboardsCommand([example_dashboard.id])
+        contents = dict(command.run())
+
+        expected_paths = {
+            "metadata.yaml",
+            f"dashboards/COVID_Vaccine_Dashboard_{example_dashboard.id}.yaml",
+            "datasets/examples/covid_vaccines.yaml",  # referenced dataset needs to be exported
+            "databases/examples.yaml",
+        }
+        for chart in example_dashboard.slices:
+            chart_slug = secure_filename(chart.slice_name)
+            expected_paths.add(f"charts/{chart_slug}_{chart.id}.yaml")
+        assert expected_paths == set(contents.keys())
+
+        metadata = yaml.safe_load(
+            contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]()
+        )
+
+        # find the dataset references in native filter and check if they are correct
+        assert "native_filter_configuration" in metadata["metadata"]
+
+        for filter_config in metadata["metadata"][
+            "native_filter_configuration"
+        ].values():
+            assert "targets" in filter_config
+            targets = filter_config["targets"]
+
+            for column in targets:
+                # we need to find the correct datasetUuid (not datasetId)
+                assert "datasetUuid" in column
+                assert column["datasetUuid"] == "974b7a1c-22ea-49cb-9214-97b7dbd511e0"
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.security.manager.g")
     @patch("superset.views.base.g")

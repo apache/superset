@@ -104,13 +104,14 @@ class ExtraCache:
     # Regular expression for detecting the presence of templated methods which could
     # be added to the cache key.
     regex = re.compile(
-        r"\{\{.*("
-        r"current_user_id\(.*\)|"
-        r"current_username\(.*\)|"
-        r"current_user_email\(.*\)|"
-        r"cache_key_wrapper\(.*\)|"
-        r"url_param\(.*\)"
-        r").*\}\}"
+        r"(\{\{|\{%)[^{}]*?("
+        r"current_user_id\([^()]*\)|"
+        r"current_username\([^()]*\)|"
+        r"current_user_email\([^()]*\)|"
+        r"cache_key_wrapper\([^()]*\)|"
+        r"url_param\([^()]*\)"
+        r")"
+        r"[^{}]*?(\}\}|\%\})"
     )
 
     def __init__(  # pylint: disable=too-many-arguments
