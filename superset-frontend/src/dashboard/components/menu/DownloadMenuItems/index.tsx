@@ -25,7 +25,7 @@ export interface DownloadMenuItemProps {
   imageMenuItemTitle: string;
   dashboardTitle: string;
   logEvent?: Function;
-  dashboardId: string;
+  dashboardId: number;
 }
 
 const DownloadMenuItems = (props: DownloadMenuItemProps) => {

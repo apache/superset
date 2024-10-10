@@ -30,7 +30,7 @@ interface DashboardInfo {
 }
 
 export interface HeaderDropdownProps {
-  addSuccessToast: () => void;
+  addSuccessToast: (msg: string) => void;
   addDangerToast: () => void;
   customCss: string;
   colorNamespace?: string;
@@ -47,20 +47,24 @@ export interface HeaderDropdownProps {
   onChange: () => void;
   onSave: () => void;
   refreshFrequency: number;
-  setRefreshFrequency: () => void;
+  setRefreshFrequency: (refreshInterval: number, isPersistent: boolean) => void;
   shouldPersistRefreshFrequency: boolean;
   showPropertiesModal: () => void;
-  startPeriodicRender: () => void;
-  updateCss: () => void;
+  startPeriodicRender: (interval: number) => void;
+  updateCss: (css: string) => void;
   userCanEdit: boolean;
   userCanSave: boolean;
   userCanShare: boolean;
   userCanCurate: boolean;
-  isDropdownVisible: boolean;
   manageEmbedded: () => void;
   dataMask: any;
   lastModifiedTime: number;
   logEvent: () => void;
+  setIsDropdownVisible: (visible: boolean) => void;
+  isDropdownVisible: boolean;
+  refreshLimit: number;
+  refreshWarning: string;
+  directPathToChild: string[];
 }
 
 export interface HeaderProps {
