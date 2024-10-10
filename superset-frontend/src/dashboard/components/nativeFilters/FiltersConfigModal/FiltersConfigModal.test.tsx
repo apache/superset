@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
-import userEvent, { specialChars } from '@testing-library/user-event';
+import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -287,7 +287,7 @@ test('validates the column', async () => {
 test.skip('validates the default value', async () => {
   defaultRender(noTemporalColumnsState());
   expect(await screen.findByText('birth_names')).toBeInTheDocument();
-  userEvent.type(screen.getByRole('combobox'), `Column A${specialChars.enter}`);
+  userEvent.type(screen.getByRole('combobox'), `Column A{Enter}`);
   userEvent.click(getCheckbox(DEFAULT_VALUE_REGEX));
   await waitFor(() => {
     expect(

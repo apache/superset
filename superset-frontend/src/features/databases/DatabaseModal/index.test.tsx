@@ -1409,6 +1409,8 @@ describe('DatabaseModal', () => {
         const importDbButton = screen.getByTestId(
           'import-database-btn',
         ) as HTMLInputElement;
+        importDbButton.type = 'file';
+        importDbButton.files = {} as FileList;
         expect(importDbButton).toBeVisible();
 
         const testFile = new File([new ArrayBuffer(1)], 'model_export.zip');

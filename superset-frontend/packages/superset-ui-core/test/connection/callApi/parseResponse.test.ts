@@ -27,7 +27,7 @@ describe('parseResponse()', () => {
     fetchMock.get(LOGIN_GLOB, { result: '1234' });
   });
 
-  afterAll(fetchMock.restore);
+  afterAll(() => fetchMock.restore());
 
   const mockGetUrl = '/mock/get/url';
   const mockPostUrl = '/mock/post/url';
@@ -38,12 +38,14 @@ describe('parseResponse()', () => {
   const mockPostPayload = { post: 'payload' };
   const mockErrorPayload = { status: 500, statusText: 'Internal error' };
 
-  fetchMock.get(mockGetUrl, mockGetPayload);
-  fetchMock.post(mockPostUrl, mockPostPayload);
-  fetchMock.get(mockErrorUrl, () => Promise.reject(mockErrorPayload));
-  fetchMock.get(mockNoParseUrl, new Response('test response'));
+  beforeEach(() => {
+    fetchMock.get(mockGetUrl, mockGetPayload);
+    fetchMock.post(mockPostUrl, mockPostPayload);
+    fetchMock.get(mockErrorUrl, () => Promise.reject(mockErrorPayload));
+    fetchMock.get(mockNoParseUrl, new Response('test response'));
+  });
 
-  afterEach(fetchMock.reset);
+  afterEach(() => fetchMock.reset());
 
   it('returns a Promise', () => {
     const apiPromise = callApi({ url: mockGetUrl, method: 'GET' });
