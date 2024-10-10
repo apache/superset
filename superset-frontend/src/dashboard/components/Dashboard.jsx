@@ -219,9 +219,6 @@ class Dashboard extends PureComponent {
     const currFilterKeys = Object.keys(activeFilters);
     const appliedFilterKeys = Object.keys(appliedFilters);
 
-    // TODO: @geido
-    // when removing a filter from the scope of an already applied filter, must refresh query, check if master issue
-
     const allKeys = new Set(currFilterKeys.concat(appliedFilterKeys));
     const affectedChartIds = getAffectedOwnDataCharts(
       ownDataCharts,
