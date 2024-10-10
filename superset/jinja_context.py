@@ -871,12 +871,12 @@ def get_dataset_id_from_context(metric_key: str) -> int:
         request_args = loads_request_json(request.args.get("form_data"))
         form_data.update(request_args)
 
-    if final_form_data := (form_data or getattr(g, "form_data", {})):
-        if datasource_info := final_form_data.get("datasource"):
+    if form_data := (form_data or getattr(g, "form_data", {})):
+        if datasource_info := form_data.get("datasource"):
             if isinstance(datasource_info, dict):
                 return datasource_info["id"]
             return datasource_info.split("__")[0]
-        url_params = final_form_data.get("queries", [{}])[0].get("url_params", {})
+        url_params = form_data.get("queries", [{}])[0].get("url_params", {})
         if dataset_id := url_params.get("datasource_id"):
             return dataset_id
         if chart_id := (form_data.get("slice_id") or url_params.get("slice_id")):
