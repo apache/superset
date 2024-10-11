@@ -159,5 +159,9 @@ export default function setupErrorMessages() {
     ErrorTypeEnum.INVALID_SQL_ERROR,
     InvalidSQLErrorMessage,
   );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.RESULT_TOO_LARGE_ERROR,
+    DatabaseErrorMessage,
+  );
   setupErrorMessagesExtra();
 }
