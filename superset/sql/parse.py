@@ -27,6 +27,7 @@ from typing import Any, Generic, TypeVar
 
 import sqlglot
 import sqlparse
+from deprecation import deprecated
 from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect, Dialects
 from sqlglot.errors import ParseError
@@ -397,10 +398,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             except ValueError:
                 pass
 
-        # Reformatting SQL using the generic sqlglot dialect is known to break queries.
-        # For example, it will change `foo NOT IN (1, 2)` to `NOT foo IN (1,2)`, which
-        # breaks the query for Firebolt. To avoid this, we use sqlparse for formatting
-        # when the dialect is not known.
+        return self._fallback_formatting()
+
+    @deprecated(deprecated_in="4.0", removed_in="5.0")
+    def _fallback_formatting(self) -> str:
+        """
+        Format SQL without a specific dialect.
+
+        Reformatting SQL using the generic sqlglot dialect is known to break queries.
+        For example, it will change `foo NOT IN (1, 2)` to `NOT foo IN (1,2)`, which
+        breaks the query for Firebolt. To avoid this, we use sqlparse for formatting
+        when the dialect is not known.
+
+        In 5.0 we should remove `sqlparse`, and the method should return the query
+        unmodified.
+        """
         return sqlparse.format(self._sql, reindent=True, keyword_case="upper")
 
     def get_settings(self) -> dict[str, str | bool]:
