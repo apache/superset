@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import AlteredSliceTag, {

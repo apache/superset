@@ -18,7 +18,7 @@
  */
 
 import { render, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { DatabaseObject } from 'src/features/databases/types';
 import { OAuth2ClientField } from './OAuth2ClientField';
