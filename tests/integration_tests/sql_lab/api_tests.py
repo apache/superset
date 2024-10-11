@@ -281,7 +281,7 @@ class TestSqlLabApi(SupersetTestCase):
             "/api/v1/sqllab/format_sql/",
             json=data,
         )
-        success_resp = {"result": "SELECT\n  1\nFROM my_table"}
+        success_resp = {"result": "SELECT 1\nFROM my_table"}
         resp_data = json.loads(rv.data.decode("utf-8"))
         self.assertDictEqual(resp_data, success_resp)  # noqa: PT009
         assert rv.status_code == 200
