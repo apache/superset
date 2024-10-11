@@ -36,7 +36,7 @@ export default function createMemoryFormatter(
       if (value === 0) return '0B';
 
       const sign = value > 0 ? '' : '-';
-      value = Math.abs(value);
+      const absValue = Math.abs(value);
 
       const suffixes = binary
         ? ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
@@ -45,9 +45,9 @@ export default function createMemoryFormatter(
 
       const i = Math.min(
         suffixes.length - 1,
-        Math.floor(Math.log(value) / Math.log(base)),
+        Math.floor(Math.log(absValue) / Math.log(base)),
       );
-      return `${sign}${parseFloat((value / Math.pow(base, i)).toFixed(decimals))}${suffixes[i]}`;
+      return `${sign}${parseFloat((absValue / Math.pow(base, i)).toFixed(decimals))}${suffixes[i]}`;
     },
     id: id ?? 'memory_format',
     label: label ?? `Memory formatter`,

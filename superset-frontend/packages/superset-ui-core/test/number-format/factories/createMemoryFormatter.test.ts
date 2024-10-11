@@ -19,73 +19,76 @@
 
 import { NumberFormatter, createMemoryFormatter } from '@superset-ui/core';
 
-describe('createMemoryFormatter()', () => {
-  it('creates an instance of MemoryFormatter', () => {
-    const formatter = createMemoryFormatter();
-    expect(formatter).toBeInstanceOf(NumberFormatter);
-  });
-  it('formats bytes in human readable format with default options', () => {
-    const formatter = createMemoryFormatter();
-    expect(formatter(0)).toBe('0B');
-    expect(formatter(50)).toBe('50B');
-    expect(formatter(555)).toBe('555B');
-    expect(formatter(1000)).toBe('1kB');
-    expect(formatter(1111)).toBe('1.11kB');
-    expect(formatter(1024)).toBe('1.02kB');
-    expect(formatter(1337)).toBe('1.34kB');
-    expect(formatter(1999)).toBe('2kB');
-    expect(formatter(10 * 1000)).toBe('10kB');
-    expect(formatter(100 * 1000)).toBe('100kB');
-    expect(formatter(Math.pow(1000, 2))).toBe('1MB');
-    expect(formatter(Math.pow(1000, 3))).toBe('1GB');
-    expect(formatter(Math.pow(1000, 4))).toBe('1TB');
-    expect(formatter(Math.pow(1000, 5))).toBe('1PB');
-    expect(formatter(Math.pow(1000, 6))).toBe('1EB');
-    expect(formatter(Math.pow(1000, 7))).toBe('1ZB');
-    expect(formatter(Math.pow(1000, 8))).toBe('1YB');
-    expect(formatter(Math.pow(1000, 9))).toBe('1RB');
-    expect(formatter(Math.pow(1000, 10))).toBe('1QB');
-    expect(formatter(Math.pow(1000, 11))).toBe('1000QB');
-    expect(formatter(Math.pow(1000, 12))).toBe('1000000QB');
-  });
-  it('formats negative bytes in human readable format with default options', () => {
-    const formatter = createMemoryFormatter();
-    expect(formatter(-50)).toBe('-50B');
-  });
-  it('formats float bytes in human readable format with default options', () => {
-    const formatter = createMemoryFormatter();
-    expect(formatter(10.666)).toBe('10.67B');
-    expect(formatter(1200.666)).toBe('1.2kB');
-  });
-  it('formats bytes in human readable format with additional binary option', () => {
-    const formatter = createMemoryFormatter({ binary: true });
-    expect(formatter(0)).toBe('0B');
-    expect(formatter(50)).toBe('50B');
-    expect(formatter(555)).toBe('555B');
-    expect(formatter(1000)).toBe('1000B');
-    expect(formatter(1111)).toBe('1.08KiB');
-    expect(formatter(1024)).toBe('1KiB');
-    expect(formatter(1337)).toBe('1.31KiB');
-    expect(formatter(2047)).toBe('2KiB');
-    expect(formatter(10 * 1024)).toBe('10KiB');
-    expect(formatter(100 * 1024)).toBe('100KiB');
-    expect(formatter(Math.pow(1024, 2))).toBe('1MiB');
-    expect(formatter(Math.pow(1024, 3))).toBe('1GiB');
-    expect(formatter(Math.pow(1024, 4))).toBe('1TiB');
-    expect(formatter(Math.pow(1024, 5))).toBe('1PiB');
-    expect(formatter(Math.pow(1024, 6))).toBe('1EiB');
-    expect(formatter(Math.pow(1024, 7))).toBe('1ZiB');
-    expect(formatter(Math.pow(1024, 8))).toBe('1YiB');
-    expect(formatter(Math.pow(1024, 9))).toBe('1024YiB');
-    expect(formatter(Math.pow(1024, 10))).toBe('1048576YiB');
-  });
-  it('formats bytes in human readable format with additional decimals option', () => {
-    const formatter0decimals = createMemoryFormatter({ decimals: 0 });
-    expect(formatter0decimals(0)).toBe('0B');
-    expect(formatter0decimals(1111)).toBe('1kB');
+test('creates an instance of MemoryFormatter', () => {
+  const formatter = createMemoryFormatter();
+  expect(formatter).toBeInstanceOf(NumberFormatter);
+});
 
-    const formatter3decimals = createMemoryFormatter({ decimals: 3 });
-    expect(formatter3decimals(0)).toBe('0B');
-    expect(formatter3decimals(1111)).toBe('1.111kB');
-  });
+test('formats bytes in human readable format with default options', () => {
+  const formatter = createMemoryFormatter();
+  expect(formatter(0)).toBe('0B');
+  expect(formatter(50)).toBe('50B');
+  expect(formatter(555)).toBe('555B');
+  expect(formatter(1000)).toBe('1kB');
+  expect(formatter(1111)).toBe('1.11kB');
+  expect(formatter(1024)).toBe('1.02kB');
+  expect(formatter(1337)).toBe('1.34kB');
+  expect(formatter(1999)).toBe('2kB');
+  expect(formatter(10 * 1000)).toBe('10kB');
+  expect(formatter(100 * 1000)).toBe('100kB');
+  expect(formatter(Math.pow(1000, 2))).toBe('1MB');
+  expect(formatter(Math.pow(1000, 3))).toBe('1GB');
+  expect(formatter(Math.pow(1000, 4))).toBe('1TB');
+  expect(formatter(Math.pow(1000, 5))).toBe('1PB');
+  expect(formatter(Math.pow(1000, 6))).toBe('1EB');
+  expect(formatter(Math.pow(1000, 7))).toBe('1ZB');
+  expect(formatter(Math.pow(1000, 8))).toBe('1YB');
+  expect(formatter(Math.pow(1000, 9))).toBe('1RB');
+  expect(formatter(Math.pow(1000, 10))).toBe('1QB');
+  expect(formatter(Math.pow(1000, 11))).toBe('1000QB');
+  expect(formatter(Math.pow(1000, 12))).toBe('1000000QB');
+});
+
+test('formats negative bytes in human readable format with default options', () => {
+  const formatter = createMemoryFormatter();
+  expect(formatter(-50)).toBe('-50B');
+});
+
+test('formats float bytes in human readable format with default options', () => {
+  const formatter = createMemoryFormatter();
+  expect(formatter(10.666)).toBe('10.67B');
+  expect(formatter(1200.666)).toBe('1.2kB');
+});
+
+test('formats bytes in human readable format with additional binary option', () => {
+  const formatter = createMemoryFormatter({ binary: true });
+  expect(formatter(0)).toBe('0B');
+  expect(formatter(50)).toBe('50B');
+  expect(formatter(555)).toBe('555B');
+  expect(formatter(1000)).toBe('1000B');
+  expect(formatter(1111)).toBe('1.08KiB');
+  expect(formatter(1024)).toBe('1KiB');
+  expect(formatter(1337)).toBe('1.31KiB');
+  expect(formatter(2047)).toBe('2KiB');
+  expect(formatter(10 * 1024)).toBe('10KiB');
+  expect(formatter(100 * 1024)).toBe('100KiB');
+  expect(formatter(Math.pow(1024, 2))).toBe('1MiB');
+  expect(formatter(Math.pow(1024, 3))).toBe('1GiB');
+  expect(formatter(Math.pow(1024, 4))).toBe('1TiB');
+  expect(formatter(Math.pow(1024, 5))).toBe('1PiB');
+  expect(formatter(Math.pow(1024, 6))).toBe('1EiB');
+  expect(formatter(Math.pow(1024, 7))).toBe('1ZiB');
+  expect(formatter(Math.pow(1024, 8))).toBe('1YiB');
+  expect(formatter(Math.pow(1024, 9))).toBe('1024YiB');
+  expect(formatter(Math.pow(1024, 10))).toBe('1048576YiB');
+});
+
+test('formats bytes in human readable format with additional decimals option', () => {
+  const formatter0decimals = createMemoryFormatter({ decimals: 0 });
+  expect(formatter0decimals(0)).toBe('0B');
+  expect(formatter0decimals(1111)).toBe('1kB');
+
+  const formatter3decimals = createMemoryFormatter({ decimals: 3 });
+  expect(formatter3decimals(0)).toBe('0B');
+  expect(formatter3decimals(1111)).toBe('1.111kB');
 });
