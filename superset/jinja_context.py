@@ -25,7 +25,7 @@ from functools import lru_cache, partial
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Union
 
 import dateutil
-from flask import current_app, has_request_context, request
+from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined, Environment
 from jinja2.sandbox import SandboxedEnvironment
@@ -847,35 +847,45 @@ def dataset_macro(
 
 def get_dataset_id_from_context(metric_key: str) -> int:
     """
-    Retrives the Dataset ID from the request context.
+    Retrieves the Dataset ID from the request context.
 
     :param metric_key: the metric key.
     :returns: the dataset ID.
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.chart import ChartDAO
-    from superset.views.utils import get_form_data
+    from superset.views.utils import loads_request_json
 
+    form_data: dict[str, Any] = {}
     exc_message = _(
         "Please specify the Dataset ID for the ``%(name)s`` metric in the Jinja macro.",
         name=metric_key,
     )
 
-    form_data, chart = get_form_data()
-    if not (form_data or chart):
-        raise SupersetTemplateException(exc_message)
+    if has_request_context():
+        if payload := request.get_json(cache=True) if request.is_json else None:
+            if dataset_id := payload.get("datasource", {}).get("id"):
+                return dataset_id
+            form_data.update(payload.get("form_data", {}))
+        request_form = loads_request_json(request.form.get("form_data"))
+        form_data.update(request_form)
+        request_args = loads_request_json(request.args.get("form_data"))
+        form_data.update(request_args)
 
-    if chart and chart.datasource_id:
-        return chart.datasource_id
-    if dataset_id := form_data.get("url_params", {}).get("datasource_id"):
-        return dataset_id
-    if chart_id := (
-        form_data.get("slice_id") or form_data.get("url_params", {}).get("slice_id")
-    ):
-        chart_data = ChartDAO.find_by_id(chart_id)
-        if not chart_data:
-            raise SupersetTemplateException(exc_message)
-        return chart_data.datasource_id
+    if form_data := (form_data or getattr(g, "form_data", {})):
+        if datasource_info := form_data.get("datasource"):
+            if isinstance(datasource_info, dict):
+                return datasource_info["id"]
+            return datasource_info.split("__")[0]
+        url_params = form_data.get("queries", [{}])[0].get("url_params", {})
+        if dataset_id := url_params.get("datasource_id"):
+            return dataset_id
+        if chart_id := (form_data.get("slice_id") or url_params.get("slice_id")):
+            chart_data = ChartDAO.find_by_id(chart_id)
+            if not chart_data:
+                raise SupersetTemplateException(exc_message)
+            return chart_data.datasource_id
+
     raise SupersetTemplateException(exc_message)
 
 
