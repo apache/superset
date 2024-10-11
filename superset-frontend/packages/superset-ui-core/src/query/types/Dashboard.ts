@@ -94,9 +94,8 @@ export type AppliedCrossFilterType = {
 
 export type AppliedNativeFilterType = {
   filterType: 'filter_select';
+  scope?: number[] | NativeFilterScope; // TODO: inconsistent usage
   targets: [Partial<NativeFilterTarget>];
-  chartsInScope?: number[];
-  scope: number[] | NativeFilterScope | any; // TODO: inconsistent usage
 } & AppliedFilter;
 
 export type FilterWithDataMask = Filter & { dataMask: DataMaskWithId };
@@ -112,14 +111,18 @@ export function isAppliedCrossFilterType(
   filterElement: AppliedCrossFilterType | AppliedNativeFilterType | Filter,
 ): filterElement is AppliedCrossFilterType {
   return (
-    filterElement.filterType === undefined && Array.isArray(filterElement.scope)
+    filterElement.filterType === undefined &&
+    filterElement.hasOwnProperty('values')
   );
 }
 
 export function isAppliedNativeFilterType(
   filterElement: AppliedCrossFilterType | AppliedNativeFilterType | Filter,
 ): filterElement is AppliedNativeFilterType {
-  return filterElement.filterType === 'filter_select';
+  return (
+    filterElement.filterType === 'filter_select' &&
+    filterElement.hasOwnProperty('values')
+  );
 }
 
 export function isNativeFilter(

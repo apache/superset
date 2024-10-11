@@ -18,9 +18,10 @@
  */
 
 import {
-  AppliedNativeFilterType,
+  AppliedCrossFilterType,
   DatasourceType,
   Filter,
+  NativeFilterType,
 } from '@superset-ui/core';
 import { DatasourcesState } from '../types';
 import { getRelatedCharts } from './getRelatedCharts';
@@ -28,6 +29,7 @@ import { getRelatedCharts } from './getRelatedCharts';
 const slices = {
   '1': { datasource: 'ds1', slice_id: 1 },
   '2': { datasource: 'ds2', slice_id: 2 },
+  '3': { datasource: 'ds1', slice_id: 3 },
 } as any;
 
 const datasources: DatasourcesState = {
@@ -67,13 +69,14 @@ const datasources: DatasourcesState = {
   },
 };
 
-test('Return chart ids matching the dataset id', () => {
+test('Return chart ids matching the dataset id with native filter', () => {
   const filters = {
     filterKey1: {
       filterType: 'filter_select',
       chartsInScope: [1, 2],
       scope: {
         excluded: [],
+        rootPath: [],
       },
       targets: [
         {
@@ -81,7 +84,8 @@ test('Return chart ids matching the dataset id', () => {
           datasetId: 100,
         },
       ],
-    } as AppliedNativeFilterType,
+      type: NativeFilterType.NativeFilter,
+    } as unknown as Filter,
   };
 
   const result = getRelatedCharts(filters, null, slices, datasources);
@@ -90,13 +94,30 @@ test('Return chart ids matching the dataset id', () => {
   });
 });
 
-test('Return chart ids matching the column name', () => {
+test('Return chart ids matching the dataset id with cross filter', () => {
+  const filters = {
+    '3': {
+      filterType: undefined,
+      scope: [1, 2],
+      targets: [],
+      values: null,
+    } as AppliedCrossFilterType,
+  };
+
+  const result = getRelatedCharts(filters, null, slices, datasources);
+  expect(result).toEqual({
+    '3': [1],
+  });
+});
+
+test('Return chart ids matching the column name with native filter', () => {
   const filters = {
     filterKey1: {
       filterType: 'filter_select',
       chartsInScope: [1, 2],
       scope: {
         excluded: [],
+        rootPath: [],
       },
       targets: [
         {
@@ -104,7 +125,8 @@ test('Return chart ids matching the column name', () => {
           datasetId: 999,
         },
       ],
-    } as AppliedNativeFilterType,
+      type: NativeFilterType.NativeFilter,
+    } as unknown as Filter,
   };
 
   const result = getRelatedCharts(filters, null, slices, datasources);
@@ -113,26 +135,64 @@ test('Return chart ids matching the column name', () => {
   });
 });
 
-test('Return chart ids when column display name matches', () => {
+test('Return chart ids matching the column name with cross filter', () => {
+  const filters = {
+    '1': {
+      filterType: undefined,
+      scope: [1, 2],
+      targets: [],
+      values: {
+        filters: [{ col: 'column3' }],
+      },
+    } as AppliedCrossFilterType,
+  };
+
+  const result = getRelatedCharts(filters, null, slices, datasources);
+  expect(result).toEqual({
+    '1': [2],
+  });
+});
+
+test('Return chart ids when column display name matches with native filter', () => {
   const filters = {
     filterKey1: {
       filterType: 'filter_select',
       chartsInScope: [1, 2],
       scope: {
         excluded: [],
+        rootPath: [],
       },
       targets: [
         {
-          column: { displayName: 'column4' },
+          column: { name: 'column4', displayName: 'column4' },
           datasetId: 999,
         },
       ],
-    } as AppliedNativeFilterType,
+      type: NativeFilterType.NativeFilter,
+    } as unknown as Filter,
   };
 
   const result = getRelatedCharts(filters, null, slices, datasources);
   expect(result).toEqual({
     filterKey1: [2],
+  });
+});
+
+test('Return chart ids when column display name matches with cross filter', () => {
+  const filters = {
+    '1': {
+      filterType: undefined,
+      scope: [1, 2],
+      targets: [],
+      values: {
+        filters: [{ col: 'column4' }],
+      },
+    } as AppliedCrossFilterType,
+  };
+
+  const result = getRelatedCharts(filters, null, slices, datasources);
+  expect(result).toEqual({
+    '1': [2],
   });
 });
 
@@ -150,13 +210,14 @@ test('Return scope when filterType is not filter_select', () => {
   });
 });
 
-test('Return an empty array if no matching charts found', () => {
+test('Return an empty array if no matching charts found with native filter', () => {
   const filters = {
     filterKey1: {
       filterType: 'filter_select',
       chartsInScope: [1, 2],
       scope: {
         excluded: [],
+        rootPath: [],
       },
       targets: [
         {
@@ -164,11 +225,30 @@ test('Return an empty array if no matching charts found', () => {
           datasetId: 300,
         },
       ],
-    } as AppliedNativeFilterType,
+      type: NativeFilterType.NativeFilter,
+    } as unknown as Filter,
   };
 
   const result = getRelatedCharts(filters, null, slices, datasources);
   expect(result).toEqual({
     filterKey1: [],
+  });
+});
+
+test('Return an empty array if no matching charts found with cross filter', () => {
+  const filters = {
+    '1': {
+      filterType: undefined,
+      scope: [1, 2],
+      targets: [],
+      values: {
+        filters: [{ col: 'nonexistent_column' }],
+      },
+    } as AppliedCrossFilterType,
+  };
+
+  const result = getRelatedCharts(filters, null, slices, datasources);
+  expect(result).toEqual({
+    '1': [],
   });
 });

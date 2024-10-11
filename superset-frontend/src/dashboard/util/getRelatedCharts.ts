@@ -23,6 +23,7 @@ import {
   Filter,
   isAppliedCrossFilterType,
   isAppliedNativeFilterType,
+  isNativeFilter,
 } from '@superset-ui/core';
 import { Slice } from 'src/types/Chart';
 import { DatasourcesState } from '../types';
@@ -38,7 +39,7 @@ function checkForExpression(formData?: Record<string, any>) {
 }
 
 function getRelatedChartsForSelectFilter(
-  nativeFilter: AppliedNativeFilterType,
+  nativeFilter: AppliedNativeFilterType | Filter,
   slices: Record<string, Slice>,
   chartsInScope: number[],
   datasources: DatasourcesState,
@@ -53,7 +54,7 @@ function getRelatedChartsForSelectFilter(
         ? datasources[datasource]
         : Object.values(datasources).find(ds => ds.id === slice.datasource_id);
 
-      const { column, datasetId } = nativeFilter.targets[0];
+      const { column, datasetId } = nativeFilter.targets?.[0] ?? {};
       const datasourceColumnNames = chartDatasource?.column_names ?? [];
 
       // same datasource, always apply
@@ -147,7 +148,7 @@ export function getRelatedCharts(
 
     const chartsInScope = Array.isArray(filter.scope)
       ? filter.scope
-      : ((filter as AppliedNativeFilterType).chartsInScope ?? []);
+      : ((filter as Filter).chartsInScope ?? []);
 
     if (isCrossFilter) {
       const checkFilter = checkFilters?.[filterKey] as AppliedCrossFilterType;
@@ -170,8 +171,14 @@ export function getRelatedCharts(
         ),
       };
     }
-    if (isAppliedNativeFilterType(filter)) {
-      const nativeFilter = filter as AppliedNativeFilterType;
+
+    const nativeFilter = filter as AppliedNativeFilterType | Filter;
+    // on highlight, a standard native filter is passed
+    // on apply, an applied native filter is passed
+    if (
+      isAppliedNativeFilterType(nativeFilter) ||
+      isNativeFilter(nativeFilter)
+    ) {
       return {
         ...acc,
         [filterKey]: getRelatedChartsForSelectFilter(
