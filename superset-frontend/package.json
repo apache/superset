@@ -313,7 +313,7 @@
     "eslint-plugin-theme-colors": "file:tools/eslint-plugin-theme-colors",
     "eslint-plugin-translation-vars": "file:tools/eslint-plugin-translation-vars",
     "exports-loader": "^5.0.0",
-    "fetch-mock": "^7.7.3",
+    "fetch-mock": "^11.1.5",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "history": "^5.3.0",
     "ignore-styles": "^5.0.1",
