@@ -20,6 +20,7 @@
 import {
   AppliedCrossFilterType,
   AppliedNativeFilterType,
+  ensureIsArray,
   Filter,
   isAppliedCrossFilterType,
   isAppliedNativeFilterType,
@@ -29,8 +30,8 @@ import { Slice } from 'src/types/Chart';
 import { DatasourcesState } from '../types';
 
 function checkForExpression(formData?: Record<string, any>) {
-  const groupby = formData?.groupby ?? [];
-  const allColumns = formData?.all_columns ?? [];
+  const groupby = ensureIsArray(formData?.groupby) ?? [];
+  const allColumns = ensureIsArray(formData?.all_columns) ?? [];
   const checkColumns = groupby.concat(allColumns);
   return checkColumns.some(
     (col: string | Record<string, any>) =>
