@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PureComponent } from 'react';
+import { PureComponent } from 'react';
 import { isEmpty } from 'lodash';
 import { connect } from 'react-redux';
 import { t } from '@superset-ui/core';
@@ -36,7 +36,6 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
-import { MenuInfo } from 'rc-menu/lib/interface';
 
 const mapStateToProps = (state: RootState) => ({
   directPathToChild: state.dashboardState.directPathToChild,
@@ -88,7 +87,7 @@ export class HeaderActionsDropdown extends PureComponent<
     this.props.startPeriodicRender(refreshInterval * 1000);
   };
 
-  handleMenuClick = ({ key }: MenuInfo) => {
+  handleMenuClick = ({ key }: Record<string, any>) => {
     switch (key) {
       case MenuKeys.RefreshDashboard:
         this.props.forceRefreshAllCharts();
@@ -233,13 +232,13 @@ export class HeaderActionsDropdown extends PureComponent<
           key={MenuKeys.Download}
           disabled={isLoading}
           title={t('Download')}
-          logEvent={this.props.logEvent}
         >
           <DownloadMenuItems
             pdfMenuItemTitle={t('Export to PDF')}
             imageMenuItemTitle={t('Download as Image')}
             dashboardTitle={dashboardTitle}
             dashboardId={dashboardId}
+            logEvent={this.props.logEvent}
           />
         </Menu.SubMenu>
         {userCanShare && (
