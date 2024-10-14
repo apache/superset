@@ -17,6 +17,7 @@
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
 import json
+from unittest import mock
 from uuid import UUID
 
 import pytest
@@ -33,7 +34,6 @@ from superset.models.core import Database
 from superset.sql_lab import execute_sql_statements, get_sql_results
 from superset.utils.core import override_user
 from tests.unit_tests.models.core_test import oauth2_client_info
-from unittest import mock
 
 
 def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
@@ -126,13 +126,12 @@ def test_execute_sql_statement_with_rls(
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
+
 @mock.patch.dict(
     "superset.sql_lab.config",
     {"SQLLAB_PAYLOAD_MAX_MB": 50},  # Set the desired config value for testing
 )
-def test_execute_sql_statement_exceeds_payload_limit(
-    mocker: MockerFixture
-) -> None:
+def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> None:
     """
     Test for `execute_sql_statements` when the result payload size exceeds the limit,
     and check if the correct log message is captured without raising the exception.
@@ -189,13 +188,12 @@ def test_execute_sql_statement_exceeds_payload_limit(
         and "exceeds the allowed limit" in str(excinfo.value)
     ), f"Expected exception message about exceeding the limit not found. Actual message: {excinfo.value}"
 
+
 @mock.patch.dict(
     "superset.sql_lab.config",
     {"SQLLAB_PAYLOAD_MAX_MB": 50},  # Set the desired config value for testing
 )
-def test_execute_sql_statement_within_payload_limit(
-    mocker: MockerFixture
-) -> None:
+def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture) -> None:
     """
     Test for `execute_sql_statements` when the result payload size is within the limit,
     and check if the flow executes smoothly without raising any exceptions.
@@ -246,7 +244,9 @@ def test_execute_sql_statement_within_payload_limit(
             log_params={},
         )
     except SupersetErrorException:
-        pytest.fail("SupersetErrorException should not have been raised for payload within the limit")
+        pytest.fail(
+            "SupersetErrorException should not have been raised for payload within the limit"
+        )
 
 
 def test_sql_lab_insert_rls_as_subquery(
