@@ -157,7 +157,6 @@ def test_execute_sql_statement_exceeds_payload_limit(
     # Mock sys.getsizeof to simulate a large payload size
     mocker.patch("sys.getsizeof", return_value=100000000)  # 100 MB
 
-
     # Mock _serialize_payload and log
     def mock_serialize_payload(payload, use_msgpack):
         return "serialized_payload"
