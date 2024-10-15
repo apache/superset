@@ -94,8 +94,8 @@ export type AppliedCrossFilterType = {
 
 export type AppliedNativeFilterType = {
   filterType: 'filter_select';
-  scope?: number[] | NativeFilterScope; // TODO: inconsistent usage
-  targets: [Partial<NativeFilterTarget>];
+  scope: number[];
+  targets: Partial<NativeFilterTarget>[];
 } & AppliedFilter;
 
 export type FilterWithDataMask = Filter & { dataMask: DataMaskWithId };
