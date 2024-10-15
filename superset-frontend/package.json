@@ -235,7 +235,7 @@
     "@mihkeleidast/storybook-addon-source": "^1.0.1",
     "@storybook/addon-actions": "8.1.11",
     "@storybook/addon-controls": "8.1.11",
-    "@storybook/addon-essentials": "8.1.11",
+    "@storybook/addon-essentials": "8.3.5",
     "@storybook/addon-links": "8.1.11",
     "@storybook/addon-mdx-gfm": "8.1.11",
     "@storybook/components": "8.1.11",
