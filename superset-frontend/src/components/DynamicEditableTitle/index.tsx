@@ -178,7 +178,7 @@ export const DynamicEditableTitle = memo(
       [canEdit],
     );
 
-    if (!title || loading) {
+    if (title === undefined || loading) {
       return (
         <Skeleton.Button
           active
