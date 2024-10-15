@@ -17,6 +17,7 @@
 # pylint: disable=consider-using-transaction
 import dataclasses
 import logging
+import sys
 import uuid
 from contextlib import closing
 from datetime import datetime
@@ -78,6 +79,7 @@ SQL_MAX_ROW = config["SQL_MAX_ROW"]
 SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
+BYTES_IN_MB = 1024 * 1024
 
 
 class SqlLabException(Exception):
@@ -531,6 +533,7 @@ def execute_sql_statements(
                     log_params,
                     apply_ctas,
                 )
+
             except SqlLabQueryStoppedException:
                 payload.update({"status": QueryStatus.STOPPED})
                 return payload
@@ -601,6 +604,22 @@ def execute_sql_statements(
                 serialized_payload = _serialize_payload(
                     payload, cast(bool, results_backend_use_msgpack)
                 )
+
+                # Check the size of the serialized payload
+                if sql_lab_payload_max_mb := config.get("SQLLAB_PAYLOAD_MAX_MB"):
+                    serialized_payload_size = sys.getsizeof(serialized_payload)
+                    max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
+
+                    if serialized_payload_size > max_bytes:
+                        logger.info("Result size exceeds the allowed limit.")
+                        raise SupersetErrorException(
+                            SupersetError(
+                                message=f"Result size ({serialized_payload_size / BYTES_IN_MB:.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
+                                error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
+                                level=ErrorLevel.ERROR,
+                            )
+                        )
+
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
                 cache_timeout = config["CACHE_DEFAULT_TIMEOUT"]
@@ -635,6 +654,23 @@ def execute_sql_statements(
                     "expanded_columns": expanded_columns,
                 }
             )
+        # Check the size of the serialized payload (opt-in logic for return_results)
+        if sql_lab_payload_max_mb := config.get("SQLLAB_PAYLOAD_MAX_MB"):
+            serialized_payload = _serialize_payload(
+                payload, cast(bool, results_backend_use_msgpack)
+            )
+            serialized_payload_size = sys.getsizeof(serialized_payload)
+            max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
+
+            if serialized_payload_size > max_bytes:
+                logger.info("Result size exceeds the allowed limit.")
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=f"Result size ({serialized_payload_size / BYTES_IN_MB:.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
+                        error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                )
         return payload
 
     return None
