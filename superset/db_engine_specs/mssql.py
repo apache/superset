@@ -87,6 +87,11 @@ class MssqlEngineSpec(BaseEngineSpec):
             SMALLDATETIME(),
             GenericDataType.TEMPORAL,
         ),
+        (
+            re.compile(r"^uniqueidentifier.*", re.IGNORECASE),
+            types.UUID(),
+            GenericDataType.STRING
+        ),
     )
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
