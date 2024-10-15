@@ -99,9 +99,7 @@ export const DynamicEditableTitle = memo(
     });
 
     useEffect(() => {
-      if (title) {
-        setCurrentTitle(title);
-      }
+      setCurrentTitle(title ?? '');
     }, [title]);
 
     useEffect(() => {
@@ -178,7 +176,7 @@ export const DynamicEditableTitle = memo(
       [canEdit],
     );
 
-    if (title === undefined || loading) {
+    if (loading) {
       return (
         <Skeleton.Button
           active
