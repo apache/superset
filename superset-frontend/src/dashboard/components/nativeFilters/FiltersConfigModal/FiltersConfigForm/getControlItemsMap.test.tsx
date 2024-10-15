@@ -72,6 +72,7 @@ const createProps: () => ControlItemsProps = () => ({
   filterId: 'filterId',
   filterToEdit: filterMock,
   filterType: 'filterType',
+  formChanged: jest.fn(),
 });
 
 const createControlItems = () => [
