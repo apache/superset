@@ -29,10 +29,6 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port as port
 
 
-# To run the unit tests below, use the following command in the root Superset folder:
-# tox -e py38 -- tests/unit_tests/advanced_data_type/types_tests.py
-
-
 def test_ip_func_valid_ip():
     """Test to see if the cidr_func behaves as expected when a valid IP is passed in"""
     cidr_request: AdvancedDataTypeRequest = {
