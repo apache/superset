@@ -41,7 +41,7 @@ const StyledLink = styled.a`
 
 const FaveStar = ({
   itemId,
-  isStarred,
+  isStarred = false,
   showTooltip,
   saveFaveStar,
   fetchFaveStar,

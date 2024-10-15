@@ -390,7 +390,7 @@ class Header extends PureComponent {
       roles: dashboardInfo.roles,
       slug,
       metadata: {
-        ...dashboardInfo?.metadata,
+        ...dashboardInfo.metadata,
         color_namespace: currentColorNamespace,
         color_scheme: currentColorScheme,
         positions,
@@ -712,7 +712,7 @@ class Header extends PureComponent {
               logEvent={logEvent}
             />
           }
-          showFaveStar={user?.userId && dashboardInfo?.id}
+          showFaveStar={user?.userId}
           showTitlePanelItems
         />
         {this.state.showingPropertiesModal && (
