@@ -24,7 +24,7 @@ from sqlalchemy import column, table
 from sqlalchemy.dialects import mssql
 from sqlalchemy.dialects.mssql import DATE, NTEXT, NVARCHAR, TEXT, VARCHAR
 from sqlalchemy.sql import select
-from sqlalchemy.types import String, TypeEngine, UnicodeText
+from sqlalchemy.types import String, TypeEngine, UnicodeText, UUID
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType
@@ -454,3 +454,25 @@ def test_denormalize_name(name: str, expected_result: str):
     from superset.db_engine_specs.mssql import MssqlEngineSpec as spec
 
     assert spec.denormalize_name(mssql.dialect(), name) == expected_result
+
+
+@pytest.mark.parametrize(
+    "native_type,sqla_type,generic_type",
+    [
+        ("uniqueidentifier", UUID, GenericDataType.STRING),  # Test case for UUID
+    ],
+)
+def test_get_column_spec_for_uuid(
+    native_type: str, sqla_type: type, generic_type: GenericDataType
+) -> None:
+    """Test that 'uniqueidentifier' is correctly mapped to UUID."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    assert_column_spec(
+        MssqlEngineSpec,
+        native_type,
+        sqla_type,
+        None,  # No additional attributes
+        generic_type,
+        False,  # Not a datetime type, so no date-specific logic
+    )
