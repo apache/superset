@@ -30,13 +30,15 @@ import {
 import { css, SupersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { useResizeDetector } from 'react-resize-detector';
+import { Skeleton } from 'src/components';
 
 export type DynamicEditableTitleProps = {
-  title: string;
-  placeholder: string;
+  title?: string;
+  placeholder?: string;
   onSave: (title: string) => void;
   canEdit: boolean;
-  label: string | undefined;
+  label?: string | undefined;
+  loading?: boolean;
 };
 
 const titleStyles = (theme: SupersetTheme) => css`
@@ -84,6 +86,7 @@ export const DynamicEditableTitle = memo(
     onSave,
     canEdit,
     label,
+    loading,
   }: DynamicEditableTitleProps) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentTitle, setCurrentTitle] = useState(title || '');
@@ -96,7 +99,9 @@ export const DynamicEditableTitle = memo(
     });
 
     useEffect(() => {
-      setCurrentTitle(title);
+      if (title) {
+        setCurrentTitle(title);
+      }
     }, [title]);
 
     useEffect(() => {
@@ -172,6 +177,17 @@ export const DynamicEditableTitle = memo(
       },
       [canEdit],
     );
+
+    if (!title || loading) {
+      return (
+        <Skeleton.Button
+          active
+          css={css`
+            min-width: 300px;
+          `}
+        />
+      );
+    }
 
     return (
       <div css={titleStyles} ref={containerRef}>

@@ -528,7 +528,7 @@ class Header extends PureComponent {
         <PageHeaderWithActions
           editableTitleProps={{
             title: dashboardTitle,
-            canEdit: userCanEdit && editMode,
+            canEdit: !!(userCanEdit && editMode),
             onSave: this.handleChangeText,
             placeholder: t('Add the name of the dashboard'),
             label: t('Dashboard title'),
