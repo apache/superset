@@ -119,7 +119,9 @@ export const getSlicePayload = (
   }
 
   if (!hasTemporalRangeFilter(adhocFilters)) {
-    const adhocFiltersKeys = Object.keys(formDataWithNativeFilters).filter(key => ADHOC_FILTER_REGEX.test(key))
+    const adhocFiltersKeys = Object.keys(formDataWithNativeFilters).filter(
+      key => ADHOC_FILTER_REGEX.test(key),
+    );
     adhocFiltersKeys?.forEach(filtersKey => {
       formDataWithNativeFilters[filtersKey]?.forEach(
         (filter: SimpleAdhocFilter) => {
@@ -134,7 +136,7 @@ export const getSlicePayload = (
           }
         },
       );
-    })
+    });
   }
   const formData = {
     ...formDataWithNativeFilters,

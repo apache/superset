@@ -20,7 +20,11 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { Dispatch } from 'redux';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
-import { DatasourceType, QueryFormData, SimpleAdhocFilter } from '@superset-ui/core';
+import {
+  DatasourceType,
+  QueryFormData,
+  SimpleAdhocFilter,
+} from '@superset-ui/core';
 import {
   createDashboard,
   createSlice,
@@ -675,8 +679,11 @@ describe('getSlicePayload', () => {
       formDataFromSliceWithAdhocFilterB,
     );
 
-    const hasTemporalRange = (JSON.parse(result.params as string).adhoc_filters_b || []).some(
-      (filter: SimpleAdhocFilter) => filter.operator === Operators.TemporalRange,
+    const hasTemporalRange = (
+      JSON.parse(result.params as string).adhoc_filters_b || []
+    ).some(
+      (filter: SimpleAdhocFilter) =>
+        filter.operator === Operators.TemporalRange,
     );
 
     expect(hasTemporalRange).toBe(true);
