@@ -24,7 +24,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 
 export interface FaveStarProps {
-  itemId: number;
+  itemId?: number;
   isStarred?: boolean;
   showTooltip?: boolean;
   saveFaveStar(id: number, isStarred: boolean): any;
@@ -47,13 +47,17 @@ const FaveStar = ({
   fetchFaveStar,
 }: FaveStarProps) => {
   useEffect(() => {
-    fetchFaveStar?.(itemId);
+    if (itemId) {
+      fetchFaveStar?.(itemId);
+    }
   }, [fetchFaveStar, itemId]);
 
   const onClick = useCallback(
     (e: MouseEvent) => {
-      e.preventDefault();
-      saveFaveStar(itemId, !!isStarred);
+      if (itemId) {
+        e.preventDefault();
+        saveFaveStar(itemId, !!isStarred);
+      }
     },
     [isStarred, itemId, saveFaveStar],
   );

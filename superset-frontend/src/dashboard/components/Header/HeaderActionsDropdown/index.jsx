@@ -40,7 +40,7 @@ import { MenuKeys } from 'src/dashboard/types';
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
-  dashboardInfo: PropTypes.object.isRequired,
+  dashboardInfo: PropTypes.object,
   dashboardId: PropTypes.number,
   dashboardTitle: PropTypes.string,
   dataMask: PropTypes.object.isRequired,
@@ -196,7 +196,7 @@ export class HeaderActionsDropdown extends PureComponent {
     });
 
     const refreshIntervalOptions =
-      dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
+      dashboardInfo?.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
 
     const dashboardComponentId = [...(directPathToChild || [])].pop();
 
@@ -216,6 +216,7 @@ export class HeaderActionsDropdown extends PureComponent {
           <Menu.Item
             key={MenuKeys.ToggleFullscreen}
             onClick={this.handleMenuClick}
+            disabled={isLoading}
           >
             {getUrlParam(URL_PARAMS.standalone)
               ? t('Exit fullscreen')
@@ -226,23 +227,25 @@ export class HeaderActionsDropdown extends PureComponent {
           <Menu.Item
             key={MenuKeys.EditProperties}
             onClick={this.handleMenuClick}
+            disabled={isLoading}
           >
             {t('Edit properties')}
           </Menu.Item>
         )}
         {editMode && (
-          <Menu.Item key={MenuKeys.EditCss}>
+          <Menu.Item key={MenuKeys.EditCss} disabled={isLoading}>
             <CssEditor
               triggerNode={<span>{t('Edit CSS')}</span>}
               initialCss={this.state.css}
               onChange={this.changeCss}
               addDangerToast={addDangerToast}
+              disabled={isLoading}
             />
           </Menu.Item>
         )}
         <Menu.Divider />
         {userCanSave && (
-          <Menu.Item key={MenuKeys.SaveModal}>
+          <Menu.Item key={MenuKeys.SaveModal} disabled={isLoading}>
             <SaveModal
               addSuccessToast={this.props.addSuccessToast}
               addDangerToast={this.props.addDangerToast}
@@ -303,6 +306,7 @@ export class HeaderActionsDropdown extends PureComponent {
           <Menu.Item
             key={MenuKeys.ManageEmbedded}
             onClick={this.handleMenuClick}
+            disabled={isLoading}
           >
             {t('Embed dashboard')}
           </Menu.Item>
@@ -311,9 +315,12 @@ export class HeaderActionsDropdown extends PureComponent {
         {!editMode ? (
           this.state.showReportSubMenu ? (
             <>
-              <Menu.SubMenu title={t('Manage email report')}>
+              <Menu.SubMenu
+                title={t('Manage email report')}
+                disabled={isLoading}
+              >
                 <HeaderReportDropdown
-                  dashboardId={dashboardInfo.id}
+                  dashboardId={dashboardInfo?.id}
                   setShowReportSubMenu={this.setShowReportSubMenu}
                   showReportSubMenu={this.state.showReportSubMenu}
                   setIsDropdownVisible={setIsDropdownVisible}
@@ -326,17 +333,18 @@ export class HeaderActionsDropdown extends PureComponent {
           ) : (
             <Menu>
               <HeaderReportDropdown
-                dashboardId={dashboardInfo.id}
+                dashboardId={dashboardInfo?.id}
                 setShowReportSubMenu={this.setShowReportSubMenu}
                 setIsDropdownVisible={setIsDropdownVisible}
                 isDropdownVisible={isDropdownVisible}
                 useTextMenu
+                disabled={isLoading}
               />
             </Menu>
           )
         ) : null}
         {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (
-          <Menu.Item key={MenuKeys.SetFilterMapping}>
+          <Menu.Item key={MenuKeys.SetFilterMapping} disabled={isLoading}>
             <FilterScopeModal
               className="m-r-5"
               triggerNode={t('Set filter mapping')}
@@ -344,7 +352,7 @@ export class HeaderActionsDropdown extends PureComponent {
           </Menu.Item>
         )}
 
-        <Menu.Item key={MenuKeys.AutorefreshModal}>
+        <Menu.Item key={MenuKeys.AutorefreshModal} disabled={isLoading}>
           <RefreshIntervalModal
             addSuccessToast={this.props.addSuccessToast}
             refreshFrequency={refreshFrequency}

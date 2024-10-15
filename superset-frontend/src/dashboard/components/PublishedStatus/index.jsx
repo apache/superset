@@ -28,6 +28,7 @@ const propTypes = {
   savePublished: PropTypes.func.isRequired,
   canEdit: PropTypes.bool,
   canSave: PropTypes.bool,
+  loading: PropTypes.bool,
 };
 
 const draftButtonTooltip = t(
@@ -54,6 +55,9 @@ export default class PublishedStatus extends Component {
   }
 
   render() {
+    if (this.props.loading) {
+      return <Label>{t('...')}</Label>;
+    }
     // Show everybody the draft badge
     if (!this.props.isPublished) {
       // if they can edit the dash, make the badge a button

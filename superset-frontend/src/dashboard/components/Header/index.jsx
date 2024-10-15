@@ -446,7 +446,8 @@ class Header extends PureComponent {
       },
       {
         type: MetadataType.Owner,
-        createdBy: getOwnerName(dashboardInfo?.created_by) || t('Not available'),
+        createdBy:
+          getOwnerName(dashboardInfo?.created_by) || t('Not available'),
         owners:
           dashboardInfo?.owners.length > 0
             ? dashboardInfo?.owners.map(getOwnerName)
@@ -458,6 +459,9 @@ class Header extends PureComponent {
 
   render() {
     const {
+      dashboardInfo,
+      dashboardTitle,
+      chartsLoading,
       layout,
       expandedSlices,
       customCss,
@@ -477,16 +481,12 @@ class Header extends PureComponent {
       isPublished,
       user,
       hasUnsavedChanges,
-      chartsLoading,
       refreshFrequency,
       shouldPersistRefreshFrequency,
       setRefreshFrequency,
       lastModifiedTime,
       logEvent,
     } = this.props;
-    const dashboardInfo = null;
-    const dashboardTitle = null;
-
     const userCanEdit =
       dashboardInfo?.dash_edit_perm && !dashboardInfo?.is_managed_externally;
     const userCanShare = dashboardInfo?.dash_share_perm;
@@ -544,7 +544,7 @@ class Header extends PureComponent {
             fetchFaveStar: this.props.fetchFaveStar,
             saveFaveStar: this.props.saveFaveStar,
             isStarred: this.props.isStarred,
-            showTooltip: true,
+            showTooltip: !!dashboardInfo?.id,
           }}
           titlePanelAdditionalItems={[
             !editMode && (
@@ -555,13 +555,14 @@ class Header extends PureComponent {
                 canEdit={userCanEdit}
                 canSave={userCanSaveAs}
                 visible={!editMode}
+                loading={!dashboardInfo?.id}
               />
             ),
             !editMode && (
               <MetadataBar
                 items={this.getMetadataItems()}
                 tooltipPlacement="bottom"
-                loading={!dashboardInfo}
+                loading={!dashboardInfo?.id}
               />
             ),
           ]}
@@ -701,7 +702,7 @@ class Header extends PureComponent {
               userCanShare={userCanShare}
               userCanSave={userCanSaveAs}
               userCanCurate={userCanCurate}
-              isLoading={chartsLoading}
+              isLoading={chartsLoading || !dashboardInfo?.id}
               showPropertiesModal={this.showPropertiesModal}
               manageEmbedded={this.showEmbedModal}
               refreshLimit={refreshLimit}
