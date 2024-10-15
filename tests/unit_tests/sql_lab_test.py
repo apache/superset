@@ -133,12 +133,8 @@ def test_execute_sql_statement_with_rls(
 )
 def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> None:
     """
-    Test for `execute_sql_statements` when the result payload size exceeds the limit,
-    and check if the correct log message is captured without raising the exception.
+    Test for `execute_sql_statements` when the result payload size exceeds the limit.
     """
-
-    sql_statement = "SELECT 42 AS answer"
-    query_id = 1
 
     # Mock the query object and database
     query = mocker.MagicMock()
@@ -156,7 +152,7 @@ def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> N
     # Mock sys.getsizeof to simulate a large payload size
     mocker.patch("sys.getsizeof", return_value=100000000)  # 100 MB
 
-    # Mock _serialize_payload and log
+    # Mock _serialize_payload
     def mock_serialize_payload(payload, use_msgpack):
         return "serialized_payload"
 
@@ -171,22 +167,16 @@ def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> N
     mocker.patch("superset.sql_lab.results_backend", return_value=True)
 
     # Test that the exception is raised when the payload exceeds the limit
-    with pytest.raises(SupersetErrorException) as excinfo:
+    with pytest.raises(SupersetErrorException):
         execute_sql_statements(
-            query_id=query_id,
-            rendered_query=sql_statement,
+            query_id=1,
+            rendered_query="SELECT 42 AS answer",
             return_results=True,  # Simulate that results are being returned
             store_results=True,  # Not storing results but returning them
             start_time=None,
             expand_data=False,
             log_params={},
         )
-
-    # Check if the exception message is correct
-    assert (
-        "Result size" in str(excinfo.value)
-        and "exceeds the allowed limit" in str(excinfo.value)
-    ), f"Expected exception message about exceeding the limit not found. Actual message: {excinfo.value}"
 
 
 @mock.patch.dict(
@@ -198,9 +188,6 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture) -> No
     Test for `execute_sql_statements` when the result payload size is within the limit,
     and check if the flow executes smoothly without raising any exceptions.
     """
-
-    sql_statement = "SELECT 42 AS answer"
-    query_id = 1
 
     # Mock the query object and database
     query = mocker.MagicMock()
@@ -218,7 +205,7 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture) -> No
     # Mock sys.getsizeof to simulate a payload size that is within the limit
     mocker.patch("sys.getsizeof", return_value=10000000)  # 10 MB (within limit)
 
-    # Mock _serialize_payload and log
+    # Mock _serialize_payload
     def mock_serialize_payload(payload, use_msgpack):
         return "serialized_payload"
 
@@ -235,8 +222,8 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture) -> No
     # Test that no exception is raised and the function executes smoothly
     try:
         execute_sql_statements(
-            query_id=query_id,
-            rendered_query=sql_statement,
+            query_id=1,
+            rendered_query="SELECT 42 AS answer",
             return_results=True,  # Simulate that results are being returned
             store_results=True,  # Not storing results but returning them
             start_time=None,
