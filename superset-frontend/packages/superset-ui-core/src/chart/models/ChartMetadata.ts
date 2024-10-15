@@ -50,6 +50,7 @@ export interface ChartMetadataConfig {
   labelExplanation?: string | null;
   queryObjectCount?: number;
   parseMethod?: ParseMethod;
+  suppressContextMenu?: boolean;
 }
 
 export default class ChartMetadata {
@@ -91,6 +92,8 @@ export default class ChartMetadata {
 
   parseMethod: ParseMethod;
 
+  suppressContextMenu?: boolean;
+
   constructor(config: ChartMetadataConfig) {
     const {
       name,
@@ -111,6 +114,7 @@ export default class ChartMetadata {
       labelExplanation = null,
       queryObjectCount = 1,
       parseMethod = 'json-bigint',
+      suppressContextMenu = false,
     } = config;
 
     this.name = name;
@@ -140,6 +144,7 @@ export default class ChartMetadata {
     this.labelExplanation = labelExplanation;
     this.queryObjectCount = queryObjectCount;
     this.parseMethod = parseMethod;
+    this.suppressContextMenu = suppressContextMenu;
   }
 
   canBeAnnotationType(type: string): boolean {
