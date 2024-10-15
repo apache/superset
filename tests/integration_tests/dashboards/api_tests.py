@@ -1740,12 +1740,12 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}/filters"
         rv = self.put_assert_metric(uri, self.dashboard_put_filters_data, "put_filters")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
         json_metadata = model.json_metadata
         native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
 
-        self.assertEqual(native_filter_config[0]["name"], "Filter 1")
+        assert native_filter_config[0]["name"] == "Filter 1"
         db.session.delete(model)
         db.session.commit()
 
@@ -1776,12 +1776,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         uri = f"api/v1/dashboard/{dashboard_id}/filters"
         rv = self.put_assert_metric(uri, self.dashboard_put_filters_data, "put_filters")
 
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
         json_metadata = model.json_metadata
         native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
 
-        self.assertEqual(native_filter_config[0]["name"], "Filter 1")
+        assert native_filter_config[0]["name"] == "Filter 1"
+
         db.session.delete(model)
         db.session.commit()
 
@@ -1821,12 +1822,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "reordered": ["native_filter_2", "native_filter_1"],
         }
         rv = self.put_assert_metric(uri, put_data, "put_filters")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
         json_metadata = model.json_metadata
         native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
 
-        self.assertEqual(native_filter_config[0]["name"], "Filter 2")
+        assert native_filter_config[0]["name"] == "Filter 2"
+
         db.session.delete(model)
         db.session.commit()
 
@@ -1866,12 +1868,13 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "deleted": ["native_filter_1"],
         }
         rv = self.put_assert_metric(uri, put_data, "put_filters")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
         json_metadata = model.json_metadata
         native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
 
-        self.assertEqual(native_filter_config[0]["name"], "Filter 2")
+        assert native_filter_config[0]["name"] == "Filter 2"
+
         db.session.delete(model)
         db.session.commit()
 
@@ -1888,7 +1891,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         uri = f"api/v1/dashboard/{dashboard_id}/filters"
         put_data = {"invalid_key": "invalid_value"}
         rv = self.put_assert_metric(uri, put_data, "put_filters")
-        self.assertEqual(rv.status_code, 400)
+        assert rv.status_code == 400
 
         model = db.session.query(Dashboard).get(dashboard_id)
         db.session.delete(model)
