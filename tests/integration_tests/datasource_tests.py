@@ -42,6 +42,7 @@ from superset.utils.database import (  # noqa: F401
     get_main_database,
 )
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -101,9 +102,15 @@ class TestDatasource(SupersetTestCase):
         url = f"/datasource/external_metadata/table/{tbl.id}/"
         resp = self.get_json_resp(url)
         col_names = {o.get("column_name") for o in resp}
-        self.assertEqual(
-            col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
-        )
+        assert col_names == {
+            "num_boys",
+            "num",
+            "gender",
+            "name",
+            "ds",
+            "state",
+            "num_girls",
+        }
 
     def test_always_filter_main_dttm(self):
         database = get_example_database()
@@ -175,9 +182,15 @@ class TestDatasource(SupersetTestCase):
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
         col_names = {o.get("column_name") for o in resp}
-        self.assertEqual(
-            col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
-        )
+        assert col_names == {
+            "num_boys",
+            "num",
+            "gender",
+            "name",
+            "ds",
+            "state",
+            "num_girls",
+        }
 
     def test_external_metadata_by_name_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
@@ -235,7 +248,7 @@ class TestDatasource(SupersetTestCase):
             url = f"/datasource/external_metadata_by_name/?q={params}"
             resp = self.get_json_resp(url)
             col_names = {o.get("column_name") for o in resp}
-            self.assertEqual(col_names, {"first", "second"})
+            assert col_names == {"first", "second"}
 
         # No databases found
         params = prison.dumps(
@@ -249,10 +262,10 @@ class TestDatasource(SupersetTestCase):
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, DatasetNotFoundError.status)
-        self.assertEqual(
-            json.loads(resp.data.decode("utf-8")).get("error"),
-            DatasetNotFoundError.message,
+        assert resp.status_code == DatasetNotFoundError.status
+        assert (
+            json.loads(resp.data.decode("utf-8")).get("error")
+            == DatasetNotFoundError.message
         )
 
         # No table found
@@ -267,10 +280,10 @@ class TestDatasource(SupersetTestCase):
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, DatasetNotFoundError.status)
-        self.assertEqual(
-            json.loads(resp.data.decode("utf-8")).get("error"),
-            DatasetNotFoundError.message,
+        assert resp.status_code == DatasetNotFoundError.status
+        assert (
+            json.loads(resp.data.decode("utf-8")).get("error")
+            == DatasetNotFoundError.message
         )
 
         # invalid query params
@@ -281,7 +294,7 @@ class TestDatasource(SupersetTestCase):
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
-        self.assertIn("error", resp)
+        assert "error" in resp
 
     def test_external_metadata_for_virtual_table_template_params(self):
         self.login(ADMIN_USERNAME)
@@ -308,7 +321,7 @@ class TestDatasource(SupersetTestCase):
         with db_insert_temp_object(table):
             url = f"/datasource/external_metadata/table/{table.id}/"
             resp = self.get_json_resp(url)
-            self.assertEqual(resp["error"], "Only `SELECT` statements are allowed")
+            assert resp["error"] == "Only `SELECT` statements are allowed"
 
     def test_external_metadata_for_multistatement_virtual_table(self):
         self.login(ADMIN_USERNAME)
@@ -322,7 +335,7 @@ class TestDatasource(SupersetTestCase):
         with db_insert_temp_object(table):
             url = f"/datasource/external_metadata/table/{table.id}/"
             resp = self.get_json_resp(url)
-            self.assertEqual(resp["error"], "Only single queries supported")
+            assert resp["error"] == "Only single queries supported"
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch("superset.connectors.sqla.models.SqlaTable.external_metadata")
@@ -350,7 +363,7 @@ class TestDatasource(SupersetTestCase):
             obj2 = l2_lookup.get(obj1.get(key))
             for k in obj1:
                 if k not in "id" and obj1.get(k):
-                    self.assertEqual(obj1.get(k), obj2.get(k))
+                    assert obj1.get(k) == obj2.get(k)
 
     def test_save(self):
         self.login(ADMIN_USERNAME)
@@ -367,11 +380,11 @@ class TestDatasource(SupersetTestCase):
             elif k == "metrics":
                 self.compare_lists(datasource_post[k], resp[k], "metric_name")
             elif k == "database":
-                self.assertEqual(resp[k]["id"], datasource_post[k]["id"])
+                assert resp[k]["id"] == datasource_post[k]["id"]
             elif k == "owners":
-                self.assertEqual([o["id"] for o in resp[k]], datasource_post["owners"])
+                assert [o["id"] for o in resp[k]] == datasource_post["owners"]
             else:
-                self.assertEqual(resp[k], datasource_post[k])
+                assert resp[k] == datasource_post[k]
 
     def test_save_default_endpoint_validation_success(self):
         self.login(ADMIN_USERNAME)
@@ -404,11 +417,11 @@ class TestDatasource(SupersetTestCase):
         new_db = self.create_fake_db()
         datasource_post["database"]["id"] = new_db.id
         resp = self.save_datasource_from_dict(datasource_post)
-        self.assertEqual(resp["database"]["id"], new_db.id)
+        assert resp["database"]["id"] == new_db.id
 
         datasource_post["database"]["id"] = db_id
         resp = self.save_datasource_from_dict(datasource_post)
-        self.assertEqual(resp["database"]["id"], db_id)
+        assert resp["database"]["id"] == db_id
 
         self.delete_fake_db()
 
@@ -440,7 +453,7 @@ class TestDatasource(SupersetTestCase):
         )
         data = dict(data=json.dumps(datasource_post))
         resp = self.get_json_resp("/datasource/save/", data, raise_on_error=False)
-        self.assertIn("Duplicate column name(s): <new column>", resp["error"])
+        assert "Duplicate column name(s): <new column>" in resp["error"]
 
     def test_get_datasource(self):
         admin_user = self.get_user("admin")
@@ -454,21 +467,18 @@ class TestDatasource(SupersetTestCase):
         self.get_json_resp("/datasource/save/", data)
         url = f"/datasource/get/{tbl.type}/{tbl.id}/"
         resp = self.get_json_resp(url)
-        self.assertEqual(resp.get("type"), "table")
+        assert resp.get("type") == "table"
         col_names = {o.get("column_name") for o in resp["columns"]}
-        self.assertEqual(
-            col_names,
-            {
-                "num_boys",
-                "num",
-                "gender",
-                "name",
-                "ds",
-                "state",
-                "num_girls",
-                "num_california",
-            },
-        )
+        assert col_names == {
+            "num_boys",
+            "num",
+            "gender",
+            "name",
+            "ds",
+            "state",
+            "num_girls",
+            "num_california",
+        }
 
     def test_get_datasource_with_health_check(self):
         def my_check(datasource):
@@ -491,7 +501,7 @@ class TestDatasource(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         resp = self.get_json_resp("/datasource/get/table/500000/", raise_on_error=False)
-        self.assertEqual(resp.get("error"), "Datasource does not exist")
+        assert resp.get("error") == "Datasource does not exist"
 
     def test_get_datasource_invalid_datasource_failed(self):
         from superset.daos.datasource import DatasourceDAO
@@ -503,7 +513,7 @@ class TestDatasource(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
-        self.assertEqual(resp.get("error"), "'druid' is not a valid DatasourceType")
+        assert resp.get("error") == "'druid' is not a valid DatasourceType"
 
 
 def test_get_samples(test_client, login_as_admin, virtual_dataset):
@@ -576,6 +586,7 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
         assert "INCORRECT SQL" in rv.json.get("error")
 
 
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_get_samples_on_physical_dataset(test_client, login_as_admin, physical_dataset):
     uri = (
         f"/datasource/samples?datasource_id={physical_dataset.id}&datasource_type=table"
@@ -640,6 +651,7 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
     assert rv.json["result"]["rowcount"] == 0
 
 
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_get_samples_with_time_filter(test_client, login_as_admin, physical_dataset):
     uri = (
         f"/datasource/samples?datasource_id={physical_dataset.id}&datasource_type=table"
@@ -660,6 +672,7 @@ def test_get_samples_with_time_filter(test_client, login_as_admin, physical_data
     assert rv.json["result"]["total_count"] == 2
 
 
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_get_samples_with_multiple_filters(
     test_client, login_as_admin, physical_dataset
 ):
@@ -692,7 +705,7 @@ def test_get_samples_with_multiple_filters(
     assert "2000-01-02" in rv.json["result"]["query"]
     assert "2000-01-04" in rv.json["result"]["query"]
     assert "col3 = 1.2" in rv.json["result"]["query"]
-    assert "col4 IS NULL" in rv.json["result"]["query"]
+    assert "col4 is null" in rv.json["result"]["query"]
     assert "col2 = 'c'" in rv.json["result"]["query"]
 
 

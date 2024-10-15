@@ -41,7 +41,7 @@
     "@storybook/addon-links": "8.1.11",
     "@storybook/react": "8.1.11",
     "@storybook/types": "8.1.11",
-    "@types/react-loadable": "^5.5.3",
+    "@types/react-loadable": "^5.5.11",
     "antd": "4.10.3",
     "core-js": "3.38.1",
     "gh-pages": "^5.0.0",

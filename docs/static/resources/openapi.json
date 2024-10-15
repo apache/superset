@@ -116,7 +116,8 @@
                           "GENERIC_BACKEND_ERROR",
                           "INVALID_PAYLOAD_FORMAT_ERROR",
                           "INVALID_PAYLOAD_SCHEMA_ERROR",
-                          "REPORT_NOTIFICATION_ERROR"
+                          "REPORT_NOTIFICATION_ERROR",
+                          "RESULT_TOO_LARGE_ERROR"
                         ],
                         "type": "string"
                       },

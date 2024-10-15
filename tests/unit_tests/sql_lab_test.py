@@ -17,8 +17,10 @@
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
 import json
+from unittest import mock
 from uuid import UUID
 
+import pytest
 import sqlparse
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
@@ -27,9 +29,9 @@ from sqlalchemy.orm.session import Session
 from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetErrorType
-from superset.exceptions import OAuth2Error
+from superset.exceptions import OAuth2Error, SupersetErrorException
 from superset.models.core import Database
-from superset.sql_lab import get_sql_results
+from superset.sql_lab import execute_sql_statements, get_sql_results
 from superset.utils.core import override_user
 from tests.unit_tests.models.core_test import oauth2_client_info
 
@@ -123,6 +125,115 @@ def test_execute_sql_statement_with_rls(
         query,
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
+
+
+@mock.patch.dict(
+    "superset.sql_lab.config",
+    {"SQLLAB_PAYLOAD_MAX_MB": 50},  # Set the desired config value for testing
+)
+def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> None:
+    """
+    Test for `execute_sql_statements` when the result payload size exceeds the limit.
+    """
+
+    # Mock the query object and database
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.database = mocker.MagicMock()
+    query.database.db_engine_spec.is_select_query.return_value = True
+    query.database.cache_timeout = 100
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_run_async = True
+
+    # Mock get_query to return our mocked query object
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+
+    # Mock sys.getsizeof to simulate a large payload size
+    mocker.patch("sys.getsizeof", return_value=100000000)  # 100 MB
+
+    # Mock _serialize_payload
+    def mock_serialize_payload(payload, use_msgpack):
+        return "serialized_payload"
+
+    mocker.patch(
+        "superset.sql_lab._serialize_payload", side_effect=mock_serialize_payload
+    )
+
+    # Mock db.session.refresh to avoid AttributeError during session refresh
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+
+    # Mock the results backend to avoid "Results backend is not configured" error
+    mocker.patch("superset.sql_lab.results_backend", return_value=True)
+
+    # Test that the exception is raised when the payload exceeds the limit
+    with pytest.raises(SupersetErrorException):
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="SELECT 42 AS answer",
+            return_results=True,  # Simulate that results are being returned
+            store_results=True,  # Not storing results but returning them
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+
+
+@mock.patch.dict(
+    "superset.sql_lab.config",
+    {"SQLLAB_PAYLOAD_MAX_MB": 50},  # Set the desired config value for testing
+)
+def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture) -> None:
+    """
+    Test for `execute_sql_statements` when the result payload size is within the limit,
+    and check if the flow executes smoothly without raising any exceptions.
+    """
+
+    # Mock the query object and database
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.database = mocker.MagicMock()
+    query.database.db_engine_spec.is_select_query.return_value = True
+    query.database.cache_timeout = 100
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_run_async = True
+
+    # Mock get_query to return our mocked query object
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+
+    # Mock sys.getsizeof to simulate a payload size that is within the limit
+    mocker.patch("sys.getsizeof", return_value=10000000)  # 10 MB (within limit)
+
+    # Mock _serialize_payload
+    def mock_serialize_payload(payload, use_msgpack):
+        return "serialized_payload"
+
+    mocker.patch(
+        "superset.sql_lab._serialize_payload", side_effect=mock_serialize_payload
+    )
+
+    # Mock db.session.refresh to avoid AttributeError during session refresh
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+
+    # Mock the results backend to avoid "Results backend is not configured" error
+    mocker.patch("superset.sql_lab.results_backend", return_value=True)
+
+    # Test that no exception is raised and the function executes smoothly
+    try:
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="SELECT 42 AS answer",
+            return_results=True,  # Simulate that results are being returned
+            store_results=True,  # Not storing results but returning them
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+    except SupersetErrorException:
+        pytest.fail(
+            "SupersetErrorException should not have been raised for payload within the limit"
+        )
 
 
 def test_sql_lab_insert_rls_as_subquery(

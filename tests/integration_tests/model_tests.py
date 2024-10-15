@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import re
 from superset.utils.core import DatasourceType
 from superset.utils import json
 import unittest
@@ -59,22 +60,22 @@ class TestDatabaseModel(SupersetTestCase):
 
         with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
-            self.assertEqual("hive/default", db)
+            assert "hive/default" == db
 
         with model.get_sqla_engine(schema="core_db") as engine:
             db = make_url(engine.url).database
-            self.assertEqual("hive/core_db", db)
+            assert "hive/core_db" == db
 
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
         with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
-            self.assertEqual("hive", db)
+            assert "hive" == db
 
         with model.get_sqla_engine(schema="core_db") as engine:
             db = make_url(engine.url).database
-            self.assertEqual("hive/core_db", db)
+            assert "hive/core_db" == db
 
     def test_database_schema_postgres(self):
         sqlalchemy_uri = "postgresql+psycopg2://postgres.airbnb.io:5439/prod"
@@ -82,11 +83,11 @@ class TestDatabaseModel(SupersetTestCase):
 
         with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
-            self.assertEqual("prod", db)
+            assert "prod" == db
 
         with model.get_sqla_engine(schema="foo") as engine:
             db = make_url(engine.url).database
-            self.assertEqual("prod", db)
+            assert "prod" == db
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
@@ -100,11 +101,11 @@ class TestDatabaseModel(SupersetTestCase):
 
         with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
-            self.assertEqual("default", db)
+            assert "default" == db
 
         with model.get_sqla_engine(schema="core_db") as engine:
             db = make_url(engine.url).database
-            self.assertEqual("core_db", db)
+            assert "core_db" == db
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
@@ -115,11 +116,11 @@ class TestDatabaseModel(SupersetTestCase):
 
         with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
-            self.assertEqual("superset", db)
+            assert "superset" == db
 
         with model.get_sqla_engine(schema="staging") as engine:
             db = make_url(engine.url).database
-            self.assertEqual("staging", db)
+            assert "staging" == db
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
@@ -133,12 +134,12 @@ class TestDatabaseModel(SupersetTestCase):
             model.impersonate_user = True
             with model.get_sqla_engine() as engine:
                 username = make_url(engine.url).username
-                self.assertEqual(example_user.username, username)
+                assert example_user.username == username
 
             model.impersonate_user = False
             with model.get_sqla_engine() as engine:
                 username = make_url(engine.url).username
-                self.assertNotEqual(example_user.username, username)
+                assert example_user.username != username
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_presto(self, mocked_create_engine):
@@ -344,20 +345,20 @@ class TestDatabaseModel(SupersetTestCase):
 
         if main_db.backend == "mysql":
             df = main_db.get_df("SELECT 1", None, None)
-            self.assertEqual(df.iat[0, 0], 1)
+            assert df.iat[0, 0] == 1
 
             df = main_db.get_df("SELECT 1;", None, None)
-            self.assertEqual(df.iat[0, 0], 1)
+            assert df.iat[0, 0] == 1
 
     def test_multi_statement(self):
         main_db = get_example_database()
 
         if main_db.backend == "mysql":
             df = main_db.get_df("USE superset; SELECT 1", None, None)
-            self.assertEqual(df.iat[0, 0], 1)
+            assert df.iat[0, 0] == 1
 
             df = main_db.get_df("USE superset; SELECT ';';", None, None)
-            self.assertEqual(df.iat[0, 0], ";")
+            assert df.iat[0, 0] == ";"
 
     @mock.patch("superset.models.core.create_engine")
     def test_get_sqla_engine(self, mocked_create_engine):
@@ -404,20 +405,20 @@ class TestSqlaTableModel(SupersetTestCase):
         sqla_literal = ds_col.get_timestamp_expression(None)
         compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
-            self.assertEqual(compiled, "from_unixtime(ds)")
+            assert compiled == "from_unixtime(ds)"
 
         ds_col.python_date_format = "epoch_s"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
         compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
-            self.assertEqual(compiled, "DATE(from_unixtime(ds))")
+            assert compiled == "DATE(from_unixtime(ds))"
 
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
         compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
-            self.assertEqual(compiled, "DATE(from_unixtime(DATE_ADD(ds, 1)))")
+            assert compiled == "DATE(from_unixtime(DATE_ADD(ds, 1)))"
         ds_col.expression = prev_ds_expr
 
     def query_with_expr_helper(self, is_timeseries, inner_join=True):
@@ -448,16 +449,16 @@ class TestSqlaTableModel(SupersetTestCase):
             series_limit=15 if inner_join and is_timeseries else None,
         )
         qr = tbl.query(query_obj)
-        self.assertEqual(qr.status, QueryStatus.SUCCESS)
+        assert qr.status == QueryStatus.SUCCESS
         sql = qr.query
-        self.assertIn(arbitrary_gby, sql)
-        self.assertIn("name", sql)
+        assert arbitrary_gby in sql
+        assert "name" in sql
         if inner_join and is_timeseries:
-            self.assertIn("JOIN", sql.upper())
+            assert "JOIN" in sql.upper()
         else:
-            self.assertNotIn("JOIN", sql.upper())
+            assert "JOIN" not in sql.upper()
         spec.allows_joins = old_inner_join
-        self.assertFalse(qr.df.empty)
+        assert not qr.df.empty
         return qr.df
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -475,7 +476,7 @@ class TestSqlaTableModel(SupersetTestCase):
         name_list1 = canonicalize_df(df1).name.values.tolist()
         df2 = self.query_with_expr_helper(is_timeseries=True, inner_join=False)
         name_list2 = canonicalize_df(df1).name.values.tolist()
-        self.assertFalse(df2.empty)
+        assert not df2.empty
 
         assert name_list2 == name_list1
 
@@ -498,14 +499,14 @@ class TestSqlaTableModel(SupersetTestCase):
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
-        self.assertNotIn("-- COMMENT", sql)
+        assert "-- COMMENT" not in sql
 
         def mutator(*args, **kwargs):
             return "-- COMMENT\n" + args[0]
 
         app.config["SQL_QUERY_MUTATOR"] = mutator
         sql = tbl.get_query_str(query_obj)
-        self.assertIn("-- COMMENT", sql)
+        assert "-- COMMENT" in sql
 
         app.config["SQL_QUERY_MUTATOR"] = None
 
@@ -524,15 +525,15 @@ class TestSqlaTableModel(SupersetTestCase):
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
-        self.assertNotIn("-- COMMENT", sql)
+        assert "-- COMMENT" not in sql
 
         def mutator(sql, database=None, **kwargs):
             return "-- COMMENT\n--" + "\n" + str(database) + "\n" + sql
 
         app.config["SQL_QUERY_MUTATOR"] = mutator
         mutated_sql = tbl.get_query_str(query_obj)
-        self.assertIn("-- COMMENT", mutated_sql)
-        self.assertIn(tbl.database.name, mutated_sql)
+        assert "-- COMMENT" in mutated_sql
+        assert tbl.database.name in mutated_sql
 
         app.config["SQL_QUERY_MUTATOR"] = None
 
@@ -554,7 +555,7 @@ class TestSqlaTableModel(SupersetTestCase):
         with self.assertRaises(Exception) as context:
             tbl.get_query_str(query_obj)
 
-        self.assertTrue("Metric 'invalid' does not exist", context.exception)
+        assert "Metric 'invalid' does not exist", context.exception
 
     def test_query_label_without_group_by(self):
         tbl = self.get_table(name="birth_names")
@@ -577,7 +578,7 @@ class TestSqlaTableModel(SupersetTestCase):
         )
 
         sql = tbl.get_query_str(query_obj)
-        self.assertRegex(sql, r'name AS ["`]?Given Name["`]?')
+        assert re.search('name AS ["`]?Given Name["`]?', sql)  # noqa: F821
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_data_for_slices_with_no_query_context(self):

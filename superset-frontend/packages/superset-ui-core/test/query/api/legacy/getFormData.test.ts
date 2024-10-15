@@ -22,9 +22,9 @@ import { getFormData } from '../../../../src/query/api/legacy';
 import setupClientForTest from '../setupClientForTest';
 
 describe('getFormData()', () => {
-  beforeAll(setupClientForTest);
+  beforeAll(() => setupClientForTest());
 
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
 
   const mockData = {
     datasource: '1__table',
