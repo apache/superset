@@ -276,7 +276,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         script: str,
         engine: str,
     ) -> list[SQLStatement]:
-        if engine in SQLGLOT_DIALECTS:
+        if dialect := SQLGLOT_DIALECTS.get(engine):
             try:
                 return [
                     cls(ast.sql(), engine, ast)
@@ -297,7 +297,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         remainder = script
 
         try:
-            tokens = sqlglot.tokenize(script)
+            tokens = sqlglot.tokenize(script, dialect)
         except sqlglot.errors.TokenError as ex:
             raise SupersetParseError(
                 script,
