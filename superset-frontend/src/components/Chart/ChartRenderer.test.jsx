@@ -17,8 +17,9 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-
+import { ChartMetadata, getChartMetadataRegistry } from '@superset-ui/core';
 import ChartRenderer from 'src/components/Chart/ChartRenderer';
+import { ChartSource } from 'src/types/ChartSource';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -40,7 +41,15 @@ const requiredProps = {
     testControl: 'bar',
   },
   vizType: 'table',
+  source: ChartSource.Dashboard,
 };
+
+beforeAll(() => {
+  window.featureFlags = { DRILL_TO_DETAIL: true };
+});
+afterAll(() => {
+  window.featureFlags = {};
+});
 
 test('should render SuperChart', () => {
   const { getByTestId } = render(
@@ -56,4 +65,25 @@ test('should use latestQueryFormData instead of formData when chartIsStale is tr
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify({ testControl: 'bar' }),
   );
+});
+
+test('should render chart context menu', () => {
+  const { getByTestId } = render(<ChartRenderer {...requiredProps} />);
+  expect(getByTestId('mock-chart-context-menu')).toBeInTheDocument();
+});
+
+test('should not render chart context menu if the context menu is suppressed for given viz plugin', () => {
+  getChartMetadataRegistry().registerValue(
+    'chart_without_context_menu',
+    new ChartMetadata({
+      name: 'chart with suppressed context menu',
+      thumbnail: '.png',
+      useLegacyApi: false,
+      suppressContextMenu: true,
+    }),
+  );
+  const { queryByTestId } = render(
+    <ChartRenderer {...requiredProps} vizType="chart_without_context_menu" />,
+  );
+  expect(queryByTestId('mock-chart-context-menu')).not.toBeInTheDocument();
 });

@@ -84,9 +84,13 @@ const defaultProps = {
 class ChartRenderer extends Component {
   constructor(props) {
     super(props);
+    const suppressContextMenu = getChartMetadataRegistry().get(
+      props.formData.viz_type ?? props.vizType,
+    )?.suppressContextMenu;
     this.state = {
       showContextMenu:
         props.source === ChartSource.Dashboard &&
+        !suppressContextMenu &&
         (isFeatureEnabled(FeatureFlag.DrillToDetail) ||
           isFeatureEnabled(FeatureFlag.DashboardCrossFilters)),
       inContextMenu: false,
