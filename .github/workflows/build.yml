@@ -3,7 +3,7 @@ name: "Docker Images"
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     types: [opened, reopened, synchronize]
 
