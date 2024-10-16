@@ -586,7 +586,7 @@ export default function transformProps(
         });
         if (stack) {
           rows.reverse();
-          if (focusedRow) {
+          if (focusedRow !== undefined) {
             focusedRow = rows.length - focusedRow - 1;
           }
         }
