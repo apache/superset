@@ -1,61 +1,66 @@
-import { QueryFormColumn, QueryFormData } from '@superset-ui/core';
-import {
-  BaseChartProps,
-  BaseTransformedProps,
-  ContextMenuTransformedProps,
-  CrossFilterTransformedProps,
-  LegendFormData,
-  LegendOrientation,
-  LegendType,
-} from '../types';
-import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
+// types.ts
 
-export type CustomChartFormData = QueryFormData &
-  LegendFormData & {
-    // Variables
-    chartType: 'bar' | 'line' | 'pie'; // Chart type
-    metrics: string[]; // Metrics to visualize
-    groupBy: string[]; // Grouping columns
-    colorScheme: string; // Color scheme
-    showLegend: boolean; // Show legend toggle
-    xAxisLabel: string; // Custom X-axis label
-    yAxisLabel: string; // Custom Y-axis label
-    showDataLabels: boolean; // Toggle for data labels
-    isStacked: boolean; // Stacked chart option
+import { QueryFormMetric } from '@superset-ui/core';
+
+// Define the shape of the CustomChartProps
+export interface CustomChartProps {
+  formData: {
+    metrics: Array<QueryFormMetric>;
+    groupBy: string[];
+    colorScheme: string;
+    showDataLabels: boolean;
+    isStacked: boolean;
+    chartType: string;
+    xAxisLabel?: string;
+    yAxisLabel?: string;
   };
+  queriesData: Array<{
+    data: Array<Record<string, any>>;
+  }>;
+  width: number;
+  height: number;
+}
 
-export enum CustomChartLabelType {
-  // Enum Labels
-  None = 'none',
-  Inside = 'inside',
-  Outside = 'outside',
-  Top = 'top',
-  Bottom = 'bottom',
-  Left = 'left',
-  Right = 'right',
-};
-
-export interface CustomChartProps
-  extends BaseChartProps<CustomChartFormData> {
-    formdata: CustomChartFormData
-  }
-
-// @ts-ignore
-export const DEFAULT_FORM_DATA: CustomChartFormData = {
-  ...DEFAULT_LEGEND_FORM_DATA,
-  // Variables
-  chartType: 'bar', // Default to bar chart
-  metrics: [], // Start with no metrics
-  groupBy: [], // Start with no grouping
-  colorScheme: 'default', // Default color scheme
-  showLegend: true, // Show legend by default
-  xAxisLabel: '', // No default label
-  yAxisLabel: '', // No default label
-  showDataLabels: false, // Do not show data labels by default
-  isStacked: false, // Not stacked by default
-};
-
-export type CustomChartTransformProps =
-  BaseTransformedProps<CustomChartFormData> &
-    ContextMenuTransformedProps &
-    CrossFilterTransformedProps;
+// Define the shape of the transformed chart properties
+export interface CustomChartTransformProps {
+  formData: CustomChartProps['formData'];
+  width: number;
+  height: number;
+  echartOptions: {
+    tooltip: {
+      trigger: string;
+      formatter: (params: any) => string;
+    };
+    series: Array<{
+      type: string;
+      data: Array<{
+        name: string;
+        value: any; // You may want to specify the actual type based on your data structure
+        itemStyle: {
+          color: string;
+        };
+        label: {
+          show: boolean;
+        };
+      }>;
+      stacking?: string;
+      emphasis: {
+        itemStyle: {
+          shadowBlur: number;
+          shadowColor: string;
+        };
+      };
+      label: {
+        show: boolean;
+      };
+    }>;
+    xAxis: {
+      type: string;
+      name: string;
+    };
+    yAxis: {
+      type: string;
+      name: string;
+    };
+  };
+}

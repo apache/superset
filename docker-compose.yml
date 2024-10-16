@@ -239,15 +239,19 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
   
-  #clickhouse-server:
-    #image: clickhouse/clickhouse-server
-    #container_name: clickhouse-db
-    #volumes:
-    #  - clickhouse-data:/var/lib/clickhouse
-    #ports:
-    #  - "8123:8123"
-    #  - "9000:9000"
-  
+  clickhouse-server:
+    image: clickhouse/clickhouse-server
+    container_name: clickhouse-db
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
 
 volumes:
   superset_home:
@@ -256,3 +260,5 @@ volumes:
     external: false
   redis:
     external: false
+  clickhouse-data:
+    driver: local

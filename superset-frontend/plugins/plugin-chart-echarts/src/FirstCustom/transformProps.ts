@@ -1,10 +1,4 @@
-import { CategoricalColorNamespace, QueryFormColumn, QueryFormData, QueryFormMetric } from '@superset-ui/core';
-import {
-  BaseChartProps,
-  BaseTransformedProps,
-  ContextMenuTransformedProps,
-  CrossFilterTransformedProps,
-} from '../types';
+import { CategoricalColorNamespace, QueryFormMetric } from '@superset-ui/core';
 import { CustomChartProps, CustomChartTransformProps } from './types';
 
 export default function transformProps(
