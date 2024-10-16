@@ -34,7 +34,7 @@ from superset.extensions import event_logger
 from superset.models.core import Database
 from superset.utils import json
 
-BYPASS_VALIDATION_ENGINES = {"bigquery"}
+BYPASS_VALIDATION_ENGINES = {"bigquery", "snowflake"}
 
 
 class ValidateDatabaseParametersCommand(BaseCommand):
@@ -107,6 +107,15 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 with closing(engine.raw_connection()) as conn:
                     alive = engine.dialect.do_ping(conn)
             except Exception as ex:
+                # If the connection failed because OAuth2 is needed, we can save the
+                # database and trigger the OAuth2 flow whenever a user tries to run a
+                # query.
+                if (
+                    database.is_oauth2_enabled()
+                    and database.db_engine_spec.needs_oauth2(ex)
+                ):
+                    return
+
                 url = make_url_safe(sqlalchemy_uri)
                 context = {
                     "hostname": url.host,

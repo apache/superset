@@ -35,7 +35,6 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
-  NumberFormats,
   QueryFormData,
   QueryFormMetric,
   TimeseriesChartDataResponseResult,
@@ -92,7 +91,6 @@ import {
 import { TIMEGRAIN_TO_TIMESTAMP, TIMESERIES_CONSTANTS } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
-  getPercentFormatter,
   getTooltipTimeFormatter,
   getXAxisFormatter,
   getYAxisFormatter,
@@ -153,6 +151,7 @@ export default function transformProps(
     areaB,
     annotationLayers,
     colorScheme,
+    timeShiftColor,
     contributionMode,
     legendOrientation,
     legendType,
@@ -235,7 +234,6 @@ export default function transformProps(
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
   const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
   const series: SeriesOption[] = [];
-  const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')
     : currencyFormat?.symbol
@@ -409,6 +407,7 @@ export default function transformProps(
         showValueIndexes: showValueIndexesA,
         totalStackedValues,
         thresholdValues,
+        timeShiftColor,
       },
     );
     if (transformedSeries) series.push(transformedSeries);
@@ -458,6 +457,7 @@ export default function transformProps(
         showValueIndexes: showValueIndexesB,
         totalStackedValues: totalStackedValuesB,
         thresholdValues: thresholdValuesB,
+        timeShiftColor,
       },
     );
     if (transformedSeries) series.push(transformedSeries);
@@ -592,18 +592,8 @@ export default function transformProps(
         const forecastValues =
           extractForecastValuesFromTooltipParams(forecastValue);
 
-        const isForecast = Object.values(forecastValues).some(
-          value =>
-            value.forecastTrend || value.forecastLower || value.forecastUpper,
-        );
-
-        const total = Object.values(forecastValues).reduce(
-          (acc, value) =>
-            value.observation !== undefined ? acc + value.observation : acc,
-          0,
-        );
-        const showTotal = richTooltip && !isForecast;
         const keys = Object.keys(forecastValues);
+        let focusedRow;
         keys.forEach(key => {
           const value = forecastValues[key];
           // if there are no dimensions, key is a verbose name of a metric,
@@ -637,23 +627,12 @@ export default function transformProps(
               ? tooltipFormatter
               : tooltipFormatterSecondary,
           });
-          if (showTotal && value.observation !== undefined) {
-            row.push(percentFormatter.format(value.observation / (total || 1)));
-          }
           rows.push(row);
+          if (key === focusedSeries) {
+            focusedRow = rows.length - 1;
+          }
         });
-        if (showTotal) {
-          rows.push([
-            'Total',
-            formatter.format(total),
-            percentFormatter.format(1),
-          ]);
-        }
-        return tooltipHtml(
-          rows,
-          tooltipFormatter(xValue),
-          keys.findIndex(key => key === focusedSeries),
-        );
+        return tooltipHtml(rows, tooltipFormatter(xValue), focusedRow);
       },
     },
     legend: {

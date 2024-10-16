@@ -174,8 +174,9 @@ describe('async actions', () => {
 
   describe('fetchQueryResults', () => {
     const makeRequest = () => {
+      const store = mockStore(initialState);
       const request = actions.fetchQueryResults(query);
-      return request(dispatch);
+      return request(dispatch, store.getState);
     };
 
     it('makes the fetch request', () => {
@@ -523,6 +524,85 @@ describe('async actions', () => {
     store.dispatch(actions.setActiveQueryEditor(defaultQueryEditor));
 
     expect(store.getActions()).toEqual(expectedActions);
+  });
+
+  describe('swithQueryEditor', () => {
+    it('switch to the next tab editor', () => {
+      const store = mockStore(initialState);
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor: initialState.sqlLab.queryEditors[1],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor());
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
+
+    it('switch to the first tab editor once it reaches the rightmost tab', () => {
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          tabHistory: [
+            initialState.sqlLab.queryEditors[
+              initialState.sqlLab.queryEditors.length - 1
+            ].id,
+          ],
+        },
+      });
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor: initialState.sqlLab.queryEditors[0],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor());
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
+
+    it('switch to the previous tab editor', () => {
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          tabHistory: [initialState.sqlLab.queryEditors[1].id],
+        },
+      });
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor: initialState.sqlLab.queryEditors[0],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor(true));
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
+
+    it('switch to the last tab editor once it reaches the leftmost tab', () => {
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          tabHistory: [initialState.sqlLab.queryEditors[0].id],
+        },
+      });
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor:
+            initialState.sqlLab.queryEditors[
+              initialState.sqlLab.queryEditors.length - 1
+            ],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor(true));
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
   });
 
   describe('backend sync', () => {

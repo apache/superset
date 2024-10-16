@@ -83,7 +83,6 @@ from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
-    QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetErrorException,
     SupersetErrorsException,
@@ -103,10 +102,9 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
-    validate_adhoc_subquery,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import ParsedQuery, sanitize_clause, Table
+from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -491,6 +489,11 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         del data["description"]
         data.update({"metrics": filtered_metrics})
         data.update({"columns": filtered_columns})
+
+        all_columns = {
+            column_["column_name"]: column_["verbose_name"] or column_["column_name"]
+            for column_ in filtered_columns
+        }
         verbose_map = {"__timestamp": "Time"}
         verbose_map.update(
             {
@@ -498,14 +501,9 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
                 for metric in filtered_metrics
             }
         )
-        verbose_map.update(
-            {
-                column_["column_name"]: column_["verbose_name"]
-                or column_["column_name"]
-                for column_ in filtered_columns
-            }
-        )
+        verbose_map.update(all_columns)
         data["verbose_map"] = verbose_map
+        data["column_names"] = set(all_columns.values()) | set(self.column_names)
 
         return data
 
@@ -1136,27 +1134,6 @@ sqlatable_user = DBTable(
 )
 
 
-def _process_sql_expression(
-    expression: str | None,
-    database_id: int,
-    schema: str,
-    template_processor: BaseTemplateProcessor | None = None,
-) -> str | None:
-    if template_processor and expression:
-        expression = template_processor.process_template(expression)
-    if expression:
-        try:
-            expression = validate_adhoc_subquery(
-                expression,
-                database_id,
-                schema,
-            )
-            expression = sanitize_clause(expression)
-        except (QueryClauseValidationException, SupersetSecurityException) as ex:
-            raise QueryObjectValidationError(ex.message) from ex
-    return expression
-
-
 class SqlaTable(
     Model,
     BaseDatasource,
@@ -1552,12 +1529,16 @@ class SqlaTable(
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            expression = _process_sql_expression(
-                expression=metric["sqlExpression"],
-                database_id=self.database_id,
-                schema=self.schema,
-                template_processor=template_processor,
-            )
+            try:
+                expression = self._process_sql_expression(
+                    expression=metric["sqlExpression"],
+                    database_id=self.database_id,
+                    engine=self.database.backend,
+                    schema=self.schema,
+                    template_processor=template_processor,
+                )
+            except SupersetSecurityException as ex:
+                raise QueryObjectValidationError(ex.message) from ex
             sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
@@ -1582,12 +1563,16 @@ class SqlaTable(
         :rtype: sqlalchemy.sql.column
         """
         label = utils.get_column_name(col)
-        expression = _process_sql_expression(
-            expression=col["sqlExpression"],
-            database_id=self.database_id,
-            schema=self.schema,
-            template_processor=template_processor,
-        )
+        try:
+            expression = self._process_sql_expression(
+                expression=col["sqlExpression"],
+                database_id=self.database_id,
+                engine=self.database.backend,
+                schema=self.schema,
+                template_processor=template_processor,
+            )
+        except SupersetSecurityException as ex:
+            raise QueryObjectValidationError(ex.message) from ex
         time_grain = col.get("timeGrain")
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
@@ -1705,10 +1690,10 @@ class SqlaTable(
         if isinstance(value, np.generic):
             value = value.item()
 
-        column_ = columns_by_name[dimension]
+        column_ = columns_by_name.get(dimension)
         db_extra: dict[str, Any] = self.database.get_extra()
 
-        if column_.type and column_.is_temporal and isinstance(value, str):
+        if column_ and column_.type and column_.is_temporal and isinstance(value, str):
             sql = self.db_engine_spec.convert_dttm(
                 column_.type, dateutil.parser.parse(value), db_extra=db_extra
             )

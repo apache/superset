@@ -192,7 +192,7 @@ class TestDatasetApi(SupersetTestCase):
         def count_datasets():
             uri = "api/v1/chart/"
             rv = self.client.get(uri, "get_list")
-            self.assertEqual(rv.status_code, 200)
+            assert rv.status_code == 200
             data = rv.get_json()
             return data["count"]
 
@@ -1342,14 +1342,14 @@ class TestDatasetApi(SupersetTestCase):
         table_data = {"description": "changed_description"}
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.client.put(uri, json=table_data)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
 
         response = self.get_assert_metric("api/v1/dataset/", "get_list")
         res = json.loads(response.data.decode("utf-8"))["result"]
 
         current_dataset = [d for d in res if d["id"] == dataset.id][0]
-        self.assertEqual(current_dataset["description"], "changed_description")
-        self.assertNotIn("username", current_dataset["changed_by"].keys())
+        assert current_dataset["description"] == "changed_description"
+        assert "username" not in current_dataset["changed_by"].keys()
 
         db.session.delete(dataset)
         db.session.commit()
@@ -1364,13 +1364,13 @@ class TestDatasetApi(SupersetTestCase):
         table_data = {"description": "changed_description"}
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.client.put(uri, json=table_data)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
 
         response = self.get_assert_metric(uri, "get")
         res = json.loads(response.data.decode("utf-8"))["result"]
 
-        self.assertEqual(res["description"], "changed_description")
-        self.assertNotIn("username", res["changed_by"].keys())
+        assert res["description"] == "changed_description"
+        assert "username" not in res["changed_by"].keys()
 
         db.session.delete(dataset)
         db.session.commit()
@@ -2311,14 +2311,14 @@ class TestDatasetApi(SupersetTestCase):
                 "database_id": get_example_database().id,
             },
         )
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         dataset = (
             db.session.query(SqlaTable)
             .filter(SqlaTable.table_name == "virtual_dataset")
             .one()
         )
-        self.assertEqual(response["result"], {"table_id": dataset.id})
+        assert response["result"] == {"table_id": dataset.id}
 
     def test_get_or_create_dataset_database_not_found(self):
         """
@@ -2329,9 +2329,9 @@ class TestDatasetApi(SupersetTestCase):
             "api/v1/dataset/get_or_create/",
             json={"table_name": "virtual_dataset", "database_id": 999},
         )
-        self.assertEqual(rv.status_code, 422)
+        assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["message"], {"database": ["Database does not exist"]})
+        assert response["message"] == {"database": ["Database does not exist"]}
 
     @patch("superset.commands.dataset.create.CreateDatasetCommand.run")
     def test_get_or_create_dataset_create_fails(self, command_run_mock):
@@ -2347,9 +2347,9 @@ class TestDatasetApi(SupersetTestCase):
                 "database_id": get_example_database().id,
             },
         )
-        self.assertEqual(rv.status_code, 422)
+        assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["message"], "Dataset could not be created.")
+        assert response["message"] == "Dataset could not be created."
 
     def test_get_or_create_dataset_creates_table(self):
         """
@@ -2370,7 +2370,7 @@ class TestDatasetApi(SupersetTestCase):
                 "template_params": '{"param": 1}',
             },
         )
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         table = (
             db.session.query(SqlaTable)
@@ -2410,12 +2410,9 @@ class TestDatasetApi(SupersetTestCase):
                 "db_name": get_example_database().database_name,
             },
         )
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            len(data["result"]),
-            len(energy_charts),
-        )
+        assert len(data["result"]) == len(energy_charts)
         for chart_result in data["result"]:
             assert "chart_id" in chart_result
             assert "viz_error" in chart_result
@@ -2439,12 +2436,9 @@ class TestDatasetApi(SupersetTestCase):
                 "dashboard_id": dashboard.id,
             },
         )
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            len(data["result"]),
-            len(birth_charts),
-        )
+        assert len(data["result"]) == len(birth_charts)
         for chart_result in data["result"]:
             assert "chart_id" in chart_result
             assert "viz_error" in chart_result
@@ -2462,12 +2456,9 @@ class TestDatasetApi(SupersetTestCase):
                 ),
             },
         )
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            len(data["result"]),
-            len(birth_charts),
-        )
+        assert len(data["result"]) == len(birth_charts)
         for chart_result in data["result"]:
             assert "chart_id" in chart_result
             assert "viz_error" in chart_result
@@ -2476,17 +2467,14 @@ class TestDatasetApi(SupersetTestCase):
     def test_warm_up_cache_db_and_table_name_required(self):
         self.login(ADMIN_USERNAME)
         rv = self.client.put("/api/v1/dataset/warm_up_cache", json={"dashboard_id": 1})
-        self.assertEqual(rv.status_code, 400)
+        assert rv.status_code == 400
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            data,
-            {
-                "message": {
-                    "db_name": ["Missing data for required field."],
-                    "table_name": ["Missing data for required field."],
-                }
-            },
-        )
+        assert data == {
+            "message": {
+                "db_name": ["Missing data for required field."],
+                "table_name": ["Missing data for required field."],
+            }
+        }
 
     def test_warm_up_cache_table_not_found(self):
         self.login(ADMIN_USERNAME)
@@ -2494,9 +2482,8 @@ class TestDatasetApi(SupersetTestCase):
             "/api/v1/dataset/warm_up_cache",
             json={"table_name": "not_here", "db_name": "abc"},
         )
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            data,
-            {"message": "The provided table was not found in the provided database"},
-        )
+        assert data == {
+            "message": "The provided table was not found in the provided database"
+        }

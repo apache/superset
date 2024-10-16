@@ -187,7 +187,7 @@ class DatabaseMixin:
         "expose_in_sqllab": _("Expose in SQL Lab"),
         "allow_ctas": _("Allow CREATE TABLE AS"),
         "allow_cvas": _("Allow CREATE VIEW AS"),
-        "allow_dml": _("Allow DML"),
+        "allow_dml": _("Allow DDL/DML"),
         "force_ctas_schema": _("CTAS Schema"),
         "database_name": _("Database"),
         "creator": _("Creator"),

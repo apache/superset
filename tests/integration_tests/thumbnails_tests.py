@@ -73,7 +73,7 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
                 "admin",
                 thumbnail_url,
             )
-            self.assertEqual(response.getcode(), 202)
+            assert response.getcode() == 202
 
 
 class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
@@ -217,7 +217,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
         rv = self.client.get(thumbnail_url)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=False)
@@ -228,7 +228,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
         rv = self.client.get(thumbnail_url)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -255,7 +255,7 @@ class TestThumbnails(SupersetTestCase):
             assert mock_adjust_string.call_args[0][2] == "admin"
 
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 202)
+            assert rv.status_code == 202
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -283,7 +283,7 @@ class TestThumbnails(SupersetTestCase):
             assert mock_adjust_string.call_args[0][2] == username
 
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 202)
+            assert rv.status_code == 202
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -295,7 +295,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{max_id + 1}/thumbnail/1234/"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
@@ -306,7 +306,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
         rv = self.client.get(thumbnail_url)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -333,7 +333,7 @@ class TestThumbnails(SupersetTestCase):
             assert mock_adjust_string.call_args[0][2] == "admin"
 
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 202)
+            assert rv.status_code == 202
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -361,7 +361,7 @@ class TestThumbnails(SupersetTestCase):
             assert mock_adjust_string.call_args[0][2] == username
 
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 202)
+            assert rv.status_code == 202
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -373,7 +373,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/chart/{max_id + 1}/thumbnail/1234/"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -387,8 +387,8 @@ class TestThumbnails(SupersetTestCase):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             rv = self.client.get(f"api/v1/chart/{id_}/thumbnail/1234/")
-            self.assertEqual(rv.status_code, 302)
-            self.assertEqual(rv.headers["Location"], thumbnail_url)
+            assert rv.status_code == 302
+            assert rv.headers["Location"] == thumbnail_url
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -402,8 +402,8 @@ class TestThumbnails(SupersetTestCase):
             self.login(ADMIN_USERNAME)
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 200)
-            self.assertEqual(rv.data, self.mock_image)
+            assert rv.status_code == 200
+            assert rv.data == self.mock_image
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -417,8 +417,8 @@ class TestThumbnails(SupersetTestCase):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             rv = self.client.get(thumbnail_url)
-            self.assertEqual(rv.status_code, 200)
-            self.assertEqual(rv.data, self.mock_image)
+            assert rv.status_code == 200
+            assert rv.data == self.mock_image
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -432,5 +432,5 @@ class TestThumbnails(SupersetTestCase):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             rv = self.client.get(f"api/v1/dashboard/{id_}/thumbnail/1234/")
-            self.assertEqual(rv.status_code, 302)
-            self.assertEqual(rv.headers["Location"], thumbnail_url)
+            assert rv.status_code == 302
+            assert rv.headers["Location"] == thumbnail_url

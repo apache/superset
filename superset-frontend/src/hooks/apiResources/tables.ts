@@ -85,7 +85,7 @@ export type TableMetaData = {
   columns: Column[];
 };
 
-type TableMetadataReponse = {
+type TableMetadataResponse = {
   json: TableMetaData;
   response: Response;
 };
@@ -130,7 +130,7 @@ const tableApi = api.injectEndpoints({
           catalog,
           schema,
         })}`,
-        transformResponse: ({ json }: TableMetadataReponse) => json,
+        transformResponse: ({ json }: TableMetadataResponse) => json,
       }),
     }),
     tableExtendedMetadata: builder.query<

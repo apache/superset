@@ -192,7 +192,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
   if (error) throw error; // caught in error boundary
-  if (!readyToRender || !hasDashboardInfoInitiated) return <Loading />;
 
   return (
     <>
@@ -205,12 +204,18 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           chartHeaderStyles(theme),
         ]}
       />
-      <SyncDashboardState dashboardPageId={dashboardPageId} />
-      <DashboardPageIdContext.Provider value={dashboardPageId}>
-        <DashboardContainer>
-          <DashboardBuilder />
-        </DashboardContainer>
-      </DashboardPageIdContext.Provider>
+      {readyToRender && hasDashboardInfoInitiated ? (
+        <>
+          <SyncDashboardState dashboardPageId={dashboardPageId} />
+          <DashboardPageIdContext.Provider value={dashboardPageId}>
+            <DashboardContainer>
+              <DashboardBuilder />
+            </DashboardContainer>
+          </DashboardPageIdContext.Provider>
+        </>
+      ) : (
+        <Loading />
+      )}
     </>
   );
 };

@@ -59,6 +59,7 @@ export enum FeatureFlag {
   Thumbnails = 'THUMBNAILS',
   UseAnalagousColors = 'USE_ANALAGOUS_COLORS',
   ForceSqlLabRunAsync = 'SQLLAB_FORCE_RUN_ASYNC',
+  SlackEnableAvatars = 'SLACK_ENABLE_AVATARS',
 }
 
 export type ScheduleQueriesProps = {

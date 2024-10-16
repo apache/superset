@@ -37,7 +37,7 @@ ENV SUPERSET_CONFIG_PATH /app/superset_config.py
 ```
 
 Docker compose deployments handle application configuration differently using specific conventions.
-Refer to the [docker-compose tips & configuration](/docs/installation/docker-compose#docker-compose-tips--configuration)
+Refer to the [docker compose tips & configuration](/docs/installation/docker-compose#docker-compose-tips--configuration)
 for details.
 
 The following is an example of just a few of the parameters you can set in your `superset_config.py` file:
@@ -314,9 +314,9 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
   ]
   ```
 ### Keycloak-Specific Configuration using Flask-OIDC
-If you are using Keycloak as OpenID Connect 1.0 Provider, the above configuration based on [`Authlib`](https://authlib.org/) might not work. In this case using [`Flask-OIDC`](https://https://pypi.org/project/flask-oidc/) is a viable option.
+If you are using Keycloak as OpenID Connect 1.0 Provider, the above configuration based on [`Authlib`](https://authlib.org/) might not work. In this case using [`Flask-OIDC`](https://pypi.org/project/flask-oidc/) is a viable option.
 
-Make sure the pip package [`Flask-OIDC`](https://https://pypi.org/project/flask-oidc/) is installed on the webserver. This was succesfully tested using version 2.2.0. This package requires [`Flask-OpenID`](https://pypi.org/project/Flask-OpenID/) as a dependency.
+Make sure the pip package [`Flask-OIDC`](https://pypi.org/project/flask-oidc/) is installed on the webserver. This was succesfully tested using version 2.2.0. This package requires [`Flask-OpenID`](https://pypi.org/project/Flask-OpenID/) as a dependency.
 
 The following code defines a new security manager.  Add it to a new file named `keycloak_security_manager.py`, placed in the same directory as your `superset_config.py` file.
 ```python

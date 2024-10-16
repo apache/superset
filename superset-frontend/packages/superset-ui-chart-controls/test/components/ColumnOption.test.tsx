@@ -34,6 +34,9 @@ jest.mock('../../src/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
     <div data-test="mock-column-type-label">{type}</div>
   ),
 }));
+jest.mock('../../src/components/InfoTooltipWithTrigger', () => () => (
+  <div data-test="mock-info-tooltip-with-trigger" />
+));
 
 const defaultProps: ColumnOptionProps = {
   column: {
@@ -110,4 +113,18 @@ test('dttm column has correct column label if showType is true', () => {
   expect(getByTestId('mock-column-type-label')).toHaveTextContent(
     String(GenericDataType.Temporal),
   );
+});
+test('doesnt show InfoTooltipWithTrigger when no warning', () => {
+  const { queryByText } = setup();
+  expect(queryByText('mock-info-tooltip-with-trigger')).not.toBeInTheDocument();
+});
+test('shows a warning with InfoTooltipWithTrigger when it contains warning', () => {
+  const { getByTestId } = setup({
+    ...defaultProps,
+    column: {
+      ...defaultProps.column,
+      warning_text: 'This is a warning',
+    },
+  });
+  expect(getByTestId('mock-info-tooltip-with-trigger')).toBeInTheDocument();
 });

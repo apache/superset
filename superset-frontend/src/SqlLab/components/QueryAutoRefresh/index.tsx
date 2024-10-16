@@ -43,7 +43,7 @@ export interface QueryAutoRefreshProps {
   queriesLastUpdate: number;
 }
 
-// returns true if the Query.state matches one of the specifc values indicating the query is still processing on server
+// returns true if the Query.state matches one of the specific values indicating the query is still processing on server
 export const isQueryRunning = (q: Query): boolean =>
   runningQueryStateList.includes(q?.state);
 

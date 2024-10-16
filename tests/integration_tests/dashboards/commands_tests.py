@@ -25,6 +25,7 @@ from superset import db, security_manager
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.delete import DeleteEmbeddedDashboardCommand
 from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,
     DashboardForbiddenError,
     DashboardInvalidError,
     DashboardNotFoundError,
@@ -34,10 +35,13 @@ from superset.commands.dashboard.export import (
     ExportDashboardsCommand,
     get_default_position,
 )
+from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers import v0, v1
+from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.dashboard import DashboardDAO
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -233,6 +237,51 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "metadata": {"mock_key": "mock_value"},
             "version": "1.0.0",
         }
+
+    # @pytest.mark.usefixtures("load_covid_dashboard")
+    @pytest.mark.skip(reason="missing covid fixture")
+    @patch("superset.security.manager.g")
+    @patch("superset.views.base.g")
+    def test_export_dashboard_command_dataset_references(self, mock_g1, mock_g2):
+        mock_g1.user = security_manager.find_user("admin")
+        mock_g2.user = security_manager.find_user("admin")
+
+        example_dashboard = (
+            db.session.query(Dashboard)
+            .filter_by(uuid="f4065089-110a-41fa-8dd7-9ce98a65e250")
+            .one()
+        )
+        command = ExportDashboardsCommand([example_dashboard.id])
+        contents = dict(command.run())
+
+        expected_paths = {
+            "metadata.yaml",
+            f"dashboards/COVID_Vaccine_Dashboard_{example_dashboard.id}.yaml",
+            "datasets/examples/covid_vaccines.yaml",  # referenced dataset needs to be exported
+            "databases/examples.yaml",
+        }
+        for chart in example_dashboard.slices:
+            chart_slug = secure_filename(chart.slice_name)
+            expected_paths.add(f"charts/{chart_slug}_{chart.id}.yaml")
+        assert expected_paths == set(contents.keys())
+
+        metadata = yaml.safe_load(
+            contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]()
+        )
+
+        # find the dataset references in native filter and check if they are correct
+        assert "native_filter_configuration" in metadata["metadata"]
+
+        for filter_config in metadata["metadata"][
+            "native_filter_configuration"
+        ].values():
+            assert "targets" in filter_config
+            targets = filter_config["targets"]
+
+            for column in targets:
+                # we need to find the correct datasetUuid (not datasetId)
+                assert "datasetUuid" in column
+                assert column["datasetUuid"] == "974b7a1c-22ea-49cb-9214-97b7dbd511e0"
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.security.manager.g")
@@ -759,3 +808,67 @@ class TestDeleteEmbeddedDashboardCommand(SupersetTestCase):
                 .one_or_none()
             )
             assert deleted_embedded_dashboard is None
+
+
+class TestFavoriteDashboardCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_fave_unfave_dashboard_command(self):
+        """Test that a user can fave/unfave a dashboard"""
+        with self.client.application.test_request_context():
+            example_dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").one()
+            )
+
+            # Assert that the dashboard exists
+            assert example_dashboard is not None
+
+            with override_user(security_manager.find_user("admin")):
+                with patch(
+                    "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
+                    return_value=example_dashboard,
+                ):
+                    AddFavoriteDashboardCommand(example_dashboard.id).run()
+
+                    # Assert that the dashboard was faved
+                    ids = DashboardDAO.favorited_ids([example_dashboard])
+                    assert example_dashboard.id in ids
+
+                    DelFavoriteDashboardCommand(example_dashboard.id).run()
+
+                    # Assert that the dashboard was unfaved
+                    ids = DashboardDAO.favorited_ids([example_dashboard])
+                    assert example_dashboard.id not in ids
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_fave_unfave_dashboard_command_not_found(self):
+        """Test that faving / unfaving a non-existing dashboard raises an exception"""
+        with self.client.application.test_request_context():
+            example_dashboard_id = 1234
+
+            with override_user(security_manager.find_user("admin")):
+                with self.assertRaises(DashboardNotFoundError):
+                    AddFavoriteDashboardCommand(example_dashboard_id).run()
+
+                with self.assertRaises(DashboardNotFoundError):
+                    DelFavoriteDashboardCommand(example_dashboard_id).run()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.models.dashboard.Dashboard.get")
+    def test_fave_unfave_dashboard_command_forbidden(self, mock_get):
+        """Test that faving / unfaving raises an exception for a dashboard the user doesn't own"""
+        with self.client.application.test_request_context():
+            example_dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").one()
+            )
+
+            mock_get.return_value = example_dashboard
+
+            # Assert that the dashboard exists
+            assert example_dashboard is not None
+
+            with override_user(security_manager.find_user("gamma")):
+                with self.assertRaises(DashboardAccessDeniedError):
+                    AddFavoriteDashboardCommand(example_dashboard.uuid).run()
+
+                with self.assertRaises(DashboardAccessDeniedError):
+                    DelFavoriteDashboardCommand(example_dashboard.uuid).run()
