@@ -65,10 +65,11 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   addWarningToast: PropTypes.func.isRequired,
   user: PropTypes.object, // UserWithPermissionsAndRoles,
-  dashboardInfo: PropTypes.object.isRequired,
+  dashboardInfo: PropTypes.object,
   dashboardTitle: PropTypes.string,
   dataMask: PropTypes.object.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
+  chartsLoading: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object,
   customCss: PropTypes.string,
@@ -78,7 +79,6 @@ const propTypes = {
   setUnsavedChanges: PropTypes.func.isRequired,
   isStarred: PropTypes.bool.isRequired,
   isPublished: PropTypes.bool.isRequired,
-  isLoading: PropTypes.bool.isRequired,
   onSave: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
   fetchFaveStar: PropTypes.func.isRequired,
@@ -270,7 +270,7 @@ class Header extends PureComponent {
   }
 
   forceRefresh() {
-    if (!this.props.isLoading) {
+    if (!this.props.chartsLoading) {
       const chartList = Object.keys(this.props.charts);
       this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
         force: true,
@@ -288,10 +288,10 @@ class Header extends PureComponent {
   }
 
   startPeriodicRender(interval) {
-    let intervalMessage;
+    const { dashboardInfo } = this.props;
 
-    if (interval) {
-      const { dashboardInfo } = this.props;
+    let intervalMessage;
+    if (interval && dashboardInfo) {
       const periodicRefreshOptions =
         dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
       const predefinedValue = periodicRefreshOptions.find(
@@ -340,11 +340,13 @@ class Header extends PureComponent {
       );
     };
 
-    this.refreshTimer = setPeriodicRunner({
-      interval,
-      periodicRender,
-      refreshTimer: this.refreshTimer,
-    });
+    if (dashboardInfo) {
+      this.refreshTimer = setPeriodicRunner({
+        interval,
+        periodicRender,
+        refreshTimer: this.refreshTimer,
+      });
+    }
   }
 
   toggleEditMode() {
@@ -388,7 +390,7 @@ class Header extends PureComponent {
       roles: dashboardInfo.roles,
       slug,
       metadata: {
-        ...dashboardInfo?.metadata,
+        ...dashboardInfo.metadata,
         color_namespace: currentColorNamespace,
         color_scheme: currentColorScheme,
         positions,
@@ -434,28 +436,32 @@ class Header extends PureComponent {
 
   getMetadataItems = () => {
     const { dashboardInfo } = this.props;
+
     return [
       {
         type: MetadataType.LastModified,
-        value: dashboardInfo.changed_on_delta_humanized,
+        value: dashboardInfo?.changed_on_delta_humanized,
         modifiedBy:
-          getOwnerName(dashboardInfo.changed_by) || t('Not available'),
+          getOwnerName(dashboardInfo?.changed_by) || t('Not available'),
       },
       {
         type: MetadataType.Owner,
-        createdBy: getOwnerName(dashboardInfo.created_by) || t('Not available'),
+        createdBy:
+          getOwnerName(dashboardInfo?.created_by) || t('Not available'),
         owners:
-          dashboardInfo.owners.length > 0
-            ? dashboardInfo.owners.map(getOwnerName)
+          dashboardInfo?.owners.length > 0
+            ? dashboardInfo?.owners.map(getOwnerName)
             : t('None'),
-        createdOn: dashboardInfo.created_on_delta_humanized,
+        createdOn: dashboardInfo?.created_on_delta_humanized,
       },
     ];
   };
 
   render() {
     const {
+      dashboardInfo,
       dashboardTitle,
+      chartsLoading,
       layout,
       expandedSlices,
       customCss,
@@ -474,27 +480,24 @@ class Header extends PureComponent {
       editMode,
       isPublished,
       user,
-      dashboardInfo,
       hasUnsavedChanges,
-      isLoading,
       refreshFrequency,
       shouldPersistRefreshFrequency,
       setRefreshFrequency,
       lastModifiedTime,
       logEvent,
     } = this.props;
-
     const userCanEdit =
-      dashboardInfo.dash_edit_perm && !dashboardInfo.is_managed_externally;
-    const userCanShare = dashboardInfo.dash_share_perm;
-    const userCanSaveAs = dashboardInfo.dash_save_perm;
+      dashboardInfo?.dash_edit_perm && !dashboardInfo?.is_managed_externally;
+    const userCanShare = dashboardInfo?.dash_share_perm;
+    const userCanSaveAs = dashboardInfo?.dash_save_perm;
     const userCanCurate =
       isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
       findPermission('can_set_embedded', 'Dashboard', user.roles);
     const refreshLimit =
-      dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
+      dashboardInfo?.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =
-      dashboardInfo.common?.conf
+      dashboardInfo?.common?.conf
         ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
 
     const handleOnPropertiesChange = updates => {
@@ -519,44 +522,47 @@ class Header extends PureComponent {
       <div
         css={headerContainerStyle}
         data-test="dashboard-header-container"
-        data-test-id={dashboardInfo.id}
+        data-test-id={dashboardInfo?.id}
         className="dashboard-header-container"
       >
         <PageHeaderWithActions
           editableTitleProps={{
             title: dashboardTitle,
-            canEdit: userCanEdit && editMode,
+            canEdit: !!(userCanEdit && editMode),
             onSave: this.handleChangeText,
             placeholder: t('Add the name of the dashboard'),
             label: t('Dashboard title'),
             showTooltip: false,
+            loading: !dashboardTitle,
           }}
           certificatiedBadgeProps={{
-            certifiedBy: dashboardInfo.certified_by,
-            details: dashboardInfo.certification_details,
+            certifiedBy: dashboardInfo?.certified_by,
+            details: dashboardInfo?.certification_details,
           }}
           faveStarProps={{
-            itemId: dashboardInfo.id,
+            itemId: dashboardInfo?.id,
             fetchFaveStar: this.props.fetchFaveStar,
             saveFaveStar: this.props.saveFaveStar,
             isStarred: this.props.isStarred,
-            showTooltip: true,
+            showTooltip: !!dashboardInfo?.id,
           }}
           titlePanelAdditionalItems={[
             !editMode && (
               <PublishedStatus
-                dashboardId={dashboardInfo.id}
+                dashboardId={dashboardInfo?.id}
                 isPublished={isPublished}
                 savePublished={this.props.savePublished}
                 canEdit={userCanEdit}
                 canSave={userCanSaveAs}
                 visible={!editMode}
+                loading={!dashboardInfo?.id}
               />
             ),
             !editMode && (
               <MetadataBar
                 items={this.getMetadataItems()}
                 tooltipPlacement="bottom"
+                loading={!dashboardInfo?.id}
               />
             ),
           ]}
@@ -576,7 +582,7 @@ class Header extends PureComponent {
                         >
                           <StyledUndoRedoButton
                             buttonStyle="link"
-                            disabled={undoLength < 1}
+                            disabled={undoLength < 1 || !dashboardInfo}
                             onClick={undoLength && onUndo}
                           >
                             <Icons.Undo
@@ -596,7 +602,7 @@ class Header extends PureComponent {
                         >
                           <StyledUndoRedoButton
                             buttonStyle="link"
-                            disabled={redoLength < 1}
+                            disabled={redoLength < 1 || !dashboardInfo}
                             onClick={redoLength && onRedo}
                           >
                             <Icons.Redo
@@ -618,17 +624,20 @@ class Header extends PureComponent {
                         buttonStyle="default"
                         data-test="discard-changes-button"
                         aria-label={t('Discard')}
+                        disabled={!hasUnsavedChanges}
+                        loading={!dashboardInfo}
                       >
                         {t('Discard')}
                       </Button>
                       <Button
+                        aria-label={t('Save')}
                         css={saveBtnStyle}
                         buttonSize="small"
-                        disabled={!hasUnsavedChanges}
                         buttonStyle="primary"
                         onClick={this.overwriteDashboard}
                         data-test="header-save-button"
-                        aria-label={t('Save')}
+                        disabled={!hasUnsavedChanges}
+                        loading={!dashboardInfo}
                       >
                         {t('Save')}
                       </Button>
@@ -670,7 +679,7 @@ class Header extends PureComponent {
             <ConnectedHeaderActionsDropdown
               addSuccessToast={this.props.addSuccessToast}
               addDangerToast={this.props.addDangerToast}
-              dashboardId={dashboardInfo.id}
+              dashboardId={dashboardInfo?.id}
               dashboardTitle={dashboardTitle}
               dashboardInfo={dashboardInfo}
               dataMask={dataMask}
@@ -693,7 +702,7 @@ class Header extends PureComponent {
               userCanShare={userCanShare}
               userCanSave={userCanSaveAs}
               userCanCurate={userCanCurate}
-              isLoading={isLoading}
+              isLoading={chartsLoading || !dashboardInfo?.id}
               showPropertiesModal={this.showPropertiesModal}
               manageEmbedded={this.showEmbedModal}
               refreshLimit={refreshLimit}
@@ -704,12 +713,12 @@ class Header extends PureComponent {
               logEvent={logEvent}
             />
           }
-          showFaveStar={user?.userId && dashboardInfo?.id}
+          showFaveStar={user?.userId}
           showTitlePanelItems
         />
         {this.state.showingPropertiesModal && (
           <PropertiesModal
-            dashboardId={dashboardInfo.id}
+            dashboardId={dashboardInfo?.id}
             dashboardInfo={dashboardInfo}
             dashboardTitle={dashboardTitle}
             show={this.state.showingPropertiesModal}
@@ -726,7 +735,7 @@ class Header extends PureComponent {
           <DashboardEmbedModal
             show={this.state.showingEmbedModal}
             onHide={this.hideEmbedModal}
-            dashboardId={dashboardInfo.id}
+            dashboardId={dashboardInfo?.id}
           />
         )}
         <Global
