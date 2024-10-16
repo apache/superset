@@ -20,7 +20,11 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { Dispatch } from 'redux';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
-import { DatasourceType, QueryFormData } from '@superset-ui/core';
+import {
+  DatasourceType,
+  QueryFormData,
+  SimpleAdhocFilter,
+} from '@superset-ui/core';
 import {
   createDashboard,
   createSlice,
@@ -31,6 +35,7 @@ import {
   getSlicePayload,
   PayloadSlice,
 } from './saveModalActions';
+import { Operators } from '../constants';
 
 // Define test constants and mock data using imported types
 const sliceId = 10;
@@ -594,6 +599,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
+
     const formDataWithAdhocFiltersWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
       viz_type: 'mixed_timeseries',
@@ -625,11 +631,61 @@ describe('getSlicePayload', () => {
       owners as [],
       formDataFromSliceWithAdhocFilterB,
     );
+
     expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
       formDataFromSliceWithAdhocFilterB.adhoc_filters,
     );
-    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
+    expect(JSON.parse(result.params as string).adhoc_filters_b).toEqual(
       formDataFromSliceWithAdhocFilterB.adhoc_filters_b,
     );
+  });
+
+  test('should return the correct payload when formDataFromSliceWithAdhocFilter has no time range filters in mixed chart', () => {
+    const formDataFromSliceWithAdhocFilterB: QueryFormData = {
+      ...formDataFromSlice,
+      adhoc_filters: [],
+      adhoc_filters_b: [],
+    };
+
+    const formDataWithAdhocFiltersWithExtra: QueryFormData = {
+      ...formDataWithNativeFilters,
+      viz_type: 'mixed_timeseries',
+      adhoc_filters: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: 'No filter',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+      adhoc_filters_b: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: 'No filter',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+    };
+    const result = getSlicePayload(
+      sliceName,
+      formDataWithAdhocFiltersWithExtra,
+      dashboards,
+      owners as [],
+      formDataFromSliceWithAdhocFilterB,
+    );
+
+    const hasTemporalRange = (
+      JSON.parse(result.params as string).adhoc_filters_b || []
+    ).some(
+      (filter: SimpleAdhocFilter) =>
+        filter.operator === Operators.TemporalRange,
+    );
+
+    expect(hasTemporalRange).toBe(true);
   });
 });

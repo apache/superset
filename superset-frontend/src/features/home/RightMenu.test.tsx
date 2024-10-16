@@ -308,10 +308,13 @@ test('If there is a DB with allow_file_upload set as True the option should be e
   userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
   userEvent.hover(dataMenu);
-  expect(await screen.findByText('Upload CSV to database')).toBeInTheDocument();
+  const csvMenu = await screen.findByText('Upload CSV to database');
+  expect(csvMenu).toBeInTheDocument();
   expect(
     await screen.findByText('Upload Excel to database'),
   ).toBeInTheDocument();
+
+  expect(csvMenu).not.toHaveAttribute('aria-disabled', 'true');
 });
 
 test('If there is NOT a DB with allow_file_upload set as True the option should be disabled', async () => {
@@ -341,10 +344,11 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
   userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
   userEvent.hover(dataMenu);
-  expect(await screen.findByText('Upload CSV to database')).toBeInTheDocument();
-  expect(
-    (await screen.findByText('Upload CSV to database')).closest('a'),
-  ).not.toBeInTheDocument();
+  const csvMenu = await screen.findByRole('menuitem', {
+    name: 'Upload CSV to database',
+  });
+  expect(csvMenu).toBeInTheDocument();
+  expect(csvMenu).toHaveAttribute('aria-disabled', 'true');
 });
 
 test('Logs out and clears local storage item redux', async () => {

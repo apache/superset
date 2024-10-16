@@ -67,7 +67,7 @@ class TestSqlLabApi(SupersetTestCase):
         result = data.get("result")
         assert result["active_tab"] is None  # noqa: E711
         assert result["tab_state_ids"] == []
-        self.assertEqual(len(result["databases"]), 0)
+        assert len(result["databases"]) == 0
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -126,7 +126,7 @@ class TestSqlLabApi(SupersetTestCase):
         # associated with any tabs
         resp = self.get_json_resp("/api/v1/sqllab/")
         result = resp["result"]
-        self.assertEqual(result["active_tab"]["id"], tab_state_id)
+        assert result["active_tab"]["id"] == tab_state_id
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -220,8 +220,8 @@ class TestSqlLabApi(SupersetTestCase):
             }
         }
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertDictEqual(resp_data, failed_resp)
-        self.assertEqual(rv.status_code, 400)
+        self.assertDictEqual(resp_data, failed_resp)  # noqa: PT009
+        assert rv.status_code == 400
 
         data = {"sql": "SELECT 1"}
         rv = self.client.post(
@@ -230,8 +230,8 @@ class TestSqlLabApi(SupersetTestCase):
         )
         failed_resp = {"message": {"database_id": ["Missing data for required field."]}}
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertDictEqual(resp_data, failed_resp)
-        self.assertEqual(rv.status_code, 400)
+        self.assertDictEqual(resp_data, failed_resp)  # noqa: PT009
+        assert rv.status_code == 400
 
         data = {"database_id": 1}
         rv = self.client.post(
@@ -240,8 +240,8 @@ class TestSqlLabApi(SupersetTestCase):
         )
         failed_resp = {"message": {"sql": ["Missing data for required field."]}}
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertDictEqual(resp_data, failed_resp)
-        self.assertEqual(rv.status_code, 400)
+        self.assertDictEqual(resp_data, failed_resp)  # noqa: PT009
+        assert rv.status_code == 400
 
     def test_estimate_valid_request(self):
         self.login(ADMIN_USERNAME)
@@ -270,8 +270,8 @@ class TestSqlLabApi(SupersetTestCase):
 
         success_resp = {"result": formatter_response}
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertDictEqual(resp_data, success_resp)
-        self.assertEqual(rv.status_code, 200)
+        self.assertDictEqual(resp_data, success_resp)  # noqa: PT009
+        assert rv.status_code == 200
 
     def test_format_sql_request(self):
         self.login(ADMIN_USERNAME)
@@ -281,10 +281,10 @@ class TestSqlLabApi(SupersetTestCase):
             "/api/v1/sqllab/format_sql/",
             json=data,
         )
-        success_resp = {"result": "SELECT\n  1\nFROM my_table"}
+        success_resp = {"result": "SELECT 1\nFROM my_table"}
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertDictEqual(resp_data, success_resp)
-        self.assertEqual(rv.status_code, 200)
+        self.assertDictEqual(resp_data, success_resp)  # noqa: PT009
+        assert rv.status_code == 200
 
     @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
@@ -303,8 +303,8 @@ class TestSqlLabApi(SupersetTestCase):
             }
         }
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertDictEqual(resp_data, failed_resp)
-        self.assertEqual(rv.status_code, 400)
+        self.assertDictEqual(resp_data, failed_resp)  # noqa: PT009
+        assert rv.status_code == 400
 
         data = {"sql": "SELECT 1", "client_id": client_id}
         rv = self.client.post(
@@ -313,8 +313,8 @@ class TestSqlLabApi(SupersetTestCase):
         )
         failed_resp = {"message": {"database_id": ["Missing data for required field."]}}
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertDictEqual(resp_data, failed_resp)
-        self.assertEqual(rv.status_code, 400)
+        self.assertDictEqual(resp_data, failed_resp)  # noqa: PT009
+        assert rv.status_code == 400
 
         data = {"database_id": 1, "client_id": client_id}
         rv = self.client.post(
@@ -323,8 +323,8 @@ class TestSqlLabApi(SupersetTestCase):
         )
         failed_resp = {"message": {"sql": ["Missing data for required field."]}}
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertDictEqual(resp_data, failed_resp)
-        self.assertEqual(rv.status_code, 400)
+        self.assertDictEqual(resp_data, failed_resp)  # noqa: PT009
+        assert rv.status_code == 400
 
     @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_valid_request(self) -> None:
@@ -342,8 +342,8 @@ class TestSqlLabApi(SupersetTestCase):
             json=data,
         )
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(resp_data.get("status"), "success")
-        self.assertEqual(rv.status_code, 200)
+        assert resp_data.get("status") == "success"
+        assert rv.status_code == 200
 
     @mock.patch(
         "tests.integration_tests.superset_test_custom_template_processors.datetime"
@@ -366,7 +366,7 @@ class TestSqlLabApi(SupersetTestCase):
             "/api/v1/sqllab/execute/", raise_on_error=False, json_=json_payload
         )
         assert sql_lab_mock.called
-        self.assertEqual(sql_lab_mock.call_args[0][1], "SELECT '1970-01-01' as test")
+        assert sql_lab_mock.call_args[0][1] == "SELECT '1970-01-01' as test"
 
         self.delete_fake_db_for_macros()
 
@@ -419,8 +419,8 @@ class TestSqlLabApi(SupersetTestCase):
                 self.get_resp(f"/api/v1/sqllab/results/?q={prison.dumps(arguments)}")
             )
 
-        self.assertEqual(result_key, expected_key)
-        self.assertEqual(result_limited, expected_limited)
+        assert result_key == expected_key
+        assert result_limited == expected_limited
 
         app.config["RESULTS_BACKEND_USE_MSGPACK"] = use_msgpack
 
@@ -454,6 +454,6 @@ class TestSqlLabApi(SupersetTestCase):
         data = csv.reader(io.StringIO(resp))
         expected_data = csv.reader(io.StringIO("foo\n1\n2"))
 
-        self.assertEqual(list(expected_data), list(data))
+        assert list(expected_data) == list(data)
         db.session.delete(query_obj)
         db.session.commit()

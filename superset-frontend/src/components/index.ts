@@ -53,7 +53,7 @@ export {
 /*
  * Components that conflict with the ones in src/components.
  * We should try to avoid using Ant Design directly. The components
- * listed bellow may need review. Avoid incrementing this list by using
+ * listed below may need review. Avoid incrementing this list by using
  * or extending the components in src/components.
  */
 export {

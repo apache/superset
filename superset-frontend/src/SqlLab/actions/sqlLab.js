@@ -294,21 +294,25 @@ export function requestQueryResults(query) {
   return { type: REQUEST_QUERY_RESULTS, query };
 }
 
-export function fetchQueryResults(query, displayLimit) {
-  return function (dispatch) {
+export function fetchQueryResults(query, displayLimit, timeoutInMs) {
+  return function (dispatch, getState) {
+    const { SQLLAB_QUERY_RESULT_TIMEOUT } = getState().common?.conf ?? {};
     dispatch(requestQueryResults(query));
 
     const queryParams = rison.encode({
       key: query.resultsKey,
       rows: displayLimit || null,
     });
-
+    const timeout = timeoutInMs ?? SQLLAB_QUERY_RESULT_TIMEOUT;
+    const controller = new AbortController();
     return SupersetClient.get({
       endpoint: `/api/v1/sqllab/results/?q=${queryParams}`,
       parseMethod: 'json-bigint',
+      ...(timeout && { timeout, signal: controller.signal }),
     })
       .then(({ json }) => dispatch(querySuccess(query, json)))
-      .catch(response =>
+      .catch(response => {
+        controller.abort();
         getClientErrorObject(response).then(error => {
           const message =
             error.error ||
@@ -318,8 +322,8 @@ export function fetchQueryResults(query, displayLimit) {
           return dispatch(
             queryFailed(query, message, error.link, error.errors),
           );
-        }),
-      );
+        });
+      });
   };
 }
 
@@ -624,6 +628,21 @@ export function setActiveQueryEditor(queryEditor) {
   return {
     type: SET_ACTIVE_QUERY_EDITOR,
     queryEditor,
+  };
+}
+
+export function switchQueryEditor(goBackward = false) {
+  return function (dispatch, getState) {
+    const { sqlLab } = getState();
+    const { queryEditors, tabHistory } = sqlLab;
+    const qeid = tabHistory[tabHistory.length - 1];
+    const currentIndex = queryEditors.findIndex(qe => qe.id === qeid);
+    const nextIndex = goBackward
+      ? currentIndex - 1 + queryEditors.length
+      : currentIndex + 1;
+    const newQueryEditor = queryEditors[nextIndex % queryEditors.length];
+
+    dispatch(setActiveQueryEditor(newQueryEditor));
   };
 }
 

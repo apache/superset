@@ -418,38 +418,40 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         )
 
         sqlalchemy_uri = self.sqlalchemy_uri_decrypted
-        engine_context = nullcontext()
-        ssh_tunnel = override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(
-            database_id=self.id
-        )
 
-        if ssh_tunnel:
-            # if ssh_tunnel is available build engine with information
-            engine_context = ssh_manager_factory.instance.create_tunnel(
+        ssh_tunnel = override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(self.id)
+        ssh_context_manager = (
+            ssh_manager_factory.instance.create_tunnel(
                 ssh_tunnel=ssh_tunnel,
                 sqlalchemy_database_uri=sqlalchemy_uri,
             )
+            if ssh_tunnel
+            else nullcontext()
+        )
 
-        with engine_context as server_context:
-            if ssh_tunnel and server_context:
+        with ssh_context_manager as ssh_context:
+            if ssh_context:
                 logger.info(
-                    "[SSH] Successfully created tunnel w/ %s tunnel_timeout + %s ssh_timeout at %s",
+                    "[SSH] Successfully created tunnel w/ %s tunnel_timeout + %s "
+                    "ssh_timeout at %s",
                     sshtunnel.TUNNEL_TIMEOUT,
                     sshtunnel.SSH_TIMEOUT,
-                    server_context.local_bind_address,
+                    ssh_context.local_bind_address,
                 )
                 sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(
                     sqlalchemy_uri,
-                    server_context,
+                    ssh_context,
                 )
 
-            yield self._get_sqla_engine(
-                catalog=catalog,
-                schema=schema,
-                nullpool=nullpool,
-                source=source,
-                sqlalchemy_uri=sqlalchemy_uri,
-            )
+            engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
+            with engine_context_manager(self, catalog, schema):
+                yield self._get_sqla_engine(
+                    catalog=catalog,
+                    schema=schema,
+                    nullpool=nullpool,
+                    source=source,
+                    sqlalchemy_uri=sqlalchemy_uri,
+                )
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals
         self,
@@ -560,6 +562,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     # pre-session queries are used to set the selected schema and, in the
                     # future, the selected catalog
                     for prequery in self.db_engine_spec.get_prequeries(
+                        database=self,
                         catalog=catalog,
                         schema=schema,
                     ):
@@ -844,6 +847,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             ) as inspector:
                 return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
+            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+                self.start_oauth2_dance()
+
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
@@ -865,6 +871,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             with self.get_inspector(ssh_tunnel=ssh_tunnel) as inspector:
                 return self.db_engine_spec.get_catalog_names(self, inspector)
         except Exception as ex:
+            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+                self.start_oauth2_dance()
+
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @property
@@ -1095,6 +1104,16 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             return cast(OAuth2ClientConfig, client_config)
 
         return self.db_engine_spec.get_oauth2_config()
+
+    def start_oauth2_dance(self) -> None:
+        """
+        Start the OAuth2 dance.
+
+        This method is called when an OAuth2 error is encountered, and the database is
+        configured to use OAuth2 for authentication. It raises an exception that will
+        trigger the OAuth2 dance in the frontend.
+        """
+        return self.db_engine_spec.start_oauth2_dance(self)
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)

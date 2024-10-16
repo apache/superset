@@ -740,7 +740,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             .filter(SSHTunnel.database_id == database.id)
             .one()
         )
-        self.assertEqual(model_ssh_tunnel.password, "TEST")
+        assert model_ssh_tunnel.password == "TEST"
 
         db.session.delete(database)
         db.session.commit()
@@ -787,8 +787,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
             .filter(SSHTunnel.database_id == database.id)
             .one()
         )
-        self.assertEqual(model_ssh_tunnel.private_key, "TestPrivateKey")
-        self.assertEqual(model_ssh_tunnel.private_key_password, "TEST")
+        assert model_ssh_tunnel.private_key == "TestPrivateKey"
+        assert model_ssh_tunnel.private_key_password == "TEST"
 
         db.session.delete(database)
         db.session.commit()

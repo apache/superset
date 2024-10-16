@@ -36,7 +36,7 @@ const { getConfig, setConfig } = failOnConsoleError({
   ],
 });
 
-// Set infividual tests to allow certain console erros to NOT fail, e.g
+// Set individual tests to allow certain console errors to NOT fail, e.g
 // cy.allowConsoleErrors(['foo', /^some bar-regex.*/]);
 // This will be reset between tests.
 Cypress.Commands.addAll({

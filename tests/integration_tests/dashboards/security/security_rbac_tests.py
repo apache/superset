@@ -207,7 +207,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
-        self.assertEqual(rv.status_code, 403)
+        assert rv.status_code == 403
 
         # post
         revoke_access_to_dashboard(dashboard_to_access, new_role)  # noqa: F405
@@ -480,12 +480,12 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         self.login(GAMMA_USERNAME)
         rv = self.client.post(uri, json=data)
-        self.assertEqual(rv.status_code, 403)
+        assert rv.status_code == 403
         self.logout()
 
         self.login(ADMIN_USERNAME)
         rv = self.client.post(uri, json=data)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
 
         target = (

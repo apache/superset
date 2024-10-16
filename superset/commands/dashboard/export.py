@@ -130,6 +130,18 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
 
+        # Extract all native filter datasets and replace native
+        # filter dataset references with uuid
+        for native_filter in payload.get("metadata", {}).get(
+            "native_filter_configuration", []
+        ):
+            for target in native_filter.get("targets", []):
+                dataset_id = target.pop("datasetId", None)
+                if dataset_id is not None:
+                    dataset = DatasetDAO.find_by_id(dataset_id)
+                    if dataset:
+                        target["datasetUuid"] = str(dataset.uuid)
+
         # the mapping between dashboard -> charts is inferred from the position
         # attribute, so if it's not present we need to add a default config
         if not payload.get("position"):
@@ -180,16 +192,14 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
 
-        # Extract all native filter datasets and replace native
-        # filter dataset references with uuid
-        for native_filter in payload.get("metadata", {}).get(
-            "native_filter_configuration", []
-        ):
-            for target in native_filter.get("targets", []):
-                dataset_id = target.pop("datasetId", None)
-                if dataset_id is not None:
-                    dataset = DatasetDAO.find_by_id(dataset_id)
-                    if dataset:
-                        target["datasetUuid"] = str(dataset.uuid)
-                        if export_related:
+        if export_related:
+            # Extract all native filter datasets and export referenced datasets
+            for native_filter in payload.get("metadata", {}).get(
+                "native_filter_configuration", []
+            ):
+                for target in native_filter.get("targets", []):
+                    dataset_id = target.pop("datasetId", None)
+                    if dataset_id is not None:
+                        dataset = DatasetDAO.find_by_id(dataset_id)
+                        if dataset:
                             yield from ExportDatasetsCommand([dataset_id]).run()

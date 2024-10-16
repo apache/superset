@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
-import userEvent, { specialChars } from '@testing-library/user-event';
+import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -287,7 +287,7 @@ test('validates the column', async () => {
 test.skip('validates the default value', async () => {
   defaultRender(noTemporalColumnsState());
   expect(await screen.findByText('birth_names')).toBeInTheDocument();
-  userEvent.type(screen.getByRole('combobox'), `Column A${specialChars.enter}`);
+  userEvent.type(screen.getByRole('combobox'), `Column A{Enter}`);
   userEvent.click(getCheckbox(DEFAULT_VALUE_REGEX));
   await waitFor(() => {
     expect(
@@ -379,7 +379,7 @@ test('deletes a filter', async () => {
     onSave,
   });
   const removeButtons = screen.getAllByRole('img', { name: 'trash' });
-  // remove NATIVE_FILTER-3 which isn't a dependancy of any other filter
+  // remove NATIVE_FILTER-3 which isn't a dependency of any other filter
   userEvent.click(removeButtons[2]);
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() =>
@@ -420,7 +420,7 @@ test('deletes a filter including dependencies', async () => {
     onSave,
   });
   const removeButtons = screen.getAllByRole('img', { name: 'trash' });
-  // remove NATIVE_FILTER-2 which is a dependancy of NATIVE_FILTER-1
+  // remove NATIVE_FILTER-2 which is a dependency of NATIVE_FILTER-1
   userEvent.click(removeButtons[1]);
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() =>

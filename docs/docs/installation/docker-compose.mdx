@@ -13,9 +13,9 @@ import useBaseUrl from "@docusaurus/useBaseUrl";
 <br /><br />
 
 :::caution
-Since `docker-compose` is primarily designed to run a set of containers on **a single host**
+Since `docker compose` is primarily designed to run a set of containers on **a single host**
 and can't support requirements for **high availability**, we do not support nor recommend
-using our `docker-compose` constructs to support production-type use-cases. For single host
+using our `docker compose` constructs to support production-type use-cases. For single host
 environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
 our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
 documentation.
@@ -26,7 +26,7 @@ Superset locally is using Docker Compose on a Linux or Mac OSX
 computer. Superset does not have official support for Windows. It's also the easiest
 way to launch a fully functioning **development environment** quickly.
 
-Note that there are 3 major ways we support to run docker-compose:
+Note that there are 3 major ways we support to run `docker compose`:
 
 1. **docker-compose.yml:** for interactive development, where we mount your local folder with the
   frontend/backend files that you can edit and experience the changes you
@@ -38,15 +38,20 @@ Note that there are 3 major ways we support to run docker-compose:
 1. **docker-compose-image-tag.yml** where we fetch an image from docker-hub say for the
   `3.0.0` release for instance, and fire it up so you can try it. Here what's in
   the local branch has no effects on what's running, we just fetch and run
-  pre-built images from docker-hub
+  pre-built images from docker-hub. For `docker compose` to work along with the
+  Postgres image it boots up, you'll want to point to a `-dev`-suffixed TAG, as in
+  `export TAG=4.0.0-dev` or `export TAG=3.0.0-dev`, with `latest-dev` being the default.
+  That's because The `dev` builds happen to package the `psycopg2-binary` required to connect
+  to the Postgres database launched as part of the `docker compose` builds.
+``
 
 More on these two approaches after setting up the requirements for either.
 
 ## Requirements
 
-Note that this documentation assumes that you have [Docker](https://www.docker.com),
-[docker-compose](https://docs.docker.com/compose/), and
-[git](https://git-scm.com/) installed.
+Note that this documentation assumes that you have [Docker](https://www.docker.com) and
+[git](https://git-scm.com/) installed. Note also that we used to use `docker-compose` but that
+is on the path to deprecation so we now use `docker compose` instead.
 
 ## 1. Clone Superset's GitHub repository
 
@@ -62,7 +67,7 @@ current directory.
 
 ## 2. Launch Superset Through Docker Compose
 
-First let's assume you're familiar with docker-compose mechanics. Here we'll refer generally
+First let's assume you're familiar with `docker compose` mechanics. Here we'll refer generally
 to `docker compose up` even though in some cases you may want to force a check for newer remote
 images using `docker compose pull`, force a build with `docker compose build` or force a build
 on latest base images using `docker compose build --pull`. In most cases though, the simple
@@ -107,7 +112,7 @@ Here various release tags, github SHA, and latest `master` can be referenced by 
 Refer to the docker-related documentation to learn more about existing tags you can point to
 from Docker Hub.
 
-## docker-compose tips & configuration
+## `docker compose` tips & configuration
 
 :::caution
 All of the content belonging to a Superset instance - charts, dashboards, users, etc. - is stored in
@@ -132,7 +137,7 @@ You can install additional python packages and apply config overrides by followi
 mentioned in [docker/README.md](https://github.com/apache/superset/tree/master/docker#configuration)
 
 Note that `docker/.env` sets the default environment variables for all the docker images
-used by `docker-compose`, and that `docker/.env-local` can be used to override those defaults.
+used by `docker compose`, and that `docker/.env-local` can be used to override those defaults.
 Also note that `docker/.env-local` is referenced in our `.gitignore`,
 preventing developers from risking committing potentially sensitive configuration to the repository.
 

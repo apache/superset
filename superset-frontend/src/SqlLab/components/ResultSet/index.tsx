@@ -42,6 +42,8 @@ import {
   css,
   getNumberFormatter,
   getExtensionsRegistry,
+  ErrorLevel,
+  ErrorTypeEnum,
 } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -225,8 +227,8 @@ const ResultSet = ({
     reRunQueryIfSessionTimeoutErrorOnMount();
   }, [reRunQueryIfSessionTimeoutErrorOnMount]);
 
-  const fetchResults = (q: typeof query) => {
-    dispatch(fetchQueryResults(q, displayLimit));
+  const fetchResults = (q: typeof query, timeout?: number) => {
+    dispatch(fetchQueryResults(q, displayLimit, timeout));
   };
 
   const prevQuery = usePrevious(query);
@@ -539,17 +541,43 @@ const ResultSet = ({
   }
 
   if (query.state === QueryState.Failed) {
+    const errors = [];
+    if (query.errorMessage) {
+      errors.push({
+        error_type: ErrorTypeEnum.GENERIC_DB_ENGINE_ERROR,
+        extra: {},
+        level: 'error' as ErrorLevel,
+        message: query.errorMessage,
+      });
+    }
+    errors.push(...(query.extra?.errors || []), ...(query.errors || []));
+
     return (
       <ResultlessStyles>
-        <ErrorMessageWithStackTrace
-          title={t('Database error')}
-          error={query?.extra?.errors?.[0] || query?.errors?.[0]}
-          subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
-          copyText={query.errorMessage || undefined}
-          link={query.link}
-          source="sqllab"
-        />
-        {trackingUrl}
+        {errors.map((error, index) => (
+          <ErrorMessageWithStackTrace
+            key={index}
+            title={t('Database error')}
+            error={error}
+            subtitle={<MonospaceDiv>{error.message}</MonospaceDiv>}
+            copyText={error.message || undefined}
+            link={query.link}
+            source="sqllab"
+          />
+        ))}
+        {errors.some(
+          error => error?.error_type === ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+        ) ? (
+          <Button
+            className="sql-result-track-job"
+            buttonSize="small"
+            onClick={() => fetchResults(query, 0)}
+          >
+            {t('Retry fetching results')}
+          </Button>
+        ) : (
+          trackingUrl
+        )}
       </ResultlessStyles>
     );
   }
@@ -618,7 +646,7 @@ const ResultSet = ({
         : [];
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
-        false,
+        true,
       );
       return (
         <ResultContainer>

@@ -80,6 +80,7 @@ import {
   updateSavedQuery,
   formatQuery,
   fetchQueryEditor,
+  switchQueryEditor,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -307,7 +308,7 @@ const SqlEditor: FC<Props> = ({
     getItem(LocalStorageKeys.SqllabIsAutocompleteEnabled, true),
   );
   const [renderHTMLEnabled, setRenderHTMLEnabled] = useState(
-    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, false),
+    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, true),
   );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
@@ -443,6 +444,22 @@ const SqlEditor: FC<Props> = ({
         descr: KEY_MAP[KeyboardShortcut.CtrlShiftF],
         func: () => {
           formatCurrentQuery(true);
+        },
+      },
+      {
+        name: 'switchTabToLeft',
+        key: KeyboardShortcut.CtrlLeft,
+        descr: KEY_MAP[KeyboardShortcut.CtrlLeft],
+        func: () => {
+          dispatch(switchQueryEditor(true));
+        },
+      },
+      {
+        name: 'switchTabToRight',
+        key: KeyboardShortcut.CtrlRight,
+        descr: KEY_MAP[KeyboardShortcut.CtrlRight],
+        func: () => {
+          dispatch(switchQueryEditor(false));
         },
       },
     ];
@@ -880,15 +897,17 @@ const SqlEditor: FC<Props> = ({
               startQuery={startQuery}
             />
           )}
-          <AceEditorWrapper
-            autocomplete={autocompleteEnabled}
-            onBlur={onSqlChanged}
-            onChange={onSqlChanged}
-            queryEditorId={queryEditor.id}
-            onCursorPositionChange={handleCursorPositionChange}
-            height={`${aceEditorHeight}px`}
-            hotkeys={hotkeys}
-          />
+          {isActive && (
+            <AceEditorWrapper
+              autocomplete={autocompleteEnabled}
+              onBlur={onSqlChanged}
+              onChange={onSqlChanged}
+              queryEditorId={queryEditor.id}
+              onCursorPositionChange={handleCursorPositionChange}
+              height={`${aceEditorHeight}px`}
+              hotkeys={hotkeys}
+            />
+          )}
           {renderEditorBottomBar(showEmptyState)}
         </div>
         <SouthPane

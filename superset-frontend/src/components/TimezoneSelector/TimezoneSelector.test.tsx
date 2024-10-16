@@ -84,7 +84,7 @@ test('use the default timezone when an invalid timezone is provided', async () =
   expect(onTimezoneChange).toHaveBeenLastCalledWith('Africa/Abidjan');
 });
 
-test('render timezones in correct oder for standard time', async () => {
+test('render timezones in correct order for standard time', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
   const onTimezoneChange = jest.fn();
   render(

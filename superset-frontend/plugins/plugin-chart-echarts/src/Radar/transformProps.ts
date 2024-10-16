@@ -123,6 +123,7 @@ export default function transformProps(
   const groupbyLabels = groupby.map(getColumnLabel);
 
   const metricLabelAndMaxValueMap = new Map<string, number>();
+  const metricLabelAndMinValueMap = new Map<string, number>();
   const columnsLabelMap = new Map<string, string[]>();
   const transformedData: RadarSeriesDataItemOption[] = [];
   data.forEach(datum => {
@@ -154,6 +155,21 @@ export default function transformProps(
         );
       } else {
         metricLabelAndMaxValueMap.set(metricLabel, value as number);
+      }
+
+      if (metricLabelAndMinValueMap.has(metricLabel)) {
+        metricLabelAndMinValueMap.set(
+          metricLabel,
+          Math.min(
+            value as number,
+            ensureIsInt(
+              metricLabelAndMinValueMap.get(metricLabel),
+              Number.MAX_SAFE_INTEGER,
+            ),
+          ),
+        );
+      } else {
+        metricLabelAndMinValueMap.set(metricLabel, value as number);
       }
     }
 
@@ -199,6 +215,8 @@ export default function transformProps(
 
   const indicator = metricLabels.map(metricLabel => {
     const maxValueInControl = columnConfig?.[metricLabel]?.radarMetricMaxValue;
+    const minValueInControl = columnConfig?.[metricLabel]?.radarMetricMinValue;
+
     // Ensure that 0 is at the center of the polar coordinates
     const metricValueAsMax =
       metricLabelAndMaxValueMap.get(metricLabel) === 0
@@ -206,9 +224,23 @@ export default function transformProps(
         : metricLabelAndMaxValueMap.get(metricLabel);
     const max =
       maxValueInControl === null ? metricValueAsMax : maxValueInControl;
+
+    let min: number;
+    // If the min value doesn't exist, set it to 0 (default),
+    // if it is null, set it to the min value of the data,
+    // otherwise, use the value from the control
+    if (minValueInControl === undefined) {
+      min = 0;
+    } else if (minValueInControl === null) {
+      min = metricLabelAndMinValueMap.get(metricLabel) || 0;
+    } else {
+      min = minValueInControl;
+    }
+
     return {
       name: metricLabel,
       max,
+      min,
     };
   });
 

@@ -21,6 +21,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.database.create import CreateDatabaseCommand
+from superset.exceptions import OAuth2RedirectError
 from superset.extensions import security_manager
 
 
@@ -124,3 +125,33 @@ def test_create_permissions_without_catalog(
         ],
         any_order=True,
     )
+
+
+def test_create_with_oauth2(
+    mocker: MockerFixture,
+    database_without_catalog: MockerFixture,
+) -> None:
+    """
+    Test that the database can be created even if OAuth2 is needed to connect.
+    """
+    TestConnectionDatabaseCommand = mocker.patch(
+        "superset.commands.database.create.TestConnectionDatabaseCommand"
+    )
+    TestConnectionDatabaseCommand().run.side_effect = OAuth2RedirectError(
+        "url",
+        "tab_id",
+        "redirect_uri",
+    )
+    add_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "add_permission_view_menu",
+    )
+
+    CreateDatabaseCommand(
+        {
+            "database_name": "test_database",
+            "sqlalchemy_uri": "sqlite://",
+        }
+    ).run()
+
+    add_permission_view_menu.assert_not_called()

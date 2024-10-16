@@ -174,7 +174,11 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
     :param obj: an object that should be parseable to JSON
     """
     if obj:
-        loads(obj)
+        try:
+            loads(obj)
+        except JSONDecodeError as ex:
+            logger.error("JSON is not valid %s", str(ex), exc_info=True)
+            raise
 
 
 def dumps(  # pylint: disable=too-many-arguments
@@ -236,16 +240,12 @@ def loads(
     :param object_hook: function that will be called to decode objects values
     :returns: A Python object deserialized from string
     """
-    try:
-        return simplejson.loads(
-            obj,
-            encoding=encoding,
-            allow_nan=allow_nan,
-            object_hook=object_hook,
-        )
-    except JSONDecodeError as ex:
-        logger.error("JSON is not valid %s", str(ex), exc_info=True)
-        raise
+    return simplejson.loads(
+        obj,
+        encoding=encoding,
+        allow_nan=allow_nan,
+        object_hook=object_hook,
+    )
 
 
 def redact_sensitive(

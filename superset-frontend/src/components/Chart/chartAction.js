@@ -249,7 +249,7 @@ export async function getChartDataRequest({
 export function runAnnotationQuery({
   annotation,
   timeout,
-  formData = null,
+  formData,
   key,
   isDashboardRequest = false,
   force = false,
