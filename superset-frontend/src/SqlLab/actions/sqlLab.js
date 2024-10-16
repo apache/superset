@@ -978,8 +978,9 @@ export function runTablePreviewQuery(newTable) {
     } = getState();
     const database = databases[newTable.dbId];
     const { dbId, catalog, schema } = newTable;
+    const checkView = newTable?.name && typeof newTable.name === 'string' && newTable.name.length >= 2 && newTable.name.substring(0,2) != 'vw'
 
-    if (database && !database.disable_data_preview) {
+    if (database && !database.disable_data_preview && checkView) {
       const dataPreviewQuery = {
         id: nanoid(11),
         dbId,
