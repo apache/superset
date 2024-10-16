@@ -18,6 +18,7 @@
 
 
 import pytest
+from sqlglot import Dialects
 
 from superset.exceptions import SupersetParseError
 from superset.sql.parse import (
@@ -281,6 +282,40 @@ def test_extract_tables_show_tables_from() -> None:
     assert (
         extract_tables_from_sql("SHOW TABLES FROM s1 like '%order%'", "mysql") == set()
     )
+
+
+def test_format_show_tables() -> None:
+    """
+    Test format when `ast.sql()` raises an exception.
+
+    In that case sqlparse should be used instead.
+    """
+    assert (
+        SQLScript("SHOW TABLES FROM s1 like '%order%'", "mysql").format()
+        == "SHOW TABLES FROM s1 LIKE '%order%'"
+    )
+
+
+def test_format_no_dialect() -> None:
+    """
+    Test format with an engine that has no corresponding dialect.
+    """
+    assert (
+        SQLScript("SELECT col FROM t WHERE col NOT IN (1, 2)", "firebolt").format()
+        == "SELECT col\nFROM t\nWHERE col NOT IN (1,\n                  2)"
+    )
+
+
+def test_split_no_dialect() -> None:
+    """
+    Test the statement split when the engine has no corresponding dialect.
+    """
+    sql = "SELECT col FROM t WHERE col NOT IN (1, 2); SELECT * FROM t; SELECT foo"
+    statements = SQLScript(sql, "firebolt").statements
+    assert len(statements) == 3
+    assert statements[0]._sql == "SELECT col FROM t WHERE col NOT IN (1, 2)"
+    assert statements[1]._sql == "SELECT * FROM t"
+    assert statements[2]._sql == "SELECT foo"
 
 
 def test_extract_tables_show_columns_from() -> None:
@@ -932,3 +967,15 @@ search_path -- another one
 SELECT * FROM some_table;
     """
     assert SQLScript(sql, "postgresql").get_settings() == {"search_path": "bar"}
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"SQLGLOT_DIALECTS_EXTENSIONS": {"custom": Dialects.MYSQL}}],
+    indirect=True,
+)
+def test_custom_dialect(app: None) -> None:
+    """
+    Test that custom dialects are loaded correctly.
+    """
+    assert SQLGLOT_DIALECTS.get("custom") == Dialects.MYSQL

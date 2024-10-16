@@ -308,7 +308,7 @@ const SqlEditor: FC<Props> = ({
     getItem(LocalStorageKeys.SqllabIsAutocompleteEnabled, true),
   );
   const [renderHTMLEnabled, setRenderHTMLEnabled] = useState(
-    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, false),
+    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, true),
   );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');

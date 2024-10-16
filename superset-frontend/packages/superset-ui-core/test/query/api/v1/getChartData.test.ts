@@ -21,8 +21,8 @@ import { buildQueryContext, ApiV1 } from '@superset-ui/core';
 import setupClientForTest from '../setupClientForTest';
 
 describe('API v1 > getChartData()', () => {
-  beforeAll(setupClientForTest);
-  afterEach(fetchMock.restore);
+  beforeAll(() => setupClientForTest());
+  afterEach(() => fetchMock.restore());
 
   it('returns a promise of ChartDataResponse', async () => {
     const response = {
