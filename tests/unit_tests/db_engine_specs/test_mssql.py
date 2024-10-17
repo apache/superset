@@ -27,6 +27,7 @@ from sqlalchemy.sql import select
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.models.sql_types.mssql_sql_types import GUID
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -46,6 +47,7 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
         ("NCHAR(10)", UnicodeText, None, GenericDataType.STRING, False),
         ("NVARCHAR(10)", UnicodeText, None, GenericDataType.STRING, False),
         ("NTEXT", UnicodeText, None, GenericDataType.STRING, False),
+        ("uniqueidentifier", GUID, None, GenericDataType.STRING, False),
     ],
 )
 def test_get_column_spec(
