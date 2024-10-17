@@ -20,6 +20,8 @@ import { Link } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { Empty } from 'src/components';
 import { TableTab } from 'src/views/CRUD/types';
+import { assetUrl } from 'src/utils/assetUrl';
+import { ensureBasePath } from 'src/utils/pathUtils';
 import { styled, t } from '@superset-ui/core';
 import { WelcomeTable } from './types';
 
@@ -131,7 +133,7 @@ export default function EmptyState({
     return (
       <EmptyContainer>
         <Empty
-          image={`/static/assets/images/${tableIcon[tableName]}`}
+          image={assetUrl(`/static/assets/images/${tableIcon[tableName]}`)}
           description={
             tableName === WelcomeTable.Recents || tab === TableTab.Other
               ? recent
@@ -161,7 +163,7 @@ export default function EmptyState({
   return (
     <EmptyContainer>
       <Empty
-        image="/static/assets/images/star-circle.svg"
+        image={assetUrl('/static/assets/images/star-circle.svg')}
         description={
           <span className="no-favorites">
             {t("You don't have any favorites yet!")}
@@ -171,7 +173,7 @@ export default function EmptyState({
         <Button
           buttonStyle="primary"
           onClick={() => {
-            window.location.href = favRedirects[tableName];
+            window.location.href = ensureBasePath(favRedirects[tableName]);
           }}
         >
           {t('See all %(tableName)s', {

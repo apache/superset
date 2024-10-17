@@ -24,7 +24,11 @@ ARG PY_VER=3.10-slim-bookworm
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
 
+ARG ASSET_BASE_URL
+ARG BASE_PATH
 ARG NPM_BUILD_CMD="build"
+ENV ASSET_BASE_URL=${ASSET_BASE_URL:-}
+ENV BASE_PATH=${BASE_PATH:-}
 
 # Include translations in the final build. The default supports en only to
 # reduce complexity and weight for those only using en
@@ -89,13 +93,18 @@ RUN rm /app/superset/translations/messages.pot
 # Final lean image...
 ######################################################################
 FROM python:${PY_VER} AS lean
+ARG ASSET_BASE_URL
+ARG BASE_PATH
 
 # Include translations in the final build. The default supports en only to
 # reduce complexity and weight for those only using en
 ARG BUILD_TRANSLATIONS="false"
 
 WORKDIR /app
-ENV LANG=C.UTF-8 \
+
+ENV ASSET_BASE_URL=${ASSET_BASE_URL:-} \
+    BASE_PATH=${BASE_PATH:-} \
+    LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     SUPERSET_ENV=production \
     FLASK_APP="superset.app:create_app()" \

@@ -39,6 +39,8 @@ import {
   PAGE_SIZE,
   shortenSQL,
 } from 'src/views/CRUD/utils';
+import { assetUrl } from 'src/utils/assetUrl';
+import { ensureBasePath } from 'src/utils/pathUtils';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
@@ -264,7 +266,7 @@ const SavedQueries = ({
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/savedqueryview/list';
+              window.location.href = ensureBasePath('/savedqueryview/list');
             },
           },
         ]}
@@ -275,9 +277,11 @@ const SavedQueries = ({
             <CardStyles key={q.id}>
               <ListViewCard
                 imgURL=""
-                url={`/sqllab?savedQueryId=${q.id}`}
+                url={ensureBasePath(`/sqllab?savedQueryId=${q.id}`)}
                 title={q.label}
-                imgFallbackURL="/static/assets/images/empty-query.svg"
+                imgFallbackURL={assetUrl(
+                  '/static/assets/images/empty-query.svg',
+                )}
                 description={t('Ran %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (
