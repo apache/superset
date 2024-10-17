@@ -18,7 +18,7 @@
  */
 import {
   AnyFilterAction,
-  SET_FILTER_CONFIG_COMPLETE,
+  SET_NATIVE_FILTERS_CONFIG_COMPLETE,
   SET_IN_SCOPE_STATUS_OF_FILTERS,
   SET_FOCUSED_NATIVE_FILTER,
   UNSET_FOCUSED_NATIVE_FILTER,
@@ -28,6 +28,7 @@ import {
 } from 'src/dashboard/actions/nativeFilters';
 import { FilterConfiguration, NativeFiltersState } from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+import { SaveFilterChangesType } from '../components/nativeFilters/FiltersConfigModal/types';
 
 export function getInitialState({
   filterConfig,
@@ -37,7 +38,6 @@ export function getInitialState({
   state?: NativeFiltersState;
 }): NativeFiltersState {
   const state: Partial<NativeFiltersState> = {};
-
   const filters = {};
   if (filterConfig) {
     filterConfig.forEach(filter => {
@@ -52,6 +52,43 @@ export function getInitialState({
   return state as NativeFiltersState;
 }
 
+function handleFilterChangesComplete(
+  state: NativeFiltersState,
+  changes: SaveFilterChangesType,
+) {
+  const { modified = [], deleted = [], reordered = [] } = changes;
+
+  let updatedFilters = { ...state.filters };
+
+  if (deleted.length > 0) {
+    deleted.forEach(id => {
+      if (updatedFilters[id]) {
+        delete updatedFilters[id];
+      }
+    });
+  }
+
+  if (modified.length > 0) {
+    const modifiedFilters = Object.fromEntries(
+      modified.map(filter => [filter.id, filter]),
+    );
+    updatedFilters = { ...updatedFilters, ...modifiedFilters };
+  }
+
+  if (reordered.length > 0) {
+    updatedFilters = Object.fromEntries(
+      reordered
+        .map(id => [id, updatedFilters[id]])
+        .filter(([, filter]) => filter),
+    );
+  }
+
+  return {
+    ...state,
+    filters: updatedFilters,
+  } as NativeFiltersState;
+}
+
 export default function nativeFilterReducer(
   state: NativeFiltersState = {
     filters: {},
@@ -64,9 +101,11 @@ export default function nativeFilterReducer(
         filters: action.data.nativeFilters.filters,
       };
 
-    case SET_FILTER_CONFIG_COMPLETE:
     case SET_IN_SCOPE_STATUS_OF_FILTERS:
       return getInitialState({ filterConfig: action.filterConfig, state });
+
+    case SET_NATIVE_FILTERS_CONFIG_COMPLETE:
+      return handleFilterChangesComplete(state, action.filterChanges);
 
     case SET_FOCUSED_NATIVE_FILTER:
       return {
