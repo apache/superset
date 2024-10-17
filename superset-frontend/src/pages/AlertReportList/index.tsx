@@ -522,7 +522,6 @@ function AlertList({
   ) : (
     t('Alerts & reports')
   );
-
   return (
     <>
       <SubMenu

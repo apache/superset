@@ -32,48 +32,36 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
-import { AlertObject } from 'src/features/alerts/types';
+import { AlertObject, MetaObject } from 'src/features/alerts/types';
 import { Menu } from 'src/components/Menu';
 import Checkbox from 'src/components/Checkbox';
 import { noOp } from 'src/utils/common';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
 import DeleteModal from 'src/components/DeleteModal';
-import ReportModal from 'src/features/reports/ReportModal';
-import { ChartState } from 'src/explore/types';
+import AlertReportModal from '../AlertReportModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   fetchUISpecificReport,
   toggleActive,
   deleteActiveReport,
-} from 'src/features/reports/ReportModal/actions';
+  editReport,
+  addReport,
+} from 'src/features/alerts/actions';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import { CreationMethod } from 'src/features/alerts/types';
 import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExploreAdditionalActionsMenu/index';
 
 const extensionsRegistry = getExtensionsRegistry();
 
+const TRANSLATIONS = {
+  CREATE_REPORT: t('Create report'),
+  UPDATE_REPORT: t('Edit report'),
+  DELETE_REPORT: t('Delete report'),
+  ACTIVATE_REPORT: t('Activate report'),
+};
+
 const deleteColor = (theme: SupersetTheme) => css`
   color: ${theme.colors.error.base};
-`;
-
-const onMenuHover = (theme: SupersetTheme) => css`
-  & .ant-menu-item {
-    padding: 5px 12px;
-    margin-top: 0px;
-    margin-bottom: 4px;
-    :hover {
-      color: ${theme.colors.grayscale.dark1};
-    }
-  }
-  :hover {
-    background-color: ${theme.colors.secondary.light5};
-  }
-`;
-
-const onMenuItemHover = (theme: SupersetTheme) => css`
-  &:hover {
-    color: ${theme.colors.grayscale.dark1};
-    background-color: ${theme.colors.secondary.light5};
-  }
 `;
 
 const StyledDropdownItemWithIcon = styled.div`
@@ -90,25 +78,17 @@ const DropdownItemExtension = extensionsRegistry.get(
   'report-modal.dropdown.item.icon',
 );
 
-export enum CreationMethod {
-  Charts = 'charts',
-  Dashboards = 'dashboards',
-}
 export interface HeaderReportProps {
-  dashboardId?: number;
-  chart?: ChartState;
+  dashboard?: MetaObject;
+  chart?: MetaObject;
   useTextMenu?: boolean;
   setShowReportSubMenu?: (show: boolean) => void;
   setIsDropdownVisible?: (visible: boolean) => void;
   isDropdownVisible?: boolean;
-  showReportSubMenu?: boolean;
 }
 
-// Same instance to be used in useEffects
-const EMPTY_OBJECT = {};
-
-export default function HeaderReportDropDown({
-  dashboardId,
+export default function HeaderReportDropdown({
+  dashboard,
   chart,
   useTextMenu = false,
   setShowReportSubMenu,
@@ -118,13 +98,10 @@ export default function HeaderReportDropDown({
 }: HeaderReportProps) {
   const dispatch = useDispatch();
   const report = useSelector<any, AlertObject>(state => {
-    const resourceType = dashboardId
+    const resourceType = dashboard
       ? CreationMethod.Dashboards
       : CreationMethod.Charts;
-    return (
-      reportSelector(state, resourceType, dashboardId || chart?.id) ||
-      EMPTY_OBJECT
-    );
+    return reportSelector(state, resourceType, dashboard?.id || chart?.id);
   });
 
   const isReportActive: boolean = report?.active || false;
@@ -143,7 +120,7 @@ export default function HeaderReportDropDown({
     }
 
     // Cannot add reports if the resource is not saved
-    if (!(dashboardId || chart?.id)) {
+    if (!(dashboard?.id || chart?.id)) {
       return false;
     }
 
@@ -159,7 +136,7 @@ export default function HeaderReportDropDown({
   const [currentReportDeleting, setCurrentReportDeleting] =
     useState<AlertObject | null>(null);
   const theme = useTheme();
-  const prevDashboard = usePrevious(dashboardId);
+  const prevDashboard = usePrevious(dashboard?.id);
   const [showModal, setShowModal] = useState<boolean>(false);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
@@ -174,22 +151,20 @@ export default function HeaderReportDropDown({
 
   const shouldFetch =
     canAddReports() &&
-    !!((dashboardId && prevDashboard !== dashboardId) || chart?.id);
+    !!((dashboard?.id && prevDashboard !== dashboard?.id) || chart?.id);
 
   useEffect(() => {
     if (shouldFetch) {
       dispatch(
         fetchUISpecificReport({
           userId: user.userId,
-          filterField: dashboardId ? 'dashboard_id' : 'chart_id',
-          creationMethod: dashboardId ? 'dashboards' : 'charts',
-          resourceId: dashboardId || chart?.id,
+          filterField: dashboard?.id ? 'dashboard_id' : 'chart_id',
+          creationMethod: dashboard?.id ? 'dashboards' : 'charts',
+          resourceId: dashboard?.id || chart?.id,
         }),
       );
     }
   }, []);
-
-  const showReportSubMenu = report && setShowReportSubMenu && canAddReports();
 
   // @z-index-below-dashboard-header (100) - 1 = 99
   const dropdownOverlayStyle = {
@@ -198,10 +173,12 @@ export default function HeaderReportDropDown({
   };
 
   useEffect(() => {
-    if (showReportSubMenu) {
-      setShowReportSubMenu(true);
-    } else if (!report && setShowReportSubMenu) {
-      setShowReportSubMenu(false);
+    if (setShowReportSubMenu) {
+      if (!isEmpty(report)) {
+        setShowReportSubMenu(true);
+      } else {
+        setShowReportSubMenu(false);
+      }
     }
   }, [report]);
 
@@ -218,39 +195,34 @@ export default function HeaderReportDropDown({
       setCurrentReportDeleting(report);
     }
   };
-
   const textMenu = () =>
     isEmpty(report) ? (
-      <Menu selectable={false} {...rest} css={onMenuHover}>
+      <Menu selectable={false} {...rest}>
         <Menu.Item onClick={handleShowMenu}>
           {DropdownItemExtension ? (
             <StyledDropdownItemWithIcon>
-              <div>{t('Set up an email report')}</div>
+              <div>{TRANSLATIONS.CREATE_REPORT}</div>
               <DropdownItemExtension />
             </StyledDropdownItemWithIcon>
           ) : (
-            t('Set up an email report')
+            TRANSLATIONS.CREATE_REPORT
           )}
         </Menu.Item>
-        <Menu.Divider />
       </Menu>
     ) : (
       isDropdownVisible && (
         <Menu selectable={false} css={{ border: 'none' }}>
-          <Menu.Item
-            css={onMenuItemHover}
-            onClick={() => toggleActiveKey(report, !isReportActive)}
-          >
+          <Menu.Item onClick={() => toggleActiveKey(report, !isReportActive)}>
             <MenuItemWithCheckboxContainer>
               <Checkbox checked={isReportActive} onChange={noOp} />
-              {t('Email reports active')}
+              {TRANSLATIONS.ACTIVATE_REPORT}
             </MenuItemWithCheckboxContainer>
           </Menu.Item>
-          <Menu.Item css={onMenuItemHover} onClick={handleShowMenu}>
-            {t('Edit email report')}
+          <Menu.Item onClick={handleShowMenu}>
+            {TRANSLATIONS.UPDATE_REPORT}
           </Menu.Item>
-          <Menu.Item css={onMenuItemHover} onClick={handleDeleteMenuClick}>
-            {t('Delete email report')}
+          <Menu.Item onClick={handleDeleteMenuClick}>
+            {TRANSLATIONS.DELETE_REPORT}
           </Menu.Item>
         </Menu>
       )
@@ -258,7 +230,7 @@ export default function HeaderReportDropDown({
   const menu = () => (
     <Menu selectable={false} css={{ width: '200px' }}>
       <Menu.Item>
-        {t('Email reports active')}
+        {TRANSLATIONS.ACTIVATE_REPORT}
         <Switch
           data-test="toggle-active"
           checked={isReportActive}
@@ -268,13 +240,13 @@ export default function HeaderReportDropDown({
         />
       </Menu.Item>
       <Menu.Item onClick={() => setShowModal(true)}>
-        {t('Edit email report')}
+        {TRANSLATIONS.UPDATE_REPORT}
       </Menu.Item>
       <Menu.Item
         onClick={() => setCurrentReportDeleting(report)}
         css={deleteColor}
       >
-        {t('Delete email report')}
+        {TRANSLATIONS.DELETE_REPORT}
       </Menu.Item>
     </Menu>
   );
@@ -283,7 +255,7 @@ export default function HeaderReportDropDown({
     isEmpty(report) ? (
       <span
         role="button"
-        title={t('Schedule email report')}
+        title={t('Schedule report')}
         tabIndex={0}
         className="action-button action-schedule-report"
         onClick={() => setShowModal(true)}
@@ -315,16 +287,20 @@ export default function HeaderReportDropDown({
     <>
       {canAddReports() && (
         <>
-          <ReportModal
-            userId={user.userId}
+          <AlertReportModal
+            alert={isEmpty(report) ? null : report}
             show={showModal}
-            onHide={() => setShowModal(false)}
-            userEmail={user.email}
-            dashboardId={dashboardId}
-            chart={chart}
+            onHide={() => {
+              setShowModal(false);
+            }}
+            onCreate={response => dispatch(addReport(response))}
+            onUpdate={response => dispatch(editReport(response))}
+            dashboardObject={dashboard}
+            chartObject={chart}
             creationMethod={
-              dashboardId ? CreationMethod.Dashboards : CreationMethod.Charts
+              dashboard ? CreationMethod.Dashboards : CreationMethod.Charts
             }
+            isReport
           />
           {useTextMenu ? textMenu() : iconMenu()}
           {currentReportDeleting && (
@@ -340,7 +316,7 @@ export default function HeaderReportDropDown({
               }}
               onHide={() => setCurrentReportDeleting(null)}
               open
-              title={t('Delete Report?')}
+              title={t('Delete report?')}
             />
           )}
         </>

@@ -35,7 +35,7 @@ import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
-import HeaderReportDropDown from 'src/features/reports/ReportModal/HeaderReportDropdown';
+import HeaderReportDropDown from 'src/features/alerts/components/HeaderReportDropdown';
 import { logEvent } from 'src/logger/actions';
 import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
@@ -404,7 +404,11 @@ export const useExploreAdditionalActionsMenu = (
           <>
             <Menu.SubMenu title={t('Manage email report')}>
               <HeaderReportDropDown
-                chart={chart}
+                chart={{
+                  id: chart.id,
+                  value: chart.id,
+                  label: chart.name,
+                }}
                 setShowReportSubMenu={setShowReportSubMenu}
                 showReportSubMenu={showReportSubMenu}
                 setIsDropdownVisible={setIsDropdownVisible}

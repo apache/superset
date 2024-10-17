@@ -50,7 +50,7 @@ export default function DeleteModal({
   open,
   title,
 }: DeleteModalProps) {
-  const [disableChange, setDisableChange] = useState(true);
+const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
 
   const hide = () => {

@@ -909,7 +909,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      const dbId = await createResource(
+      const { dbId: id } = await createResource(
         dbToUpdate as DatabaseObject,
         dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm, // onShow toast on SQLA Forms
       );
