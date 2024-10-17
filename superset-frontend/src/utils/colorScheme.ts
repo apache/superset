@@ -115,17 +115,9 @@ export const applyColors = (
   const colorNameSpace = getColorNamespace(metadata?.color_namespace);
   const categoricalNamespace =
     CategoricalColorNamespace.getNamespace(colorNameSpace);
-  let colorScheme = metadata?.color_scheme;
+  const colorScheme = metadata?.color_scheme;
   const customLabelColors = metadata?.label_colors || {};
-  // when scheme unset, update only custom label colors
   const labelsColorMap = metadata?.shared_label_colors || {};
-
-  if (!colorScheme) {
-    // a fallback color scheme must be set to generate shared label colors
-    const categoricalSchemes = getCategoricalSchemeRegistry();
-    colorScheme =
-      categoricalSchemes.getDefaultKey()?.toString() ?? 'supersetColors';
-  }
 
   if (fresh) {
     // reset forced colors (custom labels + labels color map)

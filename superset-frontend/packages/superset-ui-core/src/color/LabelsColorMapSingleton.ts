@@ -17,7 +17,9 @@
  * under the License.
  */
 
+import { getCategoricalSchemeRegistry } from '.';
 import { makeSingleton } from '../utils';
+import CategoricalColorNamespace from './CategoricalColorNamespace';
 
 export enum LabelsColorMapSource {
   Dashboard,
@@ -38,7 +40,16 @@ export class LabelsColorMap {
     this.source = LabelsColorMapSource.Dashboard;
   }
 
-  updateColorMap(categoricalNamespace: any, colorScheme?: string) {
+  /**
+   * Wipes out the color map and updates it with the new color scheme.
+   *
+   * @param categoricalNamespace - the namespace to use for color mapping
+   * @param colorScheme - color scheme
+   */
+  updateColorMap(
+    categoricalNamespace: CategoricalColorNamespace,
+    colorScheme?: string,
+  ) {
     const newColorMap = new Map();
     this.colorMap.clear();
     this.chartsLabelsMap.forEach((chartConfig, sliceId) => {
@@ -58,6 +69,16 @@ export class LabelsColorMap {
     return this.colorMap;
   }
 
+  /**
+   *
+   * Called individually by each plugin via getColor fn.
+   *
+   * @param label - the label name
+   * @param color - the color
+   * @param sliceId - the chart id
+   * @param colorScheme - the color scheme
+   *
+   */
   addSlice(
     label: string,
     color: string,
@@ -75,12 +96,34 @@ export class LabelsColorMap {
       labels.push(label);
       this.chartsLabelsMap.set(sliceId, {
         labels,
-        scheme: colorScheme,
+        scheme: this.chartsLabelsMap.get(sliceId)?.scheme || colorScheme,
       });
     }
     this.colorMap.set(label, color);
   }
 
+  /**
+   * Keeps track of original colors of charts in their formData.
+   *
+   * @param sliceId - chart id
+   * @param colorScheme - color scheme
+   */
+  setSliceOriginColorScheme(sliceId: number, colorScheme?: string) {
+    const categoricalSchemes = getCategoricalSchemeRegistry();
+    const fallbackColorScheme =
+      categoricalSchemes.getDefaultKey()?.toString() ?? 'supersetColors';
+
+    this.chartsLabelsMap.set(sliceId, {
+      labels: this.chartsLabelsMap.get(sliceId)?.labels || [],
+      scheme: colorScheme || fallbackColorScheme,
+    });
+  }
+
+  /**
+   * Remove a slice from the color map.
+   *
+   * @param sliceId - the chart
+   */
   removeSlice(sliceId: number) {
     if (this.source !== LabelsColorMapSource.Dashboard) return;
 
@@ -96,6 +139,9 @@ export class LabelsColorMap {
     this.colorMap = newColorMap;
   }
 
+  /**
+   * Clear the shared labels color map.
+   */
   clear() {
     this.chartsLabelsMap.clear();
     this.colorMap.clear();

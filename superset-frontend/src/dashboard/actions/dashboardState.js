@@ -595,6 +595,7 @@ export function addSliceToDashboard(id) {
       dispatch(fetchDatasourceMetadata(form_data.datasource)),
     ]).then(() => {
       dispatch(addSlice(selectedSlice));
+      getLabelsColorMap().setSliceOriginColorScheme(id, form_data.color_scheme);
     });
   };
 }
@@ -686,62 +687,73 @@ const updateDashboardMetadata = async (id, metadata, dispatch) => {
   dispatch(dashboardInfoChanged({ metadata }));
 };
 
-export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
-  const {
-    dashboardInfo: { id, metadata },
-  } = getState();
-  const categoricalSchemes = getCategoricalSchemeRegistry();
-  const colorScheme = metadata?.color_scheme;
-  const colorSchemeRegistry = categoricalSchemes.get(
-    metadata?.color_scheme,
-    true,
-  );
-  const defaultScheme = categoricalSchemes.defaultKey;
-  const fallbackScheme = defaultScheme?.toString() || 'supersetColors';
-  const colorSchemeDomain = metadata?.color_scheme_domain || [];
+export const updateDashboardLabelsColor =
+  charts => async (dispatch, getState) => {
+    const {
+      dashboardInfo: { id, metadata },
+    } = getState();
+    const categoricalSchemes = getCategoricalSchemeRegistry();
+    const sharedColorMapInstance = getLabelsColorMap();
+    const colorScheme = metadata?.color_scheme;
+    const colorSchemeRegistry = categoricalSchemes.get(
+      metadata?.color_scheme,
+      true,
+    );
+    const defaultScheme = categoricalSchemes.defaultKey;
+    const fallbackScheme = defaultScheme?.toString() || 'supersetColors';
+    const colorSchemeDomain = metadata?.color_scheme_domain || [];
 
-  try {
-    const updatedMetadata = { ...metadata };
-    let updatedScheme = metadata?.color_scheme;
+    try {
+      const updatedMetadata = { ...metadata };
+      let updatedScheme = metadata?.color_scheme;
 
-    // Color scheme does not exist anymore, fallback to default
-    if (colorScheme && !colorSchemeRegistry) {
-      updatedScheme = fallbackScheme;
-      updatedMetadata.color_scheme = updatedScheme;
-      updatedMetadata.color_scheme_domain = getColorSchemeDomain(colorScheme);
+      // track original color scheme for each chart
+      charts.forEach(chart =>
+        sharedColorMapInstance.setSliceOriginColorScheme(
+          chart.id,
+          chart.form_data?.color_scheme,
+        ),
+      );
 
-      dispatch(setColorScheme(updatedScheme));
-      // must re-apply colors from fresh labels color map
-      applyColors(updatedMetadata, true);
+      // Color scheme does not exist anymore, fallback to default
+      if (colorScheme && !colorSchemeRegistry) {
+        updatedScheme = fallbackScheme;
+        updatedMetadata.color_scheme = updatedScheme;
+        updatedMetadata.color_scheme_domain = getColorSchemeDomain(colorScheme);
+
+        dispatch(setColorScheme(updatedScheme));
+        // must re-apply colors from fresh labels color map
+        applyColors(updatedMetadata, true);
+      }
+
+      // stored labels color map and applied might differ
+      // new data may appear in the map (data changes)
+      // or new slices may appear while changing tabs
+      // requires merging the stored and applied maps
+      const isMapSynced = isLabelsColorMapSynced(metadata);
+      if (!isMapSynced) {
+        // re-apply a fresh labels color map
+        applyColors(updatedMetadata, false, true);
+        // pull and store the just applied labels color map
+        updatedMetadata.shared_label_colors = getLabelsColorMapEntries();
+      }
+
+      // the stored color domain registry and fresh might differ at this point
+      const freshColorSchemeDomain = getColorSchemeDomain(colorScheme);
+      const isRegistrySynced =
+        colorSchemeDomain.toString() === freshColorSchemeDomain.toString();
+
+      if (colorScheme && !isRegistrySynced) {
+        updatedMetadata.color_scheme_domain = freshColorSchemeDomain;
+      }
+
+      if (
+        (colorScheme && (!colorSchemeRegistry || !isRegistrySynced)) ||
+        !isMapSynced
+      ) {
+        await updateDashboardMetadata(id, updatedMetadata, dispatch);
+      }
+    } catch (error) {
+      console.error('Failed to update dashboard color settings:', error);
     }
-
-    // stored labels color map and applied might differ
-    // new data may appear in the map (data changes)
-    // or new slices may appear while changing tabs
-    const isMapSynced = isLabelsColorMapSynced(metadata);
-    if (!isMapSynced) {
-      // re-apply a fresh labels color map
-      applyColors(updatedMetadata, false, true);
-      // pull and store the just applied labels color map
-      updatedMetadata.shared_label_colors = getLabelsColorMapEntries();
-    }
-
-    // the stored color domain registry and fresh might differ at this point
-    const freshColorSchemeDomain = getColorSchemeDomain(colorScheme);
-    const isRegistrySynced =
-      colorSchemeDomain.toString() === freshColorSchemeDomain.toString();
-
-    if (colorScheme && !isRegistrySynced) {
-      updatedMetadata.color_scheme_domain = freshColorSchemeDomain;
-    }
-
-    if (
-      (colorScheme && (!colorSchemeRegistry || !isRegistrySynced)) ||
-      !isMapSynced
-    ) {
-      await updateDashboardMetadata(id, updatedMetadata, dispatch);
-    }
-  } catch (error) {
-    console.error('Failed to update dashboard color settings:', error);
-  }
-};
+  };
