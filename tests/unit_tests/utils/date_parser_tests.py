@@ -157,7 +157,7 @@ def test_get_since_until() -> None:
     assert result == expected
 
     result = get_since_until("previous calendar quarter")
-    expected = datetime(2016, 7, 1, 0, 0, 0), datetime(2016, 9, 30, 0, 0, 0)
+    expected = datetime(2016, 7, 1, 0, 0, 0), datetime(2016, 10, 1, 0, 0, 0)
     assert result == expected
 
     result = get_since_until("previous calendar year")
