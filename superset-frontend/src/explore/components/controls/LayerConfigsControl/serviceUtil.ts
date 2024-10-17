@@ -16,32 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isNil } from 'lodash';
 
-export default function extent<T = number | string | Date | undefined | null>(
-  values: T[],
-) {
-  let min: T | undefined;
-  let max: T | undefined;
-  // eslint-disable-next-line no-restricted-syntax
-  for (const value of values) {
-    if (value !== null) {
-      if (isNil(min)) {
-        if (value !== undefined) {
-          min = value;
-          max = value;
-        }
-      } else if (value !== undefined) {
-        if (min > value) {
-          min = value;
-        }
-        if (!isNil(max)) {
-          if (max < value) {
-            max = value;
-          }
-        }
-      }
-    }
-  }
-  return [min, max];
-}
+import { WfsLayerConf } from './types';
+
+/**
+ * Get the available versions of WFS and WMS.
+ *
+ * @returns the versions
+ */
+export const getServiceVersions = () => ({
+  WMS: ['1.3.0', '1.1.1'],
+  WFS: ['2.0.2', '2.0.0', '1.1.0'],
+});
+
+/**
+ * Checks if all required WFS params are provided.
+ *
+ * @param layerConf The config to check
+ * @returns True, if all required params are provided. False, otherwise.
+ */
+export const hasAllRequiredWfsParams = (layerConf: WfsLayerConf) =>
+  layerConf.url && layerConf.version && layerConf.typeName;

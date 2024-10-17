@@ -16,32 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isNil } from 'lodash';
 
-export default function extent<T = number | string | Date | undefined | null>(
-  values: T[],
-) {
-  let min: T | undefined;
-  let max: T | undefined;
-  // eslint-disable-next-line no-restricted-syntax
-  for (const value of values) {
-    if (value !== null) {
-      if (isNil(min)) {
-        if (value !== undefined) {
-          min = value;
-          max = value;
-        }
-      } else if (value !== undefined) {
-        if (min > value) {
-          min = value;
-        }
-        if (!isNil(max)) {
-          if (max < value) {
-            max = value;
-          }
-        }
-      }
-    }
-  }
-  return [min, max];
-}
+import { t } from '@superset-ui/core';
+import { Tag } from 'antd';
+import { FC } from 'react';
+import { ExtentTagProps } from './types';
+
+export const ExtentTag: FC<ExtentTagProps> = ({
+  value,
+  onClick,
+  className,
+}) => {
+  const unsetName = t('unset');
+  const zoomName = t('Zoom');
+  const latName = t('Lat');
+  const lonName = t('Lon');
+
+  return (
+    <Tag onClick={onClick} className={className}>
+      {zoomName}: {value.fixedZoom ? Math.round(value.fixedZoom) : unsetName}
+      {' | '}
+      {latName}:{' '}
+      {value.fixedLatitude ? value.fixedLatitude.toFixed(6) : unsetName}
+      {' | '}
+      {lonName}:{' '}
+      {value.fixedLongitude ? value.fixedLongitude.toFixed(6) : unsetName}
+    </Tag>
+  );
+};
+
+export default ExtentTag;
