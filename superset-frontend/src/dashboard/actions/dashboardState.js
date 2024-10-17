@@ -716,10 +716,12 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
     }
 
     // stored labels color map and applied might differ
+    // new data may appear in the map (data changes)
+    // or new slices may appear while changing tabs
     const isMapSynced = isLabelsColorMapSynced(metadata);
     if (!isMapSynced) {
       // re-apply a fresh labels color map
-      applyColors(updatedMetadata, true);
+      applyColors(updatedMetadata, false, true);
       // pull and store the just applied labels color map
       updatedMetadata.shared_label_colors = getLabelsColorMapEntries();
     }
@@ -727,7 +729,8 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
     // the stored color domain registry and fresh might differ at this point
     const freshColorSchemeDomain = getColorSchemeDomain(colorScheme);
     const isRegistrySynced =
-      colorSchemeDomain.toString() !== freshColorSchemeDomain.toString();
+      colorSchemeDomain.toString() === freshColorSchemeDomain.toString();
+
     if (colorScheme && !isRegistrySynced) {
       updatedMetadata.color_scheme_domain = freshColorSchemeDomain;
     }

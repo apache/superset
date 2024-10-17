@@ -107,31 +107,53 @@ export const refreshLabelsColorMap = (
  *
  * @param metadata - the dashboard metadata object
  */
-export const applyColors = (metadata: Record<string, any>, fresh = false) => {
+export const applyColors = (
+  metadata: Record<string, any>,
+  fresh = false,
+  merge = false,
+) => {
   const colorNameSpace = getColorNamespace(metadata?.color_namespace);
   const categoricalNamespace =
     CategoricalColorNamespace.getNamespace(colorNameSpace);
-  const colorScheme = metadata?.color_scheme;
+  let colorScheme = metadata?.color_scheme;
   const customLabelColors = metadata?.label_colors || {};
   // when scheme unset, update only custom label colors
   const labelsColorMap = metadata?.shared_label_colors || {};
 
-  // reset forced colors (custom labels + labels color map)
-  categoricalNamespace.resetColors();
+  if (!colorScheme) {
+    // a fallback color scheme must be set to generate shared label colors
+    const categoricalSchemes = getCategoricalSchemeRegistry();
+    colorScheme =
+      categoricalSchemes.getDefaultKey()?.toString() ?? 'supersetColors';
+  }
+
+  if (fresh) {
+    // reset forced colors (custom labels + labels color map)
+    categoricalNamespace.resetColors();
+  }
 
   // apply custom label colors first
   Object.keys(customLabelColors).forEach(label => {
     categoricalNamespace.setColor(label, customLabelColors[label]);
   });
 
-  // re-instantiate a fresh labels color map based on current scheme
-  // will consider also just applied custom label colors
-  refreshLabelsColorMap(metadata?.color_namespace, colorScheme);
+  if (fresh) {
+    // re-instantiate a fresh labels color map based on current scheme
+    // must consider also just applied customLabelColors
+    refreshLabelsColorMap(metadata?.color_namespace, colorScheme);
+  }
+
+  const currentColorMapEntries = getLabelsColorMapEntries();
 
   // get the fresh map that was just updated or existing
   const labelsColorMapEntries = fresh
-    ? getLabelsColorMapEntries()
-    : labelsColorMap;
+    ? currentColorMapEntries
+    : merge
+      ? {
+          ...currentColorMapEntries,
+          ...labelsColorMap,
+        }
+      : labelsColorMap;
 
   // apply the final color map
   Object.keys(labelsColorMapEntries).forEach(label => {
