@@ -31,6 +31,7 @@ import { pick } from 'lodash';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
+  Chart,
   DashboardInfo,
   DashboardLayout,
   LayoutItem,
@@ -85,8 +86,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
-  const chartIds = useSelector<RootState, number[]>(state =>
-    Object.values(state.charts).map(chart => chart.id),
+  const charts = useSelector<RootState, Chart[]>(state =>
+    Object.values(state.charts),
+  );
+
+  const chartIds: number[] = useMemo(
+    () => charts.map(chart => chart.id),
+    [charts],
   );
 
   const prevTabIndexRef = useRef();
@@ -144,9 +150,11 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     // verify freshness of color map on tab change
     // and when loading for first time
     setTimeout(() => {
-      dispatch(updateDashboardLabelsColor());
+      if (charts.length) {
+        dispatch(updateDashboardLabelsColor(charts));
+      }
     }, 500);
-  }, [directPathToChild, dispatch]);
+  }, [directPathToChild, dispatch, charts]);
 
   useEffect(() => {
     const labelsColorMap = getLabelsColorMap();

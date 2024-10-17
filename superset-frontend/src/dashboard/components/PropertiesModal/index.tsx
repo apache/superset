@@ -318,7 +318,6 @@ const PropertiesModal = ({
       return;
     }
 
-    const copyMetadata = { ...metadata };
     const colorNamespace = getColorNamespace(metadata?.color_namespace);
 
     // color scheme in json metadata has precedence over selection
@@ -332,8 +331,14 @@ const PropertiesModal = ({
       delete metadata.color_scheme_domain;
     }
 
-    // only apply colors, the user has not saved yet
-    applyColors(copyMetadata, true);
+    // only apply colors as the user has not saved yet
+    applyColors(
+      {
+        ...metadata,
+        color_scheme: currentColorScheme,
+      },
+      true,
+    );
 
     currentJsonMetadata = jsonStringify(metadata);
 
