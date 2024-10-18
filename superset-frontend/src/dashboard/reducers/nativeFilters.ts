@@ -18,7 +18,7 @@
  */
 import {
   AnyFilterAction,
-  SET_FILTER_CONFIG_COMPLETE,
+  SET_NATIVE_FILTERS_CONFIG_COMPLETE,
   SET_IN_SCOPE_STATUS_OF_FILTERS,
   SET_FOCUSED_NATIVE_FILTER,
   UNSET_FOCUSED_NATIVE_FILTER,
@@ -26,7 +26,11 @@ import {
   UNSET_HOVERED_NATIVE_FILTER,
   UPDATE_CASCADE_PARENT_IDS,
 } from 'src/dashboard/actions/nativeFilters';
-import { FilterConfiguration, NativeFiltersState } from '@superset-ui/core';
+import {
+  Filter,
+  FilterConfiguration,
+  NativeFiltersState,
+} from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export function getInitialState({
@@ -37,7 +41,6 @@ export function getInitialState({
   state?: NativeFiltersState;
 }): NativeFiltersState {
   const state: Partial<NativeFiltersState> = {};
-
   const filters = {};
   if (filterConfig) {
     filterConfig.forEach(filter => {
@@ -52,6 +55,20 @@ export function getInitialState({
   return state as NativeFiltersState;
 }
 
+function handleFilterChangesComplete(
+  state: NativeFiltersState,
+  filters: Filter[],
+) {
+  const modifiedFilters = Object.fromEntries(
+    filters.map(filter => [filter.id, filter]),
+  );
+
+  return {
+    ...state,
+    filters: modifiedFilters,
+  } as NativeFiltersState;
+}
+
 export default function nativeFilterReducer(
   state: NativeFiltersState = {
     filters: {},
@@ -64,9 +81,11 @@ export default function nativeFilterReducer(
         filters: action.data.nativeFilters.filters,
       };
 
-    case SET_FILTER_CONFIG_COMPLETE:
     case SET_IN_SCOPE_STATUS_OF_FILTERS:
       return getInitialState({ filterConfig: action.filterConfig, state });
+
+    case SET_NATIVE_FILTERS_CONFIG_COMPLETE:
+      return handleFilterChangesComplete(state, action.filterChanges);
 
     case SET_FOCUSED_NATIVE_FILTER:
       return {

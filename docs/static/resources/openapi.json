@@ -3008,6 +3008,33 @@
         },
         "type": "object"
       },
+      "DashboardNativeFiltersConfigUpdateSchema": {
+        "properties": {
+          "deleted": {
+            "description": "List of filter ids to delete",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "modified": {
+            "description": "List of filter objects to update",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "reordered": {
+            "description": "List of filter ids in the new order",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["deleted", "modified", "reordered"],
+        "type": "object"
+      },
       "DashboardCopySchema": {
         "properties": {
           "css": {
@@ -13485,6 +13512,72 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": ["Dashboards"]
+      }
+    },
+    "/api/v1/dashboard/{id_or_slug}/filters/": {
+      "put": {
+        "description": "Update the filters for a given dashboard",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id_or_slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DashboardNativeFiltersConfigUpdateSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successfully updated the filters"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
           }
         },
         "security": [

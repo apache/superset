@@ -85,6 +85,15 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         "published": False,
     }
 
+    dashboard_put_filters_data = {
+        "modified": [
+            {"id": "native_filter_1", "name": "Filter 1"},
+            {"id": "native_filter_2", "name": "Filter 2"},
+        ],
+        "deleted": [],
+        "reordered": [],
+    }
+
     @pytest.fixture()
     def create_dashboards(self):
         with self.create_app().app_context():
@@ -1716,6 +1725,175 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert model.owners == [admin]
         assert model.roles == [admin_role]
 
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_add_dashboard_filters(self):
+        """
+        Dashboard API: Test that a filter was added
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/filters"
+        rv = self.put_assert_metric(uri, self.dashboard_put_filters_data, "put_filters")
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
+
+        assert native_filter_config[0]["name"] == "Filter 1"
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_modify_dashboard_filters_values(self):
+        """
+        Dashboard API: Test that a filter was added
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        json_metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "native_filter_1",
+                    "name": "Filter X",
+                    "filterType": "filter_select",
+                    "cascadeParentIds": [],
+                }
+            ]
+        }
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            roles=[admin_role.id],
+            json_metadata=json.dumps(json_metadata),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/filters"
+        rv = self.put_assert_metric(uri, self.dashboard_put_filters_data, "put_filters")
+
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
+
+        assert native_filter_config[0]["name"] == "Filter 1"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_modfify_dashboard_filters_order(self):
+        """
+        Dashboard API: Test filters reordered
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        json_metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "native_filter_1",
+                    "name": "Filter 1",
+                    "filterType": "filter_select",
+                    "cascadeParentIds": [],
+                },
+                {
+                    "id": "native_filter_2",
+                    "name": "Filter 2",
+                    "filterType": "filter_select",
+                    "cascadeParentIds": [],
+                },
+            ]
+        }
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            roles=[admin_role.id],
+            json_metadata=json.dumps(json_metadata),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/filters"
+        put_data = {
+            **self.dashboard_put_filters_data,
+            "reordered": ["native_filter_2", "native_filter_1"],
+        }
+        rv = self.put_assert_metric(uri, put_data, "put_filters")
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
+
+        assert native_filter_config[0]["name"] == "Filter 2"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_dashboard_filters_deleted(self):
+        """
+        Dashboard API: Test filters deleted
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        json_metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "native_filter_1",
+                    "name": "Filter 1",
+                    "filterType": "filter_select",
+                    "cascadeParentIds": [],
+                },
+                {
+                    "id": "native_filter_2",
+                    "name": "Filter 2",
+                    "filterType": "filter_select",
+                    "cascadeParentIds": [],
+                },
+            ]
+        }
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            roles=[admin_role.id],
+            json_metadata=json.dumps(json_metadata),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/filters"
+        put_data = {
+            **self.dashboard_put_filters_data,
+            "deleted": ["native_filter_1"],
+        }
+        rv = self.put_assert_metric(uri, put_data, "put_filters")
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
+
+        assert native_filter_config[0]["name"] == "Filter 2"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_modify_dashboard_filters_invalid_data(self):
+        """
+        Dashboard API: Test modify filters with invalid data
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/filters"
+        put_data = {"invalid_key": "invalid_value"}
+        rv = self.put_assert_metric(uri, put_data, "put_filters")
+        assert rv.status_code == 400
+
+        model = db.session.query(Dashboard).get(dashboard_id)
         db.session.delete(model)
         db.session.commit()
 

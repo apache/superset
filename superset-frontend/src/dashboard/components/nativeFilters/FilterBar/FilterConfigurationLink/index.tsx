@@ -21,9 +21,10 @@ import { ReactNode, FC, useCallback, useState, memo } from 'react';
 import { useDispatch } from 'react-redux';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
 import Button from 'src/components/Button';
-import { FilterConfiguration, styled } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 import { getFilterBarTestId } from '../utils';
+import { SaveFilterChangesType } from '../../FiltersConfigModal/types';
 
 export interface FCBProps {
   createNewOnOpen?: boolean;
@@ -46,14 +47,13 @@ export const FilterConfigurationLink: FC<FCBProps> = ({
 }) => {
   const dispatch = useDispatch();
   const [isOpen, setOpen] = useState(false);
-
   const close = useCallback(() => {
     setOpen(false);
   }, [setOpen]);
 
   const submit = useCallback(
-    async (filterConfig: FilterConfiguration) => {
-      dispatch(await setFilterConfiguration(filterConfig));
+    async (filterChanges: SaveFilterChangesType) => {
+      dispatch(await setFilterConfiguration(filterChanges));
       close();
     },
     [dispatch, close],

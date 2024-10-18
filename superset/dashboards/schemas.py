@@ -399,6 +399,12 @@ class DashboardPutSchema(BaseDashboardSchema):
     )
 
 
+class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
+    deleted = fields.List(fields.String(), allow_none=False)
+    modified = fields.List(fields.Raw(), allow_none=False)
+    reordered = fields.List(fields.String(), allow_none=False)
+
+
 class DashboardScreenshotPostSchema(Schema):
     dataMask = fields.Dict(
         keys=fields.Str(),
