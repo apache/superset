@@ -304,7 +304,7 @@ export function useSingleViewResource<D extends object = any>(
               resource: { id: json.id, ...json.result },
               error: null,
             });
-            return json.id;
+            return { id: json.id, ...json.result };
           },
           createErrorHandler((errMsg: Record<string, string[] | string>) => {
             // we did not want toasts for db-connection-ui but did not want to disable it everywhere
@@ -350,7 +350,7 @@ export function useSingleViewResource<D extends object = any>(
               resource: { ...json.result, id: json.id },
               error: null,
             });
-            return json.result;
+            return { id: json.id, ...json.result };
           },
           createErrorHandler(errMsg => {
             if (!hideToast) {

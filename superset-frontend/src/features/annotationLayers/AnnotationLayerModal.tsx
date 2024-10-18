@@ -148,7 +148,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
         }
 
         if (onLayerAdd) {
-          onLayerAdd(response);
+          onLayerAdd(response.id);
         }
 
         hide();
