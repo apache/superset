@@ -31,6 +31,14 @@ export interface TimeseriesDataRecord extends DataRecord {
   __timestamp: number | string | Date | null;
 }
 
+export const isTimeseriesDataRecord = (
+  item: any,
+): item is TimeseriesDataRecord => Object.keys(item).includes('__timestamp');
+
+export const isTimeseriesDataRecordList = (
+  items: any[],
+): items is TimeseriesDataRecord[] => items.every(isTimeseriesDataRecord);
+
 // data record value filters from FilterBox
 export interface DataRecordFilters {
   [key: string]: DataRecordValue[];

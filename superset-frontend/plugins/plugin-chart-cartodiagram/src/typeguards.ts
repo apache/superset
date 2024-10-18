@@ -16,32 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isNil } from 'lodash';
+import { LayerConf, WfsLayerConf, WmsLayerConf, XyzLayerConf } from './types';
 
-export default function extent<T = number | string | Date | undefined | null>(
-  values: T[],
-) {
-  let min: T | undefined;
-  let max: T | undefined;
-  // eslint-disable-next-line no-restricted-syntax
-  for (const value of values) {
-    if (value !== null) {
-      if (isNil(min)) {
-        if (value !== undefined) {
-          min = value;
-          max = value;
-        }
-      } else if (value !== undefined) {
-        if (min > value) {
-          min = value;
-        }
-        if (!isNil(max)) {
-          if (max < value) {
-            max = value;
-          }
-        }
-      }
-    }
-  }
-  return [min, max];
-}
+export const isWmsLayerConf = (
+  layerConf: LayerConf,
+): layerConf is WmsLayerConf => layerConf.type === 'WMS';
+
+export const isWfsLayerConf = (
+  layerConf: LayerConf,
+): layerConf is WfsLayerConf => layerConf.type === 'WFS';
+
+export const isXyzLayerConf = (
+  layerConf: LayerConf,
+): layerConf is XyzLayerConf => layerConf.type === 'XYZ';
