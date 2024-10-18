@@ -490,10 +490,10 @@ function FiltersConfigModal({
 
       createHandleSave(onSave, actualChanges, values, updatedFilterConfigMap)();
       resetForm(true);
+      resetFilterChanges();
     } else {
       configFormRef.current?.changeTab?.('configuration');
     }
-    resetFilterChanges();
   };
 
   const handleConfirmCancel = () => {
