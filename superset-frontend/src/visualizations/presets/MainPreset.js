@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Custom Charts
+import SpeedoChartPlugin from '../../../plugins/plugin-chart-echarts/src/custom-speedometer'
+
 // import MyCustomChartPlugin from '../../../plugins/plugin-chart-echarts/src/MyCustomChart'; // Adjust based on the actual path
 import { isFeatureEnabled, FeatureFlag, Preset } from '@superset-ui/core';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
@@ -103,6 +107,9 @@ export default class MainPreset extends Preset {
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
       plugins: [
+        // Custom Charts
+        new SpeedoChartPlugin().configure({ key: 'speedo-meter' }),
+
         new AreaChartPlugin().configure({ key: 'area' }),
         new BarChartPlugin().configure({ key: 'bar' }),
         new BigNumberChartPlugin().configure({ key: 'big_number' }),
