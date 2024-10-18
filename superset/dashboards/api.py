@@ -317,7 +317,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "get_export_ids_schema": get_export_ids_schema,
         "thumbnail_query_schema": thumbnail_query_schema,
         "get_fav_star_ids_schema": get_fav_star_ids_schema,
-        "update_filters_model_schema": update_filters_model_schema,
     }
     openapi_spec_methods = openapi_spec_methods_override
     """ Overrides GET methods OpenApi descriptions """
@@ -709,17 +708,17 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/update_filters_model_schema'
+                  $ref: '#/components/schemas/DashboardNativeFiltersConfigUpdateSchema'
           responses:
             200:
               description: Dashboard native filters updated
               content:
                 application/json:
-              schema:
-                type: object
-                properties:
-                  result:
-                    type: array
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
             400:
               $ref: '#/components/responses/400'
             401:
