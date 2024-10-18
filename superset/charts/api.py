@@ -45,6 +45,7 @@ from superset.charts.filters import (
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartCacheWarmUpRequestSchema,
+    ChartGetResponseSchema,
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
@@ -127,34 +128,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    show_columns = [
-        "cache_timeout",
-        "certified_by",
-        "certification_details",
-        "changed_on_delta_humanized",
-        "dashboards.dashboard_title",
-        "dashboards.id",
-        "dashboards.json_metadata",
-        "description",
-        "id",
-        "owners.first_name",
-        "owners.id",
-        "owners.last_name",
-        "dashboards.id",
-        "dashboards.dashboard_title",
-        "params",
-        "slice_name",
-        "thumbnail_url",
-        "url",
-        "viz_type",
-        "query_context",
-        "is_managed_externally",
-        "tags.id",
-        "tags.name",
-        "tags.type",
-    ]
 
-    show_select_columns = show_columns + ["table.id"]
     list_columns = [
         "is_managed_externally",
         "certified_by",
@@ -181,6 +155,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "edit_url",
         "form_data",
         "id",
+        "uuid",
         "last_saved_at",
         "last_saved_by.id",
         "last_saved_by.first_name",
@@ -225,6 +200,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "datasource_type",
         "description",
         "id",
+        "uuid",
         "owners",
         "dashboards",
         "slice_name",
@@ -249,6 +225,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     add_model_schema = ChartPostSchema()
     edit_model_schema = ChartPutSchema()
+    chart_get_response_schema = ChartGetResponseSchema()
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
@@ -280,6 +257,53 @@ class ChartRestApi(BaseSupersetModelRestApi):
     }
 
     allowed_rel_fields = {"owners", "created_by", "changed_by"}
+
+    @expose("/<id_or_uuid>", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        log_to_statsd=False,
+    )
+    def get(self, pk: str) -> Response:
+        """Gets a chart
+        ---
+        get:
+          description: >-
+            Get a chart
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_uuid
+            description: Either the id of the chart, or its uuid
+          responses:
+            200:
+              description: Chart
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/ChartGetResponseSchema'
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=arguments-differ
+        try:
+            dash = ChartDAO.get_by_id_or_uuid(pk)
+            result = self.chart_get_response_schema.dump(dash)
+            return self.response(200, result=result)
+        except ChartNotFoundError:
+            return self.response_404()
 
     @expose("/", methods=("POST",))
     @protect()
