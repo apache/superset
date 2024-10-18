@@ -88,6 +88,11 @@ def execute(self: Celery.task, report_schedule_id: int) -> None:
             task_id,
             scheduled_dttm,
         )
+        current_time = datetime.now(tz=timezone.utc)
+        stats_logger.timing(
+            "reporting.time_to_execution",
+            (current_time - scheduled_dttm).total_seconds() * 1000,
+        )
         AsyncExecuteReportScheduleCommand(
             task_id,
             report_schedule_id,
