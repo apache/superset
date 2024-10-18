@@ -52,20 +52,6 @@ export const getCrossFiltersConfiguration = (
     return undefined;
   }
 
-  const chartsByDataSource: Record<string, Set<number>> = Object.values(
-    charts,
-  ).reduce((acc: Record<string, Set<number>>, chart) => {
-    if (!chart.form_data) {
-      return acc;
-    }
-    const { datasource } = chart.form_data;
-    if (!acc[datasource]) {
-      acc[datasource] = new Set();
-    }
-    acc[datasource].add(chart.id);
-    return acc;
-  }, {});
-
   const globalChartConfiguration = metadata.global_chart_configuration?.scope
     ? {
         scope: metadata.global_chart_configuration.scope,
@@ -111,13 +97,10 @@ export const getCrossFiltersConfiguration = (
           },
         };
       }
-      const chartDataSource = charts[chartId].form_data.datasource;
       chartConfiguration[chartId].crossFilters.chartsInScope =
         isCrossFilterScopeGlobal(chartConfiguration[chartId].crossFilters.scope)
           ? globalChartConfiguration.chartsInScope.filter(
-              id =>
-                id !== Number(chartId) &&
-                chartsByDataSource[chartDataSource]?.has(id),
+              id => id !== Number(chartId),
             )
           : getChartIdsInFilterScope(
               chartConfiguration[chartId].crossFilters.scope,
