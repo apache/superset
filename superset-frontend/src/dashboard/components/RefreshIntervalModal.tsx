@@ -50,16 +50,16 @@ const InnerStyledDiv = styled.div`
 type RefreshIntervalModalProps = {
   addSuccessToast: (msg: string) => void;
   triggerNode: JSX.Element;
-  refreshFrequency: number;
+  refreshFrequency?: number;
   onChange: (refreshLimit: number, editMode: boolean) => void;
   editMode: boolean;
   refreshLimit?: number;
   refreshWarning: string | null;
-  refreshIntervalOptions: [number, string][];
+  refreshIntervalOptions?: [number, string][];
 };
 
 type RefreshIntervalModalState = {
-  refreshFrequency: number;
+  refreshFrequency?: number;
   custom_hour: number;
   custom_min: number;
   custom_sec: number;
@@ -93,9 +93,11 @@ class RefreshIntervalModal extends PureComponent<
   }
 
   onSave() {
-    this.props.onChange(this.state.refreshFrequency, this.props.editMode);
-    this.modalRef?.current?.close();
-    this.props.addSuccessToast(t('Refresh interval saved'));
+    if (this.state.refreshFrequency !== undefined) {
+      this.props.onChange(this.state.refreshFrequency, this.props.editMode);
+      this.modalRef?.current?.close();
+      this.props.addSuccessToast(t('Refresh interval saved'));
+    }
   }
 
   onCancel() {
@@ -108,7 +110,7 @@ class RefreshIntervalModal extends PureComponent<
   handleFrequencyChange(value: number) {
     const { refreshIntervalOptions } = this.props;
     this.setState({
-      refreshFrequency: value || refreshIntervalOptions[0][0],
+      refreshFrequency: value || refreshIntervalOptions?.[0]?.[0],
     });
 
     this.setState({
@@ -135,7 +137,7 @@ class RefreshIntervalModal extends PureComponent<
 
     refresh_options.push({ value: -1, label: t('Custom interval') });
     refresh_options.push(
-      ...refreshIntervalOptions.map(option => ({
+      ...refreshIntervalOptions?.map(option => ({
         value: option[0],
         label: t(option[1]),
       })),
@@ -221,7 +223,11 @@ class RefreshIntervalModal extends PureComponent<
               </FormLabel>
               <Select
                 ariaLabel={t('Refresh interval')}
-                options={this.createIntervalOptions(refreshIntervalOptions)}
+                options={
+                  refreshIntervalOptions
+                    ? this.createIntervalOptions(refreshIntervalOptions)
+                    : []
+                }
                 value={refreshFrequency}
                 onChange={this.handleFrequencyChange}
                 sortComparator={propertyComparator('value')}
@@ -307,6 +313,7 @@ class RefreshIntervalModal extends PureComponent<
             <Button
               buttonStyle="primary"
               buttonSize="small"
+              disabled={!refreshIntervalOptions}
               onClick={() =>
                 this.refresh_custom_val(
                   custom_block,
