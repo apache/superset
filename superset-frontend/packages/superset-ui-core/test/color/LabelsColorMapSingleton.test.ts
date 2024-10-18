@@ -75,6 +75,13 @@ describe('LabelsColorMap', () => {
         'SUPERSET_DEFAULT',
       );
     });
+    it('should default to empty string with no default color scheme', () => {
+      const labelsColorMap = getLabelsColorMap();
+      // @ts-ignore
+      getCategoricalSchemeRegistry().setDefaultKey(undefined);
+      labelsColorMap.setSliceOriginColorScheme(1);
+      expect(labelsColorMap.chartsLabelsMap.get(1)?.scheme).toEqual('');
+    });
     it('should re-use existing labels when setting color scheme', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.addSlice('a', 'red', 1);

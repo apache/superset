@@ -111,7 +111,7 @@ export class LabelsColorMap {
   setSliceOriginColorScheme(sliceId: number, colorScheme?: string) {
     const categoricalSchemes = getCategoricalSchemeRegistry();
     const fallbackColorScheme =
-      categoricalSchemes.getDefaultKey()?.toString() ?? 'supersetColors';
+      categoricalSchemes.getDefaultKey()?.toString() ?? '';
 
     this.chartsLabelsMap.set(sliceId, {
       labels: this.chartsLabelsMap.get(sliceId)?.labels || [],
