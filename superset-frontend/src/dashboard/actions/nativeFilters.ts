@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FilterConfiguration, Filters, makeApi } from '@superset-ui/core';
+import {
+  Filter,
+  FilterConfiguration,
+  Filters,
+  makeApi,
+} from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { cloneDeep } from 'lodash';
 import { setDataMaskForFilterChangesComplete } from 'src/dataMask/actions';
@@ -38,7 +43,7 @@ export const SET_NATIVE_FILTERS_CONFIG_COMPLETE =
   'SET_NATIVE_FILTERS_CONFIG_COMPLETE';
 export interface SetNativeFiltersConfigComplete {
   type: typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE;
-  filterChanges: SaveFilterChangesType;
+  filterChanges: Filter[];
 }
 
 export const SET_NATIVE_FILTERS_CONFIG_FAIL = 'SET_NATIVE_FILTERS_CONFIG_FAIL';
@@ -84,7 +89,7 @@ export const setFilterConfiguration =
       dispatch(nativeFiltersConfigChanged(response.result));
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-        filterChanges,
+        filterChanges: response.result,
       });
       dispatch(setDataMaskForFilterChangesComplete(filterChanges, oldFilters));
     } catch (err) {

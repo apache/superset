@@ -26,9 +26,12 @@ import {
   UNSET_HOVERED_NATIVE_FILTER,
   UPDATE_CASCADE_PARENT_IDS,
 } from 'src/dashboard/actions/nativeFilters';
-import { FilterConfiguration, NativeFiltersState } from '@superset-ui/core';
+import {
+  Filter,
+  FilterConfiguration,
+  NativeFiltersState,
+} from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
-import { SaveFilterChangesType } from '../components/nativeFilters/FiltersConfigModal/types';
 
 export function getInitialState({
   filterConfig,
@@ -54,38 +57,15 @@ export function getInitialState({
 
 function handleFilterChangesComplete(
   state: NativeFiltersState,
-  changes: SaveFilterChangesType,
+  filters: Filter[],
 ) {
-  const { modified = [], deleted = [], reordered = [] } = changes;
-
-  let updatedFilters = { ...state.filters };
-
-  if (deleted.length > 0) {
-    deleted.forEach(id => {
-      if (updatedFilters[id]) {
-        delete updatedFilters[id];
-      }
-    });
-  }
-
-  if (modified.length > 0) {
-    const modifiedFilters = Object.fromEntries(
-      modified.map(filter => [filter.id, filter]),
-    );
-    updatedFilters = { ...updatedFilters, ...modifiedFilters };
-  }
-
-  if (reordered.length > 0) {
-    updatedFilters = Object.fromEntries(
-      reordered
-        .map(id => [id, updatedFilters[id]])
-        .filter(([, filter]) => filter),
-    );
-  }
+  const modifiedFilters = Object.fromEntries(
+    filters.map(filter => [filter.id, filter]),
+  );
 
   return {
     ...state,
-    filters: updatedFilters,
+    filters: modifiedFilters,
   } as NativeFiltersState;
 }
 

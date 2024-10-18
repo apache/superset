@@ -324,7 +324,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         cls,
         dashboard: Dashboard | None = None,
         attributes: dict[str, Any] | None = None,
-    ) -> Dashboard:
+    ) -> list[dict[str, Any]]:
         if not dashboard:
             raise DashboardUpdateFailedError("Dashboard not found")
 
@@ -333,6 +333,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             native_filter_configuration = metadata.get(
                 "native_filter_configuration", []
             )
+            reordered_filter_ids: list[int] = attributes.get("reordered", [])
             updated_configuration = []
 
             # Modify / Delete existing filters
@@ -353,24 +354,31 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     None,
                 )
                 if modified_filter:
+                    # Filter was modified, substitute it
                     updated_configuration.append(modified_filter)
                 else:
+                    # Filter was not modified, keep it as is
                     updated_configuration.append(conf)
 
             # Append new filters
             for new_filter in attributes.get("modified", []):
-                if new_filter.get("id") not in [
-                    f.get("id") for f in updated_configuration
-                ]:
+                new_filter_id = new_filter.get("id")
+                if new_filter_id not in [f.get("id") for f in updated_configuration]:
                     updated_configuration.append(new_filter)
 
+                    if (
+                        reordered_filter_ids
+                        and new_filter_id not in reordered_filter_ids
+                    ):
+                        reordered_filter_ids.append(new_filter_id)
+
             # Reorder filters
-            reordered_filter_ids = attributes.get("reordered", [])
             if reordered_filter_ids:
                 filter_map = {
                     filter_config["id"]: filter_config
                     for filter_config in updated_configuration
                 }
+
                 updated_configuration = [
                     filter_map[filter_id]
                     for filter_id in reordered_filter_ids
@@ -380,7 +388,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             metadata["native_filter_configuration"] = updated_configuration
             dashboard.json_metadata = json.dumps(metadata)
 
-        return dashboard
+        return updated_configuration
 
     @staticmethod
     def add_favorite(dashboard: Dashboard) -> None:

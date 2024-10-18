@@ -35,37 +35,11 @@ export default function dashboardStateReducer(state = {}, action) {
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
     case DASHBOARD_INFO_FILTERS_CHANGED: {
-      const { modified = [], deleted = [], reordered = [] } = action.newInfo;
-      let updatedFilters = state.metadata.native_filter_configuration || [];
-      if (deleted.length > 0) {
-        updatedFilters = updatedFilters.filter(
-          filter => !deleted.includes(filter.id),
-        );
-      }
-      if (modified.length > 0) {
-        modified.forEach(modifiedFilter => {
-          const existingFilterIndex = updatedFilters.findIndex(
-            filter => filter.id === modifiedFilter.id,
-          );
-          if (existingFilterIndex > -1) {
-            updatedFilters[existingFilterIndex] = modifiedFilter;
-          } else {
-            updatedFilters = [...updatedFilters, modifiedFilter];
-          }
-        });
-      }
-      if (reordered.length > 0) {
-        updatedFilters = reordered
-          .map(reorderedId =>
-            updatedFilters.find(filter => filter.id === reorderedId),
-          )
-          .filter(Boolean);
-      }
       return {
         ...state,
         metadata: {
           ...state.metadata,
-          native_filter_configuration: updatedFilters,
+          native_filter_configuration: action.newInfo,
         },
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };

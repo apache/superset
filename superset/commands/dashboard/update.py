@@ -197,8 +197,8 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         super().validate()
         assert self._model
 
-        dashboard = DashboardDAO.update_native_filters_config(
+        configuration = DashboardDAO.update_native_filters_config(
             self._model, self._properties
         )
 
-        return dashboard
+        return configuration
