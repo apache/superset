@@ -559,6 +559,7 @@ def oauth2_config() -> OAuth2ClientConfig:
         "redirect_uri": "http://localhost:8088/api/v1/oauth2/",
         "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
         "token_request_uri": "https://oauth2.googleapis.com/token",
+        "request_content_type": "json",
     }
 
 
