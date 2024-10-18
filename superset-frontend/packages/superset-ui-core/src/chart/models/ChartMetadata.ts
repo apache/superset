@@ -50,6 +50,8 @@ export interface ChartMetadataConfig {
   labelExplanation?: string | null;
   queryObjectCount?: number;
   parseMethod?: ParseMethod;
+  // suppressContextMenu: true hides the default context menu for the chart.
+  // This is useful for viz plugins that define their own context menu.
   suppressContextMenu?: boolean;
 }
 
