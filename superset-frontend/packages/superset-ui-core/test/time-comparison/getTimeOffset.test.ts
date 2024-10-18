@@ -529,25 +529,25 @@ test('should handle custom range with previous calendar month', () => {
 
 test('should return the first day of the previous calendar quarter when current date is in Q4', () => {
   const now = new Date('2023-11-15T00:00:00Z');
-  const result = getTimeOffset('previous calendar quarter', false, now);
+  const result = getTimeOffset({'previous calendar quarter', false, now});
   expect(result).toEqual(new Date('2023-07-01T00:00:00Z'));
 });
 
 test('should return the first day of the previous calendar quarter when current date is in Q3', () => {
   const now = new Date('2023-08-15T00:00:00Z');
-  const result = getTimeOffset('previous calendar quarter', false, now);
+  const result = getTimeOffset({'previous calendar quarter', false, now});
   expect(result).toEqual(new Date('2023-04-01T00:00:00Z'));
 });
 
 test('should return the first day of the previous calendar quarter when current date is in Q2', () => {
   const now = new Date('2023-05-15T00:00:00Z');
-  const result = getTimeOffset('previous calendar quarter', false, now);
+  const result = getTimeOffset({'previous calendar quarter', false, now});
   expect(result).toEqual(new Date('2023-01-01T00:00:00Z'));
 });
 
 test('should return the first day of the previous calendar quarter when current date is in Q1', () => {
   const now = new Date('2023-02-15T00:00:00Z');
-  const result = getTimeOffset('previous calendar quarter', false, now);
+  const result = getTimeOffset({'previous calendar quarter', false, now});
   expect(result).toEqual(new Date('2022-10-01T00:00:00Z'));
 });
 
