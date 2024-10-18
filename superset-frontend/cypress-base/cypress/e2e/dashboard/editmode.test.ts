@@ -42,8 +42,21 @@ function openProperties() {
     cy.getBySel('header-actions-menu')
       .contains('Edit properties')
       .click({ force: true });
-    cy.wait(500);
+    cy.get('.ant-modal-body').should('be.visible');
   });
+}
+
+function assertMetadata(text: string) {
+  const regex = new RegExp(text);
+  cy.get('#json_metadata')
+    .should('be.visible')
+    .then(() => {
+      const metadata = cy.$$('#json_metadata')[0];
+
+      // cypress can read this locally, but not in ci
+      // so we have to use the ace module directly to fetch the value
+      expect(ace.edit(metadata).getValue()).to.match(regex);
+    });
 }
 
 function openAdvancedProperties() {
@@ -51,6 +64,7 @@ function openAdvancedProperties() {
     .contains('Advanced')
     .should('be.visible')
     .click({ force: true });
+  cy.get('#json_metadata').should('be.visible');
 }
 
 function dragComponent(
@@ -120,10 +134,13 @@ function visitResetTabbedDashboard() {
 
 function selectColorScheme(color: string) {
   cy.get(
-    '[data-test="dashboard-edit-properties-form"] [aria-label="Select color scheme"]',
+    '[data-test="dashboard-edit-properties-form"] input[aria-label="Select color scheme"]',
   )
     .first()
-    .click();
+    .then($input => {
+      cy.wrap($input).click({ force: true });
+      cy.wrap($input).type(color.slice(0, 3), { force: true });
+    });
   cy.getBySel(color).click({ force: true });
 }
 
@@ -137,34 +154,34 @@ function saveChanges() {
   cy.wait('@update');
 }
 
-function assertMetadata(text: string) {
-  const regex = new RegExp(text);
-  cy.get('#json_metadata')
-    .should('be.visible')
-    .then(() => {
-      const metadata = cy.$$('#json_metadata')[0];
-
-      // cypress can read this locally, but not in ci
-      // so we have to use the ace module directly to fetch the value
-      expect(ace.edit(metadata).getValue()).to.match(regex);
-    });
-}
 function clearMetadata() {
   cy.get('#json_metadata').then($jsonmetadata => {
-    cy.wrap($jsonmetadata).find('.ace_content').click();
+    cy.wrap($jsonmetadata).find('.ace_content').click({ force: true });
     cy.wrap($jsonmetadata)
       .find('.ace_text-input')
-      .type('{selectall} {backspace}', { force: true });
+      .then($ace => {
+        cy.wrap($ace).focus();
+        cy.wrap($ace).should('have.focus');
+        cy.wrap($ace).type('{selectall}', { force: true });
+        cy.wrap($ace).type('{backspace}', { force: true });
+      });
   });
 }
 
 function writeMetadata(metadata: string) {
-  cy.get('#json_metadata').then($jsonmetadata =>
-    cy
-      .wrap($jsonmetadata)
+  cy.get('#json_metadata').then($jsonmetadata => {
+    cy.wrap($jsonmetadata).find('.ace_content').click({ force: true });
+    cy.wrap($jsonmetadata)
       .find('.ace_text-input')
-      .type(metadata, { parseSpecialCharSequences: false, force: true }),
-  );
+      .then($ace => {
+        cy.wrap($ace).focus();
+        cy.wrap($ace).should('have.focus');
+        cy.wrap($ace).type(metadata, {
+          parseSpecialCharSequences: false,
+          force: true,
+        });
+      });
+  });
 }
 
 function openExplore(chartName: string) {
