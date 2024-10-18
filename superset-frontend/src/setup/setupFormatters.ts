@@ -78,6 +78,10 @@ export default function setupFormatters(
       'DURATION_SUB',
       createDurationFormatter({ formatSubMilliseconds: true }),
     )
+    .registerValue(
+      'DURATION_COL',
+      createDurationFormatter({ colonNotation: true }),
+    )
     .registerValue('MEMORY_DECIMAL', createMemoryFormatter({ binary: false }))
     .registerValue('MEMORY_BINARY', createMemoryFormatter({ binary: true }));
 
