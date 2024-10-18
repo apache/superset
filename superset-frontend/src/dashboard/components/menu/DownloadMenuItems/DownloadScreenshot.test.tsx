@@ -42,7 +42,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 
 const defaultProps = () => ({
   text: 'Download',
-  dashboardId: '123',
+  dashboardId: 123,
   format: DownloadScreenshotFormat.PDF,
   logEvent: mockLogEvent,
 });
