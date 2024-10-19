@@ -53,6 +53,13 @@ Note that:
 - Superset is served at localhost:8088/
 - You can login with admin/admin
 
+:::note
+Installing and building Node modules for Apache Superset inside `superset-node` can take a
+significant amount of time. This is normal due to the size of the dependencies. Please be
+patient while the process completes, as long wait times do not indicate an issue with your setup.
+If delays seem excessive, check your internet connection or system resources.
+:::
+
 :::caution
 Since `docker compose` is primarily designed to run a set of containers on **a single host**
 and can't credibly support **high availability** as a result, we do not support nor recommend
