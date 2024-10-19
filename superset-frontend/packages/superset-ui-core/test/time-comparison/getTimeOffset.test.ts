@@ -527,40 +527,37 @@ test('should handle custom range with previous calendar month', () => {
   );
 });
 
-test('should return the first day of the previous calendar quarter when current date is in Q4', () => {
-  const result = getTimeOffset({
-    timeRangeFilter: 'previous calendar quarter',
-    shifts: ['custom'],
-    startDate: '2023-11-15T00:00:00Z',
-  });
-  expect(result).toEqual(new Date('2023-07-01T00:00:00Z'));
-});
-
-test('should return the first day of the previous calendar quarter when current date is in Q3', () => {
-  const result = getTimeOffset({
-    timeRangeFilter: 'previous calendar quarter',
-    shifts: ['custom'],
-    startDate: '2023-08-15T00:00:00Z',
-  });
-  expect(result).toEqual(new Date('2023-04-01T00:00:00Z'));
-});
-
-test('should return the first day of the previous calendar quarter when current date is in Q2', () => {
-  const result = getTimeOffset({
-    timeRangeFilter: 'previous calendar quarter',
-    shifts: ['custom'],
-    startDate: '2023-05-15T00:00:00Z',
-  });
-  expect(result).toEqual(new Date('2023-01-01T00:00:00Z'));
-});
-
-test('should return the first day of the previous calendar quarter when current date is in Q1', () => {
-  const result = getTimeOffset({
-    timeRangeFilter: 'previous calendar quarter',
-    shifts: ['custom'],
-    startDate: '2023-02-15T00:00:00Z',
-  });
-  expect(result).toEqual(new Date('2022-10-01T00:00:00Z'));
+test('should handle custom range with previous calendar quarter', () => {
+  const timeRangeFilter = {
+    comparator: 'previous calendar quarter',
+  };
+  const shifts = ['custom'];
+  const startDate = '2024-04-26';
+  jest.useFakeTimers();
+  runTimezoneTest(
+    '2024-06-05T02:06:00+02:00',
+    'Etc/GMT-2',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days ago'],
+  );
+  runTimezoneTest(
+    '2024-06-05T00:06:00Z',
+    'UTC',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days ago'],
+  );
+  runTimezoneTest(
+    '2024-06-04T16:06:00-08:00',
+    'Etc/GMT+8',
+    timeRangeFilter,
+    shifts,
+    startDate,
+    ['5 days ago'],
+  );
 });
 
 test('should handle custom range with previous calendar year', () => {
