@@ -44,8 +44,7 @@ my_role_pvms = [
     ("can_read", "Tag"),
     ("can_explore_json", "Superset"),
     ("can_time_range", "Api"),
-    
-    
+    ("can_recent_activity", "Log"),        
 ]
 
 class CustomSsoSecurityManager(SupersetSecurityManager):
