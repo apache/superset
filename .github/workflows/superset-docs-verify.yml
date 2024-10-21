@@ -40,6 +40,11 @@ jobs:
             https://dev.mysql.com/doc/refman/5.7/en/innodb-limits.html,
             ^https://img\.shields\.io/.*,
             https://vkusvill.ru/
+            https://www.linkedin.com/in/mark-thomas-b16751158/
+            https://theiconic.com.au/
+            https://wattbewerb.de/
+            https://timbr.ai/
+            https://opensource.org/license/apache-2-0
   build-deploy:
     name: Build & Deploy
     runs-on: ubuntu-22.04

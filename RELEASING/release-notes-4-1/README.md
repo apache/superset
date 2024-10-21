@@ -137,4 +137,4 @@ There is now a [metadata bar](https://github.com/apache/superset/pull/27857) add
 
 ## Change to Docker image builds
 
-Starting in 4.1.0, the release's docker image does not ship with drivers needed to operate Superset. Users may need to install a driver for their metadata database (MySQL or Postgres) as well as the driver for their data warehouse. This is a result of changes to the `lean` docker image that official releases come from; see [Docker Build Presets](/docs/installation/docker-builds#build-presets) for more details.
+Starting in 4.1.0, the release's docker image does not ship with drivers needed to operate Superset. Users may need to install a driver for their metadata database (MySQL or Postgres) as well as the driver for their data warehouse. This is a result of changes to the `lean` docker image that official releases come from; see [Docker Build Presets](/docs/docs/installation/docker-builds.mdx#build-presets) for more details.
