@@ -38,7 +38,7 @@ export default class EchartsPie2ChartPlugin extends EchartsChartPlugin<
           t('Circular'),
           t('Comparison'),
           t('Percentages'),
-          t('Featured'),
+ t('Featured OLD'),
           t('Proportional'),
           t('ECharts'),
           t('Nightingale'),

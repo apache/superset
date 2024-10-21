@@ -24,14 +24,16 @@ const calculatePercentage = (minVal: number, maxVal: number, progressVal: number
 const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const calculatedData = calculatePercentage(min, max, progress);
+  var calculatedData = calculatePercentage(min, max, progress);
+
+  console.log("Received Props - Min: ", min, "Max: ", max, "Progress: ", progress);
 
   useEffect(() => {
     const chart = echarts.init(chartRef.current!);
 
     const options = {
       title: {
-        text: `Progress: ${calculatedData}%`,
+        text: `Progress: ${calculatedData}%\n\nNumber Being Given: ${progress} `,
         left: 110,
         top: 270,
         textStyle: {
@@ -89,10 +91,11 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
 
     chart.setOption(options);
 
+
     return () => {
       chart.dispose();
     };
-  }, [progress]);
+  }, [calculatedData]);
 
   return <div ref={chartRef} style={{ width: '100%', height: '520px' }} />;
 };

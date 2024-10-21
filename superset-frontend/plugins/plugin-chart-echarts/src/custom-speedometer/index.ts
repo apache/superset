@@ -7,9 +7,6 @@ import example1 from './img/single_1.png';
 import example2 from './img/dual_1.png';
 import { EchartsChartPlugin } from '../types';
 import { SpeedometerChartProps, SpeedometerChartFormData } from './types';
-import SpeedoChart from './SpeedoChart';
-import setup from './setup';
-import { Descriptions } from 'antd';
 
 export default class SpeedoChartPlugin extends EchartsChartPlugin<
   SpeedometerChartFormData
