@@ -80,7 +80,7 @@ export default function EmptyState({
 }: EmptyStateProps) {
   const mineRedirects: Redirects = {
     [WelcomeTable.Charts]: '/chart/add',
-    [WelcomeTable.Dashboards]: '/dashboard/new',
+    [WelcomeTable.Dashboards]: '/dashboard/new/',
     [WelcomeTable.SavedQueries]: '/sqllab?new=true',
   };
   const favRedirects: Redirects = {
