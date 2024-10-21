@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "docs/**"
+      - ".github/workflows/superset-docs-verify.yml"
     types: [synchronize, opened, reopened, ready_for_review]
 
 # cancel previous workflow jobs for PRs
