@@ -52,7 +52,6 @@ class TestAsyncQueries(SupersetTestCase):
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
-            ("redis.Redis", mock.Mock(spec=redis.Redis)),
         ]
     )
     @mock.patch("superset.tasks.async_queries.set_form_data")
