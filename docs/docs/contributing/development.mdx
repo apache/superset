@@ -29,7 +29,7 @@ cd superset
 
 ## docker compose (recommended!)
 
-Setting things up to squeeze an "hello world" into any part of Superset should be as simple as
+Setting things up to squeeze a "hello world" into any part of Superset should be as simple as
 
 ```bash
 docker compose up
@@ -45,13 +45,20 @@ Note that:
   - **Postgres** as the metadata database and to store example datasets, charts and dashboards which
     should be populated upon startup
   - **Redis** as the message queue for our async backend and caching backend
-- It'll load up examples into the database upon first startup
+- It'll load up examples into the database upon the first startup
 - all other details and pointers available in
   [docker-compose.yml](https://github.com/apache/superset/blob/master/docker-compose.yml)
 - The local repository is mounted within the services, meaning updating
   the code on the host will be reflected in the docker images
 - Superset is served at localhost:8088/
 - You can login with admin/admin
+
+:::note
+Installing and building Node modules for Apache Superset inside `superset-node` can take a
+significant amount of time. This is normal due to the size of the dependencies. Please be
+patient while the process completes, as long wait times do not indicate an issue with your setup.
+If delays seem excessive, check your internet connection or system resources.
+:::
 
 :::caution
 Since `docker compose` is primarily designed to run a set of containers on **a single host**
@@ -136,12 +143,11 @@ You can also run the pre-commit checks manually in various ways:
   Replace `<hook_id>` with the ID of the specific hook you want to run. You can find the list
   of available hooks in the `.pre-commit-config.yaml` file.
 
-
 ## Alternatives to `docker compose`
 
 :::caution
 This part of the documentation is a patchwork of information related to setting up
-development environments without `docker compose` and are documented/supported to varying
+development environments without `docker compose` and is documented/supported to varying
 degrees. It's been difficult to maintain this wide array of methods and insure they're
 functioning across environments.
 :::
@@ -181,11 +187,11 @@ superset load-examples
 
 # Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have CSS at this point.
-# See instructions below how to build the front-end assets.
+# See instructions below on how to build the front-end assets.
 superset run -p 8088 --with-threads --reload --debugger --debug
 ```
 
-Or you can install via our Makefile
+Or you can install it via our Makefile
 
 ```bash
 # Create a virtual environment and activate it (recommended)
@@ -203,7 +209,7 @@ $ make pre-commit
 ```
 
 **Note: the FLASK_APP env var should not need to be set, as it's currently controlled
-via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`**
+via `.flaskenv`, however, if needed, it should be set to `superset.app:create_app()`**
 
 If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
 `superset run -p 8088 --reload --debugger --debug`
@@ -306,7 +312,7 @@ cd superset-frontend
 npm ci
 ```
 
-Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` environment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` environment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
 
 ```json
 // your-package/package.json
@@ -334,7 +340,7 @@ Error: ENOSPC: System limit for number of file watchers reached
 ```
 
 The error is thrown because the number of files monitored by the system has reached the limit.
-You can address this this error by increasing the number of inotify watchers.
+You can address this error by increasing the number of inotify watchers.
 
 The current value of max watches can be checked with:
 
@@ -345,13 +351,13 @@ cat /proc/sys/fs/inotify/max_user_watches
 Edit the file `/etc/sysctl.conf` to increase this value.
 The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
 
-Open the file in editor and add a line at the bottom specifying the max watches values.
+Open the file in an editor and add a line at the bottom specifying the max watches values.
 
 ```bash
 fs.inotify.max_user_watches=524288
 ```
 
-Save the file and exit editor.
+Save the file and exit the editor.
 To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from `sysctl.conf`:
 
 ```bash
@@ -449,7 +455,7 @@ pre-commit install
 
 A series of checks will now run when you make a git commit.
 
-Alternatively it is possible to run pre-commit via tox:
+Alternatively, it is possible to run pre-commit via tox:
 
 ```bash
 tox -e pre-commit
@@ -533,7 +539,7 @@ commands are invoked.
 There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
 found here](https://github.com/apache/superset/tree/master/scripts/tests)
 
-To run all integration tests for example, run this script from the root directory:
+To run all integration tests, for example, run this script from the root directory:
 
 ```bash
 scripts/tests/run.sh
@@ -608,14 +614,14 @@ As an alternative you can use docker compose environment for testing:
 Make sure you have added below line to your /etc/hosts file:
 `127.0.0.1 db`
 
-If you already have launched Docker environment please use the following command to assure a fresh database instance:
+If you already have launched Docker environment please use the following command to ensure a fresh database instance:
 `docker compose down -v`
 
 Launch environment:
 
 `CYPRESS_CONFIG=true docker compose up`
 
-It will serve backend and frontend on port 8088.
+It will serve the backend and frontend on port 8088.
 
 Run Cypress tests:
 
@@ -657,7 +663,7 @@ For debugging locally using VSCode, you can configure a launch configuration fil
 Follow these instructions to debug the Flask app running inside a docker container. Note that
 this will run a barebones Superset web server,
 
-First add the following to the ./docker-compose.yaml file
+First, add the following to the ./docker-compose.yaml file
 
 ```diff
 superset:
@@ -779,11 +785,11 @@ Often in a Kubernetes environment nodes are not addressable from outside the clu
 kubectl port-forward  pod/superset-<some random id> 5678:5678
 ```
 
-You can now launch your VSCode debugger with the same config as above. VSCode will connect to to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
+You can now launch your VSCode debugger with the same config as above. VSCode will connect to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
 
 ### Storybook
 
-Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components, and variations thereof. To open and view the Storybook:
+Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components and variations thereof. To open and view the Storybook:
 
 ```bash
 cd superset-frontend
@@ -933,7 +939,7 @@ To fix it:
    from alembic import op
    ```
 
-   Alternatively you may also run `superset db merge` to create a migration script
+   Alternatively, you may also run `superset db merge` to create a migration script
    just for merging the heads.
 
    ```bash
