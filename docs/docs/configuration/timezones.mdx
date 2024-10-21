@@ -24,7 +24,7 @@ The challenge however lies with the slew of [database engines](/docs/configurati
 
 For example the following is a comparison of MySQL and Presto,
 
-```
+```python
 import pandas as pd
 from sqlalchemy import create_engine
 
@@ -41,7 +41,7 @@ pd.read_sql_query(
 
 which outputs `{"ts":{"0":1640995200000}}` (which infers the UTC timezone per the Epoch time definition) and `{"ts":{"0":"2022-01-01 00:00:00.000"}}` (without an explicit timezone) respectively and thus are treated differently in JavaScript:
 
-```
+```js
 new Date(1640995200000)
 > Sat Jan 01 2022 13:00:00 GMT+1300 (New Zealand Daylight Time)
 

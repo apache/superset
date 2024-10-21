@@ -17,6 +17,7 @@ Caching can be configured by providing dictionaries in
 `superset_config.py` that comply with [the Flask-Caching config specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
 
 The following cache configurations can be customized in this way:
+
 - Dashboard filter state (required): `FILTER_STATE_CACHE_CONFIG`.
 - Explore chart form data (required): `EXPLORE_FORM_DATA_CACHE_CONFIG`
 - Metadata cache (optional): `CACHE_CONFIG`
@@ -99,7 +100,6 @@ from superset.tasks.types import ExecutorType
 THUMBNAIL_SELENIUM_USER = "admin"
 THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
 ```
-
 
 For this feature you will need a cache system and celery workers. All thumbnails are stored on cache
 and are processed asynchronously by the workers.
