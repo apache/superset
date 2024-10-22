@@ -45,19 +45,10 @@ jobs:
         id: sha
         run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Build and Push Docker image
-        env:
-          IMAGE_TAG: ${{ steps.sha.outputs.sha }}
-        run: |
-          docker build -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
-          docker build -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest .
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
-
       - name: Build and push Superset images
         run: |
           # Set registry prefix and tag
-          REGISTRY_PREFIX="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
+          REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
           SUPERSET_TAG=$(date +%Y%m%d-%H%M%S)
 
           # Build the main Superset image
@@ -69,15 +60,15 @@ jobs:
             .
 
           # Tag worker and beat images from the main build
-          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/superset-worker:${SUPERSET_TAG}
-          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/superset-worker:latest
-          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/superset-worker-beat:${SUPERSET_TAG}
-          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/superset-worker-beat:latest
+          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker:${SUPERSET_TAG}
+          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker:latest
+          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker-beat:${SUPERSET_TAG}
+          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker-beat:latest
 
           # Push all Superset images
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/superset:${SUPERSET_TAG}
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/superset:latest
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/superset-worker:${SUPERSET_TAG}
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/superset-worker:latest
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/superset-worker-beat:${SUPERSET_TAG}
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/superset-worker-beat:latest          
+          docker push ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG}
+          docker push ${REGISTRY_PREFIX}/superset:latest
+          docker push ${REGISTRY_PREFIX}/superset-worker:${SUPERSET_TAG}
+          docker push ${REGISTRY_PREFIX}/superset-worker:latest
+          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${SUPERSET_TAG}
+          docker push ${REGISTRY_PREFIX}/superset-worker-beat:latest          
