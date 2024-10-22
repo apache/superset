@@ -1691,10 +1691,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sql
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> dict[str, Any]:
+    def estimate_statement_cost(
+        cls, database: Database, statement: str, cursor: Any
+    ) -> dict[str, Any]:
         """
         Generate a SQL query that estimates the cost of a given statement.
 
+        :param database: A Database object
         :param statement: A single SQL statement
         :param cursor: Cursor instance
         :return: Dictionary with different costs
@@ -1765,6 +1768,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             cursor = conn.cursor()
             return [
                 cls.estimate_statement_cost(
+                    database,
                     cls.process_statement(statement, database),
                     cursor,
                 )
@@ -1793,8 +1797,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return url
 
     @classmethod
-    def update_impersonation_config(
+    def update_impersonation_config(  # pylint: disable=too-many-arguments
         cls,
+        database: Database,
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
@@ -1804,6 +1809,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Update a configuration dictionary
         that can set the correct properties for impersonating users
 
+        :param connect_args: a Database object
         :param connect_args: config to be updated
         :param uri: URI
         :param username: Effective username

@@ -192,3 +192,4 @@ class OAuth2ClientConfigSchema(Schema):
     )
     authorization_request_uri = fields.String(required=True)
     token_request_uri = fields.String(required=True)
+    project_id = fields.String(required=False)
