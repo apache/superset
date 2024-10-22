@@ -89,9 +89,7 @@ const controlPanel: ControlPanelConfig = {
           {
             name: 'metric',
             config: {
-              ...optionalEntity,
-              type: 'DndMetricSelect',
-              label: t('Metric'),
+              ...sharedControls.metric,
               description: t('Metric for node values'),
             },
           },
