@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "master"
+      - "SID"
       - "[0-9].[0-9]*"
 
 jobs:
