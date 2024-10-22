@@ -436,7 +436,7 @@ const config: ControlPanelConfig = {
               label: t('Render columns in HTML format'),
               renderTrigger: true,
               default: true,
-              description: t('Render data in HTML format if applicable.'),
+              description: t('Display links and other formatting in the table when applicable.'),
             },
           },
         ],
