@@ -131,7 +131,10 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         if (onCssTemplateAdd) {
           onCssTemplateAdd();
         }
-
+        setCurrentCssTemplate({
+          template_name: '',
+          css: '',
+        });
         hide();
       });
     }
