@@ -8,25 +8,22 @@ interface SpeedoChartProps {
 }
 
 const calculatePercentage = (minVal: number, maxVal: number, progressVal: number): number => {
-  let percentage = ((progressVal - minVal) / (maxVal - minVal)) * 100; // Correctly normalize the progress
-  percentage = parseFloat(percentage.toFixed(2));
+  progressVal = parseFloat(progressVal.toFixed(2));
 
-  // Ensure percentage does not exceed 100% or fall below 0%
-  if (percentage > 100) {
-    percentage = 100;
-  } else if (percentage < 0) {
-    percentage = 0;
+  // Ensure percentage does notfall below 0%
+  if (progressVal < 0) {
+    progressVal = 0;
   }
 
-  return percentage;
+
+  return progressVal;
 }
 
 const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  var calculatedData = calculatePercentage(min, max, progress);
-
-  console.log("Received Props - Min: ", min, "Max: ", max, "Progress: ", progress);
+  //var calculatedData = calculatePercentage(min, max, progress);
+  var calculatedData = 90
 
   useEffect(() => {
     const chart = echarts.init(chartRef.current!);
@@ -34,7 +31,7 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
     const options = {
       title: {
         text: `Progress: ${calculatedData}%\n\nNumber Being Given: ${progress} `,
-        left: 110,
+        left: 100,
         top: 270,
         textStyle: {
           fontSize: 16,
@@ -56,13 +53,15 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
         type: 'custom',
         renderItem: (params: any, api: any) => {
           const startAngle = -Math.PI; // Starting angle for the arc (180 degrees)
-          const endAngle = startAngle + (Math.PI * (calculatedData / 100)); // Ending angle based on progress
-      
+          const hardCap = Math.min(calculatedData, 100);
+          const endAngle = startAngle + (Math.PI * (hardCap / 100)); // Ending angle based on progress
+
           // Create the Rainbow Arch radiuses
-          const outerRadius = 100;
+          const outerRadius = 120;
           const innerRadius = 80;
+          
       
-          const cx = api.coord([0, 0])[0]; // Center x
+          const cx = api.coord([0, 0])[1]; // Center x
           const cy = api.coord([0, 0])[1]; // Center y
       
           return {

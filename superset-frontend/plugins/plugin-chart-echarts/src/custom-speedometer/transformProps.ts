@@ -1,17 +1,18 @@
 import Metric from "packages/superset-ui-core/src/query/types/Metric";
-import { SpeedometerTransformProps } from "./types";
+import { DEFAULT_FORM_DATA, SpeedometerTransformProps } from "./types";
 import { DataRecord } from '@superset-ui/core';
+import { min } from "lodash";
 
-const calculatePercentage = (min: number, max: number, value: number): number => {
-
+const calculatePercentage = (min: number, max: number, value: any): number => {
     if(max === min) {
         return 0;
     }
 
     let percentage = ((value - min) / (max - min)) * 100;
-
-
-    return Math.min(Math.max(percentage, 0), 100);
+    
+    let final = Math.round(percentage)
+    
+    return final;
 }
 
 
@@ -21,21 +22,22 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
 
     // Ensure there's data
     const data = queriesData[0]?.data || [];
-
     const metricLabel = metric.label;
 
     const metricValue = data[0][metricLabel];
-    
-    // Get min, max, and progress values from the data
-    const minValue = 0;
-    const maxValue = 10000000;
-    const progressValue = data[data.length - 1]?.[metric];
+
+    // Get min and max from formData / fall back to defaults
+    const minVal = formData.minValue ?? DEFAULT_FORM_DATA.minValue ?? 0;
+    const maxVal = formData.maxValue ?? DEFAULT_FORM_DATA.maxValue ?? 100;
+
+    // Calculate actual percentage based on dataset, mn and max values
+    const progress = calculatePercentage(minVal, maxVal, metricValue);    
 
     return {
         width,
         height,
-        min: minValue,
-        max: maxValue,
-        progress: metricValue,
+        min: DEFAULT_FORM_DATA.minValue,
+        max: DEFAULT_FORM_DATA.maxValue,
+        progress: progress,
     };
 }

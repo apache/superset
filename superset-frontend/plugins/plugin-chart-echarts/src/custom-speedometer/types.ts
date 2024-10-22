@@ -5,11 +5,12 @@ import {
   ContextMenuTransformedProps,
   CrossFilterTransformedProps,
 } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 // Define structure of fthe form data used by Speedometer Chart
 export type SpeedometerChartFormData = QueryFormData & {
     metrix: string;
-    minValue?: number;
+    minValue: number;
     maxValue: number;
     threshholdRanges?: [ number, number, number, number];
     colorSheme?: string;
@@ -31,12 +32,18 @@ export interface SpeedometerChartProps {
     height: number;
     data: SpeedometerQueryData[];
     minValue?: number;
-    maxValue: number;
+    maxValue?: number;
     threshholdRanges?: [ number, number, number, number];
     colorSheme?: string;
     label?: string;
     numberFormat?: string;
     showLabel?: boolean;
+}
+
+export const DEFAULT_FORM_DATA: Partial<SpeedometerChartFormData> = {
+    ...DEFAULT_LEGEND_FORM_DATA,
+    minValue: 0,
+    maxValue: 100,
 }
 
 // Transform props for the Speedometer
