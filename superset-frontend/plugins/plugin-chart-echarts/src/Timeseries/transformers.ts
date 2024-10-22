@@ -325,9 +325,10 @@ export function transformSeries(
     },
     showSymbol,
     symbolSize: markerSize,
+    // Kustomisasi dibawah ialah untuk mengubah value dari barchart yang semula nulainya diatas bar menjadi didalam bar | Yobi
     label: {
       show: !!showValue,
-      position: isHorizontal ? 'right' : 'top',
+      position: isHorizontal ? 'right' : 'middle', //Kode ini yang diubah valuenya dari 'top' -> middle | Yobi
       formatter: (params: any) => {
         const { value, dataIndex, seriesIndex, seriesName } = params;
         const numericValue = isHorizontal ? value[0] : value[1];

@@ -319,3 +319,17 @@ export const forceCategorical: ControlSetItem = {
     description: t('Make the x-axis categorical'),
   },
 };
+
+// MEnambahkan xAxisTitleFontSize dan nilainya | Yobi
+export const xAxisTitleFontSize = {
+  name: 'xAxisTitleFontSize',
+  config: {
+      type: 'TextControl',
+      isInt: true,
+      label: t('Font Size'),
+      default: defaultXAxis.xAxisTitleFontSize,
+      renderTrigger: true,
+      description: t('xAxisLabelFontSize'),
+  },
+};
+
