@@ -7,6 +7,7 @@ on:
       - "README.md"
     branches:
       - "master"
+      - "SID"
 
   workflow_dispatch: {}
 
