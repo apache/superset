@@ -16,29 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import DownloadMenuItems from '.';
+import { ReactElement } from 'react';
 
-const createProps = () => ({
-  pdfMenuItemTitle: 'Export to PDF',
-  imageMenuItemTitle: 'Download as Image',
-  dashboardTitle: 'Test Dashboard',
-  logEvent: jest.fn(),
-  dashboardId: 123,
-});
+export interface VizMeta {
+  icon: ReactElement;
+  name: string;
+}
 
-const renderComponent = () => {
-  render(<DownloadMenuItems {...createProps()} />, {
-    useRedux: true,
-  });
-};
-
-test('Should render menu items', () => {
-  renderComponent();
-  expect(
-    screen.getByRole('menuitem', { name: 'Export to PDF' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Download as Image' }),
-  ).toBeInTheDocument();
-});
+export interface FastVizSwitcherProps {
+  onChange: (vizName: string) => void;
+  currentSelection: string | null;
+}
+export interface VizTileProps {
+  vizMeta: VizMeta;
+  isActive: boolean;
+  isRendered: boolean;
+  onTileClick: (vizType: string) => void;
+}

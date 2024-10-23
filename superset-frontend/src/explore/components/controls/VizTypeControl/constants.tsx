@@ -16,29 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import DownloadMenuItems from '.';
+import Icons from 'src/components/Icons';
+import { VizMeta } from './types';
 
-const createProps = () => ({
-  pdfMenuItemTitle: 'Export to PDF',
-  imageMenuItemTitle: 'Download as Image',
-  dashboardTitle: 'Test Dashboard',
-  logEvent: jest.fn(),
-  dashboardId: 123,
-});
-
-const renderComponent = () => {
-  render(<DownloadMenuItems {...createProps()} />, {
-    useRedux: true,
-  });
-};
-
-test('Should render menu items', () => {
-  renderComponent();
-  expect(
-    screen.getByRole('menuitem', { name: 'Export to PDF' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Download as Image' }),
-  ).toBeInTheDocument();
-});
+export const FEATURED_CHARTS: VizMeta[] = [
+  {
+    name: 'echarts_timeseries_line',
+    icon: <Icons.LineChartTile />,
+  },
+  {
+    name: 'echarts_timeseries_bar',
+    icon: <Icons.BarChartTile />,
+  },
+  { name: 'echarts_area', icon: <Icons.AreaChartTile /> },
+  { name: 'table', icon: <Icons.TableChartTile /> },
+  {
+    name: 'big_number_total',
+    icon: <Icons.BigNumberChartTile />,
+  },
+  { name: 'pie', icon: <Icons.PieChartTile /> },
+];
