@@ -32,6 +32,7 @@ import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { last } from 'lodash';
+import { getDashboardUrlParams } from 'src/utils/urlUtils';
 import { DownloadScreenshotFormat } from './types';
 
 const RETRY_INTERVAL = 3000;
@@ -127,6 +128,7 @@ export default function DownloadScreenshot({
         anchor,
         activeTabs,
         dataMask,
+        urlParams: getDashboardUrlParams(),
       },
     })
       .then(({ json }) => {
