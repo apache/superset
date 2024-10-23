@@ -162,7 +162,7 @@ services:
       # if you do so, you have to run this manually on the host, which should perform better!
       BUILD_SUPERSET_FRONTEND_IN_DOCKER: true
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
-    container_name: superset_node
+    container_name: superset_node 
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
       - path: docker/.env # default
@@ -238,6 +238,20 @@ services:
     volumes: *superset-volumes
     healthcheck:
       test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
+  
+  clickhouse-server:
+    image: clickhouse/clickhouse-server
+    container_name: clickhouse-db
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
 
 volumes:
   superset_home:
@@ -246,3 +260,5 @@ volumes:
     external: false
   redis:
     external: false
+  clickhouse-data:
+    driver: local
