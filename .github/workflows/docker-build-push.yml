@@ -16,7 +16,7 @@ env:
   IMAGE_NAME: superset
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -63,35 +63,6 @@ jobs:
           docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker:latest
           docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker-beat:${SUPERSET_TAG}
           docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker-beat:latest
-
-      - name: Save Docker images to cache
-        uses: actions/cache@v3
-        with:
-          path: /tmp/docker-cache
-          key: ${{ runner.os }}-docker-${{ steps.sha.outputs.sha }}
-          restore-keys: |
-            ${{ runner.os }}-docker-
-
-  push:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Google Auth
-        id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Load Docker images from cache
-        uses: actions/cache@v3
-        with:
-          path: /tmp/docker-cache
-          key: ${{ runner.os }}-docker-${{ needs.build.outputs.sha }}
 
       - name: Push Superset images
         run: |
