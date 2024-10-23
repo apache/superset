@@ -22,8 +22,18 @@ const calculatePercentage = (minVal: number, maxVal: number, progressVal: number
 const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  //var calculatedData = calculatePercentage(min, max, progress);
-  var calculatedData = 90
+  var calculatedData = calculatePercentage(min, max, progress);
+  //var calculatedData = 90
+
+
+  // Hardcoded values for 2nd chart
+  var outerRadiusSecondChart = 114;
+  var innerRadiusSecondChart = 122;
+  const segments = [
+    {start: 0, end: 80, color: "#49b53f"},
+    {start: 70, end: 85, color: "#dba307"},
+    {start: 85, end: 100, color: "#db0707"},
+  ]
 
   useEffect(() => {
     const chart = echarts.init(chartRef.current!);
@@ -56,11 +66,9 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
           const hardCap = Math.min(calculatedData, 100);
           const endAngle = startAngle + (Math.PI * (hardCap / 100)); // Ending angle based on progress
 
-          // Create the Rainbow Arch radiuses
-          const outerRadius = 120;
+          const outerRadius = 110;
           const innerRadius = 80;
           
-      
           const cx = api.coord([0, 0])[1]; // Center x
           const cy = api.coord([0, 0])[1]; // Center y
       
@@ -85,6 +93,45 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
           };
         },
         data: [{}], // Single data item to trigger renderItem
+      },
+      {
+        type: 'custom',
+        renderItem: (params: any, api:any) => {
+
+          const cx = api.coord([0,0])[1];  // Center x
+          const cy = api.coord([0,0])[1];  // Center y
+
+          const segmentArcs = segments.map((segment) => {
+            const startAngle = -Math.PI + (Math.PI * (segment.start / 100)); // Convert start percentage to radians
+            const endAngle = -Math.PI + (Math.PI * (segment.end / 100)); // Convert end percentage to radians
+
+
+            return {
+              type: 'path',
+              shape: {
+                pathData:`
+                  M ${cx + innerRadiusSecondChart * Math.cos(startAngle)} ${cy + innerRadiusSecondChart * Math.sin(startAngle)}
+                  A ${innerRadiusSecondChart} ${innerRadiusSecondChart} 0 0 1
+                    ${cx + innerRadiusSecondChart * Math.cos(endAngle)} ${cy + innerRadiusSecondChart * Math.sin(endAngle)}
+                  L ${cx + outerRadiusSecondChart * Math.cos(endAngle)} ${cy + outerRadiusSecondChart * Math.sin(endAngle)}
+                  A ${outerRadiusSecondChart} ${outerRadiusSecondChart} 0 0 0
+                    ${cx + outerRadiusSecondChart * Math.cos(startAngle)} ${cy + outerRadiusSecondChart * Math.sin(startAngle)}
+                  Z
+                  `,
+                },
+                style: {
+                  fill: segment.color,
+                  stroke: '#000',
+                  lineWidth: 2,
+                },
+            };
+          });
+          return {
+            type: 'group',
+            children: segmentArcs, // Add all arcs as children of the group
+          };
+        },
+        data: [{}]
       }],      
     };
 
