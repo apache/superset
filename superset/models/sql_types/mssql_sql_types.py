@@ -16,13 +16,13 @@
 # under the License.
 
 # pylint: disable=abstract-method
+import uuid
 from typing import Any, Optional
 
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import CHAR
 from sqlalchemy.sql.visitors import Visitable
 from sqlalchemy.types import TypeDecorator
-import uuid
 
 # _compiler_dispatch is defined to help with type compilation
 
@@ -40,7 +40,7 @@ class GUID(TypeDecorator):
         return uuid.UUID
 
     @classmethod
-    def _compiler_dispatch(cls, _visitor: Visitable, **_kw):
+    def _compiler_dispatch(cls, _visitor: Visitable, **_kw: Any) -> str:
         """Return the SQL type for the GUID type, which is CHAR(36) in SQL Server."""
         return "CHAR(36)"
 
@@ -52,9 +52,10 @@ class GUID(TypeDecorator):
             return str(uuid.UUID(value))  # Convert to string UUID if needed
         return str(value)
 
-    def process_result_value(self, value: Optional[str], dialect: Dialect) -> Optional[uuid.UUID]:
+    def process_result_value(
+        self, value: Optional[str], dialect: Dialect
+    ) -> Optional[uuid.UUID]:
         """Convert the string back to a UUID when retrieving from the database."""
         if value is None:
             return None
         return uuid.UUID(value)
-

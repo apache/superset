@@ -93,7 +93,7 @@ class MssqlEngineSpec(BaseEngineSpec):
         (
             re.compile(r"^uniqueidentifier.*", re.IGNORECASE),
             GUID(),
-            GenericDataType.STRING
+            GenericDataType.STRING,
         ),
     )
 
