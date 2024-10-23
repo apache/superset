@@ -45,10 +45,11 @@ jobs:
         run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Build Superset images
+        env:
+          SUPERSET_TAG: ${{ steps.sha.outputs.sha }}      
         run: |
           # Set registry prefix and tag
           REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
-          SUPERSET_TAG=$(date +%Y%m%d-%H%M%S)
 
           # Build the main Superset image
           docker build \
@@ -65,15 +66,16 @@ jobs:
           docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker-beat:latest
 
       - name: Push Superset images
+        env:
+          SUPERSET_TAG: ${{ steps.sha.outputs.sha }}        
         run: |
           # Set registry prefix and tag
           REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
-          SUPERSET_TAG=$(date +%Y%m%d-%H%M%S)
 
           # Push all Superset images
+          docker push ${REGISTRY_PREFIX}/superset:latest          
           docker push ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG}
-          docker push ${REGISTRY_PREFIX}/superset:latest
-          docker push ${REGISTRY_PREFIX}/superset-worker:${SUPERSET_TAG}
           docker push ${REGISTRY_PREFIX}/superset-worker:latest
-          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${SUPERSET_TAG}
+          docker push ${REGISTRY_PREFIX}/superset-worker:${SUPERSET_TAG}          
           docker push ${REGISTRY_PREFIX}/superset-worker-beat:latest
+          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${SUPERSET_TAG}          
