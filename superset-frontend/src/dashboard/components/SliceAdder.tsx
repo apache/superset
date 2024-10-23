@@ -43,53 +43,38 @@ import {
 import { debounce, pickBy } from 'lodash';
 import Checkbox from 'src/components/Checkbox';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { Dispatch } from 'redux';
+import { Slice } from 'src/dashboard/types';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import DragDroppable from './dnd/DragDroppable';
-import { Slice } from '@reduxjs/toolkit';
-import { Dispatch } from 'redux';
 
-export type slicePropShape = {
-  slice_id: number;
-  slice_url: string;
-  slice_name: string;
-  datasource?: string;
-  datasource_name?: string;
-  datasource_link?: string;
-  changed_on: number;
-  modified?: string;
-  viz_type: string;
-  description?: string;
-  description_markeddown?: string;
-  owners?: [string];
-  changed_on_humanized: string;
-  datasource_url: string;
-  thumbnail_url: string;
-};
-
- type SliceAdderProps = {
-  fetchSlices: (userId?: number, filter_value?: string, sortColumn?: string) => void;
-  updateSlices: (slices: { [id: number]: Slice }) => (dispatch: Dispatch) => void;
+export type SliceAdderProps = {
+  fetchSlices: (
+    userId?: number,
+    filter_value?: string,
+    sortColumn?: string,
+  ) => void;
+  updateSlices: (slices: {
+    [id: number]: Slice;
+  }) => (dispatch: Dispatch) => void;
   isLoading: boolean;
-  //slices: { [id: number]: slicePropShape };
-  //slices:  Record<string, Slice>;
-  slices: Slice;
+  slices: Record<number, Slice>;
   lastUpdated: number;
   errorMessage?: string;
-  userId: number; 
+  userId: number;
   selectedSliceIds?: number[];
-  editMode?: boolean; 
+  editMode?: boolean;
   dashboardId: number;
-  created_by: {};
 };
 
 type SliceAdderState = {
-filteredSlices: slicePropShape[];
-searchTerm: string;
-sortBy: keyof slicePropShape;
-selectedSliceIdsSet: Set<number>;
-showOnlyMyCharts: boolean;
-}
+  filteredSlices: Slice[];
+  searchTerm: string;
+  sortBy: keyof Slice;
+  selectedSliceIdsSet: Set<number>;
+  showOnlyMyCharts: boolean;
+};
 
 const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
 const KEYS_TO_SORT = {
@@ -147,24 +132,24 @@ export const ChartList = styled.div`
   min-height: 0;
 `;
 
-class SliceAdder extends Component <SliceAdderProps, SliceAdderState>{
-
+class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   private slicesRequest?: void | AbortController;
 
-static sortByComparator(attr: keyof slicePropShape) {
-  const desc = attr === 'changed_on' ? -1 : 1;
+  static sortByComparator(attr: keyof Slice) {
+    const desc = attr === 'changed_on' ? -1 : 1;
 
-  return (a: any , b: any ) => {
-    //if (a[attr] === undefined || b[attr] === undefined) return 0;
-    if (a[attr] < b[attr]) {
-      return -1 * desc;
-    }
-    if (a[attr] > b[attr]) {
-      return 1 * desc;
-    }
-    return 0;
-  };
-}
+    return (a: Slice, b: Slice) => {
+      const aValue = a[attr] ?? Number.MIN_SAFE_INTEGER;
+      const bValue = b[attr] ?? Number.MIN_SAFE_INTEGER;
+      if (aValue < bValue) {
+        return -1 * desc;
+      }
+      if (aValue > bValue) {
+        return 1 * desc;
+      }
+      return 0;
+    };
+  }
 
   static defaultProps = {
     selectedSliceIds: [],
@@ -172,7 +157,7 @@ static sortByComparator(attr: keyof slicePropShape) {
     errorMessage: '',
   };
 
-  constructor(props: SliceAdderProps ) {    
+  constructor(props: SliceAdderProps) {
     super(props);
     this.state = {
       filteredSlices: [],
@@ -196,12 +181,15 @@ static sortByComparator(attr: keyof slicePropShape) {
   }
 
   componentDidMount() {
-    this.slicesRequest = this.props.fetchSlices(this.userIdForFetch(), '', this.state.sortBy);
+    this.slicesRequest = this.props.fetchSlices(
+      this.userIdForFetch(),
+      '',
+      this.state.sortBy,
+    );
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: SliceAdderProps) {
     const nextState: SliceAdderState = {} as SliceAdderState;
-
     if (nextProps.lastUpdated !== this.props.lastUpdated) {
       nextState.filteredSlices = this.getFilteredSortedSlices(
         nextProps.slices,
@@ -222,22 +210,27 @@ static sortByComparator(attr: keyof slicePropShape) {
 
   componentWillUnmount() {
     // Clears the redux store keeping only selected items
-    const selectedSlices = pickBy(this.props.slices, (value: slicePropShape) =>
+    const selectedSlices = pickBy(this.props.slices, (value: Slice) =>
       this.state.selectedSliceIdsSet.has(value.slice_id),
     );
 
     this.props.updateSlices(selectedSlices);
-    if (this.slicesRequest && this.slicesRequest.abort) {
+    if (this?.slicesRequest?.abort) {
       this.slicesRequest.abort();
     }
   }
 
-  getFilteredSortedSlices(slices: Slice, searchTerm: string, sortBy: keyof slicePropShape, showOnlyMyCharts: boolean) {
+  getFilteredSortedSlices(
+    slices: SliceAdderProps['slices'],
+    searchTerm: string,
+    sortBy: keyof Slice,
+    showOnlyMyCharts: boolean,
+  ) {
     return Object.values(slices)
       .filter(slice =>
         showOnlyMyCharts
-          ? (slice?.owners?.find((owner: {id: number}) => owner.id === this.props.userId)) ||
-            (slice?.created_by?.id === this.props.userId)
+          ? slice?.owners?.find(owner => owner.id === this.props.userId) ||
+            slice?.created_by?.id === this.props.userId
           : true,
       )
       .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
@@ -265,7 +258,7 @@ static sortByComparator(attr: keyof slicePropShape) {
     }));
   }
 
-  handleSelect(sortBy: keyof slicePropShape) {
+  handleSelect(sortBy: keyof Slice) {
     this.setState(prevState => ({
       sortBy,
       filteredSlices: this.getFilteredSortedSlices(
@@ -282,7 +275,7 @@ static sortByComparator(attr: keyof slicePropShape) {
     );
   }
 
-rowRenderer({index, style }: { index: number, style: React.CSSProperties }) {
+  rowRenderer({ index, style }: { index: number; style: React.CSSProperties }) {
     const { filteredSlices, selectedSliceIdsSet } = this.state;
     const cellData = filteredSlices[index];
 
@@ -425,15 +418,12 @@ rowRenderer({index, style }: { index: number, style: React.CSSProperties }) {
         {!this.props.isLoading && this.state.filteredSlices.length > 0 && (
           <ChartList>
             <AutoSizer>
-            {({ height, width }: { height: number; width: number }) => (
+              {({ height, width }: { height: number; width: number }) => (
                 <List
                   width={width}
                   height={height}
                   itemCount={this.state.filteredSlices.length}
                   itemSize={DEFAULT_CELL_HEIGHT}
-                 //searchTerm={this.state.searchTerm}
-                  //sortBy={this.state.sortBy}
-                 // selectedSliceIds={this.props.selectedSliceIds}
                 >
                   {this.rowRenderer}
                 </List>
@@ -451,11 +441,10 @@ rowRenderer({index, style }: { index: number, style: React.CSSProperties }) {
           </div>
         )}
         {/* Drag preview is just a single fixed-position element */}
-        <AddSliceDragPreview slices={this.state.filteredSlices} isDragging={false} />
+        <AddSliceDragPreview slices={this.state.filteredSlices} />
       </div>
     );
   }
 }
-
 
 export default SliceAdder;
