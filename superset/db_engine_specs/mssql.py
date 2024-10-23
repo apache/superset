@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import re
 from datetime import datetime
@@ -27,6 +29,7 @@ from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.errors import SupersetErrorType
+from superset.models.sql_types.mssql_sql_types import GUID
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
@@ -86,6 +89,11 @@ class MssqlEngineSpec(BaseEngineSpec):
             re.compile(r"^smalldatetime.*", re.IGNORECASE),
             SMALLDATETIME(),
             GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^uniqueidentifier.*", re.IGNORECASE),
+            GUID(),
+            GenericDataType.STRING,
         ),
     )
 
