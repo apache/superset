@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,33 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactElement } from 'react';
 
-import {
-  createD3NumberFormatter,
-  createDurationFormatter,
-  createSiAtMostNDigitFormatter,
-  createMemoryFormatter,
-  formatNumber,
-  getNumberFormatter,
-  getNumberFormatterRegistry,
-  NumberFormats,
-  NumberFormatter,
-  PREVIEW_VALUE,
-} from '@superset-ui/core';
+export interface VizMeta {
+  icon: ReactElement;
+  name: string;
+}
 
-describe('index', () => {
-  it('exports modules', () => {
-    [
-      createD3NumberFormatter,
-      createDurationFormatter,
-      createSiAtMostNDigitFormatter,
-      createMemoryFormatter,
-      formatNumber,
-      getNumberFormatter,
-      getNumberFormatterRegistry,
-      NumberFormats,
-      NumberFormatter,
-      PREVIEW_VALUE,
-    ].forEach(x => expect(x).toBeDefined());
-  });
-});
+export interface FastVizSwitcherProps {
+  onChange: (vizName: string) => void;
+  currentSelection: string | null;
+}
+export interface VizTileProps {
+  vizMeta: VizMeta;
+  isActive: boolean;
+  isRendered: boolean;
+  onTileClick: (vizType: string) => void;
+}

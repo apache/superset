@@ -262,6 +262,7 @@ class DashboardDatasetSchema(Schema):
     owners = fields.List(fields.Dict())
     columns = fields.List(fields.Dict())
     column_types = fields.List(fields.Int())
+    column_names = fields.List(fields.Str())
     metrics = fields.List(fields.Dict())
     order_by_choices = fields.List(fields.List(fields.Str()))
     verbose_map = fields.Dict(fields.Str(), fields.Str())
@@ -396,6 +397,12 @@ class DashboardPutSchema(BaseDashboardSchema):
     tags = fields.List(
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
+
+
+class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
+    deleted = fields.List(fields.String(), allow_none=False)
+    modified = fields.List(fields.Raw(), allow_none=False)
+    reordered = fields.List(fields.String(), allow_none=False)
 
 
 class DashboardScreenshotPostSchema(Schema):

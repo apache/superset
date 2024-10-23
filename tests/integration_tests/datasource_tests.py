@@ -42,6 +42,7 @@ from superset.utils.database import (  # noqa: F401
     get_main_database,
 )
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -585,6 +586,7 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
         assert "INCORRECT SQL" in rv.json.get("error")
 
 
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_get_samples_on_physical_dataset(test_client, login_as_admin, physical_dataset):
     uri = (
         f"/datasource/samples?datasource_id={physical_dataset.id}&datasource_type=table"
@@ -649,6 +651,7 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
     assert rv.json["result"]["rowcount"] == 0
 
 
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_get_samples_with_time_filter(test_client, login_as_admin, physical_dataset):
     uri = (
         f"/datasource/samples?datasource_id={physical_dataset.id}&datasource_type=table"
@@ -669,6 +672,7 @@ def test_get_samples_with_time_filter(test_client, login_as_admin, physical_data
     assert rv.json["result"]["total_count"] == 2
 
 
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_get_samples_with_multiple_filters(
     test_client, login_as_admin, physical_dataset
 ):

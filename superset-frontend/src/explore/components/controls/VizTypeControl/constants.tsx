@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,33 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import Icons from 'src/components/Icons';
+import { VizMeta } from './types';
 
-import {
-  createD3NumberFormatter,
-  createDurationFormatter,
-  createSiAtMostNDigitFormatter,
-  createMemoryFormatter,
-  formatNumber,
-  getNumberFormatter,
-  getNumberFormatterRegistry,
-  NumberFormats,
-  NumberFormatter,
-  PREVIEW_VALUE,
-} from '@superset-ui/core';
-
-describe('index', () => {
-  it('exports modules', () => {
-    [
-      createD3NumberFormatter,
-      createDurationFormatter,
-      createSiAtMostNDigitFormatter,
-      createMemoryFormatter,
-      formatNumber,
-      getNumberFormatter,
-      getNumberFormatterRegistry,
-      NumberFormats,
-      NumberFormatter,
-      PREVIEW_VALUE,
-    ].forEach(x => expect(x).toBeDefined());
-  });
-});
+export const FEATURED_CHARTS: VizMeta[] = [
+  {
+    name: 'echarts_timeseries_line',
+    icon: <Icons.LineChartTile />,
+  },
+  {
+    name: 'echarts_timeseries_bar',
+    icon: <Icons.BarChartTile />,
+  },
+  { name: 'echarts_area', icon: <Icons.AreaChartTile /> },
+  { name: 'table', icon: <Icons.TableChartTile /> },
+  {
+    name: 'big_number_total',
+    icon: <Icons.BigNumberChartTile />,
+  },
+  { name: 'pie', icon: <Icons.PieChartTile /> },
+];

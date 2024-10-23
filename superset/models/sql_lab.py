@@ -374,6 +374,7 @@ class Query(
         expression = self._process_sql_expression(
             expression=col["sqlExpression"],
             database_id=self.database_id,
+            engine=self.database.backend,
             schema=self.schema,
             template_processor=template_processor,
         )

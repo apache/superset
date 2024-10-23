@@ -17,24 +17,39 @@
  * under the License.
  */
 
-import prettyMilliseconds, { Options } from 'pretty-ms';
 import NumberFormatter from '../NumberFormatter';
 
-export default function createDurationFormatter(
+export default function createMemoryFormatter(
   config: {
     description?: string;
     id?: string;
     label?: string;
-    multiplier?: number;
-  } & Options = {},
+    binary?: boolean;
+    decimals?: number;
+  } = {},
 ) {
-  const { description, id, label, multiplier = 1, ...prettyMsOptions } = config;
+  const { description, id, label, binary, decimals = 2 } = config;
 
   return new NumberFormatter({
     description,
-    formatFunc: value =>
-      prettyMilliseconds(value * multiplier, prettyMsOptions),
-    id: id ?? 'duration_format',
-    label: label ?? `Duration formatter`,
+    formatFunc: value => {
+      if (value === 0) return '0B';
+
+      const sign = value > 0 ? '' : '-';
+      const absValue = Math.abs(value);
+
+      const suffixes = binary
+        ? ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+        : ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'RB', 'QB'];
+      const base = binary ? 1024 : 1000;
+
+      const i = Math.min(
+        suffixes.length - 1,
+        Math.floor(Math.log(absValue) / Math.log(base)),
+      );
+      return `${sign}${parseFloat((absValue / Math.pow(base, i)).toFixed(decimals))}${suffixes[i]}`;
+    },
+    id: id ?? 'memory_format',
+    label: label ?? `Memory formatter`,
   });
 }
