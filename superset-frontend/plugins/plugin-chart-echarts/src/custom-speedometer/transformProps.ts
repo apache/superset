@@ -1,7 +1,4 @@
-import Metric from "packages/superset-ui-core/src/query/types/Metric";
 import { DEFAULT_FORM_DATA, SpeedometerTransformProps } from "./types";
-import { DataRecord } from '@superset-ui/core';
-import { min } from "lodash";
 
 const calculatePercentage = (min: number, max: number, value: any): number => {
     if(max === min) {
@@ -33,11 +30,15 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
     // Calculate actual percentage based on dataset, mn and max values
     const progress = calculatePercentage(minVal, maxVal, metricValue);    
 
+    // Segements 2nd arch
+    const segmentAmt = formData.segmentAmt ?? DEFAULT_FORM_DATA.segmentAmt ?? 0;
+
     return {
         width,
         height,
         min: minVal,
         max: maxVal,
         progress: progress,
+        segmentAmt: segmentAmt
     };
 }

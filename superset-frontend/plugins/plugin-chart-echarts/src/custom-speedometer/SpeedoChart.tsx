@@ -6,6 +6,7 @@ interface SpeedoChartProps {
   min: number;
   max: number;
   progress: number;
+  segmentAmt: number;
 }
 
 const calculatePercentage = (minVal: number, maxVal: number, progressVal: number): number => {
@@ -20,7 +21,7 @@ const calculatePercentage = (minVal: number, maxVal: number, progressVal: number
   return progressVal;
 }
 
-const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
+const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAmt }) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
   var calculatedData = calculatePercentage(min, max, progress);
@@ -80,6 +81,16 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
             text: `Max: ${max}`,
             fontSize: 16,
             fontWeight: 'bold',
+          }
+        },
+        {
+          type: 'text',
+          left: 400,
+          top: 190,
+          style: {
+            text: `Segment Amt: ${segmentAmt}`,
+            fontSize: 16,
+            fontWeight: 'bold'
           }
         }
       ],

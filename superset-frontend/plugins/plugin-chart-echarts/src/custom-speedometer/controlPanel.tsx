@@ -68,14 +68,14 @@ const config: ControlPanelConfig = {
         [<ControlSubSectionHeader>{t('Segment Charts')}</ControlSubSectionHeader>],
         [
           {
-            name: 'Segmentation',
+            name: 'segmentAmt',
             config: {
               type: 'SliderControl',
-              default: 3,
+              default: DEFAULT_FORM_DATA.segmentAmt,
               min: 0,
               max: 10,
               step: 1,
-              renderTrigger: false,
+              renderTrigger: true,
               label: t('Amount of Segments'),
               description: t('Select the amount of segments the 2nd chart will have'),
             }
