@@ -35,7 +35,7 @@ helm repo add superset https://apache.github.io/superset
 "superset" has been added to your repositories
 ```
 
-2. View charts in repo
+1. View charts in repo
 
 ```sh
 helm search repo superset
@@ -43,7 +43,7 @@ NAME                    CHART VERSION   APP VERSION     DESCRIPTION
 superset/superset       0.1.1           1.0             Apache Superset is a modern, enterprise-ready b...
 ```
 
-3. Configure your setting overrides
+1. Configure your setting overrides
 
 Just like any typical Helm chart, you'll need to craft a `values.yaml` file that would define/override any of the values exposed into the default [values.yaml](https://github.com/apache/superset/tree/master/helm/superset/values.yaml), or from any of the dependent charts it depends on:
 
@@ -52,7 +52,7 @@ Just like any typical Helm chart, you'll need to craft a `values.yaml` file that
 
 More info down below on some important overrides you might need.
 
-4. Install and run
+1. Install and run
 
 ```sh
 helm upgrade --install --values my-values.yaml superset superset/superset
@@ -154,6 +154,7 @@ See [Install Database Drivers](/docs/configuration/databases) for more informati
 :::
 
 The following example installs the drivers for BigQuery and Elasticsearch, allowing you to connect to these data sources within your Superset setup:
+
 ```yaml
 bootstrapScript: |
   #!/bin/bash
