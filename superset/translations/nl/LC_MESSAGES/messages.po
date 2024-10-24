@@ -13,16 +13,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"POT-Creation-Date: 2024-10-21 10:25+0330\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
 "Language-Team: Dutch\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.9.1\n"
 
 msgid ""
 "\n"
@@ -91,8 +91,16 @@ msgstr " een dashboard OF "
 msgid " a new one"
 msgstr " een nieuwe"
 
+#, python-format
+msgid " at line %(line)d"
+msgstr ""
+
 msgid " expression which needs to adhere to the "
 msgstr " uitdrukking die moet voldoen aan de "
+
+#, python-format
+msgid " near '%(highlight)s'"
+msgstr ""
 
 msgid " source code of Superset's sandboxed parser"
 msgstr " broncode van Superset's sandboxed parser"
@@ -405,6 +413,10 @@ msgstr ""
 "-- Let op: Tenzij u uw query opslaat, zullen deze tabbladen NIET bewaard "
 "blijven als u uw cookies leegt of van browser verandert.\n"
 "\n"
+
+#, python-format
+msgid "... and %s others"
+msgstr ""
 
 msgid "0 Selected"
 msgstr "0 Geselecteerd"
@@ -1088,6 +1100,14 @@ msgstr "Geavanceerd gegevenstype"
 msgid "Advanced-Analytics"
 msgstr "Geavanceerde Analytics"
 
+#, fuzzy
+msgid "Affected Charts"
+msgstr "Selecteer grafieken"
+
+#, fuzzy
+msgid "Affected Dashboards"
+msgstr "Selecteer dashboards"
+
 msgid "After"
 msgstr "Na"
 
@@ -1240,8 +1260,11 @@ msgstr "Sta de CREATE VIEW AS optie toe in SQL Lab"
 msgid "Allow Csv Upload"
 msgstr "Csv upload toestaan"
 
-msgid "Allow DML"
-msgstr "DML toestaan"
+msgid "Allow DDL and DML"
+msgstr ""
+
+msgid "Allow DDL/DML"
+msgstr ""
 
 msgid "Allow changing catalogs"
 msgstr ""
@@ -1276,18 +1299,17 @@ msgstr ""
 msgid "Allow file uploads to database"
 msgstr "Sta bestandsuploads naar database toe"
 
-msgid ""
-"Allow manipulation of the database using non-SELECT statements such as "
-"UPDATE, DELETE, CREATE, etc."
-msgstr ""
-"Sta manipulatie van de database toe met niet-SELECT statements zoals "
-"UPDATE, DELETE, CREATE, enz."
-
 msgid "Allow node selections"
 msgstr "Sta node selecties toe"
 
 msgid "Allow sending multiple polygons as a filter event"
 msgstr "Versturen van meerdere veelhoeken als filtergebeurtenis toestaan"
+
+msgid ""
+"Allow the execution of DDL (Data Definition Language: CREATE, DROP, "
+"TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, "
+"DELETE, etc)"
+msgstr ""
 
 msgid "Allow this database to be explored"
 msgstr "Toestaan dat deze database wordt verkend"
@@ -3523,6 +3545,17 @@ msgstr "Dashboard [%s] is zojuist aangemaakt en grafiek [%s] is eraan toegevoegd
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "Dashboard [{}] is zojuist aangemaakt en grafiek [{}] is eraan toegevoegd"
 
+msgid "Dashboard cannot be copied due to invalid parameters."
+msgstr ""
+
+#, fuzzy
+msgid "Dashboard cannot be favorited."
+msgstr "Dashboard kon niet worden bijgewerkt."
+
+#, fuzzy
+msgid "Dashboard cannot be unfavorited."
+msgstr "Dashboard kon niet worden bijgewerkt."
+
 msgid "Dashboard could not be deleted."
 msgstr "Dashboard kon niet worden verwijderd."
 
@@ -4159,9 +4192,10 @@ msgstr "Verwijderd %s"
 msgid "Deleted: %s"
 msgstr "Verwijderd: %s"
 
+#, fuzzy
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it and will deactivate any "
+"related alerts or reports. You may still reverse this action with the"
 msgstr ""
 "Het verwijderen van een tabblad zal alle inhoud erin verwijderen. U kunt "
 "deze actie nog steeds ongedaan maken met de"
@@ -4730,6 +4764,10 @@ msgstr "Code embedden"
 msgid "Embed dashboard"
 msgstr "Dashboard embedden"
 
+#, fuzzy
+msgid "Embedded dashboard could not be deleted."
+msgstr "Dashboard kon niet worden verwijderd."
+
 msgid "Embedding deactivated."
 msgstr "Embedden gedeactiveerd."
 
@@ -4889,6 +4927,10 @@ msgstr "Fout"
 msgid "Error Fetching Tagged Objects"
 msgstr "Fout bij ophalen van getagde objecten"
 
+#, fuzzy
+msgid "Error faving chart"
+msgstr "Fout bij opslaan dataset"
+
 #, python-format
 msgid "Error in jinja expression in HAVING clause: %(msg)s"
 msgstr "Fout in jinja expressie in HAVING clausule: %(msg)s"
@@ -4914,6 +4956,10 @@ msgid "Error message"
 msgstr "Foutmelding"
 
 #, fuzzy
+msgid "Error parsing"
+msgstr "fout donker"
+
+#, fuzzy
 msgid "Error reading CSV file"
 msgstr "Fout bij opslaan dataset"
 
@@ -4926,6 +4972,10 @@ msgid "Error reading Excel file"
 msgstr "Upload Excel-bestand"
 
 msgid "Error saving dataset"
+msgstr "Fout bij opslaan dataset"
+
+#, fuzzy
+msgid "Error unfaving chart"
 msgstr "Fout bij opslaan dataset"
 
 msgid "Error while fetching charts"
@@ -6015,9 +6065,6 @@ msgstr "Interval Startkolom"
 msgid "Intervals"
 msgstr "Intervallen"
 
-msgid "Intesity"
-msgstr "Intensiteit"
-
 msgid ""
 "Invalid Connection String: Expecting String of the form "
 "'ocient://user:pass@host:port/database'."
@@ -6717,6 +6764,9 @@ msgstr "Markeringen"
 msgid "Markup type"
 msgstr "Opmaaktype(Markup type)"
 
+msgid "Match time shift color with original series"
+msgstr ""
+
 msgid "Max"
 msgstr "Max"
 
@@ -6778,6 +6828,12 @@ msgstr "Mediaan waarden"
 
 msgid "Medium"
 msgstr "Gemiddeld"
+
+msgid "Memory in bytes - binary (1024B => 1KiB)"
+msgstr ""
+
+msgid "Memory in bytes - decimal (1024B => 1.024kB)"
+msgstr ""
 
 msgid "Menu actions trigger"
 msgstr "Menu acties trigger"
@@ -7545,6 +7601,10 @@ msgstr "Een of meer bedieningsinstrumenten om als kolommen te pivoteren"
 msgid "One or many metrics to display"
 msgstr "Eén of vele metrieken om weer te geven"
 
+#, fuzzy
+msgid "One or more annotation layers failed loading."
+msgstr "Aantekening lagen worden nog steeds geladen."
+
 msgid "One or more columns already exist"
 msgstr "Een of meer kolommen bestaan al"
 
@@ -7573,12 +7633,6 @@ msgstr "Een of meer parameters die in de query zijn opgegeven zijn ongeldig."
 
 msgid "One or more parameters specified in the query are missing."
 msgstr "Een of meer in de query opgegeven parameters ontbreken."
-
-msgid "One ore more annotation layers failed loading."
-msgstr "Aantekening lagen worden nog steeds geladen."
-
-msgid "Only SELECT statements are allowed against this database."
-msgstr "Alleen SELECT statements zijn toegestaan tegen deze database."
 
 msgid "Only Total"
 msgstr "Alleen Totaal"
@@ -7690,6 +7744,13 @@ msgstr "Sorteer de resultaten op geselecteerde kolommen"
 
 msgid "Ordering"
 msgstr "Volgorde"
+
+msgid ""
+"Orders the query result that generates the source data for this chart. If"
+" a series or row limit is reached, this determines what data are "
+"truncated. If undefined, defaults to the first metric (where "
+"appropriate)."
+msgstr ""
 
 msgid "Orientation"
 msgstr "Oriëntatie"
@@ -8536,6 +8597,10 @@ msgstr "Interval vernieuwen"
 msgid "Refresh interval saved"
 msgstr "Vernieuwing interval opgeslagen"
 
+#, fuzzy
+msgid "Refresh table schema"
+msgstr "Zie tabel schema"
+
 msgid "Refresh the default values"
 msgstr "Ververs de standaard waarden"
 
@@ -8769,6 +8834,10 @@ msgid "Results backend needed for asynchronous queries is not configured."
 msgstr ""
 "Resultaten die nodig zijn voor asynchrone query's zijn niet "
 "geconfigureerd."
+
+#, fuzzy
+msgid "Retry fetching results"
+msgstr "Resultaten opnieuw ophalen"
 
 msgid "Return to specific datetime."
 msgstr "Terugkeren naar specifieke datum/tijd."
@@ -9408,6 +9477,10 @@ msgstr "Selecteer een schema als de database dit ondersteunt"
 msgid "Select a sheet name from the uploaded file"
 msgstr "Selecteer een database om het bestand naar te uploaden"
 
+#, fuzzy
+msgid "Select a tab"
+msgstr "Verwijder database"
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -9565,6 +9638,10 @@ msgstr "Selecteer schema"
 
 msgid "Select subject"
 msgstr "Selecteer onderwerp"
+
+#, fuzzy
+msgid "Select tab"
+msgstr "Alles deselecteren"
 
 msgid "Select table or type to search tables"
 msgstr "Selecteer tabel of type om tabellen te zoeken"
@@ -10169,6 +10246,10 @@ msgstr "Sorteer filterwaarden"
 msgid "Sort metric"
 msgstr "Sorteer metriek"
 
+#, fuzzy
+msgid "Sort query by"
+msgstr "Exporteer query"
+
 msgid "Sort rows by"
 msgstr "Sorteer rijen op"
 
@@ -10463,6 +10544,12 @@ msgstr ""
 "stap, lijn, verspreidings en staafdiagrammen. Dit viz type heeft ook veel"
 " aanpassingsmogelijkheden."
 
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
+
 msgid "Symbol"
 msgstr "Symbool"
 
@@ -10484,9 +10571,6 @@ msgstr "Syntaxfout: %(qualifier)s invoer \"%(input)s\" verwacht \"%(expected)s"
 
 msgid "TABLES"
 msgstr "TABLES"
-
-msgid "TEMPORAL X-AXIS"
-msgstr "TIJDELIJK X-AXIS"
 
 msgid "TEMPORAL_RANGE"
 msgstr "TIJDELIJK_BEREIK"
@@ -10632,6 +10716,10 @@ msgstr ""
 "Sjabloonlink, het is mogelijk om {{ metric }} of andere waarden uit de "
 "bedieningselementen op te nemen."
 
+#, fuzzy
+msgid "Temporal X-Axis"
+msgstr "Is tijdelijk"
+
 msgid ""
 "Terminate running queries when browser window closed or navigated to "
 "another page. Available for Presto, Hive, MySQL, Postgres and Snowflake "
@@ -10686,9 +10774,6 @@ msgstr ""
 "De GeoJsonLayer neemt als GeoJSON geformatteerde gegevens in en geeft "
 "deze weer als interactieve polygonen, lijnen en punten (cirkels, "
 "pictogrammen en/of teksten)."
-
-msgid "The SQL is invalid and cannot be parsed."
-msgstr ""
 
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
@@ -10809,16 +10894,9 @@ msgstr ""
 "gedefinieerde kolommen. In de meeste gevallen zouden gebruikers dit niet "
 "hoeven te veranderen."
 
-#, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
-msgstr ""
-"De database %s is gekoppeld aan %s grafieken die verschijnen op %s "
-"dashboards en gebruikers hebben %s SQL Lab tabbladen met behulp van deze "
-"database. Weet u zeker dat u wilt doorgaan? Verwijderen van de database "
-"zal deze objecten breken."
+#, fuzzy
+msgid "The database"
+msgstr "Verwijder database"
 
 msgid "The database columns that contains lines information"
 msgstr "De database kolommen die regels met informatie bevatten"
@@ -10852,15 +10930,9 @@ msgstr "De database is verwijderd."
 msgid "The database was not found."
 msgstr "De database is niet gevonden."
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
-msgstr ""
-"De dataset %s is gekoppeld aan %s grafieken die verschijnen op %s "
-"dashboards. Weet u zeker dat u wilt doorgaan? Het verwijderen van de "
-"dataset zal deze objecten verbreken."
+#, fuzzy
+msgid "The dataset"
+msgstr "Nieuw dataset"
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr "De dataset die bij deze grafiek hoort bestaat niet meer"
@@ -11058,6 +11130,12 @@ msgstr ""
 "\"Min Period\" 7 willen hebben, zodat alle getoonde datapunten het totaal"
 " van 7 periodes zijn. Dit zal de \"aanloopperiode\" verbergen die "
 "plaatsvindt in de eerste 7 periodes"
+
+#, fuzzy
+msgid ""
+"The minimum value of metrics. It is an optional configuration. If not "
+"set, it will be the minimum value of the data"
+msgstr "De maximale waarde van de metrieken. Het is een optionele configuratie"
 
 msgid "The name of the rule must be unique"
 msgstr "De naam van de regel moet uniek zijn"
@@ -11314,6 +11392,9 @@ msgid ""
 "The result of this query must be a value capable of numeric "
 "interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() "
 "function)."
+msgstr ""
+
+msgid "The result size exceeds the allowed limit."
 msgstr ""
 
 msgid "The results backend no longer has the data from the query."
@@ -11580,6 +11661,10 @@ msgstr "Er is een fout opgetreden bij het laden van de schema's"
 
 msgid "There was an error loading the tables"
 msgstr "Er is een fout opgetreden bij het laden van de tabellen"
+
+#, fuzzy, python-format
+msgid "There was an error retrieving dashboard tabs."
+msgstr "Sorry, er is een fout opgetreden bij het opslaan van dit dashboard: %s"
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
@@ -11849,6 +11934,12 @@ msgstr ""
 msgid "This dashboard was saved successfully."
 msgstr "Dit dashboard is succesvol opgeslagen."
 
+msgid ""
+"This database does not allow for DDL/DML, and the query could not be "
+"parsed to confirm it is a read-only query. Please contact your "
+"administrator for more assistance."
+msgstr ""
+
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr "Deze database wordt extern beheerd en kan niet worden bewerkt in Superset"
 
@@ -11930,15 +12021,6 @@ msgstr ""
 
 msgid "This may be triggered by:"
 msgstr "Dit kan veroorzaakt worden door:"
-
-msgid ""
-"This metric is used to define row selection criteria (how the rows are "
-"sorted) if a series or row limit is present. If not defined, it reverts "
-"to the first metric (where appropriate)."
-msgstr ""
-"Deze metriek wordt gebruikt om rij selectiecriteria te definiëren (hoe de"
-" rijen gesorteerd worden) als een rij limiet aanwezig is. Indien niet "
-"gedefinieerd, keert het terug naar de eerste metriek (indien gepast)."
 
 msgid "This metric might be incompatible with current dataset"
 msgstr "Deze metriek is mogelijk niet compatibel met huidig dataset"
@@ -12471,6 +12553,9 @@ msgstr ""
 "Kan de status van het tabelschema niet migreren naar de backend. Superset"
 " zal het later opnieuw proberen. Neem contact op met uw beheerder als dit"
 " probleem zich blijft voordoen."
+
+msgid "Unable to parse SQL"
+msgstr ""
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "Dashboard kleuren kunnen niet worden opgehaald"
@@ -13250,6 +13335,11 @@ msgstr ""
 " filter toe op de belangrijkste datumtijd kolom."
 
 msgid ""
+"When unchecked, colors from the selected color scheme will be used for "
+"time shifted series"
+msgstr ""
+
+msgid ""
 "When using \"Autocomplete filters\", this can be used to improve "
 "performance of the query fetching the values. Use this option to apply a "
 "predicate (WHERE clause) to the query selecting the distinct values from "
@@ -13444,9 +13534,10 @@ msgstr ""
 msgid "Whether to show as Nightingale chart."
 msgstr "Of de voortgang van het graadmeterdiagram moet worden weergegeven"
 
+#, fuzzy
 msgid ""
 "Whether to show extra controls or not. Extra controls include things like"
-" making mulitBar charts stacked or side by side."
+" making multiBar charts stacked or side by side."
 msgstr ""
 "Of er wel of niet extra besturingselementen moeten worden weergegeven. "
 "Extra bedieningselementen omvatten zaken als het gestapeld of naast "
@@ -14220,9 +14311,6 @@ msgstr "deckGL"
 msgid "default"
 msgstr "standaard"
 
-msgid "delete"
-msgstr "verwijder"
-
 msgid "descendant"
 msgstr "afstammeling"
 
@@ -14382,6 +14470,26 @@ msgstr "wordt verwacht dat het een getal is"
 
 msgid "is expected to be an integer"
 msgstr "wordt verwacht een geheel getal te zijn"
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+"De database %s is gekoppeld aan %s grafieken die verschijnen op %s "
+"dashboards en gebruikers hebben %s SQL Lab tabbladen met behulp van deze "
+"database. Weet u zeker dat u wilt doorgaan? Verwijderen van de database "
+"zal deze objecten breken."
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
+msgstr ""
+"De dataset %s is gekoppeld aan %s grafieken die verschijnen op %s "
+"dashboards. Weet u zeker dat u wilt doorgaan? Het verwijderen van de "
+"dataset zal deze objecten verbreken."
 
 msgid "key a-z"
 msgstr "sleutel a-z"
@@ -14701,9 +14809,6 @@ msgstr "variantie"
 
 msgid "view instructions"
 msgstr "bekijk instructies"
-
-msgid "virtual"
-msgstr "virtueel"
 
 msgid "viz type"
 msgstr "viz type"
