@@ -354,10 +354,16 @@ class ExtraCache:
             val: Union[Any, list[Any]] = flt.get("comparator")
             op: str = flt["operator"].upper() if flt.get("operator") else None  # type: ignore
             if (
-                flt.get("expressionType") == "SIMPLE"
+                (flt.get("expressionType") == "SIMPLE"
                 and flt.get("clause") == "WHERE"
                 and flt.get("subject") == column
-                and val
+                and val)
+                or 
+                (isinstance(flt.get("subject"), dict)
+                and flt.get("expressionType") == "SIMPLE"
+                and flt.get("clause") == "WHERE"
+                and flt.get("subject").get("label") == column
+                and val)
             ):
                 if remove_filter:
                     if column not in self.removed_filters:
