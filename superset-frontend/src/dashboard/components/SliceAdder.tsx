@@ -424,6 +424,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
                   height={height}
                   itemCount={this.state.filteredSlices.length}
                   itemSize={DEFAULT_CELL_HEIGHT}
+                  itemKey={index => this.state.filteredSlices[index].slice_id}
                 >
                   {this.rowRenderer}
                 </List>
