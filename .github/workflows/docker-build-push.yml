@@ -31,7 +31,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}     
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -54,11 +54,10 @@ jobs:
             echo "IMAGE_PERMANENT_TAG=dev" >> $GITHUB_ENV
           fi
 
-      - name: Build and push Superset images
+      - name: Build Superset images
         run: |
           # Set registry prefix and tag
           REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
-
 
           # Build the main Superset image
           docker build \
@@ -73,6 +72,11 @@ jobs:
           docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_PERMANENT_TAG }}
           docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_TAG }}
           docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_PERMANENT_TAG }}
+
+      - name: Push Superset images  
+        run: |
+          # Set registry prefix and tag
+          REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
 
           # Push all Superset images
           docker push ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }}
