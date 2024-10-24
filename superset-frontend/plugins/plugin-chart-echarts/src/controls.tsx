@@ -26,7 +26,11 @@ import {
   SORT_SERIES_CHOICES,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_LEGEND_FORM_DATA, StackControlOptions } from './constants';
+import {
+  DEFAULT_LEGEND_FORM_DATA,
+  StackControlOptions,
+  TIMESERIES_CONSTANTS,
+} from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 import { defaultXAxis } from './defaults';
 
@@ -308,6 +312,72 @@ export const minorTicks: ControlSetItem = {
     description: t('Show minor ticks on axes.'),
   },
 };
+
+export const dataZoom: ControlSetItem = {
+  name: 'zoomable',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Data Zoom'),
+    default: DEFAULT_FORM_DATA.zoomable,
+    renderTrigger: true,
+    description: t('Enable data zooming controls'),
+  },
+};
+
+export const dataZoomSliderOptions: ControlSetItem[][] = [
+  [
+    {
+      name: 'zoomStart',
+      config: {
+        type: 'SliderControl',
+        label: t('Zoom Start'),
+        renderTrigger: true,
+        min: 0,
+        max: 100,
+        step: 1,
+        default: TIMESERIES_CONSTANTS.dataZoomStart,
+        description: t(
+          'The start percentage of the window out of the data extent, in the range of 0 ~ 100.',
+        ),
+        visibility: ({ controls }: ControlPanelsContainerProps) =>
+          Boolean(controls?.zoomable?.value),
+      },
+    },
+  ],
+  [
+    {
+      name: 'zoomEnd',
+      config: {
+        type: 'SliderControl',
+        label: t('Zoom End'),
+        renderTrigger: true,
+        min: 0,
+        max: 100,
+        step: 1,
+        default: TIMESERIES_CONSTANTS.dataZoomEnd,
+        description: t(
+          'The end percentage of the window out of the data extent, in the range of 0 ~ 100.',
+        ),
+        visibility: ({ controls }: ControlPanelsContainerProps) =>
+          Boolean(controls?.zoomable?.value),
+      },
+    },
+  ],
+  [
+    {
+      name: 'zoomLock',
+      config: {
+        type: 'CheckboxControl',
+        label: t('Zoom Lock'),
+        default: false,
+        renderTrigger: true,
+        description: t('Specify whether to lock the size of window.'),
+        visibility: ({ controls }: ControlPanelsContainerProps) =>
+          Boolean(controls?.zoomable?.value),
+      },
+    },
+  ],
+];
 
 export const forceCategorical: ControlSetItem = {
   name: 'forceCategorical',
