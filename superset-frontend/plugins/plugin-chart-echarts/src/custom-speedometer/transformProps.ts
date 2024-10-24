@@ -36,8 +36,8 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
     return {
         width,
         height,
-        min: DEFAULT_FORM_DATA.minValue,
-        max: DEFAULT_FORM_DATA.maxValue,
+        min: minVal,
+        max: maxVal,
         progress: progress,
     };
 }

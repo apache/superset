@@ -43,7 +43,7 @@ const config: ControlPanelConfig = {
         [<ControlSubSectionHeader>{t('General')}</ControlSubSectionHeader>],
         [
           {
-            name: 'min_val',
+            name: 'minValue',
             config: {
               type: 'TextControl',
               isInt: true,
@@ -54,7 +54,7 @@ const config: ControlPanelConfig = {
             },
           },
           {
-            name: 'max_val',
+            name: 'maxValue',
             config: {
               type: 'TextControl',
               isInt: true,
@@ -65,6 +65,22 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [<ControlSubSectionHeader>{t('Segment Charts')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 'Segmentation',
+            config: {
+              type: 'SliderControl',
+              default: 3,
+              min: 0,
+              max: 10,
+              step: 1,
+              renderTrigger: false,
+              label: t('Amount of Segments'),
+              description: t('Select the amount of segments the 2nd chart will have'),
+            }
+          },
+        ]
       ],
     }
   ]

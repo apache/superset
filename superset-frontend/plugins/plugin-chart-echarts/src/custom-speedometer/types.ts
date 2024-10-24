@@ -10,8 +10,8 @@ import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 // Define structure of fthe form data used by Speedometer Chart
 export type SpeedometerChartFormData = QueryFormData & {
     metrix: string;
-    minValue: number;
-    maxValue: number;
+    minValue: number | null;
+    maxValue: number | null;
     threshholdRanges?: [ number, number, number, number];
     colorSheme?: string;
     label?: string;

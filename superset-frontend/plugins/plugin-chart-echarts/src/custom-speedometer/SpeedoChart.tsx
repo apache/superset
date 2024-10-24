@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
+import { DEFAULT_FORM_DATA } from './types';
 
 interface SpeedoChartProps {
   min: number;
@@ -30,7 +31,8 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
   var outerRadiusSecondChart = 114;
   var innerRadiusSecondChart = 122;
   const segments = [
-    {start: 0, end: 80, color: "#49b53f"},
+    {start: 0, end: 50, color: "#49552f"},
+    {start: 50, end: 80, color: "#49b53f"},
     {start: 70, end: 85, color: "#dba307"},
     {start: 85, end: 100, color: "#db0707"},
   ]
@@ -59,6 +61,28 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress }) => {
         data: [''],
         show: false,
       },
+      graphic: [
+        {
+          type: 'text',
+          left: 400,
+          top: 150,
+          style: {
+            text: `Min: ${min}`,
+            fontSize: 16,
+            fontWeight: 'bold',
+          }
+        },
+        {
+          type: 'text',
+          left: 400,
+          top: 170,
+          style: {
+            text: `Max: ${max}`,
+            fontSize: 16,
+            fontWeight: 'bold',
+          }
+        }
+      ],
       series: [{
         type: 'custom',
         renderItem: (params: any, api: any) => {
