@@ -1982,7 +1982,6 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test get report schedule 404s when feature is disabled
         """
         report_schedule = db.session.query(Dashboard).first()
-        # example_db = get_example_database()
         get_example_database()  # noqa: F841
         report_schedule_data = {
             "type": ReportScheduleType.ALERT,
