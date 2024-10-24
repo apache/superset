@@ -19,34 +19,26 @@ from datetime import datetime
 from typing import Any, Optional
 
 from sqlalchemy.types import Date, DateTime
+
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
 
 
 # Internal class for defining error message patterns (for translation)
 class _ErrorPatterns:  # pylint: disable=too-few-public-methods
-
-    CONN_INVALID_USER_PWD_REGEX = re.compile(
-        "The username or password is incorrect"
-    )
-    CONN_INVALID_PWD_NEEDED_REGEX = re.compile(
-        "no password supplied"
-    )
+    CONN_INVALID_USER_PWD_REGEX = re.compile("The username or password is incorrect")
+    CONN_INVALID_PWD_NEEDED_REGEX = re.compile("no password supplied")
     CONN_INVALID_HOSTNAME_REGEX = re.compile(
-        "could not translate host name \"(?P<hostname>.*?)\" to address: "
+        'could not translate host name "(?P<hostname>.*?)" to address: '
     )
     CONN_PORT_CLOSED_REGEX = re.compile(
         "Is the server running on that host and accepting"
     )
-    CONN_UNKNOWN_DATABASE_REGEX = re.compile(
-        "Database '(?P<database>.*?)' not found"
-    )
+    CONN_UNKNOWN_DATABASE_REGEX = re.compile("Database '(?P<database>.*?)' not found")
     CONN_FORBIDDEN_DATABASE_REGEX = re.compile(
         "Insufficient privileges to connect to the database '(?P<database>.*?)'"
     )
-    QUERY_SYNTAX_ERROR_REGEX = re.compile(
-        "Exception parsing query near '(?P<err>.*?)'"
-    )
+    QUERY_SYNTAX_ERROR_REGEX = re.compile("Exception parsing query near '(?P<err>.*?)'")
     QUERY_COLUMN_NOT_EXIST_REGEX = re.compile(
         "Field not found '(?P<column>.*?)' in view '(?P<view>.*?)'"
     )
@@ -59,7 +51,6 @@ class _ErrorPatterns:  # pylint: disable=too-few-public-methods
 
 
 class DenodoEngineSpec(BaseEngineSpec, BasicParametersMixin):
-
     engine = "denodo"
     engine_name = "Denodo"
 
@@ -80,7 +71,9 @@ class DenodoEngineSpec(BaseEngineSpec, BasicParametersMixin):
         "P1Y": "TRUNC({col},'YEAR')",
     }
 
-    custom_errors: dict[re.Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
+    custom_errors: dict[
+        re.Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
+    ] = {
         _ErrorPatterns.CONN_INVALID_USER_PWD_REGEX: (
             "Incorrect username or password.",
             SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
@@ -92,7 +85,7 @@ class DenodoEngineSpec(BaseEngineSpec, BasicParametersMixin):
             {"invalid": ["password"]},
         ),
         _ErrorPatterns.CONN_INVALID_HOSTNAME_REGEX: (
-            "Hostname \"%(hostname)s\" cannot be resolved.",
+            'Hostname "%(hostname)s" cannot be resolved.',
             SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
             {"invalid": ["host"]},
         ),
@@ -100,27 +93,26 @@ class DenodoEngineSpec(BaseEngineSpec, BasicParametersMixin):
             "Server refused the connection: check hostname and port.",
             SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
             {"invalid": ["host", "port"]},
-
         ),
         _ErrorPatterns.CONN_UNKNOWN_DATABASE_REGEX: (
-            "Unable to connect to database \"%(database)s\"",
+            'Unable to connect to database "%(database)s"',
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
             {"invalid": ["database"]},
         ),
         _ErrorPatterns.CONN_FORBIDDEN_DATABASE_REGEX: (
-            "Unable to connect to database \"%(database)s\": database does not "
+            'Unable to connect to database "%(database)s": database does not '
             "exist or insufficient permissions",
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
             {"invalid": ["database"]},
         ),
         _ErrorPatterns.QUERY_SYNTAX_ERROR_REGEX: (
             "Please check your query for syntax errors at or "
-            "near \"%(err)s\". Then, try running your query again.",
+            'near "%(err)s". Then, try running your query again.',
             SupersetErrorType.SYNTAX_ERROR,
             {},
         ),
         _ErrorPatterns.QUERY_COLUMN_NOT_EXIST_REGEX: (
-            "Column \"%(column)s\" not found in \"%(view)s\".",
+            'Column "%(column)s" not found in "%(view)s".',
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
             {},
         ),
@@ -130,11 +122,11 @@ class DenodoEngineSpec(BaseEngineSpec, BasicParametersMixin):
             {},
         ),
         _ErrorPatterns.QUERY_GROUPBY_CANT_PROJ_REGEX: (
-            "\"%(exp)s\" is neither an aggregation function nor "
+            '"%(exp)s" is neither an aggregation function nor '
             "appears in the GROUP BY clause.",
             SupersetErrorType.SYNTAX_ERROR,
             {},
-        )
+        ),
     }
 
     @classmethod
@@ -142,11 +134,9 @@ class DenodoEngineSpec(BaseEngineSpec, BasicParametersMixin):
         return "GETTIMEFROMMILLIS({col})"
 
     @classmethod
-    def convert_dttm(cls,
-                     target_type: str,
-                     dttm: datetime,
-                     db_extra: Optional[dict[str, Any]] = None
-                     ) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
+    ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
         if isinstance(sqla_type, Date):
             return f"TO_DATE('yyyy-MM-dd', '{dttm.date().isoformat()}')"
@@ -159,6 +149,7 @@ class DenodoEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def get_datatype(cls, type_code: Any) -> Optional[str]:
         # pylint: disable=import-outside-toplevel
         from psycopg2.extensions import binary_types, string_types
+
         # Obtain data type names from psycopg2
         types = binary_types.copy()
         types.update(string_types)
