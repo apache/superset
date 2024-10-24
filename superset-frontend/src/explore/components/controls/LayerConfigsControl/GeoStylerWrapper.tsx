@@ -16,32 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isNil } from 'lodash';
 
-export default function extent<T = number | string | Date | undefined | null>(
-  values: T[],
-) {
-  let min: T | undefined;
-  let max: T | undefined;
-  // eslint-disable-next-line no-restricted-syntax
-  for (const value of values) {
-    if (value !== null) {
-      if (isNil(min)) {
-        if (value !== undefined) {
-          min = value;
-          max = value;
-        }
-      } else if (value !== undefined) {
-        if (min > value) {
-          min = value;
-        }
-        if (!isNil(max)) {
-          if (max < value) {
-            max = value;
-          }
-        }
-      }
-    }
-  }
-  return [min, max];
-}
+/**
+ * This component is needed to be able to style GeoStyler
+ * via emotion. Emotion can only be used on a component that
+ * accepts a className property.
+ */
+import CardStyle from 'geostyler/dist/Component/CardStyle/CardStyle';
+import { FC } from 'react';
+import { GeoStylerWrapperProps } from './types';
+
+export const GeoStylerWrapper: FC<GeoStylerWrapperProps> = ({
+  className,
+  ...passThroughProps
+}) => (
+  <div className={className}>
+    <CardStyle {...passThroughProps} />
+  </div>
+);
+
+export default GeoStylerWrapper;

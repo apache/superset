@@ -16,32 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isNil } from 'lodash';
+import { ControlComponentProps } from '@superset-ui/chart-controls';
 
-export default function extent<T = number | string | Date | undefined | null>(
-  values: T[],
-) {
-  let min: T | undefined;
-  let max: T | undefined;
-  // eslint-disable-next-line no-restricted-syntax
-  for (const value of values) {
-    if (value !== null) {
-      if (isNil(min)) {
-        if (value !== undefined) {
-          min = value;
-          max = value;
-        }
-      } else if (value !== undefined) {
-        if (min > value) {
-          min = value;
-        }
-        if (!isNil(max)) {
-          if (max < value) {
-            max = value;
-          }
-        }
-      }
-    }
-  }
-  return [min, max];
+export type MapViewConfigs = {
+  mode: 'FIT_DATA' | 'CUSTOM';
+  zoom: number;
+  latitude: number;
+  longitude: number;
+  fixedZoom: number;
+  fixedLatitude: number;
+  fixedLongitude: number;
+};
+
+export type MapViewConfigsControlProps = ControlComponentProps<MapViewConfigs>;
+
+export interface MapViewPopoverContentProps {
+  onClose: () => void;
+  onSave: (currentMapViewConf: MapViewConfigs) => void;
+  mapViewConf: MapViewConfigs;
+}
+
+export interface ExtentTagProps {
+  value: MapViewConfigs;
+  onClick: () => void;
+  className?: string;
 }
