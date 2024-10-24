@@ -157,7 +157,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         if invalid_tab_ids:
             exceptions.append(
                 ValidationError(
-                    _("Invalid tab idsssss: %s(tab_ids)", tab_ids=str(invalid_tab_ids)),
+                    _("Invalid tab ids: %s(tab_ids)", tab_ids=str(invalid_tab_ids)),
                     "extra",
                 )
             )
