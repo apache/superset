@@ -1,6 +1,6 @@
 # CustomSecurityManager.py
 
-from flask import redirect, g, flash, request
+from flask import redirect, g, flash, request, abort
 from superset.security import SupersetSecurityManager
 from flask_appbuilder.security.views import UserDBModelView,AuthOAuthView
 from flask_appbuilder.security.views import expose
@@ -21,7 +21,9 @@ class CustomOAuthView(AuthOAuthView):
         if username is not None:
             user = self.appbuilder.sm.find_user(username=username)
             if user is None:
-                user = self.appbuilder.sm.find_user(email=username)            
+                user = self.appbuilder.sm.find_user(email=username)   
+            if user is None:
+                abort(404)  # Return HTTP 404 if user is not found                         
             return str(user.id)
         else :
             return super(CustomOAuthView,self).login(provider)
