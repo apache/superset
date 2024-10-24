@@ -307,7 +307,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
       {frame === 'Custom' && (
-        <CustomFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+        <CustomFrame
+          value={timeRangeValue}
+          onChange={setTimeRangeValue}
+          isOverflowingFilterBar={isOverflowingFilterBar}
+        />
       )}
       {frame === 'No filter' && <div data-test={DateFilterTestKey.NoFilter} />}
       <Divider />
