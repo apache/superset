@@ -50,7 +50,7 @@ jobs:
         run: |
           if [[ "${GITHUB_REF##*/}" == "main" ]]; then
             echo "IMAGE_PERMANENT_TAG=latest" >> $GITHUB_ENV
-          elif [[ "${GITHUB_REF##*/}" == "development" ]]; then
+          elif [[ "${GITHUB_REF##*/}" == "dev" ]]; then
             echo "IMAGE_PERMANENT_TAG=dev" >> $GITHUB_ENV
           fi
 
