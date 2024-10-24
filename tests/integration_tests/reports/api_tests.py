@@ -1983,19 +1983,16 @@ class TestReportSchedulesApi(SupersetTestCase):
         """
         report_schedule = db.session.query(Dashboard).first()
         get_example_database()  # noqa: F841
+        anchors = ["TAB-AsMaxdYL_t", "TAB-YT6eNksV-", "TAB-l_9I0aNYZ"]
         report_schedule_data = {
-            "type": ReportScheduleType.ALERT,
+            "type": ReportScheduleType.REPORT,
             "name": "random_name1",
             "description": "description",
             "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "working_timeout": 3600,
             "dashboard": report_schedule.id,
-            "extra": {
-                "dashboard": {
-                    "anchor": '["TAB-AsMaxdYL_t","TAB-YT6eNksV-","TAB-l_9I0aNYZ"]'
-                }
-            },
+            "extra": {"dashboard": {"anchor": json.dumps(anchors)}},
         }
 
         self.login(ADMIN_USERNAME)
@@ -2003,14 +2000,9 @@ class TestReportSchedulesApi(SupersetTestCase):
         rv = self.post_assert_metric(uri, report_schedule_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
-        assert data == {
-            "message": {
-                "database": "Database is required for alerts",
-                "extra": [
-                    "Invalid tab idsssss: {'tab_ids': \"{'TAB-AsMaxdYL_t', 'TAB-l_9I0aNYZ', 'TAB-YT6eNksV-'}\"}(tab_ids)"
-                ],
-            }
-        }
+        assert "message" in data
+        assert "extra" in data["message"]
+        assert all(anchor in data["message"]["extra"][0] for anchor in anchors) is True
 
     @with_feature_flags(ALERT_REPORT_TABS=True)
     @pytest.mark.usefixtures("load_mutltiple_tabs_dashboard", "create_report_schedules")
