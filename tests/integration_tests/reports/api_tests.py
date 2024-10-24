@@ -49,6 +49,9 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.dashboard_with_tabs import (
+    load_mutltiple_tabs_dashboard,  # noqa: F401
+)
 from tests.integration_tests.reports.utils import insert_report_schedule
 
 REPORTS_COUNT = 10
