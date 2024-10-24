@@ -548,8 +548,8 @@ class Header extends PureComponent {
                 dashboardId={dashboardInfo.id}
                 isPublished={isPublished}
                 savePublished={this.props.savePublished}
-                canEdit={userCanEdit}
-                canSave={userCanSaveAs}
+                userCanEdit={userCanEdit}
+                userCanSave={userCanSaveAs}
                 visible={!editMode}
               />
             ),
