@@ -49,6 +49,9 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.dashboard_with_tabs import (
+    load_mutltiple_tabs_dashboard,  # noqa: F401
+)
 from tests.integration_tests.reports.utils import insert_report_schedule
 
 REPORTS_COUNT = 10
@@ -1972,3 +1975,79 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 405
         rv = self.client.delete(uri)
         assert rv.status_code == 405
+
+    @with_feature_flags(ALERT_REPORT_TABS=True)
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_create_report_schedule_with_invalid_anchors(self):
+        """
+        ReportSchedule Api: Test get report schedule 404s when feature is disabled
+        """
+        report_schedule = db.session.query(Dashboard).first()
+        get_example_database()  # noqa: F841
+        anchors = ["TAB-AsMaxdYL_t", "TAB-YT6eNksV-", "TAB-l_9I0aNYZ"]
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "random_name1",
+            "description": "description",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": report_schedule.id,
+            "extra": {"dashboard": {"anchor": json.dumps(anchors)}},
+        }
+
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/report/"
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert "message" in data
+        assert "extra" in data["message"]
+        assert all(anchor in data["message"]["extra"][0] for anchor in anchors) is True
+
+    @with_feature_flags(ALERT_REPORT_TABS=True)
+    @pytest.mark.usefixtures("load_mutltiple_tabs_dashboard", "create_report_schedules")
+    def test_create_report_schedule_with_multiple_anchors(self):
+        """
+        ReportSchedule Api: Test report schedule with all tabs
+        """
+        report_dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.slug == "multi_tabs_test")
+            .first()
+        )
+        get_example_database()  # noqa: F841
+
+        self.login(ADMIN_USERNAME)
+        tabs_uri = f"/api/v1/dashboard/{report_dashboard.id}/tabs"
+        rv = self.client.get(tabs_uri)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        tabs_keys = list(data.get("result").get("all_tabs").keys())
+        extra_json = {"dashboard": {"anchor": json.dumps(tabs_keys)}}
+
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "random_name2",
+            "description": "description",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": report_dashboard.id,
+            "extra": extra_json,
+        }
+
+        uri = "api/v1/report/"
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 201
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.dashboard_id == report_dashboard.id)
+            .first()
+        )
+
+        assert json.loads(report_schedule.extra_json) == extra_json
