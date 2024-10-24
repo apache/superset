@@ -83,7 +83,7 @@ def is_latest_release(release: str) -> bool:
 
 
 def make_docker_tag(l: list[str]) -> str:
-    return f"{REPO}:" + "-".join([o for o in l if o])
+    return f"lemonyeah/superset:" + "-".join([o for o in l if o])
 
 
 def get_docker_tags(
