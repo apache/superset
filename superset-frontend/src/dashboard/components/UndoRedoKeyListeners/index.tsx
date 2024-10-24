@@ -17,15 +17,15 @@
  * under the License.
  */
 import { PureComponent } from 'react';
-import PropTypes from 'prop-types';
+import { HeaderProps } from '../Header/types';
 
-const propTypes = {
-  onUndo: PropTypes.func.isRequired,
-  onRedo: PropTypes.func.isRequired,
+type UndoRedoKeyListenersProps = {
+  onUndo: HeaderProps['onUndo'];
+  onRedo: HeaderProps['onRedo'];
 };
 
-class UndoRedoKeyListeners extends PureComponent {
-  constructor(props) {
+class UndoRedoKeyListeners extends PureComponent<UndoRedoKeyListenersProps> {
+  constructor(props: UndoRedoKeyListenersProps) {
     super(props);
     this.handleKeydown = this.handleKeydown.bind(this);
   }
@@ -38,15 +38,17 @@ class UndoRedoKeyListeners extends PureComponent {
     document.removeEventListener('keydown', this.handleKeydown);
   }
 
-  handleKeydown(event) {
+  handleKeydown(event: KeyboardEvent) {
     const controlOrCommand = event.ctrlKey || event.metaKey;
     if (controlOrCommand) {
       const isZChar = event.key === 'z' || event.keyCode === 90;
       const isYChar = event.key === 'y' || event.keyCode === 89;
-      const isEditingMarkdown =
-        document && document.querySelector('.dashboard-markdown--editing');
-      const isEditingTitle =
-        document && document.querySelector('.editable-title--editing');
+      const isEditingMarkdown = document?.querySelector(
+        '.dashboard-markdown--editing',
+      );
+      const isEditingTitle = document?.querySelector(
+        '.editable-title--editing',
+      );
 
       if (!isEditingMarkdown && !isEditingTitle && (isZChar || isYChar)) {
         event.preventDefault();
@@ -60,7 +62,5 @@ class UndoRedoKeyListeners extends PureComponent {
     return null;
   }
 }
-
-UndoRedoKeyListeners.propTypes = propTypes;
 
 export default UndoRedoKeyListeners;
