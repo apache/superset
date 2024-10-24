@@ -525,12 +525,12 @@ export function addCountryNameFilter() {
 }
 
 export function openTab(tabComponentIndex: number, tabIndex: number) {
-  return cy
-    .getBySel('dashboard-component-tabs')
+  cy.getBySel('dashboard-component-tabs')
     .eq(tabComponentIndex)
     .find('[role="tab"]')
     .eq(tabIndex)
     .click();
+  cy.wait(500);
 }
 
 export const openTopLevelTab = (tabName: string) => {

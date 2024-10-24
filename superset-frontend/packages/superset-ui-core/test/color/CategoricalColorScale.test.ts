@@ -63,7 +63,13 @@ describe('CategoricalColorScale', () => {
     let scale: CategoricalColorScale;
     let addSliceSpy: jest.SpyInstance<
       void,
-      [label: string, color: string, sliceId: number, colorScheme?: string]
+      [
+        label: string,
+        color: string,
+        sliceId: number,
+        colorScheme?: string,
+        ownColorScheme?: string,
+      ]
     >;
     let getNextAvailableColorSpy: jest.SpyInstance<
       string,

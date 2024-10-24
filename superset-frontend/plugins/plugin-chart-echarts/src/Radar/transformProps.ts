@@ -89,6 +89,7 @@ export default function transformProps(
 
   const {
     colorScheme,
+    ownColorScheme,
     groupby,
     labelType,
     labelPosition,
@@ -109,8 +110,11 @@ export default function transformProps(
     ...formData,
   };
   const { setDataMask = () => {}, onContextMenu } = hooks;
-
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const appliedScheme = colorScheme || ownColorScheme;
+  const colorFn = CategoricalColorNamespace.getScale(
+    appliedScheme as string,
+    ownColorScheme,
+  );
   const numberFormatter = getNumberFormatter(numberFormat);
   const formatter = (params: CallbackDataParams) =>
     formatLabel({
@@ -182,7 +186,7 @@ export default function transformProps(
       value: metricLabels.map(metricLabel => datum[metricLabel]),
       name: joinedName,
       itemStyle: {
-        color: colorFn(joinedName, sliceId, colorScheme),
+        color: colorFn(joinedName, sliceId),
         opacity: isFiltered
           ? OpacityEnum.Transparent
           : OpacityEnum.NonTransparent,

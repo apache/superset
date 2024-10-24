@@ -37,6 +37,7 @@ const propTypes = {
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   colorScheme: PropTypes.string,
+  ownColorScheme: PropTypes.string,
   normalized: PropTypes.bool,
   cumulative: PropTypes.bool,
   binCount: PropTypes.number,
@@ -49,6 +50,7 @@ const defaultProps = {
   binCount: 15,
   className: '',
   colorScheme: '',
+  ownColorScheme: '',
   normalized: false,
   cumulative: false,
   opacity: 1,
@@ -65,6 +67,7 @@ class CustomHistogram extends PureComponent {
       height,
       binCount,
       colorScheme,
+      ownColorScheme,
       normalized,
       cumulative,
       opacity,
@@ -73,12 +76,12 @@ class CustomHistogram extends PureComponent {
       showLegend,
       sliceId,
     } = this.props;
-
-    const colorFn = CategoricalColorNamespace.getScale(colorScheme);
+    const appliedScheme = colorScheme || ownColorScheme;
+    const colorFn = CategoricalColorNamespace.getScale(appliedScheme, ownColorScheme);
     const keys = data.map(d => d.key);
     const colorScale = scaleOrdinal({
       domain: keys,
-      range: keys.map(x => colorFn(x, sliceId, colorScheme)),
+      range: keys.map(x => colorFn(x, sliceId)),
     });
 
     return (

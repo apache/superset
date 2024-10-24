@@ -39,6 +39,7 @@ const propTypes = {
   canOverwrite: PropTypes.bool.isRequired,
   canDownload: PropTypes.bool.isRequired,
   dashboardId: PropTypes.number,
+  colorScheme: PropTypes.string,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   sliceName: PropTypes.string,
@@ -68,6 +69,7 @@ const additionalItemsStyles = theme => css`
 
 export const ExploreChartHeader = ({
   dashboardId,
+  colorScheme,
   slice,
   actions,
   formData,
@@ -84,17 +86,15 @@ export const ExploreChartHeader = ({
   const dispatch = useDispatch();
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
-
   const updateCategoricalNamespace = async () => {
     const { dashboards } = metadata || {};
     const dashboard =
       dashboardId && dashboards && dashboards.find(d => d.id === dashboardId);
 
-    if (!dashboard) {
+    if (!dashboard || !colorScheme) {
       // clean up color namespace and shared color maps
       // to avoid colors spill outside of dashboard context
       resetColors(metadata?.color_namespace);
-      return;
     }
 
     if (dashboard) {
@@ -108,7 +108,8 @@ export const ExploreChartHeader = ({
 
         // setting the chart to use the dashboard custom label colors if any
         const dashboardMetadata = JSON.parse(result.json_metadata);
-        applyColors(dashboardMetadata);
+        // if the dashboard does not have a color scheme, only apply shared colors
+        applyColors(dashboardMetadata, false, false, !colorScheme);
       } catch (error) {
         logging.info(t('Unable to retrieve dashboard colors'));
       }

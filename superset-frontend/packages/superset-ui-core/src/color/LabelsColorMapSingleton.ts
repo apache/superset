@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import { getCategoricalSchemeRegistry } from '.';
 import { makeSingleton } from '../utils';
 import CategoricalColorNamespace from './CategoricalColorNamespace';
 
@@ -27,7 +26,10 @@ export enum LabelsColorMapSource {
 }
 
 export class LabelsColorMap {
-  chartsLabelsMap: Map<number, { labels: string[]; scheme?: string }>;
+  chartsLabelsMap: Map<
+    number,
+    { labels: string[]; scheme?: string; ownScheme?: string }
+  >;
 
   colorMap: Map<string, string>;
 
@@ -49,17 +51,29 @@ export class LabelsColorMap {
   updateColorMap(
     categoricalNamespace: CategoricalColorNamespace,
     colorScheme?: string,
+    merge = false,
   ) {
-    const newColorMap = new Map();
-    this.colorMap.clear();
+    const newColorMap = this.colorMap;
+
+    if (!merge) {
+      newColorMap.clear();
+    }
+
     this.chartsLabelsMap.forEach((chartConfig, sliceId) => {
-      const { labels, scheme: originalChartColorScheme } = chartConfig;
-      const currentColorScheme = colorScheme || originalChartColorScheme;
-      const colorScale = categoricalNamespace.getScale(currentColorScheme);
+      const { labels, ownScheme } = chartConfig;
+      const appliedColorScheme = colorScheme || ownScheme;
+      const colorScale = categoricalNamespace.getScale(appliedColorScheme);
 
       labels.forEach(label => {
-        const newColor = colorScale.getColor(label, sliceId);
-        newColorMap.set(label, newColor);
+        // if merge, apply the scheme only to new labels in the map
+        if (!merge || !this.colorMap.has(label)) {
+          const newColor = colorScale.getColor(
+            label,
+            sliceId,
+            appliedColorScheme,
+          );
+          newColorMap.set(label, newColor);
+        }
       });
     });
     this.colorMap = newColorMap;
@@ -84,39 +98,25 @@ export class LabelsColorMap {
     color: string,
     sliceId: number,
     colorScheme?: string,
+    ownColorScheme?: string,
   ) {
-    if (this.source !== LabelsColorMapSource.Dashboard) return;
-
     const chartConfig = this.chartsLabelsMap.get(sliceId) || {
       labels: [],
       scheme: '',
     };
+
     const { labels } = chartConfig;
     if (!labels.includes(label)) {
       labels.push(label);
       this.chartsLabelsMap.set(sliceId, {
         labels,
-        scheme: this.chartsLabelsMap.get(sliceId)?.scheme || colorScheme,
+        scheme: colorScheme,
+        ownScheme: ownColorScheme,
       });
     }
-    this.colorMap.set(label, color);
-  }
-
-  /**
-   * Keeps track of original colors of charts in their formData.
-   *
-   * @param sliceId - chart id
-   * @param colorScheme - color scheme
-   */
-  setSliceOriginColorScheme(sliceId: number, colorScheme?: string) {
-    const categoricalSchemes = getCategoricalSchemeRegistry();
-    const fallbackColorScheme =
-      categoricalSchemes.getDefaultKey()?.toString() ?? '';
-
-    this.chartsLabelsMap.set(sliceId, {
-      labels: this.chartsLabelsMap.get(sliceId)?.labels || [],
-      scheme: colorScheme || fallbackColorScheme,
-    });
+    if (this.source === LabelsColorMapSource.Dashboard) {
+      this.colorMap.set(label, color);
+    }
   }
 
   /**

@@ -29,6 +29,7 @@ import ColorSchemeControl, { ColorSchemes } from '.';
 
 const defaultProps = () => ({
   hasCustomLabelsColor: false,
+  sharedLabelsColor: {},
   label: 'Color scheme',
   labelMargin: 0,
   name: 'color',

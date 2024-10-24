@@ -34,13 +34,39 @@ export const getColorNamespace = (namespace?: string) => namespace || undefined;
 /**
  * Get the labels color map entries
  *
+ * @param shared - filter out labels not shared across multiple charts
  * @returns Record<string, string>
  */
-export const getLabelsColorMapEntries = (): Record<string, string> => {
+export const getLabelsColorMapEntries = (
+  shared = false,
+): Record<string, string> => {
   const labelsColorMapInstance = getLabelsColorMap();
   const updatedLabelsColorMapEntries = Object.fromEntries(
     labelsColorMapInstance.getColorMap(),
   );
+  // filter out all labels that are not shared across multiple charts
+  const { chartsLabelsMap } = labelsColorMapInstance;
+
+  if (shared) {
+    const allLabels = new Set<string>();
+    const sharedLabels = new Set<string>();
+    chartsLabelsMap.forEach(({ labels }) => {
+      labels.forEach(label => {
+        if (allLabels.has(label)) {
+          sharedLabels.add(label);
+        }
+        allLabels.add(label);
+      });
+    });
+    const sharedLabelsColorMapEntries = Object.fromEntries(
+      Object.entries(updatedLabelsColorMapEntries).filter(([label]) =>
+        sharedLabels.has(label),
+      ),
+    );
+
+    return sharedLabelsColorMapEntries;
+  }
+
   return updatedLabelsColorMapEntries;
 };
 
@@ -56,9 +82,10 @@ export const getColorSchemeDomain = (colorScheme: string) =>
 export const isLabelsColorMapSynced = (
   metadata: Record<string, any>,
 ): boolean => {
-  const currentLabelsColorMap = metadata?.shared_label_colors || {};
+  const currentLabelsColorMap = metadata?.full_label_colors || {};
   const customLabelColors = metadata?.label_colors || {};
   const freshLabelsColorMap = getLabelsColorMap().getColorMap();
+
   const isSynced = Array.from(freshLabelsColorMap.entries()).every(
     ([label, color]) =>
       currentLabelsColorMap.hasOwnProperty(label) &&
@@ -92,13 +119,18 @@ export const resetColors = (color_namespace?: string) => {
 export const refreshLabelsColorMap = (
   namespace?: string,
   colorScheme?: string,
+  merge = false,
 ) => {
   const colorNameSpace = getColorNamespace(namespace);
   const categoricalNamespace =
     CategoricalColorNamespace.getNamespace(colorNameSpace);
   const labelsColorMapInstance = getLabelsColorMap();
 
-  labelsColorMapInstance.updateColorMap(categoricalNamespace, colorScheme);
+  labelsColorMapInstance.updateColorMap(
+    categoricalNamespace,
+    colorScheme,
+    merge,
+  );
 };
 
 /**
@@ -109,33 +141,43 @@ export const refreshLabelsColorMap = (
  */
 export const applyColors = (
   metadata: Record<string, any>,
+  // fresh is used when changing / removing a color scheme
   fresh = false,
+  // merge is used to catch new labels in the color map
   merge = false,
+  // shared is used to apply only shared labels colors from a dashboard
+  // used in Explore with a dashboard context without color scheme
+  // or when loading a dashboard with no color scheme set
+  shared = false,
 ) => {
   const colorNameSpace = getColorNamespace(metadata?.color_namespace);
   const categoricalNamespace =
     CategoricalColorNamespace.getNamespace(colorNameSpace);
   const colorScheme = metadata?.color_scheme;
   const customLabelColors = metadata?.label_colors || {};
-  const labelsColorMap = metadata?.shared_label_colors || {};
+  const sharedLabelsColorMap = metadata?.shared_label_colors || {};
+  const labelsColorMap = shared
+    ? sharedLabelsColorMap
+    : metadata?.full_label_colors || {};
 
   if (fresh) {
-    // reset forced colors (custom labels + labels color map)
+    // reset custom label colors
     categoricalNamespace.resetColors();
   }
 
-  // apply custom label colors first
+  // re-apply custom label colors first
   Object.keys(customLabelColors).forEach(label => {
     categoricalNamespace.setColor(label, customLabelColors[label]);
   });
 
-  if (fresh) {
+  if (fresh || merge) {
     // re-instantiate a fresh labels color map based on current scheme
-    // must consider also just applied customLabelColors
-    refreshLabelsColorMap(metadata?.color_namespace, colorScheme);
+    // must consider also just applied customLabelColors if present
+    // will merge with existing colorMap only new labels when merge is true
+    refreshLabelsColorMap(metadata?.color_namespace, colorScheme, merge);
   }
 
-  const currentColorMapEntries = getLabelsColorMapEntries();
+  const currentColorMapEntries = getLabelsColorMapEntries(shared);
 
   // get the fresh map that was just updated or existing
   const labelsColorMapEntries = fresh

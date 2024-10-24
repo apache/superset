@@ -52,16 +52,15 @@ const { getScale } = CategoricalColorNamespace;
 function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
-  const colorFn = getScale(fd.color_scheme);
+  const ownScheme = fd.own_color_scheme;
+  const appliedScheme = fd.color_scheme || ownScheme;
+  const colorFn = getScale(appliedScheme, ownScheme);
   const categories = {};
   data.forEach(d => {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
       let color;
       if (fd.dimension) {
-        color = hexToRGB(
-          colorFn(d.cat_color, fd.sliceId, fd.color_scheme),
-          c.a * 255,
-        );
+        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
       } else {
         color = fixedColor;
       }
@@ -132,15 +131,14 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
 
   const addColor = useCallback((data: JsonObject[], fd: QueryFormData) => {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    const colorFn = getScale(fd.color_scheme);
+    const ownScheme = fd.own_color_scheme;
+    const appliedScheme = fd.color_scheme || ownScheme;
+    const colorFn = getScale(appliedScheme, ownScheme);
 
     return data.map(d => {
       let color;
       if (fd.dimension) {
-        color = hexToRGB(
-          colorFn(d.cat_color, fd.sliceId, fd.color_scheme),
-          c.a * 255,
-        );
+        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
 
         return { ...d, color };
       }

@@ -32,11 +32,20 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   colorScheme: PropTypes.string,
+  ownColorScheme: PropTypes.string,
   numberFormat: PropTypes.string,
 };
 
 function Chord(element, props) {
-  const { data, width, height, numberFormat, colorScheme, sliceId } = props;
+  const {
+    data,
+    width,
+    height,
+    numberFormat,
+    colorScheme,
+    ownColorScheme,
+    sliceId,
+  } = props;
 
   element.innerHTML = '';
 
@@ -44,7 +53,8 @@ function Chord(element, props) {
   div.classed('superset-legacy-chart-chord', true);
   const { nodes, matrix } = data;
   const f = getNumberFormatter(numberFormat);
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
+  const appliedScheme = colorScheme || ownColorScheme;
+  const colorFn = CategoricalColorNamespace.getScale(appliedScheme, ownColorScheme);
 
   const outerRadius = Math.min(width, height) / 2 - 10;
   const innerRadius = outerRadius - 24;
@@ -93,7 +103,9 @@ function Chord(element, props) {
     .append('path')
     .attr('id', (d, i) => `group${i}`)
     .attr('d', arc)
-    .style('fill', (d, i) => colorFn(nodes[i], sliceId, colorScheme));
+    .style('fill', (d, i) =>
+      colorFn(nodes[i], sliceId),
+    );
 
   // Add a text label.
   const groupText = group.append('text').attr('x', 6).attr('dy', 15);
@@ -121,7 +133,9 @@ function Chord(element, props) {
     .on('mouseover', d => {
       chord.classed('fade', p => p !== d);
     })
-    .style('fill', d => colorFn(nodes[d.source.index], sliceId, colorScheme))
+    .style('fill', d =>
+      colorFn(nodes[d.source.index], sliceId),
+    )
     .attr('d', path);
 
   // Add an elaborate mouseover title for each chord.

@@ -41,9 +41,14 @@ export default function transformProps(
   const refs: Refs = {};
   const { formData, height, hooks, queriesData, width } = chartProps;
   const { onLegendStateChanged } = hooks;
-  const { colorScheme, metric, source, target } = formData;
+  const { colorScheme, ownColorScheme, metric, source, target, sliceId } =
+    formData;
   const { data } = queriesData[0];
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
+  const appliedScheme = colorScheme || ownColorScheme;
+  const colorFn = CategoricalColorNamespace.getScale(
+    appliedScheme,
+    ownColorScheme,
+  );
   const metricLabel = getMetricLabel(metric);
   const valueFormatter = getNumberFormatter(NumberFormats.FLOAT_2_POINT);
   const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
@@ -68,7 +73,7 @@ export default function transformProps(
   ).map(name => ({
     name,
     itemStyle: {
-      color: colorFn(name),
+      color: colorFn(name, sliceId),
     },
   }));
 

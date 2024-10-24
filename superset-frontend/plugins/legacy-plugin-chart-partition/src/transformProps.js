@@ -20,6 +20,7 @@ export default function transformProps(chartProps) {
   const { width, height, datasource, formData, queriesData } = chartProps;
   const {
     colorScheme,
+    ownColorScheme,
     dateTimeFormat,
     equalDateSize,
     groupby,
@@ -39,6 +40,7 @@ export default function transformProps(chartProps) {
     height,
     data: queriesData[0].data,
     colorScheme,
+    ownColorScheme,
     dateTimeFormat,
     equalDateSize,
     levels: groupby.map(g => verboseMap[g] || g),

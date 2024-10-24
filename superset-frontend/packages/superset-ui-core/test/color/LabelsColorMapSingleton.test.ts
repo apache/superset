@@ -60,36 +60,6 @@ describe('LabelsColorMap', () => {
     expect(getLabelsColorMap()).toBeInstanceOf(LabelsColorMap);
   });
 
-  describe('.setSliceOriginColorScheme(sliceId, scheme)', () => {
-    it('should set slice color scheme', () => {
-      const labelsColorMap = getLabelsColorMap();
-      labelsColorMap.setSliceOriginColorScheme(1, 'testColors');
-      expect(labelsColorMap.chartsLabelsMap.get(1)?.scheme).toEqual(
-        'testColors',
-      );
-    });
-    it('should fallback to default color scheme if not provided', () => {
-      const labelsColorMap = getLabelsColorMap();
-      labelsColorMap.setSliceOriginColorScheme(1);
-      expect(labelsColorMap.chartsLabelsMap.get(1)?.scheme).toEqual(
-        'SUPERSET_DEFAULT',
-      );
-    });
-    it('should default to empty string with no default color scheme', () => {
-      const labelsColorMap = getLabelsColorMap();
-      // @ts-ignore
-      getCategoricalSchemeRegistry().setDefaultKey(undefined);
-      labelsColorMap.setSliceOriginColorScheme(1);
-      expect(labelsColorMap.chartsLabelsMap.get(1)?.scheme).toEqual('');
-    });
-    it('should re-use existing labels when setting color scheme', () => {
-      const labelsColorMap = getLabelsColorMap();
-      labelsColorMap.addSlice('a', 'red', 1);
-      labelsColorMap.setSliceOriginColorScheme(1, 'testColors');
-      expect(labelsColorMap.chartsLabelsMap.get(1)?.labels).toEqual(['a']);
-    });
-  });
-
   describe('.addSlice(value, color, sliceId)', () => {
     it('should add to sliceLabelColorMap when first adding label', () => {
       const labelsColorMap = getLabelsColorMap();
@@ -127,24 +97,6 @@ describe('LabelsColorMap', () => {
       labelsColorMap.source = LabelsColorMapSource.Explore;
       labelsColorMap.addSlice('a', 'red', 1);
       expect(Object.fromEntries(labelsColorMap.chartsLabelsMap)).toEqual({});
-    });
-
-    it('should use set slice color scheme via setSliceOriginColorScheme', () => {
-      const labelsColorMap = getLabelsColorMap();
-      labelsColorMap.setSliceOriginColorScheme(1, 'testColors2');
-      labelsColorMap.addSlice('a', 'red', 1);
-      expect(labelsColorMap.chartsLabelsMap.get(1)?.scheme).toEqual(
-        'testColors2',
-      );
-    });
-
-    it('should use given color scheme when not set via setSliceOriginColorScheme', () => {
-      const labelsColorMap = getLabelsColorMap();
-      labelsColorMap.setSliceOriginColorScheme(2, 'testColors2');
-      labelsColorMap.addSlice('a', 'red', 1, 'testColors');
-      expect(labelsColorMap.chartsLabelsMap.get(1)?.scheme).toEqual(
-        'testColors',
-      );
     });
   });
 

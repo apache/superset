@@ -52,6 +52,7 @@ export default function transformProps(
   const { onLegendStateChanged } = hooks;
   const {
     colorScheme,
+    ownColorScheme,
     column,
     groupby = [],
     normalize,
@@ -62,7 +63,11 @@ export default function transformProps(
     yAxisTitle,
   } = formData;
   const { data } = queriesData[0];
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
+  const appliedScheme = colorScheme || ownColorScheme;
+  const colorFn = CategoricalColorNamespace.getScale(
+    appliedScheme,
+    ownColorScheme,
+  );
   const formatter = getNumberFormatter(
     normalize ? NumberFormats.FLOAT_2_POINT : NumberFormats.INTEGER,
   );

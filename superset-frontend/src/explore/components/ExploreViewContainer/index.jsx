@@ -76,6 +76,8 @@ const propTypes = {
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   dashboardId: PropTypes.number,
+  colorScheme: PropTypes.string,
+  ownColorScheme: PropTypes.string,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
   chart: chartPropShape.isRequired,
   slice: PropTypes.object,
@@ -563,6 +565,7 @@ function ExploreViewContainer(props) {
         canOverwrite={props.can_overwrite}
         canDownload={props.can_download}
         dashboardId={props.dashboardId}
+        colorScheme={props.colorScheme}
         isStarred={props.isStarred}
         slice={props.slice}
         sliceName={props.sliceName}
@@ -741,6 +744,8 @@ function mapStateToProps(state) {
     },
   );
   const chart = charts[slice_id];
+  const colorScheme = explore.form_data?.color_scheme;
+  const ownColorScheme = explore.form_data?.own_color_scheme;
 
   let dashboardId = Number(explore.form_data?.dashboardId);
   if (Number.isNaN(dashboardId)) {
@@ -753,6 +758,8 @@ function mapStateToProps(state) {
     datasource_type: datasource.type,
     datasourceId: datasource.datasource_id,
     dashboardId,
+    colorScheme,
+    ownColorScheme,
     controls: explore.controls,
     can_add: !!explore.can_add,
     can_download: !!explore.can_download,

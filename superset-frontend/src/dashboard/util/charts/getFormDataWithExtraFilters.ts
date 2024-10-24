@@ -38,6 +38,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   chart: ChartQueryPayload;
   filters: DataRecordFilters;
   colorScheme?: string;
+  ownColorScheme?: string;
   colorNamespace?: string;
   sliceId: number;
   dataMask: DataMaskStateWithId;
@@ -45,6 +46,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   extraControls: Record<string, string | boolean | null>;
   labelsColor?: Record<string, string>;
   labelsColorMap?: Record<string, string>;
+  sharedLabelsColorMap?: Record<string, string>;
   allSliceIds: number[];
 }
 
@@ -57,28 +59,32 @@ export default function getFormDataWithExtraFilters({
   nativeFilters,
   chartConfiguration,
   colorScheme,
+  ownColorScheme,
   colorNamespace,
   sliceId,
   dataMask,
   extraControls,
   labelsColor,
   labelsColorMap,
+  sharedLabelsColorMap,
   allSliceIds,
 }: GetFormDataWithExtraFiltersArguments) {
   // if dashboard metadata + filters have not changed, use cache if possible
   const cachedFormData = cachedFormdataByChart[sliceId];
   if (
     cachedFiltersByChart[sliceId] === filters &&
-    areObjectsEqual(cachedFormData?.color_scheme, colorScheme, {
-      ignoreUndefined: true,
-    }) &&
+    areObjectsEqual(cachedFormData?.own_color_scheme, ownColorScheme) &&
+    areObjectsEqual(cachedFormData?.color_scheme, colorScheme) &&
     areObjectsEqual(cachedFormData?.color_namespace, colorNamespace, {
       ignoreUndefined: true,
     }) &&
     areObjectsEqual(cachedFormData?.label_colors, labelsColor, {
       ignoreUndefined: true,
     }) &&
-    areObjectsEqual(cachedFormData?.shared_label_colors, labelsColorMap, {
+    areObjectsEqual(cachedFormData?.full_label_colors, labelsColorMap, {
+      ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.shared_label_colors, sharedLabelsColorMap, {
       ignoreUndefined: true,
     }) &&
     !!cachedFormData &&
@@ -110,9 +116,14 @@ export default function getFormDataWithExtraFilters({
 
   const formData = {
     ...chart.form_data,
+    chart_id: chart.id,
     label_colors: labelsColor,
-    shared_label_colors: labelsColorMap,
+    shared_label_colors: sharedLabelsColorMap,
+    full_label_colors: labelsColorMap,
     ...(colorScheme && { color_scheme: colorScheme }),
+    ...(ownColorScheme && {
+      own_color_scheme: ownColorScheme,
+    }),
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
     ...extraControls,

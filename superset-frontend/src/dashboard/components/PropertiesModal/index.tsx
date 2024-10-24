@@ -47,6 +47,8 @@ import { loadTags } from 'src/components/Tags/utils';
 import { applyColors, getColorNamespace } from 'src/utils/colorScheme';
 import getOwnerName from 'src/utils/getOwnerName';
 import Owner from 'src/types/Owner';
+import { useDispatch } from 'react-redux';
+import { setColorScheme } from 'src/dashboard/actions/dashboardState';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -98,10 +100,11 @@ const PropertiesModal = ({
   onSubmit = () => {},
   show = false,
 }: PropertiesModalProps) => {
+  const dispatch = useDispatch();
   const [form] = AntdForm.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-  const [colorScheme, setColorScheme] = useState(currentColorScheme);
+  const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
   const [jsonMetadata, setJsonMetadata] = useState('');
   const [dashboardInfo, setDashboardInfo] = useState<DashboardInfo>();
   const [owners, setOwners] = useState<Owners>([]);
@@ -188,11 +191,12 @@ const PropertiesModal = ({
       setDashboardInfo(dashboardInfo);
       setOwners(owners);
       setRoles(roles);
-      setColorScheme(metadata.color_scheme);
+      setCurrentColorScheme(metadata.color_scheme);
 
       const metaDataCopy = omit(metadata, [
         'positions',
         'shared_label_colors',
+        'full_label_colors',
         'color_scheme_domain',
       ]);
 
@@ -294,13 +298,17 @@ const PropertiesModal = ({
 
       setJsonMetadata(jsonStringify(jsonMetadataObj));
     }
-    setColorScheme(colorScheme);
+
+    setCurrentColorScheme(colorScheme);
+
+    if (colorScheme !== currentColorScheme) {
+      dispatch(setColorScheme(colorScheme));
+    }
   };
 
   const onFinish = () => {
     const { title, slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
-    let currentColorScheme = colorScheme;
     let currentJsonMetadata = jsonMetadata;
 
     // validate currentJsonMetadata
@@ -319,32 +327,33 @@ const PropertiesModal = ({
     }
 
     const colorNamespace = getColorNamespace(metadata?.color_namespace);
-
     // color scheme in json metadata has precedence over selection
-    currentColorScheme = metadata?.color_scheme || colorScheme;
+    const updatedColorScheme = metadata?.color_scheme || colorScheme;
 
     // remove information from user facing input
     if (metadata?.shared_label_colors) {
       delete metadata.shared_label_colors;
     }
+    if (metadata?.full_label_colors) {
+      delete metadata.full_label_colors;
+    }
     if (metadata?.color_scheme_domain) {
       delete metadata.color_scheme_domain;
     }
 
-    // only apply colors as the user has not saved yet
     applyColors(
       {
         ...metadata,
-        color_scheme: currentColorScheme,
+        color_scheme: updatedColorScheme,
       },
       true,
     );
 
-    currentJsonMetadata = jsonStringify(metadata);
-
-    onColorSchemeChange(currentColorScheme, {
+    onColorSchemeChange(updatedColorScheme, {
       updateMetadata: false,
     });
+
+    currentJsonMetadata = jsonStringify(metadata);
 
     const moreOnSubmitProps: { roles?: Roles } = {};
     const morePutProps: { roles?: number[]; tags?: (number | undefined)[] } =

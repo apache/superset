@@ -66,7 +66,8 @@ const SyncDashboardState: FC<Props> = ({ dashboardPageId }) => {
   >(
     ({ dashboardInfo, dashboardState, nativeFilters, dataMask }) => ({
       labelsColor: dashboardInfo.metadata?.label_colors || EMPTY_OBJECT,
-      labelsColorMap:
+      labelsColorMap: dashboardInfo.metadata?.full_label_colors || EMPTY_OBJECT,
+      sharedLabelsColorMap:
         dashboardInfo.metadata?.shared_label_colors || EMPTY_OBJECT,
       colorScheme: dashboardState?.colorScheme,
       chartConfiguration:
