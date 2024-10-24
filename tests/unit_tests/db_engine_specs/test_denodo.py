@@ -58,7 +58,9 @@ def test_epoch_to_dttm(
     dttm: datetime,  # noqa: F811
 ) -> None:
     assert isinstance(dttm, datetime)
-    assert spec.epoch_to_dttm().format(col="epoch_dttm") == "GETTIMEFROMMILLIS(epoch_dttm)"
+    assert (
+        spec.epoch_to_dttm().format(col="epoch_dttm") == "GETTIMEFROMMILLIS(epoch_dttm)"
+    )
 
 
 @pytest.mark.parametrize(
