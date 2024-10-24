@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - master
-      - feature/DP-326-Use-registry-to-manage-and-build-images
+      - dev
   # Optionally allow manual triggers
   workflow_dispatch:
 
@@ -42,32 +42,42 @@ jobs:
 
       - name: Get short SHA
         id: sha
-        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "IMAGE_TAG=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+        
+      - name: Determine Image Tag
+        id: tag
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+            echo "IMAGE_PERMANENT_TAG=latest" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF##*/}" == "development" ]]; then
+            echo "IMAGE_PERMANENT_TAG=dev" >> $GITHUB_ENV
+          fi
 
       - name: Build and push Superset images
         run: |
           # Set registry prefix and tag
           REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
-          SUPERSET_TAG=$(date +%Y%m%d-%H%M%S)
+
 
           # Build the main Superset image
           docker build \
             --target dev \
             --cache-from apache/superset-cache:3.10-slim-bookworm \
-            -t ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} \
-            -t ${REGISTRY_PREFIX}/superset:latest \
+            -t ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} \
+            -t ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_PERMANENT_TAG }} \
             .
 
           # Tag worker and beat images from the main build
-          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker:${SUPERSET_TAG}
-          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker:latest
-          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker-beat:${SUPERSET_TAG}
-          docker tag ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG} ${REGISTRY_PREFIX}/superset-worker-beat:latest
+          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_TAG }}
+          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_PERMANENT_TAG }}
+          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_TAG }}
+          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_PERMANENT_TAG }}
 
           # Push all Superset images
-          docker push ${REGISTRY_PREFIX}/superset:${SUPERSET_TAG}
-          docker push ${REGISTRY_PREFIX}/superset:latest
-          docker push ${REGISTRY_PREFIX}/superset-worker:${SUPERSET_TAG}
-          docker push ${REGISTRY_PREFIX}/superset-worker:latest
-          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${SUPERSET_TAG}
-          docker push ${REGISTRY_PREFIX}/superset-worker-beat:latest          
+          docker push ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }}
+          docker push ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_PERMANENT_TAG }}
+          docker push ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_TAG }}
+          docker push ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_PERMANENT_TAG }}
+          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_TAG }}
+          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_PERMANENT_TAG }}          
