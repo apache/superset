@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,27 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { BASE_PATH } from 'src/constants';
 
-import { FetchRetryOptions } from './types';
+const STARTS_WITH_BASE_PATH_RE = new RegExp(`^${BASE_PATH}`, '');
 
-export const DEFAULT_BASE_URL = 'http://localhost';
-export const DEFAULT_BASE_PATH = '';
+/**
+ * Takes a string path to a resource and prefixes it with the BASE_PATH that is
+ * defined in the webpack configuration.
+ * @param path A string path to a resource
+ */
+export function ensureBasePath(path: string): string {
+  return `${BASE_PATH}${path.startsWith('/') ? path : `/${path}`}`;
+}
 
-// HTTP status codes
-export const HTTP_STATUS_OK = 200;
-export const HTTP_STATUS_NOT_MODIFIED = 304;
-
-// Namespace for Cache API
-export const CACHE_AVAILABLE = 'caches' in window;
-export const CACHE_KEY = '@SUPERSET-UI/CONNECTION';
-
-export const DEFAULT_FETCH_RETRY_OPTIONS: FetchRetryOptions = {
-  retries: 3,
-  retryDelay: 1000,
-  retryOn: [503],
-};
-
-export const COMMON_ERR_MESSAGES = {
-  SESSION_TIMED_OUT:
-    'Your session timed out, please refresh your page and try again.',
-};
+/**
+ * Strips the BASE_PATH from the given path if it exists
+ */
+export function stripBasePath(path: string): string {
+  return path.replace(STARTS_WITH_BASE_PATH_RE, '');
+}
