@@ -24,7 +24,7 @@ from superset.errors import SupersetErrorType
 
 
 # Internal class for defining error message patterns (for translation)
-class _ErrorPatterns:
+class _ErrorPatterns:  # pylint: disable=too-few-public-methods
 
     CONN_INVALID_USER_PWD_REGEX = re.compile(
         "The username or password is incorrect"
