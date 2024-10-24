@@ -1125,9 +1125,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             logger.info("Triggering screenshot ASYNC")
             cache_dashboard_screenshot.delay(
                 username=get_current_user(),
-                guest_token=g.user.guest_token
-                if get_current_user() and isinstance(g.user, GuestUser)
-                else None,
+                guest_token=(
+                    g.user.guest_token
+                    if get_current_user() and isinstance(g.user, GuestUser)
+                    else None
+                ),
                 dashboard_id=dashboard.id,
                 dashboard_url=dashboard_url,
                 cache_key=cache_key,
@@ -1595,15 +1597,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             body = self.embedded_config_schema.load(request.json)
 
-            with db.session.begin_nested():
-                embedded = EmbeddedDashboardDAO.upsert(
-                    dashboard,
-                    body["allowed_domains"],
-                )
+            embedded = EmbeddedDashboardDAO.upsert(
+                dashboard,
+                body["allowed_domains"],
+            )
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
             result = self.embedded_response_schema.dump(embedded)
             return self.response(200, result=result)
         except ValidationError as error:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             return self.response_400(message=error.messages)
 
     @expose("/<id_or_slug>/embedded", methods=("DELETE",))
