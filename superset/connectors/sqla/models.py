@@ -116,7 +116,7 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
-from superset.utils.core import GenericDataType, MediumText
+from superset.utils.core import GenericDataType, is_adhoc_column, MediumText
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -1982,9 +1982,7 @@ class SqlaTable(
             templatable_statements.append(extras["having"])
         if "columns" in query_obj:
             templatable_statements += [
-                c["sqlExpression"]
-                for c in query_obj["columns"]
-                if isinstance(c, dict) and c.get("sqlExpression")
+                c["sqlExpression"] for c in query_obj["columns"] if is_adhoc_column(c)
             ]
         if self.is_rls_supported:
             templatable_statements += [

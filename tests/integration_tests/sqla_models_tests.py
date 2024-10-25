@@ -949,6 +949,7 @@ def test_extra_cache_keys_in_columns(
         **base_query_obj,
         columns=[
             {
+                "label": None,
                 "expressionType": "SQL",
                 "sqlExpression": sql_expression,
             }
