@@ -426,6 +426,7 @@ class BaseReportState:
                     name=self._report_schedule.name,
                     text=error_text,
                     header_data=header_data,
+                    url=url,
                 )
 
         if (
@@ -533,13 +534,14 @@ class BaseReportState:
         :raises: CommandException
         """
         header_data = self._get_log_data()
+        url = self._get_url(user_friendly=True)
         logger.info(
             "header_data in notifications for alerts and reports %s, taskid, %s",
             header_data,
             self._execution_id,
         )
         notification_content = NotificationContent(
-            name=name, text=message, header_data=header_data
+            name=name, text=message, header_data=header_data, url=url
         )
 
         # filter recipients to recipients who are also owners

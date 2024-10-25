@@ -84,13 +84,17 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_smtp_domain() -> str:
         return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
-    @staticmethod
-    def _error_template(text: str) -> str:
+    def _error_template(self, text: str) -> str:
+        call_to_action = self._get_call_to_action()
         return __(
             """
-            Error: %(text)s
+            <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
+            <p>Please check your dashboard/chart for errors.</p>
+            <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
             """,
             text=text,
+            url=self._content.url,
+            call_to_action=call_to_action,
         )
 
     def _get_content(self) -> EmailContent:
@@ -130,7 +134,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         else:
             html_table = ""
 
-        call_to_action = __(app.config["EMAIL_REPORTS_CTA"])
         img_tags = []
         for msgid in images.keys():
             img_tags.append(
@@ -140,6 +143,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 """
             )
         img_tag = "".join(img_tags)
+        call_to_action = self._get_call_to_action()
         body = textwrap.dedent(
             f"""
             <html>
@@ -189,6 +193,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
             title=self._content.name,
         )
+
+    def _get_call_to_action(self) -> str:
+        return __(app.config["EMAIL_REPORTS_CTA"])
 
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]

@@ -24,7 +24,7 @@ const createProps = () => ({
   imageMenuItemTitle: 'Download as Image',
   dashboardTitle: 'Test Dashboard',
   logEvent: jest.fn(),
-  dashboardId: '123',
+  dashboardId: 123,
 });
 
 const renderComponent = () => {

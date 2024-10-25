@@ -95,7 +95,7 @@ Join our growing community!
 - [jampp](https://jampp.com/)
 - [Konfío](https://konfio.mx) [@uis-rodriguez]
 - [Mainstrat](https://mainstrat.com/)
-- [mishmash io](https://mishmash.io/)[@mishmash-io]
+- [mishmash io](https://mishmash.io/) [@mishmash-io]
 - [Myra Labs](https://www.myralabs.com/) [@viksit]
 - [Nielsen](https://www.nielsen.com/) [@amitNielsen]
 - [Ona](https://ona.io) [@pld]
@@ -115,7 +115,7 @@ Join our growing community!
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
 - [Tobii](https://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
-- [Unvired](https://unvired.com)[@srinisubramanian]
+- [Unvired](https://unvired.com) [@srinisubramanian]
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
@@ -128,7 +128,7 @@ Join our growing community!
 - [Kuaishou](https://www.kuaishou.com/) [@zhaoyu89730105]
 - [Netflix](https://www.netflix.com/)
 - [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
-- [TME QQMUSIC/WESING](https://www.tencentmusic.com/)[@shenyuanli,@marklaw]
+- [TME QQMUSIC/WESING](https://www.tencentmusic.com/) [@shenyuanli,@marklaw]
 - [Xite](https://xite.com/) [@shashankkoppar]
 - [Zaihang](https://www.zaih.com/)
 
@@ -137,7 +137,7 @@ Join our growing community!
 - [Brilliant.org](https://brilliant.org/)
 - [Platzi.com](https://platzi.com/)
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
-- [The GRAPH Network](https://thegraphnetwork.org/)[@fccoelho]
+- [The GRAPH Network](https://thegraphnetwork.org/) [@fccoelho]
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
 - [WikiMedia Foundation](https://wikimediafoundation.org) [@vg]
@@ -152,7 +152,7 @@ Join our growing community!
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
 - [Bluesquare](https://www.bluesquarehub.com/) [@madewulf]
-- [Care](https://www.getcare.io/)[@alandao2021]
+- [Care](https://www.getcare.io/) [@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
 - [REDCap Cloud](https://www.redcapcloud.com/)

@@ -80,6 +80,7 @@
     "last 3 edge versions"
   ],
   "dependencies": {
+    "@ant-design/charts": "^2.2.1",
     "@ant-design/icons": "^5.2.6",
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.13.3",
@@ -137,6 +138,7 @@
     "d3-scale": "^2.1.2",
     "dayjs": "^1.11.13",
     "dom-to-image-more": "^3.2.0",
+    "echarts": "^5.5.1",
     "emotion-rgba": "0.0.12",
     "fast-glob": "^3.3.2",
     "fs-extra": "^11.2.0",

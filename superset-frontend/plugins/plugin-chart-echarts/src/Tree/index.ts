@@ -44,7 +44,7 @@ export default class EchartsTreeChartPlugin extends EchartsChartPlugin {
           t('Multi-Levels'),
           t('Relational'),
           t('Structural'),
-          t('Featured'),
+ t('Featured OLD'),
         ],
         thumbnail,
       },
