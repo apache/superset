@@ -151,7 +151,6 @@ export function rebaseForecastDatum(
   });
 }
 
-
 // For Confidence Bands, forecast series on mixed charts require the series sent in the following sortOrder:
 export function reorderForecastSeries(row: any[]): any[] {
   // Define the order for sorting using ForecastSeriesEnum
