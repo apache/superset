@@ -144,4 +144,31 @@ describe('logger middleware', () => {
     const formData = beaconMock.mock.calls[0][1];
     expect(formData.getAll('guest_token')[0]).toMatch('token');
   });
+
+  it('should pass the csrf token to sendBeacon if present', () => {
+    const beaconMock = jest.fn();
+    Object.defineProperty(navigator, 'sendBeacon', {
+      writable: true,
+      value: beaconMock,
+    });
+    SupersetClient.configure({ guestToken: 'token' });
+
+    const docMoc = jest.fn(() => ({ value: 'csrf' }));
+    Object.defineProperty(document, 'getElementById', {
+      writable: true,
+      value: docMoc,
+    });
+
+    logger(mockStore)(next)(action);
+    expect(beaconMock.mock.calls.length).toBe(0);
+    expect(docMoc.mock.calls.length).toBe(0);
+    timeSandbox.clock.tick(2000);
+    expect(beaconMock.mock.calls.length).toBe(1);
+    expect(docMoc.mock.calls.length).toBe(2);
+    expect(docMoc.mock.calls[0][0]).toMatch('csrf_token');
+    expect(docMoc.mock.calls[1][0]).toMatch('csrf_token');
+
+    const formData = beaconMock.mock.calls[0][1];
+    expect(formData.getAll('csrf_token')[0]).toMatch('csrf');
+  });
 });
