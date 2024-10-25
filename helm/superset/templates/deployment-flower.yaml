@@ -28,8 +28,8 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-    {{- if .Values.superset.global.extraLabels }}
-      {{- toYaml .Values.superset.global.extraLabels | nindent 4 }}
+    {{- if .Values.superset.extraLabels }}
+      {{- toYaml .Values.superset.extraLabels | nindent 4 }}
     {{- end }}
   {{- if .Values.supersetCeleryFlower.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetCeleryFlower.deploymentAnnotations | nindent 4 }}
@@ -50,6 +50,9 @@ spec:
       labels:
         app: "{{ template "superset.name" . }}-flower"
         release: {{ .Release.Name }}
+        {{- if .Values.superset.extraLabels }}
+          {{- toYaml .Values.superset.extraLabels | nindent 8 }}
+        {{- end }}
         {{- if .Values.supersetCeleryFlower.podLabels }}
           {{- toYaml .Values.supersetCeleryFlower.podLabels | nindent 8 }}
         {{- end }}

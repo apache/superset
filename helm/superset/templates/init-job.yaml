@@ -23,9 +23,9 @@ kind: Job
 metadata:
   name: {{ template "superset.fullname" . }}-init-db
   namespace: {{ .Release.Namespace }}
-  {{- if .Values.superset.global.extraLabels }}
+  {{- if .Values.superset.extraLabels }}
   labels:
-    {{- toYaml .Values.superset.global.extraLabels | nindent 4 }}
+    {{- toYaml .Values.superset.extraLabels | nindent 4 }}
   {{- end }}
   {{- if .Values.init.jobAnnotations }}
   annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}

@@ -28,8 +28,8 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-    {{- if .Values.superset.global.extraLabels }}
-      {{- toYaml .Values.superset.global.extraLabels | nindent 4 }}
+    {{- if .Values.superset.extraLabels }}
+      {{- toYaml .Values.superset.extraLabels | nindent 4 }}
     {{- end }}
   {{- if .Values.supersetCeleryBeat.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetCeleryBeat.deploymentAnnotations | nindent 4 }}
@@ -61,6 +61,9 @@ spec:
       labels:
         app: "{{ template "superset.name" . }}-celerybeat"
         release: {{ .Release.Name }}
+        {{- if .Values.superset.extraLabels }}
+          {{- toYaml .Values.superset.extraLabels | nindent 8 }}
+        {{- end }}
         {{- if .Values.supersetCeleryBeat.podLabels }}
           {{- toYaml .Values.supersetCeleryBeat.podLabels | nindent 8 }}
         {{- end }}
