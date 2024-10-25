@@ -1984,7 +1984,7 @@ class SqlaTable(
             templatable_statements += [
                 c["sqlExpression"]
                 for c in query_obj["columns"]
-                if c.get("sqlExpression")
+                if isinstance(c, dict) and c.get("sqlExpression")
             ]
         if self.is_rls_supported:
             templatable_statements += [
