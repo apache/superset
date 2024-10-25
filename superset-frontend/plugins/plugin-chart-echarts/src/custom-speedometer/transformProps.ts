@@ -1,3 +1,4 @@
+import { min } from "lodash";
 import { DEFAULT_FORM_DATA, SpeedometerTransformProps } from "./types";
 
 type RGBA = {r: number, g: number, b: number, a: number };
@@ -25,6 +26,16 @@ function rgbaToHex(rgba: RGBA): string {
     return a === 1 ? `#${redHex}${greenHex}${blueHex}` : `#${redHex}${greenHex}${blueHex}${alphaHex}`;
 }
 
+function checkIfStartIsGeaterThanEnd(s1Start: number, s1End: number) {
+    var temp = s1Start;
+    if(s1Start > s1End) {
+        s1Start = s1End;
+        s1End = temp
+        return { s1Start, s1End }
+    } else {
+        return { s1Start, s1End }
+    }
+}
 
 
 export default function transformProps(chartProps: SpeedometerTransformProps) {
@@ -46,9 +57,8 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
 
     // Segements 2nd arch
     const segmentAmt = formData.segmentAmt ?? DEFAULT_FORM_DATA.segmentAmt ?? 0;
-    const s1ChartColor:any = formData.s1ChartColor ?? DEFAULT_FORM_DATA.s1ChartColor ?? 0;
-    const s1Start = formData.s1Start ?? DEFAULT_FORM_DATA.s1Start ?? 0;
-    const s1End = formData.s1End ?? DEFAULT_FORM_DATA.s1End ?? 0;
+    const s1ChartColor:any = formData.s1ChartColor ?? DEFAULT_FORM_DATA.s1ChartColor ?? 0;    
+    const { s1Start, s1End } = checkIfStartIsGeaterThanEnd( formData.s1Start ?? DEFAULT_FORM_DATA.s1Start ?? 0, formData.s1End ?? DEFAULT_FORM_DATA.s1End ?? 0);
 
     const convertedColorCode = rgbaToHex(s1ChartColor);
 
