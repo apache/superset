@@ -160,8 +160,8 @@ describe('logger middleware', () => {
       value: beaconMock,
     });
     SupersetClient.configure({ guestToken: 'token' });
-    
-    const docMock = jest.fn(x => ({'value': 'csrf'}));
+
+    const docMock = jest.fn(() => ({ value: 'csrf' }));
     Object.defineProperty(document, 'getElementById', {
       writable: true,
       value: docMock,
