@@ -156,7 +156,7 @@ describe('logger middleware', () => {
     const docMoc = jest.fn();
     Object.defineProperty(document, 'getElementById', {
       writable: true,
-      value: () => ({ 'value': 'csrf' }),
+      value: () => ({ value: 'csrf' }),
     });
 
     logger(mockStore)(next)(action);
