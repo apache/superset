@@ -7,6 +7,9 @@ interface SpeedoChartProps {
   max: number;
   progress: number;
   segmentAmt: number;
+  s1Color: string;
+  s1S: number;
+  s1E: number;
 }
 
 const calculatePercentage = (minVal: number, maxVal: number, progressVal: number): number => {
@@ -21,7 +24,7 @@ const calculatePercentage = (minVal: number, maxVal: number, progressVal: number
   return progressVal;
 }
 
-const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAmt }) => {
+const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAmt, s1Color, s1S, s1E }) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
   var calculatedData = calculatePercentage(min, max, progress);
@@ -32,8 +35,7 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAm
   var outerRadiusSecondChart = 114;
   var innerRadiusSecondChart = 122;
   const segments = [
-    {start: 0, end: 50, color: "#49552f"},
-    {start: 50, end: 80, color: "#49b53f"},
+    {start: s1S, end: s1E, color: s1Color},
     {start: 70, end: 85, color: "#dba307"},
     {start: 85, end: 100, color: "#db0707"},
   ]
@@ -89,6 +91,36 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAm
           top: 190,
           style: {
             text: `Segment Amt: ${segmentAmt}`,
+            fontSize: 16,
+            fontWeight: 'bold'
+          }
+        },
+        {
+          type: 'text',
+          left: 400,
+          top: 210,
+          style: {
+            text: `S1 Color: ${s1Color}`,
+            fontSize: 16,
+            fontWeight: 'bold',
+          }
+        },
+        {
+          type: 'text',
+          left: 400,
+          top: 230,
+          style: {
+            text: `S1 Start: ${s1S}`,
+            fontSize: 16,
+            fontWeight: 'bold'
+          }
+        },
+        {
+          type: 'text',
+          left: 400,
+          top: 250,
+          style: {
+            text: `S1 Start: ${s1E}`,
             fontSize: 16,
             fontWeight: 'bold'
           }

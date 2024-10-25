@@ -18,6 +18,9 @@ export type SpeedometerChartFormData = QueryFormData & {
     numberFormat?: string;
     showLabel?: boolean;
     segmentAmt: number;
+    s1ChartColor: string;
+    s1Start: number;
+    s1End: number;
 }
 
 // Define the strucute for the query data returned by Superset
@@ -40,6 +43,9 @@ export interface SpeedometerChartProps {
     numberFormat?: string;
     showLabel?: boolean;
     segmentAmt?: number;
+    s1ChartColor?: string;
+    s1Start?: number;
+    s1End?: number;
 }
 
 // Defines defailt values for the SpeedometerChartFormData (fallback values)
@@ -48,6 +54,9 @@ export const DEFAULT_FORM_DATA: Partial<SpeedometerChartFormData> = {
     minValue: 0,
     maxValue: 100,
     segmentAmt: 6,
+    s1ChartColor: '#02F702',
+    s1Start: 0,
+    s1End: 50,
 }
 
 // Transform props for the Speedometer
