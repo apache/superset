@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
-import { DEFAULT_FORM_DATA, SpeedometerChartFormData } from './types';
+import { DEFAULT_FORM_DATA, SpeedometerChartProps, SpeedometerChartFormData } from './types';
 
 const calculatePercentage = (progressVal: number): number => {
   progressVal = parseFloat(progressVal.toFixed(2));
@@ -18,7 +18,7 @@ const calculatePercentage = (progressVal: number): number => {
 const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChartFormData) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const { minValue, maxValue, progress,segmentAmt, s1ChartColor, s1Start, s1End, testVal } = props;
+  const { minValue, maxValue, progress,segmentAmt, s1ChartColor, s1Start, s1End } = props;
 
   var calculatedData = calculatePercentage(progress);
   //var calculatedData = 90
@@ -118,16 +118,6 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
             fontWeight: 'bold'
           }
         },
-        {
-          type: 'text',
-          left: 400,
-          top: 270,
-          style: {
-            text: `Test: ${testVal}`,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        }
       ],
       series: [{
         type: 'custom',

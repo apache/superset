@@ -21,7 +21,6 @@ export type SpeedometerChartFormData = QueryFormData & {
     s1ChartColor: string;
     s1Start: number;
     s1End: number;
-    testVal: number
 }
 
 // Define the strucute for the query data returned by Superset

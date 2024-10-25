@@ -67,6 +67,5 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
         s1ChartColor: convertedColorCode,
         s1Start: s1Start,
         s1End: s1End,
-        testVal: 100
     };
 }
