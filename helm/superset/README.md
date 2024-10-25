@@ -74,6 +74,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | extraVolumeMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `nil` | Provide a name to override the full names of resources |
+| global.extraLabels | object | `{}` | Labels to be added to all helm resources |
 | hostAliases | list | `[]` | Custom hostAliases for all superset pods # https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/ |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"apachesuperset.docker.scarf.sh/apache/superset"` |  |
