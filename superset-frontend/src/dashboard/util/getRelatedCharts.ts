@@ -30,12 +30,13 @@ import { Slice } from 'src/types/Chart';
 import { DatasourcesState } from '../types';
 
 function checkForExpression(formData?: Record<string, any>) {
-  const groupby = ensureIsArray(formData?.groupby) ?? [];
-  const allColumns = ensureIsArray(formData?.all_columns) ?? [];
-  const checkColumns = groupby.concat(allColumns);
-  return checkColumns.some(
-    (col: string | Record<string, any>) =>
-      typeof col !== 'string' && col.expressionType !== undefined,
+  const groupby = ensureIsArray(formData?.groupby);
+  const allColumns = ensureIsArray(formData?.all_columns);
+  const adhocFilters = ensureIsArray(formData?.adhoc_filters);
+  const checkExpressions = groupby.concat(allColumns).concat(adhocFilters);
+  return checkExpressions.some(
+    (ex: string | Record<string, any>) =>
+      ex && typeof ex === 'object' && ex.expressionType === 'SQL',
   );
 }
 
