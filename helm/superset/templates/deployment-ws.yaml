@@ -28,6 +28,9 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- if .Values.superset.global.extraLabels }}
+      {{- toYaml .Values.superset.global.extraLabels | nindent 4 }}
+    {{- end }}
   {{- if .Values.supersetWebsockets.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetWebsockets.deploymentAnnotations | nindent 4 }}
   {{- end }}

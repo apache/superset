@@ -28,6 +28,9 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- if .Values.superset.global.extraLabels }}
+      {{- toYaml .Values.superset.global.extraLabels | nindent 4 }}
+    {{- end }}
   {{- if .Values.supersetCeleryBeat.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetCeleryBeat.deploymentAnnotations | nindent 4 }}
   {{- end }}
