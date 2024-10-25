@@ -153,10 +153,10 @@ describe('logger middleware', () => {
     });
     SupersetClient.configure({ guestToken: 'token' });
 
-    const docMoc = jest.fn();
+    const docMoc = jest.fn(() => ({ value: 'csrf' }));
     Object.defineProperty(document, 'getElementById', {
       writable: true,
-      value: () => ({ value: 'csrf' }),
+      value: docMoc,
     });
 
     logger(mockStore)(next)(action);
