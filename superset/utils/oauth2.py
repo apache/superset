@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Any, TYPE_CHECKING
+from urllib.parse import unquote
 
 import backoff
 import jwt
@@ -169,6 +170,8 @@ def decode_oauth2_state(encoded_state: str) -> OAuth2State:
     """
     Decode the OAuth2 state.
     """
+    # Before escaping periods, the % need to be escaped
+    encoded_state = unquote(encoded_state)
     # Google OAuth2 needs periods to be escaped.
     encoded_state = encoded_state.replace("%2E", ".")
 
@@ -192,3 +195,4 @@ class OAuth2ClientConfigSchema(Schema):
     )
     authorization_request_uri = fields.String(required=True)
     token_request_uri = fields.String(required=True)
+    project_id = fields.String(required=False)

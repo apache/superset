@@ -232,6 +232,7 @@ export enum ConfigurationMethod {
 
 export enum Engines {
   GSheet = 'gsheets',
+  BigQuery = 'bigquery',
   Snowflake = 'snowflake',
 }
 

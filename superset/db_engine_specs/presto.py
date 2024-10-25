@@ -365,9 +365,12 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return parse.unquote(database.split("/")[1])
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> dict[str, Any]:
+    def estimate_statement_cost(
+        cls, database: Database, statement: str, cursor: Any
+    ) -> dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
+        :param database: A Database object
         :param statement: A single SQL statement
         :param cursor: Cursor instance
         :return: JSON response from Trino
@@ -945,8 +948,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return version is not None and Version(version) >= Version("0.319")
 
     @classmethod
-    def update_impersonation_config(
+    def update_impersonation_config(  # pylint: disable=too-many-arguments
         cls,
+        database: Database,
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
@@ -955,6 +959,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         """
         Update a configuration dictionary
         that can set the correct properties for impersonating users
+
+        :param connect_args: the Database object
         :param connect_args: config to be updated
         :param uri: URI string
         :param username: Effective username

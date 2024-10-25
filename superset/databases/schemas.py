@@ -47,6 +47,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelMissingCredentials,
 )
 from superset.constants import PASSWORD_MASK
+from superset.databases.types import EncryptedField
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
@@ -939,12 +940,6 @@ class ImportV1DatabaseSchema(Schema):
                     # are empty, SSHTunnelMissingCredentials was already raised
                     raise ValidationError(exception_messages)
         return
-
-
-class EncryptedField:  # pylint: disable=too-few-public-methods
-    """
-    A database field that should be stored in encrypted_extra.
-    """
 
 
 class EncryptedString(EncryptedField, fields.String):

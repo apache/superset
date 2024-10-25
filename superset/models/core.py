@@ -29,6 +29,7 @@ from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
+from inspect import signature
 from typing import Any, Callable, cast, TYPE_CHECKING
 
 import numpy
@@ -510,12 +511,13 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
         if self.impersonate_user:
-            self.db_engine_spec.update_impersonation_config(
-                connect_args,
-                str(sqlalchemy_url),
-                effective_username,
-                access_token,
-            )
+            # PR #30674 changed the signature of the method to include database.
+            # This ensures that the change is backwards compatible
+            sig = signature(self.db_engine_spec.update_impersonation_config)
+            args = [connect_args, str(sqlalchemy_url), effective_username, access_token]
+            if "database" in sig.parameters:
+                args.insert(0, self)
+            self.db_engine_spec.update_impersonation_config(*args)
 
         if connect_args:
             params["connect_args"] = connect_args
