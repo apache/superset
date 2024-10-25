@@ -18,7 +18,7 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import { FC, useEffect, useMemo, useRef } from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Filter,
@@ -31,6 +31,7 @@ import { pick } from 'lodash';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
+  Chart,
   DashboardInfo,
   DashboardLayout,
   LayoutItem,
@@ -85,9 +86,17 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
-  const chartIds = useSelector<RootState, number[]>(state =>
-    Object.values(state.charts).map(chart => chart.id),
+  const isEditMode = useSelector<RootState, boolean>(
+    state => state.dashboardState.editMode,
   );
+  const charts = useSelector<RootState, Chart[]>(state =>
+    Object.values(state.charts),
+  );
+  const chartIds: number[] = useMemo(
+    () => charts.map(chart => chart.id),
+    [charts],
+  );
+  const [chartsRendered, setChartsRendered] = useState<number[]>([]);
 
   const prevTabIndexRef = useRef();
   const tabIndex = useMemo(() => {
@@ -142,23 +151,44 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   useEffect(() => {
     // verify freshness of color map on tab change
-    // and when loading for first time
-    setTimeout(() => {
-      dispatch(updateDashboardLabelsColor());
-    }, 500);
-  }, [directPathToChild, dispatch]);
+    // and when loading the dashboard for first time
+    if (!isEditMode && chartsRendered.length > 0) {
+      setTimeout(() => {
+        dispatch(updateDashboardLabelsColor());
+      }, 0);
+    }
+  }, [chartsRendered, dispatch, isEditMode]);
+
+  useEffect(() => {
+    const loadingCharts = charts.some(
+      chart =>
+        chart.chartStatus === 'loading' || chart.chartStatus === 'success',
+    );
+
+    if (!loadingCharts) {
+      const rendered = charts
+        .filter(chart => chart.chartStatus === 'rendered')
+        .map(chart => chart.id);
+
+      if (rendered.length !== chartsRendered.length) {
+        setChartsRendered(rendered);
+      }
+    }
+  }, [charts, chartsRendered]);
 
   useEffect(() => {
     const labelsColorMap = getLabelsColorMap();
     const colorNamespace = getColorNamespace(
       dashboardInfo?.metadata?.color_namespace,
     );
+    const colorScheme = dashboardInfo?.metadata?.color_scheme;
     labelsColorMap.source = LabelsColorMapSource.Dashboard;
     // apply labels color as dictated by stored metadata
-    applyColors(dashboardInfo.metadata);
+    applyColors(dashboardInfo.metadata, false, false, !colorScheme);
 
     return () => {
       resetColors(getColorNamespace(colorNamespace));
+      setChartsRendered([]);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardInfo.id, dispatch]);

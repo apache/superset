@@ -175,6 +175,7 @@ export default function transformProps(
     sourceCategory,
     targetCategory,
     colorScheme,
+    ownColorScheme,
     metric = '',
     layout,
     roam,
@@ -197,7 +198,11 @@ export default function transformProps(
 
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const appliedScheme = colorScheme || ownColorScheme;
+  const colorFn = CategoricalColorNamespace.getScale(
+    appliedScheme as string,
+    ownColorScheme,
+  );
   const nodes: { [name: string]: number } = {};
   const categories: Set<string> = new Set();
   const echartNodes: EChartGraphNode[] = [];
@@ -271,14 +276,15 @@ export default function transformProps(
   });
 
   const categoryList = [...categories];
-
   const series: GraphSeriesOption[] = [
     {
       zoom: DEFAULT_GRAPH_SERIES_OPTION.zoom,
       type: 'graph',
       categories: categoryList.map(c => ({
         name: c,
-        itemStyle: { color: colorFn(c, sliceId, colorScheme) },
+        itemStyle: {
+          color: colorFn(c, sliceId),
+        },
       })),
       layout,
       force: {

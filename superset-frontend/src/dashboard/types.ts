@@ -52,6 +52,7 @@ export type Chart = ChartState & {
   form_data: {
     viz_type: string;
     datasource: string;
+    color_scheme?: string;
   };
 };
 
@@ -132,6 +133,7 @@ export type DashboardInfo = {
     color_scheme_domain: string[];
     label_colors: JsonObject;
     shared_label_colors: JsonObject;
+    full_label_colors: JsonObject;
     cross_filters_enabled: boolean;
   };
   crossFiltersEnabled: boolean;

@@ -751,6 +751,7 @@ def test_query_context_modified_sankey_tampered(mocker: MockerFixture) -> None:
         "extra_form_data": {},
         "label_colors": {},
         "shared_label_colors": {},
+        "full_label_colors": {},
         "extra_filters": [],
         "dashboardId": 11,
         "force": False,

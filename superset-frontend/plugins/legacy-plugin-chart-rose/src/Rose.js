@@ -46,6 +46,8 @@ const propTypes = {
   numberFormat: PropTypes.string,
   useRichTooltip: PropTypes.bool,
   useAreaProportions: PropTypes.bool,
+  colorScheme: PropTypes.string,
+  ownColorScheme: PropTypes.string,
 };
 
 function copyArc(d) {
@@ -71,6 +73,7 @@ function Rose(element, props) {
     width,
     height,
     colorScheme,
+    ownColorScheme,
     dateTimeFormat,
     numberFormat,
     useRichTooltip,
@@ -89,7 +92,8 @@ function Rose(element, props) {
   const numGroups = datum[times[0]].length;
   const format = getNumberFormatter(numberFormat);
   const timeFormat = getTimeFormatter(dateTimeFormat);
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
+  const appliedScheme = colorScheme || ownColorScheme;
+  const colorFn = CategoricalColorNamespace.getScale(appliedScheme, ownColorScheme);
 
   d3.select('.nvtooltip').remove();
   div.selectAll('*').remove();
@@ -120,14 +124,14 @@ function Rose(element, props) {
           .map(v => ({
             key: v.name,
             value: v.value,
-            color: colorFn(v.name, sliceId, colorScheme),
+            color: colorFn(v.name, sliceId),
             highlight: v.id === d.arcId,
           }))
       : [
           {
             key: d.name,
             value: d.val,
-            color: colorFn(d.name, sliceId, colorScheme),
+            color: colorFn(d.name, sliceId),
           },
         ];
 
@@ -138,7 +142,7 @@ function Rose(element, props) {
     };
   }
 
-  legend.width(width).color(d => colorFn(d.key, sliceId, colorScheme));
+  legend.width(width).color(d => colorFn(d.key, sliceId));
   legendWrap.datum(legendData(datum)).call(legend);
 
   tooltip.headerFormatter(timeFormat).valueFormatter(format);
@@ -385,7 +389,7 @@ function Rose(element, props) {
   const arcs = ae
     .append('path')
     .attr('class', 'arc')
-    .attr('fill', d => colorFn(d.name, sliceId, colorScheme))
+    .attr('fill', d => colorFn(d.name, sliceId))
     .attr('d', arc);
 
   function mousemove() {

@@ -101,6 +101,7 @@ export default function transformProps(
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     colorScheme,
+    ownColorScheme,
     groupby,
     orient,
     sort,
@@ -145,8 +146,11 @@ export default function transformProps(
   }, {});
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
-
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const appliedScheme = colorScheme || ownColorScheme;
+  const colorFn = CategoricalColorNamespace.getScale(
+    appliedScheme as string,
+    ownColorScheme,
+  );
   const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,
@@ -175,7 +179,7 @@ export default function transformProps(
       value,
       name,
       itemStyle: {
-        color: colorFn(name, sliceId, colorScheme),
+        color: colorFn(name, sliceId),
         opacity: isFiltered
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,

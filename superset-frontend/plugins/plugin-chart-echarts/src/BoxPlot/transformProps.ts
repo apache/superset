@@ -61,6 +61,7 @@ export default function transformProps(
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     colorScheme,
+    ownColorScheme,
     groupby = [],
     metrics = [],
     numberFormat,
@@ -75,7 +76,11 @@ export default function transformProps(
     sliceId,
   } = formData as BoxPlotQueryFormData;
   const refs: Refs = {};
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const appliedScheme = colorScheme || ownColorScheme;
+  const colorFn = CategoricalColorNamespace.getScale(
+    appliedScheme as string,
+    ownColorScheme,
+  );
   const numberFormatter = getNumberFormatter(numberFormat);
   const metricLabels = metrics.map(getMetricLabel);
   const groupbyLabels = groupby.map(getColumnLabel);
@@ -109,9 +114,9 @@ export default function transformProps(
             datum[`${metric}__outliers`],
           ],
           itemStyle: {
-            color: colorFn(groupbyLabel, sliceId, colorScheme),
+            color: colorFn(groupbyLabel, sliceId),
             opacity: isFiltered ? OpacityEnum.SemiTransparent : 0.6,
-            borderColor: colorFn(groupbyLabel, sliceId, colorScheme),
+            borderColor: colorFn(groupbyLabel, sliceId),
           },
         };
       });
@@ -150,7 +155,7 @@ export default function transformProps(
             },
           },
           itemStyle: {
-            color: colorFn(groupbyLabel, sliceId, colorScheme),
+            color: colorFn(groupbyLabel, sliceId),
             opacity: isFiltered
               ? OpacityEnum.SemiTransparent
               : OpacityEnum.NonTransparent,

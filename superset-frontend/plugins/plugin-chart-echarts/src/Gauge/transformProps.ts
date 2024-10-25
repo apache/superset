@@ -119,6 +119,7 @@ export default function transformProps(
     minVal,
     maxVal,
     colorScheme,
+    ownColorScheme,
     fontSize,
     numberFormat,
     currencyFormat,
@@ -147,7 +148,11 @@ export default function transformProps(
     numberFormat,
     currencyFormat,
   );
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const appliedScheme = colorScheme || ownColorScheme;
+  const colorFn = CategoricalColorNamespace.getScale(
+    appliedScheme as string,
+    ownColorScheme,
+  );
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
   const groupbyLabels = groupby.map(getColumnLabel);
   const formatValue = (value: number) =>
@@ -174,7 +179,7 @@ export default function transformProps(
         value: data_point[metricLabel] as number,
         name,
         itemStyle: {
-          color: colorFn(index, sliceId, colorScheme),
+          color: colorFn(index, sliceId),
         },
         title: {
           offsetCenter: [
@@ -202,7 +207,7 @@ export default function transformProps(
         item = {
           ...item,
           itemStyle: {
-            color: colorFn(index, sliceId, colorScheme),
+            color: colorFn(index, sliceId),
             opacity: OpacityEnum.SemiTransparent,
           },
           detail: {

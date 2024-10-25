@@ -55,7 +55,11 @@ export function getLayer(
   setTooltip: (tooltip: TooltipProps['tooltip']) => void,
 ) {
   const fd = formData;
-  const colorScale = CategoricalColorNamespace.getScale(fd.color_scheme);
+  const appliedScheme = fd.color_scheme || fd.own_color_scheme;
+  const colorScale = CategoricalColorNamespace.getScale(
+    appliedScheme,
+    fd.own_color_scheme,
+  );
   const colorRange = colorScale
     .range()
     .map(color => hexToRGB(color)) as Color[];

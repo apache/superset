@@ -23,6 +23,7 @@ export default function transformProps(chartProps) {
     numberFormat,
     selectCountry,
     colorScheme,
+    ownColorScheme,
     sliceId,
   } = formData;
 
@@ -34,6 +35,7 @@ export default function transformProps(chartProps) {
     linearColorScheme,
     numberFormat,
     colorScheme,
+    ownColorScheme,
     sliceId,
   };
 }

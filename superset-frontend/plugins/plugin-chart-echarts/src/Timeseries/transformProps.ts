@@ -141,6 +141,7 @@ export default function transformProps(
     area,
     annotationLayers,
     colorScheme,
+    ownColorScheme,
     contributionMode,
     forecastEnabled,
     groupby,
@@ -201,8 +202,11 @@ export default function transformProps(
     }
     return { ...acc, [entry[0]]: entry[1] };
   }, {});
-
-  const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
+  const appliedScheme = colorScheme || ownColorScheme;
+  const colorScale = CategoricalColorNamespace.getScale(
+    appliedScheme as string,
+    ownColorScheme,
+  );
   const rebasedData = rebaseForecastDatum(data, verboseMap);
   let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
   if (

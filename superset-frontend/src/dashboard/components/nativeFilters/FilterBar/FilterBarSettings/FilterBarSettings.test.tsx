@@ -42,6 +42,7 @@ const initialState: { dashboardInfo: DashboardInfo } = {
       color_scheme_domain: [],
       label_colors: {},
       shared_label_colors: {},
+      full_label_colors: {},
       cross_filters_enabled: false,
     },
     json_metadata: '',
