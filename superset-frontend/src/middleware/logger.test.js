@@ -166,7 +166,7 @@ describe('logger middleware', () => {
     expect(beaconMock.mock.calls.length).toBe(1);
     expect(docMoc.mock.calls.length).toBe(2);
     expect(docMoc.mock.calls[0][0]).toMatch('csrf_token');
-    expect(docMoc.mock.calls[0][1]).toMatch('csrf_token');
+    expect(docMoc.mock.calls[1][0]).toMatch('csrf_token');
 
     const formData = beaconMock.mock.calls[0][1];
     expect(formData.getAll('csrf_token')[0]).toMatch('csrf');
