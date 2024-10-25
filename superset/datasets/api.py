@@ -1160,7 +1160,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         Renders Jinja macros in the ``sql``, ``metrics`` and ``columns`` fields.
 
         :param data: Dataset info to be rendered
-        :param tp: A ``TemplateProcessor`` instance
+        :param processor: A ``TemplateProcessor`` instance
         :return: Rendered dataset data
         """
 
