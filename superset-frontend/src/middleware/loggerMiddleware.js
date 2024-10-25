@@ -44,6 +44,9 @@ const sendBeacon = events => {
   if (navigator.sendBeacon) {
     const formData = new FormData();
     formData.append('events', safeStringify(events));
+    if (document.getElementBy('csrf_token')) {
+      formData.append('csrf_token', document.getElementBy('csrf_token').value);
+    }
     if (SupersetClient.getGuestToken()) {
       // if we have a guest token, we need to send it for auth via the form
       formData.append('guest_token', SupersetClient.getGuestToken());
