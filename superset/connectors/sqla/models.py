@@ -1980,6 +1980,12 @@ class SqlaTable(
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
+        if "columns" in query_obj:
+            templatable_statements += [
+                c["sqlExpression"]
+                for c in query_obj["columns"]
+                if c.get("sqlExpression")
+            ]
         if self.is_rls_supported:
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)
