@@ -152,20 +152,14 @@ describe('logger middleware', () => {
       value: beaconMock,
     });
     SupersetClient.configure({ guestToken: 'token' });
-
-    const docMock = jest.fn(() => ({ value: 'csrf' }));
-    Object.defineProperty(document, 'getElementById', {
-      writable: true,
-      value: docMock,
-    });
+    tokenInput = document.createElement('input')
+    tokenInput.id = 'csrf_token'
+    tokenInput.value = 'csrf'
 
     logger(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
-    expect(docMock.mock.calls.length).toBe(0);
     timeSandbox.clock.tick(2000);
     expect(beaconMock.mock.calls.length).toBe(1);
-    expect(docMock.mock.calls.length).toBe(1);
-    expect(docMock.mock.calls[0][1]).toMatch('csrf_token');
 
     const formData = beaconMock.mock.calls[0][1];
     expect(formData.getAll('csrf_token')[0]).toMatch('csrf');
