@@ -60,12 +60,13 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
     return {
         width,
         height,
-        min: minVal,
-        max: maxVal,
+        minValue: minVal,
+        maxValue: maxVal,
         progress: progress,
         segmentAmt: segmentAmt,
-        s1Color: convertedColorCode,
-        s1S: s1Start,
-        s1E: s1End
+        s1ChartColor: convertedColorCode,
+        s1Start: s1Start,
+        s1End: s1End,
+        testVal: 100
     };
 }
