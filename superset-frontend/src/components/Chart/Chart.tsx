@@ -133,7 +133,6 @@ const defaultProps: Partial<ChartProps> = {
 const Styles = styled.div<{ height: number; width?: number }>`
   min-height: ${p => p.height}px;
   position: relative;
-  text-align: center;
 
   .chart-tooltip {
     opacity: 0.75;
@@ -167,6 +166,7 @@ const LoadingDiv = styled.div`
 
 const MessageSpan = styled.span`
   display: block;
+  text-align: center;
   margin: ${({ theme }) => theme.gridUnit * 4}px auto;
   width: fit-content;
   color: ${({ theme }) => theme.colors.grayscale.base};
