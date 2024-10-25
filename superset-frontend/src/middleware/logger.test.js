@@ -152,9 +152,9 @@ describe('logger middleware', () => {
       value: beaconMock,
     });
     SupersetClient.configure({ guestToken: 'token' });
-    tokenInput = document.createElement('input')
-    tokenInput.id = 'csrf_token'
-    tokenInput.value = 'csrf'
+    const tokenInput = document.createElement('input');
+    tokenInput.id = 'csrf_token';
+    tokenInput.value = 'csrf';
 
     logger(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
