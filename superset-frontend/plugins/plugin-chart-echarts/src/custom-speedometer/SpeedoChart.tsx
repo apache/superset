@@ -1,18 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA, SpeedometerChartFormData } from './types';
 
-interface SpeedoChartProps {
-  min: number;
-  max: number;
-  progress: number;
-  segmentAmt: number;
-  s1Color: string;
-  s1S: number;
-  s1E: number;
-}
-
-const calculatePercentage = (minVal: number, maxVal: number, progressVal: number): number => {
+const calculatePercentage = (progressVal: number): number => {
   progressVal = parseFloat(progressVal.toFixed(2));
 
   // Ensure percentage does notfall below 0%
@@ -24,10 +14,13 @@ const calculatePercentage = (minVal: number, maxVal: number, progressVal: number
   return progressVal;
 }
 
-const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAmt, s1Color, s1S, s1E }) => {
+// const SpeedoChart: React.FC<SpeedoChartProps> = ({ minValue, maxValue, progress, segmentAmt, s1ChartColor, s1Start, s1Start, testVal }) => {
+const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChartFormData) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  var calculatedData = calculatePercentage(min, max, progress);
+  const { minValue, maxValue, progress,segmentAmt, s1ChartColor, s1Start, s1End, testVal } = props;
+
+  var calculatedData = calculatePercentage(progress);
   //var calculatedData = 90
 
 
@@ -35,7 +28,7 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAm
   var outerRadiusSecondChart = 114;
   var innerRadiusSecondChart = 122;
   const segments = [
-    {start: s1S, end: s1E, color: s1Color},
+    {start: s1Start, end: s1End, color: s1ChartColor},
     {start: 70, end: 85, color: "#dba307"},
     {start: 85, end: 100, color: "#db0707"},
   ]
@@ -55,8 +48,8 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAm
       },
       xAxis: {
         type: 'value',
-        min: 0,
-        max: 100,
+        minValue: 0,
+        maxValue: 100,
         show: false,
       },
       yAxis: {
@@ -70,7 +63,7 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAm
           left: 400,
           top: 150,
           style: {
-            text: `Min: ${min}`,
+            text: `minValue: ${minValue}`,
             fontSize: 16,
             fontWeight: 'bold',
           }
@@ -80,7 +73,7 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAm
           left: 400,
           top: 170,
           style: {
-            text: `Max: ${max}`,
+            text: `maxValue: ${maxValue}`,
             fontSize: 16,
             fontWeight: 'bold',
           }
@@ -100,7 +93,7 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAm
           left: 400,
           top: 210,
           style: {
-            text: `S1 Color: ${s1Color}`,
+            text: `S1 Color: ${s1ChartColor}`,
             fontSize: 16,
             fontWeight: 'bold',
           }
@@ -110,7 +103,7 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAm
           left: 400,
           top: 230,
           style: {
-            text: `S1 Start: ${s1S}`,
+            text: `S1 Start: ${s1Start}`,
             fontSize: 16,
             fontWeight: 'bold'
           }
@@ -120,7 +113,17 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAm
           left: 400,
           top: 250,
           style: {
-            text: `S1 Start: ${s1E}`,
+            text: `S1 Start: ${s1End}`,
+            fontSize: 16,
+            fontWeight: 'bold'
+          }
+        },
+        {
+          type: 'text',
+          left: 400,
+          top: 270,
+          style: {
+            text: `Test: ${testVal}`,
             fontSize: 16,
             fontWeight: 'bold'
           }
@@ -155,7 +158,7 @@ const SpeedoChart: React.FC<SpeedoChartProps> = ({ min, max, progress, segmentAm
             style: {
               fill: '#4caf50', // Progress color (green)
               stroke: '#000', // Outline color
-              lineWidth: 2,
+              lineWidth: 2, 
             },
           };
         },
