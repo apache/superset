@@ -118,6 +118,10 @@ describe('logger middleware', () => {
       writable: true,
       value: beaconMock,
     });
+    Object.defineProperty(document, 'getElementById', {
+      writable: true,
+      value: () => null,
+    });
 
     logger(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
@@ -134,6 +138,10 @@ describe('logger middleware', () => {
       writable: true,
       value: beaconMock,
     });
+    Object.defineProperty(document, 'getElementById', {
+      writable: true,
+      value: () => null,
+    });
     SupersetClient.configure({ guestToken: 'token' });
 
     logger(mockStore)(next)(action);
@@ -143,5 +151,31 @@ describe('logger middleware', () => {
 
     const formData = beaconMock.mock.calls[0][1];
     expect(formData.getAll('guest_token')[0]).toMatch('token');
+  });
+
+  it('should pass the csrf token to sendBeacon if present', () => {
+    const beaconMock = jest.fn();
+    Object.defineProperty(navigator, 'sendBeacon', {
+      writable: true,
+      value: beaconMock,
+    });
+    SupersetClient.configure({ guestToken: 'token' });
+    
+    const docMock = jest.fn(x => {'value': 'csrf'});
+    Object.defineProperty(document, 'getElementById', {
+      writable: true,
+      value: docMock,
+    });
+
+    logger(mockStore)(next)(action);
+    expect(beaconMock.mock.calls.length).toBe(0);
+    expect(docMock.mock.calls.length).toBe(0);
+    timeSandbox.clock.tick(2000);
+    expect(beaconMock.mock.calls.length).toBe(1);
+    expect(docMock.mock.calls.length).toBe(1);
+    expect(docMock.mock.calls[0][1]).toMatch('csrf_token');
+
+    const formData = beaconMock.mock.calls[0][1];
+    expect(formData.getAll('csrf_token')[0]).toMatch('csrf');
   });
 });
