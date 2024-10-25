@@ -80,13 +80,8 @@ function hasOnlyGuestRole(data: BootstrapData) {
   // Get all role keys
   const roleKeys = Object.keys(roles);
 
-  // Check if there's exactly one role
-  if (roleKeys.length !== 1) {
-    return false;
-  }
-
-  // Check if that single role is "Guest"
-  return roleKeys[0] === 'Guest';
+  // Check if there's exactly one role and that single role is "Guest"
+  return roleKeys.length === 1 && roleKeys[0] === 'Guest';
 }
 
 const App = () => {
