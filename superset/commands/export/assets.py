@@ -23,6 +23,7 @@ import yaml
 
 from superset.commands.base import BaseCommand
 from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.tag.export import ExportTagsCommand
 from superset.commands.dashboard.export import ExportDashboardsCommand
 from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.dataset.export import ExportDatasetsCommand
@@ -50,6 +51,7 @@ class ExportAssetsCommand(BaseCommand):
             ExportDatabasesCommand,
             ExportDatasetsCommand,
             ExportChartsCommand,
+            ExportTagsCommand,
             ExportDashboardsCommand,
             ExportSavedQueriesCommand,
         ]
