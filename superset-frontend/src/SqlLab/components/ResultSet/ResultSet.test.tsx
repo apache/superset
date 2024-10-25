@@ -362,7 +362,7 @@ describe('ResultSet', () => {
       );
     });
     const { getByRole } = setup(mockedProps, mockStore(initialState));
-    expect(getByRole('table')).toBeInTheDocument();
+    expect(getByRole('treegrid')).toBeInTheDocument();
   });
 
   test('renders if there is a limit in query.results but not queryLimit', async () => {
@@ -380,7 +380,7 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(getByRole('table')).toBeInTheDocument();
+    expect(getByRole('treegrid')).toBeInTheDocument();
   });
 
   test('Async queries - renders "Fetch data preview" button when data preview has no results', () => {
@@ -408,7 +408,7 @@ describe('ResultSet', () => {
         name: /fetch data preview/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('table')).toBe(null);
+    expect(screen.queryByRole('treegrid')).toBe(null);
   });
 
   test('Async queries - renders "Refetch results" button when a query has no results', () => {
@@ -437,7 +437,7 @@ describe('ResultSet', () => {
         name: /refetch results/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('table')).toBe(null);
+    expect(screen.queryByRole('treegrid')).toBe(null);
   });
 
   test('Async queries - renders on the first call', () => {
@@ -457,7 +457,7 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(screen.getByRole('table')).toBeVisible();
+    expect(screen.getByRole('treegrid')).toBeVisible();
     expect(
       screen.queryByRole('button', {
         name: /fetch data preview/i,
