@@ -12,7 +12,7 @@ const config: ControlPanelConfig = {
   controlPanelSections: [
     {
       label: t('Query'),
-      expanded: true,
+      expanded: false,
       controlSetRows: [
         [
           {
@@ -43,7 +43,7 @@ const config: ControlPanelConfig = {
         [<ControlSubSectionHeader>{t('General')}</ControlSubSectionHeader>],
         [
           {
-            name: 'min_val',
+            name: 'minValue',
             config: {
               type: 'TextControl',
               isInt: true,
@@ -54,7 +54,7 @@ const config: ControlPanelConfig = {
             },
           },
           {
-            name: 'max_val',
+            name: 'maxValue',
             config: {
               type: 'TextControl',
               isInt: true,
@@ -65,6 +65,58 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [<ControlSubSectionHeader>{t('Segment Charts')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 'segmentAmt',
+            config: {
+              type: 'SliderControl',
+              default: DEFAULT_FORM_DATA.segmentAmt,
+              min: 1,
+              max: 10,
+              step: 1,
+              renderTrigger: false,
+              label: t('Amount of Segments'),
+              description: t('Select the amount of segments the 2nd chart will have'),
+            },
+          },
+        ],
+        [<ControlSubSectionHeader>{t('Segement 1')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 's1ChartColor', // Unique name for the control
+            config: {
+              type: 'ColorPickerControl', // Type set to ColorPickerControl
+              default: DEFAULT_FORM_DATA.s1ChartColor,
+              renderTrigger: true,
+              label: t('Chart Color'), // Label for the control
+              description: t('Select the color for the chart'), // Description
+            },
+          },        
+          {
+            name: 's1Start',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              default: DEFAULT_FORM_DATA.s1Start,
+              renderTrigger: true,
+              label: t('Start'),
+              description: t('Start value of the first Segment'),
+            },
+          },
+          {
+            name: 's1End',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              default: DEFAULT_FORM_DATA.s1End,
+              renderTrigger: true,
+              label: t('Ending point'),
+              description: t('The Ending degrees of the first segment'),
+            }
+          },
+        ],
+        // [<ControlSubSectionHeader>{t('Segement 2')}</ControlSubSectionHeader>],
       ],
     }
   ]

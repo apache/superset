@@ -7,16 +7,20 @@ import {
 } from '../types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
-// Define structure of fthe form data used by Speedometer Chart
+// Data that will be used by the Chart
 export type SpeedometerChartFormData = QueryFormData & {
     metrix: string;
-    minValue: number;
-    maxValue: number;
+    minValue: number | null;
+    maxValue: number | null;
     threshholdRanges?: [ number, number, number, number];
     colorSheme?: string;
     label?: string;
     numberFormat?: string;
     showLabel?: boolean;
+    segmentAmt: number;
+    s1ChartColor: string;
+    s1Start: number;
+    s1End: number;
 }
 
 // Define the strucute for the query data returned by Superset
@@ -38,12 +42,21 @@ export interface SpeedometerChartProps {
     label?: string;
     numberFormat?: string;
     showLabel?: boolean;
+    segmentAmt?: number;
+    s1ChartColor?: string;
+    s1Start?: number;
+    s1End?: number;
 }
 
+// Defines defailt values for the SpeedometerChartFormData (fallback values)
 export const DEFAULT_FORM_DATA: Partial<SpeedometerChartFormData> = {
     ...DEFAULT_LEGEND_FORM_DATA,
     minValue: 0,
     maxValue: 100,
+    segmentAmt: 6,
+    s1ChartColor: '#02F702',
+    s1Start: 0,
+    s1End: 50,
 }
 
 // Transform props for the Speedometer
