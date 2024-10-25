@@ -118,10 +118,6 @@ describe('logger middleware', () => {
       writable: true,
       value: beaconMock,
     });
-    Object.defineProperty(document, 'getElementById', {
-      writable: true,
-      value: () => null,
-    });
 
     logger(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
@@ -137,10 +133,6 @@ describe('logger middleware', () => {
     Object.defineProperty(navigator, 'sendBeacon', {
       writable: true,
       value: beaconMock,
-    });
-    Object.defineProperty(document, 'getElementById', {
-      writable: true,
-      value: () => null,
     });
     SupersetClient.configure({ guestToken: 'token' });
 
