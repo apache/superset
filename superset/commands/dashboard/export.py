@@ -25,6 +25,7 @@ from collections.abc import Iterator
 import yaml
 
 from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.tag.export import ExportTagsCommand
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dashboard.importers.v1.utils import find_chart_uuids
 from superset.daos.dashboard import DashboardDAO
@@ -159,6 +160,13 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         payload["version"] = EXPORT_VERSION
 
+        tags = (
+            model.tags  # Assuming `tags` is a relationship in the `Slice` model
+            if hasattr(model, "tags") else []
+        )
+        # Filter out any tags that contain "type:" in their name
+        payload["tag"] = [tag.name for tag in tags if "type:" not in tag.name]
+        
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
 
@@ -173,7 +181,11 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         if export_related:
             chart_ids = [chart.id for chart in model.slices]
-            yield from ExportChartsCommand(chart_ids).run()
+            dashboard_ids = model.id
+            yield from ExportChartsCommand(chart_ids, should_export_tags=False).run()
+            yield from ExportTagsCommand._export(dashboard_ids=dashboard_ids, chart_ids=chart_ids)
+
+
 
         payload = model.export_to_dict(
             recursive=False,

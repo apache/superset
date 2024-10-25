@@ -26,6 +26,7 @@ from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.daos.chart import ChartDAO
 from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.commands.export.models import ExportModelsCommand
+from superset.commands.tag.export import ExportTagsCommand
 from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
@@ -71,12 +72,26 @@ class ExportChartsCommand(ExportModelsCommand):
         if model.table:
             payload["dataset_uuid"] = str(model.table.uuid)
 
+        # Fetch tags from the database
+        tags = (
+            model.tags  # Assuming `tags` is a relationship in the `Slice` model
+            if hasattr(model, "tags") else []
+        )
+        # Filter out any tags that contain "type:" in their name
+        payload["tag"] = [tag.name for tag in tags if "type:" not in tag.name]
+        
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
 
-    @staticmethod
+    # Add a parameter for should_export_tags in the constructor
+    def __init__(self, chart_ids, should_export_tags=True):
+        super().__init__(chart_ids)
+        self.should_export_tags = should_export_tags
+        
+
+    # Change to an instance method
     def _export(
-        model: Slice, export_related: bool = True
+        self, model: Slice, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
         yield (
             ExportChartsCommand._file_name(model),
@@ -85,3 +100,8 @@ class ExportChartsCommand(ExportModelsCommand):
 
         if model.table and export_related:
             yield from ExportDatasetsCommand([model.table.id]).run()
+
+
+        if export_related and self.should_export_tags:
+            chart_id = model.id
+            yield from ExportTagsCommand._export(chart_ids=[chart_id])
