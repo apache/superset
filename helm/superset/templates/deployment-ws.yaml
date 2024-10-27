@@ -28,8 +28,8 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-    {{- if .Values.superset.extraLabels }}
-      {{- toYaml .Values.superset.extraLabels | nindent 4 }}
+    {{- if .Values.extraLabels }}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
     {{- end }}
   {{- if .Values.supersetWebsockets.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetWebsockets.deploymentAnnotations | nindent 4 }}
@@ -53,8 +53,8 @@ spec:
       labels:
         app: "{{ template "superset.name" . }}-ws"
         release: {{ .Release.Name }}
-        {{- if .Values.superset.extraLabels }}
-          {{- toYaml .Values.superset.extraLabels | nindent 8 }}
+        {{- if .Values.extraLabels }}
+          {{- toYaml .Values.extraLabels | nindent 8 }}
         {{- end }}
         {{- if .Values.supersetWebsockets.podLabels }}
           {{- toYaml .Values.supersetWebsockets.podLabels | nindent 8 }}
