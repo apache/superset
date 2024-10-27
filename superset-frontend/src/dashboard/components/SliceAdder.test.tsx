@@ -57,7 +57,6 @@ describe('SliceAdder', () => {
   };
   describe('SliceAdder.sortByComparator', () => {
     it('should sort by timestamp descending', () => {
-      console.log(Object.values(props.slices));
       const sortedTimestamps = Object.values(props.slices)
         .sort(SliceAdder.sortByComparator('changed_on'))
         .map(slice => slice.changed_on);

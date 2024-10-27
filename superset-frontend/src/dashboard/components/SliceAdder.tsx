@@ -55,7 +55,7 @@ export type SliceAdderProps = {
     userId?: number,
     filter_value?: string,
     sortColumn?: string,
-  ) => void;
+  ) => Promise<void>;
   updateSlices: (slices: {
     [id: number]: Slice;
   }) => (dispatch: Dispatch) => void;
@@ -134,7 +134,7 @@ export const ChartList = styled.div`
 `;
 
 class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
-  private slicesRequest?: void | AbortController;
+  private slicesRequest?: AbortController | Promise<void>;
 
   static sortByComparator(attr: keyof Slice) {
     const desc = attr === 'changed_on' ? -1 : 1;
@@ -142,6 +142,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     return (a: Slice, b: Slice) => {
       const aValue = a[attr] ?? Number.MIN_SAFE_INTEGER;
       const bValue = b[attr] ?? Number.MIN_SAFE_INTEGER;
+
       if (aValue < bValue) {
         return -1 * desc;
       }
@@ -216,7 +217,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     );
 
     this.props.updateSlices(selectedSlices);
-    if (this?.slicesRequest?.abort) {
+    if (this.slicesRequest instanceof AbortController) {
       this.slicesRequest.abort();
     }
   }
