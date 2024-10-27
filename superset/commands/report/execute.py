@@ -233,10 +233,11 @@ class BaseReportState:
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
             if anchor := dashboard_state.get("anchor"):
                 try:
-                    anchor_list = json.loads(anchor)
+                    anchor_list: list[str] = json.loads(anchor)
                     return self._get_tabs_urls(anchor_list)
                 except json.JSONDecodeError:
-                    return [self._get_tab_url(dashboard_state)]
+                    logger.debug("Anchor value is not a list, Fall back to single tab")
+            return [self._get_tab_url(dashboard_state)]
 
         dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
