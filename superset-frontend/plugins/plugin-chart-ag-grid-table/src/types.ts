@@ -194,6 +194,8 @@ export interface SortState {
 export interface CustomContext {
   initialSortState: SortState[];
   onColumnHeaderClicked: (args: { column: SortState }) => void;
+  lastFilteredColumn?: string;
+  lastFilteredInputPosition?: 'first' | 'second';
 }
 
 export interface CustomHeaderParams extends IHeaderParams {

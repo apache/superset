@@ -372,9 +372,39 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate
     ) {
+      // Create a copy of extras without the WHERE clause
+      // AG Grid filters in extras.where can reference calculated columns
+      // which aren't available in the totals subquery
+      const totalsExtras = { ...queryObject.extras };
+      if (ownState.agGridComplexWhere) {
+        // Remove AG Grid WHERE clause from totals query
+        const whereClause = totalsExtras.where;
+        if (whereClause) {
+          // Remove the AG Grid filter part from the WHERE clause using string methods
+          const agGridWhere = ownState.agGridComplexWhere;
+          let newWhereClause = whereClause;
+
+          // Try to remove with " AND " before
+          newWhereClause = newWhereClause.replace(` AND ${agGridWhere}`, '');
+          // Try to remove with " AND " after
+          newWhereClause = newWhereClause.replace(`${agGridWhere} AND `, '');
+          // If it's the only clause, remove it entirely
+          if (newWhereClause === agGridWhere) {
+            newWhereClause = '';
+          }
+
+          if (newWhereClause.trim()) {
+            totalsExtras.where = newWhereClause;
+          } else {
+            delete totalsExtras.where;
+          }
+        }
+      }
+
       extraQueries.push({
         ...queryObject,
         columns: [],
+        extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
@@ -440,6 +470,51 @@ const buildQuery: BuildQuery<TableChartFormData> = (
               val: `${ownState.searchText}%`,
             },
           ],
+        };
+      }
+      // Add AG Grid column filters from ownState (non-metric filters only)
+      if (
+        ownState.agGridSimpleFilters &&
+        ownState.agGridSimpleFilters.length > 0
+      ) {
+        queryObject = {
+          ...queryObject,
+          filters: [
+            ...(queryObject.filters || []),
+            ...ownState.agGridSimpleFilters,
+          ],
+        };
+      }
+
+      // Add AG Grid complex WHERE clause from ownState (non-metric filters)
+      if (ownState.agGridComplexWhere) {
+        const existingWhere = queryObject.extras?.where;
+        const combinedWhere = existingWhere
+          ? `${existingWhere} AND ${ownState.agGridComplexWhere}`
+          : ownState.agGridComplexWhere;
+
+        queryObject = {
+          ...queryObject,
+          extras: {
+            ...(queryObject.extras || {}),
+            where: combinedWhere,
+          },
+        };
+      }
+
+      // Add AG Grid HAVING clause from ownState (metric filters only)
+      if (ownState.agGridHavingClause) {
+        const existingHaving = queryObject.extras?.having;
+        const combinedHaving = existingHaving
+          ? `${existingHaving} AND ${ownState.agGridHavingClause}`
+          : ownState.agGridHavingClause;
+
+        queryObject = {
+          ...queryObject,
+          extras: {
+            ...(queryObject.extras || {}),
+            having: combinedHaving,
+          },
         };
       }
     }

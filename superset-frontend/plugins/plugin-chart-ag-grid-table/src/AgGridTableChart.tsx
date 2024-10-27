@@ -42,6 +42,7 @@ import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVis
 import { useColDefs } from './utils/useColDefs';
 import { getCrossFilterDataMask } from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
+import type { FilterState } from './utils/filterStateManager';
 
 const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   let calculatedGridHeight = height;
@@ -88,6 +89,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
 
+  // Extract metric column names for SQL conversion
+  const metricColumns = useMemo(
+    () =>
+      columns
+        .filter(col => col.isMetric || col.isPercentMetric)
+        .map(col => col.key),
+    [columns],
+  );
+
   useEffect(() => {
     const options = columns
       .filter(col => col?.dataType === GenericDataType.String)
@@ -120,6 +130,41 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     },
     [onChartStateChange],
   );
+
+  const handleFilterChanged = useCallback(
+    (completeFilterState: FilterState) => {
+      if (!serverPagination) return;
+       // Sync chartState immediately with the new filter model to prevent stale state
+      // This ensures chartState and ownState are in sync
+      if (onChartStateChange && chartState) {
+        const updatedChartState = {
+          ...chartState,
+          filterModel: completeFilterState.originalFilterModel,
+          timestamp: Date.now(),
+        };
+        onChartStateChange(updatedChartState);
+      }
+
+      // Prepare modified own state for server pagination
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        agGridFilterModel: completeFilterState.originalFilterModel,
+        agGridSimpleFilters: completeFilterState.simpleFilters,
+        agGridComplexWhere: completeFilterState.complexWhere,
+        agGridHavingClause: completeFilterState.havingClause,
+        lastFilteredColumn: completeFilterState.lastFilteredColumn,
+        lastFilteredInputPosition: completeFilterState.inputPosition,
+        currentPage: 0, // Reset to first page when filtering
+      };
+
+      updateTableOwnState(setDataMask, modifiedOwnState);
+
+     
+    },
+    [setDataMask, serverPagination, serverPaginationData, onChartStateChange, chartState],
+  );
+
+
 
   const filteredColumns = useMemo(() => {
     if (!isUsingTimeComparison) {
@@ -288,6 +333,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onSearchColChange={handleChangeSearchCol}
         onSearchChange={handleSearch}
         onSortChange={handleSortByChange}
+        onFilterChanged={handleFilterChanged}
+        metricColumns={metricColumns}
         id={slice_id}
         handleCrossFilter={toggleFilter}
         percentMetrics={percentMetrics}
