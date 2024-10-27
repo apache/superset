@@ -27,6 +27,9 @@ nameOverride: ~
 # -- Provide a name to override the full names of resources
 fullnameOverride: ~
 
+# -- Labels to be added to all resources
+extraLabels: {}
+
 # -- User ID directive. This user must have enough permissions to run the bootstrap script
 # Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
 runAsUser: 0
