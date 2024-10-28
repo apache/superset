@@ -57,6 +57,19 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         data: [''],
         show: false,
       },
+      /*tooltip: {        
+        shoz: true,
+        trigger: 'item',
+        triggerOn: 'mousemove',
+        axisPointer: {
+          type: 'line',
+          label: {
+            show: true,
+            parals: 10,
+            backgroundColor: '#333'
+          }
+        }
+      },*/
       graphic: [
         {
           type: 'text',

@@ -1,10 +1,4 @@
 import { DataRecord, QueryFormData } from '@superset-ui/core';
-import {
-  BaseChartProps,
-  BaseTransformedProps,
-  ContextMenuTransformedProps,
-  CrossFilterTransformedProps,
-} from '../types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 // Data that will be used by the Chart
@@ -21,6 +15,8 @@ export type SpeedometerChartFormData = QueryFormData & {
     s1ChartColor: string;
     s1Start: number;
     s1End: number;
+    segmentControls: any[];     // Dont know what type this will be atm (createe modal?)
+    gSegmentAmt: number;
 }
 
 // Define the strucute for the query data returned by Superset
@@ -42,10 +38,12 @@ export interface SpeedometerChartProps {
     label?: string;
     numberFormat?: string;
     showLabel?: boolean;
-    segmentAmt?: number;
+    segmentAmt: number;
     s1ChartColor?: string;
     s1Start?: number;
     s1End?: number;
+    segmentControls?: any[];     // Dont know what type this will be atm (createe modal?)
+    gSegmentAmt: number;
 }
 
 // Defines defailt values for the SpeedometerChartFormData (fallback values)
@@ -53,7 +51,7 @@ export const DEFAULT_FORM_DATA: Partial<SpeedometerChartFormData> = {
     ...DEFAULT_LEGEND_FORM_DATA,
     minValue: 0,
     maxValue: 100,
-    segmentAmt: 6,
+    segmentAmt: 3,    
     s1ChartColor: '#02F702',
     s1Start: 0,
     s1End: 50,
