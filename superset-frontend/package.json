@@ -42,7 +42,7 @@
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color",
     "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
     "build-storybook": "storybook build",
-    "build-translation": "scripts/po2json.sh",
+    "build-translation": "scripts/po2json.sh && scripts/lokalise_merger.sh",
     "bundle-stats": "cross-env BUNDLE_ANALYZER=true npm run build && npx open-cli ../superset/static/stats/statistics.html",
     "core:cover": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=4096\" jest --coverage --coverageThreshold='{\"global\":{\"statements\":100,\"branches\":100,\"functions\":100,\"lines\":100}}' --collectCoverageFrom='[\"packages/**/src/**/*.{js,ts}\", \"!packages/superset-ui-demo/**/*\"]' packages",
     "cover": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=4096\" jest --coverage",

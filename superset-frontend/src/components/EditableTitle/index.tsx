@@ -232,10 +232,10 @@ export default function EditableTitle({
           display: inline-block;
         `}
       >
-        {value}
+        {t(value)}
       </Link>
     ) : (
-      <span data-test="editable-title-input">{value}</span>
+      <span data-test="editable-title-input">{t(value)}</span>
     );
   }
   return (

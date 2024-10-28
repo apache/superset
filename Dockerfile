@@ -27,7 +27,7 @@ ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 # superset-node used for building frontend assets
 ######################################################################
 FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
-ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
+ARG BUILD_TRANSLATIONS="true"
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
@@ -37,7 +37,7 @@ COPY docker/ /app/docker/
 ARG NPM_BUILD_CMD="build"
 
 # Install system dependencies required for node-gyp
-RUN /app/docker/apt-install.sh build-essential python3 zstd
+RUN /app/docker/apt-install.sh build-essential python3 zstd jq
 
 # Define environment variables for frontend build
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
@@ -69,6 +69,8 @@ COPY superset-frontend /app/superset-frontend
 # This copies the .po files needed for translation
 RUN mkdir -p /app/superset/translations
 COPY superset/translations /app/superset/translations
+COPY locales /app/locales
+
 # Compiles .json files from the .po files, then deletes the .po files
 RUN npm run build-translation
 RUN rm /app/superset/translations/*/LC_MESSAGES/*.po

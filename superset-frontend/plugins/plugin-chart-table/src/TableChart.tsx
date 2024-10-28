@@ -571,7 +571,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     color: ${theme.colors.grayscale.dark2};
                   `}
                 >
-                  {column.label}
+                  {t(column.label)}
                 </span>
                 <span
                   css={css`
@@ -616,11 +616,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           />,
         );
       }
-
       // Add the current header <th>
       headers.push(
         <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
-          {key}
+          {t(key.trim())}
           <span
             css={css`
               float: right;
@@ -966,7 +965,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 alignItems: 'flex-end',
               }}
             >
-              <span data-column-name={col.id}>{label}</span>
+              <span data-column-name={col.id}>{t(label)}</span>
               <SortIcon column={col} />
             </div>
           </th>
