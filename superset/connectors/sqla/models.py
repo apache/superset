@@ -116,7 +116,12 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
-from superset.utils.core import GenericDataType, is_adhoc_column, MediumText
+from superset.utils.core import (
+    GenericDataType,
+    is_adhoc_column,
+    is_adhoc_metric,
+    MediumText,
+)
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -1980,10 +1985,24 @@ class SqlaTable(
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
-        if "columns" in query_obj:
-            templatable_statements += [
-                c["sqlExpression"] for c in query_obj["columns"] if is_adhoc_column(c)
-            ]
+        if columns := query_obj.get("columns"):
+            calculated_columns: dict[str, Any] = {
+                c.column_name: c.expression for c in self.columns if c.expression
+            }
+            for column_ in columns:
+                if is_adhoc_column(column_):
+                    templatable_statements.append(column_["sqlExpression"])
+                elif isinstance(column_, str) and column_ in calculated_columns:
+                    templatable_statements.append(calculated_columns[column_])
+        if metrics := query_obj.get("metrics"):
+            metrics_by_name: dict[str, str] = {
+                m.metric_name: m.expression for m in self.metrics
+            }
+            for metric in metrics:
+                if is_adhoc_metric(metric):
+                    templatable_statements.append(metric["sqlExpression"])  # type: ignore
+                elif isinstance(metric, str) and metric in metrics_by_name:
+                    templatable_statements.append(metrics_by_name[metric])
         if self.is_rls_supported:
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)
