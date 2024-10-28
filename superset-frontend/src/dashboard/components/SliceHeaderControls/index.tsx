@@ -68,6 +68,7 @@ import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
+import { useIsEmbedded } from 'src/hooks/useIsEmbedded';
 
 const ACTION_KEYS = {
   enter: 'Enter',
@@ -451,6 +452,7 @@ const ViewResultsModalTrigger = ({
   const theme = useTheme();
   const openModal = useCallback(() => setShowModal(true), []);
   const closeModal = useCallback(() => setShowModal(false), []);
+  const isEmbedded = useIsEmbedded();
 
   return (
     <>
@@ -476,7 +478,7 @@ const ViewResultsModalTrigger = ({
           title={modalTitle}
           footer={
             <>
-              <Button
+              {!isEmbedded && (<Button
                 buttonStyle="secondary"
                 buttonSize="small"
                 onClick={exploreChart}
@@ -490,7 +492,7 @@ const ViewResultsModalTrigger = ({
                 }
               >
                 {t('Edit chart')}
-              </Button>
+              </Button>)}
               <Button
                 buttonStyle="primary"
                 buttonSize="small"
@@ -571,6 +573,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
   const canViewTable = useSelector((state: RootState) =>
     findPermission('can_view_chart_as_table', 'Dashboard', state.user?.roles),
   );
+  const isEmbedded = useIsEmbedded();
+  
   const refreshChart = () => {
     if (props.updatedDttm) {
       props.forceRefresh(props.slice.slice_id, props.dashboardId);
@@ -765,7 +769,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {canExplore && (
+      {canExplore && !isEmbedded && (
         <Menu.Item key={MenuKeys.ExploreChart}>
           <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
             {t('Edit chart')}

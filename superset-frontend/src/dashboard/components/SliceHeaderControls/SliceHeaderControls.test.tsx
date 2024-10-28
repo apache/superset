@@ -106,6 +106,7 @@ const createProps = (viz_type = 'sunburst_v2') =>
 const renderWrapper = (
   overrideProps?: SliceHeaderControlsProps,
   roles?: Record<string, string[][]>,
+  isEmbedded = false,
 ) => {
   const props = overrideProps || createProps();
   return render(<SliceHeaderControls {...props} />, {
@@ -113,6 +114,10 @@ const renderWrapper = (
     useRouter: true,
     initialState: {
       ...mockState,
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        userId: isEmbedded ? null : mockState.dashboardInfo.userId,
+      },
       user: {
         ...mockState.user,
         roles: roles ?? {
@@ -431,20 +436,40 @@ test('Should not show "View as table"', () => {
   expect(screen.queryByText('View as table')).not.toBeInTheDocument();
 });
 
-test('Should not show the "Edit chart" button', () => {
-  const props = {
-    ...createProps(),
+const editChartArrangeVariants = [
+  {
     supersetCanExplore: false,
-  };
-  props.slice.slice_id = 18;
-  renderWrapper(props, {
-    Admin: [
-      ['can_samples', 'Datasource'],
-      ['can_view_query', 'Dashboard'],
-      ['can_view_chart_as_table', 'Dashboard'],
-    ],
+    isEmbedded: false,
+  },
+  {
+    supersetCanExplore: false,
+    isEmbedded: true,
+  },
+  {
+    supersetCanExplore: true,
+    isEmbedded: true,
+  },
+];
+editChartArrangeVariants.forEach(({ supersetCanExplore, isEmbedded }) => {
+  test(`should not show the "Edit chart" button for supersetCanExplore=${String(supersetCanExplore)} and isEmbedded=${String(isEmbedded)}`, () => {
+    const props = {
+      ...createProps(),
+      supersetCanExplore,
+    };
+    props.slice.slice_id = 18;
+    renderWrapper(
+      props,
+      {
+        Admin: [
+          ['can_samples', 'Datasource'],
+          ['can_view_query', 'Dashboard'],
+          ['can_view_chart_as_table', 'Dashboard'],
+        ],
+      },
+      isEmbedded,
+    );
+    expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
   });
-  expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
 });
 
 describe('handleDropdownNavigation', () => {
