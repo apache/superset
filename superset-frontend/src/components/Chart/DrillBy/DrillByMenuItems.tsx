@@ -45,7 +45,6 @@ import {
 import rison from 'rison';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
-import { AntdInput } from 'src/components';
 import Icons from 'src/components/Icons';
 import { Input } from 'src/components/Input';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -55,6 +54,7 @@ import {
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
 import { useVerboseMap } from 'src/hooks/apiResources/datasets';
+import { InputRef } from 'antd-v5';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import DrillByModal from './DrillByModal';
 import { getSubmenuYOffset } from '../utils';
@@ -118,7 +118,7 @@ export const DrillByMenuItems = ({
   const [columns, setColumns] = useState<Column[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [currentColumn, setCurrentColumn] = useState();
-  const ref = useRef<AntdInput>(null);
+  const ref = useRef<InputRef>(null);
   const showSearch =
     loadDrillByOptions || columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD;
   const handleSelection = useCallback(
@@ -138,10 +138,9 @@ export const DrillByMenuItems = ({
 
   useEffect(() => {
     if (open) {
-      ref.current?.input.focus({ preventScroll: true });
+      ref.current?.input?.focus({ preventScroll: true });
     } else {
       // Reset search input when menu is closed
-      ref.current?.setValue('');
       setSearchInput('');
     }
   }, [open]);
@@ -311,6 +310,7 @@ export const DrillByMenuItems = ({
                 margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
                 box-shadow: none;
               `}
+              value={searchInput}
             />
           )}
           {isLoadingColumns ? (
