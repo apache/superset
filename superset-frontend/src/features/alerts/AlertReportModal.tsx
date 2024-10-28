@@ -983,8 +983,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
-  const onCustomWidthChange = (value: number | null | undefined) => {
-    updateAlertState('custom_width', value);
+  const onCustomWidthChange = (value: number | string | null | undefined) => {
+    // Convert string to number if needed and handle empty/invalid values
+    const numValue =
+      value === undefined || value === ''
+        ? undefined
+        : typeof value === 'string'
+          ? Number(value) || null
+          : value;
+    updateAlertState('custom_width', numValue);
   };
 
   const onTimeoutVerifyChange = (
