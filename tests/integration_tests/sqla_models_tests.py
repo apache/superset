@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+from __future__ import annotations
+
 import re
 from datetime import datetime
-from typing import Any, NamedTuple, Optional, Union
+from typing import Any, Literal, NamedTuple, Optional, Union
 from re import Pattern
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import pytest
 
 import numpy as np
@@ -924,30 +926,30 @@ def test_extra_cache_keys_in_sql_expression(
 @patch("superset.jinja_context.get_user_id", return_value=1)
 @patch("superset.jinja_context.get_username", return_value="abc")
 def test_extra_cache_keys_in_adhoc_metrics_and_columns(
-    mock_username,
-    mock_user_id,
-    sql_expression,
-    expected_cache_keys,
-    has_extra_cache_keys,
-    item_type,
+    mock_username: Mock,
+    mock_user_id: Mock,
+    sql_expression: str,
+    expected_cache_keys: list[str | None],
+    has_extra_cache_keys: bool,
+    item_type: Literal["columns", "metrics"],
 ):
     table = SqlaTable(
         table_name="test_has_no_extra_cache_keys_table",
         sql="SELECT 'abc' as user",
         database=get_example_database(),
     )
-    base_type = "metrics" if item_type == "columns" else "columns"
-    base_query_obj = {
+    base_query_obj: dict[str, Any] = {
         "granularity": None,
         "from_dttm": None,
         "to_dttm": None,
         "groupby": [],
-        base_type: [],
+        "metrics": [],
+        "columns": [],
         "is_timeseries": False,
         "filter": [],
     }
 
-    items = {
+    items: dict[str, Any] = {
         item_type: [
             {
                 "label": None,
@@ -957,10 +959,7 @@ def test_extra_cache_keys_in_adhoc_metrics_and_columns(
         ],
     }
 
-    query_obj = dict(
-        **base_query_obj,
-        **items,
-    )
+    query_obj = {**base_query_obj, **items}
 
     extra_cache_keys = table.get_extra_cache_keys(query_obj)
     assert table.has_extra_cache_key_calls(query_obj) == has_extra_cache_keys
