@@ -38,7 +38,7 @@ import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupExtensions from 'src/setup/setupExtensions';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
-import { BootstrapData } from 'src/types/bootstrapTypes';
+import { BootstrapData, isUserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
@@ -70,18 +70,17 @@ const LocationPathnameLogger = () => {
 };
 
 function hasOnlyGuestRole(data: BootstrapData) {
-  // Check if we have user data and roles
-  if (!data?.user?.roles) {
-    return false;
+  // Check if the user exists and has permissions and roles
+  if (data.user && isUserWithPermissionsAndRoles(data.user)) {
+    // Extract the roles of the user
+    const userRoles = data.user.roles;
+    // Get an array of role names
+    const roleNames = Object.keys(userRoles);
+    // Return true if there is exactly one role and it is named "Guest"
+    return roleNames.length === 1 && roleNames[0] === 'Guest';
   }
-
-  const { roles } = data.user;
-
-  // Get all role keys
-  const roleKeys = Object.keys(roles);
-
-  // Check if there's exactly one role and that single role is "Guest"
-  return roleKeys.length === 1 && roleKeys[0] === 'Guest';
+  // Return false if the user does not exist or does not have the required structure
+  return false;
 }
 
 const App = () => {
