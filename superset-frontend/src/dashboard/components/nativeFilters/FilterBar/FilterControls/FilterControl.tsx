@@ -22,7 +22,7 @@ import {
   InPortal,
   OutPortal,
 } from 'react-reverse-portal';
-import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
+import { t, styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
 import { FormItem as StyledFormItem, Form } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -252,15 +252,12 @@ const FilterControl = ({
   const label = useMemo(
     () => (
       <FilterControlTitleBox>
-        <FilterControlTitle
-          id={`filter-name-${filter.id}`}
-          data-test="filter-control-name"
-        >
-          {name}
+        <FilterControlTitle id={`filter-name-${filter.id}`} data-test="filter-control-name">
+          {t(name)}
         </FilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
         {filter.description?.trim() && (
-          <DescriptionToolTip description={filter.description} />
+          <DescriptionToolTip description={t(filter.description)} />
         )}
         <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
       </FilterControlTitleBox>

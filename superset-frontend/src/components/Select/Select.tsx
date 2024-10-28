@@ -447,7 +447,7 @@ const Select = forwardRef(
     const selectAllLabel = useMemo(
       () => () =>
         // TODO: localize
-        `${SELECT_ALL_VALUE} (${formatNumber(
+        `${t(SELECT_ALL_VALUE as string)} (${formatNumber(
           NumberFormats.INTEGER,
           selectAllEligible.length,
         )})`,

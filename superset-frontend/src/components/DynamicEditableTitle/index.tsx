@@ -192,7 +192,7 @@ export const DynamicEditableTitle = memo(
               onClick={handleClick}
               onKeyPress={handleKeyPress}
               placeholder={placeholder}
-              value={currentTitle}
+              value={isEditing ? currentTitle : t(currentTitle)}
               css={css`
                 cursor: ${isEditing ? 'text' : 'pointer'};
 
