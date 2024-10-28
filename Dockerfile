@@ -65,6 +65,8 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
 
 # Runs the webpack build process
 COPY --chown=superset:superset superset-frontend /app/superset-frontend
+RUN chmod 777 -R /app/superset-frontend/scripts
+
 # This copies the .po files needed for translation
 RUN mkdir -p /app/superset/translations
 COPY superset/translations /app/superset/translations
@@ -88,6 +90,11 @@ ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
 
+# Include translations in the final build. The default supports en only to
+# reduce complexity and weight for those only using en
+ARG BUILD_TRANSLATIONS="true"
+
+WORKDIR /app
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     SUPERSET_ENV=production \
