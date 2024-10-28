@@ -18,7 +18,16 @@ const calculatePercentage = (progressVal: number): number => {
 const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChartFormData) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const { minValue, maxValue, progress,segmentAmt, s1ChartColor, s1Start, s1End } = props;
+  const { minValue, maxValue, progress,segmentAmt, s1ChartColor, 
+    s1Start, 
+    s1End, 
+    s2ChartColor, 
+    s2Start, 
+    s2End, 
+    s3ChartColor, 
+    s3Start, 
+    s3End } = props;
+  // Assuming props includes segmentChartFormData
 
   var calculatedData = calculatePercentage(progress);
   //var calculatedData = 90
@@ -28,9 +37,9 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
   var outerRadiusSecondChart = 114;
   var innerRadiusSecondChart = 122;
   const segments = [
-    {start: s1Start, end: s1End, color: s1ChartColor},
-    {start: 70, end: 85, color: "#dba307"},
-    {start: 85, end: 100, color: "#db0707"},
+    {start: s1Start, end: s2End, color: s2ChartColor},
+    {start: s2Start, end: s2End, color: s2ChartColor},
+    {start: s3Start, end: s3End, color: s3ChartColor},
   ]
 
   useEffect(() => {
@@ -104,7 +113,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         {
           type: 'text',
           left: 400,
-          top: 210,
+          top: 230,
           style: {
             text: `S1 Color: ${s1ChartColor}`,
             fontSize: 16,
@@ -114,7 +123,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         {
           type: 'text',
           left: 400,
-          top: 230,
+          top: 250,
           style: {
             text: `S1 Start: ${s1Start}`,
             fontSize: 16,
@@ -124,13 +133,74 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         {
           type: 'text',
           left: 400,
-          top: 250,
+          top: 270,
           style: {
             text: `S1 Start: ${s1End}`,
             fontSize: 16,
             fontWeight: 'bold'
           }
         },
+        {
+          type: 'text',
+          left: 400,
+          top: 2700,
+          style: {
+            text: `S2 Color: ${s2ChartColor}`,
+            fontSize: 16,
+            fontWeight: 'bold',
+          }
+        },
+        {
+          type: 'text',
+          left: 400,
+          top: 290,
+          style: {
+            text: `S2 Start: ${s2Start}`,
+            fontSize: 16,
+            fontWeight: 'bold'
+          }
+        },
+        {
+          type: 'text',
+          left: 400,
+          top: 310,
+          style: {
+            text: `S2 Start: ${s2End}`,
+            fontSize: 16,
+            fontWeight: 'bold'
+          }
+        },
+        {
+          type: 'text',
+          left: 400,
+          top: 330,
+          style: {
+            text: `S3 Color: ${s3ChartColor}`,
+            fontSize: 16,
+            fontWeight: 'bold',
+          }
+        },
+        {
+          type: 'text',
+          left: 400,
+          top: 350,
+          style: {
+            text: `S3 Start: ${s3Start}`,
+            fontSize: 16,
+            fontWeight: 'bold'
+          }
+        },
+        {
+          type: 'text',
+          left: 400,
+          top: 370,
+          style: {
+            text: `S3 Start: ${s3End}`,
+            fontSize: 16,
+            fontWeight: 'bold'
+          }
+        },
+        
       ],
       series: [{
         type: 'custom',
